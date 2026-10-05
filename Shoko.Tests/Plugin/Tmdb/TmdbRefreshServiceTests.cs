@@ -184,12 +184,11 @@ public sealed class TmdbRefreshServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task NoCreditsAreFetchedWhenTheyAreNotWanted()
+    public async Task NoCreditsAreFetchedOnAQuickRefresh()
     {
         _harness.RouteShow();
-        _harness.Configuration.AutoDownloadCrewAndCast = false;
 
-        await _harness.Refresh.RefreshShow(1001, new(), TestContext.Current.CancellationToken);
+        await _harness.Refresh.RefreshShow(1001, new() { QuickRefresh = true }, TestContext.Current.CancellationToken);
 
         Assert.Empty(_harness.StoreData.Cast);
         Assert.DoesNotContain(_harness.Routes.Requests, request => request.Query.Contains("credits", StringComparison.Ordinal));
@@ -285,7 +284,7 @@ public sealed class TmdbRefreshServiceTests : IDisposable
     #region Movies & Collections
 
     [Fact]
-    public async Task AMovieIsStoredWithItsCreditsAndCollection()
+    public async Task AMovieIsStoredWithItsCreditsAndNamesItsCollectionWithoutFetchingIt()
     {
         _harness.RouteMovie();
 
@@ -305,21 +304,23 @@ public sealed class TmdbRefreshServiceTests : IDisposable
         Assert.Equal(["Frieren", "Fern"], _harness.StoreData.Cast[TmdbIds.Movie(7001)].Select(credit => credit.Name));
         Assert.Equal([TmdbIds.Genre(16), TmdbIds.Genre(14), TmdbIds.Keyword(210024)], _harness.StoreData.EntryTags[TmdbIds.Movie(7001)].Select(tag => tag.TagID));
 
+        // The core fetches the collection the movie names.
+        Assert.Equal(TmdbIds.Collection(8001), movie.CollectionID);
+        Assert.Empty(_harness.StoreData.Collections);
+        Assert.Equal(0, _harness.Routes.Count("collection/8001"));
+    }
+
+    [Fact]
+    public async Task ACollectionIsStoredWithItsMovies()
+    {
+        _harness.RouteMovie();
+
+        Assert.True(await _harness.Refresh.RefreshCollection(8001, TestContext.Current.CancellationToken));
+
         var collection = _harness.StoreData.Collections[TmdbIds.Collection(8001)];
         Assert.Equal([TmdbIds.Movie(7001), TmdbIds.Movie(7002)], collection.Members);
         Assert.Equal("Journey's End Collection", collection.Titles[0].Value);
         Assert.Equal([(ImageEntityType.Primary, "collection-poster.jpg")], collection.DefaultImageResourceIDs!.Select(pair => (pair.Key, pair.Value)));
-    }
-
-    [Fact]
-    public async Task AMovieKeepsItsCollectionIDWhenTheCollectionIsNotDownloaded()
-    {
-        _harness.RouteMovie();
-
-        Assert.True(await _harness.Refresh.RefreshMovie(7001, new() { DownloadCollections = false }, TestContext.Current.CancellationToken));
-
-        Assert.Equal(TmdbIds.Collection(8001), _harness.StoreData.Movies[TmdbIds.Movie(7001)].CollectionID);
-        Assert.Empty(_harness.StoreData.Collections);
     }
 
     [Fact]

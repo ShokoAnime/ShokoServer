@@ -19,7 +19,8 @@ public class TmdbRefreshShowBody
     public bool DownloadImages { get; set; } = true;
 
     /// <summary>
-    /// Also download crew and cast. Will respect global option if not set.
+    /// Ignored. The crew and cast are always downloaded, and the people in
+    /// them while TMDB's creator kind is enabled.
     /// </summary>
     public bool? DownloadCrewAndCast { get; set; } = null;
 
@@ -29,7 +30,8 @@ public class TmdbRefreshShowBody
     public bool? DownloadAlternateOrdering { get; set; } = null;
 
     /// <summary>
-    /// Also download networks for show. Will respect global option if not set.
+    /// Ignored. The show's networks are always downloaded, and the networks
+    /// themselves while TMDB's network kind is enabled.
     /// </summary>
     public bool? DownloadNetworks { get; set; } = null;
 

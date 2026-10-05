@@ -9,11 +9,13 @@ namespace Shoko.Abstractions.Metadata.Providers;
 ///   one at a time, when the core asks.
 /// </summary>
 /// <remarks>
-///   Optional. Your series and movie refreshes then name these entries by ID
-///   in their credits and links, with whatever names they carry, and the core
-///   keeps a stub for each one not stored yet. The core asks you to refresh
-///   each stub, and each linked entry older than <see cref="EntityStaleAfter"/>,
-///   in a job of your own, once however many entries share it.
+///   Optional. Your series and movie refreshes then always name these
+///   entries by ID in their credits and links, with whatever names they
+///   carry, and the core keeps a stub for each one not stored yet. For each
+///   kind turned on for you, the core asks you to refresh each stub, and each
+///   linked entry older than <see cref="EntityStaleAfter"/>, in a job of your
+///   own, once however many entries share it. Keep no download switch of
+///   your own for them: a kind turned off is the switch.
 /// </remarks>
 public interface IMetadataEntityProvider : IMetadataProvider
 {

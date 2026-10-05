@@ -93,6 +93,7 @@ public static partial class SettingsMigrations
         { 25, (settings, paths) => MigrateUpdateFrequenciesToScheduledActions(settings, paths.DataPath) },
         { 26, MigrateTmdbSettingsToPlugin },
         { 27, (settings, paths) => MigrateStartupSettingsToTriggers(settings, paths.DataPath) },
+        { 28, MigrateTmdbDownloadSwitchesToKinds },
     };
 
     /// <summary>
@@ -463,6 +464,116 @@ public static partial class SettingsMigrations
         );
         if (!exists)
             templates.Add(new JObject { ["ImageSource"] = MetadataSource.TMDB.Value, ["TemplateUrl"] = template });
+    }
+
+    #endregion
+
+    #region TMDB Download Switches
+
+    /// <summary>
+    ///   The TMDB plugin's download switches that became provider kinds, and
+    ///   the kind each turns off when it was off.
+    /// </summary>
+    internal static readonly IReadOnlyList<(string Key, MetadataEntityType Kind)> TmdbDownloadSwitchKinds =
+    [
+        ("AutoDownloadCrewAndCast", MetadataEntityType.Creator),
+        ("AutoDownloadCollections", MetadataEntityType.Collection),
+        ("AutoDownloadNetworks", MetadataEntityType.Network),
+    ];
+
+    /// <summary>
+    ///   Where migration 28 leaves the kinds it turned off, until the metadata
+    ///   provider manager has applied and saved them.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>The carry-over file's path.</returns>
+    internal static string KindsOffCarryOverPath(string dataPath)
+        => Path.Combine(dataPath, "SettingsBackup", "kinds-off.v27.json");
+
+    /// <summary>
+    ///   Reads the kinds migration 28 turned off. A file that cannot be read
+    ///   is renamed aside, so it is not read on every start.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <param name="logger">Told when the file cannot be read, or <c>null</c>.</param>
+    /// <returns>
+    ///   The kinds by source, or an empty map when there is no file, either
+    ///   because nothing was migrated or because it was already applied, or
+    ///   when it cannot be read.
+    /// </returns>
+    internal static IReadOnlyDictionary<MetadataSource, IReadOnlyList<MetadataEntityType>> ReadKindsOffCarryOver(string dataPath, ILogger? logger = null)
+        => ReadCarryOver<Dictionary<MetadataSource, List<MetadataEntityType>>>(KindsOffCarryOverPath(dataPath), "kinds turned off", logger)?
+            .ToDictionary(pair => pair.Key, pair => (IReadOnlyList<MetadataEntityType>)pair.Value)
+            ?? [];
+
+    /// <summary>
+    ///   Removes the kinds-off carry-over once it has been applied and saved.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    internal static void ClearKindsOffCarryOver(string dataPath)
+    {
+        var path = KindsOffCarryOverPath(dataPath);
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
+    /// <summary>
+    ///   Takes the TMDB plugin's download switches for referenced entries out
+    ///   of its configuration, as migration 28, and carries each one that was
+    ///   off over as the TMDB provider's kind turned off.
+    /// </summary>
+    /// <remarks>
+    ///   Whether a referenced entry is fetched is now the kind being turned
+    ///   on for the provider, which the metadata service settings keep. A
+    ///   switch that was on, or missing, leaves the kind as seeding decides.
+    ///   The carry-over waits beside the settings backup for the provider
+    ///   manager, which applies it before seeding.
+    /// </remarks>
+    /// <param name="settings">The settings JSON being migrated, returned as it is.</param>
+    /// <param name="applicationPaths">The application paths, for the plugin's file and the carry-over.</param>
+    /// <returns>The settings JSON.</returns>
+    internal static string MigrateTmdbDownloadSwitchesToKinds(string settings, IApplicationPaths applicationPaths)
+    {
+        var path = TmdbPluginConfigurationPath(applicationPaths);
+        if (!File.Exists(path))
+            return settings;
+
+        JObject configuration;
+        try
+        {
+            configuration = JObject.Parse(File.ReadAllText(path));
+        }
+        catch (JsonException)
+        {
+            return settings;
+        }
+
+        var kindsOff = new List<MetadataEntityType>();
+        var taken = false;
+        foreach (var (key, kind) in TmdbDownloadSwitchKinds)
+        {
+            if (configuration.Property(key) is not { } property)
+                continue;
+
+            property.Remove();
+            taken = true;
+            if (property.Value.Type is JTokenType.Boolean && !property.Value.Value<bool>())
+                kindsOff.Add(kind);
+        }
+
+        if (!taken)
+            return settings;
+
+        if (kindsOff.Count > 0)
+        {
+            var carryOver = KindsOffCarryOverPath(applicationPaths.DataPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(carryOver)!);
+            var carried = new Dictionary<MetadataSource, List<MetadataEntityType>> { [MetadataSource.TMDB] = kindsOff };
+            File.WriteAllText(carryOver, JsonConvert.SerializeObject(carried, Formatting.Indented));
+        }
+
+        File.WriteAllText(path, configuration.ToString());
+        return settings;
     }
 
     #endregion

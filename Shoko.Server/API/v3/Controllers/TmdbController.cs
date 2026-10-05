@@ -50,7 +50,8 @@ public partial class TmdbController(
     IMetadataPurgeService _metadataPurgeService,
     IMetadataCrossReferenceTransferService _crossReferenceTransferService,
     IMetadataOrderingService _orderingService,
-    IImageManager _imageManager
+    IImageManager _imageManager,
+    IMetadataService _metadataService
 ) : BaseController(settingsProvider)
 {
     // A fast 503 with Retry-After while paused; queues the job first unless the caller waits for it.
@@ -165,6 +166,21 @@ public partial class TmdbController(
     /// <returns><c>true</c> when there was one, so a copy read before may be stale.</returns>
     private bool WaitForMovieUpdate(int movieID)
         => _metadataRefreshService.WaitForRefresh(MovieEntry(movieID)).GetAwaiter().GetResult();
+
+    /// <summary>
+    ///   Answers for a TMDB collection that is not stored, after asking the
+    ///   metadata service for it, which queues its fetch when TMDB's
+    ///   collection provider is enabled and a linked movie names it.
+    /// </summary>
+    /// <param name="collectionID">The TMDB collection ID.</param>
+    /// <returns>404, as a later request finds the collection once it is fetched.</returns>
+    private NotFoundObjectResult CollectionMissing(int collectionID)
+    {
+        if (collectionID > 0)
+            _metadataService.GetCollection(new(MetadataSource.TMDB, MetadataEntityType.Collection, collectionID.ToString()));
+
+        return NotFound(MovieCollectionNotFound);
+    }
 
     /// <summary>
     ///   Wait out a running refresh or purge of a TMDB collection.
@@ -540,7 +556,11 @@ public partial class TmdbController(
 
         var movieCollection = movie.TmdbCollection;
         if (movieCollection is null)
+        {
+            if (movie.TmdbCollectionID is { } collectionID)
+                CollectionMissing(collectionID);
             return NotFound(MovieCollectionByMovieIDNotFound);
+        }
 
         return new TmdbMovie.Collection(movieCollection, include?.CombineFlags());
     }
@@ -708,8 +728,6 @@ public partial class TmdbController(
             new()
             {
                 DownloadImages = body.DownloadImages,
-                DownloadCrewAndCast = body.DownloadCrewAndCast,
-                DownloadCollections = body.DownloadCollections,
                 Reason = MetadataRefreshReason.Requested,
             },
             "Movie refresh",
@@ -906,7 +924,7 @@ public partial class TmdbController(
         if (collection is not null && WaitForCollectionUpdate(collection.Id))
             collection = TmdbCompatibility.GetCollection(collection.Id);
         if (collection is null)
-            return NotFound(MovieCollectionNotFound);
+            return CollectionMissing(collectionID);
 
         return new TmdbMovie.Collection(collection, include?.CombineFlags(), language);
     }
@@ -921,7 +939,7 @@ public partial class TmdbController(
         if (collection is not null && WaitForCollectionUpdate(collection.Id))
             collection = TmdbCompatibility.GetCollection(collection.Id);
         if (collection is null)
-            return NotFound(MovieCollectionNotFound);
+            return CollectionMissing(collectionID);
 
         var preferredTitle = collection.GetPreferredTitle();
         return new(collection.GetAllTitles().ToTitleDto(collection.EnglishTitle, preferredTitle, language));
@@ -937,7 +955,7 @@ public partial class TmdbController(
         if (collection is not null && WaitForCollectionUpdate(collection.Id))
             collection = TmdbCompatibility.GetCollection(collection.Id);
         if (collection is null)
-            return NotFound(MovieCollectionNotFound);
+            return CollectionMissing(collectionID);
 
         var preferredOverview = collection.GetPreferredOverview();
         return new(collection.GetAllOverviews().ToOverviewDto(collection.EnglishOverview, preferredOverview, language));
@@ -965,7 +983,7 @@ public partial class TmdbController(
         if (collection is not null && WaitForCollectionUpdate(collection.Id))
             collection = TmdbCompatibility.GetCollection(collection.Id);
         if (collection is null)
-            return NotFound(MovieCollectionNotFound);
+            return CollectionMissing(collectionID);
 
         var options = new ImageFilteringOptions { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true };
         return ((IWithImages)collection).GetImages(options)
@@ -988,7 +1006,7 @@ public partial class TmdbController(
         if (collection is not null && WaitForCollectionUpdate(collection.Id))
             collection = TmdbCompatibility.GetCollection(collection.Id);
         if (collection is null)
-            return NotFound(MovieCollectionNotFound);
+            return CollectionMissing(collectionID);
 
         return collection.GetTmdbMovies()
             .Select(movie =>
@@ -1881,9 +1899,7 @@ public partial class TmdbController(
             {
                 QuickRefresh = isQuickRefresh,
                 DownloadImages = body.DownloadImages,
-                DownloadCrewAndCast = body.DownloadCrewAndCast,
                 DownloadAlternateOrdering = body.DownloadAlternateOrdering,
-                DownloadNetworks = body.DownloadNetworks,
                 Reason = MetadataRefreshReason.Requested,
             },
             "Show refresh",

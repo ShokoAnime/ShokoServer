@@ -47,6 +47,7 @@ public class MetadataProvider
         SupportsPausing = info.SupportsPausing;
         AvailableEntityTypes = [.. info.AvailableEntityTypes.Order()];
         EnabledEntityTypes = [.. info.EnabledEntityTypes.Order()];
+        DefaultEnabledEntityTypes = [.. info.DefaultEnabledEntityTypes.Order()];
         IsEnabled = info.Enabled;
         IsConfigured = info.Provider.IsConfigured;
         NotConfiguredReason = IsConfigured ? null : info.Provider.NotConfiguredReason;
@@ -185,10 +186,21 @@ public class MetadataProvider
     public bool IsEnabled { get; init; }
 
     /// <summary>
-    /// The kinds of entries the provider is on for.
+    /// The kinds of entries the provider is on for. Seeded from
+    /// <see cref="DefaultEnabledEntityTypes"/> on first sight, owned by the
+    /// admin afterwards. A referenced creator, character, studio, network or
+    /// collection is only fetched while its kind is on.
     /// </summary>
     [Required]
     public IReadOnlyList<MetadataEntityType> EnabledEntityTypes { get; init; }
+
+    /// <summary>
+    /// The kinds of entries the provider suggests being on for, which seeded
+    /// <see cref="EnabledEntityTypes"/> for each kind nothing was decided
+    /// about yet.
+    /// </summary>
+    [Required]
+    public IReadOnlyList<MetadataEntityType> DefaultEnabledEntityTypes { get; init; }
 
     /// <summary>
     /// Whether the provider has what it needs to answer, such as an API key.

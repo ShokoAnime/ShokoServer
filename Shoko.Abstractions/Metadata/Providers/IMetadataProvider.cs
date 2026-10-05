@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Config;
@@ -66,6 +68,29 @@ public interface IMetadataProvider
     ///   <see cref="AutoLinkByDefault"/>, and means nothing without it.
     /// </remarks>
     bool AutoLinkRestrictedByDefault { get => false; }
+
+    /// <summary>
+    ///   The kinds you suggest being turned on for when you are first seen on
+    ///   your source. Every kind you serve by default.
+    /// </summary>
+    /// <remarks>
+    ///   Seeded from each provider's own suggestion on first sight, owned by
+    ///   the admin afterwards: read once, at registration, for each kind you
+    ///   serve that has no decision about you yet, and never again for it. A
+    ///   kind decided as nobody keeps you off whatever you suggest. Leave a
+    ///   kind out to start off for it, such as the <c>collection</c> kind
+    ///   when collections are not worth fetching by default. Kinds you do not
+    ///   serve are ignored.
+    /// </remarks>
+    IReadOnlySet<MetadataEntityType> DefaultEnabledKinds
+    {
+        get => new HashSet<MetadataEntityType>(
+            (this is IMetadataSeriesProvider ? [MetadataEntityType.Series, MetadataEntityType.Season, MetadataEntityType.Episode] : (MetadataEntityType[])[])
+                .Concat(this is IMetadataMovieProvider ? [MetadataEntityType.Movie] : [])
+                .Concat(this is IMetadataCollectionProvider ? [MetadataEntityType.Collection] : [])
+                .Concat(this is IMetadataEntityProvider entityProvider ? entityProvider.EntityScope.Select(pair => pair.EntityType) : [])
+        );
+    }
 
     /// <summary>
     ///   Whether you have what you need to answer, such as an API key or

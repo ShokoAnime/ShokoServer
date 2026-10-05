@@ -15,11 +15,15 @@ back from them. Up to four TMDb jobs of each kind run at once.
 - **Series and movies.** A refresh stores the show with its seasons and
   episodes, or the movie, with their titles, overviews, credits, genres and
   keywords, content ratings, studios, networks, suggestions and episode
-  groups (as global orderings, each group with TMDb's number). A movie keeps
-  its collection's ID even when the collection is not downloaded.
-- **Collections, people, companies and networks.** Stored on refresh, and
-  refreshed one at a time through the entity provider when a credit or link
-  names one the stores lack.
+  groups (as global orderings, each group with TMDb's number). A movie names
+  its collection by ID and never fetches it.
+- **Collections.** Fetched by the core through `RefreshCollection` while the
+  provider's `collection` kind is on: when a linked movie naming one is saved
+  or refreshed, when a read finds it missing, and in the library refresh.
+- **People, companies and networks.** Named on every refresh, credits
+  included unless it is quick, and fetched one at a time through the entity
+  provider while the provider's `creator`, `studio` and `network` kinds are on,
+  for each one the stores lack or hold stale.
 - **Genres.** Kept as tags by TMDb's IDs (`tmdb://tag/genre/16`). A genre
   joining two with `&`, such as `Action & Adventure`, is one tag per part
   (`tmdb://tag/genre/10759/1`, `…/2`), so filters match `Action` and
@@ -51,10 +55,14 @@ folder and edited through the configuration API like any plugin's.
 The switches are all off by default. `DownloadAllTitles`,
 `DownloadAllOverviews` and `DownloadAllContentRatings` store every language
 TMDb has rather than the ones the server's language orders pick.
-`AutoDownloadCrewAndCast`, `AutoDownloadCollections`,
-`AutoDownloadAlternateOrdering` (episode groups) and `AutoDownloadNetworks`
-switch what a refresh downloads. `ConsiderExistingOtherLinks` weighs other
-anime's links when linking. Last, `AutoSearchShowCandidateCount` and
+`AutoDownloadAlternateOrdering` switches whether a refresh downloads episode
+groups. Whether people, companies, networks and collections are fetched is
+the provider's `creator`, `studio`, `network` and `collection` kinds, on by
+default and set with its other kinds
+(`PUT /api/v3/Metadata/Provider/{providerID}`). An upgrade turned off
+`creator`, `collection` and `network` where `AutoDownloadCrewAndCast`,
+`AutoDownloadCollections` and `AutoDownloadNetworks` were off.
+`ConsiderExistingOtherLinks` weighs other anime's links when linking. Last, `AutoSearchShowCandidateCount` and
 `AutoSearchMovieCandidateCount` (`1` to `10`, default `5`) set how many
 candidates an auto-search scores.
 

@@ -96,7 +96,8 @@ public sealed record MetadataMovieData
     /// <summary>
     ///   The collection the movie is part of, on the movie's own source, or
     ///   <c>null</c> when it is part of none. Kept whether or not the
-    ///   collection itself is stored.
+    ///   collection itself is stored; the core fetches it through the
+    ///   source's collection provider while its <c>collection</c> kind is on.
     /// </summary>
     public MetadataGuid? CollectionID { get; init; }
 

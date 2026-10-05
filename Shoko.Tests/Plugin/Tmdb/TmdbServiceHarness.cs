@@ -44,10 +44,7 @@ internal sealed class TmdbServiceHarness : IDisposable
     public TmdbConfiguration Configuration { get; } = new()
     {
         UserApiKey = "test-key",
-        AutoDownloadCrewAndCast = true,
         AutoDownloadAlternateOrdering = true,
-        AutoDownloadNetworks = true,
-        AutoDownloadCollections = true,
     };
 
     /// <summary>What the stores hold.</summary>

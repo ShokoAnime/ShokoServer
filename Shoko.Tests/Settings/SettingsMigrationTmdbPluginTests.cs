@@ -7,6 +7,7 @@ using Moq;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Plugin;
 using Shoko.Plugin.Tmdb;
 using Shoko.Server.Settings;
@@ -105,7 +106,7 @@ public sealed class SettingsMigrationTmdbPluginTests : IDisposable
 
         // The file reads back as the plugin's configuration.
         var configuration = file.ToObject<TmdbConfiguration>()!;
-        Assert.True(configuration.AutoDownloadNetworks);
+        Assert.True(configuration.AutoDownloadAlternateOrdering);
         Assert.Equal(2, configuration.AutoSearchMovieCandidateCount);
         Assert.Equal(2000, configuration.RateLimit.WindowDurationMs);
     }
@@ -157,12 +158,20 @@ public sealed class SettingsMigrationTmdbPluginTests : IDisposable
     }
 
     [Fact]
-    public void TheMigration_RunsAsMigration26()
+    public void TheMigration_RunsAsMigration26_AndTheSwitchesThatBecameKindsGoIn28()
     {
-        var migrated = JObject.Parse(SettingsMigrations.MigrateSettings(WithTmdb("\"AutoDownloadNetworks\": true"), _applicationPaths));
+        var settings = SettingsMigrations.MigrateSettings(
+            WithTmdb("\"AutoDownloadNetworks\": false, \"DownloadAllTitles\": true"),
+            _applicationPaths
+        );
+
+        var migrated = JObject.Parse(settings);
 
         Assert.Null(migrated.Property("TMDB"));
-        Assert.True(JObject.Parse(File.ReadAllText(PluginFile))["AutoDownloadNetworks"]!.Value<bool>());
+        var file = JObject.Parse(File.ReadAllText(PluginFile));
+        Assert.True(file["DownloadAllTitles"]!.Value<bool>());
+        Assert.Null(file.Property("AutoDownloadNetworks"));
+        Assert.Equal([MetadataEntityType.Network], SettingsMigrations.ReadKindsOffCarryOver(_applicationPaths.DataPath)[MetadataSource.TMDB]);
     }
 
     [Fact]
@@ -219,8 +228,11 @@ public sealed class SettingsMigrationTmdbPluginTests : IDisposable
     }
 
     [Fact]
-    public void ThePluginConfiguration_ReadsEveryKeyTheMigrationCarries()
-        => Assert.Equal(JObject.FromObject(new TmdbConfiguration()).Properties().Select(property => property.Name).Order(), SettingsMigrations.TmdbPluginConfigurationKeys.Order());
+    public void ThePluginConfiguration_ReadsEveryKeyTheMigrationCarries_SaveTheSwitchesThatBecameKinds()
+        => Assert.Equal(
+            JObject.FromObject(new TmdbConfiguration()).Properties().Select(property => property.Name).Order(),
+            SettingsMigrations.TmdbPluginConfigurationKeys.Except(SettingsMigrations.TmdbDownloadSwitchKinds.Select(pair => pair.Key)).Order()
+        );
 
     [Fact]
     public void TheCarriedApiKey_IsMaskedOnTheWayOut()
@@ -235,6 +247,42 @@ public sealed class SettingsMigrationTmdbPluginTests : IDisposable
     {
         Assert.Equal("user-key", TmdbApiKey.Resolve(new() { UserApiKey = "user-key" }));
         Assert.Equal(TmdbApiKey.Resolve(new()), TmdbApiKey.Resolve(new() { UserApiKey = " " }));
+    }
+
+    #endregion
+
+    #region Download Switches
+
+    [Fact]
+    public void TheDownloadSwitches_LeaveThePluginFile_AndEachOneOffTurnsItsKindOff()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(PluginFile)!);
+        File.WriteAllText(
+            PluginFile,
+            """{ "AutoDownloadCrewAndCast": false, "AutoDownloadCollections": true, "AutoDownloadNetworks": false, "UserApiKey": "key" }"""
+        );
+        const string settings = "{ \"SettingsVersion\": 27 }";
+
+        Assert.Equal(settings, SettingsMigrations.MigrateTmdbDownloadSwitchesToKinds(settings, _applicationPaths));
+
+        var file = JObject.Parse(File.ReadAllText(PluginFile));
+        Assert.Equal(["UserApiKey"], file.Properties().Select(property => property.Name));
+        Assert.Equal(
+            [MetadataEntityType.Creator, MetadataEntityType.Network],
+            SettingsMigrations.ReadKindsOffCarryOver(_applicationPaths.DataPath)[MetadataSource.TMDB]
+        );
+    }
+
+    [Fact]
+    public void DownloadSwitchesOnOrMissing_TurnNothingOff()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(PluginFile)!);
+        File.WriteAllText(PluginFile, """{ "AutoDownloadCollections": true }""");
+
+        SettingsMigrations.MigrateTmdbDownloadSwitchesToKinds("{}", _applicationPaths);
+
+        Assert.Empty(JObject.Parse(File.ReadAllText(PluginFile)).Properties());
+        Assert.Empty(SettingsMigrations.ReadKindsOffCarryOver(_applicationPaths.DataPath));
     }
 
     #endregion

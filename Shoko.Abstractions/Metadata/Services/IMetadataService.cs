@@ -159,6 +159,11 @@ public interface IMetadataService
     ///   Looks up a collection by its identifier, as
     ///   <see cref="GetEntry{TMetadata}(MetadataGuid)"/> does.
     /// </summary>
+    /// <remarks>
+    ///   A collection that is not stored is queued for a fetch through the
+    ///   collection provider of its source, when one has the collection kind
+    ///   enabled and a linked film names it, so a later read finds it.
+    /// </remarks>
     /// <param name="id">The collection.</param>
     /// <returns>The collection, or <c>null</c> when nothing holds it or the ID names another kind.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>

@@ -13,7 +13,7 @@ refresh itself: fetch from your source and write into the stores.
 | `IMetadataSeriesLinkingProvider` | Let users search your series and match their episodes. |
 | `IMetadataMovieProvider` | Refresh a linked movie into the stores. |
 | `IMetadataMovieLinkingProvider` | Let users search your movies. |
-| `IMetadataCollectionProvider` | Refresh a stored collection into the stores. |
+| `IMetadataCollectionProvider` | Fetch a collection your films name into the stores. |
 | `IMetadataAutoLinkingProvider` | Work out what an anime is on your own, for the core to link. |
 | `IMetadataImageProvider` | Offer the images your source has for its entities. |
 | `IMetadataEntityProvider` | Refresh your creators, characters, studios and networks one at a time. |
@@ -143,9 +143,13 @@ purge. What was never decided goes to the first provider registered for the
 source, the core's before any plugin's: every entity type no earlier provider
 was given, and auto-linking for the first one implementing
 `IMetadataAutoLinkingProvider` (starting from `AutoLinkByDefault` and
-`AutoLinkRestrictedByDefault`). A provider installed later joins the end of
-each order, so it never takes over by itself, and an admin's decisions are
-always kept (`IMetadataProviderManager.SetProviderOrder`, or
+`AutoLinkRestrictedByDefault`). Whether a provider is on for each kind is
+seeded from its own suggestion on first sight, owned by the admin afterwards:
+`DefaultEnabledKinds` (every kind you serve unless you leave some out) is read
+for each kind with no decision about you yet, and never again for it. A
+provider installed later joins the end of each order, on only when it
+suggests so and something there is, so it never takes over by itself, and an
+admin's decisions are always kept (`IMetadataProviderManager.SetProviderOrder`, or
 `PUT /api/v3/Metadata/Source/{source}/Providers`). When the provider
 answering is turned off, the next enabled one takes over; when it disappears,
 so does the next enabled one, or else the first one still claiming the type.
@@ -344,21 +348,22 @@ linked to several of your films.
 |---|---|---|
 | `IMetadataSeriesProvider.RefreshSeries` | Each series linked to an anime on your source, or that its episode links point into | `IMetadataSeriesStore.SaveSeries` |
 | `IMetadataMovieProvider.RefreshMovie` | Each film linked to an anime, whole or through an episode | `IMetadataMovieStore.SaveMovie` |
-| `IMetadataCollectionProvider.RefreshCollection` | Each stored collection in the library refresh, or one asked for by `RefreshEntry` | `IMetadataCollectionStore.SaveCollection` |
+| `IMetadataCollectionProvider.RefreshCollection` | A collection a linked film names, when the film is saved or refreshed or a read finds it missing; each stored collection in the library refresh; one asked for by `RefreshEntry` | `IMetadataCollectionStore.SaveCollection` |
 | `IMetadataEntityProvider.RefreshEntity` | Each stub or stale creator, character, studio or network something names, or one asked for by `RefreshEntry` | `SaveCreators`, `SaveCharacters`, `SaveStudios`, `SaveNetworks` |
 
 The core writes nothing of yours for you: fetch, then write the entry, its
 cast and crew, and its tags, studios, networks, relations and suggestions.
 When your source no longer has an entry, keeping or removing it is up to you.
-A collection enters the store when you save it during a series or film
-refresh. A film names its collection in `MetadataMovieData.CollectionID`
-whether or not you save the collection.
+A film names its collection in `MetadataMovieData.CollectionID`, and you do
+not fetch the collection yourself: while your `collection` kind is turned on,
+the core queues `RefreshCollection` for a collection a linked film names that
+is not stored or was not refreshed within the hour. With the kind off, the ID
+is kept and nothing is fetched.
 
-`MetadataRefreshOptions` carries the refresh switches (`DownloadImages`,
-`DownloadCrewAndCast`, `DownloadAlternateOrdering`, `DownloadNetworks`,
-`DownloadCollections`, `null` meaning your settings; ignore what means nothing
-for you), `QuickRefresh` (skip what is costly; no images, and it does not count
-as a refresh), `Reason` (`Scheduled`, `Linked` or `Requested`),
+`MetadataRefreshOptions` carries the refresh switches (`DownloadImages`, and
+`DownloadAlternateOrdering` with `null` meaning your settings; ignore what
+means nothing for you), `QuickRefresh` (skip what is costly; no images, and it
+does not count as a refresh), `Reason` (`Scheduled`, `Linked` or `Requested`),
 `LastRefreshedAt` (UTC) and `AnidbAnimeID`. The core keeps that time on the
 stored entry, read back as `LastRefreshedAt` on series, movies, collections,
 people, studios and networks; you never set it. A resolver's own entries
@@ -371,7 +376,8 @@ Your options carry no force flag. Before calling you the core:
 - holds the entry's lock, shared by every refresh, purge and image job, and
   merges duplicate requests;
 - refreshes an entry asked for by ID only while something links to it (a
-  collection while it is stored), unless `Reason` is `Requested`.
+  collection while it is stored or a linked film names it), unless `Reason`
+  is `Requested`.
 
 Throw when a refresh fails: it is logged, the entry keeps its last refresh
 time, the anime's other entries still refresh, and the job retries. After a
@@ -387,7 +393,7 @@ You write no queue code. The core registers one job type per provider:
 | `RefreshMetadataJob<TProvider>` | Your refresh calls for what an anime links to, or the one entry asked for | AniDB telling the core about an anime, `RefreshForAnime`, `RefreshEntry`, the search job after it linked something, the refresh actions |
 | `SearchMetadataJob<TProvider>` | `IMetadataAutoLinkingProvider.FindAutoLinks`, then links what you took | An anime not linked on your source, `IMetadataLinkingService.AutoLink`, the search actions |
 | `DownloadMetadataImagesJob<TProvider>` | `IMetadataImageProvider.GetImages` for each entity under the entry | A refresh asking for images, `IMetadataRefreshService.DownloadImages`, the image actions |
-| `RefreshMetadataEntityJob<TProvider>` | `IMetadataEntityProvider.RefreshEntity` for one entry | A store write naming a stub or stale entry, `RefreshEntry`, the "Refresh Stale People, Studios and Networks" action |
+| `RefreshMetadataEntityJob<TProvider>` | `IMetadataEntityProvider.RefreshEntity` for one entry | A store write naming a stub or stale entry, `RefreshEntry`, the "Refresh Missing and Stale People, Studios, Networks and Collections" action |
 | `PurgeMetadataJob` | Your `CleanUp`, last | A link removed with `Purge`, `IMetadataPurgeService`, the purge actions |
 | `DownloadContributedImagesJob<TContributor>` | `IMetadataImageContributor.GetImages` | The owner's image job, or `DownloadImages` for an entry no provider covers |
 | `ClearContributedImagesJob` | Nothing of yours | A contributor turned off for a pair |
@@ -459,8 +465,9 @@ The actions a person can run are `Refresh Linked Metadata`,
 `Auto-Search Metadata Links` and `Download Linked Metadata Images - Force` on a
 series, and `Refresh All Linked Metadata`, `Search for Metadata Matches`,
 `Download All Linked Metadata Images - Force`, `Purge Unused Metadata`,
-`Purge Orphaned Metadata` and `Refresh Stale People, Studios and Networks`
-across the library. Each is a call on
+`Purge Orphaned Metadata` and
+`Refresh Missing and Stale People, Studios, Networks and Collections` across
+the library. Each is a call on
 `IMetadataRefreshService` or `IMetadataPurgeService` that a plugin can make
 too.
 
@@ -498,6 +505,10 @@ public class ExampleProvider(ExampleClient client, IMetadataPeopleStore people) 
   dropped with a warning. The kinds join your entity types, so an admin turns
   them on and off per kind, and each source and kind is answered by one
   provider at a time.
+- **Always name them.** Write every credit and link your source gives,
+  whatever is turned on, and keep no download switch of your own for these
+  entries: whether one is fetched is only whether its kind is turned on for
+  you. A kind turned off keeps its stubs, names and all.
 - **What is due.** Every write naming these entries (`SetCast`, `SetCrew`,
   `SetStudios`, `SetNetworks`) checks each one it names: a stub is due, and so
   is an entry last saved longer ago than `EntityStaleAfter` (30 days unless
@@ -518,9 +529,11 @@ public class ExampleProvider(ExampleClient client, IMetadataPeopleStore people) 
   image contributors' jobs.
 - **Names.** A stub keeps the first name a credit or link gave it. One stored
   with no name takes the next name given, until your source saves it.
-- **The library.** "Refresh Stale People, Studios and Networks" runs daily and
-  queues every stub and stale entry something names, of every source with
-  such a provider. `IMetadataRefreshService.RefreshEntry` takes these kinds
+- **The library.** "Refresh Missing and Stale People, Studios, Networks and
+  Collections" runs at start-up and daily. It queues every stub and stale
+  entry something names, for each kind a provider of its source has turned
+  on, and the fetch of every collection a linked film names that is not
+  stored. `IMetadataRefreshService.RefreshEntry` takes these kinds
   too, and `POST /api/v3/Metadata/{source}/{kind}/{id}/Action/Refresh` asks
   for one (`Creator`, `Character`, `Studio` or `Network`).
 

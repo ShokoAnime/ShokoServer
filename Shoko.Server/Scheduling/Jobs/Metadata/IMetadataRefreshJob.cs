@@ -37,28 +37,10 @@ internal interface IMetadataRefreshJob
     bool DownloadImages { get; set; }
 
     /// <summary>
-    ///   Whether to fetch the cast and crew, or <c>null</c> to go
-    ///   by the settings.
-    /// </summary>
-    bool? DownloadCrewAndCast { get; set; }
-
-    /// <summary>
     ///   Whether to fetch the alternate orderings, or <c>null</c>
     ///   to go by the settings.
     /// </summary>
     bool? DownloadAlternateOrdering { get; set; }
-
-    /// <summary>
-    ///   Whether to fetch the networks, or <c>null</c> to go by the
-    ///   settings.
-    /// </summary>
-    bool? DownloadNetworks { get; set; }
-
-    /// <summary>
-    ///   Whether to fetch the collections, or <c>null</c> to go by
-    ///   the settings.
-    /// </summary>
-    bool? DownloadCollections { get; set; }
 
     /// <summary>
     ///   Whether this is a quick refresh, which leaves the images alone.
@@ -84,10 +66,7 @@ internal static class MetadataRefreshJobExtensions
     public static void Apply(this IMetadataRefreshJob job, MetadataRefreshOptions options)
     {
         job.DownloadImages = options.DownloadImages;
-        job.DownloadCrewAndCast = options.DownloadCrewAndCast;
         job.DownloadAlternateOrdering = options.DownloadAlternateOrdering;
-        job.DownloadNetworks = options.DownloadNetworks;
-        job.DownloadCollections = options.DownloadCollections;
         job.QuickRefresh = options.QuickRefresh;
         job.Reason = options.Reason;
     }
@@ -102,10 +81,7 @@ internal static class MetadataRefreshJobExtensions
         => new()
         {
             DownloadImages = job.DownloadImages,
-            DownloadCrewAndCast = job.DownloadCrewAndCast,
             DownloadAlternateOrdering = job.DownloadAlternateOrdering,
-            DownloadNetworks = job.DownloadNetworks,
-            DownloadCollections = job.DownloadCollections,
             QuickRefresh = job.QuickRefresh,
             Reason = job.Reason,
         };

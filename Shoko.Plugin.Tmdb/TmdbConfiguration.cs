@@ -58,27 +58,10 @@ public class TmdbConfiguration : IConfiguration
     public bool DownloadAllContentRatings { get; set; } = false;
 
     /// <summary>
-    /// Automagically download crew and cast for movies and tv shows in the
-    /// local collection.
-    /// </summary>
-    public bool AutoDownloadCrewAndCast { get; set; } = false;
-
-    /// <summary>
-    /// Automagically download collections for movies and tv shows in the local
-    /// collection.
-    /// </summary>
-    public bool AutoDownloadCollections { get; set; } = false;
-
-    /// <summary>
     /// Automagically download episode groups to use with alternate ordering
     /// for tv shows.
     /// </summary>
     public bool AutoDownloadAlternateOrdering { get; set; } = false;
-
-    /// <summary>
-    /// Automagically download networks for tv shows in the local collection.
-    /// </summary>
-    public bool AutoDownloadNetworks { get; set; } = false;
 
     #endregion
 

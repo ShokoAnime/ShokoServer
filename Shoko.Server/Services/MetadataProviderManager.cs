@@ -304,6 +304,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
                 SupportsLookup = Overrides(providerType, typeof(IMetadataSeriesLinkingProvider), nameof(IMetadataSeriesLinkingProvider.LookupSeries)) ||
                     Overrides(providerType, typeof(IMetadataMovieLinkingProvider), nameof(IMetadataMovieLinkingProvider.LookupMovie)),
                 AvailableEntityTypes = availableEntityTypes,
+                DefaultEnabledEntityTypes = (provider.DefaultEnabledKinds ?? availableEntityTypes).Where(availableEntityTypes.Contains).ToFrozenSet(),
                 EnabledEntityTypes = FrozenSet<MetadataEntityType>.Empty,
                 Icon = LoadSourceIcon(pluginInfo, providerType.Assembly, DeclaredIcon(provider), source),
             };
@@ -326,6 +327,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
         // was decided and stays. Saved, as a value an upgrade carried over is gone by the next start.
         var settings = _configurationProvider.Load();
         var carried = SettingsMigrations.ReadAutoLinkCarryOver(_applicationPaths.DataPath);
+        var kindsTurnedOff = SettingsMigrations.ReadKindsOffCarryOver(_applicationPaths.DataPath, _logger);
         var claims = _metadataProviders
             .Select(entry => new ProviderClaim(
                 entry.Info.ID,
@@ -334,10 +336,14 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
                 entry.Info.AvailableEntityTypes,
                 entry.Links,
                 entry.Provider.AutoLinkByDefault,
-                entry.Provider.AutoLinkRestrictedByDefault
+                entry.Provider.AutoLinkRestrictedByDefault,
+                entry.Info.DefaultEnabledEntityTypes
             ))
             .ToList();
-        var seeded = SeedDecisions(settings, claims, carried, out var autoLinkers);
+
+        // Before seeding, so a kind an upgrade turned off is never turned on by a suggestion.
+        var seeded = TurnKindsOff(settings, kindsTurnedOff);
+        seeded |= SeedDecisions(settings, claims, carried, out var autoLinkers);
         foreach (var (source, provider) in autoLinkers)
             _logger.LogInformation("Metadata provider {Provider} now auto-links {Source}, the first to claim it.", provider, source);
 
@@ -348,6 +354,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
 
         // Only once it is saved, so a boot that fails before this keeps it.
         SettingsMigrations.ClearAutoLinkCarryOver(_applicationPaths.DataPath);
+        SettingsMigrations.ClearKindsOffCarryOver(_applicationPaths.DataPath);
 
         ApplyProviderSettings();
 
@@ -371,9 +378,12 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     ///   provider able to do it, whenever that one shows up.
     /// </summary>
     /// <remarks>
-    ///   Anything already decided is kept: a provider new to an entity type
-    ///   joins the end of its order, enabled only while something there is,
-    ///   so it never takes over by itself. A source still waiting for a
+    ///   Seeded from each provider's own suggestion on first sight, owned by
+    ///   the admin afterwards: a type with no slot for the provider takes its
+    ///   suggestion, and anything already decided is kept. A provider new to an
+    ///   entity type joins the end of its order, enabled only when it suggests
+    ///   so and something there is, so it never takes over by itself and a
+    ///   type decided as nobody stays off. A source still waiting for a
     ///   linker says so in its settings. What an upgrade carried over is the
     ///   admin's old decision, so it wins over the default whether or not the
     ///   source is new. Older settings naming one provider per type are read
@@ -427,9 +437,10 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
 
                 foreach (var entityType in provider.EntityTypes)
                 {
+                    var suggested = provider.DefaultEnabled?.Contains(entityType) ?? true;
                     if (!decisions.Providers.TryGetValue(entityType, out var order))
                     {
-                        decisions.Providers[entityType] = [new(provider.ID, true)];
+                        decisions.Providers[entityType] = [new(provider.ID, suggested)];
                         seeded = true;
                         continue;
                     }
@@ -437,13 +448,64 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
                     if (order.Any(slot => slot.ProviderID == provider.ID))
                         continue;
 
-                    order.Add(new(provider.ID, order.Any(slot => slot.IsEnabled)));
+                    order.Add(new(provider.ID, suggested && order.Any(slot => slot.IsEnabled)));
                     seeded = true;
                 }
             }
         }
 
         return seeded;
+    }
+
+    /// <summary>
+    ///   Turns off the kinds an upgrade carried over as off, for every
+    ///   provider on their source, before seeding can turn them on.
+    /// </summary>
+    /// <remarks>
+    ///   A kind with no order yet is decided as nobody, so whichever provider
+    ///   claims it joins off. A source seen here first still waits for its
+    ///   auto-linker, as a source new to seeding does.
+    /// </remarks>
+    /// <param name="settings">The settings to update.</param>
+    /// <param name="kindsOff">The kinds to turn off, by source.</param>
+    /// <returns>Whether anything was written.</returns>
+    internal static bool TurnKindsOff(MetadataServiceSettings settings, IReadOnlyDictionary<MetadataSource, IReadOnlyList<MetadataEntityType>> kindsOff)
+    {
+        var changed = false;
+        foreach (var (source, kinds) in kindsOff)
+        {
+            if (kinds.Count is 0)
+                continue;
+
+            var isNew = !settings.Sources.ContainsKey(source);
+            var decisions = Of(settings.Sources, source);
+            if (isNew)
+            {
+                decisions.AutoLinkerUnclaimed = true;
+                changed = true;
+            }
+
+            foreach (var kind in kinds)
+            {
+                if (!decisions.Providers.TryGetValue(kind, out var order))
+                {
+                    decisions.Providers[kind] = [];
+                    changed = true;
+                    continue;
+                }
+
+                for (var index = 0; index < order.Count; index++)
+                {
+                    if (!order[index].IsEnabled)
+                        continue;
+
+                    order[index] = order[index] with { IsEnabled = false };
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
     }
 
     /// <summary>
@@ -564,6 +626,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     /// <param name="Links">Whether it can auto-link.</param>
     /// <param name="AutoLinkByDefault">Whether it links on its own when it first takes a source's auto-linking.</param>
     /// <param name="AutoLinkRestrictedByDefault">Whether it links restricted entries when it first takes a source's auto-linking.</param>
+    /// <param name="DefaultEnabled">The entity types it suggests being turned on for, or <c>null</c> for all of them.</param>
     internal sealed record ProviderClaim(
         Guid ID,
         string Name,
@@ -571,7 +634,8 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
         IReadOnlySet<MetadataEntityType> EntityTypes,
         bool Links,
         bool AutoLinkByDefault = true,
-        bool AutoLinkRestrictedByDefault = false
+        bool AutoLinkRestrictedByDefault = false,
+        IReadOnlySet<MetadataEntityType>? DefaultEnabled = null
     );
 
     /// <summary>

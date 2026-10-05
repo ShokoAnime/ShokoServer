@@ -20,11 +20,14 @@ public interface IMetadataMovieProvider : IMetadataProvider
     /// <remarks>
     ///   Save the film through <see cref="Storage.IMetadataMovieStore.SaveMovie"/>
     ///   and its credits, tags, studios, relations and suggestions through
-    ///   their own stores; its collections are optional. As an
-    ///   <see cref="IMetadataEntityProvider"/>, name the people and studios by
-    ///   ID and leave their refresh to the core. The core holds the film's
-    ///   lock and has already decided it is due. Throw on failure: the core
-    ///   logs it and the queue retries the job.
+    ///   their own stores. Name its collection by ID in
+    ///   <see cref="Storage.MetadataMovieData.CollectionID"/> and leave the
+    ///   collection to the core, which fetches it through your source's
+    ///   <see cref="IMetadataCollectionProvider"/> while its <c>collection</c>
+    ///   kind is turned on. As an <see cref="IMetadataEntityProvider"/>, name
+    ///   the people and studios by ID and leave their refresh to the core.
+    ///   The core holds the film's lock and has already decided it is due.
+    ///   Throw on failure: the core logs it and the queue retries the job.
     /// </remarks>
     /// <param name="movieID">
     ///   The film, as its link names it: on your source and of the

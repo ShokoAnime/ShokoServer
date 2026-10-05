@@ -30,7 +30,8 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 ///   entry's lock, skips one refreshed within <see cref="MetadataRefreshState.FreshFor"/>
 ///   unless forced, records the refresh unless it was quick, then queues the episode
 ///   link sync, the episode matching of the anime and of every anime linked to a
-///   refreshed series unless it was quick, and, when asked, the images. A failed entry
+///   refreshed series unless it was quick, the collection each refreshed film names
+///   when it is due, and, when asked, the images. A failed entry
 ///   keeps its refresh time and does not stop the rest, but the job fails afterwards so
 ///   the queue retries it.
 /// </remarks>
@@ -49,6 +50,7 @@ public class RefreshMetadataJob<TProvider>(
     MetadataEntryLocks entryLocks,
     MetadataProviderScheduler providerScheduler,
     MetadataImageContributorScheduler contributorScheduler,
+    MetadataCollectionRefreshScheduler collectionScheduler,
     ISettingsProvider settingsProvider,
     IJobCancellationAccessor cancellationAccessor
 ) : BaseJob, IMetadataRefreshJob where TProvider : class, IMetadataProvider
@@ -91,28 +93,10 @@ public class RefreshMetadataJob<TProvider>(
     public bool DownloadImages { get; set; }
 
     /// <summary>
-    ///   Whether the provider should fetch the cast and crew, or
-    ///   <c>null</c> to go by the settings.
-    /// </summary>
-    public bool? DownloadCrewAndCast { get; set; }
-
-    /// <summary>
     ///   Whether the provider should fetch a series' alternate orderings, or
     ///   <c>null</c> to go by the settings.
     /// </summary>
     public bool? DownloadAlternateOrdering { get; set; }
-
-    /// <summary>
-    ///   Whether the provider should fetch the networks a series aired on, or
-    ///   <c>null</c> to go by the settings.
-    /// </summary>
-    public bool? DownloadNetworks { get; set; }
-
-    /// <summary>
-    ///   Whether the provider should fetch the collections a film belongs
-    ///   to, or <c>null</c> to go by the settings.
-    /// </summary>
-    public bool? DownloadCollections { get; set; }
 
     /// <summary>
     ///   Whether this is a quick refresh, which the provider is told about
@@ -309,22 +293,22 @@ public class RefreshMetadataJob<TProvider>(
     /// <summary>
     ///   Whether an entry is still something the core refreshes: a series or
     ///   film something links to, a series episode links point into, or a
-    ///   stored collection.
+    ///   collection that is stored or that a linked film names.
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <returns><c>true</c> when it is.</returns>
     private bool IsStillLinked(MetadataGuid entry)
         => entry.EntityType == MetadataEntityType.Collection
-            ? metadataService.GetCollection(entry) is not null
+            ? metadataService.GetEntry(entry) is ICollection || collectionScheduler.IsWanted(entry)
             : crossReferences.IsLinked(entry);
 
     /// <summary>
-    ///   Queues what follows a refresh: the sync of each refreshed series'
-    ///   episode links, the episode matching unless this is a quick refresh,
-    ///   and, when images were asked for and this is not a quick refresh, the
-    ///   images of the refreshed entries and the stored collections holding
-    ///   them: the owner's image job, or the image contributors' jobs when the
-    ///   owner's does not run.
+    ///   Queues what follows a refresh: each refreshed series' episode link
+    ///   sync; unless it was quick, the episode matching and the collection
+    ///   each refreshed film names; and, when images were asked for and it was
+    ///   not quick, the images of the refreshed entries and of the stored
+    ///   collections holding them, through the owner's image job or else the
+    ///   image contributors' jobs.
     /// </summary>
     /// <param name="info">The provider's info.</param>
     /// <param name="refreshed">The entries the provider refreshed.</param>
@@ -342,6 +326,10 @@ public class RefreshMetadataJob<TProvider>(
                     $"AniDB anime {anidbAnimeID}",
                     () => providerScheduler.ScheduleEpisodeMatch(info.Source, anidbAnimeID, token)
                 ).ConfigureAwait(false);
+
+            // The provider names a film's collection by ID; the core fetches it.
+            foreach (var entry in refreshed.Where(entry => entry.EntityType == MetadataEntityType.Movie))
+                collectionScheduler.ScheduleIfDue(metadataService.GetMovie(entry)?.CollectionID);
         }
 
         if (refreshed.Count is 0)

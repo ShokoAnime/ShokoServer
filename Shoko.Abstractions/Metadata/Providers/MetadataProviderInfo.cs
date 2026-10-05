@@ -144,12 +144,25 @@ public class MetadataProviderInfo
     public required IReadOnlySet<MetadataEntityType> AvailableEntityTypes { get; init; }
 
     /// <summary>
+    ///   The entity types the provider suggests being turned on for, of
+    ///   those it can answer for.
+    /// </summary>
+    /// <remarks>
+    ///   Read from <see cref="IMetadataProvider.DefaultEnabledKinds"/> once,
+    ///   at registration. It seeds <see cref="EnabledEntityTypes"/> for each
+    ///   type nothing was decided about yet; the admin owns it afterwards.
+    /// </remarks>
+    public IReadOnlySet<MetadataEntityType> DefaultEnabledEntityTypes { get; init; } = new HashSet<MetadataEntityType>();
+
+    /// <summary>
     ///   The entity types the provider is turned on for, on
     ///   <see cref="Source"/>. Empty while it is off.
     /// </summary>
     /// <remarks>
-    ///   A provider starts on for every type it can serve that no earlier
-    ///   provider on the source was given; an admin decides from then on.
+    ///   Seeded from each provider's own suggestion
+    ///   (<see cref="DefaultEnabledEntityTypes"/>) on first sight, owned by
+    ///   the admin afterwards. A provider joining a type another provider was
+    ///   given first stands by behind it.
     ///   A type lists here only for the first enabled provider in its order
     ///   (<see cref="Services.IMetadataProviderManager.GetProviderOrder"/>).
     ///   <c>series</c>, <c>season</c> and <c>episode</c> each let it take links

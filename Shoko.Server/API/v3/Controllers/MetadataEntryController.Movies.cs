@@ -336,6 +336,10 @@ public partial class MetadataEntryController
     /// <summary>
     /// Get the collections a stored movie is in.
     /// </summary>
+    /// <remarks>
+    /// The collection the movie names is left out until it is stored; asking
+    /// queues its fetch, as <c>Collection/{id}</c> does.
+    /// </remarks>
     /// <param name="source">The source.</param>
     /// <param name="id">The source's ID for the movie.</param>
     /// <param name="include">The extra details to include.</param>
@@ -350,9 +354,16 @@ public partial class MetadataEntryController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         CancellationToken cancellationToken = default
     )
-        => await Get<IMovie>(source, MetadataEntityType.Movie, id, cancellationToken).ConfigureAwait(false) is { } movie
-            ? _metadataService.GetCollectionsWith(movie.ID).Select(collection => _models.Collection(collection, Members(collection), include, language)).ToList()
-            : NotFound(MovieNotFound);
+    {
+        if (await Get<IMovie>(source, MetadataEntityType.Movie, id, cancellationToken).ConfigureAwait(false) is not { } movie)
+            return NotFound(MovieNotFound);
+
+        var collections = _metadataService.GetCollectionsWith(movie.ID);
+        if (movie.CollectionID is { } collectionID && !collections.Any(collection => collection.ID == collectionID))
+            _metadataService.GetCollection(collectionID);
+
+        return collections.Select(collection => _models.Collection(collection, Members(collection), include, language)).ToList();
+    }
 
     /// <summary>
     /// Get the links from AniDB to a stored movie.
@@ -565,6 +576,11 @@ public partial class MetadataEntryController
     /// <summary>
     /// Get a stored collection.
     /// </summary>
+    /// <remarks>
+    /// A collection that is not stored answers <c>404 Not Found</c>, but its
+    /// fetch is queued when the source's collection provider is enabled and a
+    /// linked movie names it, so asking again later finds it.
+    /// </remarks>
     /// <param name="source">The source.</param>
     /// <param name="id">The source's ID for the collection.</param>
     /// <param name="include">The extra details to include: <c>Titles</c>, <c>Overviews</c> and <c>Images</c>.</param>

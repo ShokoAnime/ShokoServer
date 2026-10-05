@@ -16,12 +16,14 @@ public class TmdbRefreshMovieBody
     public bool DownloadImages { get; set; } = true;
 
     /// <summary>
-    /// Also download crew and cast. Will respect global option if not set.
+    /// Ignored. The crew and cast are always downloaded, and the people in
+    /// them while TMDB's creator kind is enabled.
     /// </summary>
     public bool? DownloadCrewAndCast { get; set; } = null;
 
     /// <summary>
-    /// Also download movie collection. Will respect global option if not set.
+    /// Ignored. The movie's collection is fetched whenever TMDB's collection
+    /// provider is enabled.
     /// </summary>
     public bool? DownloadCollections { get; set; } = null;
 

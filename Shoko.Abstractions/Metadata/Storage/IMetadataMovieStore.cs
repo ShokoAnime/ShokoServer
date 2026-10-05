@@ -42,6 +42,11 @@ public interface IMetadataMovieStore
     ///   Stores a movie whole, replacing what was stored for it, its titles,
     ///   overviews and content ratings included.
     /// </summary>
+    /// <remarks>
+    ///   The collection it names is queued for a fetch through the source's
+    ///   collection provider when it is not stored or is due, the movie is
+    ///   linked and the provider's <c>collection</c> kind is on.
+    /// </remarks>
     /// <param name="movie">The movie.</param>
     /// <returns><c>1</c> when the movie was added or changed, else <c>0</c>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="movie"/> is or holds <c>null</c>.</exception>

@@ -485,21 +485,38 @@ public class MetadataEntityRefreshTests
         Assert.Equal(2, dropped.Count);
     }
 
-    [Fact]
-    public async Task TheScheduledActionQueuesEveryLinkedStubOrStaleEntry()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task TheScheduledActionQueuesEveryLinkedStubOrStaleEntryOfTheKindsTurnedOn(bool networksOn)
     {
-        using var world = new World();
+        using var world = networksOn
+            ? new World()
+            : new World(MetadataEntityType.Creator, MetadataEntityType.Character, MetadataEntityType.Studio);
         world.People.SetCast(_series, [Role("x1", "c1")]);
         world.People.SetCast(_otherSeries, [Role("x2", "gone")]);
         world.People.RemoveCast(_otherSeries);
         world.People.SaveCreators([new() { ID = ID(MetadataEntityType.Creator, "c1"), Name = "Kana" }]);
         world.StudioStore.SetNetworks(_series, [ID(MetadataEntityType.Network, "n1")]);
         world.Queued.Clear();
+        var collections = new MetadataCollectionRefreshScheduler(
+            world.Manager.Object,
+            world.Queue.Object,
+            Mock.Of<IJobFactory>(),
+            CachedRepo.Build<Metadata_CollectionRepository, int, Metadata_Collection>(row => row.Metadata_CollectionID),
+            CachedRepo.Build<Metadata_MovieRepository, int, Metadata_Movie>(row => row.Metadata_MovieID),
+            new(() => NoLinks.Build().Object),
+            NullLogger<MetadataCollectionRefreshScheduler>.Instance
+        );
 
-        var action = new RefreshStaleMetadataEntitiesAction(world.Scheduler);
+        var action = new RefreshStaleMetadataEntitiesAction(world.Scheduler, collections);
         await action.Execute(new Progress<decimal>(), TestContext.Current.CancellationToken);
 
-        Assert.Equal([ID(MetadataEntityType.Character, "x1"), ID(MetadataEntityType.Network, "n1")], world.QueuedIDs.OrderBy(id => id.ToString()));
+        // The creator was refreshed, and nothing names the orphaned one any more.
+        Assert.Equal(
+            networksOn ? [ID(MetadataEntityType.Character, "x1"), ID(MetadataEntityType.Network, "n1")] : [ID(MetadataEntityType.Character, "x1")],
+            world.QueuedIDs.OrderBy(id => id.ToString())
+        );
         Assert.All(world.Queued, queued => Assert.False(queued.Job.Force));
     }
 

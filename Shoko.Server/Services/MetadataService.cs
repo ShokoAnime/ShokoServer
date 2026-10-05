@@ -95,6 +95,8 @@ public class MetadataService : IMetadataService
 
     private readonly Lazy<IMetadataProviderManager> _providerManager;
 
+    private readonly Lazy<MetadataCollectionRefreshScheduler>? _collectionScheduler;
+
     public MetadataService(
         AnimeGroupRepository groupRepository,
         AnimeSeriesRepository seriesRepository,
@@ -119,7 +121,8 @@ public class MetadataService : IMetadataService
         CrossRef_CustomTagRepository xrefCustomTagRepository,
         IMetadataCrossReferenceStore crossReferences,
         Lazy<IMetadataProviderManager> providerManager,
-        ILogger<MetadataService> logger
+        ILogger<MetadataService> logger,
+        Lazy<MetadataCollectionRefreshScheduler>? collectionScheduler = null
     )
     {
         _groupRepository = groupRepository;
@@ -146,6 +149,7 @@ public class MetadataService : IMetadataService
         _crossReferences = crossReferences;
         _providerManager = providerManager;
         _logger = logger;
+        _collectionScheduler = collectionScheduler;
         (_coreLookups, _storedLookups) = BuildLookups();
 
         ShokoEventHandler.Instance.SeriesUpdated += OnSeriesUpdated;
@@ -359,7 +363,13 @@ public class MetadataService : IMetadataService
 
     /// <inheritdoc />
     public ICollection? GetCollection(MetadataGuid id)
-        => GetEntryOfKind<ICollection>(id, MetadataEntityType.Collection);
+    {
+        var collection = GetEntryOfKind<ICollection>(id, MetadataEntityType.Collection);
+        if (collection is null)
+            _collectionScheduler?.Value.ScheduleIfDue(id);
+
+        return collection;
+    }
 
     /// <inheritdoc />
     public IReadOnlyList<ICollection> GetCollectionsWith(MetadataGuid member)

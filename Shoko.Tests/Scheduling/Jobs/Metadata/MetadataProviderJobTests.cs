@@ -313,11 +313,15 @@ public class MetadataProviderJobTests
 
         public List<(Type JobType, string EntryID)> ContributorJobs { get; } = [];
 
+        public Metadata_Collection[] Collections { get; set; } = [];
+
+        public Metadata_Movie[] Movies { get; set; } = [];
+
         public RefreshHarness()
         {
             Contributors.SetupGet(m => m.ImageContributors).Returns([]);
             CollectionStore.Setup(s => s.GetCollectionsWith(It.IsAny<MetadataGuid>())).Returns([]);
-            Metadata.Setup(m => m.GetCollection(It.IsAny<MetadataGuid>())).Returns((MetadataGuid id) => CollectionStore.Object.GetCollection(id));
+            Metadata.Setup(m => m.GetEntry(It.IsAny<MetadataGuid>())).Returns((MetadataGuid id) => CollectionStore.Object.GetCollection(id));
         }
 
         public RefreshMetadataJob<FakeProvider> Job(MetadataProviderInfo info, Mock<IMetadataCrossReferenceStore> links)
@@ -334,6 +338,7 @@ public class MetadataProviderJobTests
                 Locks,
                 Queue.Build(links, info),
                 ContributorScheduler(Contributors, ContributorJobs),
+                Queue.Collections(links, [info], Collections, Movies),
                 new StubSettingsProvider(Settings),
                 NoCancellation()
             ));
@@ -567,22 +572,23 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task ANamedCollectionIsRefreshedOnlyWhileItIsStored()
+    public async Task ANamedCollectionIsRefreshedOnlyWhileItIsStoredOrALinkedMovieNamesIt()
     {
         var harness = new RefreshHarness();
         var stored = ID(MetadataEntityType.Collection, "c");
+        var named = ID(MetadataEntityType.Collection, "named");
         var gone = ID(MetadataEntityType.Collection, "gone");
         harness.CollectionStore.Setup(s => s.GetCollection(stored)).Returns(Mock.Of<ICollection>(collection => collection.ID == stored));
+        harness.Movies = [new() { Metadata_MovieID = 9, Source = Source, ProviderID = "9", ExtraData = new() { CollectionID = named.ID } }];
         var info = Info(harness.Provider);
-        var storedJob = harness.Job(info, Links());
-        storedJob.EntryID = stored.ToString();
-        var goneJob = harness.Job(info, Links());
-        goneJob.EntryID = gone.ToString();
+        foreach (var entry in new[] { stored, named, gone })
+        {
+            var job = harness.Job(info, Links(movies: ["9"]));
+            job.EntryID = entry.ToString();
+            await job.Execute();
+        }
 
-        await storedJob.Execute();
-        await goneJob.Execute();
-
-        Assert.Equal([stored], harness.Provider.Refreshed);
+        Assert.Equal([stored, named], harness.Provider.Refreshed);
         Assert.Null(harness.Provider.Options[stored].AnidbAnimeID);
     }
 
@@ -719,18 +725,14 @@ public class MetadataProviderJobTests
         var job = harness.Job(Info(harness.Provider), Links(series: ["1"], movies: ["9"]));
         job.AnimeID = AnimeID;
         job.DownloadImages = true;
-        job.DownloadCrewAndCast = false;
-        job.DownloadNetworks = true;
+        job.DownloadAlternateOrdering = false;
 
         await job.Execute();
 
         Assert.All(harness.Provider.Options.Values, options =>
         {
             Assert.True(options.DownloadImages);
-            Assert.False(options.DownloadCrewAndCast);
-            Assert.True(options.DownloadNetworks);
-            Assert.Null(options.DownloadAlternateOrdering);
-            Assert.Null(options.DownloadCollections);
+            Assert.False(options.DownloadAlternateOrdering);
         });
         var sync = (SyncEpisodeLinksJob)Assert.Single(harness.Queue.Queued, queued => queued.JobType == typeof(SyncEpisodeLinksJob)).Job;
         Assert.Equal(Source.Value, sync.Source);
@@ -1999,7 +2001,34 @@ public class MetadataProviderJobTests
             => Build(links.Object, infos);
 
         public MetadataProviderScheduler Build(IMetadataCrossReferenceStore links, params MetadataProviderInfo[] infos)
+            => new(Manager(infos).Object, links, Queue(), Jobs.Object, NullLogger<MetadataProviderScheduler>.Instance);
+
+        /// <summary>
+        /// The collection scheduler, queueing into <see cref="Queued"/>.
+        /// </summary>
+        public MetadataCollectionRefreshScheduler Collections(
+            Mock<IMetadataCrossReferenceStore> links,
+            MetadataProviderInfo[] infos,
+            Metadata_Collection[]? collections = null,
+            Metadata_Movie[]? movies = null
+        )
+            => new(
+                Manager(infos).Object,
+                Queue(),
+                Jobs.Object,
+                CachedRepo.Build<Metadata_CollectionRepository, int, Metadata_Collection>(row => row.Metadata_CollectionID, collections ?? []),
+                CachedRepo.Build<Metadata_MovieRepository, int, Metadata_Movie>(row => row.Metadata_MovieID, movies ?? []),
+                new(() => links.Object),
+                NullLogger<MetadataCollectionRefreshScheduler>.Instance
+            );
+
+        private IQueueScheduler? _queue;
+
+        private IQueueScheduler Queue()
         {
+            if (_queue is not null)
+                return _queue;
+
             var queue = new Mock<IQueueScheduler>();
             queue.Setup(q => q.Enqueue(It.IsAny<Type>(), It.IsAny<Action<IQueueJob>?>(), It.IsAny<bool>()))
                 .Returns((Type type, Action<IQueueJob>? configure, bool prioritize) =>
@@ -2048,7 +2077,7 @@ public class MetadataProviderJobTests
                     Queued.Add((typeof(MatchMetadataEpisodesJob), job, prioritize));
                     return Task.CompletedTask;
                 });
-            return new(Manager(infos).Object, links, queue.Object, Jobs.Object, NullLogger<MetadataProviderScheduler>.Instance);
+            return _queue = queue.Object;
         }
 
         public MetadataPurgeService PurgeService(
@@ -2371,7 +2400,7 @@ public class MetadataProviderJobTests
         Assert.True(await service.RefreshEntry(
             series,
             force: true,
-            options: new() { DownloadCrewAndCast = true, DownloadAlternateOrdering = false, DownloadNetworks = true, DownloadCollections = false, QuickRefresh = true },
+            options: new() { DownloadAlternateOrdering = false, QuickRefresh = true },
             cancellationToken: TestContext.Current.CancellationToken
         ));
         Assert.True(await service.RefreshEntry(series, cancellationToken: TestContext.Current.CancellationToken));
@@ -2382,10 +2411,7 @@ public class MetadataProviderJobTests
         Assert.False(forced.AllowUnlinked);
         Assert.True(forced.QuickRefresh);
         Assert.False(forced.DownloadImages);
-        Assert.True(forced.DownloadCrewAndCast);
         Assert.False(forced.DownloadAlternateOrdering);
-        Assert.True(forced.DownloadNetworks);
-        Assert.False(forced.DownloadCollections);
         Assert.Equal(MetadataRefreshReason.Requested, forced.Reason);
         Assert.True(harness.Queued[0].Prioritized);
 
@@ -2393,7 +2419,7 @@ public class MetadataProviderJobTests
         var plain = (IMetadataRefreshJob)harness.Queued[1].Job;
         Assert.True(plain.DownloadImages);
         Assert.False(plain.QuickRefresh);
-        Assert.Null(plain.DownloadCrewAndCast);
+        Assert.Null(plain.DownloadAlternateOrdering);
         Assert.Equal(MetadataRefreshReason.Scheduled, plain.Reason);
         Assert.False(plain.AllowUnlinked);
 

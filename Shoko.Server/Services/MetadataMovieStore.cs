@@ -18,11 +18,13 @@ namespace Shoko.Server.Services;
 /// <param name="contentRatingRepository">The movies' content ratings.</param>
 /// <param name="textStore">Keeps the titles and descriptions.</param>
 /// <param name="cleanup">Removes what the other stores hold for a removed movie.</param>
+/// <param name="collectionScheduler">Fetches the collection a saved movie names, when it is due.</param>
 public class MetadataMovieStore(
     Metadata_MovieRepository movieRepository,
     Metadata_ContentRatingRepository contentRatingRepository,
     MetadataTextStore textStore,
-    MetadataEntityCleanup cleanup
+    MetadataEntityCleanup cleanup,
+    MetadataCollectionRefreshScheduler? collectionScheduler = null
 ) : IMetadataMovieStore
 {
     /// <summary>
@@ -64,6 +66,32 @@ public class MetadataMovieStore(
         var contentRatings = MetadataContentRatings.Check(movie.ContentRatings, nameof(movie));
         if (movie.CollectionID is { } collectionID)
             MetadataEntries.CheckReference(collectionID, movie.ID.Source, MetadataEntityType.Collection, nameof(movie));
+        var saved = Write(movie, originalLanguageCode, resources, crossSourceIDs, countries, contentRatings);
+
+        // Outside the lock, changed or not, so a collection missed before is fetched now.
+        collectionScheduler?.ScheduleIfDue(movie.CollectionID);
+        return saved;
+    }
+
+    /// <summary>
+    ///   Writes a checked movie under the write lock.
+    /// </summary>
+    /// <param name="movie">The movie.</param>
+    /// <param name="originalLanguageCode">The checked original language.</param>
+    /// <param name="resources">The checked resources.</param>
+    /// <param name="crossSourceIDs">The checked IDs on other sources.</param>
+    /// <param name="countries">The checked production countries.</param>
+    /// <param name="contentRatings">The checked content ratings.</param>
+    /// <returns><c>1</c> when the movie was added or changed, else <c>0</c>.</returns>
+    private int Write(
+        MetadataMovieData movie,
+        string? originalLanguageCode,
+        List<Resource> resources,
+        List<MetadataGuid> crossSourceIDs,
+        List<string> countries,
+        List<MetadataContentRatingData> contentRatings
+    )
+    {
         lock (_writeLock)
         {
             var stored = movieRepository.GetByProviderID(movie.ID.Source, movie.ID.ID);

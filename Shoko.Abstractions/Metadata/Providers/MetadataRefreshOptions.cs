@@ -23,28 +23,10 @@ public sealed record MetadataRefreshOptions
     public bool DownloadImages { get; init; }
 
     /// <summary>
-    ///   Whether to fetch the cast and crew, or <c>null</c> to go by
-    ///   the settings.
-    /// </summary>
-    public bool? DownloadCrewAndCast { get; init; }
-
-    /// <summary>
     ///   Whether to fetch a series' alternate orderings of its episodes, or
     ///   <c>null</c> to go by the settings.
     /// </summary>
     public bool? DownloadAlternateOrdering { get; init; }
-
-    /// <summary>
-    ///   Whether to fetch the networks a series aired on, or
-    ///   <c>null</c> to go by the settings.
-    /// </summary>
-    public bool? DownloadNetworks { get; init; }
-
-    /// <summary>
-    ///   Whether to fetch the collections a film belongs to, or
-    ///   <c>null</c> to go by the settings.
-    /// </summary>
-    public bool? DownloadCollections { get; init; }
 
     /// <summary>
     ///   Whether this is a quick refresh: bring the entry and its parts up to

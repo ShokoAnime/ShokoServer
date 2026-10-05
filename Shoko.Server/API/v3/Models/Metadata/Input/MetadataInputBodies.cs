@@ -50,26 +50,10 @@ public class MetadataRefreshBody
     public bool DownloadImages { get; set; } = true;
 
     /// <summary>
-    /// Also fetch the cast and crew, or <c>null</c> to go by the settings.
-    /// </summary>
-    public bool? DownloadCrewAndCast { get; set; }
-
-    /// <summary>
     /// Also fetch the alternate orderings, or <c>null</c> to go by the
     /// settings.
     /// </summary>
     public bool? DownloadAlternateOrdering { get; set; }
-
-    /// <summary>
-    /// Also fetch the networks, or <c>null</c> to go by the settings.
-    /// </summary>
-    public bool? DownloadNetworks { get; set; }
-
-    /// <summary>
-    /// Also fetch the collections a movie is in, or <c>null</c> to go by the
-    /// settings.
-    /// </summary>
-    public bool? DownloadCollections { get; set; }
 
     /// <summary>
     /// Run the refresh now and wait for it, rather than queueing it.
@@ -97,10 +81,7 @@ public class MetadataRefreshBody
         {
             QuickRefresh = quick,
             DownloadImages = DownloadImages,
-            DownloadCrewAndCast = DownloadCrewAndCast,
             DownloadAlternateOrdering = DownloadAlternateOrdering,
-            DownloadNetworks = DownloadNetworks,
-            DownloadCollections = DownloadCollections,
             Reason = MetadataRefreshReason.Requested,
         };
 }

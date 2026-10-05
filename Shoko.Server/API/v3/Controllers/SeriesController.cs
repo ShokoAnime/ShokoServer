@@ -1731,8 +1731,6 @@ public class SeriesController(
         var options = new MetadataRefreshOptions
         {
             DownloadImages = body.DownloadImages,
-            DownloadCrewAndCast = body.DownloadCrewAndCast,
-            DownloadCollections = body.DownloadCollections,
             Reason = MetadataRefreshReason.Requested,
         };
         await Task.WhenAll(
@@ -1941,9 +1939,7 @@ public class SeriesController(
         {
             QuickRefresh = body.Immediate && body.QuickRefresh,
             DownloadImages = body.DownloadImages,
-            DownloadCrewAndCast = body.DownloadCrewAndCast,
             DownloadAlternateOrdering = body.DownloadAlternateOrdering,
-            DownloadNetworks = body.DownloadNetworks,
             Reason = MetadataRefreshReason.Requested,
         };
         await Task.WhenAll(

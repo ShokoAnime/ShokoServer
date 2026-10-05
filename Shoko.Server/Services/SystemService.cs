@@ -492,6 +492,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IMetadataProviderManager>(sp => sp.GetRequiredService<MetadataProviderManager>());
             services.AddSingleton<MetadataProviderScheduler>();
             services.AddSingleton<MetadataEntityRefreshScheduler>();
+            services.AddSingleton<MetadataCollectionRefreshScheduler>();
             services.AddSingleton<MetadataImageContributorManager>();
             services.AddSingleton<IMetadataImageContributorManager>(sp => sp.GetRequiredService<MetadataImageContributorManager>());
             services.AddSingleton<MetadataImageContributorScheduler>();

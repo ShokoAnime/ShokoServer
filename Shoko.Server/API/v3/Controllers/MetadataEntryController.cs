@@ -278,13 +278,20 @@ public partial class MetadataEntryController : BaseController
     /// purge of what it belongs to.
     /// </summary>
     /// <typeparam name="TMetadata">The entry's type.</typeparam>
+    /// <remarks>
+    /// A collection is read through <see cref="IMetadataService.GetCollection"/>,
+    /// which queues the fetch of one that is not stored.
+    /// </remarks>
     /// <param name="guid">The entry.</param>
     /// <param name="cancellationToken">Stops the wait.</param>
     /// <returns>The entry, or <c>null</c> when it is not stored.</returns>
     private async Task<TMetadata?> Get<TMetadata>(MetadataGuid guid, CancellationToken cancellationToken)
         where TMetadata : class, IMetadata
     {
-        if (_metadataService.GetEntry<TMetadata>(guid) is not { } entry || !MaySee(entry))
+        var found = guid.EntityType == MetadataEntityType.Collection
+            ? _metadataService.GetCollection(guid) as TMetadata
+            : _metadataService.GetEntry<TMetadata>(guid);
+        if (found is not { } entry || !MaySee(entry))
             return null;
 
         return await Fresh(entry, cancellationToken).ConfigureAwait(false);

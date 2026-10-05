@@ -45,14 +45,17 @@ public sealed class TmdbRefreshService(
     ///   settings ask for, and writes it into the stores.
     /// </summary>
     /// <remarks>
-    ///   The show's titles, overviews, content ratings, tags, studios and
-    ///   suggestions are always written. The networks, the episode groups as
-    ///   orderings and the credits follow the options, or the settings where
-    ///   they leave it open; a quick refresh leaves them out and fetches no
-    ///   episode on its own. A refresh with a last refresh time inside the
-    ///   changes window only fetches the seasons and episodes TMDb changed
-    ///   since. A show TMDb no longer has is left as it was stored. The core
-    ///   matches the linked anime's episodes again once the refresh is done.
+    ///   The show's titles, overviews, content ratings, tags, studios,
+    ///   networks and suggestions are always written, and the credits unless
+    ///   the refresh is quick; the core fetches the people, studios and
+    ///   networks they name for the kinds turned on. The episode groups as
+    ///   orderings follow the options, or the settings where they leave it
+    ///   open. A quick refresh leaves out the credits and the episode groups
+    ///   and fetches no episode on its own. A refresh with a last refresh
+    ///   time inside the changes window only fetches the seasons and episodes
+    ///   TMDb changed since. A show TMDb no longer has is left as it was
+    ///   stored. The core matches the linked anime's episodes again once the
+    ///   refresh is done.
     /// </remarks>
     /// <param name="showID">The TMDb show ID.</param>
     /// <param name="options">What kind of refresh it is.</param>
@@ -69,9 +72,8 @@ public sealed class TmdbRefreshService(
 
         var configuration = configurationProvider.Load();
         var quick = options.QuickRefresh;
-        var downloadCredits = !quick && (options.DownloadCrewAndCast ?? configuration.AutoDownloadCrewAndCast);
+        var downloadCredits = !quick;
         var downloadOrderings = !quick && (options.DownloadAlternateOrdering ?? configuration.AutoDownloadAlternateOrdering);
-        var downloadNetworks = !quick && (options.DownloadNetworks ?? configuration.AutoDownloadNetworks);
         var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.AlternativeTitles | TvShowMethods.ExternalIds |
             TvShowMethods.Keywords | TvShowMethods.Recommendations | TvShowMethods.Similar;
         if (downloadOrderings)
@@ -167,12 +169,9 @@ public sealed class TmdbRefreshService(
             TmdbEntityMapper.IDs(show.Similar?.Results),
             TmdbIds.Series
         ));
-        if (downloadNetworks)
-        {
-            var (networks, entryNetworks) = TmdbEntityMapper.Networks(show.Networks);
-            stores.Studios.SaveNetworks(networks);
-            stores.Studios.SetNetworks(seriesID, entryNetworks);
-        }
+        var (networks, entryNetworks) = TmdbEntityMapper.Networks(show.Networks);
+        stores.Studios.SaveNetworks(networks);
+        stores.Studios.SetNetworks(seriesID, entryNetworks);
 
         if (downloadCredits)
             WriteCredits(seriesID, credits);
@@ -371,9 +370,11 @@ public sealed class TmdbRefreshService(
     ///   last refresh.
     /// </summary>
     /// <remarks>
-    ///   The credits and the collection follow the options, or the settings
-    ///   where they leave it open; a quick refresh leaves them out. A movie
-    ///   TMDb no longer has is left as it was stored.
+    ///   The credits are written unless the refresh is quick, naming the
+    ///   people by ID. The movie names its collection by ID, and the core
+    ///   fetches the collection through <see cref="RefreshCollection"/>, and
+    ///   the people and studios through the entity provider, for the kinds
+    ///   turned on. A movie TMDb no longer has is left as it was stored.
     /// </remarks>
     /// <param name="movieID">The TMDb movie ID.</param>
     /// <param name="options">What kind of refresh it is.</param>
@@ -389,8 +390,7 @@ public sealed class TmdbRefreshService(
 
         var configuration = configurationProvider.Load();
         var quick = options.QuickRefresh;
-        var downloadCredits = !quick && (options.DownloadCrewAndCast ?? configuration.AutoDownloadCrewAndCast);
-        var downloadCollections = !quick && (options.DownloadCollections ?? configuration.AutoDownloadCollections);
+        var downloadCredits = !quick;
         var movieGuid = TmdbIds.Movie(movieID);
         if (stores.Movies.GetMovie(movieGuid) is not null && options.LastRefreshedAt is { } lastRefreshedAt &&
             !await HasMovieChanged(movieID, lastRefreshedAt, cancellationToken).ConfigureAwait(false))
@@ -431,9 +431,6 @@ public sealed class TmdbRefreshService(
             stores.People.SetCast(movieGuid, TmdbCredits.MovieCast(movieCredits.Cast, movie.OriginalLanguage));
             stores.People.SetCrew(movieGuid, TmdbCredits.Crew(movieCredits.Crew, movie.OriginalLanguage));
         }
-
-        if (downloadCollections && movie.BelongsToCollection is { Id: > 0 } collection)
-            await RefreshCollection(collection.Id, cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Refreshed TMDb movie {MovieID} ({Title}).", movie.Id, movie.Title);
         return true;

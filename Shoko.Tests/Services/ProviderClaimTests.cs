@@ -46,14 +46,21 @@ public sealed class ProviderClaimTests : IDisposable
             Directory.Delete(_dataPath, recursive: true);
     }
 
-    private static MetadataProviderManager.ProviderClaim Claim(Guid id, MetadataSource source, bool links = true, bool autoLinkByDefault = true)
+    private static MetadataProviderManager.ProviderClaim Claim(
+        Guid id,
+        MetadataSource source,
+        bool links = true,
+        bool autoLinkByDefault = true,
+        IReadOnlySet<MetadataEntityType>? defaultEnabled = null
+    )
         => new(
             id,
             id.ToString()[..4],
             new HashSet<MetadataSource> { source },
             new HashSet<MetadataEntityType> { MetadataEntityType.Series, MetadataEntityType.Episode },
             links,
-            autoLinkByDefault
+            autoLinkByDefault,
+            DefaultEnabled: defaultEnabled
         );
 
     /// <summary>
@@ -255,6 +262,57 @@ public sealed class ProviderClaimTests : IDisposable
         Assert.Null(decisions.AutoLinker);
         Assert.False(decisions.AutoLink);
         Assert.Empty(autoLinkers);
+    }
+
+    [Fact]
+    public void EachKindNeverDecidedTakesTheProvidersSuggestion_AndADecidedOneIsKept()
+    {
+        var seriesOnly = new HashSet<MetadataEntityType> { MetadataEntityType.Series };
+        var settings = new MetadataServiceSettings();
+        MetadataProviderManager.SeedDecisions(settings, [Claim(s_plugin, TestSources.Plugin, defaultEnabled: seriesOnly)], s_nothingCarried, out _);
+
+        var decisions = settings.Sources[TestSources.Plugin];
+        Assert.Equal([new(s_plugin, true)], decisions.Providers[MetadataEntityType.Series]);
+        Assert.Equal([new(s_plugin, false)], decisions.Providers[MetadataEntityType.Episode]);
+
+        // Its own entries are not asked again, and a kind decided as nobody keeps a newcomer off.
+        decisions.Providers[MetadataEntityType.Series] = [new(s_plugin, false)];
+        decisions.Providers[MetadataEntityType.Episode] = [new(s_plugin, true)];
+        settings.Sources[TestSources.AniList] = new() { Providers = { [MetadataEntityType.Series] = [] } };
+        MetadataProviderManager.SeedDecisions(
+            settings,
+            [Claim(s_plugin, TestSources.Plugin, defaultEnabled: seriesOnly), Claim(s_later, TestSources.AniList)],
+            s_nothingCarried,
+            out _
+        );
+
+        Assert.Equal([new(s_plugin, false)], decisions.Providers[MetadataEntityType.Series]);
+        Assert.Equal([new(s_plugin, true)], decisions.Providers[MetadataEntityType.Episode]);
+        Assert.Equal([new(s_later, false)], settings.Sources[TestSources.AniList].Providers[MetadataEntityType.Series]);
+        Assert.Equal([new(s_later, true)], settings.Sources[TestSources.AniList].Providers[MetadataEntityType.Episode]);
+    }
+
+    [Fact]
+    public void AKindAnUpgradeTurnedOffStaysOffThroughSeeding()
+    {
+        var path = SettingsMigrations.KindsOffCarryOverPath(_dataPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, $"{{ \"{TestSources.Plugin.Value}\": [\"episode\"] }}");
+        var provider = new FirstLinker();
+
+        var boot = Boot();
+        boot.AddParts([provider]);
+
+        var info = boot.GetProviderInfo(provider);
+        Assert.Equal(info.AvailableEntityTypes.Where(kind => kind != MetadataEntityType.Episode).Order(), info.EnabledEntityTypes.Order());
+        Assert.True(info.IsAutoLinker);
+        Assert.False(File.Exists(path));
+
+        // Applied once: turning the kind on afterwards survives a restart.
+        boot.SetProviderEnabled(info.ID, info.AvailableEntityTypes);
+        boot = Boot();
+        boot.AddParts([provider]);
+        Assert.Equal(info.AvailableEntityTypes.Order(), boot.GetProviderInfo(provider).EnabledEntityTypes.Order());
     }
 
     [Fact]

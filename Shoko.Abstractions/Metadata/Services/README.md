@@ -88,7 +88,9 @@ and crew credits, cross-references and search results are not entries; a
 cross-reference carries the ID of the entry it points at.
 
 `GetCollectionsWith` answers the stored collections a series, movie or group
-is in. `GetAllSeasonsForSource(source, includeAlternativeSeasons: true)` adds
+is in. `GetCollection` queues the fetch of a collection it does not find, when
+a linked film names it and its source's collection provider has the
+`collection` kind on, so a later read finds it. `GetAllSeasonsForSource(source, includeAlternativeSeasons: true)` adds
 the groups of a source's stored orderings to its real seasons.
 
 `GetSiteUrl(entry)` answers the address of an entry's page on its source's
