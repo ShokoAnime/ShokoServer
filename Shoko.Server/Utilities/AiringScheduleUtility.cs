@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Utilities.Airing;
 
@@ -32,8 +33,41 @@ public static class AiringScheduleUtility
     /// <exception cref="ArgumentNullException"><paramref name="tracks"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="tracks"/> is empty.</exception>
     public static string GetDerivedScheduleKey(Guid? channelID, IEnumerable<AiringTrackData> tracks)
+        => $"{(channelID.HasValue ? channelID.Value.ToString("D") : "-")}:{GetDerivedTrackKeys(tracks, nameof(tracks))}";
+
+    /// <summary>
+    /// Check whether a stored schedule key was derived for the given tracks on
+    /// a channel, whichever channel that was. A merge moves a keyless schedule
+    /// to another channel without changing its key, and this is how a later
+    /// write still finds it.
+    /// </summary>
+    /// <param name="key">The stored key.</param>
+    /// <param name="tracks">The schedule's tracks. Duplicates collapse.</param>
+    /// <returns><c>true</c> if the key is a derived key with a channel for these tracks.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> or <paramref name="tracks"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tracks"/> is empty.</exception>
+    public static bool IsDerivedChannelScheduleKey(string key, IEnumerable<AiringTrackData> tracks)
     {
-        ArgumentNullException.ThrowIfNull(tracks);
+        ArgumentNullException.ThrowIfNull(key);
+
+        var separator = key.IndexOf(':');
+        return separator > 0 &&
+            Guid.TryParseExact(key[..separator], "D", out _) &&
+            string.Equals(key[(separator + 1)..], GetDerivedTrackKeys(tracks, nameof(tracks)), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Key a whole track set, in a stable order whatever order or casing the
+    /// provider submitted it in.
+    /// </summary>
+    /// <param name="tracks">The tracks. Duplicates collapse.</param>
+    /// <param name="paramName">The name of the argument the tracks arrived in.</param>
+    /// <returns>The keys of the tracks, comma-separated.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="tracks"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tracks"/> is empty.</exception>
+    private static string GetDerivedTrackKeys(IEnumerable<AiringTrackData> tracks, string paramName)
+    {
+        ArgumentNullException.ThrowIfNull(tracks, paramName);
 
         var trackKeys = tracks
             .Where(track => track is not null)
@@ -42,9 +76,9 @@ public static class AiringScheduleUtility
             .OrderBy(key => key, StringComparer.Ordinal)
             .ToList();
         if (trackKeys.Count is 0)
-            throw new ArgumentException("A schedule needs at least one track to derive a key from.", nameof(tracks));
+            throw new ArgumentException("A schedule needs at least one track to derive a key from.", paramName);
 
-        return $"{(channelID.HasValue ? channelID.Value.ToString("D") : "-")}:{string.Join(",", trackKeys)}";
+        return string.Join(",", trackKeys);
     }
 
     /// <summary>
@@ -168,21 +202,36 @@ public static class AiringScheduleUtility
     }
 
     /// <summary>
-    /// Derive the ID of a channel from its type and its normalised name,
-    /// without registering it, so lookups and filters can name a channel that
-    /// may not exist yet.
+    /// Derive the ID of a channel from its type, its normalised name and its
+    /// country, without registering it, so lookups and filters can name a
+    /// channel that may not exist yet. A channel with no country keeps the ID
+    /// it had before countries were part of the key.
     /// </summary>
     /// <param name="name">The name of the channel, in any spelling.</param>
     /// <param name="type">The type of the channel.</param>
+    /// <param name="countryCode">The country of the channel, or <c>null</c> when it has none.</param>
     /// <returns>The channel's ID.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
-    public static Guid GetChannelID(string name, AiringChannelType type)
+    /// <exception cref="ArgumentException"><paramref name="name"/> is blank, or <paramref name="countryCode"/> is not two letters.</exception>
+    public static Guid GetChannelID(string name, AiringChannelType type, string? countryCode = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        return UuidUtility.GetV5($"ChannelType={type},Name={NormalizeChannelName(name)}", ChannelIdentifierNamespace);
+        var normalizedName = NormalizeChannelName(name);
+        return NormalizeCountryCode(countryCode) is { } country
+            ? UuidUtility.GetV5($"ChannelType={type},Name={normalizedName},Country={country}", ChannelIdentifierNamespace)
+            : UuidUtility.GetV5($"ChannelType={type},Name={normalizedName}", ChannelIdentifierNamespace);
     }
+
+    /// <summary>
+    /// Normalise a channel's country code: trimmed and upper-cased, with a
+    /// blank code read as no country.
+    /// </summary>
+    /// <param name="countryCode">The country code, as an ISO 3166-1 alpha-2 code in any casing.</param>
+    /// <returns>The upper-case code, or <c>null</c> for no country.</returns>
+    /// <exception cref="ArgumentException"><paramref name="countryCode"/> is not two ASCII letters.</exception>
+    public static string? NormalizeCountryCode(string? countryCode)
+        => IAiringScheduleService.NormalizeCountryCode(countryCode);
 
     /// <summary>
     /// Normalise a channel name, so the same station spelled in full-width,

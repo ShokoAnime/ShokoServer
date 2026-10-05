@@ -1573,6 +1573,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(192, 303, "CREATE INDEX IX_AniDB_Episode_EpisodeType_AirDate ON AniDB_Episode(EpisodeType, AirDate);"),
         new(192, 304, "UPDATE AniDB_Episode SET AirDate = NULL WHERE AirDate = 0;"),
         new(192, 305, DatabaseFixes.RestoreAnidbPlaceholderAirDates),
+        new(192, 306, "ALTER TABLE AiringChannel ADD CountryCode NVARCHAR(2) NULL;"),
+        new(192, 307, DatabaseFixes.KeyAiringChannelsByCountry),
     ];
 
     #endregion

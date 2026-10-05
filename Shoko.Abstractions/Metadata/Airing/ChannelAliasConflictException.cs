@@ -3,10 +3,10 @@ using System;
 namespace Shoko.Abstractions.Metadata.Airing;
 
 /// <summary>
-///   Thrown when adding an alias that another channel of the same type already
-///   holds, either as its own name or as one of its aliases. For a given type a
-///   normalised name resolves to at most one thing, so the alias is rejected
-///   instead of moved.
+///   Thrown when adding an alias that another channel of the same type and
+///   country already holds, either as its own name or as one of its aliases.
+///   For a given type and country a normalised name resolves to at most one
+///   thing, so the alias is rejected instead of moved.
 /// </summary>
 /// <param name="alias">
 ///   The alias that could not be added, as it was given.

@@ -39,6 +39,9 @@ internal sealed class AiringChannelView : IAiringChannel
     public string Name => _row.Name;
 
     /// <inheritdoc/>
+    public string? CountryCode => _row.CountryCode;
+
+    /// <inheritdoc/>
     public AiringChannelType Type => _row.Type;
 
     /// <inheritdoc/>

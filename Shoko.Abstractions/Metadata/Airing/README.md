@@ -22,7 +22,7 @@ Channel ──< Schedule >── Episode Airing
 | Term | Meaning |
 |---|---|
 | **Provider** | A source of schedules registered by a plugin, identified by a stable `Guid`. |
-| **Channel** | Where something airs, from a registry every provider shares: "TOKYO MX" (`Television`), "Crunchyroll" (`Streaming`). Regional services carry the region, e.g. `Amazon (US)`. |
+| **Channel** | Where something airs, from a registry every provider shares: "TOKYO MX" in `JP` (`Television`), "Crunchyroll" (`Streaming`). The country is a field of its own, never part of the name. |
 | **Schedule** | One provider's run of a series, optionally narrowed to a season, on one channel (or none), releasing a fixed set of tracks. Owned by the provider that created it. |
 | **Track** | A `Kind` (`Original`, `Subtitled`, `Dubbed`) plus a language code and an optional country code. A language released at another time is another schedule. |
 | **Episode airing** | One episode on one schedule: a time, the slot it was first scheduled for, a delay flag, a kind (`Normal`, `Advance` or `Rerun`, or `DetectedRerun` when the core detects one) and an optional link. |
@@ -116,8 +116,9 @@ schedule's stored owner; another provider's schedule or an unregistered
 instance throws `ArgumentException`. This guards against mistakes, not
 hostile code.
 
-1. **`FindOrRegisterChannel(name, type)`** gets or creates a channel by its
-   normalised name. Never invent a channel `Guid`.
+1. **`FindOrRegisterChannel(name, type, countryCode)`** finds the channel
+   answering to the name, or registers it. Never invent a channel `Guid`; see
+   [channels](#channels).
 2. **`AddOrUpdateSchedule(provider, data)`** creates or updates the run; its
    identity is `(provider, series, season, key)`.
 3. **`SetAirings(provider, schedule, airings)`** replaces the schedule's whole
@@ -131,7 +132,7 @@ public async Task<bool> RefreshAsync(ISeries series, CancellationToken cancellat
     if (await client.LookupAsync(series, cancellationToken) is not { } listing)
         return false;
 
-    var channel = airingScheduleService.FindOrRegisterChannel(listing.ChannelName, AiringChannelType.Television);
+    var channel = airingScheduleService.FindOrRegisterChannel(listing.ChannelName, AiringChannelType.Television, "JP");
 
     // The provider's own channel ID is a stable key, so a later run finds this schedule.
     var schedule = airingScheduleService.AddOrUpdateSchedule(this, new AiringScheduleData
@@ -173,6 +174,46 @@ A whole-season drop has no cadence: give every airing the same time, pass
 `new EpisodeAiringUpdateOptions { InferDelays = false }`, and link the whole
 season so a client renders one card. `OffsetFromOriginal` then reads how far
 the release landed from each episode's earliest `Original` airing.
+
+### Channels
+
+A channel is keyed by its type, its normalised name (NFKC, whitespace
+collapsed, lower-cased) and its country, an upper-case ISO 3166-1 alpha-2 code
+or `null`. Providers that spell a station alike share one channel: "TOKYO MX"
+and "Tokyo MX" in `JP` are one, while "ABC" in `JP` and "ABC" in `US` are two.
+
+- **The country.** A TV station gets its country. A streaming service gets
+  one only when the service itself is regional (Hulu Japan, ABEMA, Laftel,
+  Bilibili); a global one (Netflix, Crunchyroll, Prime Video, Disney+) is
+  `null`, whoever registers it. The display name never carries it.
+- **Find first.** `FindOrRegisterChannel` matches own names, then aliases,
+  among the channels of the same type and country, and only registers a
+  channel when nothing answers. `ChannelRegistered` fires only then.
+- **No country is any country.** A channel without a country is one whose
+  country is unknown, or a global service. When nothing in the country asked
+  for answers, `FindOrRegisterChannel` and `GetChannelByName` fall back to the
+  one channel of the type without a country that does, an own name before an
+  alias, unless a channel in another country has its own name. A TV station
+  found this way by `FindOrRegisterChannel` takes the country, and with it a
+  new ID; when a channel there already answers to its name, it is merged into
+  that one instead. Two channels tying for the name leave the lookup empty and
+  the registration new.
+- **Aliases.** One normalised name answers to at most one channel of a type
+  and country. Adding an alias that another channel already answers to throws
+  `ChannelAliasConflictException`; `SetChannelAliases` replaces the whole list.
+- **Merging.** `MergeChannels(target, sources)` folds channels of the target's
+  type into it: their schedules move without any schedule or airing ID
+  changing, their names and aliases become the target's aliases, and they are
+  deleted. The target keeps its country; a TV station without one takes the
+  country every source with one agrees on, and with it a new ID. It takes the
+  best position any of them had in the preferred channels, and keeps its own
+  hidden state. A provider registering a merged name later is handed the
+  target.
+- **Moving country.** A keyed schedule may move to the channel of the same
+  type and name in another country, which is how a provider that starts
+  passing a country keeps its schedules. When the channel it left had no
+  country, or the new one has none, and nothing airs on it any more, it is
+  merged into the new one, which as a TV station takes the left one's country.
 
 ### Writing part of a run: `MergeAirings`
 
@@ -457,15 +498,16 @@ picks. A date-only entry is always preferred, while `GetAiringByID` and
   schedule sharing a track, a schedule starting 8 weeks or more after that, or
   a marathon starting a day or more after it, is detected at read time.
   `DetectedRerun` is the core's own, and a write carrying it is refused.
-- **Name regional channels with `GetRegionalChannelName`**
-  (`GetRegionalChannelName("Amazon", "US")` → `"Amazon (US)"`), never by hand,
-  and never add a region to a broadcast station.
+- **Never put a country in a channel's name.** Pass it as `countryCode`: for
+  a TV station whenever you know it, and for a streaming service only when
+  the service itself is regional.
 - **Respect retention.** While automatic cleanup is on, a write that would
   leave the schedule with no airing inside the window is rejected (under
   `#schedule`). Backfilling a long-running show is fine; submitting a run that
   ended years ago on its own is not.
 - **A schedule's series, season, key and channel never change**, nor an
-  airing's schedule, key and episode.
+  airing's schedule, key and episode. The one exception is a keyed schedule
+  moving to the channel of the same type and name in another country.
 - **Pass a stable `Key`.** A keyless schedule's key is derived from its channel
   and tracks, so adding a language creates a new schedule.
 
@@ -478,8 +520,9 @@ Every member documents its exceptions; the shape of the contract:
 | All of them | `ArgumentNullException` | A required argument is `null`. |
 | All but the channel and time-zone reads | `InvalidOperationException` | Startup has not handed the service its providers yet. |
 | Every change, and `GetProviderInfo(provider)` | `ArgumentException` | The provider is not the registered instance, or does not own what it was handed. |
-| `FindOrRegisterChannel` | `ArgumentException` | The name is blank once normalised. |
-| `AddChannelAliases` | `ChannelAliasConflictException` | An alias already names another channel of the same type. |
+| `FindOrRegisterChannel` | `ArgumentException` | The name is blank once normalised, or the country is not two letters. |
+| `AddChannelAliases`, `SetChannelAliases` | `ChannelAliasConflictException` | An alias already names another channel of the same type and country. |
+| `MergeChannels` | `ArgumentException` | A channel is unregistered, the target itself, or of another type. |
 | `AddOrUpdateSchedule`, `UpdateSchedule` | `ArgumentException` | No tracks, an undeclared kind, an unregistered or changed channel, or a backwards coverage range. |
 | Anything taking a time zone | `TimeZoneNotFoundException` | The zone is neither an IANA id nor a fixed offset. |
 | `SetAirings`, `MergeAirings` | `AiringScheduleValidationException` | An episode outside the schedule, a duplicate key, an airing both submitted and removed, or the retention rule. A `GenericValidationException` keyed by airing key, reporting every rejection at once. |

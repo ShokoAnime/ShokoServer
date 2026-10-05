@@ -23,7 +23,8 @@ public sealed record AiringScheduleData
     /// <summary>
     ///   Optional. The channel the run airs on. It must be registered through
     ///   <c>FindOrRegisterChannel</c> first, and cannot be changed afterwards:
-    ///   a different channel is a different schedule.
+    ///   a different channel is a different schedule. A keyed schedule may only
+    ///   move to the channel of the same type and name in another country.
     /// </summary>
     public Guid? ChannelID { get; init; }
 

@@ -17,6 +17,7 @@ public class AiringChannelMap : ClassMap<AiringChannel>
         Map(x => x.ChannelID).Not.Nullable().Unique();
         Map(x => x.Name).Not.Nullable();
         Map(x => x.NormalizedName).Not.Nullable();
+        Map(x => x.CountryCode).Nullable();
         Map(x => x.Type).CustomType<AiringChannelType>().Not.Nullable();
         Map(x => x.Aliases).CustomType<JsonListConverter<string>>().Not.Nullable();
         Map(x => x.CreatedAt).Not.Nullable();

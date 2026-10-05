@@ -43,8 +43,8 @@ namespace Shoko.Server.API.v3.Controllers;
 /// </summary>
 /// <remarks>
 /// Schedules, airings and channels are owned by the providers that fetch them,
-/// so everything but the provider settings and the server's own preference
-/// lists is read-only here.
+/// so everything but the provider settings, the server's own preference lists
+/// and the channels' aliases and merges is read-only here.
 /// </remarks>
 /// <param name="settingsProvider">Settings provider.</param>
 /// <param name="pluginManager">Plugin manager.</param>
@@ -499,25 +499,44 @@ public class AiringScheduleController(
     /// <remarks>
     /// The lookup normalises the name the same way the registry does, so
     /// <c>TOKYO MX</c>, <c> tokyo  mx </c> and <c>ＴＯＫＹＯ　ＭＸ</c> all find
-    /// the same channel.
+    /// the same channel. Without a country, a channel with no country answers
+    /// first, then one in any country. With a country and no match in it, the
+    /// one channel without a country that matches answers.
     /// </remarks>
     /// <param name="name">The name or alias to look up.</param>
     /// <param name="type">Optional. Only look among channels of this type. Every type is searched when omitted.</param>
+    /// <param name="countryCode">Optional. Only look among channels of this country, as an ISO 3166-1 alpha-2 code.</param>
     /// <param name="useAliases">Whether a channel's aliases count as its names.</param>
     /// <returns>The channel.</returns>
     [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     [HttpGet("Channel/ByName")]
     public ActionResult<AiringChannel> GetChannelByName(
         [FromQuery, Required] string name,
         [FromQuery] AiringChannelType? type = null,
+        [FromQuery] string? countryCode = null,
         [FromQuery] bool useAliases = true
     )
     {
+        string? country;
+        try
+        {
+            country = IAiringScheduleService.NormalizeCountryCode(countryCode);
+        }
+        catch (ArgumentException ex)
+        {
+            ModelState.AddModelError(nameof(countryCode), ex.Message);
+            return ValidationProblem(ModelState);
+        }
+
         var types = type.HasValue ? new[] { type.Value } : Enum.GetValues<AiringChannelType>();
         foreach (var channelType in types)
-            if (airingScheduleService.GetChannelByName(name, channelType, useAliases) is { } channel)
+            if (airingScheduleService.GetChannelByName(name, channelType, country, useAliases) is { } channel)
                 return new AiringChannel(channel);
+
+        if (country is null && FindChannelInAnyCountry(name, types, useAliases) is { } regional)
+            return new AiringChannel(regional);
 
         return NotFound(ChannelNotFoundWithName);
     }
@@ -618,6 +637,111 @@ public class AiringScheduleController(
         return airingScheduleService.GetAiringsInRange(start, end, options)
             .Select(airing => context.ToDto(airing, include))
             .ToList();
+    }
+
+    /// <summary>
+    /// Merge other channels into a channel.
+    /// </summary>
+    /// <remarks>
+    /// The merged channels' schedules move to this one without changing any
+    /// schedule or airing ID, their names and aliases become its aliases, and
+    /// they are deleted. In the preferred channels this one takes the best
+    /// position any of them had, and it keeps its own hidden state and
+    /// country. A TV station without a country takes the one every merged
+    /// channel with a country agrees on, and with it a new ID. A provider
+    /// naming a merged channel later is handed this one.
+    /// </remarks>
+    /// <param name="channelID">The ID of the channel to keep.</param>
+    /// <param name="body">The channels to merge into it, all of its type.</param>
+    /// <returns>The merged channel.</returns>
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [HttpPost("Channel/{channelID:guid}/Merge")]
+    public ActionResult<AiringChannel> MergeChannels(
+        [FromRoute] Guid channelID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] MergeChannelsBody body
+    )
+    {
+        if (airingScheduleService.GetChannelByID(channelID) is not { } target)
+            return NotFound(ChannelNotFoundWithChannelID);
+
+        var sources = new List<IAiringChannel>();
+        foreach (var sourceID in body.SourceIDs.Distinct())
+        {
+            if (airingScheduleService.GetChannelByID(sourceID) is not { } source)
+                ModelState.AddModelError(nameof(body.SourceIDs), $"Unknown channel: {sourceID}");
+            else if (source.ChannelID == target.ChannelID)
+                ModelState.AddModelError(nameof(body.SourceIDs), "A channel can't be merged into itself.");
+            else if (source.Type != target.Type)
+                ModelState.AddModelError(nameof(body.SourceIDs), $"The channel {sourceID} is a {source.Type} channel, not a {target.Type} channel.");
+            else
+                sources.Add(source);
+        }
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        return new AiringChannel(airingScheduleService.MergeChannels(target, sources));
+    }
+
+    /// <summary>
+    /// Replace a channel's aliases.
+    /// </summary>
+    /// <remarks>
+    /// An alias equal to the channel's own name, or a repeat, is dropped. An
+    /// alias another channel of the same type and country already answers to
+    /// is rejected, and nothing is changed.
+    /// </remarks>
+    /// <param name="channelID">The ID of the channel.</param>
+    /// <param name="body">The full list of aliases. An empty list removes them all.</param>
+    /// <returns>The channel.</returns>
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [HttpPut("Channel/{channelID:guid}/Aliases")]
+    public ActionResult<AiringChannel> SetChannelAliases(
+        [FromRoute] Guid channelID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] List<string> body
+    )
+    {
+        if (airingScheduleService.GetChannelByID(channelID) is not { } channel)
+            return NotFound(ChannelNotFoundWithChannelID);
+
+        try
+        {
+            return new AiringChannel(airingScheduleService.SetChannelAliases(channel, body));
+        }
+        catch (ChannelAliasConflictException ex)
+        {
+            ModelState.AddModelError(nameof(body), ex.Message);
+            return ValidationProblem(ModelState);
+        }
+    }
+
+    /// <summary>
+    /// Finds a channel in any country that answers to a name, own names
+    /// before aliases.
+    /// </summary>
+    /// <param name="name">The name or alias to look up.</param>
+    /// <param name="types">The types to look among.</param>
+    /// <param name="useAliases">Whether a channel's aliases count as its names.</param>
+    /// <returns>The channel, or <c>null</c> when none answers.</returns>
+    private IAiringChannel? FindChannelInAnyCountry(string name, IReadOnlyList<AiringChannelType> types, bool useAliases)
+    {
+        var normalizedName = IAiringScheduleService.NormalizeChannelName(name);
+        if (normalizedName.Length is 0)
+            return null;
+
+        var channels = airingScheduleService.GetAllChannels()
+            .Where(channel => types.Contains(channel.Type))
+            .ToList();
+        return channels.FirstOrDefault(channel => IAiringScheduleService.NormalizeChannelName(channel.Name) == normalizedName)
+            ?? (useAliases
+                ? channels.FirstOrDefault(channel => channel.Aliases.Any(alias => IAiringScheduleService.NormalizeChannelName(alias) == normalizedName))
+                : null);
     }
 
     #endregion

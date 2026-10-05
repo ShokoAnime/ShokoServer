@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
@@ -32,10 +34,19 @@ public partial class AiringScheduleService
 
         var seriesKey = GetEntityKey(data.Series);
         var seasonID = data.Season?.ID.ID ?? string.Empty;
-        var key = string.IsNullOrWhiteSpace(data.Key) ? AiringScheduleUtility.GetDerivedScheduleKey(channelID, tracks) : data.Key.Trim();
+        var isKeyless = string.IsNullOrWhiteSpace(data.Key);
+        var key = isKeyless ? AiringScheduleUtility.GetDerivedScheduleKey(channelID, tracks) : data.Key!.Trim();
         var timeZoneID = NormalizeTimeZone(data.TimeZone);
         var scheduleID = AiringScheduleUtility.GetScheduleID(info.ID, seriesKey.Source, seriesKey.ID, seasonID, key);
         var row = RepoFactory.AiringSchedule.GetByScheduleID(scheduleID);
+        // A merge moves a keyless schedule without changing its key, so look
+        // for the one derived on the channel it came from.
+        if (row is null && isKeyless && channelID is { } mergedChannelID)
+            row = RepoFactory.AiringSchedule.GetBySeriesIDAndSeasonID(seriesKey.Source, seriesKey.ID, seasonID)
+                .FirstOrDefault(other => other.ProviderID == info.ID &&
+                    other.ChannelID == mergedChannelID &&
+                    AiringScheduleUtility.IsDerivedChannelScheduleKey(other.Key, tracks));
+        AiringChannel? leftChannel = null;
         var reason = UpdateReason.Added;
         if (row is null)
         {
@@ -54,9 +65,22 @@ public partial class AiringScheduleService
         {
             if (row.ProviderID != info.ID)
                 throw new ArgumentException("The schedule is owned by another provider.", nameof(provider));
-            // A channel change is a different schedule, never an update to this one.
+            // A channel change is a different schedule, never an update to this
+            // one, except for the same channel in another country.
             if (row.ChannelID != channelID)
-                throw new ArgumentException("The schedule already exists on another channel.", nameof(data));
+            {
+                if (!TryGetCountryMove(row.ChannelID, channelID, out leftChannel))
+                    throw new ArgumentException("The schedule already exists on another channel.", nameof(data));
+
+                logger.LogInformation(
+                    "Moving schedule {ScheduleID} of provider {ProviderName} from channel {FromChannelID} to {ToChannelID}, its channel in another country.",
+                    row.ID,
+                    info.Name,
+                    row.ChannelID,
+                    channelID
+                );
+                row.ChannelID = channelID;
+            }
 
             reason = UpdateReason.Updated;
         }
@@ -74,6 +98,24 @@ public partial class AiringScheduleService
 
         var view = new AiringReadContext(this, includeDisabled: true).GetSchedule(row);
         ScheduleUpdated?.Invoke(this, new AiringScheduleEventArgs { Reason = reason, Schedule = view });
+
+        // A channel without a country that nothing airs on any more was the
+        // same channel before its country was known, so it folds into it.
+        if (leftChannel is not null && RepoFactory.AiringChannel.GetByChannelID(row.ChannelID!.Value) is { } newChannel &&
+            (leftChannel.CountryCode is null || newChannel.CountryCode is null) &&
+            RepoFactory.AiringSchedule.GetByChannelID(leftChannel.ChannelID).Count is 0)
+        {
+            // The same channel, so a hidden one stays hidden.
+            var settings = configurationProvider.Load();
+            if (settings.HiddenChannels.Contains(leftChannel.ChannelID) && !settings.HiddenChannels.Contains(newChannel.ChannelID))
+            {
+                settings.HiddenChannels = [.. settings.HiddenChannels, newChannel.ChannelID];
+                configurationProvider.Save(settings);
+            }
+
+            MergeChannelRows(newChannel, [leftChannel]);
+        }
+
         return view;
     }
 
@@ -433,6 +475,28 @@ public partial class AiringScheduleService
             throw new ArgumentException($"Unregistered channel: '{id}'", paramName);
 
         return id;
+    }
+
+    /// <summary>
+    /// Check whether a keyed schedule may move from one channel to another:
+    /// only between the channels of one type and name in two countries.
+    /// </summary>
+    /// <param name="fromChannelID">The schedule's stored channel.</param>
+    /// <param name="toChannelID">The submitted channel.</param>
+    /// <param name="fromChannel">The stored channel, when the move is allowed.</param>
+    /// <returns><c>true</c> if the schedule may move.</returns>
+    private static bool TryGetCountryMove(Guid? fromChannelID, Guid? toChannelID, [NotNullWhen(true)] out AiringChannel? fromChannel)
+    {
+        fromChannel = null;
+        if (fromChannelID is not { } fromID || toChannelID is not { } toID)
+            return false;
+        if (RepoFactory.AiringChannel.GetByChannelID(fromID) is not { } from || RepoFactory.AiringChannel.GetByChannelID(toID) is not { } to)
+            return false;
+        if (from.Type != to.Type || !string.Equals(from.NormalizedName, to.NormalizedName, StringComparison.Ordinal))
+            return false;
+
+        fromChannel = from;
+        return true;
     }
 
     /// <summary>

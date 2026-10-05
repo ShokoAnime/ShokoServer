@@ -8,9 +8,9 @@ An **airing schedule** is one provider's run of a series: optionally narrowed to
 a season, on one channel or none, releasing a fixed set of tracks. An **episode
 airing** is one entry on such a schedule: a time, the slot it was first
 scheduled for, and the delay state the server inferred from the provider's own
-line. Everything is read-only over REST except the provider settings and the two
-preference lists; schedules, airings and channels belong to the providers that
-fetch them.
+line. Everything is read-only over REST except the provider settings, the two
+preference lists and the channels' aliases and merges; schedules, airings and
+channels belong to the providers that fetch them.
 
 Names go over the wire as declared. Properties keep their `PascalCase` spelling
 (`AiredAt`, `IsDelayed`, `TimeZone.IsResolved`) and enum values are their
@@ -230,6 +230,39 @@ preference beats channel preference, which beats a real airing over an
 estimated one, which beats the earlier time. Provider priority only ranks
 sources; it is not where someone would rather watch, which is why these two
 lists exist.
+
+## Channels
+
+`GET /api/v3/AiringSchedule/Channel` lists the shared channel registry. A
+channel is keyed by its `Type`, its normalised `Name` and its `CountryCode`
+(upper-case ISO 3166-1 alpha-2, or `null`), and the name never carries the
+country: a client showing two channels called "ABC" tells them apart by their
+`CountryCode`. A TV station has its country; a streaming service has one only
+when the service itself is regional, and a global one such as Netflix has
+`null`. `GET /Channel/ByName?name=…` matches own names, then aliases, among the
+channels of `type` and `countryCode`; without `countryCode`, a channel with no
+country answers first, then one in any country. With `countryCode` and no
+match in it, the one channel without a country that matches answers, an own
+name before an alias, unless a channel in another country has its own name: a
+channel without a country is one whose country is unknown, or a global
+service. A provider registering a TV station in a country that way gives it
+the country, and with it a new ID.
+
+Two admin routes manage the registry:
+
+- `PUT /Channel/{channelID}/Aliases` replaces the channel's aliases with the
+  list in the body, a JSON array of strings, and returns the channel. A name
+  another channel of the same type and country answers to is rejected with a
+  `400`, and nothing changes.
+- `POST /Channel/{channelID}/Merge` with `{ "SourceIDs": [ … ] }` merges those
+  channels into this one and returns it. They must share its type; their
+  country may differ, and this one's is kept, except that a TV station
+  without a country takes the one every source with a country agrees on, and
+  with it a new ID. Their schedules move here
+  without any schedule or airing ID changing, their names and aliases become
+  this channel's aliases, and they are deleted. In the preferred channels
+  this one takes the best position any of them had, and it keeps its own
+  hidden state. A provider registering a merged name later lands here.
 
 ## Hidden channels
 

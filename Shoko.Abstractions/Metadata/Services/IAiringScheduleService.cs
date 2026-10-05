@@ -158,24 +158,36 @@ public interface IAiringScheduleService
     #region Channels
 
     /// <summary>
-    ///   Event raised when a channel is registered, or when its aliases are
-    ///   updated.
+    ///   Event raised when a channel is registered, when its aliases are
+    ///   updated, for both sides of a merge, and when a channel takes a
+    ///   country: its old ID as removed, its new one as added.
     /// </summary>
     event EventHandler<AiringChannelEventArgs>? ChannelRegistered;
 
     /// <summary>
-    ///   Gets the channel with the given name and type, registering it if it is
-    ///   unknown. The lookup is alias-blind: if another channel of the same
-    ///   type holds the name as an alias, that alias is dropped and the new
-    ///   channel keeps the name.
+    ///   Gets the channel a provider names, registering it only if nothing
+    ///   answers to the name. Own names are matched first, then aliases, among
+    ///   the channels of the same type and country, so a provider naming a
+    ///   merged channel is handed the channel it was merged into.
     /// </summary>
+    /// <remarks>
+    ///   With a country and no answer in it, the one channel of the type
+    ///   without a country answering to the name is handed out, as
+    ///   <see cref="GetChannelByName"/> finds it. A TV station found that way
+    ///   takes the country and a new ID, or is merged into the channel in that
+    ///   country answering to its own name.
+    /// </remarks>
     /// <param name="name">
     ///   The display name of the channel, which is kept as given when the
-    ///   channel is new. Use <see cref="GetRegionalChannelName"/> for a
-    ///   regional service.
+    ///   channel is new. It never carries the country.
     /// </param>
     /// <param name="type">
     ///   The type of the channel, which is part of its identity.
+    /// </param>
+    /// <param name="countryCode">
+    ///   Optional. The country the channel is for, as an ISO 3166-1 alpha-2
+    ///   code, which is part of its identity. Pass it for a TV station, and for
+    ///   a streaming service only when the service itself is regional.
     /// </param>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="name"/> is <c>null</c>.
@@ -184,12 +196,13 @@ public interface IAiringScheduleService
     ///   Parts have not been added yet.
     /// </exception>
     /// <exception cref="ArgumentException">
-    ///   <paramref name="name"/> is blank once normalised.
+    ///   <paramref name="name"/> is blank once normalised, or
+    ///   <paramref name="countryCode"/> is not two letters.
     /// </exception>
     /// <returns>
     ///   The existing channel, or the newly registered one.
     /// </returns>
-    IAiringChannel FindOrRegisterChannel(string name, AiringChannelType type);
+    IAiringChannel FindOrRegisterChannel(string name, AiringChannelType type, string? countryCode = null);
 
     /// <summary>
     ///   Gets the channel with the given ID.
@@ -203,8 +216,8 @@ public interface IAiringScheduleService
     IAiringChannel? GetChannelByID(Guid channelID);
 
     /// <summary>
-    ///   Gets the channel with the given name or alias, of the given type. Own
-    ///   names are matched before aliases.
+    ///   Gets the channel with the given name or alias, of the given type and
+    ///   country. Own names are matched before aliases.
     /// </summary>
     /// <param name="nameOrAlias">
     ///   The name or alias of the channel.
@@ -212,16 +225,26 @@ public interface IAiringScheduleService
     /// <param name="type">
     ///   The type of the channel.
     /// </param>
+    /// <param name="countryCode">
+    ///   Optional. The country of the channel, as an ISO 3166-1 alpha-2 code.
+    ///   <c>null</c> only matches channels with no country. With a country and
+    ///   no match in it, the one channel without a country that matches is
+    ///   returned, an own name before an alias, unless a channel in another
+    ///   country has its own name.
+    /// </param>
     /// <param name="useAliases">
     ///   If <c>false</c>, only own names are matched.
     /// </param>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="nameOrAlias"/> is <c>null</c>.
     /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="countryCode"/> is not two letters.
+    /// </exception>
     /// <returns>
     ///   The channel, or <c>null</c> if none could be found.
     /// </returns>
-    IAiringChannel? GetChannelByName(string nameOrAlias, AiringChannelType type, bool useAliases = true);
+    IAiringChannel? GetChannelByName(string nameOrAlias, AiringChannelType type, string? countryCode = null, bool useAliases = true);
 
     /// <summary>
     ///   Gets every registered channel, optionally of one type only.
@@ -263,7 +286,7 @@ public interface IAiringScheduleService
     /// </exception>
     /// <exception cref="ChannelAliasConflictException">
     ///   An alias is another channel's own name, or another channel's alias, of
-    ///   the same type.
+    ///   the same type and country.
     /// </exception>
     /// <returns>
     ///   The updated channel.
@@ -291,6 +314,65 @@ public interface IAiringScheduleService
     ///   The updated channel.
     /// </returns>
     IAiringChannel RemoveChannelAliases(IAiringChannel channel, IEnumerable<string> aliases);
+
+    /// <summary>
+    ///   Replaces every alias of a channel with the given ones. Nothing is
+    ///   changed when one of them conflicts. An alias equal to the channel's
+    ///   own name, or a repeat, is ignored.
+    /// </summary>
+    /// <param name="channel">
+    ///   The channel to set the aliases of.
+    /// </param>
+    /// <param name="aliases">
+    ///   The full list of aliases. An empty list removes them all.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="channel"/> or <paramref name="aliases"/> is
+    ///   <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="channel"/> is not registered.
+    /// </exception>
+    /// <exception cref="ChannelAliasConflictException">
+    ///   An alias is another channel's own name, or another channel's alias, of
+    ///   the same type and country.
+    /// </exception>
+    /// <returns>
+    ///   The updated channel.
+    /// </returns>
+    IAiringChannel SetChannelAliases(IAiringChannel channel, IEnumerable<string> aliases);
+
+    /// <summary>
+    ///   Merges channels into another one of the same type. Their schedules
+    ///   move to the target without changing any schedule or airing ID, their
+    ///   names and aliases become the target's aliases, and they are deleted.
+    ///   The target keeps its own country, but a TV station without one takes
+    ///   the country every source with one agrees on, and with it a new ID.
+    /// </summary>
+    /// <remarks>
+    ///   In the preferred channels the target takes the best position any of
+    ///   them had, in the hidden channels it keeps its own state. A name that
+    ///   another channel of the target's type and country answers to is not
+    ///   added as an alias.
+    /// </remarks>
+    /// <param name="target">
+    ///   The channel to keep.
+    /// </param>
+    /// <param name="sources">
+    ///   The channels to merge into it. Repeats collapse.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="target"/> or <paramref name="sources"/> is
+    ///   <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   A channel is not registered, is the target itself, or has another
+    ///   type than the target.
+    /// </exception>
+    /// <returns>
+    ///   The merged channel.
+    /// </returns>
+    IAiringChannel MergeChannels(IAiringChannel target, IEnumerable<IAiringChannel> sources);
 
     #endregion
 
@@ -1236,9 +1318,9 @@ public interface IAiringScheduleService
     public static Guid ChannelIdentifierNamespace { get; } = UuidUtility.GetV5("AiringChannelIdentifierNamespace", UuidUtility.PublicUuidNamespaces.OID);
 
     /// <summary>
-    ///   Get the ID for the given channel name and type, without registering
-    ///   anything. Providers that spell a channel alike end up on one ID, while
-    ///   the same name with another type stays a different channel.
+    ///   Get the ID for the given channel name, type and country, without
+    ///   registering anything. Providers that spell a channel alike end up on
+    ///   one ID, while another type or country stays another channel.
     /// </summary>
     /// <param name="name">
     ///   The name of the channel.
@@ -1246,14 +1328,22 @@ public interface IAiringScheduleService
     /// <param name="type">
     ///   The type of the channel.
     /// </param>
+    /// <param name="countryCode">
+    ///   Optional. The country of the channel, as an ISO 3166-1 alpha-2 code.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="name"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="countryCode"/> is not two letters.
     /// </exception>
     /// <returns>
     ///   The ID of the channel.
     /// </returns>
-    public static Guid GetChannelID(string name, AiringChannelType type)
-        => UuidUtility.GetV5($"ChannelType={type},Name={NormalizeChannelName(name)}", ChannelIdentifierNamespace);
+    public static Guid GetChannelID(string name, AiringChannelType type, string? countryCode = null)
+        => NormalizeCountryCode(countryCode) is { } country
+            ? UuidUtility.GetV5($"ChannelType={type},Name={NormalizeChannelName(name)},Country={country}", ChannelIdentifierNamespace)
+            : UuidUtility.GetV5($"ChannelType={type},Name={NormalizeChannelName(name)}", ChannelIdentifierNamespace);
 
     /// <summary>
     ///   Normalise a channel name for comparison: NFKC, runs of whitespace
@@ -1278,30 +1368,28 @@ public interface IAiringScheduleService
     }
 
     /// <summary>
-    ///   Build the name of a regional channel, e.g. <c>Amazon (US)</c>. This is
-    ///   the only supported way to name one, so spellings cannot drift. No
-    ///   suffix means worldwide or unknown, and broadcast stations never get
-    ///   one.
+    ///   Normalise a channel's country code: trimmed and upper-cased, with a
+    ///   blank code read as no country.
     /// </summary>
-    /// <param name="brand">
-    ///   The brand of the service, e.g. <c>Amazon</c>.
-    /// </param>
     /// <param name="countryCode">
-    ///   The region the service is for, as an ISO 3166-1 alpha-2 code.
+    ///   The country code, as an ISO 3166-1 alpha-2 code in any casing.
     /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///   <paramref name="brand"/> or <paramref name="countryCode"/> is
-    ///   <c>null</c>.
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="countryCode"/> is not two ASCII letters.
     /// </exception>
     /// <returns>
-    ///   The name of the regional channel.
+    ///   The upper-case code, or <c>null</c> for no country.
     /// </returns>
-    public static string GetRegionalChannelName(string brand, string countryCode)
+    public static string? NormalizeCountryCode(string? countryCode)
     {
-        ArgumentNullException.ThrowIfNull(brand);
-        ArgumentNullException.ThrowIfNull(countryCode);
+        if (string.IsNullOrWhiteSpace(countryCode))
+            return null;
 
-        return $"{brand.Trim()} ({countryCode.Trim().ToUpperInvariant()})";
+        var code = countryCode.Trim().ToUpperInvariant();
+        if (code.Length is not 2 || !char.IsAsciiLetterUpper(code[0]) || !char.IsAsciiLetterUpper(code[1]))
+            throw new ArgumentException($"Invalid country code: '{countryCode}'. Use an ISO 3166-1 alpha-2 code.", nameof(countryCode));
+
+        return code;
     }
 
     #endregion

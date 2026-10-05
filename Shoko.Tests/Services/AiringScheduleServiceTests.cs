@@ -22,6 +22,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Airing;
@@ -1521,17 +1522,56 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
-    public void FindOrRegisterChannel_ClaimsANameHeldByAnotherChannelsAlias()
+    public void FindOrRegisterChannel_KeysTheCountry()
     {
         using var harness = new Harness();
-        var owner = harness.Service.FindOrRegisterChannel("Tokyo Metropolitan Television", AiringChannelType.Television);
+
+        var japan = harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "JP");
+        var lowerCase = harness.Service.FindOrRegisterChannel(" abc ", AiringChannelType.Television, "jp");
+        var unitedStates = harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "US");
+        var nowhere = harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television);
+
+        Assert.Equal(japan.ChannelID, lowerCase.ChannelID);
+        Assert.Equal("JP", lowerCase.CountryCode);
+        Assert.Equal("ABC", japan.Name);
+        Assert.Equal(3, new[] { japan.ChannelID, unitedStates.ChannelID, nowhere.ChannelID }.Distinct().Count());
+        Assert.Equal(IAiringScheduleService.GetChannelID("abc", AiringChannelType.Television, "JP"), japan.ChannelID);
+        // A channel without a country keeps the ID it had before countries were keyed.
+        Assert.Equal(UuidUtility.GetV5("ChannelType=Television,Name=abc", IAiringScheduleService.ChannelIdentifierNamespace), nowhere.ChannelID);
+        Assert.Throws<ArgumentException>(() => harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "JPN"));
+    }
+
+    [Fact]
+    public void GetChannelByName_LooksWithinTheCountry()
+    {
+        using var harness = new Harness();
+        var japan = harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "JP");
+        harness.Service.AddChannelAliases(japan, ["Asahi Broadcasting"]);
+
+        Assert.Equal(japan.ChannelID, harness.Service.GetChannelByName("asahi broadcasting", AiringChannelType.Television, "JP")?.ChannelID);
+        Assert.Null(harness.Service.GetChannelByName("ABC", AiringChannelType.Television));
+        Assert.Null(harness.Service.GetChannelByName("Asahi Broadcasting", AiringChannelType.Television, "US"));
+    }
+
+    [Fact]
+    public void FindOrRegisterChannel_FindsAnAliasBeforeRegistering()
+    {
+        using var harness = new Harness();
+        var owner = harness.Service.FindOrRegisterChannel("Tokyo Metropolitan Television", AiringChannelType.Television, "JP");
         harness.Service.AddChannelAliases(owner, ["TOKYO MX"]);
+        var registered = new List<IAiringChannel>();
+        harness.Service.ChannelRegistered += (_, args) => registered.Add(args.Channel);
 
-        var claimed = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var found = harness.Service.FindOrRegisterChannel("Tokyo MX", AiringChannelType.Television, "JP");
 
-        Assert.NotEqual(owner.ChannelID, claimed.ChannelID);
-        Assert.Equal(claimed.ChannelID, harness.Service.GetChannelByName("TOKYO MX", AiringChannelType.Television)?.ChannelID);
-        Assert.Empty(harness.Service.GetChannelByID(owner.ChannelID)!.Aliases);
+        Assert.Equal(owner.ChannelID, found.ChannelID);
+        Assert.Empty(registered);
+        // The alias stays where it was: registering never takes a name from another channel.
+        Assert.Equal(["TOKYO MX"], harness.Service.GetChannelByID(owner.ChannelID)!.Aliases);
+        // Another country is another registry, so the alias answers nothing there.
+        var bare = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        Assert.NotEqual(owner.ChannelID, bare.ChannelID);
+        Assert.Equal(bare.ChannelID, Assert.Single(registered).ChannelID);
     }
 
     [Fact]
@@ -1550,6 +1590,123 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
+    public void AddChannelAliases_OnlyConflictsWithinTheCountry()
+    {
+        using var harness = new Harness();
+        harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "JP");
+        var other = harness.Service.FindOrRegisterChannel("Asahi", AiringChannelType.Television, "US");
+
+        Assert.Equal(["ABC"], harness.Service.AddChannelAliases(other, ["ABC"]).Aliases);
+    }
+
+    [Fact]
+    public void SetChannelAliases_ReplacesTheListOrChangesNothing()
+    {
+        using var harness = new Harness();
+        harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP");
+        var channel = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television, "JP");
+        harness.Service.AddChannelAliases(channel, ["MX", "Tokyo Metropolitan Television"]);
+
+        var replaced = harness.Service.SetChannelAliases(channel, ["ＭＸテレビ", "mx", "MX", "TOKYO MX"]);
+
+        Assert.Equal(["ＭＸテレビ", "mx"], replaced.Aliases);
+        Assert.Throws<ChannelAliasConflictException>(() => harness.Service.SetChannelAliases(channel, ["Tokyo MX 1", "bs11"]));
+        Assert.Equal(["ＭＸテレビ", "mx"], harness.Service.GetChannelByID(channel.ChannelID)!.Aliases);
+        Assert.Empty(harness.Service.SetChannelAliases(channel, []).Aliases);
+    }
+
+    [Fact]
+    public void MergeChannels_MovesTheSchedulesAndKeepsEveryID()
+    {
+        using var harness = new Harness();
+        var target = harness.Service.FindOrRegisterChannel("TV Tokyo", AiringChannelType.Television, "JP");
+        var source = harness.Service.FindOrRegisterChannel("テレビ東京", AiringChannelType.Television);
+        harness.Service.AddChannelAliases(source, ["TX"]);
+        var tracks = new[] { new AiringTrackData(AiringKind.Original, "ja") };
+        var keyed = harness.Schedule(harness.Secondary, "tx", source.ChannelID, tracks, (0, harness.Air(1, 18)), (1, harness.Air(8, 18)));
+        var keyless = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData(channelID: source.ChannelID));
+        harness.Service.SetAirings(harness.Primary, keyless, [new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(1, 18) }]);
+        var airingIDs = harness.Read(keyed).Concat(harness.Read(keyless)).Select(airing => airing.ID).ToList();
+
+        var merged = harness.Service.MergeChannels(target, [source, source]);
+
+        Assert.Equal(target.ChannelID, merged.ChannelID);
+        Assert.Equal("JP", merged.CountryCode);
+        Assert.Equal(["テレビ東京", "TX"], merged.Aliases);
+        Assert.Null(harness.Service.GetChannelByID(source.ChannelID));
+        Assert.Equal(
+            new[] { keyed.ID, keyless.ID }.Order(),
+            harness.Service.GetSchedulesForChannel(target.ChannelID).Select(schedule => schedule.ID).Order()
+        );
+        Assert.Equal(airingIDs, harness.Read(keyed).Concat(harness.Read(keyless)).Select(airing => airing.ID).ToList());
+
+        // A provider naming the merged channel is handed the target, and its
+        // keyless schedule, derived on the old channel, is still the one it updates.
+        var renamed = harness.Service.FindOrRegisterChannel("テレビ東京", AiringChannelType.Television, "JP");
+        Assert.Equal(target.ChannelID, renamed.ChannelID);
+        var rewritten = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData(channelID: renamed.ChannelID));
+        Assert.Equal(keyless.ID, rewritten.ID);
+        Assert.Equal(2, harness.Service.GetSchedulesForChannel(target.ChannelID).Count);
+    }
+
+    [Fact]
+    public void MergeChannels_FoldsTheChannelSettings()
+    {
+        using var harness = new Harness();
+        var first = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP");
+        var target = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television, "JP");
+        var source = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television);
+        var other = harness.Service.FindOrRegisterChannel("ＡＴ－Ｘ HD", AiringChannelType.Television, "JP");
+        harness.Settings.PreferredChannels = [first.ChannelID, source.ChannelID, other.ChannelID, target.ChannelID];
+        harness.Settings.HiddenChannels = [source.ChannelID, other.ChannelID];
+
+        harness.Service.MergeChannels(target, [source, other]);
+
+        Assert.Equal([first.ChannelID, target.ChannelID], harness.Settings.PreferredChannels);
+        Assert.Empty(harness.Settings.HiddenChannels);
+        Assert.False(harness.Service.GetChannelByID(target.ChannelID)!.IsHidden);
+        // The source's own name is the target's, so only the other name is added.
+        Assert.Equal(["ＡＴ－Ｘ HD"], harness.Service.GetChannelByID(target.ChannelID)!.Aliases);
+    }
+
+    [Fact]
+    public void MergeChannels_RefusesAnotherTypeOrItself()
+    {
+        using var harness = new Harness();
+        var target = harness.Service.FindOrRegisterChannel("ABEMA", AiringChannelType.Streaming, "JP");
+        var television = harness.Service.FindOrRegisterChannel("ABEMA", AiringChannelType.Television, "JP");
+
+        Assert.Throws<ArgumentException>(() => harness.Service.MergeChannels(target, [television]));
+        Assert.Throws<ArgumentException>(() => harness.Service.MergeChannels(target, [target]));
+        Assert.NotNull(harness.Service.GetChannelByID(television.ChannelID));
+    }
+
+    [Fact]
+    public void AddOrUpdateSchedule_MovesAKeyedScheduleToItsChannelInAnotherCountry()
+    {
+        using var harness = new Harness();
+        // Registered in the country first, or the bare channel would take it.
+        var japan = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP");
+        var bare = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
+        harness.Service.AddChannelAliases(bare, ["BSイレブン"]);
+        harness.Settings.HiddenChannels = [bare.ChannelID];
+        var tracks = new[] { new AiringTrackData(AiringKind.Original, "ja") };
+        var schedule = harness.Schedule(harness.Primary, "128", bare.ChannelID, tracks, (0, harness.Air(1, 23)));
+        var airingID = Assert.Single(harness.Read(schedule)).ID;
+
+        var moved = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData("128", japan.ChannelID));
+
+        Assert.Equal(schedule.ID, moved.ID);
+        Assert.Equal(japan.ChannelID, moved.Channel?.ChannelID);
+        Assert.Equal(airingID, Assert.Single(harness.Read(moved)).ID);
+        // Nothing airs on the bare channel any more, so it folded into the one
+        // with the country, which keeps its aliases and its hidden state.
+        Assert.Null(harness.Service.GetChannelByID(bare.ChannelID));
+        Assert.Equal(["BSイレブン"], harness.Service.GetChannelByID(japan.ChannelID)!.Aliases);
+        Assert.Equal([japan.ChannelID], harness.Settings.HiddenChannels);
+    }
+
+    [Fact]
     public void GetChannelByName_SkipsAliasesWhenAsked()
     {
         using var harness = new Harness();
@@ -1558,6 +1715,171 @@ public class AiringScheduleServiceTests
 
         Assert.Equal(owner.ChannelID, harness.Service.GetChannelByName("TOKYO MX", AiringChannelType.Television)?.ChannelID);
         Assert.Null(harness.Service.GetChannelByName("TOKYO MX", AiringChannelType.Television, useAliases: false));
+    }
+
+    #endregion
+
+    #region Channel Countries
+
+    [Theory]
+    [InlineData("Tokyo MX (JP)", true, "Tokyo MX", "JP")]
+    [InlineData("Amazon(US)", true, "Amazon", "US")]
+    [InlineData("AT-X", false, "AT-X", "")]
+    [InlineData("Crunchyroll (Sub)", false, "Crunchyroll (Sub)", "")]
+    [InlineData("Amazon (us)", false, "Amazon (us)", "")]
+    public void TrySplitRegionalChannelName_ReadsATrailingCountry(string name, bool expected, string brand, string countryCode)
+    {
+        Assert.Equal(expected, DatabaseFixes.TrySplitRegionalChannelName(name, out var actualBrand, out var actualCountryCode));
+        Assert.Equal((brand, countryCode), (actualBrand, actualCountryCode));
+    }
+
+    [Fact]
+    public void KeyAiringChannelsByCountry_MovesTheCountryOutOfTheNameAndMergesTheDuplicates()
+    {
+        using var harness = new Harness();
+        var tracks = new[] { new AiringTrackData(AiringKind.Original, "ja") };
+        var syoboiMx = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.Service.AddChannelAliases(syoboiMx, ["ＭＸテレビ"]);
+        var tvmazeMx = harness.Service.FindOrRegisterChannel("Tokyo MX (JP)", AiringChannelType.Television);
+        var netflix = harness.Service.FindOrRegisterChannel("Netflix", AiringChannelType.Streaming);
+        var netflixJapan = harness.Service.FindOrRegisterChannel("Netflix (JP)", AiringChannelType.Streaming);
+        var huluJapan = harness.Service.FindOrRegisterChannel("Hulu (JP)", AiringChannelType.Streaming);
+        var hulu = harness.Service.FindOrRegisterChannel("Hulu", AiringChannelType.Streaming);
+        var abcJapan = harness.Service.FindOrRegisterChannel("ABC (JP)", AiringChannelType.Television);
+        var abcUnitedStates = harness.Service.FindOrRegisterChannel("ABC (US)", AiringChannelType.Television);
+        var bs11 = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
+        var syoboiSchedule = harness.Schedule(harness.Primary, "19", syoboiMx.ChannelID, tracks, (0, harness.Air(1, 23)));
+        var tvmazeSchedule = harness.Schedule(harness.Secondary, "tvmaze", tvmazeMx.ChannelID, tracks, (0, harness.Air(1, 23)));
+        var netflixSchedule = harness.Schedule(harness.Primary, "nf", netflixJapan.ChannelID, tracks, (0, harness.Air(1, 15)));
+        var airingIDs = new[] { syoboiSchedule, tvmazeSchedule, netflixSchedule }.SelectMany(harness.Read).Select(airing => airing.ID).ToList();
+        // The views read their row, so the IDs from before are kept aside.
+        var (huluJapanID, abcUnitedStatesID) = (huluJapan.ChannelID, abcUnitedStates.ChannelID);
+        harness.Settings.PreferredChannels = [tvmazeMx.ChannelID, netflixJapan.ChannelID, syoboiMx.ChannelID];
+        harness.Settings.HiddenChannels = [abcJapan.ChannelID];
+
+        DatabaseFixes.KeyAiringChannelsByCountry(harness.ConfigurationProvider, NullLogger.Instance);
+
+        var channels = harness.Service.GetAllChannels().Select(channel => (channel.Name, channel.Type, channel.CountryCode)).ToList();
+        Assert.Equal(
+            [
+                ("ABC", AiringChannelType.Television, "JP"),
+                ("ABC", AiringChannelType.Television, "US"),
+                ("BS11", AiringChannelType.Television, null),
+                ("TOKYO MX", AiringChannelType.Television, "JP"),
+                ("Hulu", AiringChannelType.Streaming, null),
+                ("Hulu", AiringChannelType.Streaming, "JP"),
+                ("Netflix", AiringChannelType.Streaming, null),
+            ],
+            channels
+        );
+        var mx = harness.Service.GetChannelByName("Tokyo MX", AiringChannelType.Television, "JP")!;
+        var abc = harness.Service.GetChannelByName("ABC", AiringChannelType.Television, "JP")!;
+        Assert.Equal(["ＭＸテレビ"], mx.Aliases);
+        Assert.Equal(IAiringScheduleService.GetChannelID("TOKYO MX", AiringChannelType.Television, "JP"), mx.ChannelID);
+        // The channels already keyed right keep their IDs.
+        Assert.Equal(netflix.ChannelID, harness.Service.GetChannelByName("Netflix", AiringChannelType.Streaming)?.ChannelID);
+        Assert.Equal(hulu.ChannelID, harness.Service.GetChannelByName("Hulu", AiringChannelType.Streaming)?.ChannelID);
+        Assert.Equal(bs11.ChannelID, harness.Service.GetChannelByName("BS11", AiringChannelType.Television)?.ChannelID);
+        Assert.NotEqual(huluJapanID, harness.Service.GetChannelByName("Hulu", AiringChannelType.Streaming, "JP")?.ChannelID);
+
+        // The schedules follow their channels, and no schedule or airing ID moves.
+        Assert.Equal(mx.ChannelID, harness.Service.GetScheduleByID(syoboiSchedule.ID)?.Channel?.ChannelID);
+        Assert.Equal(mx.ChannelID, harness.Service.GetScheduleByID(tvmazeSchedule.ID)?.Channel?.ChannelID);
+        Assert.Equal(netflix.ChannelID, harness.Service.GetScheduleByID(netflixSchedule.ID)?.Channel?.ChannelID);
+        Assert.Equal(airingIDs, new[] { syoboiSchedule, tvmazeSchedule, netflixSchedule }.SelectMany(harness.Read).Select(airing => airing.ID).ToList());
+
+        // And so do the settings.
+        Assert.Equal([mx.ChannelID, netflix.ChannelID], harness.Settings.PreferredChannels);
+        Assert.Equal([abc.ChannelID], harness.Settings.HiddenChannels);
+        Assert.NotEqual(abcUnitedStatesID, harness.Service.GetChannelByName("ABC", AiringChannelType.Television, "US")?.ChannelID);
+    }
+
+    [Fact]
+    public void MergeChannels_GivesTheCountryAndARegistrationThereLandsOnIt()
+    {
+        using var harness = new Harness();
+        var bare = harness.Service.FindOrRegisterChannel("BS11イレブン", AiringChannelType.Television);
+        var japan = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP");
+        var tracks = new[] { new AiringTrackData(AiringKind.Original, "ja") };
+        var schedule = harness.Schedule(harness.Primary, "211", bare.ChannelID, tracks, (0, harness.Air(1, 23)));
+
+        var merged = harness.Service.MergeChannels(bare, [japan]);
+
+        Assert.Equal(("BS11イレブン", "JP"), (merged.Name, merged.CountryCode));
+        Assert.Equal(IAiringScheduleService.GetChannelID("BS11イレブン", AiringChannelType.Television, "JP"), merged.ChannelID);
+        Assert.Equal(merged.ChannelID, harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP").ChannelID);
+        Assert.Equal(merged.ChannelID, harness.Service.GetScheduleByID(schedule.ID)?.Channel?.ChannelID);
+        Assert.Single(harness.Service.GetAllChannels());
+    }
+
+    [Fact]
+    public void FindOrRegisterChannel_FallsBackToAChannelWithoutACountry()
+    {
+        using var harness = new Harness();
+        var eleven = harness.Service.FindOrRegisterChannel("BS Eleven", AiringChannelType.Television);
+        harness.Service.AddChannelAliases(eleven, ["BS11"]);
+        var netflix = harness.Service.FindOrRegisterChannel("Netflix", AiringChannelType.Streaming);
+
+        Assert.Equal(eleven.ChannelID, harness.Service.GetChannelByName("BS11", AiringChannelType.Television, "JP")?.ChannelID);
+        Assert.Null(harness.Service.GetChannelByName("BS11", AiringChannelType.Television, "JP", useAliases: false));
+        Assert.Null(eleven.CountryCode);
+
+        // Only stored data breaking one name, one answer ties an own name with an alias.
+        var own = new AiringChannel("BS11", AiringChannelType.Television);
+        harness.Channels.Object.Save(own);
+        var found = harness.Service.FindOrRegisterChannel("bs11", AiringChannelType.Television, "JP");
+
+        Assert.Equal(own.ChannelID, found.ChannelID);
+        Assert.Equal(("BS11", "JP"), (found.Name, found.CountryCode));
+        Assert.Null(eleven.CountryCode);
+        // A streaming service without a country is global, so it keeps having none.
+        Assert.Equal(netflix.ChannelID, harness.Service.FindOrRegisterChannel("Netflix", AiringChannelType.Streaming, "JP").ChannelID);
+        Assert.Null(netflix.CountryCode);
+    }
+
+    [Fact]
+    public void FindOrRegisterChannel_RegistersWhenTheChannelWithoutACountryIsUnclear()
+    {
+        using var harness = new Harness();
+        harness.Channels.Object.Save(new AiringChannel("BS Eleven", AiringChannelType.Television) { Aliases = ["BS11"] });
+        harness.Channels.Object.Save(new AiringChannel("BS 11ch", AiringChannelType.Television) { Aliases = ["BS11"] });
+        // A namesake in another country may make it that country's station.
+        harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "US");
+        harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television);
+
+        Assert.Null(harness.Service.GetChannelByName("BS11", AiringChannelType.Television, "JP"));
+        Assert.Equal("JP", harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP").CountryCode);
+        Assert.Equal("JP", harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "JP").CountryCode);
+        Assert.Equal(6, harness.Service.GetAllChannels().Count);
+    }
+
+    [Fact]
+    public void MergeChannels_GivesTheCountryOnlyWhenTheSourcesAgree()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("テレビ東京", AiringChannelType.Television);
+        var abc = harness.Service.FindOrRegisterChannel("朝日放送", AiringChannelType.Television);
+        var netflix = harness.Service.FindOrRegisterChannel("Netflix", AiringChannelType.Streaming);
+
+        var agreed = harness.Service.MergeChannels(
+            tokyo,
+            [
+                harness.Service.FindOrRegisterChannel("TV Tokyo", AiringChannelType.Television, "JP"),
+                harness.Service.FindOrRegisterChannel("TX", AiringChannelType.Television),
+            ]
+        );
+        var disagreed = harness.Service.MergeChannels(
+            abc,
+            [
+                harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "JP"),
+                harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "US"),
+            ]
+        );
+        var global = harness.Service.MergeChannels(netflix, [harness.Service.FindOrRegisterChannel("Netflix Japan", AiringChannelType.Streaming, "JP")]);
+
+        Assert.Equal("JP", agreed.CountryCode);
+        Assert.Null(disagreed.CountryCode);
+        Assert.Null(global.CountryCode);
     }
 
     #endregion
@@ -2562,6 +2884,11 @@ public class AiringScheduleServiceTests
 
         public Mock<AiringChannelRepository> Channels { get; }
 
+        public Mock<ShokoImage_EntityRepository> Images { get; }
+
+        /// <summary>The service's settings provider, over <see cref="Settings"/>.</summary>
+        public ConfigurationProvider<AiringScheduleServiceSettings> ConfigurationProvider { get; }
+
         public Mock<ScheduledUpdateRepository> Updates { get; }
 
         public Mock<IMetadataService> Metadata { get; } = new();
@@ -2630,12 +2957,27 @@ public class AiringScheduleServiceTests
                     entry.AiringChannelID = nextChannelID++;
                 Channels.Object.Cache.Update(entry);
             });
+            Channels.Setup(repository => repository.Delete(It.IsAny<AiringChannel>())).Callback<AiringChannel>(entry => Channels.Object.Cache.Remove(entry));
+            Images = CachedRepo.BuildWritable<ShokoImage_EntityRepository, int, ShokoImage_Entity>(entry => entry.ID);
+            var nextImageID = 1;
+            Images.Setup(repository => repository.Save(It.IsAny<ShokoImage_Entity>())).Callback<ShokoImage_Entity>(entry =>
+            {
+                if (entry.ID is 0)
+                    entry.ID = nextImageID++;
+                Images.Object.Cache.Update(entry);
+            });
+            Images.Setup(repository => repository.Delete(It.IsAny<IReadOnlyCollection<ShokoImage_Entity>>()))
+                .Callback<IReadOnlyCollection<ShokoImage_Entity>>(entries =>
+                {
+                    foreach (var entry in entries.ToList())
+                        Images.Object.Cache.Remove(entry);
+                });
             // The ticker's watermark is an ordinary ScheduledUpdate row, so the
             // direct repository is mocked down to the two calls it makes.
             Updates = new Mock<ScheduledUpdateRepository>((DatabaseFactory)null!);
             Updates.Setup(repository => repository.GetByUpdateType(It.IsAny<int>())).Returns(() => Watermark);
             Updates.Setup(repository => repository.Save(It.IsAny<ScheduledUpdate>())).Callback<ScheduledUpdate>(row => Watermark = row);
-            _scope.Set(Schedules.Object).Set(Airings.Object).Set(Channels.Object).Set(Updates.Object);
+            _scope.Set(Schedules.Object).Set(Airings.Object).Set(Channels.Object).Set(Images.Object).Set(Updates.Object);
 
             var shokoSeries = new Mock<IShokoSeries>();
             var linkedSeries = new Mock<ISeries>();
@@ -2717,13 +3059,14 @@ public class AiringScheduleServiceTests
             CrossReferences.Setup(store => store.GetSeriesLinks(It.IsAny<int>(), It.IsAny<MetadataSource?>())).Returns([]);
             CrossReferences.Setup(store => store.GetEpisodeLinksForSeries(It.IsAny<int>(), It.IsAny<MetadataSource?>())).Returns([]);
             CrossReferences.Setup(store => store.GetLinksTo(It.IsAny<MetadataGuid>())).Returns([]);
+            ConfigurationProvider = new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object);
             Service = new AiringScheduleService(
                 NullLogger<AiringScheduleService>.Instance,
                 configurationService.Object,
                 pluginManager.Object,
                 Mock.Of<IApplicationPaths>(),
                 new Mock<IQueueScheduler>().Object,
-                new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
+                ConfigurationProvider,
                 new(() => Metadata.Object),
                 new(() => CrossReferences.Object),
                 new(() => Linking.Object)

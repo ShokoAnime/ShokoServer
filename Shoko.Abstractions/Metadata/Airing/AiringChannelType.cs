@@ -22,7 +22,7 @@ public enum AiringChannelType : byte
     Television = 1,
 
     /// <summary>
-    ///   A streaming service, e.g. Crunchyroll or Amazon (US).
+    ///   A streaming service, e.g. Crunchyroll or Hulu Japan.
     /// </summary>
     Streaming = 2,
 }

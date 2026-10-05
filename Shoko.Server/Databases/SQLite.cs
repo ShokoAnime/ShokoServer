@@ -1400,6 +1400,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(173, 296, MakeAniDB_EpisodeAirDateNullable),
         new(173, 297, "UPDATE AniDB_Episode SET AirDate = NULL WHERE AirDate = 0;"),
         new(173, 298, DatabaseFixes.RestoreAnidbPlaceholderAirDates),
+        new(173, 299, "ALTER TABLE AiringChannel ADD COLUMN CountryCode TEXT NULL;"),
+        new(173, 300, DatabaseFixes.KeyAiringChannelsByCountry),
     ];
 
     #endregion

@@ -5,7 +5,9 @@ namespace Shoko.Abstractions.Metadata.Airing;
 
 /// <summary>
 ///   Event arguments for airing channel events. This is dispatched when a
-///   channel is registered, or when its aliases are updated.
+///   channel is registered, when its aliases are updated, for both sides of a
+///   merge (the merged channels as removed, the target as updated), and when a
+///   channel takes a country (its old ID as removed, its new one as added).
 /// </summary>
 public class AiringChannelEventArgs : EventArgs
 {

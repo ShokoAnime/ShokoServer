@@ -1690,6 +1690,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 297, "ALTER TABLE `AniDB_Episode` MODIFY `AirDate` INT NULL;"),
         new(194, 298, "UPDATE `AniDB_Episode` SET `AirDate` = NULL WHERE `AirDate` = 0;"),
         new(194, 299, DatabaseFixes.RestoreAnidbPlaceholderAirDates),
+        new(194, 300, "ALTER TABLE `AiringChannel` ADD `CountryCode` VARCHAR(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        new(194, 301, DatabaseFixes.KeyAiringChannelsByCountry),
     ];
 
     #endregion

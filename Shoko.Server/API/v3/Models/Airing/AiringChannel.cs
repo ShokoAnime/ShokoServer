@@ -7,27 +7,34 @@ using Shoko.Abstractions.Metadata.Airing;
 namespace Shoko.Server.API.v3.Models.Airing;
 
 /// <summary>
-/// Where a run airs, from the shared channel registry. Channels are managed by
-/// the providers that use them, so everything here is read-only over REST.
+/// Where a run airs, from the shared channel registry. Channels are registered
+/// by the providers that use them; an admin manages their aliases and merges
+/// them.
 /// </summary>
 /// <param name="channel">The channel.</param>
 /// <exception cref="ArgumentNullException"><paramref name="channel"/> is <c>null</c>.</exception>
 public class AiringChannel(IAiringChannel channel)
 {
     /// <summary>
-    /// The ID of the channel, derived from its <see cref="Type"/> and its
-    /// normalised <see cref="Name"/>.
+    /// The ID of the channel, derived from its <see cref="Type"/>, its
+    /// normalised <see cref="Name"/> and its <see cref="CountryCode"/>.
     /// </summary>
     [Required]
     public Guid ID { get; init; } = channel.ChannelID;
 
     /// <summary>
-    /// The display name of the channel, kept as it was first registered.
-    /// Regional services carry their region in the name, e.g.
-    /// <c>Amazon (US)</c>.
+    /// The display name of the channel, kept as it was first registered. It
+    /// never carries the country.
     /// </summary>
     [Required]
     public string Name { get; init; } = channel.Name;
+
+    /// <summary>
+    /// The country the channel is for, as an upper-case ISO 3166-1 alpha-2
+    /// code, or <c>null</c> for a global service or an unknown country. Part
+    /// of the channel's identity.
+    /// </summary>
+    public string? CountryCode { get; init; } = channel.CountryCode;
 
     /// <summary>
     /// What kind of channel it is. The type is part of the channel's identity,
@@ -37,8 +44,9 @@ public class AiringChannel(IAiringChannel channel)
     public AiringChannelType Type { get; init; } = channel.Type;
 
     /// <summary>
-    /// Other names the channel answers to. An alias never changes an ID, merges
-    /// channels or widens a filter.
+    /// Other names the channel answers to, among the channels of its type and
+    /// country. A merge adds the names of the merged channels here. An alias
+    /// never changes an ID or widens a filter.
     /// </summary>
     [Required]
     public IReadOnlyList<string> Aliases { get; init; } = [.. channel.Aliases];
@@ -76,6 +84,12 @@ public class AiringChannelReference(IAiringChannel channel)
     /// </summary>
     [Required]
     public string Name { get; init; } = channel.Name;
+
+    /// <summary>
+    /// The country the channel is for, or <c>null</c> for a global service or
+    /// an unknown country.
+    /// </summary>
+    public string? CountryCode { get; init; } = channel.CountryCode;
 
     /// <summary>
     /// What kind of channel it is.

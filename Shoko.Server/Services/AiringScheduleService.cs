@@ -687,39 +687,40 @@ public partial class AiringScheduleService(
     #region Channels
 
     /// <inheritdoc/>
-    public IAiringChannel FindOrRegisterChannel(string name, AiringChannelType type)
+    public IAiringChannel FindOrRegisterChannel(string name, AiringChannelType type, string? countryCode = null)
     {
         ArgumentNullException.ThrowIfNull(name);
         if (!_loaded)
             throw new InvalidOperationException("Parts have not been added yet.");
 
-        var normalizedName = AiringScheduleUtility.NormalizeChannelName(name);
-        if (normalizedName.Length is 0)
+        if (AiringScheduleUtility.NormalizeChannelName(name).Length is 0)
             throw new ArgumentException("A channel needs a name.", nameof(name));
 
-        var channelID = AiringScheduleUtility.GetChannelID(name, type);
-        if (RepoFactory.AiringChannel.GetByChannelID(channelID) is { } existing)
+        // Find first, by own name then by alias, so a merged name lands on the
+        // channel it was merged into.
+        var country = AiringScheduleUtility.NormalizeCountryCode(countryCode);
+        if (RepoFactory.AiringChannel.GetByName(name, type, country) is { } existing)
             return ToChannelView(existing);
 
-        // Registering claims the name: an alias is a hint, a channel called that
-        // is the real claim, so any alias holding it is dropped with a warning.
-        foreach (var other in RepoFactory.AiringChannel.GetAllByName(name, type))
+        // A channel without a country is one whose country is unknown, so it is
+        // this one, and a TV station takes the country.
+        if (country is not null)
         {
-            if (string.Equals(other.NormalizedName, normalizedName, StringComparison.Ordinal))
-                continue;
+            var fallbacks = GetChannelsWithoutCountry(name, type, country, useAliases: true);
+            if (fallbacks.Count is 1)
+                return ToChannelView(AiringChannelMerger.CanTakeCountry(fallbacks[0]) ? AdoptCountry(fallbacks[0], country) : fallbacks[0]);
 
-            logger.LogWarning(
-                "Registering channel \"{Name}\" takes the name from channel \"{OtherName}\", which held it as an alias.",
-                name.Trim(),
-                other.Name
-            );
-            other.Aliases = other.Aliases
-                .Where(alias => !string.Equals(AiringScheduleUtility.NormalizeChannelName(alias), normalizedName, StringComparison.Ordinal))
-                .ToList();
-            RepoFactory.AiringChannel.Save(other);
+            if (fallbacks.Count > 1)
+                logger.LogWarning(
+                    "Registering channel \"{Name}\" in country {CountryCode}, since {Count} channels without a country answer to the name: {Names}.",
+                    name.Trim(),
+                    country,
+                    fallbacks.Count,
+                    string.Join(", ", fallbacks.Select(channel => channel.Name))
+                );
         }
 
-        var row = new AiringChannel(name, type);
+        var row = new AiringChannel(name, type, country);
         RepoFactory.AiringChannel.Save(row);
         var channel = ToChannelView(row);
         ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Added, Channel = channel });
@@ -731,11 +732,17 @@ public partial class AiringScheduleService(
         => RepoFactory.AiringChannel.GetByChannelID(channelID) is { } row ? ToChannelView(row) : null;
 
     /// <inheritdoc/>
-    public IAiringChannel? GetChannelByName(string nameOrAlias, AiringChannelType type, bool useAliases = true)
+    public IAiringChannel? GetChannelByName(string nameOrAlias, AiringChannelType type, string? countryCode = null, bool useAliases = true)
     {
         ArgumentNullException.ThrowIfNull(nameOrAlias);
 
-        return RepoFactory.AiringChannel.GetByName(nameOrAlias, type, useAliases) is { } row ? ToChannelView(row) : null;
+        var country = AiringScheduleUtility.NormalizeCountryCode(countryCode);
+        if (RepoFactory.AiringChannel.GetByName(nameOrAlias, type, country, useAliases) is { } row)
+            return ToChannelView(row);
+
+        return country is not null && GetChannelsWithoutCountry(nameOrAlias, type, country, useAliases) is [var fallback]
+            ? ToChannelView(fallback)
+            : null;
     }
 
     /// <inheritdoc/>
@@ -746,6 +753,7 @@ public partial class AiringScheduleService(
             .Where(channel => type is null || channel.Type == type)
             .OrderBy(channel => channel.Type)
             .ThenBy(channel => channel.Name, StringComparer.Ordinal)
+            .ThenBy(channel => channel.CountryCode, StringComparer.Ordinal)
             .Select(IAiringChannel (channel) => new AiringChannelView(channel, hiddenChannelIDs.Contains(channel.ChannelID)))
             .ToList();
     }
@@ -760,51 +768,13 @@ public partial class AiringScheduleService(
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(aliases);
 
-        // Aliases live on the stored channel, so a channel that was never
-        // registered here — or whose row is gone — has nothing to add them to,
-        // and the caller is told rather than left thinking the aliases stuck.
-        var row = RepoFactory.AiringChannel.GetByChannelID(channel.ChannelID)
-            ?? throw new ArgumentException(
-                $"Unregistered channel: '{channel.ChannelID}'. Register it with {nameof(FindOrRegisterChannel)} before adding aliases to it.",
-                nameof(channel)
-            );
-        var added = new List<string>();
-        var known = row.Aliases.Select(AiringScheduleUtility.NormalizeChannelName).ToHashSet(StringComparer.Ordinal);
-        foreach (var alias in aliases)
-        {
-            if (alias is null)
-                continue;
-
-            var normalizedAlias = AiringScheduleUtility.NormalizeChannelName(alias);
-            // An alias equal to the channel's own name, or one it already has, is nothing to do.
-            if (normalizedAlias.Length is 0 || string.Equals(normalizedAlias, row.NormalizedName, StringComparison.Ordinal) || !known.Add(normalizedAlias))
-                continue;
-
-            // One name, one answer: a caller asserting otherwise should hear about it.
-            foreach (var other in RepoFactory.AiringChannel.GetAllByName(alias, row.Type))
-            {
-                if (other.AiringChannelID == row.AiringChannelID)
-                    continue;
-
-                throw new ChannelAliasConflictException(
-                    alias.Trim(),
-                    ToChannelView(other),
-                    string.Equals(other.NormalizedName, normalizedAlias, StringComparison.Ordinal),
-                    nameof(aliases)
-                );
-            }
-
-            added.Add(alias.Trim());
-        }
-
+        var row = GetChannelRow(channel, nameof(channel));
+        var added = GetCheckedAliases(row, aliases, row.Aliases, nameof(aliases));
         if (added.Count is 0)
             return ToChannelView(row);
 
         row.Aliases = [.. row.Aliases, .. added];
-        RepoFactory.AiringChannel.Save(row);
-        var view = ToChannelView(row);
-        ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Updated, Channel = view });
-        return view;
+        return SaveChannel(row);
     }
 
     /// <inheritdoc/>
@@ -813,13 +783,7 @@ public partial class AiringScheduleService(
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(aliases);
 
-        // Same as adding: without a stored channel there are no aliases to take
-        // anything off of, which is a caller error and not a no-op.
-        var row = RepoFactory.AiringChannel.GetByChannelID(channel.ChannelID)
-            ?? throw new ArgumentException(
-                $"Unregistered channel: '{channel.ChannelID}'. Register it with {nameof(FindOrRegisterChannel)} before removing aliases from it.",
-                nameof(channel)
-            );
+        var row = GetChannelRow(channel, nameof(channel));
         var unwanted = aliases
             .Where(alias => alias is not null)
             .Select(AiringScheduleUtility.NormalizeChannelName)
@@ -831,6 +795,284 @@ public partial class AiringScheduleService(
             return ToChannelView(row);
 
         row.Aliases = remaining;
+        return SaveChannel(row);
+    }
+
+    /// <inheritdoc/>
+    public IAiringChannel SetChannelAliases(IAiringChannel channel, IEnumerable<string> aliases)
+    {
+        ArgumentNullException.ThrowIfNull(channel);
+        ArgumentNullException.ThrowIfNull(aliases);
+
+        var row = GetChannelRow(channel, nameof(channel));
+        var wanted = GetCheckedAliases(row, aliases, [], nameof(aliases));
+        if (wanted.SequenceEqual(row.Aliases, StringComparer.Ordinal))
+            return ToChannelView(row);
+
+        row.Aliases = wanted;
+        return SaveChannel(row);
+    }
+
+    /// <inheritdoc/>
+    public IAiringChannel MergeChannels(IAiringChannel target, IEnumerable<IAiringChannel> sources)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(sources);
+
+        var targetRow = GetChannelRow(target, nameof(target));
+        var sourceRows = new List<AiringChannel>();
+        foreach (var source in sources)
+        {
+            ArgumentNullException.ThrowIfNull(source, nameof(sources));
+
+            var row = GetChannelRow(source, nameof(sources));
+            if (row.AiringChannelID == targetRow.AiringChannelID)
+                throw new ArgumentException($"The channel '{row.ChannelID}' can't be merged into itself.", nameof(sources));
+            if (row.Type != targetRow.Type)
+                throw new ArgumentException($"The channel '{row.ChannelID}' is of another type than the channel it is merged into.", nameof(sources));
+            if (sourceRows.All(other => other.AiringChannelID != row.AiringChannelID))
+                sourceRows.Add(row);
+        }
+
+        if (sourceRows.Count is 0)
+            return ToChannelView(targetRow);
+
+        return MergeChannelRows(targetRow, sourceRows);
+    }
+
+    /// <summary>
+    /// Merges stored channels into another one and raises the events: the
+    /// moved schedules as updated, the merged channels as removed and the
+    /// target as updated.
+    /// </summary>
+    /// <param name="target">The channel to keep.</param>
+    /// <param name="sources">The channels to merge into it, already checked.</param>
+    /// <returns>The merged channel.</returns>
+    private AiringChannelView MergeChannelRows(AiringChannel target, IReadOnlyList<AiringChannel> sources)
+    {
+        // A TV station without a country takes the one its sources agree on.
+        var countries = sources
+            .Select(source => source.CountryCode)
+            .OfType<string>()
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        var adoptedCountry = AiringChannelMerger.CanTakeCountry(target) && countries.Count is 1 ? countries[0] : null;
+        var removed = sources.Select(source => ToChannelView(source)).ToList();
+        var moved = AiringChannelMerger.Merge(target, sources, configurationProvider, logger);
+        logger.LogInformation(
+            "Merged {Count} channel(s) into channel \"{Name}\" ({ChannelID}), moving {ScheduleCount} schedule(s).",
+            sources.Count,
+            target.Name,
+            target.ChannelID,
+            moved.Count
+        );
+        if (adoptedCountry is null)
+            return RaiseChannelChanges(target, UpdateReason.Updated, removed, moved);
+
+        removed.Add(ToChannelView(CopyChannel(target)));
+        var (channel, rekeyed) = AiringChannelMerger.AdoptCountry(target, adoptedCountry, configurationProvider, logger);
+        LogAdoptedCountry(target, channel, adoptedCountry);
+        return RaiseChannelChanges(
+            channel,
+            channel == target ? UpdateReason.Added : UpdateReason.Updated,
+            removed,
+            [.. moved, .. rekeyed]
+        );
+    }
+
+    /// <summary>
+    /// Gives a TV station without a country the country it was found in and
+    /// raises the events: its old ID as removed, and the new one as added, or
+    /// the channel it merged into as updated.
+    /// </summary>
+    /// <param name="row">The channel without a country.</param>
+    /// <param name="countryCode">The normalised country to give it.</param>
+    /// <returns>The channel now holding it.</returns>
+    private AiringChannel AdoptCountry(AiringChannel row, string countryCode)
+    {
+        var removed = ToChannelView(CopyChannel(row));
+        var (channel, moved) = AiringChannelMerger.AdoptCountry(row, countryCode, configurationProvider, logger);
+        LogAdoptedCountry(row, channel, countryCode);
+        RaiseChannelChanges(
+            channel,
+            channel == row ? UpdateReason.Added : UpdateReason.Updated,
+            [removed],
+            moved
+        );
+        return channel;
+    }
+
+    /// <summary>
+    /// Logs a channel taking a country.
+    /// </summary>
+    /// <param name="row">The channel that had no country.</param>
+    /// <param name="channel">The channel now holding it: the same one re-keyed, or the one it merged into.</param>
+    /// <param name="countryCode">The country it took.</param>
+    private void LogAdoptedCountry(AiringChannel row, AiringChannel channel, string countryCode)
+    {
+        if (channel == row)
+        {
+            logger.LogInformation(
+                "Channel \"{Name}\" takes country {CountryCode}, and is now {ChannelID}.",
+                row.Name,
+                countryCode,
+                channel.ChannelID
+            );
+            return;
+        }
+
+        logger.LogInformation(
+            "Channel \"{Name}\" takes country {CountryCode} and merges into channel \"{OtherName}\" ({ChannelID}).",
+            row.Name,
+            countryCode,
+            channel.Name,
+            channel.ChannelID
+        );
+    }
+
+    /// <summary>
+    /// Raises the events for channels that changed: the schedules that moved as
+    /// updated, the channel IDs that are gone as removed, and the channel kept.
+    /// </summary>
+    /// <param name="channel">The channel kept.</param>
+    /// <param name="reason">The reason to raise for the channel kept.</param>
+    /// <param name="removed">The channels whose IDs are gone, as they were.</param>
+    /// <param name="moved">The schedules that moved. Repeats collapse.</param>
+    /// <returns>The channel kept.</returns>
+    private AiringChannelView RaiseChannelChanges(
+        AiringChannel channel,
+        UpdateReason reason,
+        IReadOnlyList<AiringChannelView> removed,
+        IReadOnlyList<AiringSchedule> moved
+    )
+    {
+        var schedules = moved.DistinctBy(schedule => schedule.AiringScheduleID).ToList();
+        foreach (var schedule in schedules)
+            InvalidateProfilesForSeries(schedule.SeriesSource, schedule.SeriesID);
+        if (schedules.Count > 0)
+        {
+            var context = new AiringReadContext(this, includeDisabled: true);
+            foreach (var schedule in schedules)
+                ScheduleUpdated?.Invoke(this, new AiringScheduleEventArgs { Reason = UpdateReason.Updated, Schedule = context.GetSchedule(schedule) });
+        }
+
+        foreach (var view in removed)
+            ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Removed, Channel = view });
+
+        var kept = ToChannelView(channel);
+        ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = reason, Channel = kept });
+        return kept;
+    }
+
+    /// <summary>
+    /// Gets the channels without a country that a name in a country falls back
+    /// to: those of the type answering to it, own names before aliases. One
+    /// whose own name a channel in another country has is left out, as it may
+    /// be that country's.
+    /// </summary>
+    /// <param name="name">The name to look up.</param>
+    /// <param name="type">The type of the channel.</param>
+    /// <param name="countryCode">The normalised country asked for.</param>
+    /// <param name="useAliases">Whether an alias may answer.</param>
+    /// <returns>The best matches: one, none, or several when it is ambiguous.</returns>
+    private static List<AiringChannel> GetChannelsWithoutCountry(string name, AiringChannelType type, string countryCode, bool useAliases)
+    {
+        var normalizedName = AiringScheduleUtility.NormalizeChannelName(name);
+        var candidates = RepoFactory.AiringChannel.GetAllByName(name, type, null)
+            .Where(channel => useAliases || channel.NormalizedName == normalizedName)
+            .Where(channel => RepoFactory.AiringChannel.GetAllByNameInAnyCountry(channel.Name, type)
+                .All(other => other.CountryCode is null || other.CountryCode == countryCode))
+            .ToList();
+        var ownNames = candidates.Where(channel => channel.NormalizedName == normalizedName).ToList();
+        return ownNames.Count > 0 ? ownNames : candidates;
+    }
+
+    /// <summary>
+    /// Copies a stored channel, so an event can carry it as it was before its
+    /// key changed.
+    /// </summary>
+    /// <param name="row">The stored channel.</param>
+    /// <returns>An unsaved copy.</returns>
+    private static AiringChannel CopyChannel(AiringChannel row)
+        => new()
+        {
+            AiringChannelID = row.AiringChannelID,
+            ChannelID = row.ChannelID,
+            Name = row.Name,
+            CountryCode = row.CountryCode,
+            NormalizedName = row.NormalizedName,
+            Type = row.Type,
+            Aliases = [.. row.Aliases],
+            CreatedAt = row.CreatedAt,
+        };
+
+    /// <summary>
+    /// Gets the stored row behind a channel. Aliases and merges live on the
+    /// stored channel, so a channel that was never registered here, or whose
+    /// row is gone, is a caller error rather than a no-op.
+    /// </summary>
+    /// <param name="channel">The channel.</param>
+    /// <param name="paramName">The name of the argument the channel arrived in.</param>
+    /// <returns>The stored channel.</returns>
+    /// <exception cref="ArgumentException">The channel isn't registered.</exception>
+    private static AiringChannel GetChannelRow(IAiringChannel channel, string paramName)
+        => RepoFactory.AiringChannel.GetByChannelID(channel.ChannelID)
+            ?? throw new ArgumentException(
+                $"Unregistered channel: '{channel.ChannelID}'. Register it with {nameof(FindOrRegisterChannel)} first.",
+                paramName
+            );
+
+    /// <summary>
+    /// Checks aliases for a channel and returns the ones to keep: trimmed, each
+    /// once, and never the channel's own name or one it already has.
+    /// </summary>
+    /// <param name="row">The channel the aliases are for.</param>
+    /// <param name="aliases">The aliases to check.</param>
+    /// <param name="existing">The aliases the channel keeps besides these.</param>
+    /// <param name="paramName">The name of the argument the aliases arrived in.</param>
+    /// <returns>The aliases to keep, in the order given.</returns>
+    /// <exception cref="ChannelAliasConflictException">Another channel of the same type and country answers to an alias.</exception>
+    private List<string> GetCheckedAliases(AiringChannel row, IEnumerable<string> aliases, IEnumerable<string> existing, string paramName)
+    {
+        var kept = new List<string>();
+        var known = existing.Select(AiringScheduleUtility.NormalizeChannelName).ToHashSet(StringComparer.Ordinal);
+        foreach (var alias in aliases)
+        {
+            if (alias is null)
+                continue;
+
+            var normalizedAlias = AiringScheduleUtility.NormalizeChannelName(alias);
+            // An alias equal to the channel's own name, or one it already has, is nothing to do.
+            if (normalizedAlias.Length is 0 || string.Equals(normalizedAlias, row.NormalizedName, StringComparison.Ordinal) || !known.Add(normalizedAlias))
+                continue;
+
+            // One name, one answer: a caller asserting otherwise should hear about it.
+            foreach (var other in RepoFactory.AiringChannel.GetAllByName(alias, row.Type, row.CountryCode))
+            {
+                if (other.AiringChannelID == row.AiringChannelID)
+                    continue;
+
+                throw new ChannelAliasConflictException(
+                    alias.Trim(),
+                    ToChannelView(other),
+                    string.Equals(other.NormalizedName, normalizedAlias, StringComparison.Ordinal),
+                    paramName
+                );
+            }
+
+            kept.Add(alias.Trim());
+        }
+
+        return kept;
+    }
+
+    /// <summary>
+    /// Saves a channel whose aliases changed and raises the event.
+    /// </summary>
+    /// <param name="row">The stored channel.</param>
+    /// <returns>The channel.</returns>
+    private AiringChannelView SaveChannel(AiringChannel row)
+    {
         RepoFactory.AiringChannel.Save(row);
         var view = ToChannelView(row);
         ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Updated, Channel = view });

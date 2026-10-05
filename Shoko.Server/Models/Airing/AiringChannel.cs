@@ -14,9 +14,9 @@ namespace Shoko.Server.Models.Airing;
 /// never removed automatically.
 /// </summary>
 /// <remarks>
-/// A channel is keyed by its type and its normalised name, so the same station
-/// spelled differently by two providers ends up on one ID, while two names that
-/// never normalise alike stay two channels. The service hands it out as an
+/// A channel is keyed by its type, its normalised name and its country, so the
+/// same station spelled differently by two providers ends up on one ID, while
+/// two names that never normalise alike stay two channels until merged. The service hands it out as an
 /// <see cref="IAiringChannel"/> through <c>AiringChannelView</c>.
 /// </remarks>
 public class AiringChannel : IMetadata
@@ -29,17 +29,22 @@ public class AiringChannel : IMetadata
     public int AiringChannelID { get; set; }
 
     /// <summary>
-    /// The public ID of the channel, derived from its <see cref="Type"/> and
-    /// its <see cref="NormalizedName"/>.
+    /// The public ID of the channel, derived from its <see cref="Type"/>, its
+    /// <see cref="NormalizedName"/> and its <see cref="CountryCode"/>.
     /// </summary>
     public Guid ChannelID { get; set; }
 
     /// <summary>
-    /// The display name of the channel, kept as it was first registered.
-    /// Regional channels carry their region in the name, e.g.
-    /// <c>Amazon (US)</c>.
+    /// The display name of the channel, kept as it was first registered. It
+    /// never carries the country.
     /// </summary>
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The country the channel is for, as an upper-case ISO 3166-1 alpha-2
+    /// code, or <c>null</c> for a global or unknown one. Part of the key.
+    /// </summary>
+    public string? CountryCode { get; set; }
 
     /// <summary>
     /// The normalised form of <see cref="Name"/>, which is what lookups and the
@@ -55,8 +60,8 @@ public class AiringChannel : IMetadata
 
     /// <summary>
     /// Other names for the channel, stored as a JSON array. A lookup by an
-    /// alias returns this channel, but an alias never changes an ID, merges
-    /// channels or widens a filter.
+    /// alias, of the channel's type and country, returns this channel, but an
+    /// alias never changes an ID or widens a filter.
     /// </summary>
     public List<string> Aliases { get; set; } = [];
 
@@ -71,8 +76,8 @@ public class AiringChannel : IMetadata
 
     /// <summary>
     /// Every name the channel answers to, normalised: its own first, then its
-    /// aliases. One name resolves to at most one channel of a given type, so
-    /// this is safe to index on.
+    /// aliases. One name resolves to at most one channel of a given type and
+    /// country, so this is safe to index on.
     /// </summary>
     public IReadOnlyList<string> NormalizedNames
         => Aliases.Count is 0
@@ -93,21 +98,42 @@ public class AiringChannel : IMetadata
     public AiringChannel() { }
 
     /// <summary>
-    /// Registers a new channel under the given name and type.
+    /// Registers a new channel under the given name, type and country.
     /// </summary>
     /// <param name="name">The display name of the channel.</param>
     /// <param name="type">The type of the channel.</param>
+    /// <param name="countryCode">The country of the channel, or <c>null</c> when it has none.</param>
     /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
-    public AiringChannel(string name, AiringChannelType type)
+    /// <exception cref="ArgumentException"><paramref name="name"/> is blank, or <paramref name="countryCode"/> is not two letters.</exception>
+    public AiringChannel(string name, AiringChannelType type, string? countryCode = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        CreatedAt = DateTime.UtcNow;
+        Type = type;
+        SetKey(name, countryCode);
+    }
+
+    #endregion
+
+    #region Methods
+
+    /// <summary>
+    /// Sets the display name and the country, and the normalised name and the
+    /// ID that follow from them.
+    /// </summary>
+    /// <param name="name">The display name of the channel.</param>
+    /// <param name="countryCode">The country of the channel, or <c>null</c> when it has none.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is blank, or <paramref name="countryCode"/> is not two letters.</exception>
+    public void SetKey(string name, string? countryCode)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Name = name.Trim();
         NormalizedName = AiringScheduleUtility.NormalizeChannelName(Name);
-        Type = type;
-        ChannelID = AiringScheduleUtility.GetChannelID(Name, type);
-        CreatedAt = DateTime.UtcNow;
+        CountryCode = AiringScheduleUtility.NormalizeCountryCode(countryCode);
+        ChannelID = AiringScheduleUtility.GetChannelID(Name, Type, CountryCode);
     }
 
     #endregion
