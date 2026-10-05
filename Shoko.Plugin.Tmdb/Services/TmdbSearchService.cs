@@ -89,6 +89,9 @@ public sealed partial class TmdbSearchService
     /// </summary>
     internal const int AnimationGenreID = 16;
 
+    // "cn" is TMDb's code for Cantonese.
+    private static readonly HashSet<string> RestrictedLanguages = new(StringComparer.OrdinalIgnoreCase) { "ja", "zh", "cn", "ko" };
+
     #endregion
 
     #region Searching

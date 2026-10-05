@@ -419,24 +419,28 @@ public sealed partial class TmdbSearchService
             : [.. anime.Episodes.Where(episode => episode.Type is EpisodeType.Special or EpisodeType.Other).OrderBy(episode => episode.Type).ThenBy(episode => episode.EpisodeNumber)];
     }
 
-    private static void Collect(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount)
+    // TMDb's genre tags are sparse for adult titles, so a restricted anime also takes an East Asian original language.
+    private static bool IsAnimation(List<int>? genreIDs, string? originalLanguage, bool restricted)
+        => (genreIDs?.Contains(AnimationGenreID) ?? false) || (restricted && originalLanguage is not null && RestrictedLanguages.Contains(originalLanguage));
+
+    internal static void Collect(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount, bool restricted)
     {
         foreach (var result in results)
         {
             if (candidates.Count >= candidateCount)
                 break;
-            if (seen.Add(result.Id) && (result.GenreIds?.Contains(AnimationGenreID) ?? false))
+            if (seen.Add(result.Id) && IsAnimation(result.GenreIds, result.OriginalLanguage, restricted))
                 candidates.Add(result);
         }
     }
 
-    private static void Collect(List<SearchMovie> candidates, List<SearchMovie> results, HashSet<int> seen, int candidateCount)
+    internal static void Collect(List<SearchMovie> candidates, List<SearchMovie> results, HashSet<int> seen, int candidateCount, bool restricted)
     {
         foreach (var result in results)
         {
             if (candidates.Count >= candidateCount)
                 break;
-            if (seen.Add(result.Id) && (result.GenreIds?.Contains(AnimationGenreID) ?? false))
+            if (seen.Add(result.Id) && IsAnimation(result.GenreIds, result.OriginalLanguage, restricted))
                 candidates.Add(result);
         }
     }

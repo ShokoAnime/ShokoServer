@@ -653,7 +653,7 @@ public sealed partial class TmdbSearchService
         /// <param name="cap">How many candidates to collect at most.</param>
         /// <returns>A task that completes once the hits are collected.</returns>
         private async Task CollectShows(List<SearchTv> candidates, string query, bool restricted, int year, HashSet<int> seen, int cap)
-            => Collect(candidates, (await service.SearchShowsRaw(query, restricted, year, cancellationToken: cancellationToken).ConfigureAwait(false)).Page, seen, cap);
+            => Collect(candidates, (await service.SearchShowsRaw(query, restricted, year, cancellationToken: cancellationToken).ConfigureAwait(false)).Page, seen, cap, restricted);
 
         /// <summary>
         ///   Searches TMDb's movies and adds the animated hits not seen yet to
@@ -667,7 +667,7 @@ public sealed partial class TmdbSearchService
         /// <param name="cap">How many candidates to collect at most.</param>
         /// <returns>A task that completes once the hits are collected.</returns>
         private async Task CollectMovies(List<SearchMovie> candidates, string query, bool restricted, int year, HashSet<int> seen, int cap)
-            => Collect(candidates, (await service.SearchMoviesRaw(query, restricted, year, cancellationToken: cancellationToken).ConfigureAwait(false)).Page, seen, cap);
+            => Collect(candidates, (await service.SearchMoviesRaw(query, restricted, year, cancellationToken: cancellationToken).ConfigureAwait(false)).Page, seen, cap, restricted);
 
         private async Task<MetadataSeriesSearchResult?> FetchShow(int showID)
             => await service._apiClient.GetShow(showID, TvShowMethods.Translations, cancellationToken).ConfigureAwait(false) is { } show

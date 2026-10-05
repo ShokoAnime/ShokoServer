@@ -106,6 +106,20 @@ public sealed class TmdbSearchServiceTests : IDisposable
         Assert.Contains("tv/1001/season/1", _harness.Routes.Paths);
     }
 
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)]
+    public async Task AnUntaggedJapaneseShowIsOnlyAutoLinkedForARestrictedAnime(bool restricted, int candidateCount)
+    {
+        _harness.Routes.Json("search/tv", """{ "page": 1, "total_pages": 1, "total_results": 1, "results": [{ "adult": true, "genre_ids": [], "id": 1001, "original_language": "ja", "original_name": "旅の終わり", "name": "Journey's End", "first_air_date": "2023-09-29" }] }""");
+        SetUpAnime(Anime(42, AnimeType.TV, new DateOnly(2023, 9, 29), 2, restricted: restricted));
+        JudgeShowsBy(new() { [1001] = MatchRating.DateAndTitleMatches });
+
+        var candidates = await _harness.Provider.FindAutoLinks(42, TestContext.Current.CancellationToken);
+
+        Assert.Equal(candidateCount, candidates.Count);
+    }
+
     [Fact]
     public async Task AShowTheAnimesCrossSourceIDsNameIsAHint()
     {
@@ -188,6 +202,38 @@ public sealed class TmdbSearchServiceTests : IDisposable
     #endregion
 
     #region Judging
+
+    [Theory]
+    [InlineData(true, "ja", true)]
+    [InlineData(true, "zh", true)]
+    [InlineData(true, "cn", true)]
+    [InlineData(true, "KO", true)]
+    [InlineData(true, "en", false)]
+    [InlineData(true, null, false)]
+    [InlineData(false, "ja", false)]
+    public void AnUntaggedHitIsACandidateOnlyForARestrictedAnimeOfAnEastAsianLanguage(bool restricted, string? language, bool collected)
+    {
+        var show = new TMDbLib.Objects.Search.SearchTv { Id = 1, GenreIds = [], OriginalLanguage = language };
+        var movie = new TMDbLib.Objects.Search.SearchMovie { Id = 1, GenreIds = [], OriginalLanguage = language };
+        var shows = new List<TMDbLib.Objects.Search.SearchTv>();
+        var movies = new List<TMDbLib.Objects.Search.SearchMovie>();
+
+        TmdbSearchService.Collect(shows, [show], [], 5, restricted);
+        TmdbSearchService.Collect(movies, [movie], [], 5, restricted);
+
+        Assert.Equal(collected, shows.Count is 1);
+        Assert.Equal(collected, movies.Count is 1);
+    }
+
+    [Fact]
+    public void ATaggedHitIsACandidateWhateverTheLanguage()
+    {
+        var shows = new List<TMDbLib.Objects.Search.SearchTv>();
+
+        TmdbSearchService.Collect(shows, [new() { Id = 1, GenreIds = [TmdbSearchService.AnimationGenreID], OriginalLanguage = "en" }], [], 5, false);
+
+        Assert.Single(shows);
+    }
 
     [Theory]
     [InlineData(MatchRating.DateAndTitleMatches, MatchRating.TitleMatches, true)]
@@ -292,7 +338,7 @@ public sealed class TmdbSearchServiceTests : IDisposable
                 ];
             });
 
-    private static IAnidbAnime Anime(int anidbID, AnimeType type, DateOnly airedOn, int episodeCount, IReadOnlyList<MetadataGuid>? crossSourceIDs = null)
+    private static IAnidbAnime Anime(int anidbID, AnimeType type, DateOnly airedOn, int episodeCount, IReadOnlyList<MetadataGuid>? crossSourceIDs = null, bool restricted = false)
     {
         var episodes = Enumerable.Range(1, episodeCount)
             .Select(number =>
@@ -311,6 +357,7 @@ public sealed class TmdbSearchServiceTests : IDisposable
         anime.SetupGet(mock => mock.AnidbID).Returns(anidbID);
         anime.SetupGet(mock => mock.ID).Returns(new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Series, anidbID.ToString(CultureInfo.InvariantCulture)));
         anime.SetupGet(mock => mock.Type).Returns(type);
+        anime.SetupGet(mock => mock.Restricted).Returns(restricted);
         anime.SetupGet(mock => mock.AirDate).Returns(PartialDateOnly.FromDateOnly(airedOn));
         anime.SetupGet(mock => mock.RegularAirDate).Returns(PartialDateOnly.FromDateOnly(airedOn));
         anime.SetupGet(mock => mock.Episodes).Returns(episodes);
