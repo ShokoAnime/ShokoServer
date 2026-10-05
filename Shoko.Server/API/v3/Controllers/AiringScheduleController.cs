@@ -46,7 +46,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <remarks>
 /// Schedules, airings and channels are owned by the providers that fetch them,
 /// so everything but the provider settings, the server's own preference lists
-/// and the channels' aliases and merges is read-only here.
+/// and the channels' aliases, merges and hidden state is read-only here.
 /// </remarks>
 /// <param name="settingsProvider">Settings provider.</param>
 /// <param name="pluginManager">Plugin manager.</param>
@@ -862,6 +862,42 @@ public class AiringScheduleController(
             ModelState.AddModelError(nameof(body), ex.Message);
             return ValidationProblem(ModelState);
         }
+    }
+
+    /// <summary>
+    /// Get the IDs of the channels the server hides.
+    /// </summary>
+    /// <remarks>
+    /// An airing read naming no channels leaves the airings of a hidden
+    /// channel out.
+    /// </remarks>
+    /// <returns>The hidden channels.</returns>
+    [HttpGet("Channel/Hidden")]
+    public ActionResult<List<Guid>> GetHiddenChannels()
+        => airingScheduleService.HiddenChannelIDs.Order().ToList();
+
+    /// <summary>
+    /// Set the channels the server hides, showing every other one.
+    /// </summary>
+    /// <param name="body">The IDs of the channels to hide. An empty list shows them all.</param>
+    /// <returns>The hidden channels.</returns>
+    [Authorize(Roles = "admin")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [HttpPut("Channel/Hidden")]
+    public ActionResult<List<Guid>> SetHiddenChannels([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] List<Guid> body)
+    {
+        var hidden = body.ToHashSet();
+        var unknownChannels = hidden.Where(channelID => airingScheduleService.GetChannelByID(channelID) is null).ToList();
+        if (unknownChannels.Count > 0)
+        {
+            ModelState.AddModelError(nameof(body), $"Unknown channels; {string.Join(", ", unknownChannels)}");
+            return ValidationProblem(ModelState);
+        }
+
+        foreach (var channel in airingScheduleService.GetAllChannels())
+            airingScheduleService.SetChannelHidden(channel, hidden.Contains(channel.ChannelID));
+        return GetHiddenChannels();
     }
 
     /// <summary>

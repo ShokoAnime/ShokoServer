@@ -39,6 +39,7 @@ using Shoko.Server.Services;
 using Shoko.Server.Services.Airing;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using Shoko.Tests.Actors;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
@@ -1658,12 +1659,13 @@ public class AiringScheduleServiceTests
         var source = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television);
         var other = harness.Service.FindOrRegisterChannel("ＡＴ－Ｘ HD", AiringChannelType.Television, "JP");
         harness.Settings.PreferredChannels = [first.ChannelID, source.ChannelID, other.ChannelID, target.ChannelID];
-        harness.Settings.HiddenChannels = [source.ChannelID, other.ChannelID];
+        harness.Service.SetChannelHidden(source, true);
+        harness.Service.SetChannelHidden(other, true);
 
         harness.Service.MergeChannels(target, [source, other]);
 
         Assert.Equal([first.ChannelID, target.ChannelID], harness.Settings.PreferredChannels);
-        Assert.Empty(harness.Settings.HiddenChannels);
+        Assert.Empty(harness.Service.HiddenChannelIDs);
         Assert.False(harness.Service.GetChannelByID(target.ChannelID)!.IsHidden);
         // The source's own name is the target's, so only the other name is added.
         Assert.Equal(["ＡＴ－Ｘ HD"], harness.Service.GetChannelByID(target.ChannelID)!.Aliases);
@@ -1689,7 +1691,7 @@ public class AiringScheduleServiceTests
         var japan = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP");
         var bare = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
         harness.Service.AddChannelAliases(bare, ["BSイレブン"]);
-        harness.Settings.HiddenChannels = [bare.ChannelID];
+        harness.Service.SetChannelHidden(bare, true);
         var tracks = new[] { new AiringTrackData(AiringKind.Original, "ja") };
         var schedule = harness.Schedule(harness.Primary, "128", bare.ChannelID, tracks, (0, harness.Air(1, 23)));
         var airingID = Assert.Single(harness.Read(schedule)).ID;
@@ -1703,7 +1705,7 @@ public class AiringScheduleServiceTests
         // with the country, which keeps its aliases and its hidden state.
         Assert.Null(harness.Service.GetChannelByID(bare.ChannelID));
         Assert.Equal(["BSイレブン"], harness.Service.GetChannelByID(japan.ChannelID)!.Aliases);
-        Assert.Equal([japan.ChannelID], harness.Settings.HiddenChannels);
+        Assert.Equal([japan.ChannelID], harness.Service.HiddenChannelIDs);
     }
 
     [Fact]
@@ -1755,7 +1757,7 @@ public class AiringScheduleServiceTests
         // The views read their row, so the IDs from before are kept aside.
         var (huluJapanID, abcUnitedStatesID) = (huluJapan.ChannelID, abcUnitedStates.ChannelID);
         harness.Settings.PreferredChannels = [tvmazeMx.ChannelID, netflixJapan.ChannelID, syoboiMx.ChannelID];
-        harness.Settings.HiddenChannels = [abcJapan.ChannelID];
+        harness.Service.SetChannelHidden(abcJapan, true);
 
         DatabaseFixes.KeyAiringChannelsByCountry(harness.ConfigurationProvider, NullLogger.Instance);
 
@@ -1790,7 +1792,7 @@ public class AiringScheduleServiceTests
 
         // And so do the settings.
         Assert.Equal([mx.ChannelID, netflix.ChannelID], harness.Settings.PreferredChannels);
-        Assert.Equal([abc.ChannelID], harness.Settings.HiddenChannels);
+        Assert.Equal([abc.ChannelID], harness.Service.HiddenChannelIDs);
         Assert.NotEqual(abcUnitedStatesID, harness.Service.GetChannelByName("ABC", AiringChannelType.Television, "US")?.ChannelID);
     }
 
@@ -1880,6 +1882,226 @@ public class AiringScheduleServiceTests
         Assert.Equal("JP", agreed.CountryCode);
         Assert.Null(disagreed.CountryCode);
         Assert.Null(global.CountryCode);
+    }
+
+    #endregion
+
+    #region Channel Events
+
+    [Fact]
+    public void ChannelEvents_CarryTheAliasChangeAndTheActor()
+    {
+        using var harness = new Harness();
+        var events = RecordChannelEvents(harness);
+        var token = ActorContextTests.Token();
+
+        var channel = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television, "JP");
+        using (ActorContext.Begin(token))
+        {
+            harness.Service.AddChannelAliases(channel, ["MX"]);
+            harness.Service.RemoveChannelAliases(channel, ["MX"]);
+            harness.Service.SetChannelAliases(channel, ["Tokyo Metropolitan Television"]);
+        }
+
+        Assert.Equal(
+            [
+                (UpdateReason.Added, AiringChannelChangeKind.Registered),
+                (UpdateReason.Updated, AiringChannelChangeKind.AliasesAdded),
+                (UpdateReason.Updated, AiringChannelChangeKind.AliasesRemoved),
+                (UpdateReason.Updated, AiringChannelChangeKind.AliasesSet),
+            ],
+            events.Select(args => (args.Reason, args.Kind))
+        );
+        Assert.Null(events[0].PreviousAliases);
+        Assert.Null(events[0].Actor);
+        Assert.Empty(events[1].PreviousAliases!);
+        Assert.Equal(["MX"], events[2].PreviousAliases);
+        Assert.Empty(events[3].PreviousAliases!);
+        Assert.All(events.Skip(1), args => Assert.Same(token, args.Actor));
+        Assert.All(events, args => Assert.Empty(args.MergedChannels));
+    }
+
+    [Fact]
+    public void MergeChannels_RaisesTheSourcesAsMergedAwayAndTheTargetWithWhatTheyGaveIt()
+    {
+        using var harness = new Harness();
+        var target = harness.Service.FindOrRegisterChannel("TV Tokyo", AiringChannelType.Television, "JP");
+        harness.Service.AddChannelAliases(target, ["TX"]);
+        var source = harness.Service.FindOrRegisterChannel("テレビ東京", AiringChannelType.Television);
+        harness.Service.AddChannelAliases(source, ["tx", "TV Tokyo Corporation"]);
+        var sourceID = source.ChannelID;
+        var events = RecordChannelEvents(harness);
+        var token = ActorContextTests.Token();
+
+        using (ActorContext.Begin(token))
+            harness.Service.MergeChannels(target, [source]);
+
+        Assert.Equal(
+            [
+                (UpdateReason.Removed, AiringChannelChangeKind.MergedAway, sourceID),
+                (UpdateReason.Updated, AiringChannelChangeKind.Merged, target.ChannelID),
+            ],
+            events.Select(args => (args.Reason, args.Kind, args.Channel.ChannelID))
+        );
+        Assert.Equal(target.ChannelID, events[0].TargetChannelID);
+        var merged = events[1];
+        Assert.Null(merged.PreviousChannelID);
+        Assert.Equal(["TX"], merged.PreviousAliases);
+        Assert.Equal([(sourceID, "テレビ東京")], merged.MergedChannels.Select(channel => (channel.ChannelID, channel.Name)));
+        Assert.Equal(["テレビ東京", "TV Tokyo Corporation"], merged.AddedAliases);
+        Assert.All(events, args => Assert.Same(token, args.Actor));
+    }
+
+    [Fact]
+    public void MergeChannels_TakingACountryLinksTheTargetsOldID()
+    {
+        using var harness = new Harness();
+        var target = harness.Service.FindOrRegisterChannel("テレビ東京", AiringChannelType.Television);
+        var source = harness.Service.FindOrRegisterChannel("TV Tokyo", AiringChannelType.Television, "JP");
+        var (oldID, sourceID) = (target.ChannelID, source.ChannelID);
+        var events = RecordChannelEvents(harness);
+
+        var merged = harness.Service.MergeChannels(target, [source]);
+
+        Assert.Equal(
+            [
+                (UpdateReason.Removed, AiringChannelChangeKind.MergedAway, sourceID),
+                (UpdateReason.Removed, AiringChannelChangeKind.MergedAway, oldID),
+                (UpdateReason.Added, AiringChannelChangeKind.Merged, merged.ChannelID),
+            ],
+            events.Select(args => (args.Reason, args.Kind, args.Channel.ChannelID))
+        );
+        Assert.All(events.Take(2), args => Assert.Equal(merged.ChannelID, args.TargetChannelID));
+        Assert.Equal(oldID, events[2].PreviousChannelID);
+        Assert.Equal([sourceID], events[2].MergedChannels.Select(channel => channel.ChannelID));
+        Assert.Equal(["TV Tokyo"], events[2].AddedAliases);
+    }
+
+    [Fact]
+    public void FindOrRegisterChannel_RaisesTheCountryTakenWithTheOldID()
+    {
+        using var harness = new Harness();
+        var bare = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
+        harness.Service.AddChannelAliases(bare, ["BSイレブン"]);
+        harness.Service.SetChannelHidden(bare, true);
+        var oldID = bare.ChannelID;
+        var events = RecordChannelEvents(harness);
+
+        var found = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP");
+
+        // The re-keyed channel keeps its hidden state.
+        Assert.True(found.IsHidden);
+        Assert.Equal([found.ChannelID], harness.Service.HiddenChannelIDs);
+
+        Assert.Equal(
+            [
+                (UpdateReason.Removed, AiringChannelChangeKind.CountryTaken, oldID),
+                (UpdateReason.Added, AiringChannelChangeKind.CountryTaken, found.ChannelID),
+            ],
+            events.Select(args => (args.Reason, args.Kind, args.Channel.ChannelID))
+        );
+        Assert.Equal(found.ChannelID, events[0].TargetChannelID);
+        Assert.Equal(oldID, events[1].PreviousChannelID);
+        Assert.Equal(["BSイレブン"], events[1].PreviousAliases);
+        Assert.Empty(events[1].MergedChannels);
+        Assert.Empty(events[1].AddedAliases);
+    }
+
+    [Fact]
+    public void FindOrRegisterChannel_RaisesTheCountryTakenAsAMergeIntoTheChannelThere()
+    {
+        using var harness = new Harness();
+        var holder = harness.Service.FindOrRegisterChannel("BSイレブン", AiringChannelType.Television, "JP");
+        harness.Service.AddChannelAliases(holder, ["BS Eleven"]);
+        var bare = harness.Service.FindOrRegisterChannel("BS Eleven", AiringChannelType.Television);
+        harness.Service.AddChannelAliases(bare, ["BS11"]);
+        var bareID = bare.ChannelID;
+        var events = RecordChannelEvents(harness);
+
+        var found = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP");
+
+        Assert.Equal(holder.ChannelID, found.ChannelID);
+        Assert.Equal(
+            [
+                (UpdateReason.Removed, AiringChannelChangeKind.CountryTaken, bareID),
+                (UpdateReason.Updated, AiringChannelChangeKind.CountryTaken, holder.ChannelID),
+            ],
+            events.Select(args => (args.Reason, args.Kind, args.Channel.ChannelID))
+        );
+        Assert.Equal(holder.ChannelID, events[0].TargetChannelID);
+        Assert.Null(events[1].PreviousChannelID);
+        Assert.Equal(["BS Eleven"], events[1].PreviousAliases);
+        Assert.Equal([bareID], events[1].MergedChannels.Select(channel => channel.ChannelID));
+        Assert.Equal(["BS11"], events[1].AddedAliases);
+    }
+
+    [Fact]
+    public void AddOrUpdateSchedule_RaisesTheCountryMovedForTheChannelLeft()
+    {
+        using var harness = new Harness();
+        var japan = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP");
+        var bare = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
+        harness.Service.AddChannelAliases(bare, ["BSイレブン"]);
+        harness.Service.SetChannelHidden(bare, true);
+        var bareID = bare.ChannelID;
+        var tracks = new[] { new AiringTrackData(AiringKind.Original, "ja") };
+        harness.Schedule(harness.Primary, "128", bareID, tracks, (0, harness.Air(1, 23)));
+        var events = RecordChannelEvents(harness);
+
+        harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData("128", japan.ChannelID));
+
+        Assert.Equal(
+            [
+                (UpdateReason.Removed, AiringChannelChangeKind.CountryMoved, bareID),
+                (UpdateReason.Updated, AiringChannelChangeKind.CountryMoved, japan.ChannelID),
+            ],
+            events.Select(args => (args.Reason, args.Kind, args.Channel.ChannelID))
+        );
+        Assert.Equal(japan.ChannelID, events[0].TargetChannelID);
+        Assert.Empty(events[1].PreviousAliases!);
+        Assert.Equal([bareID], events[1].MergedChannels.Select(channel => channel.ChannelID));
+        Assert.Equal(["BSイレブン"], events[1].AddedAliases);
+        // The channel left was hidden, so the one moved to now is.
+        Assert.False(events[1].PreviousIsHidden);
+        Assert.True(events[1].Channel.IsHidden);
+    }
+
+    [Fact]
+    public void SetChannelHidden_RaisesTheChangeOnceWithThePreviousStateAndTheActor()
+    {
+        using var harness = new Harness();
+        var channel = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television, "JP");
+        var events = RecordChannelEvents(harness);
+        var token = ActorContextTests.Token();
+
+        using (ActorContext.Begin(token))
+        {
+            harness.Service.SetChannelHidden(channel, true);
+            harness.Service.SetChannelHidden(channel, true);
+            harness.Service.SetChannelHidden(channel, false);
+        }
+
+        Assert.Equal(
+            [
+                (UpdateReason.Updated, AiringChannelChangeKind.HiddenChanged, false),
+                (UpdateReason.Updated, AiringChannelChangeKind.HiddenChanged, true),
+            ],
+            events.Select(args => (args.Reason, args.Kind, args.PreviousIsHidden))
+        );
+        Assert.All(events, args => Assert.Same(token, args.Actor));
+        Assert.Empty(harness.Service.HiddenChannelIDs);
+    }
+
+    /// <summary>
+    /// Records the channel events the service raises from now on.
+    /// </summary>
+    /// <param name="harness">The harness whose service to listen to.</param>
+    /// <returns>The events, in the order raised.</returns>
+    private static List<AiringChannelEventArgs> RecordChannelEvents(Harness harness)
+    {
+        var events = new List<AiringChannelEventArgs>();
+        harness.Service.ChannelRegistered += (_, args) => events.Add(args);
+        return events;
     }
 
     #endregion
@@ -2828,7 +3050,7 @@ public class AiringScheduleServiceTests
         var bs11 = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
         harness.Schedule(harness.Primary, "mx", tokyo.ChannelID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(1, 23)));
         var hidden = harness.Schedule(harness.Primary, "bs11", bs11.ChannelID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(1, 23, 30)));
-        harness.Settings.HiddenChannels = [bs11.ChannelID];
+        harness.Service.SetChannelHidden(bs11, true);
 
         var visible = harness.Service.GetAiringsForEpisode(harness.Episodes[0], new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
         var named = harness.Service.GetAiringsForEpisode(
@@ -2842,12 +3064,12 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
-    public void TheHiddenStateFollowsTheSetting()
+    public void TheHiddenStateIsTheChannels()
     {
         using var harness = new Harness();
         var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
         var bs11 = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
-        harness.Settings.HiddenChannels = [bs11.ChannelID];
+        harness.Service.SetChannelHidden(bs11, true);
 
         Assert.Equal([bs11.ChannelID], harness.Service.HiddenChannelIDs);
         Assert.True(harness.Service.GetChannelByID(bs11.ChannelID)?.IsHidden);

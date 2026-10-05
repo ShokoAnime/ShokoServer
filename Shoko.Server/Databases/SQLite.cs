@@ -1404,6 +1404,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(173, 300, DatabaseFixes.KeyAiringChannelsByCountry),
         new(173, 301, "CREATE TABLE AniDB_Anime_StartSeasonOverride ( AniDB_Anime_StartSeasonOverrideID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, Year INTEGER NOT NULL, Season INTEGER NOT NULL, UserID INTEGER NULL, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL );"),
         new(173, 302, "CREATE UNIQUE INDEX UIX_AniDB_Anime_StartSeasonOverride_AnimeID ON AniDB_Anime_StartSeasonOverride(AnimeID);"),
+        new(173, 303, "ALTER TABLE AiringChannel ADD COLUMN IsHidden INTEGER NOT NULL DEFAULT 0;"),
     ];
 
     #endregion

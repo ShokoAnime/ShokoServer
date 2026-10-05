@@ -104,17 +104,7 @@ public partial class AiringScheduleService
         if (leftChannel is not null && RepoFactory.AiringChannel.GetByChannelID(row.ChannelID!.Value) is { } newChannel &&
             (leftChannel.CountryCode is null || newChannel.CountryCode is null) &&
             RepoFactory.AiringSchedule.GetByChannelID(leftChannel.ChannelID).Count is 0)
-        {
-            // The same channel, so a hidden one stays hidden.
-            var settings = configurationProvider.Load();
-            if (settings.HiddenChannels.Contains(leftChannel.ChannelID) && !settings.HiddenChannels.Contains(newChannel.ChannelID))
-            {
-                settings.HiddenChannels = [.. settings.HiddenChannels, newChannel.ChannelID];
-                configurationProvider.Save(settings);
-            }
-
-            MergeChannelRows(newChannel, [leftChannel]);
-        }
+            MergeChannelRows(newChannel, [leftChannel], byScheduleMove: true);
 
         return view;
     }

@@ -117,9 +117,8 @@ internal static class AiringChannelMerger
     }
 
     /// <summary>
-    /// Folds the merged channels into the target in the channel preferences:
-    /// the target takes the best preferred position any of them had, and keeps
-    /// its own hidden state.
+    /// Folds the merged channels into the target in the preferred channels:
+    /// the target takes the best position any of them had.
     /// </summary>
     /// <param name="targetID">The ID of the channel kept.</param>
     /// <param name="sourceIDs">The IDs of the channels merged into it.</param>
@@ -127,33 +126,9 @@ internal static class AiringChannelMerger
     private static void FoldSettings(Guid targetID, IReadOnlySet<Guid> sourceIDs, ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider)
     {
         var settings = configurationProvider.Load();
-        var (preferred, hidden) = FoldChannelSettings(settings.PreferredChannels, settings.HiddenChannels, targetID, sourceIDs);
-        if (preferred.SequenceEqual(settings.PreferredChannels) && hidden.SequenceEqual(settings.HiddenChannels))
-            return;
-
-        settings.PreferredChannels = preferred;
-        settings.HiddenChannels = hidden;
-        configurationProvider.Save(settings);
-    }
-
-    /// <summary>
-    /// Folds merged channels into the target in the two channel lists.
-    /// </summary>
-    /// <param name="preferredChannels">The preferred channels, best first.</param>
-    /// <param name="hiddenChannels">The hidden channels.</param>
-    /// <param name="targetID">The ID of the channel kept.</param>
-    /// <param name="sourceIDs">The IDs of the channels merged into it.</param>
-    /// <returns>The new lists.</returns>
-    internal static (List<Guid> PreferredChannels, List<Guid> HiddenChannels) FoldChannelSettings(
-        IEnumerable<Guid> preferredChannels,
-        IEnumerable<Guid> hiddenChannels,
-        Guid targetID,
-        IReadOnlySet<Guid> sourceIDs
-    )
-    {
         var preferred = new List<Guid>();
         var placed = false;
-        foreach (var channelID in preferredChannels)
+        foreach (var channelID in settings.PreferredChannels)
         {
             if (channelID == targetID || sourceIDs.Contains(channelID))
             {
@@ -166,8 +141,11 @@ internal static class AiringChannelMerger
             preferred.Add(channelID);
         }
 
-        var hidden = hiddenChannels.Where(channelID => !sourceIDs.Contains(channelID)).ToList();
-        return (preferred, hidden);
+        if (preferred.SequenceEqual(settings.PreferredChannels))
+            return;
+
+        settings.PreferredChannels = preferred;
+        configurationProvider.Save(settings);
     }
 
     /// <summary>
@@ -251,14 +229,10 @@ internal static class AiringChannelMerger
         MoveImages(oldEntityID, ((IMetadata)channel).ID);
 
         var settings = configurationProvider.Load();
-        if (!settings.PreferredChannels.Contains(oldID) && !settings.HiddenChannels.Contains(oldID))
+        if (!settings.PreferredChannels.Contains(oldID))
             return moved;
 
         settings.PreferredChannels = settings.PreferredChannels
-            .Select(channelID => channelID == oldID ? channel.ChannelID : channelID)
-            .Distinct()
-            .ToList();
-        settings.HiddenChannels = settings.HiddenChannels
             .Select(channelID => channelID == oldID ? channel.ChannelID : channelID)
             .Distinct()
             .ToList();
@@ -290,10 +264,13 @@ internal static class AiringChannelMerger
     /// <param name="countryCode">The normalised country to give it.</param>
     /// <param name="configurationProvider">The service's settings, holding the channel preferences.</param>
     /// <param name="logger">Told about the aliases left out.</param>
-    /// <returns>The channel now holding it, and the schedules that moved.</returns>
+    /// <returns>
+    /// The channel now holding it, the schedules that moved, and the aliases
+    /// the channel now holding it had before.
+    /// </returns>
     /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="countryCode"/> is not two letters.</exception>
-    public static (AiringChannel Channel, IReadOnlyList<AiringSchedule> Moved) AdoptCountry(
+    public static (AiringChannel Channel, IReadOnlyList<AiringSchedule> Moved, IReadOnlyList<string> PreviousAliases) AdoptCountry(
         AiringChannel channel,
         string countryCode,
         ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider,
@@ -306,7 +283,10 @@ internal static class AiringChannelMerger
         ArgumentNullException.ThrowIfNull(logger);
 
         if (RepoFactory.AiringChannel.GetByName(channel.Name, channel.Type, countryCode) is { } holder && holder.AiringChannelID != channel.AiringChannelID)
-            return (holder, Merge(holder, [channel], configurationProvider, logger));
+        {
+            var holderAliases = holder.Aliases.ToList();
+            return (holder, Merge(holder, [channel], configurationProvider, logger), holderAliases);
+        }
 
         var kept = new List<string>();
         foreach (var alias in channel.Aliases)
@@ -328,8 +308,9 @@ internal static class AiringChannelMerger
             );
         }
 
+        var previousAliases = channel.Aliases.ToList();
         channel.Aliases = kept;
-        return (channel, Rekey(channel, channel.Name, countryCode, configurationProvider));
+        return (channel, Rekey(channel, channel.Name, countryCode, configurationProvider), previousAliases);
     }
 
     #endregion

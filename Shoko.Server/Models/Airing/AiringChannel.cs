@@ -66,6 +66,12 @@ public class AiringChannel : IMetadata
     public List<string> Aliases { get; set; } = [];
 
     /// <summary>
+    /// Whether the server hides the channel: every airing read naming no
+    /// channels leaves its airings out.
+    /// </summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>
     /// When the channel was first registered.
     /// </summary>
     public DateTime CreatedAt { get; set; }

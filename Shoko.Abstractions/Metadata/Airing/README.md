@@ -188,7 +188,7 @@ and "Tokyo MX" in `JP` are one, while "ABC" in `JP` and "ABC" in `US` are two.
   `null`, whoever registers it. The display name never carries it.
 - **Find first.** `FindOrRegisterChannel` matches own names, then aliases,
   among the channels of the same type and country, and only registers a
-  channel when nothing answers. `ChannelRegistered` fires only then.
+  channel when nothing answers, raising `ChannelRegistered` as `Registered`.
 - **No country is any country.** A channel without a country is one whose
   country is unknown, or a global service. When nothing in the country asked
   for answers, `FindOrRegisterChannel` and `GetChannelByName` fall back to the
@@ -214,6 +214,37 @@ and "Tokyo MX" in `JP` are one, while "ABC" in `JP` and "ABC" in `US` are two.
   passing a country keeps its schedules. When the channel it left had no
   country, or the new one has none, and nothing airs on it any more, it is
   merged into the new one, which as a TV station takes the left one's country.
+  A hidden channel left that way leaves the new one hidden.
+- **Hiding.** `SetChannelHidden(channel, hidden)` hides or shows a channel:
+  an airing read naming no channels leaves out the airings of a hidden one.
+  The state lives on the channel (`IsHidden`, and `HiddenChannelIDs` for all
+  of them), so a re-keyed channel keeps it.
+
+#### Channel events
+
+`ChannelRegistered` carries an `AiringChannelEventArgs` for every channel a
+change touched: the IDs it took away as `Removed` first, then the channel kept
+as `Added` (new, or under a new ID) or `Updated`. `Kind` tells what happened:
+
+| `Kind` | Raised by | Events |
+|---|---|---|
+| `Registered` | `FindOrRegisterChannel`, nothing answering | `Added` |
+| `CountryTaken` | `FindOrRegisterChannel`, a TV station without a country found in one | `Removed` for the old ID, then `Added` under the new ID, or `Updated` for the channel there it was merged into |
+| `CountryMoved` | `AddOrUpdateSchedule`, a keyed schedule moving to its channel in another country | `Removed` for the channel left (and for the old ID of the one moved to when it takes a country), then `Updated` or `Added` for the channel kept |
+| `Merged`, `MergedAway` | `MergeChannels` | `MergedAway` as `Removed` for each source (and for the target's old ID when it takes a country), then `Merged` for the channel kept |
+| `AliasesSet`, `AliasesAdded`, `AliasesRemoved` | `SetChannelAliases`, `AddChannelAliases`, `RemoveChannelAliases` | `Updated` |
+| `HiddenChanged` | `SetChannelHidden` | `Updated` |
+
+A `Removed` event carries the channel as it was and `TargetChannelID`, the
+channel now holding what it had. The event for the channel kept carries
+`PreviousAliases`, `PreviousChannelID` when its ID changed,
+`PreviousIsHidden` when it was hidden or shown, and after a merge the
+`MergedChannels`, as they were, and the `AddedAliases` they gave it.
+
+`Actor` is whoever the current flow runs for. A provider's own changes run with
+the actor of the job that queued its work, so tell a hand-made change by
+`Kind`: `Registered`, `CountryTaken` and `CountryMoved` are a provider's, the
+rest come from calls to the service.
 
 ### Writing part of a run: `MergeAirings`
 

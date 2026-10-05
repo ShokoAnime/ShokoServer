@@ -271,8 +271,15 @@ channels leaves out the airings on them. A read that names channels, through
 `channel` or the channel and schedule routes, returns exactly those, hidden or
 not, so a client showing hidden channels lists the channels it wants. `GET
 /api/v3/AiringSchedule/Channel` and the other channel routes say whether a
-channel is hidden with `IsHidden`. The list itself is `HiddenChannels` in the
-service's configuration, below.
+channel is hidden with `IsHidden`.
+
+- `GET /Channel/Hidden`: the IDs of the hidden channels.
+- `PUT /Channel/Hidden` (admin) with the IDs to hide hides those and shows
+  every other channel, and answers with the hidden IDs. An unknown ID is
+  rejected with a `400`, and nothing changes. An empty list shows them all.
+
+The hidden state lives on each channel, so a re-keyed channel keeps it and a
+merge keeps the target's own.
 
 ## Estimates
 
@@ -675,7 +682,7 @@ keeps it.
 
 ## The service's configuration
 
-The preference lists, the hidden channels (`HiddenChannels`), the cleanup
+The preference lists, the cleanup
 (`AutoCleanup`, `RetentionMonths`) and the sweep budget (`SweepBudgetSeconds`)
 are the airing schedule service's own configuration.
 `GET /api/v3/AiringSchedule/Configuration` (admin) answers with its

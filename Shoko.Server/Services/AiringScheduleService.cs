@@ -723,7 +723,16 @@ public partial class AiringScheduleService(
         var row = new AiringChannel(name, type, country);
         RepoFactory.AiringChannel.Save(row);
         var channel = ToChannelView(row);
-        ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Added, Channel = channel });
+        ChannelRegistered?.Invoke(
+            this,
+            new AiringChannelEventArgs
+            {
+                Reason = UpdateReason.Added,
+                Kind = AiringChannelChangeKind.Registered,
+                Channel = channel,
+                Actor = ActorContext.CurrentActor,
+            }
+        );
         return channel;
     }
 
@@ -748,19 +757,21 @@ public partial class AiringScheduleService(
     /// <inheritdoc/>
     public IReadOnlyList<IAiringChannel> GetAllChannels(AiringChannelType? type = null)
     {
-        var hiddenChannelIDs = HiddenChannelIDs;
         return RepoFactory.AiringChannel.GetAll()
             .Where(channel => type is null || channel.Type == type)
             .OrderBy(channel => channel.Type)
             .ThenBy(channel => channel.Name, StringComparer.Ordinal)
             .ThenBy(channel => channel.CountryCode, StringComparer.Ordinal)
-            .Select(IAiringChannel (channel) => new AiringChannelView(channel, hiddenChannelIDs.Contains(channel.ChannelID)))
+            .Select(IAiringChannel (channel) => new AiringChannelView(channel))
             .ToList();
     }
 
     /// <inheritdoc/>
     public IReadOnlySet<Guid> HiddenChannelIDs
-        => LoadSettings().HiddenChannels.ToHashSet();
+        => RepoFactory.AiringChannel.GetAll()
+            .Where(channel => channel.IsHidden)
+            .Select(channel => channel.ChannelID)
+            .ToHashSet();
 
     /// <inheritdoc/>
     public IAiringChannel AddChannelAliases(IAiringChannel channel, IEnumerable<string> aliases)
@@ -773,8 +784,9 @@ public partial class AiringScheduleService(
         if (added.Count is 0)
             return ToChannelView(row);
 
+        var previousAliases = row.Aliases.ToList();
         row.Aliases = [.. row.Aliases, .. added];
-        return SaveChannel(row);
+        return SaveChannel(row, AiringChannelChangeKind.AliasesAdded, previousAliases);
     }
 
     /// <inheritdoc/>
@@ -794,8 +806,9 @@ public partial class AiringScheduleService(
         if (remaining.Count == row.Aliases.Count)
             return ToChannelView(row);
 
+        var previousAliases = row.Aliases.ToList();
         row.Aliases = remaining;
-        return SaveChannel(row);
+        return SaveChannel(row, AiringChannelChangeKind.AliasesRemoved, previousAliases);
     }
 
     /// <inheritdoc/>
@@ -809,8 +822,35 @@ public partial class AiringScheduleService(
         if (wanted.SequenceEqual(row.Aliases, StringComparer.Ordinal))
             return ToChannelView(row);
 
+        var previousAliases = row.Aliases.ToList();
         row.Aliases = wanted;
-        return SaveChannel(row);
+        return SaveChannel(row, AiringChannelChangeKind.AliasesSet, previousAliases);
+    }
+
+    /// <inheritdoc/>
+    public IAiringChannel SetChannelHidden(IAiringChannel channel, bool hidden)
+    {
+        ArgumentNullException.ThrowIfNull(channel);
+
+        var row = GetChannelRow(channel, nameof(channel));
+        if (row.IsHidden == hidden)
+            return ToChannelView(row);
+
+        row.IsHidden = hidden;
+        RepoFactory.AiringChannel.Save(row);
+        var view = ToChannelView(row);
+        ChannelRegistered?.Invoke(
+            this,
+            new AiringChannelEventArgs
+            {
+                Reason = UpdateReason.Updated,
+                Kind = AiringChannelChangeKind.HiddenChanged,
+                Channel = view,
+                PreviousIsHidden = !hidden,
+                Actor = ActorContext.CurrentActor,
+            }
+        );
+        return view;
     }
 
     /// <inheritdoc/>
@@ -837,7 +877,7 @@ public partial class AiringScheduleService(
         if (sourceRows.Count is 0)
             return ToChannelView(targetRow);
 
-        return MergeChannelRows(targetRow, sourceRows);
+        return MergeChannelRows(targetRow, sourceRows, byScheduleMove: false);
     }
 
     /// <summary>
@@ -847,9 +887,17 @@ public partial class AiringScheduleService(
     /// </summary>
     /// <param name="target">The channel to keep.</param>
     /// <param name="sources">The channels to merge into it, already checked.</param>
+    /// <param name="byScheduleMove">
+    /// Whether a provider moving a schedule caused it, rather than a call to
+    /// <see cref="MergeChannels"/>.
+    /// </param>
     /// <returns>The merged channel.</returns>
-    private AiringChannelView MergeChannelRows(AiringChannel target, IReadOnlyList<AiringChannel> sources)
+    private AiringChannelView MergeChannelRows(AiringChannel target, IReadOnlyList<AiringChannel> sources, bool byScheduleMove)
     {
+        var kinds = byScheduleMove
+            ? (AiringChannelChangeKind.CountryMoved, AiringChannelChangeKind.CountryMoved)
+            : (AiringChannelChangeKind.Merged, AiringChannelChangeKind.MergedAway);
+
         // A TV station without a country takes the one its sources agree on.
         var countries = sources
             .Select(source => source.CountryCode)
@@ -858,6 +906,13 @@ public partial class AiringScheduleService(
             .ToList();
         var adoptedCountry = AiringChannelMerger.CanTakeCountry(target) && countries.Count is 1 ? countries[0] : null;
         var removed = sources.Select(source => ToChannelView(source)).ToList();
+        var previousAliases = target.Aliases.ToList();
+
+        // The channel a provider's schedule left was the same channel, so a hidden one stays hidden.
+        var wasHidden = target.IsHidden;
+        if (byScheduleMove && sources.Any(source => source.IsHidden))
+            target.IsHidden = true;
+        bool? previousIsHidden = target.IsHidden != wasHidden ? wasHidden : null;
         var moved = AiringChannelMerger.Merge(target, sources, configurationProvider, logger);
         logger.LogInformation(
             "Merged {Count} channel(s) into channel \"{Name}\" ({ChannelID}), moving {ScheduleCount} schedule(s).",
@@ -867,17 +922,18 @@ public partial class AiringScheduleService(
             moved.Count
         );
         if (adoptedCountry is null)
-            return RaiseChannelChanges(target, UpdateReason.Updated, removed, moved);
+            return RaiseChannelChanges(target, UpdateReason.Updated, kinds, removed, moved, previousAliases, null, previousIsHidden);
 
+        var previousID = target.ChannelID;
         removed.Add(ToChannelView(CopyChannel(target)));
-        var (channel, rekeyed) = AiringChannelMerger.AdoptCountry(target, adoptedCountry, configurationProvider, logger);
+        var (channel, rekeyed, holderAliases) = AiringChannelMerger.AdoptCountry(target, adoptedCountry, configurationProvider, logger);
         LogAdoptedCountry(target, channel, adoptedCountry);
-        return RaiseChannelChanges(
-            channel,
-            channel == target ? UpdateReason.Added : UpdateReason.Updated,
-            removed,
-            [.. moved, .. rekeyed]
-        );
+
+        // Re-keyed in place, the target is still the channel kept; otherwise it
+        // was merged into the one in that country too.
+        return channel == target
+            ? RaiseChannelChanges(channel, UpdateReason.Added, kinds, removed, [.. moved, .. rekeyed], previousAliases, previousID, previousIsHidden)
+            : RaiseChannelChanges(channel, UpdateReason.Updated, kinds, removed, [.. moved, .. rekeyed], holderAliases, null, null);
     }
 
     /// <summary>
@@ -891,13 +947,17 @@ public partial class AiringScheduleService(
     private AiringChannel AdoptCountry(AiringChannel row, string countryCode)
     {
         var removed = ToChannelView(CopyChannel(row));
-        var (channel, moved) = AiringChannelMerger.AdoptCountry(row, countryCode, configurationProvider, logger);
+        var (channel, moved, previousAliases) = AiringChannelMerger.AdoptCountry(row, countryCode, configurationProvider, logger);
         LogAdoptedCountry(row, channel, countryCode);
         RaiseChannelChanges(
             channel,
             channel == row ? UpdateReason.Added : UpdateReason.Updated,
+            (AiringChannelChangeKind.CountryTaken, AiringChannelChangeKind.CountryTaken),
             [removed],
-            moved
+            moved,
+            previousAliases,
+            channel == row ? removed.ChannelID : null,
+            null
         );
         return channel;
     }
@@ -932,18 +992,27 @@ public partial class AiringScheduleService(
 
     /// <summary>
     /// Raises the events for channels that changed: the schedules that moved as
-    /// updated, the channel IDs that are gone as removed, and the channel kept.
+    /// updated, the channel IDs that are gone as removed, and the channel kept
+    /// with the channels merged into it and the aliases they gave it.
     /// </summary>
     /// <param name="channel">The channel kept.</param>
     /// <param name="reason">The reason to raise for the channel kept.</param>
+    /// <param name="kinds">The kind for the channel kept, and the one for the IDs that are gone.</param>
     /// <param name="removed">The channels whose IDs are gone, as they were.</param>
     /// <param name="moved">The schedules that moved. Repeats collapse.</param>
+    /// <param name="previousAliases">The aliases the channel kept had before.</param>
+    /// <param name="previousChannelID">The ID the channel kept had before, if it changed. Every other removed channel was merged into it.</param>
+    /// <param name="previousIsHidden">Whether the channel kept was hidden before, if that changed.</param>
     /// <returns>The channel kept.</returns>
     private AiringChannelView RaiseChannelChanges(
         AiringChannel channel,
         UpdateReason reason,
+        (AiringChannelChangeKind Kept, AiringChannelChangeKind Removed) kinds,
         IReadOnlyList<AiringChannelView> removed,
-        IReadOnlyList<AiringSchedule> moved
+        IReadOnlyList<AiringSchedule> moved,
+        IReadOnlyList<string> previousAliases,
+        Guid? previousChannelID,
+        bool? previousIsHidden
     )
     {
         var schedules = moved.DistinctBy(schedule => schedule.AiringScheduleID).ToList();
@@ -956,11 +1025,47 @@ public partial class AiringScheduleService(
                 ScheduleUpdated?.Invoke(this, new AiringScheduleEventArgs { Reason = UpdateReason.Updated, Schedule = context.GetSchedule(schedule) });
         }
 
+        var actor = ActorContext.CurrentActor;
         foreach (var view in removed)
-            ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Removed, Channel = view });
+        {
+            ChannelRegistered?.Invoke(
+                this,
+                new AiringChannelEventArgs
+                {
+                    Reason = UpdateReason.Removed,
+                    Kind = kinds.Removed,
+                    Channel = view,
+                    TargetChannelID = channel.ChannelID,
+                    Actor = actor,
+                }
+            );
+        }
 
         var kept = ToChannelView(channel);
-        ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = reason, Channel = kept });
+        var merged = removed
+            .Where(view => view.ChannelID != previousChannelID)
+            .ToList<IAiringChannel>();
+        var knownAliases = previousAliases
+            .Select(AiringScheduleUtility.NormalizeChannelName)
+            .ToHashSet(StringComparer.Ordinal);
+        var addedAliases = kept.Aliases
+            .Where(alias => merged.Count > 0 && !knownAliases.Contains(AiringScheduleUtility.NormalizeChannelName(alias)))
+            .ToList();
+        ChannelRegistered?.Invoke(
+            this,
+            new AiringChannelEventArgs
+            {
+                Reason = reason,
+                Kind = kinds.Kept,
+                Channel = kept,
+                PreviousChannelID = previousChannelID,
+                PreviousAliases = previousAliases,
+                PreviousIsHidden = previousIsHidden,
+                MergedChannels = merged,
+                AddedAliases = addedAliases,
+                Actor = actor,
+            }
+        );
         return kept;
     }
 
@@ -1003,6 +1108,7 @@ public partial class AiringScheduleService(
             NormalizedName = row.NormalizedName,
             Type = row.Type,
             Aliases = [.. row.Aliases],
+            IsHidden = row.IsHidden,
             CreatedAt = row.CreatedAt,
         };
 
@@ -1070,23 +1176,34 @@ public partial class AiringScheduleService(
     /// Saves a channel whose aliases changed and raises the event.
     /// </summary>
     /// <param name="row">The stored channel.</param>
+    /// <param name="kind">How the aliases changed.</param>
+    /// <param name="previousAliases">The aliases the channel had before.</param>
     /// <returns>The channel.</returns>
-    private AiringChannelView SaveChannel(AiringChannel row)
+    private AiringChannelView SaveChannel(AiringChannel row, AiringChannelChangeKind kind, IReadOnlyList<string> previousAliases)
     {
         RepoFactory.AiringChannel.Save(row);
         var view = ToChannelView(row);
-        ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Updated, Channel = view });
+        ChannelRegistered?.Invoke(
+            this,
+            new AiringChannelEventArgs
+            {
+                Reason = UpdateReason.Updated,
+                Kind = kind,
+                Channel = view,
+                PreviousAliases = previousAliases,
+                Actor = ActorContext.CurrentActor,
+            }
+        );
         return view;
     }
 
     /// <summary>
-    /// A stored channel as the service hands it out, with whether the server
-    /// hides it.
+    /// A stored channel as the service hands it out.
     /// </summary>
     /// <param name="row">The stored channel.</param>
     /// <returns>The channel.</returns>
-    private AiringChannelView ToChannelView(AiringChannel row)
-        => new(row, LoadSettings().HiddenChannels.Contains(row.ChannelID));
+    private static AiringChannelView ToChannelView(AiringChannel row)
+        => new(row);
 
     #endregion
 

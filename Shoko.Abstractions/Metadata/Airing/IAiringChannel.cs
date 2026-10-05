@@ -60,8 +60,8 @@ public interface IAiringChannel : IMetadata, IWithImages, IWithPrimaryImage
 
     /// <summary>
     ///   Whether the server hides the channel: an airing read naming no
-    ///   channels leaves its airings out. It reflects the setting when the
-    ///   channel was read.
+    ///   channels leaves its airings out. Set it through
+    ///   <see cref="Services.IAiringScheduleService.SetChannelHidden"/>.
     /// </summary>
     bool IsHidden { get; }
 

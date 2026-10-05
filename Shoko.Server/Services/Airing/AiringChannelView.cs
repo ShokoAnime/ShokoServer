@@ -8,8 +8,7 @@ using Shoko.Server.Models.Airing;
 namespace Shoko.Server.Services.Airing;
 
 /// <summary>
-/// A stored channel as the service hands it out, with whether the server
-/// hides it as the setting stood when it was read.
+/// A stored channel as the service hands it out.
 /// </summary>
 internal sealed class AiringChannelView : IAiringChannel
 {
@@ -19,14 +18,12 @@ internal sealed class AiringChannelView : IAiringChannel
     /// Initializes a new instance of the <see cref="AiringChannelView"/> class.
     /// </summary>
     /// <param name="row">The stored channel.</param>
-    /// <param name="isHidden">Whether the server hides the channel.</param>
     /// <exception cref="ArgumentNullException"><paramref name="row"/> is <c>null</c>.</exception>
-    public AiringChannelView(AiringChannel row, bool isHidden)
+    public AiringChannelView(AiringChannel row)
     {
         ArgumentNullException.ThrowIfNull(row);
 
         _row = row;
-        IsHidden = isHidden;
     }
 
     /// <inheritdoc/>
@@ -48,7 +45,7 @@ internal sealed class AiringChannelView : IAiringChannel
     public IReadOnlyList<string> Aliases => _row.Aliases;
 
     /// <inheritdoc/>
-    public bool IsHidden { get; }
+    public bool IsHidden => _row.IsHidden;
 
     /// <inheritdoc/>
     public DateTime CreatedAt => _row.CreatedAt;

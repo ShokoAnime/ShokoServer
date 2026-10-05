@@ -158,9 +158,11 @@ public interface IAiringScheduleService
     #region Channels
 
     /// <summary>
-    ///   Event raised when a channel is registered, when its aliases are
-    ///   updated, for both sides of a merge, and when a channel takes a
-    ///   country: its old ID as removed, its new one as added.
+    ///   Event raised when a channel is registered, hidden or shown, when its
+    ///   aliases change, for both sides of a merge, and when it takes a
+    ///   country: the IDs a change took away as removed, then the channel kept
+    ///   as added or updated. <see cref="AiringChannelEventArgs.Kind"/> tells
+    ///   which.
     /// </summary>
     event EventHandler<AiringChannelEventArgs>? ChannelRegistered;
 
@@ -258,12 +260,14 @@ public interface IAiringScheduleService
     IReadOnlyList<IAiringChannel> GetAllChannels(AiringChannelType? type = null);
 
     /// <summary>
-    ///   The IDs of the channels the server hides, as configured. An airing
-    ///   read naming no channels leaves their airings out, and one naming them
-    ///   in <see cref="EpisodeAiringFilteringOptions.ChannelIDs"/> gets them.
+    ///   The IDs of the channels the server hides, set through
+    ///   <see cref="SetChannelHidden"/>. An airing read naming no channels
+    ///   leaves their airings out, and one naming them in
+    ///   <see cref="EpisodeAiringFilteringOptions.ChannelIDs"/> gets them.
     /// </summary>
     /// <remarks>
-    ///   Read it when needed, since the setting can change at any time.
+    ///   Read it when needed, since a channel can be hidden or shown at any
+    ///   time.
     /// </remarks>
     IReadOnlySet<Guid> HiddenChannelIDs { get; }
 
@@ -343,6 +347,28 @@ public interface IAiringScheduleService
     IAiringChannel SetChannelAliases(IAiringChannel channel, IEnumerable<string> aliases);
 
     /// <summary>
+    ///   Hides or shows a channel. An airing read naming no channels leaves
+    ///   the airings of a hidden one out. Nothing is raised when the channel
+    ///   already is as asked.
+    /// </summary>
+    /// <param name="channel">
+    ///   The channel to hide or show.
+    /// </param>
+    /// <param name="hidden">
+    ///   <c>true</c> to hide the channel, <c>false</c> to show it.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="channel"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="channel"/> is not registered.
+    /// </exception>
+    /// <returns>
+    ///   The updated channel.
+    /// </returns>
+    IAiringChannel SetChannelHidden(IAiringChannel channel, bool hidden);
+
+    /// <summary>
     ///   Merges channels into another one of the same type. Their schedules
     ///   move to the target without changing any schedule or airing ID, their
     ///   names and aliases become the target's aliases, and they are deleted.
@@ -351,7 +377,7 @@ public interface IAiringScheduleService
     /// </summary>
     /// <remarks>
     ///   In the preferred channels the target takes the best position any of
-    ///   them had, in the hidden channels it keeps its own state. A name that
+    ///   them had, and it stays hidden or shown as it was. A name that
     ///   another channel of the target's type and country answers to is not
     ///   added as an alias.
     /// </remarks>

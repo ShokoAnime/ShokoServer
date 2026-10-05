@@ -113,7 +113,7 @@ internal sealed class AiringReadContext
     /// <summary>
     /// The channels the server hides from reads, as a set built once per read.
     /// </summary>
-    public IReadOnlySet<Guid> HiddenChannels => _hiddenChannels ??= Settings.HiddenChannels.ToHashSet();
+    public IReadOnlySet<Guid> HiddenChannels => _hiddenChannels ??= _service.HiddenChannelIDs;
 
     #endregion
 
@@ -204,7 +204,7 @@ internal sealed class AiringReadContext
             return channel;
 
         return _channels[channelID] = RepoFactory.AiringChannel.GetByChannelID(channelID) is { } row
-            ? new AiringChannelView(row, HiddenChannels.Contains(channelID))
+            ? new AiringChannelView(row)
             : null;
     }
 

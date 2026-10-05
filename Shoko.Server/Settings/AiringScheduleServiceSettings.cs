@@ -112,12 +112,6 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration, IHidd
     public List<Guid> PreferredChannels { get; set; } = [];
 
     /// <summary>
-    /// The channels every airing read leaves out unless it asks for them or
-    /// names one of them. Empty means no channel is hidden.
-    /// </summary>
-    public List<Guid> HiddenChannels { get; set; } = [];
-
-    /// <summary>
     /// The server's default track preference, used by every read that doesn't
     /// bring its own. Empty means no preference at all.
     /// </summary>
