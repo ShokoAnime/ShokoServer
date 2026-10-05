@@ -446,6 +446,8 @@ Jobs do not use a central orchestrator. Each job enqueues its successor via `IQu
 
 **`ScanForMissingReleaseInfoJob`** (`Shoko.Server/Scheduling/Jobs/Actions/ScanForMissingReleaseInfoJob.cs`) runs daily as the `ScanForMissingReleaseInfoAction` scheduled action; it finds `StoredReleaseInfo` records with unknown source or missing audio/subtitle languages and re-queues the appropriate provider job on each provider's backoff schedule (`GetRescanDelay()`).
 
+**`RefreshAnimeAiringSoonAction`** (`Shoko.Server/Actions/AniDB/RefreshAnimeAiringSoonAction.cs`, "Refresh Anime Airing Soon") runs every 24 hours by default (one hour at the least); it reads `IAiringScheduleService.GetAiringsInRange` for the next `AiringSoonWindowHours` (`AiringScheduleServiceSettings`, 24 by default; date-only AniDB entries only with `AiringSoonIncludeDateOnly`, counted when their UTC day overlaps the window), takes each airing's own AniDB anime and every anime linked to its series, and queues a forced online `GetAniDBAnimeJob` (`IgnoreTimeCheck`, never `IgnoreHttpBans`) for each one in the collection last updated from AniDB at least `MinimumHoursToRedownloadAnimeInfo` hours ago (one at the least), so the supplementary cascade and episode matching follow. A run while AniDB's HTTP API bans us is skipped.
+
 ### Intermediate Cache Models
 
 Several models exist solely to avoid redundant I/O or external API calls. Jobs check these before making outbound requests.
@@ -458,7 +460,7 @@ Several models exist solely to avoid redundant I/O or external API calls. Jobs c
 
 **`StoredReleaseInfo_MatchAttempt`** (`Models/Release/StoredReleaseInfo_MatchAttempt.cs`) — tracks per-provider match attempts for a file: `ProviderName`, `ProviderID`, `AttemptCount`, `AttemptStartedAt`, `AttemptEndedAt`, `EmbeddedAttemptProviderNames`. Written by provider jobs at the start of each attempt. Read by `ScanForMissingReleaseInfoJob` to apply per-provider backoff logic and skip providers that have already found a result.
 
-**`AniDB_AnimeUpdate`** (`Models/AniDB/AniDB_AnimeUpdate.cs`) — one row per `AnimeID`, storing only `UpdatedAt`. Written by `RequestGetAnime.UpdateAccessTime()` after every successful AniDB HTTP response. Read by the same method to decide whether the local `AniDB_Anime` record is stale enough to warrant a new fetch. `GetAniDBAnimeJob` respects `IgnoreTimeCheck` to force a refresh past this gate.
+**`AniDB_AnimeUpdate`** (`Models/AniDB/AniDB_AnimeUpdate.cs`) — one row per `AnimeID`, storing only `UpdatedAt`. Written by `RequestGetAnime.UpdateAccessTime()` after every successful AniDB HTTP response. Read by the same method, and by `RefreshAnimeAiringSoonAction`, to decide whether the local `AniDB_Anime` record is stale enough to warrant a new fetch. `GetAniDBAnimeJob` respects `IgnoreTimeCheck` to force a refresh past this gate.
 
 **`AniDB_GroupStatus`** (`Models/AniDB/AniDB_GroupStatus.cs`) — caches AniDB GROUPSTATUS UDP responses: release group name, completion state, episode range, rating. Written by `GetAniDBReleaseGroupStatusJob` after a UDP `RequestReleaseGroupStatus` call. `GetAniDBReleaseGroupStatusJob.ShouldSkip()` bypasses the fetch entirely if the anime ended more than 50 days ago.
 

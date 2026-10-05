@@ -63,6 +63,18 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration, IHidd
     public const int MaximumSweepBudgetSeconds = 600;
 
     /// <summary>
+    /// The shortest window, in hours, the "Refresh Anime Airing Soon" action
+    /// accepts.
+    /// </summary>
+    public const int MinimumAiringSoonWindowHours = 1;
+
+    /// <summary>
+    /// The longest window, in hours, the "Refresh Anime Airing Soon" action
+    /// accepts: a week.
+    /// </summary>
+    public const int MaximumAiringSoonWindowHours = 168;
+
+    /// <summary>
     /// A list of provider ids in order of priority. Priority ranks sources, not
     /// where someone would rather watch; that is what
     /// <see cref="PreferredChannels"/> and <see cref="PreferredTracks"/> are for.
@@ -130,6 +142,25 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration, IHidd
     /// </summary>
     [Range(MinimumRetentionMonths, MaximumRetentionMonths)]
     public int RetentionMonths { get; set; } = 12;
+
+    /// <summary>
+    /// How far ahead, in hours, an episode airing makes the "Refresh Anime
+    /// Airing Soon" action refresh its anime from AniDB. From
+    /// <see cref="MinimumAiringSoonWindowHours"/> to
+    /// <see cref="MaximumAiringSoonWindowHours"/>, and clamped to them on use.
+    /// </summary>
+    [Display(Name = "Airing Soon Window (hours)")]
+    [Range(MinimumAiringSoonWindowHours, MaximumAiringSoonWindowHours)]
+    public int AiringSoonWindowHours { get; set; } = 24;
+
+    /// <summary>
+    /// Whether the "Refresh Anime Airing Soon" action also counts the
+    /// date-only AniDB entries. One airs at an unknown time on its UTC date,
+    /// so it counts when that day overlaps the window: the day ends after now
+    /// and starts before the window ends.
+    /// </summary>
+    [Display(Name = "Include Date-Only Airings When Refreshing Anime Airing Soon")]
+    public bool AiringSoonIncludeDateOnly { get; set; }
 
     private List<MetadataSource> _seasonDetailSourceOrder = [MetadataSource.TMDB];
 

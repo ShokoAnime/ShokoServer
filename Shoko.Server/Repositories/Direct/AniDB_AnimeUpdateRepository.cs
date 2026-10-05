@@ -6,7 +6,7 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_AnimeUpdateRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<AniDB_AnimeUpdate, int>(databaseFactory)
 {
-    public AniDB_AnimeUpdate? GetByAnimeID(int id)
+    public virtual AniDB_AnimeUpdate? GetByAnimeID(int id)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         var cats = session.Query<AniDB_AnimeUpdate>()

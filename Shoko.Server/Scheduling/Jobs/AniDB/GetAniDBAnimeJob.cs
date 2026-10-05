@@ -154,6 +154,12 @@ public class GetAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbService a
         _animeName = anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
+    /// <summary>
+    /// Whether the job asks for the remote AniDB HTTP API first, past the time
+    /// check.
+    /// </summary>
+    private bool IsForcedOnlineRefresh => UseRemote && !PreferCacheOverRemote && IgnoreTimeCheck;
+
     public bool TryMerge(IQueueJob incoming)
     {
         if (incoming is not GetAniDBAnimeJob other) return false;
@@ -165,6 +171,8 @@ public class GetAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbService a
         if (!CreateSeriesEntry && other.CreateSeriesEntry) { CreateSeriesEntry = true; changed = true; }
         if (!UseRemote && other.UseRemote) { UseRemote = true; changed = true; }
         if (!UseCache && other.UseCache) { UseCache = true; changed = true; }
+        // A forced online refresh wins over a cache-first one: remote first, the cache as the fallback
+        if (PreferCacheOverRemote && other.IsForcedOnlineRefresh) { PreferCacheOverRemote = false; changed = true; }
         // AND-semantics: SkipSupplementaryUpdate=false means "do update the other sources" — false wins
         if (SkipSupplementaryUpdate && !other.SkipSupplementaryUpdate) { SkipSupplementaryUpdate = false; changed = true; }
         // MIN-semantics: lower RelDepth = can recurse deeper
