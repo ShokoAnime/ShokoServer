@@ -29,6 +29,9 @@ public class HasSourceAutoLinkingDisabledExpression : FilterExpression<bool>, IW
     public override string HelpDescription => "This condition passes if automatic linking to the given source is turned off for any of the anime";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         return Source is { } source && filterable.AutoLinkingDisabledSources.Contains(source);

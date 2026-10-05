@@ -34,6 +34,9 @@ public class HasSourceLinkExpression : FilterExpression<bool>, IWithStringParame
     public override string HelpDescription => "This condition passes if any of the anime are linked to the given source";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         return Source is { } source && (filterable.LinkedSources.Contains(source) || filterable.UnlinkedSources.Contains(source));

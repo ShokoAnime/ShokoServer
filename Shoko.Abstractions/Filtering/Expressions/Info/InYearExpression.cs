@@ -23,6 +23,9 @@ public class InYearExpression : FilterExpression<bool>, IWithNumberParameter
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if any of the anime aired in the specified year";
 
+    /// <inheritdoc/>
+    public override string HelpParameterName => "Year";
+
     double IWithNumberParameter.Parameter
     {
         get => Parameter;

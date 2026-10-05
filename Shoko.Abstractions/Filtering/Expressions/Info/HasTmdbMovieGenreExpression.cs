@@ -28,6 +28,9 @@ public class HasTmdbMovieGenreExpression : FilterExpression<bool>, IWithStringPa
     public override string HelpDescription => "This condition passes if any of the anime have the specified TMDB movie genre";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Genre";
+
+    /// <inheritdoc/>
     public override string[] HelpPossibleParameters => [];
 
     /// <inheritdoc/>

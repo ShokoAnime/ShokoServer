@@ -40,6 +40,9 @@ public class AutomaticSourceLinksSelector : FilterExpression<double>, IWithStrin
     public override string HelpDescription => "This returns the number of series and movie-level links to the given source that no user verified";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     /// <inheritdoc/>

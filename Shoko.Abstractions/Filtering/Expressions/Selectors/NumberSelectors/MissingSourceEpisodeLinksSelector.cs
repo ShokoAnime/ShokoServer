@@ -29,6 +29,9 @@ public class MissingSourceEpisodeLinksSelector : FilterExpression<double>, IWith
     public override string HelpDescription => "This returns the number of episodes with no link to the given source";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     /// <inheritdoc/>

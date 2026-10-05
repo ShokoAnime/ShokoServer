@@ -31,6 +31,9 @@ public class HasAnimeTypeExpression : FilterExpression<bool>, IWithStringParamet
     public override string HelpDescription => "This condition passes if any of the anime are of the specified type";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Anime Type";
+
+    /// <inheritdoc/>
     public override string[] HelpPossibleParameters => Enum.GetValues<AnimeType>().Select(x => x.ToString()).ToArray();
 
     /// <inheritdoc/>

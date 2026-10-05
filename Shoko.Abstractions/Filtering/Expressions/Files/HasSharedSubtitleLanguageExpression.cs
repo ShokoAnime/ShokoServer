@@ -22,6 +22,9 @@ public class HasSharedSubtitleLanguageExpression : FilterExpression<bool>, IWith
     public override string HelpDescription => "This condition passes if all of the files have the specified subtitle language";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Language";
+
+    /// <inheritdoc/>
     public override string[] HelpPossibleParameters => HasSubtitleLanguageExpression.PossibleSubtitleLanguages;
 
     /// <inheritdoc/>

@@ -192,7 +192,7 @@ public class Filter : BaseModel
             : help.PossibleParameters;
 
         /// <summary>
-        /// This will list the possible parameters, usually with the most common ones first.
+        /// This will list the possible second parameters, usually with the most common ones first.
         /// </summary>
         public string[]? PossibleSecondParameters { get; init; } = help.PossibleSecondParameters;
 
@@ -203,6 +203,20 @@ public class Filter : BaseModel
         public string[][]? PossibleParameterPairs { get; init; } = ExpressionDiscovery.TakesSourceParameter(help.InternalType)
             ? help.PossibleParameterPairs?.Select(pair => pair.Length > 0 ? [LegacyMetadataSpellings.OfSourceValue(pair[0]), .. pair[1..]] : pair).ToArray()
             : help.PossibleParameterPairs;
+
+        /// <summary>
+        /// A short name for <see cref="FilterCondition.Parameter"/>, for labelling
+        /// its input. With pairs, it names the first element of each pair.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? ParameterName { get; init; } = help.ParameterName;
+
+        /// <summary>
+        /// A short name for <see cref="FilterCondition.SecondParameter"/>, for
+        /// labelling its input. With pairs, it names the second element of each pair.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? SecondParameterName { get; init; } = help.SecondParameterName;
 
         /// <summary>
         /// Magical Json.Net stuff

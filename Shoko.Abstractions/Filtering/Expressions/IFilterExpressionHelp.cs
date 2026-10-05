@@ -82,4 +82,18 @@ public interface IFilterExpressionHelp
     ///   most common ones first.
     /// </summary>
     string[][]? PossibleParameterPairs { get; }
+
+    /// <summary>
+    ///   A short name for the parameter, for labelling its input, or
+    ///   <c>null</c> when none is given. With pairs, it names the first
+    ///   element of each pair.
+    /// </summary>
+    string? ParameterName { get; }
+
+    /// <summary>
+    ///   A short name for the second parameter, for labelling its input, or
+    ///   <c>null</c> when none is given. With pairs, it names the second
+    ///   element of each pair.
+    /// </summary>
+    string? SecondParameterName { get; }
 }

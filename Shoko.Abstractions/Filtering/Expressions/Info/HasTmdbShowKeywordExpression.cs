@@ -28,6 +28,9 @@ public class HasTmdbShowKeywordExpression : FilterExpression<bool>, IWithStringP
     public override string HelpDescription => "This condition passes if any of the anime have the specified TMDB show keyword";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Keyword";
+
+    /// <inheritdoc/>
     public override string[] HelpPossibleParameters => [];
 
     /// <inheritdoc/>

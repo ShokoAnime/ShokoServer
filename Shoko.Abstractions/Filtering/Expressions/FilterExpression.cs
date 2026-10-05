@@ -44,21 +44,38 @@ public class FilterExpression : IFilterExpression, IEquatable<FilterExpression>
 
     /// <summary>
     /// Valid pairs of first and second parameters for this expression, shown in help.
+    /// An expression offering pairs offers no separate list for either parameter.
     /// </summary>
     [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual string[][] HelpPossibleParameterPairs => [];
 
     /// <summary>
     /// Valid values for the first parameter of this expression, shown in help.
+    /// Offered only when the expression offers no parameter pairs.
     /// </summary>
     [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual string[] HelpPossibleParameters => [];
 
     /// <summary>
     /// Valid values for the second parameter of this expression, shown in help.
+    /// Offered only when the expression offers no parameter pairs.
     /// </summary>
     [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual string[] HelpPossibleSecondParameters => [];
+
+    /// <summary>
+    /// A short name for the first parameter of this expression, shown in help
+    /// so a client can label its input, or <c>null</c> for none.
+    /// </summary>
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    public virtual string? HelpParameterName => null;
+
+    /// <summary>
+    /// A short name for the second parameter of this expression, shown in help
+    /// so a client can label its input, or <c>null</c> for none.
+    /// </summary>
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    public virtual string? HelpSecondParameterName => null;
 
     /// <inheritdoc/>
     public virtual bool Equals(FilterExpression? obj)

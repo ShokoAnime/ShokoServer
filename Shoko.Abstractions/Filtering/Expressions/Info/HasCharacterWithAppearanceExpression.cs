@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
 using Shoko.Abstractions.Filtering.Expressions.Converters;
@@ -31,6 +32,19 @@ public class HasCharacterWithAppearanceExpression : FilterExpression<bool>, IWit
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the filterable has a character with the specified appearance.";
+
+    /// <inheritdoc/>
+    public override string HelpParameterName => "AniDB Character ID";
+
+    /// <inheritdoc/>
+    public override string HelpSecondParameterName => "Appearance";
+
+    /// <summary>
+    /// The appearances to pick from, main characters first. <see cref="CastRoleType.None"/>
+    /// is left out, as it only marks an appearance AniDB did not classify.
+    /// </summary>
+    public override string[] HelpPossibleSecondParameters
+        => Enum.GetValues<CastRoleType>().Where(x => x is not CastRoleType.None).Select(x => x.ToString()).ToArray();
 
     string? IWithStringParameter.Parameter
     {

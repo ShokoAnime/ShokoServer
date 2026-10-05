@@ -28,6 +28,9 @@ public class HasReleaseGroupNameExpression : FilterExpression<bool>, IWithString
     public override string HelpDescription => "This condition passes if any of the anime have the files of specified release group name";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Release Group";
+
+    /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? now)
     {
         return Parameter is not null && filterable.ReleaseGroupNames.Contains(Parameter);

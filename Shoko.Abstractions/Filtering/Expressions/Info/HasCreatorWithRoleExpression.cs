@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
 using Shoko.Abstractions.Filtering.Expressions.Converters;
@@ -31,6 +32,19 @@ public class HasCreatorWithRoleExpression : FilterExpression<bool>, IWithStringP
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the filterable has a creator with the specified role.";
+
+    /// <inheritdoc/>
+    public override string HelpParameterName => "AniDB Creator ID";
+
+    /// <inheritdoc/>
+    public override string HelpSecondParameterName => "Role";
+
+    /// <summary>
+    /// The roles to pick from, in the order the enum declares them. <see cref="CrewRoleType.None"/>
+    /// is left out, as it only gathers the credits no named role covers.
+    /// </summary>
+    public override string[] HelpPossibleSecondParameters
+        => Enum.GetValues<CrewRoleType>().Where(x => x is not CrewRoleType.None).Select(x => x.ToString()).ToArray();
 
     string? IWithStringParameter.Parameter
     {

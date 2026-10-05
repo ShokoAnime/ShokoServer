@@ -41,6 +41,9 @@ public class HasAutomaticSourceLinkExpression : FilterExpression<bool>, IWithStr
     public override string HelpDescription => "This condition passes if any of the anime has a series or movie-level link to the given source that no user verified";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         return Source is { } source && filterable.GetAutomaticLinks(source) > 0;

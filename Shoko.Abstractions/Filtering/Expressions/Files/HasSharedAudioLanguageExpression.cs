@@ -22,6 +22,9 @@ public class HasSharedAudioLanguageExpression : FilterExpression<bool>, IWithStr
     public override string HelpDescription => "This condition passes if all of the files have the specified audio language";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Language";
+
+    /// <inheritdoc/>
     public override string[] HelpPossibleParameters => HasAudioLanguageExpression.PossibleAudioLanguages;
 
     /// <inheritdoc/>

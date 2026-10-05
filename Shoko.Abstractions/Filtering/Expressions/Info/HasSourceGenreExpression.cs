@@ -32,6 +32,12 @@ public class HasSourceGenreExpression : FilterExpression<bool>, IWithStringParam
     public override string HelpDescription => "This condition passes if any of the anime have the given genre (second parameter) on the given source";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
+    public override string HelpSecondParameterName => "Genre";
+
+    /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         return Source is { } source && !string.IsNullOrEmpty(SecondParameter) && filterable.GetGenres(source).Contains(SecondParameter);

@@ -46,6 +46,9 @@ public class MissingSourceLinkExpression : FilterExpression<bool>, IWithStringPa
     public override string HelpDescription => "This condition passes if any of the anime should be linked to the given source but are not";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         if (Source is not { } source)

@@ -29,6 +29,9 @@ public class AutomaticSourceEpisodeLinksSelector : FilterExpression<double>, IWi
     public override string HelpDescription => "This returns the number of automatic episode links to the given source";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     /// <inheritdoc/>

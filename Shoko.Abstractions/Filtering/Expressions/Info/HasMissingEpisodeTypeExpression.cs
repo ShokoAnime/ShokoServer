@@ -29,6 +29,9 @@ public class HasMissingEpisodeTypeExpression : FilterExpression<bool>, IWithStri
     public override string HelpDescription => "This condition passes if the filterable has missing episodes of the specified type";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Episode Type";
+
+    /// <inheritdoc/>
     public override string[] HelpPossibleParameters => Enum.GetValues<EpisodeType>().Select(x => x.ToString()).ToArray();
 
     /// <inheritdoc/>

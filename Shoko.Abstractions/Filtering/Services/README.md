@@ -226,6 +226,12 @@ dictionary that throws on a duplicate key, so shipping a `HasTagExpression` of
 your own breaks filtering for the whole server. Prefix the class name with
 something of yours.
 
+Its help may offer values for its parameters in one of two ways, never both:
+`HelpPossibleParameterPairs`, or `HelpPossibleParameters` and
+`HelpPossibleSecondParameters`. An expression offering pairs and a separate list
+makes the scan throw `InvalidOperationException`, which breaks the listing for
+every expression.
+
 ---
 
 ## `IFilteringEngine` directly

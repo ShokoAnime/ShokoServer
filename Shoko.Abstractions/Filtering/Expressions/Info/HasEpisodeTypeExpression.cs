@@ -31,6 +31,9 @@ public class HasEpisodeTypeExpression : FilterExpression<bool>, IWithStringParam
     public override string HelpDescription => "This condition passes if any of the anime have episodes of the specified type";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Episode Type";
+
+    /// <inheritdoc/>
     public override string[] HelpPossibleParameters => Enum.GetValues<EpisodeType>().Select(x => x.ToString()).ToArray();
 
     /// <inheritdoc/>

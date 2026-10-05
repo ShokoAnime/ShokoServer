@@ -318,9 +318,17 @@ public class VideoReleaseService(
     #region Get Current Data
 
     public IReadOnlyList<string> GetStoredReleaseProviderNames()
+        => GetProviderNames(releaseInfoRepository.GetAll());
+
+    /// <summary>
+    /// The names of the providers behind the stored releases, each once, sorted.
+    /// </summary>
+    /// <param name="releases">The stored releases.</param>
+    /// <returns>The provider names.</returns>
+    internal static IReadOnlyList<string> GetProviderNames(IEnumerable<StoredReleaseInfo> releases)
     {
         var hashSet = new HashSet<string>();
-        foreach (var releaseInfo in releaseInfoRepository.GetAll())
+        foreach (var releaseInfo in releases)
             foreach (var providerName in releaseInfo.ProviderName.Split('+', StringSplitOptions.None | StringSplitOptions.RemoveEmptyEntries))
                 hashSet.Add(providerName);
 

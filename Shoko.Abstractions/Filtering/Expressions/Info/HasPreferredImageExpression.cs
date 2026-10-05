@@ -30,6 +30,9 @@ public class HasPreferredImageExpression : FilterExpression<bool>, IWithStringPa
     public override string HelpDescription => "This condition passes if any of the anime has the preferred image type.";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Image Type";
+
+    /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         return ImageEntityType.HasValue && filterable.PreferredImageTypes.Contains(ImageEntityType.Value);

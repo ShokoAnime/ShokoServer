@@ -22,6 +22,9 @@ public class HasResolutionExpression : FilterExpression<bool>, IWithStringParame
     public override string HelpDescription => "This condition passes if any of the files have the specified video resolution";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Resolution";
+
+    /// <inheritdoc/>
     public override string[] HelpPossibleParameters =>
     [
         "2160p","1080p","720p","480p","UWHD","UWQHD","1440p","576p","360p","240p"

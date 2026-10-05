@@ -29,6 +29,9 @@ public class HasSourceSuggestionExpression : FilterExpression<bool>, IWithString
     public override string HelpDescription => "This condition passes if the given source suggests anything for the filterable";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         return Source is { } source && filterable.GetSuggestions(source) is > 0;

@@ -22,6 +22,9 @@ public class HasVideoSourceExpression : FilterExpression<bool>, IWithStringParam
     public override string HelpDescription => "This condition passes if any of the files have the specified video source";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Video Source";
+
+    /// <inheritdoc/>
     public override string[] HelpPossibleParameters => new[]
     {
         "tv",

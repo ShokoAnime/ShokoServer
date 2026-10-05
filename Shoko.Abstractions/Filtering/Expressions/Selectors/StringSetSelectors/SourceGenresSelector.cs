@@ -30,6 +30,9 @@ public class SourceGenresSelector : FilterExpression<IReadOnlySet<string>>, IWit
     public override string HelpDescription => "This returns a set of all the genres the given source gives a filterable.";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     /// <inheritdoc/>

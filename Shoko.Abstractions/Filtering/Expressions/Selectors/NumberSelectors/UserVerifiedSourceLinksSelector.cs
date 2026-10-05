@@ -40,6 +40,9 @@ public class UserVerifiedSourceLinksSelector : FilterExpression<double>, IWithSt
     public override string HelpDescription => "This returns the number of series and movie-level links to the given source that a user verified";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     /// <inheritdoc/>

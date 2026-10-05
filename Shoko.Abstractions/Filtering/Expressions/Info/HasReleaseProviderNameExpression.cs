@@ -1,11 +1,6 @@
 using System;
-using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
-using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
-using Shoko.Abstractions.Video.Services;
 
-#pragma warning disable CS0618
 namespace Shoko.Abstractions.Filtering.Expressions.Info;
 
 /// <summary>
@@ -33,7 +28,7 @@ public class HasReleaseProviderNameExpression : FilterExpression<bool>, IWithStr
     public override string HelpDescription => "This condition passes if any of the anime have the files of specified release provider name";
 
     /// <inheritdoc/>
-    public override string[] HelpPossibleParameters => ISystemService.StaticServices.GetRequiredService<IVideoReleaseService>().GetStoredReleaseProviderNames().ToArray();
+    public override string HelpParameterName => "Release Provider";
 
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? now)

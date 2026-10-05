@@ -31,6 +31,9 @@ public class HasFileSourceExpression : FilterExpression<bool>, IWithStringParame
     public override string HelpDescription => "This condition passes if any of the files have the specified source type";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Release Source";
+
+    /// <inheritdoc/>
     public override string[] HelpPossibleParameters => Enum.GetValues<ReleaseSource>().Select(x => x.ToString()).ToArray();
 
     /// <inheritdoc/>

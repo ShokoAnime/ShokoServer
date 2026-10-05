@@ -29,6 +29,9 @@ public class SourceSuggestionCountSelector : FilterExpression<double>, IWithStri
     public override string HelpDescription => "This returns the number of suggestions the given source makes for a filterable";
 
     /// <inheritdoc/>
+    public override string HelpParameterName => "Source";
+
+    /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     /// <inheritdoc/>
