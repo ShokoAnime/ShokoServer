@@ -453,7 +453,9 @@ anime, or none, with a channel filter.
 Each anime carries what a card shows: `ID` (AniDB), `ShokoID`, `Type`,
 `Title`, `Poster`, `Overview`, `AirDate`, `EndDate`, `EpisodeCount`,
 `Restricted`, `Studios`, `SourceMaterial`, up to five genre `Tags`,
-`VideoCount`, `StartSeason` and `EpisodeDuration`, and its airing:
+`VideoCount`, `StartSeason`, `IsStartSeasonOverridden` (whether a user set the
+start season by hand, see [Start season overrides](#start-season-overrides))
+and `EpisodeDuration`, and its airing:
 
 - `NextAiring`: the next new episode's airing the server prefers, in the
   `EpisodeAiring` shape of the airings endpoint, or a date-only entry for an
@@ -513,6 +515,58 @@ each year has its `Year` and its `Seasons`, from winter to fall, and the
 years come newest first. A year whose seasons hold no anime at all is left
 out; a year's empty seasons stay. `fromYear` leaves out earlier years, but
 not the year of the season under way.
+
+### Start season overrides
+
+The rule matches AniDB's own hand-corrected seasons for most anime, but not
+all, so an admin may set the season an anime starts in by hand. An override is
+kept by AniDB anime ID, never by Shoko series ID: it holds for an anime outside
+the collection, for one not yet in the local AniDB cache (it applies once the
+anime is fetched), and through its series being removed and added again.
+
+Only the start is overridden. The seasons after it are still worked out from
+the episodes, by the same rule:
+
+- The anime starts in the overridden season, and is then in every season the
+  rule places it in after that one.
+- A start later than the computed one drops the computed seasons up to it. A
+  start past every computed season leaves the overridden season alone.
+- A start earlier than the computed one keeps every computed season. No season
+  is filled in between the two, as for a break.
+- An anime with no dates to go by is in the overridden season alone.
+
+The override applies wherever the rule does: the season view and its sections
+(an anime started by hand in an earlier season is `continuing`), the season
+counts and images, `GET /api/v3/AiringSchedule/Season/ByYear`, the series and
+group `YearlySeasons`, the filters' season condition and the AniDB anime list's
+`seasons` filter.
+
+| Route | Who | What |
+|---|---|---|
+| `GET /api/v3/Series/AniDB/{anidbID}/StartSeason` | anyone who may see the anime | `{ "Year", "Season", "IsOverridden", "Computed": { "Year", "Season" } }`. `Year` and `Season` are the start in effect, `null` with neither dates nor an override. `Computed` is the rule's own start, `null` when the anime is not cached or has no dates. `404` when the anime is neither cached nor overridden. |
+| `PUT /api/v3/Series/AniDB/{anidbID}/StartSeason` | admin | Sets the override from `{ "Year": 2015, "Season": "Summer" }`, the year from 1900 to 9999. Answers like the `GET`. Setting the season already set changes nothing. |
+| `DELETE /api/v3/Series/AniDB/{anidbID}/StartSeason` | admin | Removes the override: `204`, or `404` when none was set. |
+| `GET /api/v3/Series/AniDB/StartSeason/Overrides` | anyone | Every override by AniDB anime ID: `AnidbAnimeID`, `Title`, `Year`, `Season`, `CreatedAt`, `UpdatedAt` and `UserID` (who last set it, `null` for the system). `Title` is the anime's preferred title, its series' one when it is in the collection, or `null` when the anime is not cached or the user may not see it. |
+| `GET /api/v3/Series/AniDB/StartSeason/Overrides.csv` | anyone | The overrides as CSV. |
+| `POST /api/v3/Series/AniDB/StartSeason/Overrides.csv` | admin | Imports a CSV file, sent as a `text/csv` body or as a multipart form field named `file`. |
+
+The CSV file has the header `AnidbAnimeID,Year,Season`, then one override per
+line, the season by name:
+
+```csv
+AnidbAnimeID,Year,Season
+1530,2005,Fall
+17860,2024,Winter
+```
+
+On import the header is optional, blank lines and lines starting with `#` are
+skipped, fields may be quoted, and season names match in any case (`Autumn` is
+`Fall`). The answer counts the `Added`, `Updated` and `Unchanged` overrides and
+lists the `Rejected` lines, each with its `Line` number, its `Text` and the
+`Reason`: the wrong number of fields, an AniDB anime ID that is not a number
+above 0, a year outside 1900 to 9999, a season that is not a name, or an AniDB
+anime ID an earlier line named already. The other lines are imported all the
+same. An import never removes an override the file leaves out.
 
 ## The calendar endpoint
 

@@ -132,7 +132,9 @@ from its air date to the quarter three weeks before its end date. A two-cour
 show is in two seasons, and a long-runner is in every season it aired in. So "Fall 2016" is not "series that
 *premiered* in Fall 2016", it is "series that were *airing* in Fall 2016", and
 one series legitimately answers `true` for dozens of seasons. A group is in
-every season of any of its series.
+every season of any of its series. A start season set by hand for the AniDB
+anime (see `IAnidbService.SetStartSeasonOverride`) moves the start, and the
+filter follows it.
 
 The expression is `TimeDependent` because a still-airing series keeps gaining
 seasons as the clock moves. It takes its year through `IWithNumberParameter` and

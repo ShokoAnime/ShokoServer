@@ -36,6 +36,7 @@ public class AiringCalendarServiceTests
             Series = null,
             Title = title ?? $"Anime {id}",
             StartSeason = start,
+            IsStartSeasonOverridden = false,
             EpisodeDuration = minutes is { } length ? TimeSpan.FromMinutes(length) : null,
             Status = SeasonAnimeAiringStatus.Unknown,
             NextAiring = next,

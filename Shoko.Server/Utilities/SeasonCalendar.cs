@@ -30,6 +30,11 @@ namespace Shoko.Server.Utilities;
 ///     left out. Without dated episodes, it is in every season from its
 ///     start to the quarter three weeks before its end date.
 ///   </para>
+///   <para>
+///     A user may set an AniDB anime's start season by hand. It then starts
+///     there and keeps only the computed seasons after it
+///     (see <see cref="WithStartSeason"/>).
+///   </para>
 /// </remarks>
 public static class SeasonCalendar
 {
@@ -230,12 +235,17 @@ public static class SeasonCalendar
     ///   Every season the entry is in, oldest first, from
     ///   <paramref name="StartSeason"/> on, with no cap.
     /// </param>
+    /// <param name="IsStartOverridden">
+    ///   Whether <paramref name="StartSeason"/> was set by hand rather than
+    ///   by the rule (see <see cref="WithStartSeason"/>).
+    /// </param>
     public sealed record SeasonSpan(
         DateOnly First,
         DateOnly Last,
         AnimeType Type,
         (int Year, YearlySeason Season) StartSeason,
-        IReadOnlyList<(int Year, YearlySeason Season)> Seasons
+        IReadOnlyList<(int Year, YearlySeason Season)> Seasons,
+        bool IsStartOverridden = false
     );
 
     /// <summary>
@@ -319,6 +329,37 @@ public static class SeasonCalendar
             today,
             beforeEpisodeDates ? animeStart : null
         );
+    }
+
+    /// <summary>
+    ///   A span with its start season set by hand. It starts in
+    ///   <paramref name="start"/> and goes on in each computed season after
+    ///   it, so the computed seasons up to the override are dropped when it
+    ///   is later, and every computed season is kept when it is earlier,
+    ///   with no season filled in between.
+    /// </summary>
+    /// <remarks>
+    ///   Without a computed span, the entry is in the overridden season
+    ///   only, counted from the first day of its calendar quarter.
+    /// </remarks>
+    /// <param name="span">The computed span, or <c>null</c> when there were no dates to go by.</param>
+    /// <param name="start">The season the entry starts in.</param>
+    /// <param name="type">The entry's type, used without a computed span.</param>
+    /// <returns>The span, flagged as overridden.</returns>
+    public static SeasonSpan WithStartSeason(SeasonSpan? span, (int Year, YearlySeason Season) start, AnimeType type)
+    {
+        if (span is null)
+        {
+            var first = new DateOnly(start.Year, 1 + 3 * (int)start.Season, 1);
+            return new(first, first, type, start, [start], true);
+        }
+
+        return span with
+        {
+            StartSeason = start,
+            Seasons = [start, .. span.Seasons.Where(season => season.CompareTo(start) > 0)],
+            IsStartOverridden = true,
+        };
     }
 
     /// <summary>

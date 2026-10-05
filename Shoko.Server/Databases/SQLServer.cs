@@ -1575,6 +1575,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(192, 305, DatabaseFixes.RestoreAnidbPlaceholderAirDates),
         new(192, 306, "ALTER TABLE AiringChannel ADD CountryCode NVARCHAR(2) NULL;"),
         new(192, 307, DatabaseFixes.KeyAiringChannelsByCountry),
+        new(192, 308, "CREATE TABLE AniDB_Anime_StartSeasonOverride ( AniDB_Anime_StartSeasonOverrideID INT IDENTITY(1,1) NOT NULL, AnimeID INT NOT NULL, Year INT NOT NULL, Season TINYINT NOT NULL, UserID INT NULL, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL, CONSTRAINT PK_AniDB_Anime_StartSeasonOverride PRIMARY KEY CLUSTERED (AniDB_Anime_StartSeasonOverrideID) );"),
+        new(192, 309, "CREATE UNIQUE INDEX UIX_AniDB_Anime_StartSeasonOverride_AnimeID ON AniDB_Anime_StartSeasonOverride(AnimeID);"),
     ];
 
     #endregion

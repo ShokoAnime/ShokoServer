@@ -104,6 +104,7 @@ public class SeasonAnimeBuilder(
             ),
             VideoCount = series is null ? 0 : catalog.GetVideoCount(anime.AnimeID),
             StartSeason = entry.StartSeason is { } season ? new SeasonWithYear(season.Year, season.Season) : null,
+            IsStartSeasonOverridden = entry.IsStartSeasonOverridden,
             EpisodeDuration = entry.EpisodeDuration,
             AiringStatus = entry.Status switch
             {

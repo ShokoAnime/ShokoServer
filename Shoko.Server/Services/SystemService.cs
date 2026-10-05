@@ -633,6 +633,7 @@ public class SystemService : ISystemService
             services.AddAniDB();
             services.AddSingleton<AnidbService>();
             services.AddSingleton<AnidbAnimeCatalog>();
+            services.AddSingleton<AnidbStartSeasonOverrides>();
             services.AddSingleton<SeasonAnimeBuilder>();
             services.AddSingleton<IAiringCalendarService, AiringCalendarService>();
             services.AddSingleton<IAnidbService>(sp => sp.GetRequiredService<AnidbService>());

@@ -13,7 +13,7 @@ public class MyJob(IAnidbService anidbService, IMylistService mylistService)
 
 | Interface | What it is for |
 |---|---|
-| `IAnidbService` | Ban state, the local title search, the cached anime list, refreshing an anime, tags, images, purging. |
+| `IAnidbService` | Ban state, the local title search, the cached anime list, start season overrides, refreshing an anime, tags, images, purging. |
 | `IMylistService` | Everything to do with the user's AniDB MyList: read, add, update, remove, sync. |
 | `IAnidbAvdumpService` | Driving AVDump over local files. The same object as `IAnidbService`. |
 
@@ -138,6 +138,36 @@ before those, and so on. The weighted rating is
 votes, `C` the mean rating of the rated anime starting in the same season and
 `m` the median of their votes, at least 50. Ties go to the earlier start, then the lower
 AniDB ID, so a season yet to air shows its earliest starter.
+
+### Start season overrides
+
+The rule above places most anime where AniDB itself does, and the rest can be
+set by hand. A start season override is kept by AniDB anime ID, so it holds for
+anime outside the collection, for anime not in the local cache yet (it applies
+once the anime is fetched), and through a series being removed and added again:
+
+```csharp
+AnidbStartSeasonOverride set = anidbService.SetStartSeasonOverride(17860, 2024, YearlySeason.Winter);
+AnidbStartSeasonOverride? current = anidbService.GetStartSeasonOverride(17860);
+IReadOnlyList<AnidbStartSeasonOverride> all = anidbService.GetStartSeasonOverrides();
+bool removed = anidbService.RemoveStartSeasonOverride(17860);
+```
+
+Only the start is overridden. The anime starts in that season and is then in
+every season the rule places it in after it: a later start drops the computed
+seasons up to it, an earlier one keeps them all with nothing filled in
+between, and an anime with no dates to go by is in the overridden season alone.
+It applies everywhere the rule does: `IWithYearlySeasons` on the AniDB anime
+and on its Shoko series and groups, the filters, `GetCachedAnime`'s season
+filter, `GetCachedAnimeSeasons`, and `IAiringCalendarService`, whose
+`SeasonAnimeEntry` flags it with `IsStartSeasonOverridden`.
+
+`SetStartSeasonOverride` throws `ArgumentOutOfRangeException` for an AniDB
+anime ID below 1, a year outside 1900 to 9999 or an undefined season, and
+records the current actor's user as `UserID` (`null` for the system). Setting
+the season already set changes nothing. `StartSeasonOverrideChanged` carries
+the `Previous` and `Current` override (`null` when there was none, or none is
+left) and the `Actor`, and is not raised for a set that changed nothing.
 
 ### Refreshing an anime
 

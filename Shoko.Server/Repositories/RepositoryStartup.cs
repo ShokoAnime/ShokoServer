@@ -36,6 +36,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_Anime_CharacterRepository>();
         services.AddCachedRepository<AniDB_Anime_Character_CreatorRepository>();
         services.AddCachedRepository<AniDB_Anime_SimilarRepository>();
+        services.AddCachedRepository<AniDB_Anime_StartSeasonOverrideRepository>();
         services.AddCachedRepository<AniDB_Anime_TagRepository>();
         services.AddCachedRepository<AniDB_CharacterRepository>();
         services.AddCachedRepository<AniDB_EpisodeRepository>();

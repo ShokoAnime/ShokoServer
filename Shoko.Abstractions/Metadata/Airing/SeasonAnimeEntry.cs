@@ -35,6 +35,13 @@ public sealed record SeasonAnimeEntry
     public required (int Year, YearlySeason Season)? StartSeason { get; init; }
 
     /// <summary>
+    ///   Whether <see cref="StartSeason"/> was set by hand for the anime
+    ///   (see <see cref="Anidb.Services.IAnidbService.SetStartSeasonOverride"/>)
+    ///   rather than worked out by the rule.
+    /// </summary>
+    public required bool IsStartSeasonOverridden { get; init; }
+
+    /// <summary>
     ///   The usual length of a regular episode, or <c>null</c> when no
     ///   regular episode has a known length.
     /// </summary>

@@ -1692,6 +1692,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 299, DatabaseFixes.RestoreAnidbPlaceholderAirDates),
         new(194, 300, "ALTER TABLE `AiringChannel` ADD `CountryCode` VARCHAR(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
         new(194, 301, DatabaseFixes.KeyAiringChannelsByCountry),
+        new(194, 302, "CREATE TABLE `AniDB_Anime_StartSeasonOverride` ( `AniDB_Anime_StartSeasonOverrideID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `Year` INT NOT NULL, `Season` TINYINT UNSIGNED NOT NULL, `UserID` INT NULL, `CreatedAt` DATETIME NOT NULL, `UpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`AniDB_Anime_StartSeasonOverrideID`) );"),
+        new(194, 303, "CREATE UNIQUE INDEX `UIX_AniDB_Anime_StartSeasonOverride_AnimeID` ON `AniDB_Anime_StartSeasonOverride`(`AnimeID`);"),
     ];
 
     #endregion

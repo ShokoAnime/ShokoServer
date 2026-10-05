@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.User;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
@@ -349,6 +350,21 @@ public class AnidbAnimeCatalog(
     }
 
     /// <summary>
+    ///   The preferred title of a cached anime by its ID: its series' one
+    ///   when it is in the collection, else its own.
+    /// </summary>
+    /// <param name="animeID">The AniDB anime ID.</param>
+    /// <param name="user">The user whose restrictions apply, if any.</param>
+    /// <returns>The title, or <c>null</c> when the anime is not cached or the user may not see it.</returns>
+    public string? GetTitle(int animeID, IUser? user = null)
+    {
+        if (animeRepository.GetByAnimeID(animeID) is not { } anime || (user is not null && !user.IsAllowedToSee(anime)))
+            return null;
+
+        return GetTitle(anime, seriesRepository.GetByAnimeID(animeID));
+    }
+
+    /// <summary>
     ///   The preferred overview of an anime: its series' one when it is in
     ///   the collection, else its own, falling back to the default one.
     /// </summary>
@@ -424,14 +440,24 @@ public class AnidbAnimeCatalog(
 
     /// <summary>
     ///   The season an anime starts in, by the rule the seasons are listed
-    ///   with: the one its first regular episode airs in, after an early
-    ///   premiere or a batch drop is accounted for, or the one of its start
-    ///   date without dated regular episodes.
+    ///   with: the one a user set by hand, else the one its first regular
+    ///   episode airs in, after an early premiere or a batch drop is
+    ///   accounted for, or the one of its start date without dated regular
+    ///   episodes.
     /// </summary>
     /// <param name="anime">The anime.</param>
     /// <returns>The season, or <c>null</c> when it has no dates to go by.</returns>
     public (int Year, YearlySeason Season)? GetStartSeason(AniDB_Anime anime)
         => anime.SeasonSpan?.StartSeason;
+
+    /// <summary>
+    ///   Whether the season an anime starts in was set by hand rather than
+    ///   worked out by the rule.
+    /// </summary>
+    /// <param name="anime">The anime.</param>
+    /// <returns><c>true</c> when a user set its start season.</returns>
+    public bool IsStartSeasonOverridden(AniDB_Anime anime)
+        => anime.SeasonSpan?.IsStartOverridden ?? false;
 
     /// <summary>
     ///   The usual length of an anime's regular episodes: the median of

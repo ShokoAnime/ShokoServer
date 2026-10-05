@@ -130,6 +130,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private readonly SupplementaryMetadataScheduler _supplementaryMetadataScheduler;
 
+    private readonly AnidbStartSeasonOverrides _startSeasonOverrides;
+
     public AnidbService(
         ILogger<AnidbService> logger,
         IServiceProvider serviceProvider,
@@ -162,7 +164,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         ShokoImage_EntityRepository shokoImageXrefRepository,
         AniDB_Anime_RelationRepository anidbAnimeRelationRepository,
         IImageManager imageManager,
-        SupplementaryMetadataScheduler supplementaryMetadataScheduler
+        SupplementaryMetadataScheduler supplementaryMetadataScheduler,
+        AnidbStartSeasonOverrides startSeasonOverrides
     )
     {
         _logger = logger;
@@ -198,6 +201,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _anidbAnimeRelationRepository = anidbAnimeRelationRepository;
         _imageManager = imageManager;
         _supplementaryMetadataScheduler = supplementaryMetadataScheduler;
+        _startSeasonOverrides = startSeasonOverrides;
         _entityLock = new(logger);
         _bulkheadPolicy = Policy.BulkheadAsync<AniDB_Anime?>(1, int.MaxValue);
 
@@ -374,6 +378,74 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         => _catalog ??= _serviceProvider.GetRequiredService<AnidbAnimeCatalog>();
 
     private AnidbAnimeCatalog? _catalog;
+
+    #endregion
+
+    #region Start Season Overrides
+
+    /// <inheritdoc/>
+    public event EventHandler<AnidbStartSeasonOverrideChangedEventArgs>? StartSeasonOverrideChanged;
+
+    /// <inheritdoc/>
+    public AnidbStartSeasonOverride? GetStartSeasonOverride(int anidbAnimeID)
+        => _startSeasonOverrides.Get(anidbAnimeID);
+
+    /// <inheritdoc/>
+    public IReadOnlyList<AnidbStartSeasonOverride> GetStartSeasonOverrides()
+        => _startSeasonOverrides.GetAll();
+
+    /// <inheritdoc/>
+    public AnidbStartSeasonOverride SetStartSeasonOverride(int anidbAnimeID, int year, YearlySeason season)
+    {
+        var actor = ActorContext.CurrentActor;
+        var (previous, current) = _startSeasonOverrides.Set(
+            anidbAnimeID,
+            year,
+            season,
+            actor?.User.LocalID,
+            DateTime.UtcNow
+        );
+        if (previous != current)
+            OnStartSeasonOverrideChanged(anidbAnimeID, previous, current);
+
+        return current;
+    }
+
+    /// <inheritdoc/>
+    public bool RemoveStartSeasonOverride(int anidbAnimeID)
+    {
+        if (_startSeasonOverrides.Remove(anidbAnimeID) is not { } previous)
+            return false;
+
+        OnStartSeasonOverrideChanged(anidbAnimeID, previous, null);
+        return true;
+    }
+
+    /// <summary>
+    ///   Raises <see cref="StartSeasonOverrideChanged"/>, logging what changed.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <param name="previous">The override before, if any.</param>
+    /// <param name="current">The override after, if any.</param>
+    private void OnStartSeasonOverrideChanged(int anidbAnimeID, AnidbStartSeasonOverride? previous, AnidbStartSeasonOverride? current)
+    {
+        _logger.LogInformation(
+            "Start season override of AniDB anime {AnimeID} changed from {Previous} to {Current}",
+            anidbAnimeID,
+            previous is null ? "none" : $"{previous.Season} {previous.Year}",
+            current is null ? "none" : $"{current.Season} {current.Year}"
+        );
+        StartSeasonOverrideChanged?.Invoke(
+            this,
+            new()
+            {
+                AnidbAnimeID = anidbAnimeID,
+                Previous = previous,
+                Current = current,
+                Actor = ActorContext.CurrentActor,
+            }
+        );
+    }
 
     #endregion
 

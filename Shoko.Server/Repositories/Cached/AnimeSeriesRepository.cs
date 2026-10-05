@@ -463,7 +463,10 @@ WHERE
 
     public SortedSet<(int Year, YearlySeason Season)> GetAllSeasons()
     {
-        var anime = GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate is not null).ToList();
+        var anime = GetAll()
+            .Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID))
+            .Where(a => a is not null && (a.AirDate is not null || a.StartSeasonOverride is not null))
+            .ToList();
         return GetAllSeasons(anime!);
     }
 

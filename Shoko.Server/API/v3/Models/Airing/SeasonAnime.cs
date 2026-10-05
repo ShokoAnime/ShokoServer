@@ -114,6 +114,13 @@ public class SeasonAnime
     public required SeasonWithYear? StartSeason { get; init; }
 
     /// <summary>
+    /// Whether <see cref="StartSeason"/> was set by hand for the anime
+    /// rather than worked out by the rule.
+    /// </summary>
+    [Required]
+    public required bool IsStartSeasonOverridden { get; init; }
+
+    /// <summary>
     /// The usual length of a regular episode, or <c>null</c> when no regular
     /// episode has a known length.
     /// </summary>

@@ -6,6 +6,7 @@ using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
 using Shoko.Abstractions.Metadata.Anidb.Models;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 
 namespace Shoko.Abstractions.Metadata.Anidb.Services;
@@ -125,6 +126,57 @@ public interface IAnidbService
     /// <param name="includeImages">Whether to pick a poster and a backdrop for each season.</param>
     /// <returns>The seasons.</returns>
     IReadOnlyList<AnidbAnimeSeasonCount> GetCachedAnimeSeasons(AnidbAnimeListOptions? options = null, bool includeImages = false);
+
+    #endregion
+
+    #region Start Season Overrides
+
+    /// <summary>
+    ///   Dispatched when the start season override of an AniDB anime is set,
+    ///   changed or removed. Not dispatched for a set that changed nothing.
+    /// </summary>
+    event EventHandler<AnidbStartSeasonOverrideChangedEventArgs> StartSeasonOverrideChanged;
+
+    /// <summary>
+    ///   Gets the start season a user set by hand for an AniDB anime.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <returns>The override, or <c>null</c> when none is set.</returns>
+    AnidbStartSeasonOverride? GetStartSeasonOverride(int anidbAnimeID);
+
+    /// <summary>
+    ///   Lists every start season override, by AniDB anime ID.
+    /// </summary>
+    /// <returns>The overrides, by ascending AniDB anime ID.</returns>
+    IReadOnlyList<AnidbStartSeasonOverride> GetStartSeasonOverrides();
+
+    /// <summary>
+    ///   Sets the season an AniDB anime starts in, in place of the one the
+    ///   yearly season rule works out (see
+    ///   <see cref="Containers.IWithYearlySeasons"/>), for the current actor.
+    /// </summary>
+    /// <remarks>
+    ///   The anime need not be in the local cache yet, so it can be set
+    ///   ahead of a fetch; it applies once the anime is there. Setting the
+    ///   same season again changes nothing.
+    /// </remarks>
+    /// <param name="anidbAnimeID">The AniDB anime ID, above <c>0</c>.</param>
+    /// <param name="year">The year, from 1900 to 9999.</param>
+    /// <param name="season">The season.</param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///   <paramref name="anidbAnimeID"/>, <paramref name="year"/> or
+    ///   <paramref name="season"/> is out of range.
+    /// </exception>
+    /// <returns>The override as it is now stored.</returns>
+    AnidbStartSeasonOverride SetStartSeasonOverride(int anidbAnimeID, int year, YearlySeason season);
+
+    /// <summary>
+    ///   Removes the start season override of an AniDB anime, so the yearly
+    ///   season rule applies again.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <returns><c>true</c> when an override was removed, <c>false</c> when none was set.</returns>
+    bool RemoveStartSeasonOverride(int anidbAnimeID);
 
     #endregion
 

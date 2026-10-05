@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Authorization;
@@ -15,6 +17,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
@@ -73,6 +76,7 @@ public class SeriesController(
     IMetadataProviderManager _providerManager,
     IMetadataTextManager _textManager,
     AnidbAnimeCatalog _anidbCatalog,
+    IAnidbService _anidbService,
     AniDB_AnimeRepository _anidbAnime,
     AniDB_Anime_RelationRepository _anidbAnimeRelations,
     AniDB_Anime_SimilarRepository _anidbAnimeSimilar,
@@ -100,6 +104,8 @@ public class SeriesController(
     internal const string AnidbNotFoundForAnidbID = "No AnidbAnime entry for the given anidbID";
 
     internal const string AnidbForbiddenForUser = "Accessing AnidbAnime is not allowed for the current user";
+
+    internal const string StartSeasonOverrideNotFoundForAnidbID = "No start season override for the given anidbID";
 
     internal const string TmdbNotFoundForSeriesID = "No TMDB.Show entry for the given seriesID";
 
@@ -1186,6 +1192,136 @@ public class SeriesController(
             .Select(status => new AnidbReleaseGroupStatus(status))
             .ToList();
     }
+
+    #region AniDB | Start Season
+
+    /// <summary>
+    ///   Get the season an AniDB anime starts in: the one a user set by hand,
+    ///   else the one the yearly season rule works out.
+    /// </summary>
+    /// <remarks>
+    ///   Answers for an anime not in the local cache too, when it has an
+    ///   override; <c>Computed</c> is then <c>null</c>.
+    /// </remarks>
+    /// <param name="anidbID">AniDB anime ID.</param>
+    /// <returns>The start season, or <c>404 Not Found</c> when the anime is neither cached nor overridden.</returns>
+    [HttpGet("AniDB/{anidbID}/StartSeason")]
+    public ActionResult<AnidbStartSeason> GetAnidbStartSeason([FromRoute] int anidbID)
+    {
+        var anime = _anidbAnime.GetByAnimeID(anidbID);
+        if (anime is not null && !User.AllowedAnime(anime))
+            return Forbid(AnidbForbiddenForUser);
+
+        var startOverride = _anidbService.GetStartSeasonOverride(anidbID);
+        if (anime is null && startOverride is null)
+            return NotFound(AnidbNotFoundForAnidbID);
+
+        return AnidbStartSeason.From(anime?.ComputedSeasonSpan, startOverride);
+    }
+
+    /// <summary>
+    ///   Set the season an AniDB anime starts in, in place of the one the
+    ///   yearly season rule works out. The seasons it carries over into are
+    ///   still worked out from its episodes, from that season on.
+    /// </summary>
+    /// <remarks>
+    ///   The anime need not be in the local cache yet; the override applies
+    ///   once it is.
+    /// </remarks>
+    /// <param name="anidbID">AniDB anime ID.</param>
+    /// <param name="body">The year, from 1900 to 9999, and the season.</param>
+    /// <returns>The start season as it is now.</returns>
+    [Authorize("admin")]
+    [HttpPut("AniDB/{anidbID}/StartSeason")]
+    public ActionResult<AnidbStartSeason> SetAnidbStartSeason([FromRoute] int anidbID, [FromBody] AnidbStartSeason.Body body)
+    {
+        if (anidbID <= 0)
+            return ValidationProblem("The AniDB anime ID must be above 0.", nameof(anidbID));
+
+        var startOverride = _anidbService.SetStartSeasonOverride(anidbID, body.Year!.Value, body.Season!.Value);
+        return AnidbStartSeason.From(_anidbAnime.GetByAnimeID(anidbID)?.ComputedSeasonSpan, startOverride);
+    }
+
+    /// <summary>
+    ///   Remove the start season set by hand for an AniDB anime, so the
+    ///   yearly season rule applies again.
+    /// </summary>
+    /// <param name="anidbID">AniDB anime ID.</param>
+    /// <returns><c>204 No Content</c>, or <c>404 Not Found</c> when no override was set.</returns>
+    [Authorize("admin")]
+    [HttpDelete("AniDB/{anidbID}/StartSeason")]
+    public ActionResult RemoveAnidbStartSeason([FromRoute] int anidbID)
+        => _anidbService.RemoveStartSeasonOverride(anidbID) ? NoContent() : NotFound(StartSeasonOverrideNotFoundForAnidbID);
+
+    /// <summary>
+    ///   List every start season set by hand, by AniDB anime ID, each with
+    ///   the anime's preferred title when it is cached and the user may see
+    ///   it.
+    /// </summary>
+    /// <returns>The overrides.</returns>
+    [HttpGet("AniDB/StartSeason/Overrides")]
+    public ActionResult<List<Models.AniDB.AnidbStartSeasonOverride>> GetAnidbStartSeasonOverrides()
+        => _anidbService.GetStartSeasonOverrides()
+            .Select(entry => new Models.AniDB.AnidbStartSeasonOverride(entry, _anidbCatalog.GetTitle(entry.AnidbAnimeID, User)))
+            .ToList();
+
+    /// <summary>
+    ///   Export every start season set by hand as a CSV file, with the header
+    ///   <c>AnidbAnimeID,Year,Season</c> and one override per line.
+    /// </summary>
+    /// <returns>The file.</returns>
+    [HttpGet("AniDB/StartSeason/Overrides.csv")]
+    [Produces("text/csv")]
+    public ActionResult ExportAnidbStartSeasonOverrides()
+    {
+        var text = AnidbStartSeasonOverrideCsv.Export(_anidbService.GetStartSeasonOverrides());
+        return File(Encoding.UTF8.GetBytes(text), "text/csv", "anidb_start_season_overrides.csv");
+    }
+
+    /// <summary>
+    ///   Import start seasons from a CSV file in the export's layout, sent as
+    ///   the raw <c>text/csv</c> body or as a multipart form field named
+    ///   <c>file</c>.
+    /// </summary>
+    /// <remarks>
+    ///   Each line sets one override, or leaves it alone when it is set to
+    ///   that season already. An override the file leaves out is kept. A
+    ///   line is rejected, with the reason, when it does not hold an AniDB
+    ///   anime ID above 0, a year from 1900 to 9999 and a season by name, or
+    ///   when an earlier line named the same anime; the other lines are
+    ///   imported all the same.
+    /// </remarks>
+    /// <param name="cancellationToken">Cancels reading the file.</param>
+    /// <returns>How many overrides were added, updated and left unchanged, and the rejected lines.</returns>
+    [Authorize("admin")]
+    [HttpPost("AniDB/StartSeason/Overrides.csv")]
+    [Consumes("text/csv", "text/plain", "multipart/form-data")]
+    public async Task<ActionResult<AnidbStartSeasonOverrideImportSummary>> ImportAnidbStartSeasonOverrides(CancellationToken cancellationToken = default)
+    {
+        string text;
+        if (Request.HasFormContentType)
+        {
+            var form = await Request.ReadFormAsync(cancellationToken);
+            if (form.Files.GetFile("file") is not { Length: > 0 } file)
+                return ValidationProblem("The form needs a non-empty file in a field named 'file'.", "file");
+
+            using var fileReader = new StreamReader(file.OpenReadStream(), Encoding.UTF8, true);
+            text = await fileReader.ReadToEndAsync(cancellationToken);
+        }
+        else
+        {
+            using var bodyReader = new StreamReader(Request.Body, Encoding.UTF8, true);
+            text = await bodyReader.ReadToEndAsync(cancellationToken);
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+            return ValidationProblem("The file cannot be empty.", "Body");
+
+        using var reader = new StringReader(text);
+        return new AnidbStartSeasonOverrideImportSummary(AnidbStartSeasonOverrideCsv.Import(reader, _anidbService));
+    }
+
+    #endregion
 
     /// <summary>
     /// Get a Series from the AniDB ID

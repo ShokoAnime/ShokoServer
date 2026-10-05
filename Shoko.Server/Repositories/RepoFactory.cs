@@ -28,6 +28,7 @@ public class RepoFactory
     public static AniDB_Anime_RelationRepository AniDB_Anime_Relation = null!;
     public static AniDB_Anime_SimilarRepository AniDB_Anime_Similar = null!;
     public static AniDB_Anime_StaffRepository AniDB_Anime_Staff = null!;
+    public static AniDB_Anime_StartSeasonOverrideRepository AniDB_Anime_StartSeasonOverride = null!;
     public static AniDB_Anime_TagRepository AniDB_Anime_Tag = null!;
     public static AniDB_AnimeRepository AniDB_Anime = null!;
     public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate = null!;
@@ -102,6 +103,7 @@ public class RepoFactory
         AniDB_Anime_RelationRepository anidbAnimeRelation,
         AniDB_Anime_SimilarRepository anidbAnimeSimilar,
         AniDB_Anime_StaffRepository anidbAnimeStaff,
+        AniDB_Anime_StartSeasonOverrideRepository anidbAnimeStartSeasonOverride,
         AniDB_Anime_TagRepository anidbAnimeTag,
         AniDB_AnimeRepository anidbAnime,
         AniDB_AnimeUpdateRepository anidbAnimeUpdate,
@@ -177,6 +179,7 @@ public class RepoFactory
         AniDB_Anime_Relation = anidbAnimeRelation;
         AniDB_Anime_Similar = anidbAnimeSimilar;
         AniDB_Anime_Staff = anidbAnimeStaff;
+        AniDB_Anime_StartSeasonOverride = anidbAnimeStartSeasonOverride;
         AniDB_Anime_Tag = anidbAnimeTag;
         AniDB_AnimeUpdate = anidbAnimeUpdate;
         AniDB_Character = anidbCharacter;

@@ -27,6 +27,13 @@ namespace Shoko.Abstractions.Metadata.Containers;
 ///     Without them it goes on to the quarter three weeks before its end
 ///     date, or up to today while it is still airing.
 ///   </para>
+///   <para>
+///     A user may set the season an AniDB anime starts in by hand, which
+///     carries over to its Shoko series and groups. It then starts in that
+///     season and is in each season the rule places it in after it; a
+///     later start drops the seasons before it, and an earlier one keeps
+///     them all, with none filled in between.
+///   </para>
 /// </remarks>
 public interface IWithYearlySeasons
 {

@@ -119,6 +119,7 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
                     Series = entry.Series,
                     Title = catalog.GetTitle(entry.Anime, entry.Series),
                     StartSeason = catalog.GetStartSeason(entry.Anime),
+                    IsStartSeasonOverridden = catalog.IsStartSeasonOverridden(entry.Anime),
                     EpisodeDuration = catalog.GetEpisodeDuration(entry.Anime.AnimeID),
                     Status = GetStatus(entry.Anime, next, today),
                     NextAiring = next,

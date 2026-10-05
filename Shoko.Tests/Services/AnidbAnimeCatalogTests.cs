@@ -130,7 +130,8 @@ public class AnidbAnimeCatalogTests
             IReadOnlySet<int>? withPosters = null,
             IReadOnlySet<int>? withBackdrops = null,
             IReadOnlySet<int>? withSeriesPosters = null,
-            IReadOnlyDictionary<int, AnidbAnimeChannelAirings>? channelAirings = null
+            IReadOnlyDictionary<int, AnidbAnimeChannelAirings>? channelAirings = null,
+            IEnumerable<AniDB_Anime_StartSeasonOverride>? startSeasonOverrides = null
         )
         {
             var animeTagRepository = CachedRepo.Build<AniDB_Anime_TagRepository, int, AniDB_Anime_Tag>(xref => xref.AniDB_Anime_TagID, animeTags);
@@ -139,6 +140,10 @@ public class AnidbAnimeCatalogTests
             var episodeRepository = CachedRepo.Build<AniDB_EpisodeRepository, int, AniDB_Episode>(episode => episode.AniDB_EpisodeID, episodes);
             var animeRepository = CachedRepo.Build<AniDB_AnimeRepository, int, AniDB_Anime>(entry => entry.AniDB_AnimeID, anime);
             _scope.Set(animeTagRepository).Set(tagRepository).Set(episodeRepository).Set(animeRepository);
+            _scope.With<AniDB_Anime_StartSeasonOverrideRepository, int, AniDB_Anime_StartSeasonOverride>(
+                row => row.AniDB_Anime_StartSeasonOverrideID,
+                startSeasonOverrides
+            );
 
             var staffList = staff?.ToList() ?? [];
             var staffRepository = new Mock<AniDB_Anime_StaffRepository>(new object[1]);
@@ -402,6 +407,23 @@ public class AnidbAnimeCatalogTests
         Assert.Equal([1], harness.IDs(new() { TitlePrefix = "alp" }));
         // A series in the collection goes by its series' title.
         Assert.Equal([2], harness.IDs(new() { TitlePrefix = "series" }));
+    }
+
+    [Fact]
+    public void GetTitle_ByID_PrefersTheSeries_AndIsNullWhenUncachedOrHidden()
+    {
+        var user = new Mock<IUser>();
+        user.Setup(u => u.IsAllowedToSee(It.IsAny<IAnidbAnime>())).Returns((IAnidbAnime anime) => anime.AnidbID != 1);
+        using var harness = new Harness(
+            [Anime(1, "Alpha", Date(2015, 4, 1)), Anime(2, "Beta", Date(2015, 4, 1))],
+            series: [new AnimeSeries { AnimeSeriesID = 10, AniDB_ID = 2 }]
+        );
+
+        Assert.Equal("Alpha", harness.Catalog.GetTitle(1));
+        Assert.Equal("Series 2", harness.Catalog.GetTitle(2));
+        Assert.Null(harness.Catalog.GetTitle(3));
+        Assert.Null(harness.Catalog.GetTitle(1, user.Object));
+        Assert.Equal("Series 2", harness.Catalog.GetTitle(2, user.Object));
     }
 
     #endregion
@@ -718,6 +740,89 @@ public class AnidbAnimeCatalogTests
         );
 
         Assert.Equal(PosterID(1), ImagesOf(harness, (2015, YearlySeason.Spring), new() { IncludeRestricted = InclusionFilter.False }).Poster);
+    }
+
+    #endregion
+
+    #region Start Season Overrides
+
+    // Anime 1 moved from Spring to Summer 2015, anime 6 back to Winter 2015.
+    private static Harness OverriddenHarness()
+        => new(
+            PastAnime(),
+            PastEpisodes(),
+            startSeasonOverrides:
+            [
+                new AniDB_Anime_StartSeasonOverride { AniDB_Anime_StartSeasonOverrideID = 1, AnimeID = 1, Year = 2015, Season = YearlySeason.Summer },
+                new AniDB_Anime_StartSeasonOverride { AniDB_Anime_StartSeasonOverrideID = 2, AnimeID = 6, Year = 2015, Season = YearlySeason.Winter },
+            ]
+        );
+
+    [Theory]
+    [InlineData(2015, YearlySeason.Winter, new[] { 6 })]
+    [InlineData(2015, YearlySeason.Spring, new[] { 6 })]
+    [InlineData(2015, YearlySeason.Summer, new[] { 1, 2, 5 })]
+    public void StartSeasonOverride_TheSeasonsFilterGoesByIt(int year, YearlySeason season, int[] expected)
+    {
+        using var harness = OverriddenHarness();
+
+        Assert.Equal(expected.Order(), harness.IDs(InSeasons((year, season))).Order());
+    }
+
+    [Fact]
+    public void StartSeasonOverride_TheSeasonCountsGoByIt()
+    {
+        using var harness = OverriddenHarness();
+
+        var counts = harness.Catalog.GetSeasons()
+            .Where(season => season.Year is 2015)
+            .ToDictionary(season => season.Season, season => season.Count);
+
+        Assert.Equal(1, counts[YearlySeason.Winter]);
+        Assert.Equal(1, counts[YearlySeason.Spring]);
+        Assert.Equal(3, counts[YearlySeason.Summer]);
+    }
+
+    [Fact]
+    public void StartSeasonOverride_TheStartSeasonIsItAndFlagged()
+    {
+        using var harness = OverriddenHarness();
+        var anime = harness.Catalog.GetAnime().ToDictionary(entry => entry.Anime.AnimeID, entry => entry.Anime);
+
+        Assert.Equal((2015, YearlySeason.Summer), harness.Catalog.GetStartSeason(anime[1]));
+        Assert.True(harness.Catalog.IsStartSeasonOverridden(anime[1]));
+        Assert.Equal((2015, YearlySeason.Summer), harness.Catalog.GetStartSeason(anime[2]));
+        Assert.False(harness.Catalog.IsStartSeasonOverridden(anime[2]));
+    }
+
+    [Fact]
+    public void StartSeasonOverride_TheCalendarServiceSeesIt()
+    {
+        using var harness = OverriddenHarness();
+        var calendar = new AiringCalendarService(harness.Catalog, AiringService(_ => []).Object);
+
+        var summer = calendar.GetSeasonAnime(2015, YearlySeason.Summer, today: _today).ToDictionary(entry => entry.Anime.AnidbID);
+        var sections = calendar.GetSeasonSections(2015, YearlySeason.Spring, today: _today);
+        var byYear = calendar.GetSeasonsByYear().Single(year => year.Year is 2015);
+
+        Assert.Equal((2015, YearlySeason.Summer), summer[1].StartSeason);
+        Assert.True(summer[1].IsStartSeasonOverridden);
+        Assert.False(summer[2].IsStartSeasonOverridden);
+        // Started in Winter by hand, so it carries on into Spring.
+        Assert.Equal([6], sections.Single(section => section.Definition.ID is "continuing").Anime.Select(entry => entry.Anime.AnidbID));
+        Assert.Equal(1, byYear.Seasons.Single(season => season.Season is YearlySeason.Winter).Count);
+    }
+
+    [Fact]
+    public void StartSeasonOverride_SeasonAnimeCarriesIt()
+    {
+        using var harness = OverriddenHarness();
+
+        var models = Build(harness, AiringService(_ => [])).ToDictionary(anime => anime.ID);
+
+        Assert.Equal(new SeasonWithYear(2015, YearlySeason.Summer), models[1].StartSeason);
+        Assert.True(models[1].IsStartSeasonOverridden);
+        Assert.False(models[2].IsStartSeasonOverridden);
     }
 
     #endregion
