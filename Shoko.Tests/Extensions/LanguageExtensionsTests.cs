@@ -77,6 +77,10 @@ public class LanguageExtensionsTests
     [InlineData("x-unk")]
     [InlineData("X-OTHER")]
     [InlineData("unk")]
+    [InlineData("und")]
+    [InlineData("zxx")]
+    [InlineData("mul")]
+    [InlineData("mis")]
     public void GetTitleLanguage_KnownUnknownCodes_AreNotReported(string text)
     {
         // Other classes parse unknown languages in parallel, into the same static event.

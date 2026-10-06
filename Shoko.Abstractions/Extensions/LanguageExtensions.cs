@@ -287,8 +287,9 @@ public static class LanguageExtensions
 
     private static TitleLanguage ReportAndReturnUnknown(string lang)
     {
-        // "unk", "x-unk" and "x-other" are known to mean an unknown language, so they are not reported.
-        if (!string.IsNullOrWhiteSpace(lang) && lang.ToUpperInvariant() is not ("UNK" or "X-UNK" or "X-OTHER") && _reportedUnknowns.TryAdd(lang, 0))
+        // "unk", "x-unk" and "x-other" are known to mean an unknown language, and so are the ISO 639-2 special codes
+        // "und", "zxx", "mul" and "mis", so they are not reported.
+        if (!string.IsNullOrWhiteSpace(lang) && lang.ToUpperInvariant() is not ("UNK" or "X-UNK" or "X-OTHER" or "UND" or "ZXX" or "MUL" or "MIS") && _reportedUnknowns.TryAdd(lang, 0))
             OnUnknownLanguage?.Invoke(lang);
         return TitleLanguage.Unknown;
     }
