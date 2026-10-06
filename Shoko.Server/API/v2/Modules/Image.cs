@@ -55,10 +55,10 @@ public class Image(IImageManager imageManager, ISettingsProvider settingsProvide
         if (!float.TryParse(ratio.Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"), out var newRatio))
             newRatio = 0.6667f;
 
-        if (imageManager.GetImageByID(id)?.GetStream() is not { } stream)
+        if (imageManager.GetImageByID(id) is not { } image || image.GetStream() is not { } stream)
             return APIStatus.NotFound();
 
-        return File(ResizeImageToRatio(stream, newRatio), "image/png");
+        return Math.Abs(newRatio) < 0.1F ? ImageFile(stream, image.ContentType) : File(ResizeImageToRatio(stream, newRatio), "image/png");
     }
 
     /// <summary>
