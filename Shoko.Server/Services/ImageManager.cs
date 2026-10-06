@@ -1759,7 +1759,15 @@ public class ImageManager(
     ///   The media type, or <c>null</c> when the data is not a known image.
     /// </returns>
     public static string? GetImageMimeType(ReadOnlySpan<byte> data)
-        => data.IsEmpty ? null : MagickFormatInfo.Create(data.ToArray())?.Format switch
+        => !data.IsEmpty && MagickFormatInfo.Create(data.ToArray()) is { } info ? GetMimeType(info.Format) : null;
+
+    /// <summary>
+    ///   The media type of an image format the image system takes.
+    /// </summary>
+    /// <param name="format">The format, as ImageMagick names it.</param>
+    /// <returns>The media type, or <c>null</c> for any other format.</returns>
+    public static string? GetMimeType(MagickFormat format)
+        => format switch
         {
             MagickFormat.Png or MagickFormat.Png00 or MagickFormat.Png8 or MagickFormat.Png24 or MagickFormat.Png32 or MagickFormat.Png48 or MagickFormat.Png64 => "image/png",
             MagickFormat.Jpg or MagickFormat.Jpeg => "image/jpeg",

@@ -159,8 +159,8 @@ over an embedded resource:
 
 An embedded resource, named by `EmbeddedThumbnailResourceName` or
 `EmbeddedIconResourceName`, must be rooted in the plugin's assembly name, and is
-written out beside the plugin the first time it is read. PNG, JPEG, WebP and SVG
-are accepted.
+written out beside the plugin the first time it is read. Any format the image
+system takes is accepted: PNG, JPEG, WebP, GIF, BMP, TIFF and SVG.
 
 They are served from `/api/v3/Plugin/{pluginID}/Thumbnail` and
 `/api/v3/Plugin/{pluginID}/Icon`, and from the same two paths under a version.

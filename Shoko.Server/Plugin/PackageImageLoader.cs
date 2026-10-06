@@ -5,6 +5,7 @@ using ImageMagick;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Plugin;
@@ -122,15 +123,16 @@ internal static class PackageImageLoader
 
     /// <summary>
     ///   Loads an icon one of a plugin's parts names: a file beside the
-    ///   plugin, or the embedded image extracted there, as SVG or PNG only.
+    ///   plugin, or the embedded image extracted there, in any format the
+    ///   image system takes.
     /// </summary>
     /// <param name="pluginInfo">The plugin the icon ships with.</param>
     /// <param name="assembly">The assembly holding the embedded image.</param>
     /// <param name="resourceName">The embedded resource, if one is named.</param>
     /// <param name="kind">The image's kind, which is its file name.</param>
     /// <param name="applicationPaths">Gives the folders the path is recorded against.</param>
-    /// <param name="logger">Logs an icon refused or failing to load.</param>
-    /// <returns>The icon, or <c>null</c> when there is none or it is neither SVG nor PNG.</returns>
+    /// <param name="logger">Logs an icon failing to load.</param>
+    /// <returns>The icon, or <c>null</c> when there is none.</returns>
     public static PackageImageInfo? LoadIcon(
         LocalPluginInfo pluginInfo,
         Assembly assembly,
@@ -146,12 +148,7 @@ internal static class PackageImageLoader
         try
         {
             var bytes = ReadEmbedded(assembly, assembly.GetName().Name!, resourceName, kind, dlls[0], logger);
-            var icon = Load(pluginInfo.ContainingDirectory, dlls[0], bytes, kind, applicationPaths);
-            if (icon is null or { MimeType: "image/svg+xml" or "image/png" })
-                return icon;
-
-            logger.LogWarning("Ignoring the {Kind} of {Plugin}: {MimeType} is neither SVG nor PNG.", kind, pluginInfo.Name, icon.MimeType);
-            return null;
+            return Load(pluginInfo.ContainingDirectory, dlls[0], bytes, kind, applicationPaths);
         }
         catch (Exception ex)
         {
@@ -182,27 +179,13 @@ internal static class PackageImageLoader
         };
 
     /// <summary>
-    ///   The mime type of an image format a plugin may ship.
+    ///   The mime type of an image format a plugin may ship: any the image
+    ///   system takes.
     /// </summary>
     /// <param name="imageInfo">The image.</param>
     /// <returns>The mime type, or <c>null</c> for any other format.</returns>
     public static string? GetMimeFromFormat(MagickImageInfo imageInfo)
-        => imageInfo.Format switch
-        {
-            MagickFormat.Png => "image/png",
-            MagickFormat.Png00 => "image/png",
-            MagickFormat.Png8 => "image/png",
-            MagickFormat.Png24 => "image/png",
-            MagickFormat.Png32 => "image/png",
-            MagickFormat.Png48 => "image/png",
-            MagickFormat.Png64 => "image/png",
-            MagickFormat.Jpg => "image/jpeg",
-            MagickFormat.Jpeg => "image/jpeg",
-            MagickFormat.WebP => "image/webp",
-            MagickFormat.Svg => "image/svg+xml",
-            MagickFormat.Svgz => "image/svg+xml",
-            _ => null,
-        };
+        => ImageManager.GetMimeType(imageInfo.Format);
 
     #endregion
 }

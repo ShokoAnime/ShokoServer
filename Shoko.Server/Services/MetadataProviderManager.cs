@@ -175,7 +175,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     /// <param name="assembly">The assembly holding the embedded image.</param>
     /// <param name="resourceName">The embedded resource, if one is named.</param>
     /// <param name="source">The source.</param>
-    /// <returns>The icon, or <c>null</c> when there is none or it is neither SVG nor PNG.</returns>
+    /// <returns>The icon, or <c>null</c> when there is none.</returns>
     private PackageImageInfo? LoadSourceIcon(LocalPluginInfo pluginInfo, Assembly assembly, string? resourceName, MetadataSource source)
         => PackageImageLoader.LoadIcon(pluginInfo, assembly, resourceName, SourceIconKind(source), _applicationPaths, _logger);
 

@@ -105,8 +105,8 @@ every write throws `ArgumentException`. Inside the provider, pass `this`.
   get a settings page, as for a release provider.
 - **`MaxConcurrentRefreshes`** caps your parallel refreshes (default one).
 - **Icon**: name it with `EmbeddedIconResourceName`, the way a plugin names
-  its own: an absolute resource name in your assembly, SVG preferred, PNG
-  accepted. The core extracts it beside your plugin as
+  its own: an absolute resource name in your assembly, in any format the
+  image system takes. The core extracts it beside your plugin as
   `<type>.airing-icon.<ext>` (`<dll>.<type>.airing-icon.<ext>` beside a lone
   dll), named after your provider's type, and uses a file already there by
   that name instead. Without either, your plugin's icon stands in. It is kept

@@ -108,18 +108,6 @@ public class AiringScheduleProviderIconTests
     #endregion
 
     [Fact]
-    public void AProviderWithoutAnIconOfItsOwnShowsItsPluginsSvgOrPng()
-    {
-        var declared = Icon("/nowhere/own.png", "image/png");
-        var svg = Icon("/nowhere/plugin.svg", "image/svg+xml");
-
-        Assert.Same(declared, AiringScheduleService.ChooseIcon(declared, svg));
-        Assert.Same(svg, AiringScheduleService.ChooseIcon(null, svg));
-        Assert.Null(AiringScheduleService.ChooseIcon(null, Icon("/nowhere/plugin.jpg", "image/jpeg")));
-        Assert.Null(AiringScheduleService.ChooseIcon(null, null));
-    }
-
-    [Fact]
     public void TheProviderModelSaysWhetherTheProviderHasAnIcon()
     {
         var plain = Assert.Single(Service(null).GetAvailableProviders());

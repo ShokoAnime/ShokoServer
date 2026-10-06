@@ -674,7 +674,7 @@ public string? GetSiteUrl(IMetadata entry)
 Name your source's icon with `EmbeddedIconResourceName` on your series or
 movie provider, the way a plugin names its own with
 `IPlugin.EmbeddedIconResourceName`: an absolute resource name in your
-assembly, SVG preferred, PNG accepted. The core extracts it beside your plugin
+assembly, in any format the image system takes. The core extracts it beside your plugin
 as `<source>-icon.<ext>` (`<dll>.<source>-icon.<ext>` beside a lone dll), uses
 a file already there by that name instead, and keeps it on the provider's
 `MetadataProviderInfo.Icon`. A source has one icon, the series provider's

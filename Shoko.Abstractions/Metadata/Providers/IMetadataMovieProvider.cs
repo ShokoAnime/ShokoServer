@@ -65,7 +65,8 @@ public interface IMetadataMovieProvider : IMetadataProvider
     ///   assembly name.
     /// </summary>
     /// <remarks>
-    ///   SVG is preferred, PNG is accepted; make it square and readable at 16
+    ///   Any format the image system takes is accepted, SVG staying sharpest;
+    ///   make it square and readable at 16
     ///   pixels. It is extracted beside your plugin as
     ///   <c>&lt;source&gt;-icon.&lt;ext&gt;</c>, or
     ///   <c>&lt;dll&gt;.&lt;source&gt;-icon.&lt;ext&gt;</c> beside a lone dll,
