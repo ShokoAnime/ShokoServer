@@ -95,6 +95,8 @@ public partial class AiringScheduleService(
 
     private readonly AnidbLinkedAirDateCache _linkedAirDates = new(crossReferenceStore, metadataService, linkingService);
 
+    private AnidbAiringDateCache? _anidbAiringDates;
+
     /// <summary>
     /// Resolves an entry through the metadata service's lookup: the core's
     /// tables for its own sources, and for any other a plugin's own metadata

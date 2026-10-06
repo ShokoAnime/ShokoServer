@@ -5,6 +5,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Services.Airing;
 
 namespace Shoko.Server.Utilities;
 
@@ -20,15 +21,18 @@ namespace Shoko.Server.Utilities;
 ///     or October), the weeks after it, and the lead-in weeks of its type
 ///     before it (see <see cref="GetLeadInWeeks"/>). With dated regular
 ///     episodes, an early premiere or a batch drop changes that season
-///     (see <see cref="GetSpan(AnimeType, IEnumerable{DateOnly}, PartialDateOnly?, PartialDateOnly?, IEnumerable{DateOnly}?, DateOnly?)"/>).
+///     (see <see cref="GetSpan(AnimeType, IEnumerable{DateOnly}, PartialDateOnly?, PartialDateOnly?, IEnumerable{DateOnly}?)"/>).
+///     Without them, it starts in the season of its start date.
 ///   </para>
 ///   <para>
-///     After its start, an entry is in every calendar quarter (see
-///     <see cref="GetCalendarQuarter"/>) holding one of its regular
-///     episodes, up to the fourth from the end, so the last three never
-///     carry it into a season, and a quarter it took a break through is
-///     left out. Without dated episodes, it is in every season from its
-///     start to the quarter three weeks before its end date.
+///     After its start, an entry is only in the calendar quarters (see
+///     <see cref="GetCalendarQuarter"/>) holding one of its dated regular
+///     episodes, so a quarter it took a break through is left out. Once it
+///     has an end date, the run has ended and only those up to the fourth
+///     from the end count, so its last three never carry it into a season.
+///     An entry without dated regular episodes is in its start season only.
+///     For an AniDB anime, the stored airings of the regular episodes
+///     AniDB gives no date, or does not list yet, count as dated episodes.
 ///   </para>
 ///   <para>
 ///     A user may set an AniDB anime's start season by hand. It then starts
@@ -38,11 +42,8 @@ namespace Shoko.Server.Utilities;
 /// </remarks>
 public static class SeasonCalendar
 {
-    // How many episodes at the end never carry an entry into a season.
+    // How many episodes at the end of an ended run never carry an entry into a season.
     private const int TrailingEpisodes = 3;
-
-    // How far back from the end date an entry without dated episodes stops.
-    private const int TrailingDays = TrailingEpisodes * 7;
 
     // How long before a complete start date a regular episode's date is
     // taken as a stray (a screening or a misdated entry) and left out.
@@ -252,11 +253,10 @@ public static class SeasonCalendar
     ///   The span of an entry. With dated regular episodes, leaving out
     ///   those dated more than three weeks before a complete start date, it
     ///   starts in the season of its first episode, after an early premiere
-    ///   or batch drop is accounted for, and goes on in each calendar
-    ///   quarter holding one of its episodes up to the fourth from the end.
-    ///   Otherwise it runs from the start date to three weeks before the end
-    ///   date, or to today without an end. A start date with only a year
-    ///   places nothing.
+    ///   or batch drop is accounted for. Otherwise it starts in the season
+    ///   of its start date. It goes on in each calendar quarter holding one
+    ///   of its episodes, up to the fourth from the end once it has an end
+    ///   date.
     /// </summary>
     /// <remarks>
     ///   An early premiere is a lone date before the next season, at most
@@ -272,62 +272,84 @@ public static class SeasonCalendar
     /// <param name="type">The entry's type, which picks the season boundaries.</param>
     /// <param name="regularAirDates">The air dates of the entry's regular episodes, in any order.</param>
     /// <param name="startDate">When the entry started, used without dated regular episodes.</param>
-    /// <param name="endDate">When the entry ended, or <c>null</c> when it is still airing.</param>
+    /// <param name="endDate">When the entry ended, if it has; any end date marks the run as ended.</param>
     /// <param name="otherAirDates">
     ///   The air dates of its other episodes, read only to stand in for a
     ///   start date missing its month or day.
     /// </param>
-    /// <param name="today">The day to end a still airing entry on, today by default.</param>
-    /// <returns>The span, or <c>null</c> when there are no dates to go by.</returns>
+    /// <returns>
+    ///   The span, or <c>null</c> when there are no dated regular episodes
+    ///   and the start date is missing or has only a year.
+    /// </returns>
     public static SeasonSpan? GetSpan(
         AnimeType type,
         IEnumerable<DateOnly> regularAirDates,
         PartialDateOnly? startDate,
         PartialDateOnly? endDate,
-        IEnumerable<DateOnly>? otherAirDates = null,
-        DateOnly? today = null
+        IEnumerable<DateOnly>? otherAirDates = null
     )
         => GetSpan(
             type,
             regularAirDates,
             startDate,
-            endDate,
             otherAirDates,
-            today,
-            startsOn: null
+            airingDates: [],
+            startsOn: null,
+            hasEnded: endDate is not null
         );
 
     /// <summary>
     ///   The span of an AniDB anime, by the general
-    ///   <see cref="GetSpan(AnimeType, IEnumerable{DateOnly}, PartialDateOnly?, PartialDateOnly?, IEnumerable{DateOnly}?, DateOnly?)"/>
-    ///   on the regular broadcast dates of its episodes. AniDB sends no
-    ///   episode air dates before 1970, so an anime starting before then
-    ///   starts on its own date, and without dated episodes or an end date
-    ///   it is placed in its first season only.
+    ///   <see cref="GetSpan(AnimeType, IEnumerable{DateOnly}, PartialDateOnly?, PartialDateOnly?, IEnumerable{DateOnly}?)"/>
+    ///   on the regular broadcast dates of its episodes and its end date. The
+    ///   stored airings of its regular episodes without a date, and of those
+    ///   AniDB does not list yet, count after its start like dated episodes.
+    ///   An anime starting before 1970, when AniDB sends no episode dates,
+    ///   starts on its own date.
     /// </summary>
     /// <param name="anime">The anime.</param>
     /// <param name="episodes">Its episodes, from the cached per-anime lookup.</param>
-    /// <param name="today">The day to end a still airing anime on, today by default.</param>
+    /// <param name="airings">The dates of its stored airings, if any.</param>
     /// <returns>The span, or <c>null</c> when there are no dates to go by.</returns>
-    public static SeasonSpan? GetSpan(AniDB_Anime anime, IReadOnlyList<AniDB_Episode> episodes, DateOnly? today = null)
+    internal static SeasonSpan? GetSpan(AniDB_Anime anime, IReadOnlyList<AniDB_Episode> episodes, AnidbAnimeAiringDates? airings = null)
     {
         var regular = new List<DateOnly>();
+        var known = new HashSet<int>();
+        var undated = new HashSet<int>();
         foreach (var episode in episodes)
         {
-            if (episode.EpisodeType is EpisodeType.Episode && (anime.GetRegularAirDate(episode) ?? episode.GetAirDateAsDateOnly()) is { } date)
+            known.Add(episode.EpisodeID);
+            if (episode.EpisodeType is not EpisodeType.Episode)
+                continue;
+
+            if ((anime.GetRegularAirDate(episode) ?? episode.GetAirDateAsDateOnly()) is { } date)
                 regular.Add(date);
+            else
+                undated.Add(episode.EpisodeID);
+        }
+
+        var airingDates = new List<DateOnly>();
+        if (airings is not null)
+        {
+            // AniDB's own date wins over an airing, and specials never count.
+            foreach (var (episodeID, date) in airings.Episodes)
+            {
+                if (undated.Contains(episodeID) || !known.Contains(episodeID))
+                    airingDates.Add(date);
+            }
+
+            airingDates.AddRange(airings.Unmatched);
         }
 
         var animeStart = anime.AirDate?.ToDateOnly();
-        var beforeEpisodeDates = animeStart < UndatedEpisodesBefore;
         return GetSpan(
             anime.AnimeType,
             regular,
             anime.AirDate,
-            beforeEpisodeDates && regular.Count is 0 ? anime.EffectiveEndDateForSeasons ?? anime.AirDate : anime.EffectiveEndDateForSeasons,
             episodes.Select(episode => episode.GetAirDateAsDateOnly()).OfType<DateOnly>(),
-            today,
-            beforeEpisodeDates ? animeStart : null
+            airingDates,
+            animeStart < UndatedEpisodesBefore ? animeStart : null,
+            anime.EndDate is not null
         );
     }
 
@@ -384,54 +406,72 @@ public static class SeasonCalendar
     /// <param name="type">The entry's type, which picks the season boundaries.</param>
     /// <param name="regularAirDates">The air dates of the entry's regular episodes, in any order.</param>
     /// <param name="startDate">When the entry started, used without dated regular episodes.</param>
-    /// <param name="endDate">When the entry ended, or <c>null</c> when it is still airing.</param>
     /// <param name="otherAirDates">The air dates of its other episodes, for a partial start date.</param>
-    /// <param name="today">The day to end a still airing entry on, today by default.</param>
+    /// <param name="airingDates">More dates counted after the start, standing in for undated regular episodes.</param>
     /// <param name="startsOn">A day the entry is known to start on, before its dated episodes.</param>
-    /// <returns>The span, or <c>null</c> when there are no dates to go by.</returns>
+    /// <param name="hasEnded">Whether the run has ended, so its last dates are left out.</param>
+    /// <returns>The span, or <c>null</c> when there is nothing to start it by.</returns>
     private static SeasonSpan? GetSpan(
         AnimeType type,
         IEnumerable<DateOnly> regularAirDates,
         PartialDateOnly? startDate,
-        PartialDateOnly? endDate,
         IEnumerable<DateOnly>? otherAirDates,
-        DateOnly? today,
-        DateOnly? startsOn
+        IEnumerable<DateOnly> airingDates,
+        DateOnly? startsOn,
+        bool hasEnded
     )
     {
-        var dates = startDate is { IsComplete: true } completeStart
-            ? regularAirDates.Where(date => date >= completeStart.ToDateOnly().AddDays(-StrayEpisodeDays)).ToList()
-            : regularAirDates.ToList();
+        var floor = startDate is { IsComplete: true } completeStart ? completeStart.ToDateOnly().AddDays(-StrayEpisodeDays) : DateOnly.MinValue;
+        var dates = regularAirDates.Where(date => date >= floor).ToList();
+        DateOnly first;
+        (int Year, YearlySeason Season) start;
         if (dates.Count > 0)
         {
             dates.Sort();
-            return FromEpisodes(type, dates, startsOn);
+            first = startsOn is { } earlier && earlier < dates[0] ? earlier : dates[0];
+            start = first < dates[0] ? GetYearlySeason(first, type) : GetStartSeason(type, dates);
+        }
+        else
+        {
+            if (startDate is not { } partial)
+                return null;
+
+            var day = partial.IsComplete
+                ? partial.ToDateOnly()
+                : GetFirstDayWithin(partial, otherAirDates) ?? (partial.Month is null ? null : partial.ToDateOnly());
+            if (day is null)
+                return null;
+
+            first = day.Value;
+            start = GetYearlySeason(first, type);
         }
 
-        if (startDate is not { } start)
-            return null;
-
-        var first = start.IsComplete ? start.ToDateOnly() : GetFirstDayWithin(start, otherAirDates) ?? (start.Month is null ? null : start.ToDateOnly());
-        if (first is null)
-            return null;
-
-        var end = endDate is { } known ? known.ToDateOnly().AddDays(-TrailingDays) : today ?? DateTime.Today.ToDateOnly();
-        return FromDates(type, first.Value, end > first ? end : first.Value);
+        dates.AddRange(airingDates.Where(date => date >= floor));
+        dates.Sort();
+        return FromDates(type, first, start, dates, hasEnded);
     }
 
     /// <summary>
-    ///   The span of an entry with dated regular episodes: its start season,
-    ///   then each calendar quarter after it holding a counted episode.
+    ///   The span of an entry from its start: the start season, then each
+    ///   calendar quarter after it holding a counted date, leaving out the
+    ///   last <see cref="TrailingEpisodes"/> of four or more once the run has
+    ///   ended.
     /// </summary>
     /// <param name="type">The entry's type.</param>
-    /// <param name="dates">The regular air dates, sorted, at least one.</param>
-    /// <param name="startsOn">A day the entry is known to start on, before its dated episodes.</param>
+    /// <param name="first">Its first day.</param>
+    /// <param name="start">The season it starts in.</param>
+    /// <param name="dates">The dates counted after the start, sorted, possibly none.</param>
+    /// <param name="hasEnded">Whether the run has ended.</param>
     /// <returns>The span.</returns>
-    private static SeasonSpan FromEpisodes(AnimeType type, List<DateOnly> dates, DateOnly? startsOn)
+    private static SeasonSpan FromDates(
+        AnimeType type,
+        DateOnly first,
+        (int Year, YearlySeason Season) start,
+        List<DateOnly> dates,
+        bool hasEnded
+    )
     {
-        var lastCounted = dates.Count > TrailingEpisodes ? dates.Count - TrailingEpisodes - 1 : dates.Count - 1;
-        var first = startsOn is { } earlier && earlier < dates[0] ? earlier : dates[0];
-        var start = first < dates[0] ? GetYearlySeason(first, type) : GetStartSeason(type, dates);
+        var lastCounted = hasEnded && dates.Count > TrailingEpisodes ? dates.Count - TrailingEpisodes - 1 : dates.Count - 1;
         var seasons = new List<(int Year, YearlySeason Season)> { start };
         for (var index = 0; index <= lastCounted; index++)
         {
@@ -440,25 +480,7 @@ public static class SeasonCalendar
                 seasons.Add(quarter);
         }
 
-        return new(first, dates[lastCounted], type, start, seasons);
-    }
-
-    /// <summary>
-    ///   The span of an entry known only by its dates: every season from
-    ///   the one it starts in to the calendar quarter of its last day.
-    /// </summary>
-    /// <param name="type">The entry's type.</param>
-    /// <param name="first">Its first day.</param>
-    /// <param name="last">Its last day, never before <paramref name="first"/>.</param>
-    /// <returns>The span.</returns>
-    private static SeasonSpan FromDates(AnimeType type, DateOnly first, DateOnly last)
-    {
-        var start = GetYearlySeason(first, type);
-        var end = GetCalendarQuarter(last);
-        var seasons = new List<(int Year, YearlySeason Season)> { start };
-        for (var season = GetNextYearlySeason(start); season.CompareTo(end) <= 0; season = GetNextYearlySeason(season))
-            seasons.Add(season);
-
+        var last = lastCounted >= 0 && dates[lastCounted] > first ? dates[lastCounted] : first;
         return new(first, last, type, start, seasons);
     }
 

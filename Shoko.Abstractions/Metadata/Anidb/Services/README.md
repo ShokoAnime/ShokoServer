@@ -111,12 +111,15 @@ Every filter left unset lets everything through. An anime is in a season
 by the rule `IWithYearlySeasons` describes, on the regular broadcast dates of
 its episodes: it starts in the season of its first regular episode, with the
 type's lead-in, an early premiere moving it to the next season and a batch
-drop taking no lead-in, then is in every calendar quarter holding one of its
-regular episodes up to the fourth from the end. Without dated regular
-episodes it runs from its start date to the quarter three weeks before its
-end date. AniDB sends no episode air dates before 1970, so an anime starting
-earlier starts on its own date, and without dated episodes or an end date
-stays in its first season. Seasons after the one following the
+drop taking no lead-in, then is only in the calendar quarters holding one of
+its dated regular episodes. Once it has an end date, only those up to the
+fourth from the end count, so the last three of a finished run never carry it
+into the next season. The stored normal airings of the regular episodes AniDB
+gives no date, or does not list yet, count as dated episodes; estimates never
+do. An anime without dated regular episodes stays in the season of its start
+date.
+AniDB sends no episode air dates before 1970, so an anime starting earlier
+starts on its own date. Seasons after the one following the
 season under way are yet to be decided and match nothing. The list comes by air date with a season filter, else by preferred
 title, unless `OrderBy` says otherwise. `Filter` takes an `IFilter` from the
 filtering system and keeps the anime of the Shoko series it passes for `User`,

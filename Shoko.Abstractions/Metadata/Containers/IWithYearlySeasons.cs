@@ -20,12 +20,16 @@ namespace Shoko.Abstractions.Metadata.Containers;
 ///     the four weeks after them take no lead-in.
 ///   </para>
 ///   <para>
-///     After its start, an entity with dated regular episodes is in every
-///     calendar quarter (January to March is Winter, and so on) holding one
-///     of them up to the fourth from the end, so the last three never carry
-///     it into a season, and a quarter it took a break through is left out.
-///     Without them it goes on to the quarter three weeks before its end
-///     date, or up to today while it is still airing.
+///     After its start, an entity is only in the calendar quarters (January
+///     to March is Winter, and so on) holding one of its dated regular
+///     episodes, so a quarter it took a break through is left out. Once it
+///     has an end date (a season or ordering group: once its series has
+///     one), the run has ended and only the episodes up to the fourth from
+///     the end count, so its last three never carry it into a season. An
+///     entity without dated regular episodes is in its start season alone.
+///     For an AniDB anime, the
+///     stored normal airings of the regular episodes AniDB gives no date, or
+///     does not list yet, count as dated episodes; estimates never do.
 ///   </para>
 ///   <para>
 ///     A user may set the season an AniDB anime starts in by hand, which

@@ -1332,9 +1332,9 @@ public class AiringScheduleController(
     /// to two weeks before a season with the run going on in it starts there,
     /// and five or more episodes released together with nothing for four
     /// weeks take no lead-in. After that, it is in every calendar quarter
-    /// holding one of its regular episodes up to the fourth from the end, or,
-    /// when no regular episode is dated, every season from its start date to
-    /// the quarter three weeks before its end date. A season after the one
+    /// holding one of its dated regular episodes, up to the fourth from the
+    /// end once it has an end date, and without dated regular episodes in its
+    /// start season alone. A season after the one
     /// following the season under way has no anime. The next airings are read
     /// through each anime's series, or the anime itself outside the
     /// collection, and count from now, or <paramref name="at"/>. With <paramref name="channel"/>, only

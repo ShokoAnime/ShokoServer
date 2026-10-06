@@ -77,7 +77,7 @@ public static class Models
     extension(AniDB_Anime anime)
     {
         /// <summary>
-        /// Resolves the effective end date to use for year/season calculations: <see cref="AniDB_Anime.EndDate"/>
+        /// Resolves the effective end date to use for the years an anime aired in: <see cref="AniDB_Anime.EndDate"/>
         /// if known, otherwise <see cref="AniDB_Anime.AirDate"/> for anime types that don't have an ongoing
         /// broadcast (Movie, OVA, Web, Other, MusicVideo), otherwise <c>null</c> (still airing) for
         /// TV series/specials.

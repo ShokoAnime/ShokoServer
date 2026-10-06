@@ -163,8 +163,8 @@ public class Metadata_Season : ISeason<ISeries, IEpisode>, IMetadataStoreRow<Met
         get
         {
             var aired = StoredEpisodes.Select(episode => episode.AirDate).OfType<DateOnly>();
-            var type = RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID)?.Type ?? AnimeType.TV;
-            return SeasonCalendar.GetSeasons(SeasonCalendar.GetSpan(type, aired, null, null));
+            var series = RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID);
+            return SeasonCalendar.GetSeasons(SeasonCalendar.GetSpan(series?.Type ?? AnimeType.TV, aired, null, series?.EndDate));
         }
     }
 

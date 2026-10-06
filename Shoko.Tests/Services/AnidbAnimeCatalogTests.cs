@@ -541,7 +541,7 @@ public class AnidbAnimeCatalogTests
     }
 
     [Fact]
-    public void GetSeasons_AnimeBefore1970_GoesByItsOwnDates()
+    public void GetSeasons_AnimeBefore1970_StartsOnItsOwnDate()
     {
         var anime = Anime(1, "Old", Date(1965, 4, 20));
         anime.EndDate = Date(1965, 8, 1);
@@ -549,7 +549,7 @@ public class AnidbAnimeCatalogTests
 
         var seasons = harness.Catalog.GetSeasons().Where(season => season.Count > 0).Select(season => (season.Year, season.Season));
 
-        Assert.Equal([(1965, YearlySeason.Summer), (1965, YearlySeason.Spring)], seasons);
+        Assert.Equal([(1965, YearlySeason.Spring)], seasons);
     }
 
     [Fact]

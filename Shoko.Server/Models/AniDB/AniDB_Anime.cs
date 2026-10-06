@@ -27,6 +27,7 @@ using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
+using Shoko.Server.Services.Airing;
 using Shoko.Server.Utilities;
 
 using AnidbRegularAirDates = Shoko.Server.Providers.AniDB.AnidbRegularAirDates;
@@ -187,41 +188,64 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
         return result;
     }
 
-    private sealed record YearlySeasonsEntry(
-        DateOnly Today,
+    private sealed record SeasonSpanEntry(
         PartialDateOnly? ReadWith,
         (int Year, YearlySeason Season)? StartOverride,
+        AnidbAnimeAiringDates? AiringDates,
         SeasonCalendar.SeasonSpan? ComputedSpan,
+        SeasonCalendar.SeasonSpan? Span
+    );
+
+    private sealed record YearlySeasonsEntry(
+        DateOnly Today,
         SeasonCalendar.SeasonSpan? Span,
         IReadOnlyList<(int Year, YearlySeason Season)> Seasons
     );
+
+    private static AiringScheduleService? s_airingScheduleService;
+
+    private static ISystemService? s_systemService;
+
+    private SeasonSpanEntry? _seasonSpans;
 
     private YearlySeasonsEntry? _yearlySeasons;
 
     /// <summary>
     ///   Where the anime is placed in the yearly seasons, by the rule in
     ///   <see cref="SeasonCalendar"/>, starting in the season a user set by
-    ///   hand when there is one. Cached for the day, or until the anime is
-    ///   imported again, or its <see cref="AirDate"/> or start season
-    ///   override changes.
+    ///   hand when there is one. Cached until the anime is imported again,
+    ///   or its <see cref="AirDate"/>, start season override or stored
+    ///   airings change.
     /// </summary>
     public SeasonCalendar.SeasonSpan? SeasonSpan
-        => GetYearlySeasonsEntry().Span;
+        => GetSeasonSpanEntry().Span;
 
     /// <summary>
     ///   Where the rule alone places the anime, leaving out any start
     ///   season set by hand. Cached like <see cref="SeasonSpan"/>.
     /// </summary>
     public SeasonCalendar.SeasonSpan? ComputedSeasonSpan
-        => GetYearlySeasonsEntry().ComputedSpan;
+        => GetSeasonSpanEntry().ComputedSpan;
 
     /// <summary>
     ///   The yearly seasons the anime aired in, oldest first, up to the
     ///   season under way, by the rule in <see cref="SeasonCalendar"/>.
-    ///   Cached like <see cref="SeasonSpan"/>.
+    ///   Cached for the day, or until <see cref="SeasonSpan"/> changes.
     /// </summary>
     public IReadOnlyList<(int Year, YearlySeason Season)> YearlySeasons
-        => GetYearlySeasonsEntry().Seasons;
+    {
+        get
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var span = SeasonSpan;
+            if (Volatile.Read(ref _yearlySeasons) is { } cached && cached.Today == today && ReferenceEquals(cached.Span, span))
+                return cached.Seasons;
+
+            var value = new YearlySeasonsEntry(today, span, SeasonCalendar.GetSeasons(span, SeasonCalendar.GetYearlySeason(today, AnimeType)));
+            Volatile.Write(ref _yearlySeasons, value);
+            return value.Seasons;
+        }
+    }
 
     /// <summary>
     ///   The start season a user set by hand for the anime, read from the
@@ -231,30 +255,44 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
         => RepoFactory.AniDB_Anime_StartSeasonOverride?.GetByAnimeID(AnimeID) is { } row ? (row.Year, row.Season) : null;
 
     /// <summary>
-    ///   The cached season span and seasons, worked out again on a new day,
-    ///   after a reset, or once the start season override changes.
+    ///   The cached season spans, worked out again after a reset, or once
+    ///   the start date, the start season override or the stored airings
+    ///   change.
     /// </summary>
     /// <returns>The entry.</returns>
-    private YearlySeasonsEntry GetYearlySeasonsEntry()
+    private SeasonSpanEntry GetSeasonSpanEntry()
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
         var airDate = AirDate;
         var startOverride = StartSeasonOverride;
-        if (Volatile.Read(ref _yearlySeasons) is { } cached && cached.Today == today && cached.ReadWith == airDate && cached.StartOverride == startOverride)
+        var airingDates = GetAiringDates();
+        if (Volatile.Read(ref _seasonSpans) is { } cached && cached.ReadWith == airDate && cached.StartOverride == startOverride &&
+            ReferenceEquals(cached.AiringDates, airingDates))
             return cached;
 
-        var computed = SeasonCalendar.GetSpan(this, AniDBEpisodes, today);
+        var computed = SeasonCalendar.GetSpan(this, AniDBEpisodes, airingDates);
         var span = startOverride is { } start ? SeasonCalendar.WithStartSeason(computed, start, AnimeType) : computed;
-        var value = new YearlySeasonsEntry(
-            today,
-            airDate,
-            startOverride,
-            computed,
-            span,
-            SeasonCalendar.GetSeasons(span, SeasonCalendar.GetYearlySeason(today, AnimeType))
-        );
-        Volatile.Write(ref _yearlySeasons, value);
+        var value = new SeasonSpanEntry(airDate, startOverride, airingDates, computed, span);
+        Volatile.Write(ref _seasonSpans, value);
         return value;
+    }
+
+    /// <summary>
+    ///   The dates of the anime's stored airings, once the server has
+    ///   started, so nothing is gathered while the database is set up.
+    /// </summary>
+    /// <returns>The dates, or <c>null</c> when it has none or the server has not started.</returns>
+    private AnidbAnimeAiringDates? GetAiringDates()
+    {
+        if (s_systemService is null)
+        {
+            if (!ISystemService.HasStaticServices)
+                return null;
+
+            s_airingScheduleService = ISystemService.StaticServices.GetService<AiringScheduleService>();
+            s_systemService = ISystemService.StaticServices.GetService<ISystemService>();
+        }
+
+        return s_systemService is { IsStarted: true } ? s_airingScheduleService?.GetAnidbAiringDates(AnimeID) : null;
     }
 
     /// <summary>
@@ -263,7 +301,10 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
     ///   were imported again.
     /// </summary>
     public void ResetYearlySeasons()
-        => Volatile.Write(ref _yearlySeasons, null);
+    {
+        Volatile.Write(ref _seasonSpans, null);
+        Volatile.Write(ref _yearlySeasons, null);
+    }
 
     public List<CustomTag> CustomTags
         => RepoFactory.CustomTag.GetByAnimeID(AnimeID);

@@ -1354,6 +1354,185 @@ public partial class AiringScheduleService
 
     #endregion
 
+    #region Episode Airings | Anime Airing Dates
+
+    /// <summary>
+    /// The local dates of an AniDB anime's stored normal airings, which place
+    /// it in the yearly seasons alongside AniDB's own episode dates. Kept for
+    /// every anime, and gathered again after any change that could move them.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <returns>The dates, or <c>null</c> when it has none or the parts are not added yet.</returns>
+    internal AnidbAnimeAiringDates? GetAnidbAiringDates(int anidbAnimeID)
+        => _loaded ? AnidbAiringDates.Get(anidbAnimeID) : null;
+
+    /// <summary>
+    /// The cache of every AniDB anime's airing dates, made on first use.
+    /// </summary>
+    private AnidbAiringDateCache AnidbAiringDates
+        => LazyInitializer.EnsureInitialized(ref _anidbAiringDates, () => new(this, metadataService, linkingService));
+
+    /// <summary>
+    /// Gathers the local dates of every AniDB anime's stored airings: only
+    /// the normal ones with a slot, of enabled providers on schedules not
+    /// detected as reruns, hidden channels included. Estimates are never
+    /// stored, so they never count.
+    /// </summary>
+    /// <remarks>
+    /// An airing counts for the AniDB episodes behind its episode: its own,
+    /// or those of its Shoko episodes. An episode matched to none counts for
+    /// the anime of an AniDB or Shoko schedule, or for an anime linked to a
+    /// plugin schedule's series whose episode numbering, learned from the
+    /// linked episodes, carries on to it within the anime's episode count.
+    /// </remarks>
+    /// <returns>The dates, by AniDB anime ID.</returns>
+    internal Dictionary<int, AnidbAnimeAiringDates> BuildAnidbAiringDates()
+    {
+        var context = new AiringReadContext(this, includeHiddenChannels: true);
+        var options = new EpisodeAiringFilteringOptions();
+        var matched = new Dictionary<int, Dictionary<int, DateOnly>>();
+        var unmatched = new Dictionary<int, Dictionary<(MetadataSource Source, string ID), DateOnly>>();
+        foreach (var row in RepoFactory.AiringSchedule.GetAll())
+        {
+            if (!MatchesFilters(context, context.GetSchedule(row), options, honourHiddenChannels: false) || context.IsDetectedRerun(row))
+                continue;
+
+            var zone = row.TimeZoneID is { Length: > 0 } timeZoneID && TryResolveTimeZone(timeZoneID, out var resolved) ? resolved : TimeZoneInfo.Utc;
+            foreach (var entry in RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID))
+            {
+                if (entry.Kind is not EpisodeAiringKind.Normal || entry.AiredAt is not { } airedAt)
+                    continue;
+
+                var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(airedAt, DateTimeKind.Utc), zone));
+                var episode = context.GetEpisode(entry.EpisodeSource, entry.EpisodeID);
+                var anidbEpisodes = GetAnidbEpisodes(episode);
+                foreach (var anidbEpisode in anidbEpisodes)
+                    AddEarliest(matched, anidbEpisode.AnidbAnimeID, anidbEpisode.AnidbID, date);
+
+                if (anidbEpisodes.Count > 0)
+                    continue;
+
+                // An AniDB episode not cached yet still names itself.
+                if (entry.EpisodeSource == MetadataSource.AniDB && row.SeriesSource == MetadataSource.AniDB &&
+                    int.TryParse(entry.EpisodeID, out var anidbEpisodeID) && int.TryParse(row.SeriesID, out var anidbAnimeID))
+                {
+                    AddEarliest(matched, anidbAnimeID, anidbEpisodeID, date);
+                    continue;
+                }
+
+                foreach (var (animeID, placedEpisodeID) in GetUnmatchedAnime(context, row, episode))
+                {
+                    if (placedEpisodeID is { } episodeID)
+                        AddEarliest(matched, animeID, episodeID, date);
+                    else
+                        AddEarliest(unmatched, animeID, (entry.EpisodeSource, entry.EpisodeID), date);
+                }
+            }
+        }
+
+        var result = new Dictionary<int, AnidbAnimeAiringDates>();
+        foreach (var animeID in matched.Keys.Union(unmatched.Keys))
+        {
+            result[animeID] = new(
+                matched.TryGetValue(animeID, out var episodes) ? episodes : new Dictionary<int, DateOnly>(),
+                unmatched.TryGetValue(animeID, out var others) ? [.. others.Values.Order()] : []
+            );
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The AniDB episodes behind an episode: itself, or those of its Shoko
+    /// episodes.
+    /// </summary>
+    /// <param name="episode">The episode, or <c>null</c> when it could not be resolved.</param>
+    /// <returns>The AniDB episodes.</returns>
+    private static IReadOnlyList<IAnidbEpisode> GetAnidbEpisodes(IEpisode? episode)
+        => episode switch
+        {
+            null => [],
+            IAnidbEpisode anidbEpisode => [anidbEpisode],
+            IShokoEpisode shokoEpisode => shokoEpisode.AnidbEpisode is { } anidbEpisode ? [anidbEpisode] : [],
+            _ =>
+            [
+                .. episode.ShokoEpisodes
+                    .Select(shokoEpisode => shokoEpisode.AnidbEpisode)
+                    .OfType<IAnidbEpisode>()
+                    .DistinctBy(anidbEpisode => anidbEpisode.AnidbID),
+            ],
+        };
+
+    /// <summary>
+    /// The AniDB anime an airing matched to no AniDB episode counts for, by
+    /// its schedule's series.
+    /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
+    /// <param name="row">The airing's schedule.</param>
+    /// <param name="episode">The airing's episode, or <c>null</c> when it could not be resolved.</param>
+    /// <returns>
+    ///   The anime, each with the AniDB episode the numbering places the
+    ///   airing on when the anime lists it.
+    /// </returns>
+    private static IEnumerable<(int AnimeID, int? EpisodeID)> GetUnmatchedAnime(AiringReadContext context, AiringSchedule row, IEpisode? episode)
+    {
+        if (row.SeriesSource == MetadataSource.AniDB)
+        {
+            if (int.TryParse(row.SeriesID, out var animeID))
+                yield return (animeID, null);
+
+            yield break;
+        }
+
+        if (row.SeriesSource.IsCore)
+        {
+            if (context.GetSeries(row.SeriesSource, row.SeriesID) is IShokoSeries shokoSeries)
+                yield return (shokoSeries.AnidbAnimeID, null);
+
+            yield break;
+        }
+
+        if (episode is not { Type: EpisodeType.Episode } providerEpisode)
+            yield break;
+
+        foreach (var animeID in context.GetLinkedAnimeIDs(row.SeriesSource, row.SeriesID))
+        {
+            if (context.GetEpisodeOffset(animeID, row) is not { } offset || providerEpisode.EpisodeNumber <= offset.LastLinkedScheduleNumber)
+                continue;
+
+            var number = providerEpisode.EpisodeNumber - offset.Offset;
+            if (number <= offset.LastLinkedEpisodeNumber)
+                continue;
+
+            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+            if (anime is { EpisodeCountNormal: > 0 } && number > anime.EpisodeCountNormal)
+                continue;
+
+            var listed = RepoFactory.AniDB_Episode.GetByAnimeID(animeID)
+                .FirstOrDefault(anidbEpisode => anidbEpisode.EpisodeType is EpisodeType.Episode && anidbEpisode.EpisodeNumber == number);
+            yield return (animeID, listed?.EpisodeID);
+        }
+    }
+
+    /// <summary>
+    /// Keeps the earliest date of a key for an anime.
+    /// </summary>
+    /// <typeparam name="TKey">The kind of key.</typeparam>
+    /// <param name="dates">The dates, by anime and key.</param>
+    /// <param name="animeID">The AniDB anime ID.</param>
+    /// <param name="key">The key.</param>
+    /// <param name="date">The date.</param>
+    private static void AddEarliest<TKey>(Dictionary<int, Dictionary<TKey, DateOnly>> dates, int animeID, TKey key, DateOnly date) where TKey : notnull
+    {
+        if (!dates.TryGetValue(animeID, out var byKey))
+            dates[animeID] = byKey = [];
+
+        if (!byKey.TryGetValue(key, out var earliest) || date < earliest)
+            byKey[key] = date;
+    }
+
+    #endregion
+
     #region Episode Airings | Preference
 
     /// <summary>

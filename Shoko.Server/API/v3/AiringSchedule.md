@@ -480,6 +480,16 @@ not, and two more serve them grouped (see [Sections](#sections) and
   default), `provider`, `episodeKind` (`Normal,Advance` by default, leaving
   out reruns) and `includeEstimates` for the airings.
 
+An anime starts in the season of its first regular episode, and is then only
+in the calendar quarters holding one of its dated regular episodes. Once it has
+an end date, the last three are left out, so a finished show's final few
+episodes never carry it into the next season, while a show still running is in
+a new season from its first episode there. The stored normal airings of the
+regular episodes AniDB gives no date, or does not list yet, count as dated
+episodes, from enabled providers and leaving out schedules detected as reruns;
+estimates never count. An anime without dated regular episodes is in its start
+season alone, and `continuing` means in the season but started before it.
+
 `channel` works the same on both, as the calendar's channel filter: without
 it, the seasons hold every anime by the rule above and the airings come from
 the visible channels. With it, a season only holds the anime with a stored

@@ -154,7 +154,8 @@ public sealed class StoredOrderingGroup<TSeries, TEpisode>(
         get
         {
             var aired = places.Select(place => place.Episode.AirDate).OfType<DateOnly>();
-            return SeasonCalendar.GetSeasons(SeasonCalendar.GetSpan(((ISeason)this).Series.Type, aired, null, null));
+            var series = ((ISeason)this).Series;
+            return SeasonCalendar.GetSeasons(SeasonCalendar.GetSpan(series.Type, aired, null, series.EndDate));
         }
     }
 

@@ -86,9 +86,9 @@ public class Series : BaseModel
 
     /// <summary>
     /// The yearly seasons this series belongs to: the season it starts in,
-    /// then every calendar quarter holding one of its regular episodes up
-    /// to the fourth from the end, or, without dated episodes, every season
-    /// to the quarter three weeks before its end date.
+    /// then every calendar quarter holding one of its dated regular
+    /// episodes, up to the fourth from the end once it has an end date.
+    /// Without dated episodes, it is in its start season alone.
     /// </summary>
     [Required]
     public List<SeasonWithYear> YearlySeasons { get; set; }

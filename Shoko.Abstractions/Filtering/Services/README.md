@@ -125,19 +125,23 @@ which is a **list**, not a single value. A series starts in the season of its
 first regular episode, where seasons are runs of whole weeks starting with the
 week of 1 January, April, July or October less a lead-in that depends on the
 type (four weeks for TV, one for the rest), and an early premiere or a batch
-drop can move that start. After it, the series is in every calendar quarter
-holding one of its regular episodes up to the fourth from the end, so the last
-three never carry it into the next season; without dated episodes it goes
-from its air date to the quarter three weeks before its end date. A two-cour
-show is in two seasons, and a long-runner is in every season it aired in. So "Fall 2016" is not "series that
+drop can move that start. After it, the series is only in the calendar
+quarters holding one of its dated regular episodes. Once it has an end date,
+only those up to the fourth from the end count, so the last three of a
+finished run never carry it into the next season. Without dated episodes it
+stays in its start season. The stored
+normal airings of the regular episodes AniDB gives no date, or does not list
+yet, count as dated episodes. A two-cour show is in two seasons, and a
+long-runner is in every season it aired in. So "Fall 2016" is not "series that
 *premiered* in Fall 2016", it is "series that were *airing* in Fall 2016", and
 one series legitimately answers `true` for dozens of seasons. A group is in
 every season of any of its series. A start season set by hand for the AniDB
 anime (see `IAnidbService.SetStartSeasonOverride`) moves the start, and the
 filter follows it.
 
-The expression is `TimeDependent` because a still-airing series keeps gaining
-seasons as the clock moves. It takes its year through `IWithNumberParameter` and
+The expression is `TimeDependent` because a series' seasons are listed up to
+the season under way, and a still-airing series gains the next one as the
+clock moves. It takes its year through `IWithNumberParameter` and
 its season through `IWithSecondStringParameter` (parsed case-insensitively from
 the enum name), which is how the API surfaces a two-parameter expression.
 

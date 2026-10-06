@@ -6,6 +6,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Services.Airing;
 using Shoko.Server.Utilities;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -33,8 +34,8 @@ public class YearlySeasonsTests
     private static IEnumerable<DateOnly> Weekly(DateOnly first, int count)
         => Enumerable.Range(0, count).Select(index => first.AddDays(7 * index));
 
-    private static IReadOnlyList<(int Year, YearlySeason Season)> SeasonsOf(IEnumerable<DateOnly> regularAirDates)
-        => SeasonCalendar.GetSeasons(SeasonCalendar.GetSpan(AnimeType.TV, regularAirDates, null, null), NoCap);
+    private static IReadOnlyList<(int Year, YearlySeason Season)> SeasonsOf(IEnumerable<DateOnly> regularAirDates, PartialDateOnly? endDate = null)
+        => SeasonCalendar.GetSeasons(SeasonCalendar.GetSpan(AnimeType.TV, regularAirDates, null, endDate), NoCap);
 
     private static IEnumerable<(int Year, YearlySeason Season)> AllSeasons(int fromYear, int toYear)
     {
@@ -111,12 +112,12 @@ public class YearlySeasonsTests
     #region Episode dates
 
     [Fact]
-    public void TwelveEpisodes_LastThreeInTheNextQuarter_StayInTheFirst()
+    public void EndedRun_LastThreeInTheNextQuarter_StayInTheFirst()
     {
         var dates = Weekly(new DateOnly(2026, 1, 29), 12).ToList();
         Assert.Equal(4, dates[^3].Month);
 
-        Assert.Equal([(2026, YearlySeason.Winter)], SeasonsOf(dates));
+        Assert.Equal([(2026, YearlySeason.Winter)], SeasonsOf(dates, new PartialDateOnly(dates[^1].Year, dates[^1].Month, dates[^1].Day)));
     }
 
     [Fact]
@@ -130,9 +131,9 @@ public class YearlySeasonsTests
     [Fact]
     public void QuartersWithoutEpisodes_AreLeftOut()
     {
-        var span = SeasonCalendar.GetSpan(AnimeType.Movie, [new(2018, 10, 6), new(2019, 11, 8)], null, null);
+        var span = SeasonCalendar.GetSpan(AnimeType.OVA, [new(2018, 1, 26), new(2018, 2, 23), new(2018, 10, 26)], null, null);
 
-        Assert.Equal([(2018, YearlySeason.Fall), (2019, YearlySeason.Fall)], SeasonCalendar.GetSeasons(span, NoCap));
+        Assert.Equal([(2018, YearlySeason.Winter), (2018, YearlySeason.Fall)], SeasonCalendar.GetSeasons(span, NoCap));
     }
 
     [Fact]
@@ -180,6 +181,76 @@ public class YearlySeasonsTests
         Assert.Equal([(2024, YearlySeason.Fall)], anime.YearlySeasons);
     }
 
+    // An anime with no end date, airing weekly from its first episode.
+    private static AniDB_Anime Ongoing(DateOnly airDate)
+        => new()
+        {
+            AniDB_AnimeID = 1,
+            AnimeID = 1,
+            AnimeType = AnimeType.TVSeries,
+            AirDate = new PartialDateOnly(airDate.Year, airDate.Month, airDate.Day),
+        };
+
+    [Fact]
+    public void OngoingAnime_IsInEachSeasonWithAnEpisode()
+    {
+        var anime = Ongoing(new(2025, 7, 6));
+        using var scope = Install(anime, Weekly(new DateOnly(2025, 7, 6), 20));
+
+        Assert.Equal([(2025, YearlySeason.Summer), (2025, YearlySeason.Fall)], SeasonCalendar.GetSeasons(anime.SeasonSpan, NoCap));
+    }
+
+    [Fact]
+    public void OngoingAnime_TwoEpisodesInANewQuarter_IsInIt()
+    {
+        var anime = Ongoing(new(2026, 7, 5));
+        using var scope = Install(anime, Weekly(new DateOnly(2026, 7, 5), 14));
+
+        Assert.Equal([(2026, YearlySeason.Summer), (2026, YearlySeason.Fall)], SeasonCalendar.GetSeasons(anime.SeasonSpan, NoCap));
+    }
+
+    [Fact]
+    public void EndedAnime_LastTwoEpisodesInEarlyOctober_StaysInSummer()
+    {
+        var anime = Ongoing(new(2026, 7, 5));
+        anime.EndDate = new PartialDateOnly(2026, 10, 11);
+        using var scope = Install(anime, Weekly(new DateOnly(2026, 7, 5), 14));
+
+        Assert.Equal([(2026, YearlySeason.Summer)], SeasonCalendar.GetSeasons(anime.SeasonSpan, NoCap));
+    }
+
+    [Fact]
+    public void NoEndDate_DoesNotCarryTheAnimePastItsLastEpisode()
+    {
+        var anime = Ongoing(new(2023, 1, 8));
+        using var scope = Install(anime, Weekly(new DateOnly(2023, 1, 8), 12));
+
+        Assert.Equal([(2023, YearlySeason.Winter)], SeasonCalendar.GetSeasons(anime.SeasonSpan, NoCap));
+    }
+
+    [Fact]
+    public void StoredAirings_StandInForTheEpisodesAniDBHasNotDated()
+    {
+        // Sixteen dated episodes from April to July, then six more AniDB lists without a date.
+        var anime = Ongoing(new(2025, 4, 6));
+        DateOnly[] dated = [.. Weekly(new DateOnly(2025, 4, 6), 16)];
+        using var scope = Install(anime, dated);
+        var undated = Enumerable.Range(17, 6)
+            .Select(number => new AniDB_Episode { EpisodeID = number, AnimeID = anime.AnimeID, EpisodeType = EpisodeType.Episode, EpisodeNumber = number })
+            .ToList();
+        var october = Weekly(new DateOnly(2025, 10, 5), 6).ToList();
+        var airings = new AnidbAnimeAiringDates(
+            undated.Select((episode, index) => (episode.EpisodeID, Date: october[index])).ToDictionary(pair => pair.EpisodeID, pair => pair.Date),
+            []
+        );
+        // Airings of episodes AniDB already dates change nothing.
+        var ofDated = new AnidbAnimeAiringDates(Enumerable.Range(1, 6).ToDictionary(number => number, number => october[number - 1]), []);
+
+        Assert.Contains((2025, YearlySeason.Fall), SeasonCalendar.GetSpan(anime, [.. anime.AniDBEpisodes, .. undated], airings)!.Seasons);
+        Assert.DoesNotContain((2025, YearlySeason.Fall), SeasonCalendar.GetSpan(anime, [.. anime.AniDBEpisodes, .. undated])!.Seasons);
+        Assert.DoesNotContain((2025, YearlySeason.Fall), SeasonCalendar.GetSpan(anime, anime.AniDBEpisodes, ofDated)!.Seasons);
+    }
+
     #endregion
 
     #region Start rules
@@ -221,23 +292,6 @@ public class YearlySeasonsTests
 
     #region Dates only
 
-    [Theory]
-    [InlineData("2015-05-29", "2015-06-11", false)]
-    [InlineData("2015-05-02", "2015-07-21", false)]
-    [InlineData("2015-05-02", "2015-07-22", true)]
-    public void DatesOnly_EndThreeWeeksEarly_NeverBeforeTheStart(string startDate, string endDate, bool reachesSummer)
-    {
-        var span = SeasonCalendar.GetSpan(
-            AnimeType.TV,
-            [],
-            PartialDateOnly.Parse(startDate),
-            PartialDateOnly.Parse(endDate)
-        );
-
-        Assert.True(span!.Last >= span.First);
-        Assert.Equal(reachesSummer ? [Spring, Summer] : [Spring], SeasonCalendar.GetSeasons(span, NoCap));
-    }
-
     [Fact]
     public void DatesOnly_PartialStart_FallsBackToTheFirstEpisode()
     {
@@ -253,14 +307,8 @@ public class YearlySeasonsTests
     }
 
     [Fact]
-    public void DatesOnly_OpenEnd_RunsToTheCurrentSeason()
-    {
-        var today = new DateOnly(2020, 5, 1);
-        var span = SeasonCalendar.GetSpan(AnimeType.TV, [], new PartialDateOnly(2019, 5, 1), null, today: today);
-
-        Assert.Equal(today, span!.Last);
-        Assert.Equal(SeasonCalendar.GetYearlySeason(today), SeasonCalendar.GetSeasons(span, SeasonCalendar.GetYearlySeason(today))[^1]);
-    }
+    public void DatesOnly_StayInTheirStartSeason()
+        => Assert.Equal([Spring], SeasonCalendar.GetSeasons(SeasonCalendar.GetSpan(AnimeType.TV, [], new PartialDateOnly(2015, 5, 1), null), NoCap));
 
     [Fact]
     public void Seasons_AfterTheCap_AreLeftOut()
@@ -272,17 +320,22 @@ public class YearlySeasonsTests
 
     [Fact]
     public void NoDates_HaveNoSpan()
-        => Assert.Null(SeasonCalendar.GetSpan(AnimeType.TV, [], null, new PartialDateOnly(2015, 5, 1)));
+        => Assert.Null(SeasonCalendar.GetSpan(AnimeType.TV, [], null, null));
 
     [Fact]
     public void YearOnlyStart_WithoutEpisodes_HasNoSpan()
-        => Assert.Null(SeasonCalendar.GetSpan(AnimeType.TV, [], new PartialDateOnly(2026), new PartialDateOnly(2026)));
+        => Assert.Null(SeasonCalendar.GetSpan(AnimeType.TV, [], new PartialDateOnly(2026), null));
 
     [Fact]
     public void StrayEpisodeLongBeforeTheStart_IsLeftOut()
     {
         var start = SeasonCalendar.GetStart(Summer).AddDays(10);
-        var span = SeasonCalendar.GetSpan(AnimeType.Web, [start.AddDays(-270), .. Weekly(start, 12)], new PartialDateOnly(start.Year, start.Month, start.Day), null);
+        var span = SeasonCalendar.GetSpan(
+            AnimeType.Web,
+            [start.AddDays(-270), .. Weekly(start, 12)],
+            new PartialDateOnly(start.Year, start.Month, start.Day),
+            null
+        );
 
         Assert.Equal(start, span!.First);
     }

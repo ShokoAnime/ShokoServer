@@ -3147,6 +3147,36 @@ public class AiringScheduleServiceTests
         Assert.Empty(harness.Service.GetAnidbAnimeOnChannels(new HashSet<Guid> { bs11.ChannelID }));
     }
 
+    [Fact]
+    public void AnidbAiringDates_CountOnlyStoredNormalAirings()
+    {
+        using var harness = new Harness();
+        for (var index = 0; index < harness.ShokoEpisodes.Count; index++)
+        {
+            var anidbEpisode = new Mock<IAnidbEpisode>();
+            anidbEpisode.SetupGet(entry => entry.AnidbAnimeID).Returns(900);
+            anidbEpisode.SetupGet(entry => entry.AnidbID).Returns(1000 + index);
+            Mock.Get(harness.ShokoEpisodes[index]).SetupGet(entry => entry.AnidbEpisode).Returns(anidbEpisode.Object);
+        }
+
+        // Episodes two and three are only estimated, and an estimate is never stored.
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(1) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(8) },
+            new EpisodeAiringData() { Episode = harness.Episodes[2], AiredAt = harness.Air(2), Key = "advance", Kind = EpisodeAiringKind.Advance },
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(60), Key = "rerun", Kind = EpisodeAiringKind.Rerun },
+        ]);
+
+        var dates = harness.Service.BuildAnidbAiringDates()[900];
+
+        Assert.Equal(
+            new Dictionary<int, DateOnly> { [1000] = DateOnly.FromDateTime(harness.Air(1)), [1001] = DateOnly.FromDateTime(harness.Air(8)) },
+            dates.Episodes
+        );
+        Assert.Empty(dates.Unmatched);
+    }
+
     #endregion
 
     #region Hidden Channels
