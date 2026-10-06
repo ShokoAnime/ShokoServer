@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.499",
+      "tag": "v6.0.0-dev.499",
+      "commit": "435dcc416df5d1f9ac8cb53478ad98cf5f3e4e62",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.499/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-06T15:06:44Z",
+      "releaseNotes": "\n`fix` (`db`): **Compare without mixing collations in the MySQL schema steps**:\n\nStep 194.103 compared `PreferredAlternateOrderingID` (`utf8mb4_unicode_ci`) with `CAST(... AS CHAR)`, which takes the connection's collation (`utf8mb4_0900_ai_ci` on MySQL 8), and failed with \"Illegal mix of collations\". It now compares both sides as binary.\n"
+    },
+    {
       "version": "6.0.0.498",
       "tag": "v6.0.0-dev.498",
       "commit": "af5c599a7eba59050cb92c5223e4ca1b74142b0c",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.470/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-16T13:57:32Z",
       "releaseNotes": "\n`fix` (`api`): **Apply settings patch validation and stop per-item json patch loss**:\n\nPer-item JSON Patch operations on settings lists mutated the list\ninstance returned by the property getter in place, so property setters\nnever ran and the changes were silently discarded or left derived state\nstale.\n\n- Made `TMDBSettings.InternalImageLanguageOrder` the single source of\n  truth with a normalizing setter and turned the enum `ImageLanguageOrder`\n  into a computed `[JsonIgnore]` view, so per-item ops on\n  `/TMDB/ImageLanguageOrder` mutate the stored list\n- Added `ImportSettings.ResetExcludeRegexes` and invalidate the compiled\n  exclude regex cache in `SettingsProvider.OnSettingsSaved`, since\n  per-item ops on `/Import/Exclude` bypass the cache-invalidating setter\n- Returned 400 via `ValidationProblem` from `SettingsController.SetSettings`\n  when `ApplyTo` errors leave `ModelState` invalid instead of saving and\n  returning 200\n- Added regression tests covering per-item ops on both lists, whole-array\n  replace normalization, and ModelState error surfacing\n"
-    },
-    {
-      "version": "6.0.0.469",
-      "tag": "v6.0.0-dev.469",
-      "commit": "2fa9089a25b73896bc866eed46904f775e52aa96",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.469/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-15T22:36:56Z",
-      "releaseNotes": "\n`fix` (`database`): **Guard the 182 primary-key alters against dropped tables**.\n"
     }
   ]
 }
