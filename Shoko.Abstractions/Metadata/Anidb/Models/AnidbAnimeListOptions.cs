@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Enums;
@@ -28,6 +29,22 @@ public record AnidbAnimeListOptions
     ///   nothing.
     /// </summary>
     public IReadOnlyCollection<(int Year, YearlySeason Season)>? Seasons { get; init; }
+
+    /// <summary>
+    ///   Optional. The season layout an anime must fit to be in a season, or
+    ///   <c>null</c> for no layout filter, so every anime in the season
+    ///   counts. With a layout, an anime is only in a season when a section
+    ///   takes it there, by its type, whether it started before that season,
+    ///   and its episode length. Used with <see cref="Seasons"/>, and for the
+    ///   counts of <see cref="IAnidbService.GetCachedAnimeSeasons"/>.
+    /// </summary>
+    /// <remarks>
+    ///   Pass <see cref="SeasonSectionDefinition.DefaultLayout"/> for the
+    ///   lists and counts to match the default season sections. A
+    ///   <c>null</c> section in the layout throws an
+    ///   <see cref="ArgumentException"/> on read.
+    /// </remarks>
+    public IReadOnlyList<SeasonSectionDefinition>? SeasonSections { get; init; }
 
     /// <summary>
     ///   Optional. Only anime of these types.

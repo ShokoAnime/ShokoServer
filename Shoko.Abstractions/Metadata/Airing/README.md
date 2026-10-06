@@ -554,7 +554,11 @@ var next = airingScheduleService.GetAiringsForSeries(series, new EpisodeAiringFi
 `IAiringCalendarService` reads a season's anime as of the airing options'
 `At`, which also decides whether an anime has finished and replaces the anime
 options' own, and lists the seasons by year as of the anime options'
-`AnidbAnimeListOptions.At`, which decides the season under way.
+`AnidbAnimeListOptions.At`, which decides the season under way. With a layout
+in `AnidbAnimeListOptions.SeasonSections`, the season anime lists and counts
+only hold the anime a section of it takes in each season; `null` filters
+nothing. Pass `SeasonSectionDefinition.DefaultLayout` for them to match the
+default season sections, as the APIv3 season routes do.
 
 `EndsAt` is `AiredAt` plus the airing's `Duration` (its AniDB episode's length,
 else the median of its anime's regular episodes), or 24 minutes when that is

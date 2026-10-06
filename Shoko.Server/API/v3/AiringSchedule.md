@@ -501,7 +501,10 @@ not, and two more serve them grouped (see [Sections](#sections) and
   season, `season` being `Winter`, `Spring`, `Summer` or `Fall` in any case,
   by air date. It takes the same anime filters, and `kind` (`Original` by
   default), `provider`, `episodeKind` (`Normal,Advance` by default, leaving
-  out reruns) and `includeEstimates` for the airings.
+  out reruns), `episodeType` (comma-delimited episode types, every type by
+  default; an unresolved airing counts as `Episode`) and `includeEstimates`
+  for the airings. `episodeType` is the season routes' name for what the
+  calendar routes call `type`, since there `type` is the anime type.
 
 An anime starts in the season of its first regular episode, and is then only
 in the calendar quarters holding one of its dated regular episodes. Once it has
@@ -512,6 +515,12 @@ regular episodes AniDB gives no date, or does not list yet, count as dated
 episodes, from enabled providers and leaving out schedules detected as reruns;
 estimates never count. An anime without dated regular episodes is in its start
 season alone, and `continuing` means in the season but started before it.
+
+A season only lists and counts the anime a section of the layout takes there
+(see [Sections](#sections)), so the counts, the years and a season's anime
+match its sections. The `GET` routes use the default layout, which leaves out
+TV shorts, music videos and anime of any other or unknown type; the `POST` routes take a layout of
+their own as `Sections`.
 
 `channel` works the same on both, as the calendar's channel filter: without
 it, the seasons hold every anime by the rule above and the airings come from
@@ -547,32 +556,36 @@ no card.
 ### Sections
 
 `GET /api/v3/AiringSchedule/Season/{year}/{season}/Sections` returns the same
-anime, with the same filters, already grouped and sorted. Each section has an
-`ID`, a `Title` to show as its heading and its `Anime`. The default layout is:
+anime, with the same filters, already grouped and sorted. Each section has a
+`Title` to show as its heading and its `Anime`. The default layout is:
 
-| `ID` | `Title` | Takes |
+| Position | `Title` | Takes |
 |---|---|---|
-| `new` | TV & Web | `TV` and `Web` that started this season, 16 minutes or more an episode |
-| `new-half` | TV & Web (Half Length) | the same, under 16 minutes an episode |
-| `continuing` | Continuing | `TV` and `Web` that started before this season |
-| `movies` | Movies | `Movie` |
-| `other` | OVAs & Specials | everything else |
+| 0 | TV & Web | `TV` and `Web` that started this season, 16 minutes or more an episode |
+| 1 | TV & Web (Half Length) | the same, under 16 minutes an episode |
+| 2 | Continuing | `TV` and `Web` that started before this season |
+| 3 | Movies | `Movie` |
+| 4 | OVAs & Specials | `OVA` and `TVSpecial` |
 
-Each anime goes to the first section that takes it, an anime no section takes is
-left out, and a section that took nothing is left out. An anime with no known start counts as new, and one with
+Each anime goes to the first section that takes it, and an anime no section
+takes is left out: in the default layout, `TVShort`, `MusicVideo`, `Other` and `Unknown`. Every section of the layout is returned, in the layout's
+order, even one that took nothing, so a section's index is its place in the
+layout; a client hides the empty ones itself. An anime with no known start counts as new, and one with
 no known episode length as full length. Within a section the anime with a
 scheduled next airing come first, soonest first, then those known only by an
 AniDB air date, then the rest by premiere (an unknown one last); each tier
 then goes by title.
 
 `POST` to the same route with a body brings a layout of your own, a filter, or
-both, taking the same query filters:
+both, taking the same query filters. The season list (`/Season`), the years
+(`/Season/ByYear`) and a season's anime (`/Season/{year}/{season}`) take the
+same body, so their counts and lists follow the same layout:
 
 ```json
 {
   "Sections": [
-    { "ID": "tv", "Title": "TV", "Types": ["TV", "Web"], "Continuing": false, "HalfLength": null },
-    { "ID": "rest", "Title": "Everything else" }
+    { "Title": "TV", "Types": ["TV", "Web"], "Continuing": false, "HalfLength": null },
+    { "Title": "Everything else" }
   ],
   "Filter": { "ApplyAtSeriesLevel": true, "Expression": { "Type": "HasVideoFiles" } }
 }
@@ -581,8 +594,22 @@ both, taking the same query filters:
 `Sections` left out or `null` is the default layout. `Types` left out or
 `null` takes every type, which makes the section the rest group; a layout
 without one leaves the others out. `Continuing` and `HalfLength` are `true`,
-`false` or `null` for both. IDs must be unique. `Filter` is optional and takes
-the place of `filterID`, which may not be sent with it.
+`false` or `null` for both. `Filter` is optional and takes the place of
+`filterID`, which may not be sent with it.
+
+`GET /api/v3/AiringSchedule/Season/Sections/Default` returns the default
+layout in the shape `Sections` takes, so a client can start a layout of its
+own from it:
+
+```json
+[
+  { "Title": "TV & Web", "Types": ["TV", "Web"], "Continuing": false, "HalfLength": false },
+  { "Title": "TV & Web (Half Length)", "Types": ["TV", "Web"], "Continuing": false, "HalfLength": true },
+  { "Title": "Continuing", "Types": ["TV", "Web"], "Continuing": true, "HalfLength": null },
+  { "Title": "Movies", "Types": ["Movie"], "Continuing": null, "HalfLength": null },
+  { "Title": "OVAs & Specials", "Types": ["OVA", "TVSpecial"], "Continuing": null, "HalfLength": null }
+]
+```
 
 ### By year
 
@@ -682,12 +709,21 @@ filters and series filters both work: a group filter keeps every series of the
 groups it passes.
 
 - `filterID` names a stored filter. An unknown ID answers `404`.
-- `POST` to the calendar (`/Calendar`), the season list (`/Season`), the years
-  (`/Season/ByYear`), a season's anime (`/Season/{year}/{season}`) or the
-  AniDB anime list (`/api/v3/Series/AniDB`) sends a filter in the body instead,
-  in the shape `POST /api/v3/Filter/Preview/Series` takes, with the same query
-  parameters as the `GET`. A season's sections take it as `Filter` in their
-  body (see [Sections](#sections)).
+- `POST` to the calendar (`/Calendar`) sends a filter in the body instead, as
+  `Filter`, in the shape `POST /api/v3/Filter/Preview/Series` takes, with the
+  same query parameters as the `GET`. `Filter` is optional: `{}` answers as
+  the `GET` does.
+
+  ```json
+  { "Filter": { "ApplyAtSeriesLevel": true, "Expression": { "Type": "HasVideoFiles" } } }
+  ```
+
+  The season list (`/Season`), the years (`/Season/ByYear`), a season's anime
+  (`/Season/{year}/{season}`) and its sections (`/Season/{year}/{season}/Sections`)
+  take one shared body, `{ "Sections": [...] | null, "Filter": {...} | null }`,
+  the filter next to the layout (see [Sections](#sections)). `{}` answers as
+  the `GET` does. The AniDB anime list (`POST /api/v3/Series/AniDB`)
+  takes the filter itself as the body.
 
 A filter with a sorting expression decides the order: a season's anime and the
 AniDB anime list come in the filter's order, ignoring `orderBy`, and each

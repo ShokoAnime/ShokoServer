@@ -601,6 +601,24 @@ public class AnidbAnimeCatalogTests
         Assert.Equal([(2015, YearlySeason.Fall)], seasons.Select(season => (season.Year, season.Season)));
     }
 
+    [Fact]
+    public void GetSeasons_ALayoutWithoutARestSection_LeavesOutTheTypesItDoesNotTake()
+    {
+        using var harness = new Harness(
+            [Anime(1, "Show", Date(2015, 4, 10)), Anime(2, "Song", Date(2015, 4, 10), type: AnimeType.MusicVideo)],
+            [.. Episodes(1, Day(2015, 4, 10)), .. Episodes(2, Day(2015, 4, 10))]
+        );
+
+        // The default layout has no section for music videos.
+        var layout = SeasonSectionDefinition.DefaultLayout;
+        var seasons = harness.Catalog.GetSeasons(new() { SeasonSections = layout })
+            .Where(season => season.Count > 0)
+            .Select(season => (season.Year, season.Season, season.Count));
+
+        Assert.Equal([(2015, YearlySeason.Spring, 1)], seasons);
+        Assert.Equal([1], harness.IDs(InSeasons((2015, YearlySeason.Spring)) with { SeasonSections = layout }));
+    }
+
     #endregion
 
     #region Channels
@@ -855,7 +873,7 @@ public class AnidbAnimeCatalogTests
         Assert.True(summer[1].IsStartSeasonOverridden);
         Assert.False(summer[2].IsStartSeasonOverridden);
         // Started in Winter by hand, so it carries on into Spring.
-        Assert.Equal([6], sections.Single(section => section.Definition.ID is "continuing").Anime.Select(entry => entry.Anime.AnidbID));
+        Assert.Equal([6], sections.Single(section => section.Definition.Title is "Continuing").Anime.Select(entry => entry.Anime.AnidbID));
         Assert.Equal(1, byYear.Seasons.Single(season => season.Season is YearlySeason.Winter).Count);
     }
 

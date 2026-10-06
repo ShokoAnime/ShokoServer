@@ -64,10 +64,10 @@ public class AiringCalendarServiceTests
     private static DateTime Utc(int day, int hour, int minute = 0)
         => new(2026, 10, day, hour, minute, 0, DateTimeKind.Utc);
 
-    // The sections by ID, each with its anime's IDs in order.
+    // The sections by title, each with its anime's IDs in order.
     private static Dictionary<string, int[]> Group(IReadOnlyList<SeasonAnimeEntry> anime, IReadOnlyList<SeasonSectionDefinition>? sections = null)
         => AiringCalendarService.GroupIntoSections(anime, _fall2026, sections ?? SeasonSectionDefinition.DefaultLayout)
-            .ToDictionary(section => section.Definition.ID, section => section.Anime.Select(entry => entry.Anime.AnidbID).ToArray());
+            .ToDictionary(section => section.Definition.Title, section => section.Anime.Select(entry => entry.Anime.AnidbID).ToArray());
 
     // A week from the 5th's local midnight, by day, each episode as its lead's key and its others' after a '>'.
     private static Dictionary<DateOnly, string[]> Days(
@@ -110,7 +110,7 @@ public class AiringCalendarServiceTests
             Anime(7, title: "Sooner", airDate: new(2026, 10, 4), next: Airing("sooner", 7, Utc(6, 15))),
         };
 
-        Assert.Equal([7, 6, 5, 4, 3, 2, 1], Group(anime)["new"]);
+        Assert.Equal([7, 6, 5, 4, 3, 2, 1], Group(anime)["TV & Web"]);
     }
 
     [Fact]
@@ -124,11 +124,11 @@ public class AiringCalendarServiceTests
 
         var sections = AiringCalendarService.GroupIntoSections(anime, _fall2026, SeasonSectionDefinition.DefaultLayout, keepOrder: true);
 
-        Assert.Equal([1, 2], sections.Single().Anime.Select(entry => entry.Anime.AnidbID));
+        Assert.Equal([1, 2], sections[0].Anime.Select(entry => entry.Anime.AnidbID));
     }
 
     [Fact]
-    public void DefaultLayout_PutsEachAnimeInTheFirstSectionThatTakesIt_AndDropsEmptyOnes()
+    public void DefaultLayout_PutsEachAnimeInTheFirstSectionThatTakesIt_KeepsEveryOne_AndLeavesTheRestOut()
     {
         var anime = new[]
         {
@@ -143,27 +143,31 @@ public class AiringCalendarServiceTests
             // Movies and the rest take older ones too: an episode or airing this season put them here.
             Anime(7, AnimeType.OVA, start: (2025, YearlySeason.Fall)),
             Anime(8, AnimeType.Movie, start: (2026, YearlySeason.Summer)),
+            // No section takes music videos or an unknown type.
+            Anime(9, AnimeType.MusicVideo, start: _fall2026),
+            Anime(10, AnimeType.Unknown, start: _fall2026),
         };
 
         var sections = Group(anime);
 
-        Assert.Equal(["new", "new-half", "continuing", "movies", "other"], sections.Keys);
-        Assert.Equal([1, 2], sections["new"]);
-        Assert.Equal([3], sections["new-half"]);
-        Assert.Equal([4], sections["continuing"]);
-        Assert.Equal([8], sections["movies"]);
-        Assert.Equal([5, 6, 7], sections["other"]);
+        Assert.Equal(["TV & Web", "TV & Web (Half Length)", "Continuing", "Movies", "OVAs & Specials"], sections.Keys);
+        Assert.Equal([1, 2], sections["TV & Web"]);
+        Assert.Equal([3], sections["TV & Web (Half Length)"]);
+        Assert.Equal([4], sections["Continuing"]);
+        Assert.Equal([8], sections["Movies"]);
+        Assert.Equal([5, 6, 7], sections["OVAs & Specials"]);
+        Assert.DoesNotContain(sections.Values, ids => ids.Contains(9) || ids.Contains(10));
     }
 
     [Fact]
-    public void Sections_FirstOneWins_AndUnsetOptionsTakeBoth()
+    public void Sections_FirstOneWins_UnsetOptionsTakeBoth_AndEmptyOnesStay()
     {
         var layout = new SeasonSectionDefinition[]
         {
-            new() { ID = "all-tv", Title = "TV", Types = new HashSet<AnimeType> { AnimeType.TV } },
-            new() { ID = "rest", Title = "Rest" },
-            // Never reached: the rest group took everything left.
-            new() { ID = "movies", Title = "Movies", Types = new HashSet<AnimeType> { AnimeType.Movie } },
+            new() { Title = "TV", Types = new HashSet<AnimeType> { AnimeType.TV } },
+            new() { Title = "Rest" },
+            // Never reached, as the rest group took everything left, but still returned.
+            new() { Title = "Movies", Types = new HashSet<AnimeType> { AnimeType.Movie } },
         };
         var anime = new[]
         {
@@ -174,15 +178,16 @@ public class AiringCalendarServiceTests
 
         var sections = Group(anime, layout);
 
-        Assert.Equal(["all-tv", "rest"], sections.Keys);
-        Assert.Equal([1, 2], sections["all-tv"]);
-        Assert.Equal([3], sections["rest"]);
+        Assert.Equal(["TV", "Rest", "Movies"], sections.Keys);
+        Assert.Equal([1, 2], sections["TV"]);
+        Assert.Equal([3], sections["Rest"]);
+        Assert.Empty(sections["Movies"]);
     }
 
     [Fact]
     public void Sections_WithoutARestGroup_LeaveTheOthersOut()
     {
-        var layout = new SeasonSectionDefinition[] { new() { ID = "movies", Title = "Movies", Types = new HashSet<AnimeType> { AnimeType.Movie } } };
+        var layout = new SeasonSectionDefinition[] { new() { Title = "Movies", Types = new HashSet<AnimeType> { AnimeType.Movie } } };
 
         var sections = Group([Anime(1), Anime(2, AnimeType.Movie), Anime(3, AnimeType.OVA)], layout);
 
@@ -195,9 +200,9 @@ public class AiringCalendarServiceTests
     [InlineData(null, false)]
     public void HalfLength_IsUnderSixteenMinutes(int? minutes, bool halfLength)
     {
-        var layout = new SeasonSectionDefinition[] { new() { ID = "half", Title = "Half", HalfLength = true } };
+        var layout = new SeasonSectionDefinition[] { new() { Title = "Half", HalfLength = true } };
 
-        Assert.Equal(halfLength, Group([Anime(1, minutes: minutes)], layout).ContainsKey("half"));
+        Assert.Equal(halfLength, Group([Anime(1, minutes: minutes)], layout)["Half"].Length > 0);
     }
 
     [Theory]
@@ -208,10 +213,10 @@ public class AiringCalendarServiceTests
     [InlineData(null, null, false)]
     public void Continuing_MeansStartedBeforeTheViewedSeason(int? year, YearlySeason? season, bool continuing)
     {
-        var layout = new SeasonSectionDefinition[] { new() { ID = "continuing", Title = "Continuing", Continuing = true } };
+        var layout = new SeasonSectionDefinition[] { new() { Title = "Continuing", Continuing = true } };
         var start = year is { } startYear && season is { } startSeason ? (startYear, startSeason) : ((int, YearlySeason)?)null;
 
-        Assert.Equal(continuing, Group([Anime(1, start: start)], layout).ContainsKey("continuing"));
+        Assert.Equal(continuing, Group([Anime(1, start: start)], layout)["Continuing"].Length > 0);
     }
 
     #endregion

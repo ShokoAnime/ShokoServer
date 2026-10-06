@@ -55,15 +55,12 @@ public class AiringCalendarService(
         EpisodeAiringFilteringOptions? airingOptions = null
     )
     {
-        sections ??= SeasonSectionDefinition.DefaultLayout;
+        sections ??= animeOptions?.SeasonSections ?? SeasonSectionDefinition.DefaultLayout;
         if (sections.Any(section => section is null))
             throw new ArgumentException("A section is null.", nameof(sections));
 
-        if (sections.DistinctBy(section => section.ID, StringComparer.Ordinal).Count() != sections.Count)
-            throw new ArgumentException("Two sections share an ID.", nameof(sections));
-
         return GroupIntoSections(
-            GetSeasonAnime(year, season, animeOptions, airingOptions),
+            GetSeasonAnime(year, season, (animeOptions ?? new()) with { SeasonSections = sections }, airingOptions),
             (year, season),
             sections,
             keepOrder: animeOptions?.Filter?.SortingExpression is not null
@@ -156,15 +153,15 @@ public class AiringCalendarService(
     #region Sections
 
     /// <summary>
-    ///   Puts each anime in the first section that takes it, drops the empty
-    ///   sections and sorts each by next airing, unless told to keep the
-    ///   anime's order.
+    ///   Puts each anime in the first section that takes it and sorts each by
+    ///   next airing, unless told to keep the anime's order. Empty sections
+    ///   are kept, and an anime no section takes is left out.
     /// </summary>
     /// <param name="anime">The season's anime.</param>
     /// <param name="season">The viewed season.</param>
     /// <param name="sections">The layout.</param>
     /// <param name="keepOrder">Whether each section keeps the anime's order, as a filter's sorting expression set it.</param>
-    /// <returns>The non-empty sections, in the layout's order.</returns>
+    /// <returns>Every section of the layout, in its order.</returns>
     internal static IReadOnlyList<SeasonSection> GroupIntoSections(
         IReadOnlyList<SeasonAnimeEntry> anime,
         (int Year, YearlySeason Season) season,
@@ -175,14 +172,9 @@ public class AiringCalendarService(
         var members = sections.Select(_ => new List<SeasonAnimeEntry>()).ToList();
         foreach (var entry in anime)
         {
-            for (var index = 0; index < sections.Count; index++)
-            {
-                if (!Takes(sections[index], entry, season))
-                    continue;
-
+            var index = SeasonSectionMatcher.IndexOf(sections, entry.Anime.Type, entry.StartSeason, () => entry.EpisodeDuration, season);
+            if (index >= 0)
                 members[index].Add(entry);
-                break;
-            }
         }
 
         var comparer = Comparer<SeasonAnimeEntry>.Create(CompareByNextAiring);
@@ -190,47 +182,9 @@ public class AiringCalendarService(
         [
             .. sections
                 .Select((section, index) => (Section: section, Anime: members[index]))
-                .Where(pair => pair.Anime.Count > 0)
                 .Select(pair => new SeasonSection(pair.Section, keepOrder ? pair.Anime : [.. pair.Anime.Order(comparer)])),
         ];
     }
-
-    /// <summary>
-    ///   Whether a section takes an anime.
-    /// </summary>
-    /// <param name="section">The section.</param>
-    /// <param name="entry">The anime.</param>
-    /// <param name="season">The viewed season.</param>
-    /// <returns><c>true</c> when the section takes it.</returns>
-    private static bool Takes(SeasonSectionDefinition section, SeasonAnimeEntry entry, (int Year, YearlySeason Season) season)
-    {
-        if (section.Types is { } types && !types.Contains(entry.Anime.Type))
-            return false;
-
-        if (section.HalfLength is { } halfLength && halfLength != IsHalfLength(entry))
-            return false;
-
-        return section.Continuing is not { } continuing || continuing == IsContinuing(entry, season);
-    }
-
-    /// <summary>
-    ///   Whether an anime started before the viewed season. One without a
-    ///   known start counts as new.
-    /// </summary>
-    /// <param name="entry">The anime.</param>
-    /// <param name="season">The viewed season.</param>
-    /// <returns><c>true</c> when it started before the season.</returns>
-    private static bool IsContinuing(SeasonAnimeEntry entry, (int Year, YearlySeason Season) season)
-        => entry.StartSeason is { } start && start.CompareTo(season) < 0;
-
-    /// <summary>
-    ///   Whether an anime's episodes run shorter than the half-length limit.
-    ///   One without a known length counts as full length.
-    /// </summary>
-    /// <param name="entry">The anime.</param>
-    /// <returns><c>true</c> when it is half length.</returns>
-    private static bool IsHalfLength(SeasonAnimeEntry entry)
-        => entry.EpisodeDuration is { } duration && duration < SeasonSectionDefinition.HalfLengthLimit;
 
     /// <summary>
     ///   Orders two anime by next airing: a scheduled one first, soonest

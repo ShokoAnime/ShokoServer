@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Containers;
@@ -56,7 +57,12 @@ public class AnidbAnimeCatalog(
     ///   Lists the cached anime matching the options, in their order, or in
     ///   the order of their filter when it has a sorting expression.
     /// </summary>
+    /// <remarks>
+    ///   With seasons and a layout, an anime is only in one of them when a
+    ///   section of the layout takes it there.
+    /// </remarks>
     /// <param name="options">The filters and order.</param>
+    /// <exception cref="ArgumentException">The options' season layout holds a <c>null</c> section.</exception>
     /// <exception cref="ArgumentNullException">
     ///   The filter depends on the user and the options name none.
     /// </exception>
@@ -73,8 +79,17 @@ public class AnidbAnimeCatalog(
             if (seasons.Count == 0)
                 return [];
 
-            inSeasons = anime => anime.SeasonSpan is { } span && span.Seasons.Any(season => season.CompareTo(last) <= 0 && seasons.Contains(season)) &&
-                (channelAirings is null || seasons.Any(season => IsOnChannels(channelAirings, anime.AnimeID, season, current)));
+            var layout = GetLayout(options);
+            inSeasons = anime =>
+            {
+                if (anime.SeasonSpan is not { } span)
+                    return false;
+
+                var getEpisodeDuration = MemoizeEpisodeDuration(anime.AnimeID);
+                return span.Seasons.Any(season => seasons.Contains(season) &&
+                    (channelAirings is null || IsOnChannels(channelAirings, anime.AnimeID, season, current)) &&
+                    (layout is null || SeasonSectionMatcher.IndexOf(layout, anime.AnimeType, span.StartSeason, getEpisodeDuration, season) >= 0));
+            };
         }
         else if (channelAirings is not null)
         {
@@ -114,10 +129,12 @@ public class AnidbAnimeCatalog(
     /// <remarks>
     ///   A season's images are those of its best ranked anime with a poster,
     ///   among those starting in it, or else among the newest carried over,
-    ///   as <see cref="PickImages"/> ranks them.
+    ///   as <see cref="PickImages"/> ranks them. With a layout, an anime only
+    ///   counts in a season when a section of it takes the anime there.
     /// </remarks>
     /// <param name="options">The filters; the seasons and order are ignored.</param>
     /// <param name="includeImages">Whether to pick a poster and a backdrop for each season.</param>
+    /// <exception cref="ArgumentException">The options' season layout holds a <c>null</c> section.</exception>
     /// <exception cref="ArgumentNullException">
     ///   The filter depends on the user and the options name none.
     /// </exception>
@@ -127,6 +144,7 @@ public class AnidbAnimeCatalog(
         options ??= new();
         var (current, last, now) = GetListedSeasons(options.At);
         var channelAirings = options.ChannelIDs is { Count: > 0 } channelIDs ? GetChannelAirings(channelIDs, now) : null;
+        var layout = GetLayout(options);
         var members = new Dictionary<(int Year, YearlySeason Season), List<Member>>();
         foreach (var (anime, series, _) in Filter(options, inSeasons: null, GetFilteredAnimeIDs(options)))
         {
@@ -134,9 +152,13 @@ public class AnidbAnimeCatalog(
                 continue;
 
             var member = new Member(anime, series, span);
+            var getEpisodeDuration = MemoizeEpisodeDuration(anime.AnimeID);
             foreach (var season in SeasonCalendar.GetSeasons(span, last))
             {
                 if (channelAirings is not null && !IsOnChannels(channelAirings, anime.AnimeID, season, current))
+                    continue;
+
+                if (layout is not null && SeasonSectionMatcher.IndexOf(layout, anime.AnimeType, span.StartSeason, getEpisodeDuration, season) < 0)
                     continue;
 
                 if (!members.TryGetValue(season, out var list))
@@ -278,6 +300,43 @@ public class AnidbAnimeCatalog(
     )
         => channelAirings.TryGetValue(animeID, out var airings) &&
             (airings.Seasons.Contains(season) || (airings.HasUpcoming && season.CompareTo(current) >= 0));
+
+    /// <summary>
+    ///   The season layout of the options.
+    /// </summary>
+    /// <param name="options">The options.</param>
+    /// <exception cref="ArgumentException">The layout holds a <c>null</c> section.</exception>
+    /// <returns>The layout, or <c>null</c> for no layout filter.</returns>
+    private static IReadOnlyList<SeasonSectionDefinition>? GetLayout(AnidbAnimeListOptions options)
+    {
+        var layout = options.SeasonSections;
+        if (layout is not null && layout.Any(section => section is null))
+            throw new ArgumentException("A season section is null.", nameof(options));
+
+        return layout;
+    }
+
+    /// <summary>
+    ///   Reads an anime's usual episode length on first use only, so the
+    ///   section checks of its seasons share one read.
+    /// </summary>
+    /// <param name="animeID">The AniDB anime ID.</param>
+    /// <returns>The length, or <c>null</c> when not known.</returns>
+    private Func<TimeSpan?> MemoizeEpisodeDuration(int animeID)
+    {
+        var known = false;
+        TimeSpan? duration = null;
+        return () =>
+        {
+            if (!known)
+            {
+                duration = GetEpisodeDuration(animeID);
+                known = true;
+            }
+
+            return duration;
+        };
+    }
 
     /// <summary>
     ///   The season under way and the last one listed, the one after it.

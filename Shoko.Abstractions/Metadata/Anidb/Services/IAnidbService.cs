@@ -108,6 +108,7 @@ public interface IAnidbService
     ///   filtered and ordered by <paramref name="options"/>.
     /// </summary>
     /// <param name="options">The filters and order, or <c>null</c> for every anime by title.</param>
+    /// <exception cref="ArgumentException">The options' season layout holds a <c>null</c> section.</exception>
     /// <exception cref="ArgumentNullException">
     ///   The options' filter depends on the user and the options name none.
     /// </exception>
@@ -124,10 +125,13 @@ public interface IAnidbService
     ///   of the options' <see cref="AnidbAnimeListOptions.At"/>. The season
     ///   under way is always listed. A season's images come from its best
     ///   anime by weighted rating among those starting in it that have a
-    ///   poster.
+    ///   poster. With a layout in the options'
+    ///   <see cref="AnidbAnimeListOptions.SeasonSections"/>, an anime only
+    ///   counts in a season when a section of it takes the anime there.
     /// </summary>
     /// <param name="options">The filters on the anime counted; the seasons and order are ignored.</param>
     /// <param name="includeImages">Whether to pick a poster and a backdrop for each season.</param>
+    /// <exception cref="ArgumentException">The options' season layout holds a <c>null</c> section.</exception>
     /// <exception cref="ArgumentNullException">
     ///   The options' filter depends on the user and the options name none.
     /// </exception>

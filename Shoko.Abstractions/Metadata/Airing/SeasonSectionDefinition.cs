@@ -21,13 +21,14 @@ public sealed record SeasonSectionDefinition
 
     /// <summary>
     ///   The default layout: new full-length TV and web series, new
-    ///   half-length ones, continuing ones, movies, and the rest.
+    ///   half-length ones, continuing ones, movies, and OVAs and TV
+    ///   specials. TV shorts, music videos and anime of any other or unknown
+    ///   type fit no section, so they are left out.
     /// </summary>
     public static IReadOnlyList<SeasonSectionDefinition> DefaultLayout { get; } =
     [
         new()
         {
-            ID = "new",
             Title = "TV & Web",
             Types = new[] { AnimeType.TV, AnimeType.Web }.ToFrozenSet(),
             Continuing = false,
@@ -35,7 +36,6 @@ public sealed record SeasonSectionDefinition
         },
         new()
         {
-            ID = "new-half",
             Title = "TV & Web (Half Length)",
             Types = new[] { AnimeType.TV, AnimeType.Web }.ToFrozenSet(),
             Continuing = false,
@@ -43,32 +43,25 @@ public sealed record SeasonSectionDefinition
         },
         new()
         {
-            ID = "continuing",
             Title = "Continuing",
             Types = new[] { AnimeType.TV, AnimeType.Web }.ToFrozenSet(),
             Continuing = true,
         },
         new()
         {
-            ID = "movies",
             Title = "Movies",
             Types = new[] { AnimeType.Movie }.ToFrozenSet(),
         },
         new()
         {
-            ID = "other",
             Title = "OVAs & Specials",
+            Types = new[] { AnimeType.OVA, AnimeType.TVSpecial }.ToFrozenSet(),
         },
     ];
 
     #endregion
 
     #region Properties
-
-    /// <summary>
-    ///   The section's ID, unique within its layout.
-    /// </summary>
-    public required string ID { get; init; }
 
     /// <summary>
     ///   The section's heading.

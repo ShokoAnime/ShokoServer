@@ -26,7 +26,10 @@ public interface IAiringCalendarService
     ///   anime itself outside the collection, and count from the airing
     ///   options' <see cref="EpisodeAiringFilteringOptions.At"/>, or now: an
     ///   episode on air then is the next airing until its slot ends. An anime
-    ///   has finished when its end date passed by that time's UTC date.
+    ///   has finished when its end date passed by that time's UTC date. With a
+    ///   layout in the anime options'
+    ///   <see cref="AnidbAnimeListOptions.SeasonSections"/>, only the anime a
+    ///   section of it takes in the season are listed.
     /// </remarks>
     /// <param name="year">The year.</param>
     /// <param name="season">The season.</param>
@@ -50,24 +53,25 @@ public interface IAiringCalendarService
     /// </summary>
     /// <remarks>
     ///   Each anime goes to the first section that takes it, an anime no
-    ///   section takes is left out, and empty sections are dropped. Each
+    ///   section takes is left out, and empty sections are kept. Each
     ///   section is sorted by next airing, or keeps the anime's order when
     ///   the anime filter has a sorting expression.
     /// </remarks>
     /// <param name="year">The year.</param>
     /// <param name="season">The season.</param>
-    /// <param name="sections">The layout, or <c>null</c> for <see cref="SeasonSectionDefinition.DefaultLayout"/>.</param>
-    /// <param name="animeOptions">The anime filters; its seasons and reference time are replaced by this read's.</param>
+    /// <param name="sections">
+    ///   The layout, or <c>null</c> for the anime options'
+    ///   <see cref="AnidbAnimeListOptions.SeasonSections"/>, or else
+    ///   <see cref="SeasonSectionDefinition.DefaultLayout"/>.
+    /// </param>
+    /// <param name="animeOptions">The anime filters; its seasons, layout and reference time are replaced by this read's.</param>
     /// <param name="airingOptions">The airing filters and the reference time; the read is always next-only.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="year"/> is not between 1 and 9999.</exception>
-    /// <exception cref="ArgumentException">
-    ///   <paramref name="sections"/> holds a <c>null</c> section, or two
-    ///   sections with the same ID.
-    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="sections"/> holds a <c>null</c> section.</exception>
     /// <exception cref="ArgumentNullException">
     ///   A filter in the options depends on the user and the options name none.
     /// </exception>
-    /// <returns>The non-empty sections, in the layout's order.</returns>
+    /// <returns>Every section of the layout, in its order.</returns>
     IReadOnlyList<SeasonSection> GetSeasonSections(
         int year,
         YearlySeason season,

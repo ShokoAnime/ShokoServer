@@ -366,14 +366,15 @@ public class AiringScheduleController(
     }
 
     /// <summary>
-    /// Get the days of <c>GET /api/v3/AiringSchedule/Calendar</c> for only the
-    /// Shoko series passing the filter sent in the body.
+    /// Get the days of <c>GET /api/v3/AiringSchedule/Calendar</c>, optionally
+    /// for only the Shoko series passing the filter sent in the body.
     /// </summary>
     /// <remarks>
-    /// The filter is evaluated for the current user, and series not in the
-    /// collection are left out. The days stay in time order.
+    /// Without a filter, it answers as the <c>GET</c> does. A filter is
+    /// evaluated for the current user, and series not in the collection are
+    /// left out. The days stay in time order.
     /// </remarks>
-    /// <param name="body">The filter, as <c>POST /api/v3/Filter/Preview/Series</c> takes it.</param>
+    /// <param name="body">The filter as <c>Filter</c>, taken as <c>POST /api/v3/Filter/Preview/Series</c> takes it, or <c>null</c> for none.</param>
     /// <param name="from">Start of the range, with an offset. Defaults to the start of today in <paramref name="timeZone"/>.</param>
     /// <param name="to">End of the range, exclusive, with an offset. Defaults to a week after the start.</param>
     /// <param name="timeZone">The time zone the days are in, as an IANA or Windows ID, or a fixed <c>±HH:MM</c> offset. Defaults to UTC.</param>
@@ -399,7 +400,7 @@ public class AiringScheduleController(
     [ProducesResponseType(400)]
     [HttpPost("Calendar")]
     public ActionResult<List<AiringCalendarDayDto>> GetCalendarWithFilter(
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] FilterBody body,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AiringFilterBody body,
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? from = null,
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? to = null,
         [FromQuery] string? timeZone = null,
@@ -422,7 +423,7 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
-        if (GetBodyFilter(body) is not { } filter)
+        if (!TryGetBodyFilter(body, out var filter))
             return ValidationProblem(ModelState);
 
         return ReadCalendar(
@@ -1176,7 +1177,9 @@ public class AiringScheduleController(
     /// listed, and flagged.
     /// </summary>
     /// <remarks>
-    /// An anime is in a season by the rule of <c>/api/v3/AiringSchedule/Season/{year}/{season}</c>.
+    /// An anime is in a season by the rule of <c>/api/v3/AiringSchedule/Season/{year}/{season}</c>,
+    /// and only counts there when a section of the default layout takes it,
+    /// as <c>GET /api/v3/AiringSchedule/Season/Sections/Default</c> returns it.
     /// With <paramref name="channel"/>, a season only counts the anime with a
     /// stored airing on those channels in it, or, for the season under way and
     /// the next, one still to come, and its images are picked among them. Old
@@ -1216,13 +1219,16 @@ public class AiringScheduleController(
 
     /// <summary>
     /// Get the seasons of <c>GET /api/v3/AiringSchedule/Season</c>, counting
-    /// only the anime of the Shoko series passing the filter sent in the body.
+    /// only the anime a section of the layout sent in the body takes, and
+    /// optionally only those of the Shoko series passing the filter sent in
+    /// it.
     /// </summary>
     /// <remarks>
-    /// The filter is evaluated once for the current user, and anime not in
-    /// the collection are left out.
+    /// Without a layout or a filter, it answers as the <c>GET</c> does. A
+    /// filter is evaluated once for the current user, and anime not in the
+    /// collection are left out.
     /// </remarks>
-    /// <param name="body">The filter, as <c>POST /api/v3/Filter/Preview/Series</c> takes it.</param>
+    /// <param name="body">The layout as <c>Sections</c>, or <c>null</c> for the default one, and the filter as <c>Filter</c>, or <c>null</c> for none.</param>
     /// <param name="type">Only count anime of these types, comma-separated.</param>
     /// <param name="channel">Only count anime airing on one of these channels, hidden or not, comma-separated.</param>
     /// <param name="inCollection">
@@ -1238,7 +1244,7 @@ public class AiringScheduleController(
     [ProducesResponseType(400)]
     [HttpPost("Season")]
     public ActionResult<List<AiringSeason>> GetSeasonsWithFilter(
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] FilterBody body,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SeasonBody body,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
@@ -1248,10 +1254,11 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
-        if (GetBodyFilter(body) is not { } filter)
+        if (!TryGetBodyFilter(body, out var filter) || !TryGetBodyLayout(body, out var layout))
             return ValidationProblem(ModelState);
 
-        return ListSeasons(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter, at), fromYear, include);
+        var options = GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter, at) with { SeasonSections = layout ?? SeasonSectionDefinition.DefaultLayout };
+        return ListSeasons(options, fromYear, include);
     }
 
     /// <summary>
@@ -1296,14 +1303,16 @@ public class AiringScheduleController(
 
     /// <summary>
     /// Get the years of <c>GET /api/v3/AiringSchedule/Season/ByYear</c>,
-    /// counting only the anime of the Shoko series passing the filter sent in
-    /// the body.
+    /// counting only the anime a section of the layout sent in the body
+    /// takes, and optionally only those of the Shoko series passing the
+    /// filter sent in it.
     /// </summary>
     /// <remarks>
-    /// The filter is evaluated once for the current user, and anime not in
-    /// the collection are left out.
+    /// Without a layout or a filter, it answers as the <c>GET</c> does. A
+    /// filter is evaluated once for the current user, and anime not in the
+    /// collection are left out.
     /// </remarks>
-    /// <param name="body">The filter, as <c>POST /api/v3/Filter/Preview/Series</c> takes it.</param>
+    /// <param name="body">The layout as <c>Sections</c>, or <c>null</c> for the default one, and the filter as <c>Filter</c>, or <c>null</c> for none.</param>
     /// <param name="type">Only count anime of these types, comma-separated.</param>
     /// <param name="channel">Only count anime airing on one of these channels, hidden or not, comma-separated.</param>
     /// <param name="inCollection">
@@ -1319,7 +1328,7 @@ public class AiringScheduleController(
     [ProducesResponseType(400)]
     [HttpPost("Season/ByYear")]
     public ActionResult<List<AiringSeasonYear>> GetSeasonsByYearWithFilter(
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] FilterBody body,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SeasonBody body,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
@@ -1329,10 +1338,11 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
-        if (GetBodyFilter(body) is not { } filter)
+        if (!TryGetBodyFilter(body, out var filter) || !TryGetBodyLayout(body, out var layout))
             return ValidationProblem(ModelState);
 
-        return ListSeasonsByYear(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter, at), fromYear, include);
+        var options = GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter, at) with { SeasonSections = layout ?? SeasonSectionDefinition.DefaultLayout };
+        return ListSeasonsByYear(options, fromYear, include);
     }
 
     /// <summary>
@@ -1349,8 +1359,9 @@ public class AiringScheduleController(
     /// weeks take no lead-in. After that, it is in every calendar quarter
     /// holding one of its dated regular episodes, up to the fourth from the
     /// end once it has an end date, and without dated regular episodes in its
-    /// start season alone. A season after the one
-    /// following the season under way has no anime. The next airings are read
+    /// start season alone, and only listed when a section of the default
+    /// layout takes it there. A season after the one following the season
+    /// under way has no anime. The next airings are read
     /// through each anime's series, or the anime itself outside the
     /// collection, and count from now, or <paramref name="at"/>. With <paramref name="channel"/>, only
     /// the anime with a stored airing on those channels in the season, or one
@@ -1377,6 +1388,7 @@ public class AiringScheduleController(
     /// </param>
     /// <param name="provider">Only take airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
+    /// <param name="episodeType">Only take airings of episodes of these types, comma-separated. An unresolved airing counts as <c>Episode</c>. Defaults to every type.</param>
     /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
     /// <param name="includeUnresolved">Take the airings no source lists the episode for yet.</param>
     /// <param name="at">
@@ -1398,6 +1410,7 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? episodeType = null,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeUnresolved = true,
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
@@ -1415,6 +1428,7 @@ public class AiringScheduleController(
             channel,
             provider,
             episodeKind,
+            episodeType,
             includeEstimates,
             includeUnresolved,
             at
@@ -1424,16 +1438,18 @@ public class AiringScheduleController(
 
     /// <summary>
     /// Get the anime of <c>GET /api/v3/AiringSchedule/Season/{year}/{season}</c>
-    /// for only the Shoko series passing the filter sent in the body.
+    /// a section of the layout sent in the body takes, optionally for only
+    /// the Shoko series passing the filter sent in it.
     /// </summary>
     /// <remarks>
-    /// The filter is evaluated once for the current user, and anime not in
-    /// the collection are left out. With a sorting expression, the anime come
-    /// in the filter's order.
+    /// Without a layout or a filter, it answers as the <c>GET</c> does. A
+    /// filter is evaluated once for the current user, and anime not in the
+    /// collection are left out. With a sorting expression, the anime come in
+    /// the filter's order.
     /// </remarks>
     /// <param name="year">The year.</param>
     /// <param name="season">The season: <c>Winter</c>, <c>Spring</c>, <c>Summer</c> or <c>Fall</c>, in any case.</param>
-    /// <param name="body">The filter, as <c>POST /api/v3/Filter/Preview/Series</c> takes it.</param>
+    /// <param name="body">The layout as <c>Sections</c>, or <c>null</c> for the default one, and the filter as <c>Filter</c>, or <c>null</c> for none.</param>
     /// <param name="type">Only anime of these types, comma-separated.</param>
     /// <param name="inCollection">
     ///   Whether to include the anime with a Shoko series: <c>true</c> for every anime, <c>only</c> for those with one, <c>false</c> for those
@@ -1447,6 +1463,7 @@ public class AiringScheduleController(
     /// </param>
     /// <param name="provider">Only take airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
+    /// <param name="episodeType">Only take airings of episodes of these types, comma-separated. An unresolved airing counts as <c>Episode</c>. Defaults to every type.</param>
     /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
     /// <param name="includeUnresolved">Take the airings no source lists the episode for yet.</param>
     /// <param name="at">
@@ -1460,7 +1477,7 @@ public class AiringScheduleController(
     public ActionResult<List<SeasonAnime>> GetSeasonAnimeWithFilter(
         [FromRoute, Range(1, 9999)] int year,
         [FromRoute] YearlySeason season,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] FilterBody body,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SeasonBody body,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
@@ -1468,12 +1485,13 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? episodeType = null,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeUnresolved = true,
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
-        if (GetBodyFilter(body) is not { } filter)
+        if (!TryGetBodyFilter(body, out var filter) || !TryGetBodyLayout(body, out var layout))
             return ValidationProblem(ModelState);
 
         var (animeOptions, airingOptions) = GetSeasonOptions(
@@ -1485,23 +1503,44 @@ public class AiringScheduleController(
             channel,
             provider,
             episodeKind,
+            episodeType,
             includeEstimates,
             includeUnresolved,
             at
         );
-        return seasonAnimeBuilder.Build(airingCalendarService.GetSeasonAnime(year, season, animeOptions, airingOptions));
+        return seasonAnimeBuilder.Build(
+            airingCalendarService.GetSeasonAnime(
+                year,
+                season,
+                animeOptions with { SeasonSections = layout ?? SeasonSectionDefinition.DefaultLayout },
+                airingOptions
+            )
+        );
     }
+
+    /// <summary>
+    /// Get the default layout of the season sections, in the shape
+    /// the season <c>POST</c> routes take a layout as <c>Sections</c>.
+    /// </summary>
+    /// <returns>The default layout's sections, in order.</returns>
+    [ProducesResponseType(200)]
+    [HttpGet("Season/Sections/Default")]
+    public ActionResult<List<SeasonBody.Section>> GetDefaultSeasonSections()
+        => SeasonSectionDefinition.DefaultLayout
+            .Select(SeasonBody.Section.FromDefinition)
+            .ToList();
 
     /// <summary>
     /// Get the anime of <c>/api/v3/AiringSchedule/Season/{year}/{season}</c>
     /// in the default sections, each sorted by next airing.
     /// </summary>
     /// <remarks>
-    /// The default layout is new full-length TV and web series (<c>new</c>),
-    /// new half-length ones (<c>new-half</c>), continuing ones
-    /// (<c>continuing</c>), movies (<c>movies</c>) and the rest
-    /// (<c>other</c>). Each anime goes to the first section that takes it, and
-    /// empty sections are left out.
+    /// The default layout, as <c>GET /api/v3/AiringSchedule/Season/Sections/Default</c>
+    /// returns it, is new full-length TV and web series, new half-length ones,
+    /// continuing ones, movies, and OVAs and TV specials. Each anime goes to
+    /// the first section that takes it, and TV shorts, music videos and anime
+    /// of any other or unknown type are left out. Every section is returned,
+    /// empty or not, so a section's place in the layout is its index.
     /// </remarks>
     /// <param name="year">The year.</param>
     /// <param name="season">The season: <c>Winter</c>, <c>Spring</c>, <c>Summer</c> or <c>Fall</c>, in any case.</param>
@@ -1522,13 +1561,14 @@ public class AiringScheduleController(
     /// </param>
     /// <param name="provider">Only take airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
+    /// <param name="episodeType">Only take airings of episodes of these types, comma-separated. An unresolved airing counts as <c>Episode</c>. Defaults to every type.</param>
     /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
     /// <param name="includeUnresolved">Take the airings no source lists the episode for yet.</param>
     /// <param name="at">
     ///   The time to read as of, with an offset, instead of now. It decides the season under way, the next airings and whether an anime has
     ///   finished.
     /// </param>
-    /// <returns>The non-empty sections, in order.</returns>
+    /// <returns>Every section of the default layout, in order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
     [HttpGet("Season/{year}/{season}/Sections")]
@@ -1543,6 +1583,7 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? episodeType = null,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeUnresolved = true,
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
@@ -1560,6 +1601,7 @@ public class AiringScheduleController(
             channel,
             provider,
             episodeKind,
+            episodeType,
             includeEstimates,
             includeUnresolved,
             at
@@ -1573,8 +1615,9 @@ public class AiringScheduleController(
     /// airing, optionally for only the Shoko series passing a filter.
     /// </summary>
     /// <remarks>
-    /// Each anime goes to the first section that takes it, an anime no
-    /// section takes is left out, and empty sections are left out. A section
+    /// Each anime goes to the first section that takes it, and an anime no
+    /// section takes is left out. Every section is returned, empty or not, so
+    /// a section's place in the layout is its index. A section
     /// without <c>Types</c> takes every type, so it is the rest group. The
     /// filter, sent in the body or stored, is evaluated once for the current
     /// user; anime not in the collection are left out, and with a sorting
@@ -1597,13 +1640,14 @@ public class AiringScheduleController(
     /// </param>
     /// <param name="provider">Only take airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
+    /// <param name="episodeType">Only take airings of episodes of these types, comma-separated. An unresolved airing counts as <c>Episode</c>. Defaults to every type.</param>
     /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
     /// <param name="includeUnresolved">Take the airings no source lists the episode for yet.</param>
     /// <param name="at">
     ///   The time to read as of, with an offset, instead of now. It decides the season under way, the next airings and whether an anime has
     ///   finished.
     /// </param>
-    /// <returns>The non-empty sections, in the layout's order.</returns>
+    /// <returns>Every section of the layout, in its order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -1611,7 +1655,7 @@ public class AiringScheduleController(
     public ActionResult<List<SeasonSectionDto>> GetSeasonSectionsWithLayout(
         [FromRoute, Range(1, 9999)] int year,
         [FromRoute] YearlySeason season,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SeasonSectionsBody body,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SeasonBody body,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
@@ -1620,23 +1664,16 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? episodeType = null,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeUnresolved = true,
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
-        var duplicates = (body.Sections ?? [])
-            .GroupBy(section => section.ID, StringComparer.Ordinal)
-            .Where(group => group.Count() > 1)
-            .Select(group => group.Key)
-            .ToList();
-        if (duplicates.Count > 0)
-            ModelState.AddModelError(nameof(body.Sections), $"Section IDs must be unique; {string.Join(", ", duplicates)}");
-
         if (body.Filter is not null && filterID is not null)
             ModelState.AddModelError(nameof(filterID), "Send either a filter in the body or a filterID, not both.");
 
-        if (!ModelState.IsValid)
+        if (!TryGetBodyLayout(body, out var layout) || !ModelState.IsValid)
             return ValidationProblem(ModelState);
 
         IFilter? filter;
@@ -1661,6 +1698,7 @@ public class AiringScheduleController(
             channel,
             provider,
             episodeKind,
+            episodeType,
             includeEstimates,
             includeUnresolved,
             at
@@ -1668,7 +1706,7 @@ public class AiringScheduleController(
         var sections = airingCalendarService.GetSeasonSections(
             year,
             season,
-            body.Sections is { } layout ? [.. layout.Select(section => section.ToDefinition())] : null,
+            layout ?? SeasonSectionDefinition.DefaultLayout,
             animeOptions,
             airingOptions
         );
@@ -1718,7 +1756,7 @@ public class AiringScheduleController(
     /// <param name="includeRestricted">Whether to keep the restricted anime.</param>
     /// <param name="filter">Only the anime of the Shoko series this filter passes, if any.</param>
     /// <param name="at">The time the read is as of, or <c>null</c> for now.</param>
-    /// <returns>The anime filters.</returns>
+    /// <returns>The anime filters, with the default season layout.</returns>
     private AnidbAnimeListOptions GetSeasonListOptions(
         HashSet<AnimeType>? type,
         HashSet<Guid>? channel,
@@ -1736,6 +1774,7 @@ public class AiringScheduleController(
             Filter = filter,
             User = User,
             At = at?.UtcDateTime,
+            SeasonSections = SeasonSectionDefinition.DefaultLayout,
         };
 
     /// <summary>
@@ -1750,6 +1789,7 @@ public class AiringScheduleController(
     /// <param name="channel">Only anime airing on one of these channels, and only their airings there.</param>
     /// <param name="provider">Only airings from one of these providers.</param>
     /// <param name="episodeKind">Only airings of these kinds of showing.</param>
+    /// <param name="episodeType">Only airings of episodes of these types.</param>
     /// <param name="includeEstimates">Whether to take the estimated airings.</param>
     /// <param name="includeUnresolved">Whether to take the airings no source lists the episode for yet.</param>
     /// <param name="at">The time the read is as of, or <c>null</c> for now.</param>
@@ -1763,6 +1803,7 @@ public class AiringScheduleController(
         HashSet<Guid>? channel,
         HashSet<Guid>? provider,
         HashSet<EpisodeAiringKind>? episodeKind,
+        HashSet<EpisodeType>? episodeType,
         bool includeEstimates,
         bool includeUnresolved,
         DateTimeOffset? at
@@ -1774,6 +1815,7 @@ public class AiringScheduleController(
             ProviderIDs = provider is { Count: > 0 } ? provider : null,
             Kinds = kind is { Count: > 0 } ? kind : [AiringKind.Original],
             ChannelIDs = animeOptions.ChannelIDs,
+            EpisodeTypes = episodeType is { Count: > 0 } ? episodeType : null,
             EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : [EpisodeAiringKind.Normal, EpisodeAiringKind.Advance],
             IncludeEstimates = includeEstimates,
             IncludeUnresolved = includeUnresolved,
@@ -1797,7 +1839,6 @@ public class AiringScheduleController(
         {
             result.Add(new()
             {
-                ID = section.Definition.ID,
                 Title = section.Definition.Title,
                 Anime = models.GetRange(offset, section.Anime.Count),
             });
@@ -2181,6 +2222,40 @@ public class AiringScheduleController(
     {
         filter = filterID is { } id ? filterPresets.GetByID(id) : null;
         return filterID is null || filter is not null;
+    }
+
+    /// <summary>
+    /// The optional filter sent in a request's body.
+    /// </summary>
+    /// <param name="body">The body.</param>
+    /// <param name="filter">The filter, or <c>null</c> when none was sent.</param>
+    /// <returns><c>false</c> with model errors when the filter is invalid.</returns>
+    private bool TryGetBodyFilter(AiringFilterBody body, out IFilter? filter)
+    {
+        filter = body.Filter is { } filterBody ? GetBodyFilter(filterBody) : null;
+        return body.Filter is null || filter is not null;
+    }
+
+    /// <summary>
+    /// The optional season layout sent in a request's body.
+    /// </summary>
+    /// <param name="body">The body.</param>
+    /// <param name="layout">The layout, or <c>null</c> for the default one.</param>
+    /// <returns><c>false</c> with a model error when a section is <c>null</c>.</returns>
+    private bool TryGetBodyLayout(SeasonBody body, out IReadOnlyList<SeasonSectionDefinition>? layout)
+    {
+        layout = null;
+        if (body.Sections is not { } sections)
+            return true;
+
+        if (sections.Any(section => section is null))
+        {
+            ModelState.AddModelError(nameof(SeasonBody.Sections), "A section is null.");
+            return false;
+        }
+
+        layout = [.. sections.Select(section => section.ToDefinition())];
+        return true;
     }
 
     /// <summary>

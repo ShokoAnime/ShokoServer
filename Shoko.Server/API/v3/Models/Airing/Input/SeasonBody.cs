@@ -3,40 +3,28 @@ using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 
-using FilterBody = Shoko.Server.API.v3.Models.Shoko.Filter.Input.CreateOrUpdateFilterBody;
-
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Airing.Input;
 
 /// <summary>
-/// A custom layout for the season view, and a filter to narrow it by.
+/// The body every season <c>POST</c> route takes: a layout for the season
+/// view, which also decides which anime a season lists and counts, and a
+/// filter to narrow it by.
 /// </summary>
-public class SeasonSectionsBody
+public class SeasonBody : AiringFilterBody
 {
     /// <summary>
     /// The sections, in order, or <c>null</c> for the default layout. Each
-    /// anime goes to the first that takes it.
+    /// anime goes to the first that takes it, and an anime none takes is
+    /// left out of the season's lists and counts.
     /// </summary>
     public List<Section>? Sections { get; set; }
-
-    /// <summary>
-    /// Only the anime of the Shoko series this filter passes, or <c>null</c>
-    /// for no filter. Taken as <c>POST /api/v3/Filter/Preview/Series</c>
-    /// takes it.
-    /// </summary>
-    public FilterBody? Filter { get; set; }
 
     /// <summary>
     /// One section of the layout.
     /// </summary>
     public class Section
     {
-        /// <summary>
-        /// The section's ID, unique within the layout.
-        /// </summary>
-        [Required, MinLength(1)]
-        public string ID { get; set; } = string.Empty;
-
         /// <summary>
         /// The section's heading.
         /// </summary>
@@ -62,17 +50,31 @@ public class SeasonSectionsBody
         public bool? HalfLength { get; set; }
 
         /// <summary>
-        /// The section as the airing calendar service takes it.
+        /// The section as the airing calendar service and the anime catalog
+        /// take it.
         /// </summary>
         /// <returns>The definition.</returns>
         public SeasonSectionDefinition ToDefinition()
             => new()
             {
-                ID = ID,
                 Title = Title,
                 Types = Types,
                 Continuing = Continuing,
                 HalfLength = HalfLength,
+            };
+
+        /// <summary>
+        /// The section as a layout sends it, from its definition.
+        /// </summary>
+        /// <param name="definition">The definition.</param>
+        /// <returns>The section.</returns>
+        public static Section FromDefinition(SeasonSectionDefinition definition)
+            => new()
+            {
+                Title = definition.Title,
+                Types = definition.Types is { } types ? [.. types] : null,
+                Continuing = definition.Continuing,
+                HalfLength = definition.HalfLength,
             };
     }
 }

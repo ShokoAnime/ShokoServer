@@ -10,12 +10,6 @@ namespace Shoko.Server.API.v3.Models.Airing;
 public class SeasonSection
 {
     /// <summary>
-    /// The section's ID, from its definition.
-    /// </summary>
-    [Required]
-    public required string ID { get; init; }
-
-    /// <summary>
     /// The section's heading, from its definition.
     /// </summary>
     [Required]
