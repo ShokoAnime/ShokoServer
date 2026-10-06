@@ -85,4 +85,12 @@ public record AnidbAnimeListOptions
     ///   <see cref="Filter"/> has a sorting expression.
     /// </summary>
     public AnidbAnimeListOrder? OrderBy { get; init; }
+
+    /// <summary>
+    ///   Optional. The time the listing is as of, in UTC, which decides the
+    ///   season under way, by the server's time zone, and which airings on
+    ///   <see cref="ChannelIDs"/> are still to come. <c>null</c> means now,
+    ///   by the service's clock. A time without a kind is read as UTC.
+    /// </summary>
+    public DateTime? At { get; init; }
 }

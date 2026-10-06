@@ -17,8 +17,15 @@ namespace Shoko.Server.Services;
 /// </summary>
 /// <param name="catalog">The cached anime catalog.</param>
 /// <param name="airingScheduleService">The airing schedule service.</param>
-public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleService airingScheduleService) : IAiringCalendarService
+/// <param name="timeProvider">The clock, or <c>null</c> for the system's.</param>
+public class AiringCalendarService(
+    AnidbAnimeCatalog catalog,
+    IAiringScheduleService airingScheduleService,
+    TimeProvider? timeProvider = null
+) : IAiringCalendarService
 {
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+
     #region Seasons
 
     /// <inheritdoc/>
@@ -26,19 +33,16 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
         int year,
         YearlySeason season,
         AnidbAnimeListOptions? animeOptions = null,
-        EpisodeAiringFilteringOptions? airingOptions = null,
-        DateOnly? today = null
+        EpisodeAiringFilteringOptions? airingOptions = null
     )
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(year, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(year, 9999);
 
-        var entries = catalog.GetAnime((animeOptions ?? new()) with { Seasons = [(year, season)] });
-        return BuildEntries(
-            entries,
-            airingOptions ?? new(),
-            today ?? DateOnly.FromDateTime(DateTime.UtcNow)
-        );
+        // Taken once, so the anime and both airing reads agree on what now is.
+        var at = airingOptions?.At is { } value ? ToUtc(value) : _timeProvider.GetUtcNow().UtcDateTime;
+        var entries = catalog.GetAnime((animeOptions ?? new()) with { Seasons = [(year, season)], At = at });
+        return BuildEntries(entries, airingOptions ?? new(), at);
     }
 
     /// <inheritdoc/>
@@ -47,8 +51,7 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
         YearlySeason season,
         IReadOnlyList<SeasonSectionDefinition>? sections = null,
         AnidbAnimeListOptions? animeOptions = null,
-        EpisodeAiringFilteringOptions? airingOptions = null,
-        DateOnly? today = null
+        EpisodeAiringFilteringOptions? airingOptions = null
     )
     {
         sections ??= SeasonSectionDefinition.DefaultLayout;
@@ -59,7 +62,7 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
             throw new ArgumentException("Two sections share an ID.", nameof(sections));
 
         return GroupIntoSections(
-            GetSeasonAnime(year, season, animeOptions, airingOptions, today),
+            GetSeasonAnime(year, season, animeOptions, airingOptions),
             (year, season),
             sections,
             keepOrder: animeOptions?.Filter?.SortingExpression is not null
@@ -80,21 +83,22 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
     /// </remarks>
     /// <param name="entries">The anime, each with its Shoko series when there is one.</param>
     /// <param name="airingOptions">The airing filters, read next-only on a copy.</param>
-    /// <param name="today">The current date, which decides whether an anime has finished.</param>
+    /// <param name="at">The time the reads are as of, in UTC; its date decides whether an anime has finished.</param>
     /// <exception cref="ArgumentNullException"><paramref name="entries"/> or <paramref name="airingOptions"/> is <c>null</c>.</exception>
     /// <returns>The entries.</returns>
     internal IReadOnlyList<SeasonAnimeEntry> BuildEntries(
         IReadOnlyList<(AniDB_Anime Anime, AnimeSeries? Series)> entries,
         EpisodeAiringFilteringOptions airingOptions,
-        DateOnly today
+        DateTime at
     )
     {
         ArgumentNullException.ThrowIfNull(entries);
         ArgumentNullException.ThrowIfNull(airingOptions);
 
+        var today = DateOnly.FromDateTime(at);
         var nextAirings = airingScheduleService.GetAiringsForSeries(
             entries.Select(GetReadEntity),
-            WithNext(airingOptions, new HashSet<AiringNextGrouping>())
+            WithNext(airingOptions, new HashSet<AiringNextGrouping>(), at)
         );
         var timedEntries = entries
             .Where(entry => GetNext(nextAirings, entry) is { IsDateOnly: false })
@@ -103,7 +107,7 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
         var channelAirings = timedEntries.Count > 0
             ? airingScheduleService.GetAiringsForSeries(
                 timedEntries,
-                WithNext(airingOptions, new HashSet<AiringNextGrouping> { AiringNextGrouping.Channel })
+                WithNext(airingOptions, new HashSet<AiringNextGrouping> { AiringNextGrouping.Channel }, at)
             )
             : new Dictionary<MetadataGuid, IReadOnlyList<IEpisodeAiring>>();
         return
@@ -320,8 +324,9 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
     /// </summary>
     /// <param name="options">The caller's filters.</param>
     /// <param name="nextPer">What to keep one airing per; empty for the single next airing.</param>
+    /// <param name="at">The time the read is as of, in UTC.</param>
     /// <returns>The filters.</returns>
-    private static EpisodeAiringFilteringOptions WithNext(EpisodeAiringFilteringOptions options, IReadOnlySet<AiringNextGrouping> nextPer)
+    private static EpisodeAiringFilteringOptions WithNext(EpisodeAiringFilteringOptions options, IReadOnlySet<AiringNextGrouping> nextPer, DateTime at)
         => new()
         {
             ProviderIDs = options.ProviderIDs,
@@ -345,6 +350,7 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
             PreferredOnly = options.PreferredOnly,
             NextOnly = true,
             NextPer = nextPer,
+            At = at,
         };
 
     /// <summary>

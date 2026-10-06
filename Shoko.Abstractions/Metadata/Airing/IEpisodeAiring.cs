@@ -118,6 +118,22 @@ public interface IEpisodeAiring
     DateTime? OriginalAiredAt { get; }
 
     /// <summary>
+    ///   How long the episode itself runs: its AniDB episode's length, else
+    ///   the median length of its anime's regular episodes, or <c>null</c>
+    ///   when neither is known.
+    /// </summary>
+    TimeSpan? Duration { get; }
+
+    /// <summary>
+    ///   When the airing's slot ends, in UTC, or <c>null</c> when it has no
+    ///   current slot: <see cref="AiredAt"/> plus the <see cref="Duration"/>,
+    ///   or 24 minutes when that is unknown. On a television channel, whose
+    ///   slots carry ads, it is rounded up to the next 15 minutes, or ends at
+    ///   the channel's next airing if that starts sooner, once the episode is over.
+    /// </summary>
+    DateTime? EndsAt { get; }
+
+    /// <summary>
     ///   Whether this airing's own slot was postponed on this channel. Only the
     ///   airing that caused a delay is flagged; the ones that merely shifted
     ///   behind it are not.

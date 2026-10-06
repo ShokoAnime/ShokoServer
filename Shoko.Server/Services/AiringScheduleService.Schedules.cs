@@ -48,6 +48,7 @@ public partial class AiringScheduleService
                     AiringScheduleUtility.IsDerivedChannelScheduleKey(other.Key, tracks));
         AiringChannel? leftChannel = null;
         var reason = UpdateReason.Added;
+        var now = UtcNow;
         if (row is null)
         {
             row = new AiringSchedule()
@@ -58,7 +59,7 @@ public partial class AiringScheduleService
                 SeasonID = seasonID,
                 Key = key,
                 ChannelID = channelID,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = now,
             };
         }
         else
@@ -92,7 +93,7 @@ public partial class AiringScheduleService
         row.IsFinished = data.IsFinished;
         row.TimeZoneID = timeZoneID;
         row.Url = string.IsNullOrWhiteSpace(data.Url) ? null : data.Url.Trim();
-        row.LastUpdatedAt = DateTime.UtcNow;
+        row.LastUpdatedAt = now;
         RepoFactory.AiringSchedule.Save(row);
         InvalidateProfilesForSeries(row.SeriesSource, row.SeriesID);
 
@@ -131,7 +132,7 @@ public partial class AiringScheduleService
             row.Url = string.IsNullOrWhiteSpace(data.Url) ? null : data.Url.Trim();
 
         row.ProviderName = info.Name;
-        row.LastUpdatedAt = DateTime.UtcNow;
+        row.LastUpdatedAt = UtcNow;
         RepoFactory.AiringSchedule.Save(row);
         InvalidateProfilesForSeries(row.SeriesSource, row.SeriesID);
 

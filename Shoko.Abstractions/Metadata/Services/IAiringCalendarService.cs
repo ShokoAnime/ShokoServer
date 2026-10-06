@@ -23,13 +23,15 @@ public interface IAiringCalendarService
     ///   The anime are read through
     ///   <c>IAnidbService.GetCachedAnime</c>, in the order the options ask
     ///   for. The airings are read through each anime's Shoko series, or the
-    ///   anime itself outside the collection, and count from now.
+    ///   anime itself outside the collection, and count from the airing
+    ///   options' <see cref="EpisodeAiringFilteringOptions.At"/>, or now: an
+    ///   episode on air then is the next airing until its slot ends. An anime
+    ///   has finished when its end date passed by that time's UTC date.
     /// </remarks>
     /// <param name="year">The year.</param>
     /// <param name="season">The season.</param>
-    /// <param name="animeOptions">The anime filters and order; its seasons are replaced by this one.</param>
-    /// <param name="airingOptions">The airing filters; the read is always next-only.</param>
-    /// <param name="today">The current date, which decides whether an anime has finished. Defaults to today in UTC.</param>
+    /// <param name="animeOptions">The anime filters and order; its seasons and reference time are replaced by this read's.</param>
+    /// <param name="airingOptions">The airing filters and the reference time; the read is always next-only.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="year"/> is not between 1 and 9999.</exception>
     /// <exception cref="ArgumentNullException">
     ///   A filter in the options depends on the user and the options name none.
@@ -39,8 +41,7 @@ public interface IAiringCalendarService
         int year,
         YearlySeason season,
         AnidbAnimeListOptions? animeOptions = null,
-        EpisodeAiringFilteringOptions? airingOptions = null,
-        DateOnly? today = null
+        EpisodeAiringFilteringOptions? airingOptions = null
     );
 
     /// <summary>
@@ -56,9 +57,8 @@ public interface IAiringCalendarService
     /// <param name="year">The year.</param>
     /// <param name="season">The season.</param>
     /// <param name="sections">The layout, or <c>null</c> for <see cref="SeasonSectionDefinition.DefaultLayout"/>.</param>
-    /// <param name="animeOptions">The anime filters; its seasons are replaced by this one.</param>
-    /// <param name="airingOptions">The airing filters; the read is always next-only.</param>
-    /// <param name="today">The current date, which decides whether an anime has finished. Defaults to today in UTC.</param>
+    /// <param name="animeOptions">The anime filters; its seasons and reference time are replaced by this read's.</param>
+    /// <param name="airingOptions">The airing filters and the reference time; the read is always next-only.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="year"/> is not between 1 and 9999.</exception>
     /// <exception cref="ArgumentException">
     ///   <paramref name="sections"/> holds a <c>null</c> section, or two
@@ -73,8 +73,7 @@ public interface IAiringCalendarService
         YearlySeason season,
         IReadOnlyList<SeasonSectionDefinition>? sections = null,
         AnidbAnimeListOptions? animeOptions = null,
-        EpisodeAiringFilteringOptions? airingOptions = null,
-        DateOnly? today = null
+        EpisodeAiringFilteringOptions? airingOptions = null
     );
 
     /// <summary>
@@ -82,9 +81,11 @@ public interface IAiringCalendarService
     ///   <c>IAnidbService.GetCachedAnimeSeasons</c> does, grouped by year.
     /// </summary>
     /// <remarks>
-    ///   A year whose seasons hold no anime at all is left out.
+    ///   A year whose seasons hold no anime at all is left out. The season
+    ///   under way is the one as of the options'
+    ///   <see cref="AnidbAnimeListOptions.At"/>, or now.
     /// </remarks>
-    /// <param name="options">The filters on the anime counted; the seasons and order are ignored.</param>
+    /// <param name="options">The filters on the anime counted and the reference time; the seasons and order are ignored.</param>
     /// <param name="includeImages">Whether to pick a poster and a backdrop for each season.</param>
     /// <exception cref="ArgumentNullException">
     ///   A filter in the options depends on the user and the options name none.

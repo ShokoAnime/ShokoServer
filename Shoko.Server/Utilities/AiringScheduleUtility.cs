@@ -1286,6 +1286,57 @@ public static class AiringScheduleUtility
 
     #endregion
 
+    #region Slots
+
+    /// <summary>
+    /// How long an episode is taken to run when its length is unknown, in
+    /// minutes.
+    /// </summary>
+    public const int DefaultEpisodeMinutes = 24;
+
+    /// <summary>
+    /// The step a television slot's length is rounded up to, in minutes, for
+    /// the ads a broadcast carries.
+    /// </summary>
+    public const int TelevisionSlotStepMinutes = 15;
+
+    /// <summary>
+    /// When an airing's slot ends: its start plus the episode's length, or
+    /// <see cref="DefaultEpisodeMinutes"/> when that is unknown. On a
+    /// television channel the length is rounded up to the next
+    /// <see cref="TelevisionSlotStepMinutes"/>, and the slot ends early at the
+    /// next airing on the channel when that starts after the episode is over.
+    /// </summary>
+    /// <param name="start">The start of the slot.</param>
+    /// <param name="episodeLength">The episode's length, or <c>null</c> when unknown.</param>
+    /// <param name="channelType">The type of the channel, or <c>null</c> when the airing has none.</param>
+    /// <param name="nextSlot">The start of the next airing on the same channel, or <c>null</c> when unknown.</param>
+    /// <returns>The end of the slot, clamped to <see cref="DateTime.MaxValue"/>.</returns>
+    public static DateTime GetAiringEnd(DateTime start, TimeSpan? episodeLength, AiringChannelType? channelType, DateTime? nextSlot = null)
+    {
+        var length = episodeLength is { } known && known > TimeSpan.Zero ? known : TimeSpan.FromMinutes(DefaultEpisodeMinutes);
+        var end = AddClamped(start, length);
+        if (channelType is not AiringChannelType.Television)
+            return end;
+
+        var step = TimeSpan.FromMinutes(TelevisionSlotStepMinutes).Ticks;
+        var slotEnd = AddClamped(start, TimeSpan.FromTicks((length.Ticks + step - 1) / step * step));
+        // A next airing before the episode is over is an overlap or bad data, so it is ignored.
+        return nextSlot is { } next && next >= end && next < slotEnd ? next : slotEnd;
+    }
+
+    /// <summary>
+    /// Adds a length to a point in time without running past
+    /// <see cref="DateTime.MaxValue"/>.
+    /// </summary>
+    /// <param name="start">The point in time.</param>
+    /// <param name="length">The length, never negative.</param>
+    /// <returns>The sum, clamped.</returns>
+    private static DateTime AddClamped(DateTime start, TimeSpan length)
+        => DateTime.MaxValue - start < length ? DateTime.MaxValue : start + length;
+
+    #endregion
+
     #region Cadence
 
     /// <summary>

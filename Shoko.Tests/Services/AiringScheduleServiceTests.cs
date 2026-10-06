@@ -11,6 +11,7 @@ using Moq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
@@ -2645,6 +2646,31 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
+    public void NextOnly_AnEntityReadAtAnotherTimeKeepsTheAiringNextThen()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        harness.Schedule(
+            harness.Primary,
+            "tbs",
+            tbs.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(1, 22)),
+            (1, harness.Air(40, 22)),
+            (2, harness.Air(47, 22))
+        );
+        DateTime? NextAt(DateTime at)
+            => Assert.Single(harness.Service.GetAiringsForSeries(
+                harness.ProviderSeries,
+                new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true, At = at }
+            )).AiredAt;
+
+        Assert.Equal(harness.Air(1, 22), NextAt(harness.Air(1, 0)));
+        Assert.Equal(harness.Air(40, 22), NextAt(harness.Air(40, 22, 10)));
+        Assert.Equal(harness.Air(47, 22), NextAt(harness.Air(41, 0)));
+    }
+
+    [Fact]
     public void NextOnly_SkipsAnEpisodeAlreadyPremieredElsewhere()
     {
         using var harness = new Harness();
@@ -2671,10 +2697,65 @@ public class AiringScheduleServiceTests
 
         var airing = Assert.Single(harness.Service.GetAiringsForSeries(
             harness.ShokoSeries,
-            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true }
+            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true, At = harness.Air(31, 12) }
         ));
 
         Assert.Equal((harness.ShokoEpisodes[2].ID, harness.Air(37, 23)), (airing.ShokoEpisode?.ID, airing.AiredAt));
+    }
+
+    [Theory]
+    [InlineData(AiringChannelType.Television, 30)]
+    [InlineData(AiringChannelType.Streaming, 24)]
+    public void NextOnly_KeepsAnEpisodeNextWhileItIsOnAir(AiringChannelType channelType, int slotMinutes)
+    {
+        using var harness = new Harness();
+        var channel = harness.Service.FindOrRegisterChannel("Channel", channelType);
+        var start = harness.Air(40, 15, 30);
+        harness.Schedule(
+            harness.Primary,
+            "run",
+            channel.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, start),
+            (1, start.AddDays(7))
+        );
+        var options = new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true };
+        IEpisodeAiring NextAt(DateTime time)
+            => Assert.Single(harness.Service.GetAiringsInRange(time, start.AddDays(14), options));
+
+        // The episode's length is unknown, so it runs 24 minutes.
+        var onAir = NextAt(start.AddMinutes(1));
+        Assert.Equal((harness.Episodes[0].ID, start.AddMinutes(slotMinutes)), (onAir.EpisodeID, onAir.EndsAt));
+        Assert.True(onAir.IsAiringAt(start.AddMinutes(1)));
+        Assert.Equal(harness.Episodes[0].ID, NextAt(start.AddMinutes(slotMinutes - 1)).EpisodeID);
+        Assert.Equal(harness.Episodes[1].ID, NextAt(start.AddMinutes(slotMinutes)).EpisodeID);
+    }
+
+    [Fact]
+    public void ATelevisionSlotEndsAtTheChannelsNextAiring()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        var start = harness.Air(40, 23);
+        var schedule = harness.Schedule(harness.Primary, "tbs", tbs.ChannelID, [new AiringTrackData(AiringKind.Original, "ja")], (0, start));
+        harness.OrphanSchedule(harness.Secondary, "other", tbs.ChannelID, start.AddMinutes(25));
+
+        Assert.Equal(start.AddMinutes(25), Assert.Single(harness.Read(schedule)).EndsAt);
+    }
+
+    [Fact]
+    public void AnEpisodesLengthFallsBackToItsAnimesUsualLength()
+    {
+        using var harness = new Harness();
+        AniDB_Episode Episode(int id, int animeID, int lengthSeconds)
+            => new() { AniDB_EpisodeID = id, EpisodeID = id, AnimeID = animeID, EpisodeType = EpisodeType.Episode, LengthSeconds = lengthSeconds };
+        var episodes = new[] { Episode(1, 10, 720), Episode(2, 10, 1500), Episode(3, 10, 1500), Episode(4, 10, 0), Episode(5, 20, 0) };
+        harness.UseAnidbEpisodes(episodes);
+        var context = new AiringReadContext(harness.Service);
+
+        Assert.Equal(TimeSpan.FromSeconds(720), context.GetEpisodeDuration(episodes[0]));
+        Assert.Equal(TimeSpan.FromSeconds(1500), context.GetEpisodeDuration(episodes[3]));
+        Assert.Null(context.GetEpisodeDuration(episodes[4]));
     }
 
     [Fact]
@@ -2684,7 +2765,7 @@ public class AiringScheduleServiceTests
         var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
         harness.Weekly("mx", tokyo.ChannelID, 30);
         harness.OrphanSchedule(harness.Primary, "orphan", tokyo.ChannelID, harness.Air(33, 23));
-        var options = new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true };
+        var options = new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true, At = harness.Air(31, 12) };
 
         var many = harness.Service.GetAiringsForSeries([harness.ShokoSeries, harness.OrphanSeries, harness.ShokoSeries], options);
 
@@ -3033,7 +3114,7 @@ public class AiringScheduleServiceTests
 
         var next = harness.Service.GetAiringsForSeries(
             harness.ProviderSeries,
-            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true }
+            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true, At = harness.Air(31, 12) }
         );
 
         Assert.Empty(next);

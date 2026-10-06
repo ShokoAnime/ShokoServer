@@ -41,9 +41,12 @@ public class AnidbAnimeCatalog(
     VideoLocalRepository videoRepository,
     IMetadataTextManager textManager,
     IMetadataFilteringService filteringService,
-    AiringScheduleService airingScheduleService
+    AiringScheduleService airingScheduleService,
+    TimeProvider? timeProvider = null
 )
 {
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+
     // The least prior weight, in votes, the season ranking gives the mean.
     private const int MinimumPriorVotes = 50;
 
@@ -62,10 +65,10 @@ public class AnidbAnimeCatalog(
     {
         options ??= new();
         Func<AniDB_Anime, bool>? inSeasons = null;
-        var channelAirings = options.ChannelIDs is { Count: > 0 } channelIDs ? GetChannelAirings(channelIDs) : null;
+        var (current, last, now) = GetListedSeasons(options.At);
+        var channelAirings = options.ChannelIDs is { Count: > 0 } channelIDs ? GetChannelAirings(channelIDs, now) : null;
         if (options.Seasons is { Count: > 0 })
         {
-            var (current, last) = GetListedSeasons();
             var seasons = options.Seasons.Where(season => season.CompareTo(last) <= 0).ToHashSet();
             if (seasons.Count == 0)
                 return [];
@@ -122,8 +125,8 @@ public class AnidbAnimeCatalog(
     public IReadOnlyList<AnidbAnimeSeasonCount> GetSeasons(AnidbAnimeListOptions? options = null, bool includeImages = false)
     {
         options ??= new();
-        var (current, last) = GetListedSeasons();
-        var channelAirings = options.ChannelIDs is { Count: > 0 } channelIDs ? GetChannelAirings(channelIDs) : null;
+        var (current, last, now) = GetListedSeasons(options.At);
+        var channelAirings = options.ChannelIDs is { Count: > 0 } channelIDs ? GetChannelAirings(channelIDs, now) : null;
         var members = new Dictionary<(int Year, YearlySeason Season), List<Member>>();
         foreach (var (anime, series, _) in Filter(options, inSeasons: null, GetFilteredAnimeIDs(options)))
         {
@@ -252,9 +255,10 @@ public class AnidbAnimeCatalog(
     ///   The stored airings of every AniDB anime on some channels, by anime.
     /// </summary>
     /// <param name="channelIDs">The channels.</param>
+    /// <param name="now">The time an airing is still to come after, in UTC.</param>
     /// <returns>The airings, by AniDB anime ID.</returns>
-    internal virtual IReadOnlyDictionary<int, AnidbAnimeChannelAirings> GetChannelAirings(IReadOnlySet<Guid> channelIDs)
-        => airingScheduleService.GetAnidbAnimeOnChannels(channelIDs);
+    internal virtual IReadOnlyDictionary<int, AnidbAnimeChannelAirings> GetChannelAirings(IReadOnlySet<Guid> channelIDs, DateTime now)
+        => airingScheduleService.GetAnidbAnimeOnChannels(channelIDs, now);
 
     /// <summary>
     ///   Whether an anime is on the channels in a season: it has an airing on
@@ -279,11 +283,15 @@ public class AnidbAnimeCatalog(
     ///   The season under way and the last one listed, the one after it.
     ///   Later seasons are yet to be decided.
     /// </summary>
-    /// <returns>The current and last listed seasons.</returns>
-    private static ((int Year, YearlySeason Season) Current, (int Year, YearlySeason Season) Last) GetListedSeasons()
+    /// <param name="at">The time the listing is as of, or <c>null</c> for now.</param>
+    /// <returns>The current and last listed seasons, and the time they are as of, in UTC.</returns>
+    private ((int Year, YearlySeason Season) Current, (int Year, YearlySeason Season) Last, DateTime Now) GetListedSeasons(DateTime? at)
     {
-        var current = SeasonCalendar.GetCurrentYearlySeason();
-        return (current, SeasonCalendar.GetNextYearlySeason(current));
+        var now = at is { } value ? AiringReadContext.ToUtc(value) : _timeProvider.GetUtcNow().UtcDateTime;
+        // The server's own day, as the season of an entry still airing goes by.
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(now, _timeProvider.LocalTimeZone));
+        var current = SeasonCalendar.GetYearlySeason(today);
+        return (current, SeasonCalendar.GetNextYearlySeason(current), now);
     }
 
     /// <summary>
@@ -497,8 +505,17 @@ public class AnidbAnimeCatalog(
     /// <param name="animeID">The AniDB anime ID.</param>
     /// <returns>The length, or <c>null</c> when no regular episode has a known length.</returns>
     public TimeSpan? GetEpisodeDuration(int animeID)
+        => GetEpisodeDuration(episodeRepository.GetByAnimeID(animeID));
+
+    /// <summary>
+    ///   The usual length of the regular episodes among some AniDB episodes:
+    ///   the median of their known lengths.
+    /// </summary>
+    /// <param name="episodes">The episodes of one anime.</param>
+    /// <returns>The length, or <c>null</c> when no regular episode has a known length.</returns>
+    internal static TimeSpan? GetEpisodeDuration(IEnumerable<AniDB_Episode> episodes)
     {
-        var lengths = episodeRepository.GetByAnimeID(animeID)
+        var lengths = episodes
             .Where(episode => episode.EpisodeType is EpisodeType.Episode && episode.LengthSeconds > 0)
             .Select(episode => episode.LengthSeconds)
             .ToList();

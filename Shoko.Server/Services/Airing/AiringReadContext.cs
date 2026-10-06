@@ -71,6 +71,10 @@ internal sealed class AiringReadContext
 
     private readonly Dictionary<(int AnimeID, int ScheduleID), AiringEpisodeOffset?> _episodeOffsets = [];
 
+    private readonly Dictionary<int, TimeSpan?> _usualEpisodeLengths = [];
+
+    private readonly Dictionary<Guid, List<DateTime>> _channelSlots = [];
+
     private AiringScheduleServiceSettings? _settings;
 
     private IReadOnlySet<Guid>? _hiddenChannels;
@@ -90,20 +94,43 @@ internal sealed class AiringReadContext
     public bool IncludeHiddenChannels { get; }
 
     /// <summary>
+    /// What the read counts as now, in UTC: the time it is as of, or the
+    /// service's clock taken once when the read starts, so every part of it
+    /// agrees.
+    /// </summary>
+    public DateTime Now { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="AiringReadContext"/> class.
     /// </summary>
     /// <param name="service">The service the read belongs to.</param>
     /// <param name="includeDisabled">Whether disabled providers and kinds are part of the read.</param>
     /// <param name="includeHiddenChannels">Whether hidden channels are part of the read when it names no channels.</param>
+    /// <param name="at">The time the read is as of, or <c>null</c> for now; a time without a kind is UTC.</param>
     /// <exception cref="ArgumentNullException"><paramref name="service"/> is <c>null</c>.</exception>
-    public AiringReadContext(AiringScheduleService service, bool includeDisabled = false, bool includeHiddenChannels = false)
+    public AiringReadContext(AiringScheduleService service, bool includeDisabled = false, bool includeHiddenChannels = false, DateTime? at = null)
     {
         ArgumentNullException.ThrowIfNull(service);
 
         _service = service;
         IncludeDisabled = includeDisabled;
         IncludeHiddenChannels = includeHiddenChannels;
+        Now = at is { } value ? ToUtc(value) : service.UtcNow;
     }
+
+    /// <summary>
+    /// A time as UTC. A time without a kind is UTC already, and a local one is
+    /// converted.
+    /// </summary>
+    /// <param name="value">The time.</param>
+    /// <returns>The time, in UTC.</returns>
+    internal static DateTime ToUtc(DateTime value)
+        => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Unspecified => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+            _ => value.ToUniversalTime(),
+        };
 
     #region Settings
 
@@ -640,6 +667,58 @@ internal sealed class AiringReadContext
 
         var shokoEpisode = episode as IShokoEpisode ?? episode.ShokoEpisodes.FirstOrDefault();
         return (shokoEpisode?.AnidbEpisode, shokoEpisode);
+    }
+
+    #endregion
+
+    #region Lengths
+
+    /// <summary>
+    /// How long an AniDB episode runs: its own length, else the median length
+    /// of its anime's regular episodes, worked out once per anime.
+    /// </summary>
+    /// <param name="anidbEpisode">The AniDB episode, if any.</param>
+    /// <returns>The length, or <c>null</c> when neither is known.</returns>
+    public TimeSpan? GetEpisodeDuration(IAnidbEpisode? anidbEpisode)
+    {
+        if (anidbEpisode is null)
+            return null;
+        if (anidbEpisode.Runtime > TimeSpan.Zero)
+            return anidbEpisode.Runtime;
+
+        var animeID = anidbEpisode.AnidbAnimeID;
+        if (!_usualEpisodeLengths.TryGetValue(animeID, out var usual))
+            _usualEpisodeLengths[animeID] = usual = AnidbAnimeCatalog.GetEpisodeDuration(RepoFactory.AniDB_Episode.GetByAnimeID(animeID));
+
+        return usual;
+    }
+
+    /// <summary>
+    /// The first stored airing on a channel that starts after a point in time,
+    /// on any of the channel's schedules. The channel's slots are gathered
+    /// once per read and searched from then on.
+    /// </summary>
+    /// <param name="channelID">The channel.</param>
+    /// <param name="after">The point in time.</param>
+    /// <returns>The start of that airing, or <c>null</c> when there is none.</returns>
+    public DateTime? GetNextChannelSlot(Guid channelID, DateTime after)
+    {
+        if (!_channelSlots.TryGetValue(channelID, out var slots))
+        {
+            slots = RepoFactory.AiringSchedule.GetByChannelID(channelID)
+                .SelectMany(row => RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID))
+                .Select(entry => entry.AiredAt)
+                .OfType<DateTime>()
+                .Distinct()
+                .Order()
+                .ToList();
+            _channelSlots[channelID] = slots;
+        }
+
+        // The index of the first slot after the point, from the complement of a miss or past an exact hit.
+        var index = slots.BinarySearch(after);
+        index = index < 0 ? ~index : index + 1;
+        return index < slots.Count ? slots[index] : null;
     }
 
     #endregion

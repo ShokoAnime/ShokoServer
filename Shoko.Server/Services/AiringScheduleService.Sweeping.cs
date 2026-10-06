@@ -51,7 +51,7 @@ public partial class AiringScheduleService
         if (!_loaded)
             throw new InvalidOperationException("Parts have not been added yet.");
 
-        var providers = GetDueSweepProviders(DateTime.UtcNow);
+        var providers = GetDueSweepProviders(UtcNow);
         var items = new ItemProgress(progress, providers.Count);
         items.Report(0);
         foreach (var info in providers)
@@ -153,7 +153,7 @@ public partial class AiringScheduleService
         var state = RepoFactory.AiringScheduleSweepState.GetByProviderID(providerID);
         var cursor = state?.Cursor;
         var previousNoProgress = state?.NoProgressCount ?? 0;
-        var startedAt = DateTime.UtcNow;
+        var startedAt = UtcNow;
         var outcome = AiringScheduleSweepOutcome.Completed;
         var nextCursor = cursor;
         string? errorMessage = null;
@@ -194,7 +194,7 @@ public partial class AiringScheduleService
             logger.LogError(ex, "Provider {ProviderName} failed to sweep.", info.Name);
         }
 
-        var completedAt = DateTime.UtcNow;
+        var completedAt = UtcNow;
         var advanced = outcome is AiringScheduleSweepOutcome.Completed && !string.Equals(nextCursor, cursor, StringComparison.Ordinal);
         var noProgressCount = outcome switch
         {

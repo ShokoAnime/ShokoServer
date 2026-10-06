@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Models.Common;
@@ -64,6 +65,22 @@ public class EpisodeAiring
     /// falls in the range and <see cref="AiredAt"/> does not.
     /// </summary>
     public DateTime? OriginalAiredAt { get; init; }
+
+    /// <summary>
+    /// How long the episode itself runs: its AniDB episode's length, else the
+    /// usual length of its anime's regular episodes, or <c>null</c> when
+    /// neither is known. Show this as the episode's length.
+    /// </summary>
+    public TimeSpan? Duration { get; init; }
+
+    /// <summary>
+    /// When the slot ends, in UTC, or <c>null</c> without <see cref="AiredAt"/>:
+    /// the start plus <see cref="Duration"/>, or 24 minutes when that is
+    /// unknown. On a television channel it is rounded up to the next 15
+    /// minutes for the ads, or ends at the channel's next airing when that
+    /// starts sooner but after the episode is over. Elsewhere it is exact.
+    /// </summary>
+    public DateTime? EndsAt { get; init; }
 
     /// <summary>
     /// Whether this airing's own slot was postponed on this channel. Only the
@@ -204,7 +221,13 @@ public class EpisodeAiring
     /// <param name="poster">The series poster, when it was asked for.</param>
     /// <param name="thumbnail">The episode thumbnail, when it was asked for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="airing"/> is <c>null</c>.</exception>
-    public EpisodeAiring(IEpisodeAiring airing, AiringSeries? series = null, string? episodeTitle = null, Image? poster = null, Image? thumbnail = null)
+    public EpisodeAiring(
+        IEpisodeAiring airing,
+        AiringSeries? series = null,
+        string? episodeTitle = null,
+        Image? poster = null,
+        Image? thumbnail = null
+    )
     {
         ArgumentNullException.ThrowIfNull(airing);
 
@@ -215,6 +238,8 @@ public class EpisodeAiring
         AirDate = airing.AirDate;
         AiredAt = airing.AiredAt.ToUtc();
         OriginalAiredAt = airing.OriginalAiredAt.ToUtc();
+        Duration = airing.Duration;
+        EndsAt = airing.EndsAt.ToUtc();
         IsDelayed = airing.IsDelayed;
         Kind = airing.Kind;
         IsEstimated = airing.IsEstimated;

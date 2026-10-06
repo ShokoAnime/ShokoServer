@@ -470,7 +470,8 @@ Besides the schedule filters (`ProviderIDs`, `Kinds`, `Languages`) it carries:
 | `IncludeRestricted` | An `InclusionFilter` on restricted (H) series. |
 | `User` | Leaves out the series the user may not see. |
 | `IncludeDateOnly` | Adds a date-only entry for each AniDB episode with an air date and no airing at all. An undated regular episode of an anime starting by 1970-01-01 (AniDB gives episodes before 1970 no date, or rarely a 1970-01-01 placeholder), which its anime's start date does not stand in for, takes the earliest pre-1970 date of the episodes linked to it instead. |
-| `NextOnly`, `NextPer` | Keeps the next airing per series, channel and/or kind, of an episode still to premiere. |
+| `NextOnly`, `NextPer` | Keeps the airing on air or next per series, channel and/or kind, of an episode still to premiere. |
+| `At` | The time the read is as of, in UTC; `null` is now, by the service's clock. |
 
 `GetAiringsInRange` takes a `DateTimeOffset` range, start inclusive and end
 exclusive, compared as instants. A date-only entry (`IsDateOnly`, with
@@ -478,13 +479,46 @@ exclusive, compared as instants. A date-only entry (`IsDateOnly`, with
 its date falls between the calendar dates of the two ends, each read in its own
 offset, so a caller in Tokyo asking for its own day gets that day's entries.
 
-A next-only read keeps, per group, the earliest episode still to premiere at or
-after the range's start (or now, for an entity read) and answers with that
-episode's best airing by preference. An episode with a real `Normal` airing
-before that point, on any schedule of any provider and channel and through the
-links the read walks, has premiered, so a regional channel's late showing of
-it is never next, though a plain read still returns it. A date-only entry is
-next until its day is over.
+A next-only read keeps, per group, the earliest episode still to premiere on
+air at or starting after the range's start (or now, for an entity read) and
+answers with that episode's best airing by preference. An airing is on air
+from `AiredAt` until `EndsAt`, so an episode stays next while it airs. An
+episode with a real `Normal` airing that ended before that point, on any
+schedule of any provider and channel and through the links the read walks, has
+premiered, so a regional channel's late showing of it is never next, though a
+plain read still returns it. A date-only entry is next until its day is over.
+
+### Reading as of a time
+
+Whatever a read counts from now counts from `At` when it is set: the next
+airing of a next-only entity read, whether an episode has premiered, and
+whether a later showing has overtaken a slotless airing. A range read's next
+airing still counts from the start of its range. `At` only changes what the
+read answers, never what is stored, and a read takes the time once, so every
+part of it agrees on what now is. A time without a kind is read as UTC.
+Subscriptions ignore it.
+
+```csharp
+// What a season card showed on the evening of 2026-10-04, Tokyo time.
+var next = airingScheduleService.GetAiringsForSeries(series, new EpisodeAiringFilteringOptions
+{
+    NextOnly = true,
+    At = new DateTime(2026, 10, 4, 12, 0, 0, DateTimeKind.Utc),
+});
+```
+
+`IAiringCalendarService` reads a season's anime as of the airing options'
+`At`, which also decides whether an anime has finished and replaces the anime
+options' own, and lists the seasons by year as of the anime options'
+`AnidbAnimeListOptions.At`, which decides the season under way.
+
+`EndsAt` is `AiredAt` plus the airing's `Duration` (its AniDB episode's length,
+else the median of its anime's regular episodes), or 24 minutes when that is
+unknown. A television slot is rounded up to the next 15 minutes for its ads,
+and ends early at the channel's next stored airing when that starts after the
+episode is over; any other channel takes the exact length. A date-only entry
+has no `EndsAt`. `airing.IsAiringAt(time)` (in `Shoko.Abstractions.Extensions`)
+says whether an airing is on air at a given time.
 
 To read many series at once, such as every anime of a season, pass them all to
 `GetAiringsForSeries(IEnumerable<ISeries>, options)`. Each series answers what

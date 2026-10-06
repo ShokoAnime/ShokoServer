@@ -60,7 +60,8 @@ public partial class AiringScheduleService(
     Lazy<IMetadataService> metadataService,
     Lazy<IMetadataCrossReferenceStore> crossReferenceStore,
     Lazy<IMetadataLinkingService> linkingService,
-    Lazy<IMetadataFilteringService> filteringService
+    Lazy<IMetadataFilteringService> filteringService,
+    TimeProvider? timeProvider = null
 ) : IAiringScheduleService
 {
     /// <summary>
@@ -77,6 +78,8 @@ public partial class AiringScheduleService(
     internal static readonly TimeSpan EmptyScheduleBuffer = TimeSpan.FromHours(1);
 
     private readonly Lock _lock = new();
+
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     private Dictionary<Guid, AiringScheduleProviderInfo> _providerInfos = [];
 
@@ -110,6 +113,12 @@ public partial class AiringScheduleService(
     /// list yet.
     /// </summary>
     internal IMetadataCrossReferenceStore CrossReferences => crossReferenceStore.Value;
+
+    /// <summary>
+    /// The current time, in UTC, from the service's time provider. A read
+    /// takes it once, through its <see cref="AiringReadContext"/>.
+    /// </summary>
+    internal DateTime UtcNow => _timeProvider.GetUtcNow().UtcDateTime;
 
     /// <summary>
     /// The AniDB anime of the Shoko series a filter passes for a user.

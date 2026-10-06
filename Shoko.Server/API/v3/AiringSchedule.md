@@ -33,8 +33,9 @@ week starts where this one ended. A value without a time or an offset, such as
 than read in the server's time zone. A `+` must be sent as `%2B` in a query
 string; an unencoded one arrives as a space, which is read as a `+` too.
 
-`from` defaults to the start of today in UTC (to now with `nextOnly`), and `to`
-to a week after `from`. A `to` before `from` is `400 Bad Request`. Times in the
+`from` defaults to the start of today in UTC (to now with `nextOnly`), counting
+from `at` when it is given (see *Reading as of a time*), and `to` to a week
+after `from`. A `to` before `from` is `400 Bad Request`. Times in the
 response are always UTC.
 
 ### The filters
@@ -116,8 +117,10 @@ and `entityAnchor` apply as to any airing.
 
 ### Next only
 
-`nextOnly=true` reduces the answer to the next airing at or after `from` (now,
-by default), per group. `nextPer` says what a group is, comma-delimited and
+`nextOnly=true` reduces the answer to the next airing on air at or starting
+after `from` (now, by default), per group. An airing is on air from `AiredAt`
+until `EndsAt` (see *Airing now*, below), so an episode stays next while it
+airs rather than giving way to the following one the moment it starts. `nextPer` says what a group is, comma-delimited and
 combinable:
 
 - `Series` (the default): one airing per series.
@@ -130,7 +133,8 @@ channels. Next means the next *new* episode: one that premiered before `from`
 (now, for the entity routes), with a real `Normal` airing then on any schedule,
 provider or channel, hidden or not, is never next, so a regional channel airing
 episode 1 a week after Tokyo did is not "Ep 1 airs in 13 hours" but the next
-episode nobody has shown yet. Its late airings are still in a plain range read.
+episode nobody has shown yet. An episode counts as shown once such an airing
+has ended. Its late airings are still in a plain range read.
 A date-only entry is next until its day is over. In each group the earliest
 remaining episode wins, and the group answers with that episode's best airing
 by the server's preference, so "Ep 5 airs in 19 hours" shows the channel and
@@ -139,7 +143,36 @@ earlier. A delayed airing's original slot is never next, and `to` still bounds
 the read, so widen it for a show on hiatus.
 
 The series, episode and schedule airing routes take `nextOnly` and `nextPer`
-too, and count from now.
+too, and count from now, or `at`.
+
+### Airing now
+
+Every airing with a time carries `EndsAt`, when its slot ends. It is on air
+from `AiredAt` until `EndsAt`, which a client compares with its own clock. A
+date-only entry has no slot, so its `EndsAt` is `null`. `Duration` is the
+episode's own length, for display: the AniDB
+episode's length, else the median length of its anime's regular episodes, or
+`null` when neither is known.
+
+The slot is `AiredAt` plus `Duration`, or 24 minutes when `Duration` is
+`null`. A streaming channel, or an airing with no channel or a channel of an
+unknown type, takes exactly that. A television slot carries ads, so its length
+is rounded up to the next 15 minutes (24 minutes take 30, 46 take 60), and it
+ends early at the start of the channel's next stored airing, of any anime, when
+that comes sooner. A next airing that starts before the episode itself is over
+is an overlap and is ignored. A calendar still shows an airing on the day it
+started, whatever its end.
+
+### Reading as of a time
+
+Every read that counts from now takes `at`, a date-time with an offset like
+`from`, to count from that time instead: the airings and channel airings
+routes and the calendar (their default `from`), the series, episode and
+schedule airing routes (`nextOnly`) and the season routes (the season under
+way, the next airings and `AiringStatus`). It only changes what
+counts as now for that read, never anything stored, so a client can check what
+a card or a calendar showed, or will show, at any time. It is on every build,
+not only debug ones.
 
 ### Display data is opt-in
 
@@ -463,9 +496,11 @@ Each anime carries what a card shows: `ID` (AniDB), `ShokoID`, `Type`,
 start season by hand, see [Start season overrides](#start-season-overrides))
 and `EpisodeDuration`, and its airing:
 
-- `NextAiring`: the next new episode's airing the server prefers, in the
-  `EpisodeAiring` shape of the airings endpoint, or a date-only entry for an
-  episode known only by its AniDB air date. `null` when there is none.
+- `NextAiring`: the airing the server prefers of the episode on air now, else
+  of the next new episode, in the `EpisodeAiring` shape of the airings
+  endpoint, or a date-only entry for an episode known only by its AniDB air
+  date. `null` when there is none. Its `AiredAt` and `EndsAt` tell the two
+  apart, and the anime keeps its place by that airing's start until `EndsAt`.
 - `OtherAirings`: that episode's other upcoming airings, the next one on each
   other channel, in airing order.
 - `AiringStatus`: `Upcoming` with a next airing, `Finished` without one once

@@ -53,9 +53,9 @@ public sealed record SeasonAnimeEntry
     public required SeasonAnimeAiringStatus Status { get; init; }
 
     /// <summary>
-    ///   The next airing: the earliest episode still to come, on the airing
-    ///   the server prefers for it, or a date-only entry for an episode known
-    ///   only by its AniDB air date.
+    ///   The next airing: the episode on air now, else the earliest still to
+    ///   come, on the airing the server prefers for it, or a date-only entry
+    ///   for an episode known only by its AniDB air date.
     /// </summary>
     public required IEpisodeAiring? NextAiring { get; init; }
 

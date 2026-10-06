@@ -68,8 +68,8 @@ public partial class AiringScheduleService
         EpisodeAiringUpdateOptions options
     )
     {
-        var now = DateTime.UtcNow;
         var context = new AiringReadContext(this, includeDisabled: true);
+        var now = context.Now;
         var scheduleView = context.GetSchedule(row);
         var submissions = ValidateAirings(context, row, airings, removalKeys);
         var existingRows = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID);
@@ -293,10 +293,11 @@ public partial class AiringScheduleService
             .DistinctBy(entry => entry.EpisodeAiringID)
             .ToList();
         var head = members.MinBy(entry => entry.EpisodeAiringID)!;
+        var updatedAt = UtcNow;
         foreach (var entry in members)
         {
             entry.LinkedToID = head.EpisodeAiringID;
-            entry.LastUpdatedAt = DateTime.UtcNow;
+            entry.LastUpdatedAt = updatedAt;
             RepoFactory.EpisodeAiring.Save(entry);
         }
 
@@ -320,7 +321,7 @@ public partial class AiringScheduleService
         if (entry.LinkedToID is not null)
         {
             entry.LinkedToID = null;
-            entry.LastUpdatedAt = DateTime.UtcNow;
+            entry.LastUpdatedAt = UtcNow;
             RepoFactory.EpisodeAiring.Save(entry);
             NormalizeLinkSets(row.AiringScheduleID, []);
         }

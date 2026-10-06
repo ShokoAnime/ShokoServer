@@ -205,15 +205,18 @@ public sealed class EpisodeAiringFilteringOptions
     /// </summary>
     /// <remarks>
     ///   <para>
-    ///     The next airing is the first one at or after the start of a range
-    ///     read, or at or after now for any other read, of an episode still to
-    ///     premiere: an episode with a real
-    ///     <see cref="EpisodeAiringKind.Normal"/> airing before that point, on
-    ///     any schedule of any provider and channel and through the links the
-    ///     read walks, is never next, so a delayed regional broadcast of it is
-    ///     not either. In each group the earliest episode wins, and the group
-    ///     answers with that episode's best airing by preference, so the
-    ///     preferred channel and track still decide where it is shown.
+    ///     The next airing is the first one on air at, or starting at or
+    ///     after, the start of a range read, or <see cref="At"/> for any
+    ///     other read, of an episode still to premiere. An airing is on air until its
+    ///     <see cref="IEpisodeAiring.EndsAt"/>, so an episode stays next while
+    ///     it airs. An episode with a real
+    ///     <see cref="EpisodeAiringKind.Normal"/> airing that ended before that
+    ///     point, on any schedule of any provider and channel and through the
+    ///     links the read walks, is never next, so a delayed regional
+    ///     broadcast of it is not either. In each group the earliest episode
+    ///     wins, and the group answers with that episode's best airing by
+    ///     preference, so the preferred channel and track still decide where
+    ///     it is shown.
     ///   </para>
     ///   <para>
     ///     A delayed airing's original slot is no airing, so it is never
@@ -230,6 +233,24 @@ public sealed class EpisodeAiringFilteringOptions
     ///   and an empty set keeps the single next airing of the whole read.
     /// </summary>
     public IReadOnlySet<AiringNextGrouping>? NextPer { get; set; }
+
+    #endregion
+
+    #region Reference Time
+
+    /// <summary>
+    ///   Optional. The time the read is as of, in UTC. <c>null</c> means now,
+    ///   by the service's clock.
+    /// </summary>
+    /// <remarks>
+    ///   Whatever a read counts from now counts from this instead: the next
+    ///   airing of a next-only entity read, whether an episode has premiered,
+    ///   and whether a later showing has overtaken a slotless airing. A range
+    ///   read's next airing still counts from the start of its range. It only
+    ///   changes what the read answers, never what is stored. A time without
+    ///   a kind is read as UTC. Subscriptions ignore this.
+    /// </remarks>
+    public DateTime? At { get; set; }
 
     #endregion
 }

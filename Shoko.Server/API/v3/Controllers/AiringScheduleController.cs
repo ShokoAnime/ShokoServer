@@ -146,6 +146,7 @@ public class AiringScheduleController(
     /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. The default range counts from it.</param>
     /// <returns>The airings in the time-frame, in airing order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
@@ -170,13 +171,14 @@ public class AiringScheduleController(
         [FromQuery] bool nextOnly = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (!TryGetStoredFilter(filterID, out var filter))
             return NotFound(FilterController.FilterNotFound);
 
-        if (!TryGetRange(from, to, nextOnly, out var start, out var end))
+        if (!TryGetRange(from, to, nextOnly, at, out var start, out var end))
             return ValidationProblem(ModelState);
 
         var options = new EpisodeAiringFilteringOptions
@@ -198,6 +200,7 @@ public class AiringScheduleController(
             NextOnly = nextOnly,
             NextPer = nextPer is { Count: > 0 } ? nextPer : null,
             EntityAnchor = entityAnchor,
+            At = at?.UtcDateTime,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsInRange(start, end, options)
@@ -295,6 +298,7 @@ public class AiringScheduleController(
     /// <param name="preferredOnly">Only return one airing per episode, using the server's preference.</param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. The default range counts from it.</param>
     /// <returns>The days with airings, in order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
@@ -319,7 +323,8 @@ public class AiringScheduleController(
         [FromQuery] bool includeDateOnly = true,
         [FromQuery] bool preferredOnly = false,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (!TryGetStoredFilter(filterID, out var filter))
@@ -328,6 +333,7 @@ public class AiringScheduleController(
         return ReadCalendar(
             from,
             to,
+            at,
             timeZone,
             everyChannel,
             new()
@@ -347,6 +353,7 @@ public class AiringScheduleController(
                 IncludeDateOnly = includeDateOnly,
                 PreferredOnly = preferredOnly,
                 EntityAnchor = entityAnchor,
+                At = at?.UtcDateTime,
             },
             include
         );
@@ -379,6 +386,7 @@ public class AiringScheduleController(
     /// <param name="preferredOnly">Only return one airing per episode, using the server's preference.</param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. The default range counts from it.</param>
     /// <returns>The days with airings, in order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
@@ -402,7 +410,8 @@ public class AiringScheduleController(
         [FromQuery] bool includeDateOnly = true,
         [FromQuery] bool preferredOnly = false,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (GetBodyFilter(body) is not { } filter)
@@ -411,6 +420,7 @@ public class AiringScheduleController(
         return ReadCalendar(
             from,
             to,
+            at,
             timeZone,
             everyChannel,
             new()
@@ -430,6 +440,7 @@ public class AiringScheduleController(
                 IncludeDateOnly = includeDateOnly,
                 PreferredOnly = preferredOnly,
                 EntityAnchor = entityAnchor,
+                At = at?.UtcDateTime,
             },
             include
         );
@@ -440,6 +451,7 @@ public class AiringScheduleController(
     /// </summary>
     /// <param name="from">Start of the range, or <c>null</c> for the start of today in the zone.</param>
     /// <param name="to">End of the range, exclusive, or <c>null</c> for a week after the start.</param>
+    /// <param name="at">The time the read is as of, or <c>null</c> for now.</param>
     /// <param name="timeZone">The time zone the days are in, or <c>null</c> for UTC.</param>
     /// <param name="everyChannel">Whether to keep each episode's other airings.</param>
     /// <param name="options">The airing filters.</param>
@@ -448,6 +460,7 @@ public class AiringScheduleController(
     private ActionResult<List<AiringCalendarDayDto>> ReadCalendar(
         DateTimeOffset? from,
         DateTimeOffset? to,
+        DateTimeOffset? at,
         string? timeZone,
         bool everyChannel,
         EpisodeAiringFilteringOptions options,
@@ -466,7 +479,7 @@ public class AiringScheduleController(
             zone = requestedZone;
         }
 
-        var now = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, zone);
+        var now = TimeZoneInfo.ConvertTime(at ?? DateTimeOffset.UtcNow, zone);
         var start = from ?? new DateTimeOffset(now.Date, zone.GetUtcOffset(now.Date));
         var end = to ?? AddClamped(start, TimeSpan.FromDays(7));
         if (end < start)
@@ -555,10 +568,11 @@ public class AiringScheduleController(
     /// </summary>
     /// <param name="scheduleID">The ID of the schedule.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedule's own line.</param>
-    /// <param name="nextOnly">Only return the next airing from now, per <paramref name="nextPer"/>.</param>
+    /// <param name="nextOnly">Only return the next airing from now, or <paramref name="at"/>, per <paramref name="nextPer"/>.</param>
     /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. <paramref name="nextOnly"/> counts from it.</param>
     /// <returns>The schedule's airings, in airing order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
@@ -569,7 +583,8 @@ public class AiringScheduleController(
         [FromQuery] bool nextOnly = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (airingScheduleService.GetScheduleByID(scheduleID) is null)
@@ -582,6 +597,7 @@ public class AiringScheduleController(
             NextOnly = nextOnly,
             NextPer = nextPer is { Count: > 0 } ? nextPer : null,
             EntityAnchor = entityAnchor,
+            At = at?.UtcDateTime,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForSchedule(scheduleID, options)
@@ -855,6 +871,7 @@ public class AiringScheduleController(
     /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. The default range counts from it.</param>
     /// <returns>The channel's airings in the time-frame, in airing order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
@@ -876,7 +893,8 @@ public class AiringScheduleController(
         [FromQuery] bool nextOnly = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (airingScheduleService.GetChannelByID(channelID) is null)
@@ -885,7 +903,7 @@ public class AiringScheduleController(
         if (!TryGetStoredFilter(filterID, out var filter))
             return NotFound(FilterController.FilterNotFound);
 
-        if (!TryGetRange(from, to, nextOnly, out var start, out var end))
+        if (!TryGetRange(from, to, nextOnly, at, out var start, out var end))
             return ValidationProblem(ModelState);
 
         var options = new EpisodeAiringFilteringOptions
@@ -905,6 +923,7 @@ public class AiringScheduleController(
             NextOnly = nextOnly,
             NextPer = nextPer is { Count: > 0 } ? nextPer : null,
             EntityAnchor = entityAnchor,
+            At = at?.UtcDateTime,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsInRange(start, end, options)
@@ -1158,6 +1177,7 @@ public class AiringScheduleController(
     /// <param name="filterID">Only count the anime of the Shoko series passing this stored filter, for the current user. Anime not in the collection are left out.</param>
     /// <param name="fromYear">Optional. Leave out the seasons of earlier years. The current season is always listed.</param>
     /// <param name="include">The extra details to add, comma-separated.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. It decides the season under way.</param>
     /// <returns>The seasons.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
@@ -1169,13 +1189,14 @@ public class AiringScheduleController(
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
         [FromQuery, Range(1, 9999)] int? fromYear = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (!TryGetStoredFilter(filterID, out var filter))
             return NotFound(FilterController.FilterNotFound);
 
-        return ListSeasons(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter), fromYear, include);
+        return ListSeasons(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter, at), fromYear, include);
     }
 
     /// <summary>
@@ -1196,6 +1217,7 @@ public class AiringScheduleController(
     /// <param name="includeRestricted">Whether to count restricted anime. The user's own restrictions apply on top.</param>
     /// <param name="fromYear">Optional. Leave out the seasons of earlier years. The current season is always listed.</param>
     /// <param name="include">The extra details to add, comma-separated.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. It decides the season under way.</param>
     /// <returns>The seasons.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
@@ -1207,13 +1229,14 @@ public class AiringScheduleController(
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery, Range(1, 9999)] int? fromYear = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (GetBodyFilter(body) is not { } filter)
             return ValidationProblem(ModelState);
 
-        return ListSeasons(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter), fromYear, include);
+        return ListSeasons(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter, at), fromYear, include);
     }
 
     /// <summary>
@@ -1234,6 +1257,7 @@ public class AiringScheduleController(
     /// <param name="filterID">Only count the anime of the Shoko series passing this stored filter, for the current user. Anime not in the collection are left out.</param>
     /// <param name="fromYear">Optional. Leave out the earlier years. The year of the current season is always listed when it has anime.</param>
     /// <param name="include">The extra details to add, comma-separated.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. It decides the season under way.</param>
     /// <returns>The years.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
@@ -1245,13 +1269,14 @@ public class AiringScheduleController(
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
         [FromQuery, Range(1, 9999)] int? fromYear = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (!TryGetStoredFilter(filterID, out var filter))
             return NotFound(FilterController.FilterNotFound);
 
-        return ListSeasonsByYear(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter), fromYear, include);
+        return ListSeasonsByYear(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter, at), fromYear, include);
     }
 
     /// <summary>
@@ -1273,6 +1298,7 @@ public class AiringScheduleController(
     /// <param name="includeRestricted">Whether to count restricted anime. The user's own restrictions apply on top.</param>
     /// <param name="fromYear">Optional. Leave out the earlier years. The year of the current season is always listed when it has anime.</param>
     /// <param name="include">The extra details to add, comma-separated.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. It decides the season under way.</param>
     /// <returns>The years.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
@@ -1284,13 +1310,14 @@ public class AiringScheduleController(
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery, Range(1, 9999)] int? fromYear = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (GetBodyFilter(body) is not { } filter)
             return ValidationProblem(ModelState);
 
-        return ListSeasonsByYear(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter), fromYear, include);
+        return ListSeasonsByYear(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter, at), fromYear, include);
     }
 
     /// <summary>
@@ -1310,7 +1337,7 @@ public class AiringScheduleController(
     /// the quarter three weeks before its end date. A season after the one
     /// following the season under way has no anime. The next airings are read
     /// through each anime's series, or the anime itself outside the
-    /// collection, and count from now. With <paramref name="channel"/>, only
+    /// collection, and count from now, or <paramref name="at"/>. With <paramref name="channel"/>, only
     /// the anime with a stored airing on those channels in the season, or one
     /// still to come, are listed, and their airings come from those channels
     /// alone. Old seasons may have no airings left, so they list fewer anime
@@ -1336,6 +1363,10 @@ public class AiringScheduleController(
     /// <param name="provider">Only take airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
     /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
+    /// <param name="at">
+    ///   The time to read as of, with an offset, instead of now. It decides the season under way, the next airings and whether an anime has
+    ///   finished.
+    /// </param>
     /// <returns>The anime, by air date.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
@@ -1351,7 +1382,8 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
-        [FromQuery] bool includeEstimates = true
+        [FromQuery] bool includeEstimates = true,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (!TryGetStoredFilter(filterID, out var filter))
@@ -1366,7 +1398,8 @@ public class AiringScheduleController(
             channel,
             provider,
             episodeKind,
-            includeEstimates
+            includeEstimates,
+            at
         );
         return seasonAnimeBuilder.Build(airingCalendarService.GetSeasonAnime(year, season, animeOptions, airingOptions));
     }
@@ -1397,6 +1430,10 @@ public class AiringScheduleController(
     /// <param name="provider">Only take airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
     /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
+    /// <param name="at">
+    ///   The time to read as of, with an offset, instead of now. It decides the season under way, the next airings and whether an anime has
+    ///   finished.
+    /// </param>
     /// <returns>The anime, by air date or in the filter's order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
@@ -1412,7 +1449,8 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
-        [FromQuery] bool includeEstimates = true
+        [FromQuery] bool includeEstimates = true,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (GetBodyFilter(body) is not { } filter)
@@ -1427,7 +1465,8 @@ public class AiringScheduleController(
             channel,
             provider,
             episodeKind,
-            includeEstimates
+            includeEstimates,
+            at
         );
         return seasonAnimeBuilder.Build(airingCalendarService.GetSeasonAnime(year, season, animeOptions, airingOptions));
     }
@@ -1463,6 +1502,10 @@ public class AiringScheduleController(
     /// <param name="provider">Only take airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
     /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
+    /// <param name="at">
+    ///   The time to read as of, with an offset, instead of now. It decides the season under way, the next airings and whether an anime has
+    ///   finished.
+    /// </param>
     /// <returns>The non-empty sections, in order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
@@ -1478,7 +1521,8 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
-        [FromQuery] bool includeEstimates = true
+        [FromQuery] bool includeEstimates = true,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (!TryGetStoredFilter(filterID, out var filter))
@@ -1493,7 +1537,8 @@ public class AiringScheduleController(
             channel,
             provider,
             episodeKind,
-            includeEstimates
+            includeEstimates,
+            at
         );
         return BuildSections(airingCalendarService.GetSeasonSections(year, season, null, animeOptions, airingOptions));
     }
@@ -1529,6 +1574,10 @@ public class AiringScheduleController(
     /// <param name="provider">Only take airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
     /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
+    /// <param name="at">
+    ///   The time to read as of, with an offset, instead of now. It decides the season under way, the next airings and whether an anime has
+    ///   finished.
+    /// </param>
     /// <returns>The non-empty sections, in the layout's order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
@@ -1546,7 +1595,8 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
-        [FromQuery] bool includeEstimates = true
+        [FromQuery] bool includeEstimates = true,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         var duplicates = (body.Sections ?? [])
@@ -1585,7 +1635,8 @@ public class AiringScheduleController(
             channel,
             provider,
             episodeKind,
-            includeEstimates
+            includeEstimates,
+            at
         );
         var sections = airingCalendarService.GetSeasonSections(
             year,
@@ -1639,13 +1690,15 @@ public class AiringScheduleController(
     /// <param name="inCollection">Whether to keep the anime with a Shoko series.</param>
     /// <param name="includeRestricted">Whether to keep the restricted anime.</param>
     /// <param name="filter">Only the anime of the Shoko series this filter passes, if any.</param>
+    /// <param name="at">The time the read is as of, or <c>null</c> for now.</param>
     /// <returns>The anime filters.</returns>
     private AnidbAnimeListOptions GetSeasonListOptions(
         HashSet<AnimeType>? type,
         HashSet<Guid>? channel,
         IncludeOnlyFilter inCollection,
         IncludeOnlyFilter includeRestricted,
-        IFilter? filter
+        IFilter? filter,
+        DateTimeOffset? at
     )
         => new()
         {
@@ -1655,6 +1708,7 @@ public class AiringScheduleController(
             IncludeRestricted = includeRestricted.InclusionFilter,
             Filter = filter,
             User = User,
+            At = at?.UtcDateTime,
         };
 
     /// <summary>
@@ -1670,6 +1724,7 @@ public class AiringScheduleController(
     /// <param name="provider">Only airings from one of these providers.</param>
     /// <param name="episodeKind">Only airings of these kinds of showing.</param>
     /// <param name="includeEstimates">Whether to take the estimated airings.</param>
+    /// <param name="at">The time the read is as of, or <c>null</c> for now.</param>
     /// <returns>The anime and airing filters.</returns>
     private (AnidbAnimeListOptions Anime, EpisodeAiringFilteringOptions Airing) GetSeasonOptions(
         HashSet<AnimeType>? type,
@@ -1680,10 +1735,11 @@ public class AiringScheduleController(
         HashSet<Guid>? channel,
         HashSet<Guid>? provider,
         HashSet<EpisodeAiringKind>? episodeKind,
-        bool includeEstimates
+        bool includeEstimates,
+        DateTimeOffset? at
     )
     {
-        var animeOptions = GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter);
+        var animeOptions = GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter, at);
         var airingOptions = new EpisodeAiringFilteringOptions
         {
             ProviderIDs = provider is { Count: > 0 } ? provider : null,
@@ -1692,6 +1748,7 @@ public class AiringScheduleController(
             EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : [EpisodeAiringKind.Normal, EpisodeAiringKind.Advance],
             IncludeEstimates = includeEstimates,
             IncludeDateOnly = true,
+            At = animeOptions.At,
         };
         return (animeOptions, airingOptions);
     }
@@ -1793,13 +1850,14 @@ public class AiringScheduleController(
     /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
     /// <param name="includeDateOnly">Include a date-only entry for each AniDB episode with an air date and no airing at all.</param>
-    /// <param name="nextOnly">Only return the next airing from now, per <paramref name="nextPer"/>.</param>
+    /// <param name="nextOnly">Only return the next airing from now, or <paramref name="at"/>, per <paramref name="nextPer"/>.</param>
     /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
     /// <param name="linkedEntityAirings">
     ///   Set to <c>false</c> for only the series' own airings, <c>true</c> to also walk its linked entities, or leave it out to let the server decide.
     /// </param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. <paramref name="nextOnly"/> counts from it.</param>
     /// <returns>The series' airings, in airing order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(403)]
@@ -1817,7 +1875,8 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
         [FromQuery] bool? linkedEntityAirings = null,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (animeSeries.GetByID(seriesID) is not { } series)
@@ -1838,6 +1897,7 @@ public class AiringScheduleController(
             NextPer = nextPer is { Count: > 0 } ? nextPer : null,
             LinkedEntityAirings = linkedEntityAirings,
             EntityAnchor = entityAnchor,
+            At = at?.UtcDateTime,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForSeries(series, options)
@@ -1901,7 +1961,7 @@ public class AiringScheduleController(
     /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
     /// <param name="includeDateOnly">Include a date-only entry when the episode has an AniDB air date and no airing at all.</param>
-    /// <param name="nextOnly">Only return the next airing from now, per <paramref name="nextPer"/>.</param>
+    /// <param name="nextOnly">Only return the next airing from now, or <paramref name="at"/>, per <paramref name="nextPer"/>.</param>
     /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
     /// <param name="includeDisabled">
     ///   Include airings hidden because their provider is disabled, or because none of their schedule's tracks are of an enabled kind.
@@ -1911,6 +1971,7 @@ public class AiringScheduleController(
     /// </param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
+    /// <param name="at">The time to read as of, with an offset, instead of now. <paramref name="nextOnly"/> counts from it.</param>
     /// <returns>The episode's airings, best first.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(403)]
@@ -1929,7 +1990,8 @@ public class AiringScheduleController(
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool? linkedEntityAirings = null,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? at = null
     )
     {
         if (animeEpisodes.GetByID(episodeID) is not { } episode)
@@ -1954,6 +2016,7 @@ public class AiringScheduleController(
             NextPer = nextPer is { Count: > 0 } ? nextPer : null,
             LinkedEntityAirings = linkedEntityAirings,
             EntityAnchor = entityAnchor,
+            At = at?.UtcDateTime,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForEpisode(episode, options)
@@ -2050,17 +2113,25 @@ public class AiringScheduleController(
     /// <summary>
     /// The range a range read runs over: the caller's, or the defaults, which
     /// are the start of today in UTC, or now for a next-only read, and a week
-    /// after the start.
+    /// after the start. Now is the time the read is as of, when given.
     /// </summary>
     /// <param name="from">The start the caller asked for.</param>
     /// <param name="to">The end the caller asked for.</param>
     /// <param name="nextOnly">Whether the read is next-only.</param>
+    /// <param name="at">The time the read is as of, or <c>null</c> for now.</param>
     /// <param name="start">The start of the range.</param>
     /// <param name="end">The exclusive end of the range.</param>
     /// <returns><c>false</c> with a model error when the end is before the start.</returns>
-    private bool TryGetRange(DateTimeOffset? from, DateTimeOffset? to, bool nextOnly, out DateTimeOffset start, out DateTimeOffset end)
+    private bool TryGetRange(
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        bool nextOnly,
+        DateTimeOffset? at,
+        out DateTimeOffset start,
+        out DateTimeOffset end
+    )
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = (at ?? DateTimeOffset.UtcNow).ToUniversalTime();
         start = from ?? (nextOnly ? now : new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero));
         end = to ?? AddClamped(start, TimeSpan.FromDays(7));
         if (end >= start)

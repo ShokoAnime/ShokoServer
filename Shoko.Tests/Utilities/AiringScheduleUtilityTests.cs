@@ -1058,4 +1058,40 @@ public class AiringScheduleUtilityTests
     }
 
     #endregion
+
+    #region Slots
+
+    [Theory]
+    [InlineData(AiringChannelType.Television, 24, null, 30)]
+    [InlineData(AiringChannelType.Television, 12, null, 15)]
+    [InlineData(AiringChannelType.Television, 46, null, 60)]
+    [InlineData(AiringChannelType.Streaming, 24, null, 24)]
+    [InlineData(AiringChannelType.Unknown, 24, null, 24)]
+    [InlineData(null, 24, null, 24)]
+    [InlineData(AiringChannelType.Television, null, null, 30)]
+    [InlineData(AiringChannelType.Streaming, null, null, 24)]
+    [InlineData(AiringChannelType.Television, 24, 25, 25)]
+    [InlineData(AiringChannelType.Television, 24, 120, 30)]
+    [InlineData(AiringChannelType.Television, 24, 20, 30)]
+    [InlineData(AiringChannelType.Streaming, 24, 20, 24)]
+    public void GetAiringEnd_RoundsTelevisionSlotsAndStopsAtTheNextAiring(
+        AiringChannelType? channelType,
+        int? episodeMinutes,
+        int? nextSlotMinutes,
+        int expectedMinutes
+    )
+    {
+        var start = Week(0);
+
+        var end = AiringScheduleUtility.GetAiringEnd(
+            start,
+            episodeMinutes is { } minutes ? TimeSpan.FromMinutes(minutes) : null,
+            channelType,
+            nextSlotMinutes is { } next ? start.AddMinutes(next) : null
+        );
+
+        Assert.Equal(start.AddMinutes(expectedMinutes), end);
+    }
+
+    #endregion
 }

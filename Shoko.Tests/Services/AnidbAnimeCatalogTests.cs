@@ -243,7 +243,7 @@ public class AnidbAnimeCatalogTests
         null!
     )
     {
-        internal override IReadOnlyDictionary<int, AnidbAnimeChannelAirings> GetChannelAirings(IReadOnlySet<Guid> channelIDs)
+        internal override IReadOnlyDictionary<int, AnidbAnimeChannelAirings> GetChannelAirings(IReadOnlySet<Guid> channelIDs, DateTime now)
             => channelAirings;
 
         protected override IImage? GetImage(IWithImages entry, ImageEntityType type)
@@ -580,6 +580,18 @@ public class AnidbAnimeCatalogTests
     }
 
     [Fact]
+    public void GetSeasons_At_DecidesTheSeasonUnderWay()
+    {
+        using var harness = PastHarness();
+
+        var seasons = harness.Catalog.GetSeasons(new() { At = new DateTime(2015, 8, 1, 12, 0, 0, DateTimeKind.Utc) });
+
+        // Winter 2016 is two seasons ahead of Summer 2015, so it is left out.
+        Assert.Equal((2015, YearlySeason.Fall), (seasons[0].Year, seasons[0].Season));
+        Assert.Equal((2015, YearlySeason.Summer), seasons.Where(season => season.IsCurrent).Select(season => (season.Year, season.Season)).Single());
+    }
+
+    [Fact]
     public void GetSeasons_AppliesTheOtherFilters()
     {
         using var harness = PastHarness();
@@ -835,8 +847,8 @@ public class AnidbAnimeCatalogTests
         using var harness = OverriddenHarness();
         var calendar = new AiringCalendarService(harness.Catalog, AiringService(_ => []).Object);
 
-        var summer = calendar.GetSeasonAnime(2015, YearlySeason.Summer, today: _today).ToDictionary(entry => entry.Anime.AnidbID);
-        var sections = calendar.GetSeasonSections(2015, YearlySeason.Spring, today: _today);
+        var summer = calendar.GetSeasonAnime(2015, YearlySeason.Summer, airingOptions: new() { At = _readAt }).ToDictionary(entry => entry.Anime.AnidbID);
+        var sections = calendar.GetSeasonSections(2015, YearlySeason.Spring, airingOptions: new() { At = _readAt });
         var byYear = calendar.GetSeasonsByYear().Single(year => year.Year is 2015);
 
         Assert.Equal((2015, YearlySeason.Summer), summer[1].StartSeason);
@@ -863,8 +875,10 @@ public class AnidbAnimeCatalogTests
 
     #region Season Anime
 
-    // The day the season view is read on.
-    private static readonly DateOnly _today = new(2026, 10, 5);
+    // The time the season view is read at, and its day.
+    private static readonly DateTime _readAt = new(2026, 10, 5, 0, 0, 0, DateTimeKind.Utc);
+
+    private static readonly DateOnly _today = DateOnly.FromDateTime(_readAt);
 
     private static Harness CardHarness()
         => new(
@@ -975,7 +989,7 @@ public class AnidbAnimeCatalogTests
             new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object)
         );
         var calendar = new AiringCalendarService(harness.Catalog, airingService.Object);
-        return builder.Build(calendar.BuildEntries(harness.Catalog.GetAnime(), new EpisodeAiringFilteringOptions(), _today));
+        return builder.Build(calendar.BuildEntries(harness.Catalog.GetAnime(), new EpisodeAiringFilteringOptions(), _readAt));
     }
 
     // A metadata service linking anime 1 to the given series, and nothing else.
@@ -1293,6 +1307,10 @@ public class AnidbAnimeCatalogTests
         public DateTime? AiredAt { get; init; }
 
         public DateTime? OriginalAiredAt => null;
+
+        public TimeSpan? Duration => null;
+
+        public DateTime? EndsAt => null;
 
         public bool IsDelayed => false;
 

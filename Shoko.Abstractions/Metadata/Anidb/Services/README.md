@@ -126,7 +126,10 @@ filter with a sorting expression gives the list its own order in place of
 `OrderBy`. `ChannelIDs` keeps the anime with a
 stored airing on those channels in the season (its calendar quarter), or one
 still to come from the season under way on; airings are only kept for the
-airing schedule service's retention window, so old seasons hold fewer. The
+airing schedule service's retention window, so old seasons hold fewer. `At`
+sets the time the listing is as of, in UTC, which decides the season under
+way (by the server's time zone) and what is still to come; unset, it is now.
+The
 next airing of each, as a season view shows it, comes from
 `IAiringScheduleService.GetAiringsForSeries` over the whole list in one read
 (see [`../../Airing/README.md`](../../Airing/README.md#querying-airings)).

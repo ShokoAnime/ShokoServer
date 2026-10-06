@@ -16,19 +16,28 @@ namespace Shoko.Server.Services.Airing;
 /// </summary>
 internal sealed class EpisodeAirDateView : IEpisodeAiring
 {
+    private readonly AiringReadContext _context;
+
     private readonly IAnidbEpisode _anidbEpisode;
+
+    private bool _durationResolved;
+
+    private TimeSpan? _duration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EpisodeAirDateView"/> class.
     /// </summary>
+    /// <param name="context">The read the entry belongs to.</param>
     /// <param name="anidbEpisode">The AniDB episode.</param>
     /// <param name="shokoEpisode">The shoko episode it belongs to, if any.</param>
     /// <param name="airDate">The AniDB air date, or the linked one standing in for an undated episode before 1970.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="anidbEpisode"/> is <c>null</c>.</exception>
-    public EpisodeAirDateView(IAnidbEpisode anidbEpisode, IShokoEpisode? shokoEpisode, DateOnly airDate)
+    /// <exception cref="ArgumentNullException"><paramref name="context"/> or <paramref name="anidbEpisode"/> is <c>null</c>.</exception>
+    public EpisodeAirDateView(AiringReadContext context, IAnidbEpisode anidbEpisode, IShokoEpisode? shokoEpisode, DateOnly airDate)
     {
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(anidbEpisode);
 
+        _context = context;
         _anidbEpisode = anidbEpisode;
         ShokoEpisode = shokoEpisode;
         AirDate = airDate;
@@ -82,6 +91,25 @@ internal sealed class EpisodeAirDateView : IEpisodeAiring
 
     /// <inheritdoc/>
     public DateTime? OriginalAiredAt => null;
+
+    /// <inheritdoc/>
+    public TimeSpan? Duration
+    {
+        get
+        {
+            if (_durationResolved)
+                return _duration;
+
+            _durationResolved = true;
+            return _duration = _context.GetEpisodeDuration(_anidbEpisode);
+        }
+    }
+
+    /// <summary>
+    /// Always <c>null</c>: a date-only entry has no time, so it has no slot
+    /// to end.
+    /// </summary>
+    public DateTime? EndsAt => null;
 
     /// <inheritdoc/>
     public bool IsDelayed => false;

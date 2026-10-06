@@ -166,7 +166,7 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
 
             try
             {
-                Tick(DateTime.UtcNow);
+                Tick(_service.UtcNow);
             }
             catch (Exception ex)
             {

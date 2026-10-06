@@ -49,6 +49,14 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
 
     private EpisodeAiringKind? _kind;
 
+    private bool _durationResolved;
+
+    private TimeSpan? _duration;
+
+    private bool _endsAtResolved;
+
+    private DateTime? _endsAt;
+
     /// <summary>
     /// The stored row behind this view, or <c>null</c> when the view
     /// is an estimate.
@@ -226,6 +234,37 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
 
     /// <inheritdoc/>
     public DateTime? OriginalAiredAt { get; }
+
+    /// <inheritdoc/>
+    public TimeSpan? Duration
+    {
+        get
+        {
+            if (_durationResolved)
+                return _duration;
+
+            _durationResolved = true;
+            return _duration = _context.GetEpisodeDuration(AnidbEpisode);
+        }
+    }
+
+    /// <inheritdoc/>
+    public DateTime? EndsAt
+    {
+        get
+        {
+            if (_endsAtResolved)
+                return _endsAt;
+
+            _endsAtResolved = true;
+            if (AiredAt is not { } start)
+                return _endsAt = null;
+
+            var channel = Channel;
+            var nextSlot = channel is { Type: AiringChannelType.Television } ? _context.GetNextChannelSlot(channel.ChannelID, start) : null;
+            return _endsAt = AiringScheduleUtility.GetAiringEnd(start, Duration, channel?.Type, nextSlot);
+        }
+    }
 
     /// <inheritdoc/>
     public bool IsDelayed { get; }

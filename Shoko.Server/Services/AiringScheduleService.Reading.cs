@@ -62,7 +62,7 @@ public partial class AiringScheduleService
             throw new InvalidOperationException("Parts have not been added yet.");
 
         options ??= new EpisodeAiringFilteringOptions();
-        var context = new AiringReadContext(this, options.IncludeDisabled);
+        var context = new AiringReadContext(this, options.IncludeDisabled, at: options.At);
         context.Remember(episode);
         return ReadEntityAirings(context, [episode], options, ResolveAnchor(options.EntityAnchor, episode));
     }
@@ -79,7 +79,7 @@ public partial class AiringScheduleService
             throw new InvalidOperationException("Parts have not been added yet.");
 
         options ??= new EpisodeAiringFilteringOptions();
-        var context = new AiringReadContext(this, options.IncludeDisabled);
+        var context = new AiringReadContext(this, options.IncludeDisabled, at: options.At);
         var anchor = ResolveAnchor(options.EntityAnchor, series);
         return ReadEntityAirings(context, series.Episodes, options, anchor);
     }
@@ -96,7 +96,7 @@ public partial class AiringScheduleService
 
         options ??= new EpisodeAiringFilteringOptions();
         // One context for every series, so the schedules, channels and linked keys they share are resolved once.
-        var context = new AiringReadContext(this, options.IncludeDisabled);
+        var context = new AiringReadContext(this, options.IncludeDisabled, at: options.At);
         var airings = new Dictionary<MetadataGuid, IReadOnlyList<IEpisodeAiring>>();
         foreach (var entry in series)
         {
@@ -120,7 +120,7 @@ public partial class AiringScheduleService
             throw new InvalidOperationException("Parts have not been added yet.");
 
         options ??= new EpisodeAiringFilteringOptions();
-        var context = new AiringReadContext(this, options.IncludeDisabled);
+        var context = new AiringReadContext(this, options.IncludeDisabled, at: options.At);
         var anchor = ResolveAnchor(options.EntityAnchor, season);
         return ReadEntityAirings(context, season.Episodes, options, anchor);
     }
@@ -132,7 +132,7 @@ public partial class AiringScheduleService
             throw new InvalidOperationException("Parts have not been added yet.");
 
         options ??= new EpisodeAiringFilteringOptions();
-        var context = new AiringReadContext(this, options.IncludeDisabled);
+        var context = new AiringReadContext(this, options.IncludeDisabled, at: options.At);
         if (RepoFactory.AiringSchedule.GetByScheduleID(scheduleID) is not { } row)
             return [];
 
@@ -143,7 +143,7 @@ public partial class AiringScheduleService
         if (!MatchesFilters(context, scheduleView, options, honourHiddenChannels: false))
             return [];
 
-        var now = DateTime.UtcNow;
+        var now = context.Now;
         var airings = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID);
         var views = airings
             .Where(entry => !IsHidden(row, entry, now))
@@ -229,7 +229,7 @@ public partial class AiringScheduleService
             throw new ArgumentException("The end of the range is before its start.", nameof(to));
 
         options ??= new EpisodeAiringFilteringOptions();
-        var context = new AiringReadContext(this, options.IncludeDisabled, includeHiddenChannels);
+        var context = new AiringReadContext(this, options.IncludeDisabled, includeHiddenChannels, options.At);
         // No entity was passed in, so there is nothing to infer an anchor from.
         var anchor = ResolveAnchor(options.EntityAnchor, null);
         var fromUtc = from.UtcDateTime;
@@ -287,7 +287,7 @@ public partial class AiringScheduleService
             {
                 var inRange = MarkPreferred(
                     ReadAirings(context, episode, options, anchor, preferredOnly: false)
-                        .Where(airing => IsInRange(airing, fromUtc, toUtc, includeGaps))
+                        .Where(airing => IsInRange(airing, fromUtc, toUtc, includeGaps, includeOnAir: options.NextOnly))
                 );
                 if (options.NextOnly && inRange.Count > 0 && HasPremieredBefore(context, episode, options, fromUtc))
                     return [];
@@ -338,7 +338,7 @@ public partial class AiringScheduleService
         bool honourHiddenChannels = true
     )
     {
-        var now = DateTime.UtcNow;
+        var now = context.Now;
         var linked = options.LinkedEntityAirings ?? episode is IShokoEpisode;
         var keys = linked ? context.GetLinkedEpisodeKeys(episode) : [GetEntityKey(episode)];
         var views = new List<EpisodeAiringView>();
@@ -742,10 +742,14 @@ public partial class AiringScheduleService
     /// <param name="fromUtc">The start of the range.</param>
     /// <param name="toUtc">The end of the range.</param>
     /// <param name="includeDelayedOriginalSlots">Whether a delayed airing matches by its original slot too.</param>
+    /// <param name="includeOnAir">Whether an airing still on air at the start of a non-empty range matches too.</param>
     /// <returns><c>true</c> when the airing is part of the range.</returns>
-    private static bool IsInRange(IEpisodeAiring airing, DateTime fromUtc, DateTime toUtc, bool includeDelayedOriginalSlots)
+    private static bool IsInRange(IEpisodeAiring airing, DateTime fromUtc, DateTime toUtc, bool includeDelayedOriginalSlots, bool includeOnAir)
     {
         if ((airing.AiredAt ?? airing.OriginalAiredAt) is { } slot && slot >= fromUtc && slot < toUtc)
+            return true;
+
+        if (includeOnAir && fromUtc < toUtc && airing.IsAiringAt(fromUtc))
             return true;
 
         return includeDelayedOriginalSlots && airing.IsDelayed && airing.OriginalAiredAt is { } original && original >= fromUtc && original < toUtc;
@@ -898,7 +902,7 @@ public partial class AiringScheduleService
         AiringEntityAnchor anchor
     )
     {
-        var now = DateTime.UtcNow;
+        var now = context.Now;
         var today = DateOnly.FromDateTime(now);
         var airings = new List<IEpisodeAiring>();
         foreach (var episode in episodes)
@@ -1100,7 +1104,7 @@ public partial class AiringScheduleService
         if (known.Count > 0)
             return null;
 
-        var entry = new EpisodeAirDateView(anidbEpisode, shokoEpisode, airDate);
+        var entry = new EpisodeAirDateView(context, anidbEpisode, shokoEpisode, airDate);
         return PassesAiringFilters(context, entry, options) ? entry : null;
     }
 
@@ -1124,26 +1128,27 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// When an airing counts as being next: its current slot, or the start of
-    /// a date-only entry's day, when that is at or after the reference.
+    /// When an airing counts as being next: its current slot, when that is at
+    /// or after the reference or still on air then, or the start of a
+    /// date-only entry's day, when that is at or after the reference.
     /// </summary>
     /// <param name="airing">The airing.</param>
     /// <param name="afterUtc">The reference instant.</param>
     /// <param name="afterDate">The reference date, for date-only entries.</param>
     /// <param name="offset">The offset a date-only entry's day is read in.</param>
-    /// <returns>The time, or <c>null</c> when the airing is not upcoming.</returns>
+    /// <returns>The time, or <c>null</c> when the airing is neither on air nor upcoming.</returns>
     private static DateTime? GetNextTime(IEpisodeAiring airing, DateTime afterUtc, DateOnly afterDate, TimeSpan offset)
     {
         if (airing is EpisodeAirDateView dateOnly)
             return dateOnly.AirDate >= afterDate ? dateOnly.GetDayStart(offset) : null;
 
-        return airing.AiredAt is { } airedAt && airedAt >= afterUtc ? airedAt : null;
+        return airing.AiredAt is { } airedAt && (airedAt >= afterUtc || airing.IsAiringAt(afterUtc)) ? airedAt : null;
     }
 
     /// <summary>
     /// Whether an episode has already premiered: a real
     /// <see cref="EpisodeAiringKind.Normal"/> airing of it, on any schedule of
-    /// any provider and channel, slotted before the reference. A next-only
+    /// any provider and channel, whose slot ended by the reference. A next-only
     /// read skips such an episode, so a delayed broadcast of it is never next.
     /// </summary>
     /// <param name="context">The read the check belongs to.</param>
@@ -1167,7 +1172,8 @@ public partial class AiringScheduleService
             preferredOnly: false,
             honourHiddenChannels: false
         );
-        return shown.Any(airing => airing.AiredAt is { } airedAt && airedAt < beforeUtc);
+        // The start is checked first, so no end is worked out for an airing still to come.
+        return shown.Any(airing => airing.AiredAt is { } airedAt && airedAt < beforeUtc && airing.EndsAt is { } endsAt && endsAt <= beforeUtc);
     }
 
     /// <summary>
@@ -1287,15 +1293,16 @@ public partial class AiringScheduleService
     /// them.
     /// </remarks>
     /// <param name="channelIDs">The channels.</param>
+    /// <param name="at">The time an airing is still to come after, or <c>null</c> for now.</param>
     /// <exception cref="ArgumentNullException"><paramref name="channelIDs"/> is <c>null</c>.</exception>
     /// <returns>The anime's airings on the channels, by AniDB anime ID.</returns>
-    internal IReadOnlyDictionary<int, AnidbAnimeChannelAirings> GetAnidbAnimeOnChannels(IReadOnlySet<Guid> channelIDs)
+    internal IReadOnlyDictionary<int, AnidbAnimeChannelAirings> GetAnidbAnimeOnChannels(IReadOnlySet<Guid> channelIDs, DateTime? at = null)
     {
         ArgumentNullException.ThrowIfNull(channelIDs);
 
-        var context = new AiringReadContext(this);
+        var context = new AiringReadContext(this, at: at);
         var options = new EpisodeAiringFilteringOptions { ChannelIDs = channelIDs };
-        var now = DateTime.UtcNow;
+        var now = context.Now;
         var animeIDsByEpisode = new Dictionary<(MetadataSource Source, string ID), IReadOnlyList<int>>();
         var found = new Dictionary<int, AnidbAnimeChannelAirings>();
         foreach (var channelID in channelIDs)
@@ -1679,7 +1686,7 @@ public partial class AiringScheduleService
     {
         get
         {
-            var now = DateTime.UtcNow;
+            var now = UtcNow;
             return now - GetRetentionCutoff(LoadSettings(), now);
         }
     }
@@ -1690,7 +1697,7 @@ public partial class AiringScheduleService
         get
         {
             var settings = LoadSettings();
-            return settings.AutoCleanup ? GetRetentionCutoff(settings, DateTime.UtcNow) : null;
+            return settings.AutoCleanup ? GetRetentionCutoff(settings, UtcNow) : null;
         }
     }
 
@@ -1710,7 +1717,7 @@ public partial class AiringScheduleService
         if (!settings.AutoCleanup)
             return 0;
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         var cutoff = GetRetentionCutoff(settings, now);
         var removed = 0;
         var rows = RepoFactory.AiringSchedule.GetAll().ToList();

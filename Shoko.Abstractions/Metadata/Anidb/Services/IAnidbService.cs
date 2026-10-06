@@ -120,9 +120,10 @@ public interface IAnidbService
     /// <summary>
     ///   Lists the seasons the cached AniDB anime are in, by the rule on
     ///   <see cref="Containers.IWithYearlySeasons"/>, with how many anime are
-    ///   in each, newest first, up to the season after the one under way. The
-    ///   season under way is always listed. A season's images come from its
-    ///   best anime by weighted rating among those starting in it that have a
+    ///   in each, newest first, up to the season after the one under way as
+    ///   of the options' <see cref="AnidbAnimeListOptions.At"/>. The season
+    ///   under way is always listed. A season's images come from its best
+    ///   anime by weighted rating among those starting in it that have a
     ///   poster.
     /// </summary>
     /// <param name="options">The filters on the anime counted; the seasons and order are ignored.</param>
