@@ -1002,17 +1002,26 @@ public class VideoRelocationService(
                 "Could not find or access the video file in the file system!"
             ), true);
 
-        var newRelativePath = Path.GetRelativePath(folderPath, fullPath);
+        var newRelativePath = ReuseExistingFolderCase(folderPath, Path.GetRelativePath(folderPath, fullPath));
         var newFolderPath = Path.GetDirectoryName(newRelativePath);
         var newFullPath = Path.Combine(folderPath, newRelativePath);
         var newFileName = Path.GetFileName(newRelativePath);
-        var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.OrdinalIgnoreCase);
+        var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.Ordinal);
         var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase);
 
         // Check if we're attempting to move the file onto itself.
         if (string.Equals(newFullPath, oldFullPath, StringComparison.OrdinalIgnoreCase))
         {
-            if (!string.Equals(newFullPath, oldFullPath, StringComparison.Ordinal))
+            if (string.Equals(newFullPath, oldFullPath, StringComparison.Ordinal))
+            {
+                logger.LogTrace("Resolved to relocate {FilePath} onto itself. Nothing to do.", newFullPath);
+                return (RelocationResponse.FromResult(request.ManagedFolder, newRelativePath), false);
+            }
+
+            // Same file on a case-insensitive file system, a valid rename on a case-sensitive one.
+            var oldUid = fileSystemHelpers.GetVideoFileUID(oldFullPath);
+            var newUid = fileSystemHelpers.GetVideoFileUID(newFullPath);
+            if (fileSystemHelpers.FileExists(newFullPath) && (oldUid is null || newUid is null || oldUid == newUid))
             {
                 logger.LogWarning(
                     "Resolved to relocate {OldFilePath} to {NewFilePath}. Which is the same location in a case-insensitive file system. Aborting.",
@@ -1023,9 +1032,6 @@ public class VideoRelocationService(
                     "Resolved to relocate onto the same location in a case-insensitive file system."
                 ), false);
             }
-
-            logger.LogTrace("Resolved to relocate {FilePath} onto itself. Nothing to do.", newFullPath);
-            return (RelocationResponse.FromResult(request.ManagedFolder, newRelativePath), false);
         }
 
         // Check if the managed folder can accept the file.
@@ -1193,6 +1199,36 @@ public class VideoRelocationService(
             _videoLocalPlaceService.RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(oldFullPath), dropFolder.Path);
 
         return (RelocationResponse.FromResult(request.ManagedFolder, newRelativePath, moved, renamed), false);
+    }
+
+    /// <summary>Reuses existing folders that differ only by case, so a case-sensitive file system doesn't get a second, case-variant folder.</summary>
+    internal string ReuseExistingFolderCase(string rootPath, string relativePath)
+    {
+        var directory = Path.GetDirectoryName(relativePath);
+        if (string.IsNullOrEmpty(directory))
+            return relativePath;
+
+        var segments = directory.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        var current = rootPath;
+        for (var i = 0; i < segments.Length; i++)
+        {
+            if (!fileSystemHelpers.DirectoryExists(Path.Combine(current, segments[i])))
+            {
+                var match = fileSystemHelpers.GetDirectoryPaths(current)
+                    .Select(Path.GetFileName)
+                    .Where(name => string.Equals(name, segments[i], StringComparison.OrdinalIgnoreCase))
+                    .Order(StringComparer.Ordinal)
+                    .FirstOrDefault();
+                if (match is null)
+                    break;
+
+                segments[i] = match;
+            }
+
+            current = Path.Combine(current, segments[i]);
+        }
+
+        return Path.Combine(Path.Combine(segments), Path.GetFileName(relativePath));
     }
 
     private void SetLinuxPermissions(string path)

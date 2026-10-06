@@ -268,4 +268,41 @@ public class VideoRelocationGuardTests
     }
 
     #endregion
+
+    #region Case-only changes
+
+    [Fact]
+    public void AFolderThatOnlyDiffersByCaseFromAnExistingOneIsReusedInsteadOfDuplicated()
+    {
+        using var harness = Create();
+        harness.FileSystem
+            .Setup(f => f.GetDirectoryPaths(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<Func<string, bool, bool>?>(), It.IsAny<CancellationToken>()))
+            .Returns([Path.Combine(SourcePath, "Show")]);
+
+        Assert.Equal(Path.Combine("Show", "episode.mkv"), harness.Service.ReuseExistingFolderCase(SourcePath, Path.Combine("show", "episode.mkv")));
+    }
+
+    [Fact]
+    public void AFolderWithoutAnExistingMatchKeepsItsCase()
+    {
+        using var harness = Create();
+
+        Assert.Equal(Path.Combine("show", "episode.mkv"), harness.Service.ReuseExistingFolderCase(SourcePath, Path.Combine("show", "episode.mkv")));
+    }
+
+    [Fact]
+    public async Task ACaseOnlyRenameOnACaseInsensitiveFileSystemIsRejected()
+    {
+        using var harness = Create();
+        harness.FileSystem.Setup(f => f.GetVideoFileUID(It.IsAny<string>())).Returns(5);
+
+        var response = await harness.Service.DirectlyRelocateFile(
+            harness.Place, Request(harness.SourceFolder, "Show/Episode.mkv"));
+
+        Assert.False(response.Success);
+        Assert.Contains("same location", response.Error?.Message ?? string.Empty);
+        harness.AssertNothingWasMoved();
+    }
+
+    #endregion
 }
