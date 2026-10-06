@@ -7,11 +7,12 @@ namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Sync the AniDB MyList with the local collection, as the MyList settings say.
+///   <see cref="SyncAnidbMylistAction"/> is the form a person runs by hand.
 /// </summary>
 /// <param name="scheduler">The queue.</param>
 public sealed class SyncAnidbMylistOnScheduleAction(IQueueScheduler scheduler) : QueueJobScheduledAction<SyncAniDBMylistRecurringJob>(scheduler)
 {
-    public override string Name => "Sync AniDB MyList On Schedule";
+    public override string Name => "Sync AniDB MyList";
 
     public override string? Description => "Syncs the AniDB MyList with the local collection as the MyList settings say, reusing a MyList downloaded in the last few hours.";
 

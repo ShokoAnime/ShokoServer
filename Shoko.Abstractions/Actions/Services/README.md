@@ -9,7 +9,10 @@ through the job queue.
 Work that runs on its own, on triggers the admin sets, is not an action but a
 [scheduled action](../../ScheduledActions/Services/README.md): global, with no
 caller, no parameters and no permission level, run and scheduled by admins
-only. "Import New Files" and "Sync AniDB MyList" are scheduled actions.
+only. "Import New Files" is a scheduled action. A run with options is an action
+of its own: the scheduled "Sync AniDB MyList" runs as the MyList settings say,
+and the action of the same name, run by a person, forces a fresh MyList
+download unless told not to.
 
 This folder is both sides at once: `IExecutableAction` and the four scoped base
 classes are an **extension point** you implement, and `IActionService` is the
