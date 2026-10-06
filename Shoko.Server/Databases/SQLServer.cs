@@ -1579,6 +1579,15 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(192, 309, "CREATE UNIQUE INDEX UIX_AniDB_Anime_StartSeasonOverride_AnimeID ON AniDB_Anime_StartSeasonOverride(AnimeID);"),
         new(192, 310, "ALTER TABLE AiringChannel ADD IsHidden BIT NOT NULL DEFAULT 0;"),
         new(192, 311, DatabaseFixes.RestoreAnidbAnimeDates),
+        new(192, 312, "UPDATE AiringSchedule SET FirstEpisodeNumber = 1 WHERE FirstEpisodeNumber IS NULL;"),
+        new(192, 313, "ALTER TABLE AiringSchedule ALTER COLUMN FirstEpisodeNumber INT NOT NULL;"),
+        new(192, 314, "ALTER TABLE EpisodeAiring ADD SequenceNumber INT NULL;"),
+        new(192, 315, "DROP INDEX IX_EpisodeAiring_EpisodeSource_EpisodeID ON EpisodeAiring;"),
+        new(192, 316, "ALTER TABLE EpisodeAiring ALTER COLUMN EpisodeSource TINYINT NULL;"),
+        new(192, 317, "ALTER TABLE EpisodeAiring ALTER COLUMN EpisodeID NVARCHAR(64) NULL;"),
+        new(192, 318, "CREATE INDEX IX_EpisodeAiring_EpisodeSource_EpisodeID ON EpisodeAiring(EpisodeSource, EpisodeID);"),
+        new(192, 319, "CREATE INDEX IX_EpisodeAiring_AiringScheduleID_SequenceNumber ON EpisodeAiring(AiringScheduleID, SequenceNumber);"),
+        new(192, 320, DatabaseFixes.AssignEpisodeAiringSequenceNumbers),
     ];
 
     #endregion

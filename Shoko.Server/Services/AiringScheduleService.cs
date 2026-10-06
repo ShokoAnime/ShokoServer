@@ -221,6 +221,7 @@ public partial class AiringScheduleService(
             IncludeDelayedOriginalSlots = false,
             IncludeEstimates = false,
             IncludeDisabled = false,
+            IncludeUnresolved = false,
             // Preference only ever orders a read, and a dispatch is in slot
             // order, so the widest value is also the only sensible one.
             PreferredOnly = false,
@@ -247,11 +248,13 @@ public partial class AiringScheduleService(
                 anyProviderID = anyKinds = anyLanguages = anyChannelIDs = true;
                 union.IncludeEstimates = true;
                 union.IncludeDisabled = true;
+                union.IncludeUnresolved = true;
                 continue;
             }
 
             union.IncludeEstimates |= options.IncludeEstimates;
             union.IncludeDisabled |= options.IncludeDisabled;
+            union.IncludeUnresolved |= options.IncludeUnresolved;
             if (options.ProviderIDs is { } subscriberProviderIDs)
                 providerIDs.UnionWith(subscriberProviderIDs);
             else
@@ -348,7 +351,7 @@ public partial class AiringScheduleService(
                 continue;
             if (!options.IncludeEstimates && view.IsEstimated)
                 continue;
-            if (anchor is AiringEntityAnchor.Shoko && view.ShokoEpisode is null)
+            if (anchor is AiringEntityAnchor.Shoko && !IsAnchoredToShoko(view))
                 continue;
             if (!MatchesFilters(context, context.GetSchedule(view.ScheduleView.Row), options))
                 continue;
@@ -475,6 +478,7 @@ public partial class AiringScheduleService(
         }
 
         UpdateProviders(false);
+        ListenForResolutions();
 
         // Parts are added while the plugins initialize, which is before the database is up, so the
         // repositories cannot be counted here.

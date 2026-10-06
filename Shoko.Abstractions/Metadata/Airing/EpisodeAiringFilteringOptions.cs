@@ -47,7 +47,8 @@ public sealed class EpisodeAiringFilteringOptions
 
     /// <summary>
     ///   Optional. If set, will restrict the returned list to only containing
-    ///   airings of episodes of one of the given types.
+    ///   airings of episodes of one of the given types. An unresolved airing
+    ///   counts as <see cref="EpisodeType.Episode"/>.
     /// </summary>
     public IReadOnlySet<EpisodeType>? EpisodeTypes { get; set; }
 
@@ -106,6 +107,17 @@ public sealed class EpisodeAiringFilteringOptions
     ///   the surviving schedules. Defaults to <c>true</c>.
     /// </summary>
     public bool IncludeEstimates { get; set; } = true;
+
+    /// <summary>
+    ///   Optional. Whether to also return the unresolved airings, the ones
+    ///   whose place on the line no source lists an episode for yet. Defaults
+    ///   to <c>true</c>.
+    /// </summary>
+    /// <remarks>
+    ///   An entity read returns the unresolved airings of the schedules on its
+    ///   series, or on its season, and an episode read never does.
+    /// </remarks>
+    public bool IncludeUnresolved { get; set; } = true;
 
     /// <summary>
     ///   Optional. Whether to also return a date-only entry for each AniDB

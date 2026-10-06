@@ -74,9 +74,9 @@ public class AiringSchedule
 
     /// <summary>
     /// The first episode the schedule covers, in the series' (or season's)
-    /// numbering, or <c>null</c> when the range is open-ended.
+    /// numbering, never below <c>1</c>.
     /// </summary>
-    public int? FirstEpisodeNumber { get; set; }
+    public int FirstEpisodeNumber { get; set; } = 1;
 
     /// <summary>
     /// The last episode the schedule covers, in the series' (or season's)

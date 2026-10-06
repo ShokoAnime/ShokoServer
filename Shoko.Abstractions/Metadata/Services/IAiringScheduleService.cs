@@ -647,7 +647,9 @@ public interface IAiringScheduleService
     /// <summary>
     ///   Event raised once per write, carrying what the write added, updated
     ///   and withdrew on one schedule as three separate lists. An airing a
-    ///   write left exactly as it was is in none of them.
+    ///   write left exactly as it was is in none of them. Also raised, once per
+    ///   schedule, for the airings an added or removed episode or series, or a
+    ///   changed link, makes resolve differently.
     /// </summary>
     event EventHandler<EpisodeAiringsUpdatedEventArgs>? AiringsUpdated;
 
@@ -719,9 +721,11 @@ public interface IAiringScheduleService
     ///   own the schedule.
     /// </exception>
     /// <exception cref="AiringScheduleValidationException">
-    ///   An episode falls outside the schedule's series, season or coverage,
-    ///   two airings share a key, or the write would leave the schedule with no
-    ///   airing inside the retention window while automatic cleanup is on.
+    ///   An airing has neither an episode nor a sequence number, its sequence
+    ///   number is below <c>1</c> or past the schedule's coverage, its episode
+    ///   falls outside the schedule's series, season or coverage, two airings
+    ///   share a key, or the write would leave the schedule with no airing
+    ///   inside the retention window while automatic cleanup is on.
     /// </exception>
     /// <returns>
     ///   The enriched airings on the schedule afterwards.
@@ -799,8 +803,10 @@ public interface IAiringScheduleService
     ///   schedule.
     /// </exception>
     /// <exception cref="AiringScheduleValidationException">
-    ///   An episode falls outside the schedule's series, season or coverage,
-    ///   two airings share a key, an airing is both submitted and removed, or
+    ///   An airing has neither an episode nor a sequence number, its sequence
+    ///   number is below <c>1</c> or past the schedule's coverage, its episode
+    ///   falls outside the schedule's series, season or coverage, two airings
+    ///   share a key, an airing is both submitted and removed, or
     ///   the write would leave the schedule with no airing inside the retention
     ///   window while automatic cleanup is on. A removal kept as a hiatus still
     ///   counts towards that window, since it holds on to the slot it lost, and

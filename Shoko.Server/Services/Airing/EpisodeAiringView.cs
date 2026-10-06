@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Repositories;
@@ -29,6 +30,10 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
 
     private readonly EpisodeAiringKind _providerKind;
 
+    private readonly MetadataSource? _pinnedSource;
+
+    private readonly string? _pinnedID;
+
     private bool _episodeResolved;
 
     private IEpisode? _episode;
@@ -38,6 +43,8 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     private IAnidbEpisode? _anidbEpisode;
 
     private IShokoEpisode? _shokoEpisode;
+
+    private (int AnimeID, int EpisodeNumber)? _anidbPosition;
 
     private bool _linkResolved;
 
@@ -79,6 +86,19 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     public IEpisode? ResolvedFor => _resolvedFor;
 
     /// <summary>
+    /// The key the read gathered this view under, or <c>null</c> when it
+    /// gathered it under none, so <see cref="AiringEpisodeKey.For"/> works it
+    /// out from the view itself.
+    /// </summary>
+    public AiringEpisodeKey? TargetKey { get; }
+
+    /// <summary>
+    /// What a read gathering this airing's other showings asks for: the
+    /// episode it was read for, else its own, under its key.
+    /// </summary>
+    public AiringReadTarget Target => new(_resolvedFor ?? Episode, AiringEpisodeKey.For(this));
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="EpisodeAiringView"/> class
     /// over a stored airing.
     /// </summary>
@@ -86,8 +106,15 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     /// <param name="schedule">The schedule the airing is on.</param>
     /// <param name="row">The stored airing.</param>
     /// <param name="resolvedFor">The episode the read ran for, when it isn't the airing's own.</param>
+    /// <param name="targetKey">The key the read gathered the airing under, if any.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/>, <paramref name="schedule"/> or <paramref name="row"/> is <c>null</c>.</exception>
-    public EpisodeAiringView(AiringReadContext context, AiringScheduleView schedule, EpisodeAiring row, IEpisode? resolvedFor = null)
+    public EpisodeAiringView(
+        AiringReadContext context,
+        AiringScheduleView schedule,
+        EpisodeAiring row,
+        IEpisode? resolvedFor = null,
+        AiringEpisodeKey? targetKey = null
+    )
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(schedule);
@@ -97,9 +124,15 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
         _schedule = schedule;
         _row = row;
         _resolvedFor = resolvedFor;
+        TargetKey = targetKey;
         Key = row.Key;
-        EpisodeSource = row.EpisodeSource;
-        EpisodeID = row.EpisodeID;
+        SequenceNumber = row.SequenceNumber;
+        if (row.IsPinned)
+        {
+            _pinnedSource = row.EpisodeSource;
+            _pinnedID = row.EpisodeID;
+        }
+
         AiredAt = row.AiredAt;
         OriginalAiredAt = row.OriginalAiredAt;
         IsDelayed = row.IsDelayed;
@@ -115,20 +148,24 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     /// <param name="schedule">The schedule the estimate belongs to.</param>
     /// <param name="episodeSource">The source of the episode being estimated.</param>
     /// <param name="episodeID">The ID of the episode within its source.</param>
+    /// <param name="sequenceNumber">The episode's place on the schedule's line.</param>
     /// <param name="key">The key the estimate's ID is derived from.</param>
     /// <param name="airedAt">The estimated air time, or <c>null</c> while the schedule is on hiatus.</param>
     /// <param name="originalAiredAt">The slot the episode would have had, when it differs from <paramref name="airedAt"/>.</param>
     /// <param name="resolvedFor">The episode the read ran for.</param>
+    /// <param name="targetKey">The key the read gathered the estimate under, if any.</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/>, <paramref name="schedule"/> or <paramref name="key"/> is <c>null</c>.</exception>
     public EpisodeAiringView(
         AiringReadContext context,
         AiringScheduleView schedule,
         MetadataSource episodeSource,
         string episodeID,
+        int sequenceNumber,
         string key,
         DateTime? airedAt,
         DateTime? originalAiredAt,
-        IEpisode? resolvedFor = null
+        IEpisode? resolvedFor = null,
+        AiringEpisodeKey? targetKey = null
     )
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -138,9 +175,11 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
         _context = context;
         _schedule = schedule;
         _resolvedFor = resolvedFor;
+        TargetKey = targetKey;
         Key = key;
-        EpisodeSource = episodeSource;
-        EpisodeID = episodeID;
+        SequenceNumber = sequenceNumber;
+        _pinnedSource = episodeSource;
+        _pinnedID = episodeID;
         AiredAt = airedAt;
         OriginalAiredAt = originalAiredAt;
         IsDelayed = false;
@@ -174,18 +213,17 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     /// <inheritdoc/>
     public DateOnly? AirDate => null;
 
-    /// <summary>
-    ///   The source of the episode the airing is for.
-    /// </summary>
-    public MetadataSource EpisodeSource { get; }
-
-    /// <summary>
-    ///   The source's own ID for the episode the airing is for.
-    /// </summary>
-    public string EpisodeID { get; }
+    /// <inheritdoc/>
+    public int? SequenceNumber { get; }
 
     /// <inheritdoc/>
-    MetadataGuid IEpisodeAiring.EpisodeID => new(EpisodeSource, MetadataEntityType.Episode, EpisodeID);
+    public int? EpisodeNumber => SequenceNumber is { } sequenceNumber ? _schedule.Row.FirstEpisodeNumber + sequenceNumber - 1 : null;
+
+    /// <inheritdoc/>
+    public MetadataGuid? EpisodeID
+        => _pinnedSource is { } source && _pinnedID is { } id
+            ? new(source, MetadataEntityType.Episode, id)
+            : Episode?.ID;
 
     /// <inheritdoc/>
     public IEpisode? Episode
@@ -196,7 +234,10 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
                 return _episode;
 
             _episodeResolved = true;
-            return _episode = _context.GetEpisode(EpisodeSource, EpisodeID);
+            if (_pinnedSource is { } source && _pinnedID is { } id)
+                return _episode = _context.GetEpisode(source, id);
+
+            return _episode = EpisodeNumber is { } episodeNumber ? _context.GetScheduleEpisodeByNumber(_schedule.Row, episodeNumber) : null;
         }
     }
 
@@ -219,6 +260,36 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
             return _shokoEpisode;
         }
     }
+
+    /// <inheritdoc/>
+    public int? AnidbAnimeID
+    {
+        get
+        {
+            ResolveEpisodeViews();
+            return _anidbEpisode?.AnidbAnimeID ?? _anidbPosition?.AnimeID;
+        }
+    }
+
+    /// <inheritdoc/>
+    public IAnidbAnime? AnidbAnime => AnidbAnimeID is { } anidbAnimeID ? _context.GetAnidbAnime(anidbAnimeID) : null;
+
+    /// <inheritdoc/>
+    public int? AnidbEpisodeNumber
+    {
+        get
+        {
+            ResolveEpisodeViews();
+            if (_anidbEpisode is { } anidbEpisode)
+                return ((IEpisode)anidbEpisode).Type is EpisodeType.Episode ? anidbEpisode.EpisodeNumber : null;
+
+            return _anidbPosition?.EpisodeNumber;
+        }
+    }
+
+    /// <inheritdoc/>
+    public IShokoSeries? ShokoSeries
+        => ShokoEpisode?.Series ?? (AnidbAnimeID is { } anidbAnimeID ? _context.GetShokoSeriesByAnimeID(anidbAnimeID) : null);
 
     /// <inheritdoc/>
     public IAiringChannel? Channel => _schedule.Channel;
@@ -244,7 +315,9 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
                 return _duration;
 
             _durationResolved = true;
-            return _duration = _context.GetEpisodeDuration(AnidbEpisode);
+            return _duration = AnidbEpisode is { } anidbEpisode
+                ? _context.GetEpisodeDuration(anidbEpisode)
+                : AnidbAnimeID is { } anidbAnimeID ? _context.GetUsualEpisodeDuration(anidbAnimeID) : null;
         }
     }
 
@@ -293,7 +366,7 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
             _offsetResolved = true;
             if (AiredAt is not { } airedAt)
                 return _offsetFromOriginal = null;
-            if (_context.GetFirstOriginalAiringAt(EpisodeSource, EpisodeID) is not { } firstOriginal)
+            if (_context.GetFirstOriginalAiringAt(Target) is not { } firstOriginal)
                 return _offsetFromOriginal = null;
             // This airing is the anchor itself, so there is nothing to offset from.
             if (!IsEstimated && airedAt == firstOriginal)
@@ -330,7 +403,8 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     /// <summary>
     /// Resolve the AniDB and shoko views of the episode this airing was read
     /// for, falling back to the airing's own episode when the read didn't name
-    /// one.
+    /// one, and to the AniDB episode its place on the line stands for when
+    /// neither leads to AniDB.
     /// </summary>
     private void ResolveEpisodeViews()
     {
@@ -339,5 +413,19 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
 
         _episodeViewsResolved = true;
         (_anidbEpisode, _shokoEpisode) = _context.GetEpisodeViews(_resolvedFor ?? Episode);
+        if (_anidbEpisode is not null || _shokoEpisode is not null || GetLineNumber() is not { } lineNumber)
+            return;
+
+        _anidbPosition = _context.GetAnidbPosition(_schedule.Row, lineNumber);
+        if (_anidbPosition is { } position && _context.GetAnidbEpisode(position.AnimeID, position.EpisodeNumber) is { } anidbEpisode)
+            (_anidbEpisode, _shokoEpisode) = _context.GetEpisodeViews(anidbEpisode);
     }
+
+    /// <summary>
+    /// The airing's number on its schedule's line: its sequence number's, else
+    /// the number of the regular episode it is pinned to.
+    /// </summary>
+    /// <returns>The number, or <c>null</c> when it has none.</returns>
+    private int? GetLineNumber()
+        => EpisodeNumber ?? (Episode is { Type: EpisodeType.Episode } episode ? episode.EpisodeNumber : null);
 }

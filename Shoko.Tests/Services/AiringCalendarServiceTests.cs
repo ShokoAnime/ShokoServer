@@ -247,6 +247,32 @@ public class AiringCalendarServiceTests
     }
 
     [Fact]
+    public void Days_GroupAnUnresolvedAiringWithTheOthersAtItsAnidbPlace()
+    {
+        // Two providers' airings of an episode AniDB does not list yet: one has no
+        // episode at all, the other a provider episode AniDB has no link for.
+        static IEpisodeAiring Unresolved(string key, DateTime airedAt, int number)
+        {
+            var airing = new Mock<IEpisodeAiring>();
+            airing.SetupGet(entry => entry.ID).Returns(Guid.NewGuid());
+            airing.SetupGet(entry => entry.Key).Returns(key);
+            airing.SetupGet(entry => entry.AiredAt).Returns(airedAt);
+            airing.SetupGet(entry => entry.AnidbAnimeID).Returns(900);
+            airing.SetupGet(entry => entry.AnidbEpisodeNumber).Returns(number);
+            return airing.Object;
+        }
+
+        var airings = new[]
+        {
+            Unresolved("syoboi", Utc(5, 23), 14),
+            Unresolved("tvmaze", Utc(5, 23, 30), 14),
+            Unresolved("next", Utc(5, 23, 45), 15),
+        };
+
+        Assert.Equal(["syoboi>tvmaze", "next"], Days(airings)[Day(5)]);
+    }
+
+    [Fact]
     public void Days_LeadWithATimedAiringOverTheDateOnlyOne()
     {
         var airings = new[] { Airing("dated", 1, null, Day(5)), Airing("timed", 1, Utc(5, 18, 30)) };

@@ -70,7 +70,6 @@ public partial class AiringScheduleService
     {
         var context = new AiringReadContext(this, includeDisabled: true);
         var now = context.Now;
-        var scheduleView = context.GetSchedule(row);
         var submissions = ValidateAirings(context, row, airings, removalKeys);
         var existingRows = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID);
         var existingByKey = existingRows.ToDictionary(entry => entry.Key, StringComparer.Ordinal);
@@ -79,8 +78,8 @@ public partial class AiringScheduleService
             .Select(entry => new ExistingAiring
             {
                 Key = entry.Key,
-                EpisodeKey = AiringScheduleUtility.GetDerivedAiringKey(entry.EpisodeSource, entry.EpisodeID),
-                EpisodeNumber = GetNormalEpisodeNumber(context, entry.EpisodeSource, entry.EpisodeID),
+                EpisodeKey = GetLineKey(entry),
+                EpisodeNumber = GetLineNumber(context, row, entry),
                 AiredAt = entry.AiredAt,
                 OriginalAiredAt = entry.OriginalAiredAt,
                 IsDelayed = entry.IsDelayed,
@@ -92,7 +91,7 @@ public partial class AiringScheduleService
             .Select(entry => new SubmittedAiring
             {
                 Key = entry.Key,
-                EpisodeKey = AiringScheduleUtility.GetDerivedAiringKey(entry.Source, entry.ID),
+                EpisodeKey = entry.LineKey,
                 AiredAt = entry.Data.AiredAt,
                 OriginalAiredAt = entry.Data.OriginalAiredAt,
                 IsDelayed = entry.Data.IsDelayed,
@@ -106,9 +105,9 @@ public partial class AiringScheduleService
             InferDelays = options.InferDelays,
             KeepRemovalsAsHiatus = options.KeepRemovalsAsHiatus,
             IsFinished = options.IsFinished ?? row.IsFinished,
-            FirstEpisodeNumber = options.HasFirstEpisodeNumberSet ? options.FirstEpisodeNumber : row.FirstEpisodeNumber,
+            FirstEpisodeNumber = row.FirstEpisodeNumber,
             LastEpisodeNumber = options.HasLastEpisodeNumberSet ? options.LastEpisodeNumber : row.LastEpisodeNumber,
-            SupersededEpisodeKeys = GetSupersededEpisodeKeys(row, existingRows, now),
+            SupersededEpisodeKeys = GetSupersededEpisodeKeys(context, row, existingRows, now),
         };
         var result = removalKeys is null
             ? AiringScheduleUtility.InferAirings(existing, submitted, now, inferenceOptions)
@@ -150,6 +149,7 @@ public partial class AiringScheduleService
             entry.Key = airing.Key;
             if (submissionsByKey.TryGetValue(airing.Key, out var submission))
             {
+                entry.SequenceNumber = submission.SequenceNumber;
                 entry.EpisodeSource = submission.Source;
                 entry.EpisodeID = submission.ID;
                 entry.Url = string.IsNullOrWhiteSpace(submission.Data.Url) ? null : submission.Data.Url.Trim();
@@ -243,17 +243,20 @@ public partial class AiringScheduleService
         }
 
         // A row kept as a hiatus and a row deleted as history are the same
-        // signal to a consumer: the schedule no longer lists it.
+        // signal to a consumer: the schedule no longer lists it. The views read
+        // the line as it is now, so they get a context of their own.
         var withdrawn = hiatus.Concat(deleted).ToList();
+        var viewContext = new AiringReadContext(this, includeDisabled: true, at: now);
+        var scheduleView = viewContext.GetSchedule(row);
         AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs
         {
             Reason = GetWriteReason(added.Count, updated.Count, withdrawn.Count),
             Schedule = scheduleView,
-            Added = ToViews(context, scheduleView, added),
-            Updated = ToViews(context, scheduleView, updated),
-            Withdrawn = ToViews(context, scheduleView, withdrawn),
+            Added = ToViews(viewContext, scheduleView, added),
+            Updated = ToViews(viewContext, scheduleView, updated),
+            Withdrawn = ToViews(viewContext, scheduleView, withdrawn),
         });
-        return ToViews(context, scheduleView, [.. added, .. updated, .. hiatus]);
+        return ToViews(viewContext, scheduleView, [.. added, .. updated, .. hiatus]);
     }
 
     #endregion
@@ -359,7 +362,7 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="scheduleID">The local ID of the schedule to normalise.</param>
     /// <param name="touched">Rows the caller has in hand, so their pointers are saved even when they are already right.</param>
-    private static void NormalizeLinkSets(int scheduleID, IReadOnlyList<EpisodeAiring> touched)
+    internal static void NormalizeLinkSets(int scheduleID, IReadOnlyList<EpisodeAiring> touched)
     {
         var rows = RepoFactory.EpisodeAiring.GetByScheduleID(scheduleID)
             .Concat(touched)
@@ -416,12 +419,12 @@ public partial class AiringScheduleService
     /// <summary>
     /// The estimate behind a public ID, for the airings a list read filled in
     /// rather than read out of a provider's line. An estimate's ID derives from
-    /// its schedule's and its episode's the way a stored airing's does, and a
-    /// client that was handed one has no way of telling the two apart, so the
-    /// same ID has to resolve either way.
+    /// its schedule's and its place on the line the way a keyless stored
+    /// airing's does, and a client that was handed one has no way of telling
+    /// the two apart, so the same ID has to resolve either way.
     /// </summary>
     /// <remarks>
-    /// The ID can't be inverted, so the schedules are walked and their episodes'
+    /// The ID can't be inverted, so the schedules are walked and their places'
     /// IDs are derived until one matches, which is the same sweep a range read
     /// makes to work out what it can estimate at all, and no more expensive.
     /// </remarks>
@@ -432,15 +435,16 @@ public partial class AiringScheduleService
     {
         foreach (var row in RepoFactory.AiringSchedule.GetAll())
         {
-            var covered = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID)
-                .Select(entry => (entry.EpisodeSource, entry.EpisodeID))
-                .ToHashSet();
+            var coverage = GetCoverage(context, row, RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID));
             foreach (var episode in GetScheduleEpisodes(context, row))
             {
-                var key = GetEntityKey(episode);
-                if (covered.Contains(key))
+                if (episode.Type is not EpisodeType.Episode || episode.EpisodeNumber < row.FirstEpisodeNumber)
                     continue;
-                if (AiringScheduleUtility.GetEpisodeAiringID(row.ID, AiringScheduleUtility.GetDerivedAiringKey(key.Source, key.ID)) != airingID)
+
+                var key = GetEntityKey(episode);
+                if (coverage.Covers(key, episode))
+                    continue;
+                if (GetEstimateID(row, episode.EpisodeNumber) != airingID)
                     continue;
                 if (Estimate(context, row, context.GetSchedule(row), episode, key) is { } estimate)
                     return estimate;
@@ -448,10 +452,13 @@ public partial class AiringScheduleService
 
             foreach (var (episode, number) in GetUnlinkedEpisodes(context, row))
             {
-                var key = GetEntityKey(episode);
-                if (covered.Contains(key))
+                if (number < row.FirstEpisodeNumber)
                     continue;
-                if (AiringScheduleUtility.GetEpisodeAiringID(row.ID, AiringScheduleUtility.GetDerivedAiringKey(key.Source, key.ID)) != airingID)
+
+                var key = GetEntityKey(episode);
+                if (coverage.Covers(key, number))
+                    continue;
+                if (GetEstimateID(row, number) != airingID)
                     continue;
                 if (Estimate(context, row, context.GetSchedule(row), episode, key, scheduleEpisodeNumber: number) is { } estimate)
                     return estimate;
@@ -468,20 +475,30 @@ public partial class AiringScheduleService
     /// <summary>
     /// The key a schedule-level rejection is reported under. Retention judges
     /// the whole line rather than any one airing, so the error belongs to no
-    /// airing key, the same way a submission with no episode at all is reported
-    /// under its position.
+    /// airing key, the same way a submission with neither an episode nor a
+    /// sequence number is reported under its position.
     /// </summary>
     private const string ScheduleErrorKey = "#schedule";
 
     /// <summary>
-    /// One submitted airing, resolved down to the key and episode it is stored
-    /// under.
+    /// One submitted airing, resolved down to what it is stored under.
     /// </summary>
     /// <param name="Key">The airing's key, submitted or derived.</param>
-    /// <param name="Source">The source of the episode.</param>
-    /// <param name="ID">The ID of the episode within its source.</param>
+    /// <param name="SequenceNumber">The airing's place on the line, or <c>null</c> off it.</param>
+    /// <param name="Source">The source of the pinned episode, or <c>null</c> when the sequence number alone places it.</param>
+    /// <param name="ID">The ID of the pinned episode within its source, or <c>null</c> with it.</param>
     /// <param name="Data">The submission itself.</param>
-    private sealed record AiringSubmission(string Key, MetadataSource Source, string ID, EpisodeAiringData Data);
+    private sealed record AiringSubmission(string Key, int? SequenceNumber, MetadataSource? Source, string? ID, EpisodeAiringData Data)
+    {
+        /// <summary>
+        /// The key of the place the airing is for, which the inference matches
+        /// airings of one episode by.
+        /// </summary>
+        public string LineKey
+            => SequenceNumber is { } sequenceNumber
+                ? AiringScheduleUtility.GetDerivedSequenceAiringKey(sequenceNumber)
+                : AiringScheduleUtility.GetDerivedAiringKey(Source!, ID!);
+    }
 
     /// <summary>
     /// What a write did to one airing row, which is what the three lists on
@@ -517,8 +534,9 @@ public partial class AiringScheduleService
     /// something can be told from one that handed the row back as it was.
     /// </summary>
     /// <param name="Key">The airing's key.</param>
-    /// <param name="EpisodeSource">The source of the episode.</param>
-    /// <param name="EpisodeID">The ID of the episode within its source.</param>
+    /// <param name="SequenceNumber">The airing's place on the line.</param>
+    /// <param name="EpisodeSource">The source of the pinned episode.</param>
+    /// <param name="EpisodeID">The ID of the pinned episode within its source.</param>
     /// <param name="Url">The airing's url.</param>
     /// <param name="AiredAt">The airing's slot.</param>
     /// <param name="OriginalAiredAt">The first slot the airing was scheduled for.</param>
@@ -527,8 +545,9 @@ public partial class AiringScheduleService
     /// <param name="LinkedToID">The local ID of the airing's link head.</param>
     private readonly record struct AiringRowState(
         string Key,
-        MetadataSource EpisodeSource,
-        string EpisodeID,
+        int? SequenceNumber,
+        MetadataSource? EpisodeSource,
+        string? EpisodeID,
         string? Url,
         DateTime? AiredAt,
         DateTime? OriginalAiredAt,
@@ -544,7 +563,18 @@ public partial class AiringScheduleService
     /// <param name="entry">The stored airing.</param>
     /// <returns>The row's state.</returns>
     private static AiringRowState GetRowState(EpisodeAiring entry)
-        => new(entry.Key, entry.EpisodeSource, entry.EpisodeID, entry.Url, entry.AiredAt, entry.OriginalAiredAt, entry.IsDelayed, entry.Kind, entry.LinkedToID);
+        => new(
+            entry.Key,
+            entry.SequenceNumber,
+            entry.EpisodeSource,
+            entry.EpisodeID,
+            entry.Url,
+            entry.AiredAt,
+            entry.OriginalAiredAt,
+            entry.IsDelayed,
+            entry.Kind,
+            entry.LinkedToID
+        );
 
     /// <summary>
     /// The one coarse reason a write dispatches, for a consumer that doesn't
@@ -579,14 +609,17 @@ public partial class AiringScheduleService
 
     /// <summary>
     /// Check every airing of a write at once, so a batch reports all of its
-    /// rejected airings rather than failing on the first.
+    /// rejected airings rather than failing on the first, and work out what
+    /// each is stored under: a regular episode alone takes the sequence number
+    /// its own number gives it, and an episode the number resolves to anyway
+    /// is not pinned.
     /// </summary>
     /// <param name="context">The read the resolutions belong to.</param>
     /// <param name="row">The schedule being written to.</param>
     /// <param name="airings">The submitted airings.</param>
     /// <param name="removalKeys">The keys the same write takes away, which nothing it submits may name, or <c>null</c> when it names none.</param>
     /// <returns>The accepted submissions, in submission order.</returns>
-    /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, or is also being removed.</exception>
+    /// <exception cref="AiringScheduleValidationException">An airing has neither an episode nor a sequence number, is outside the schedule's series, season or coverage, shares a key with another, or is also being removed.</exception>
     private List<AiringSubmission> ValidateAirings(
         AiringReadContext context,
         AiringSchedule row,
@@ -607,9 +640,9 @@ public partial class AiringScheduleService
                 continue;
 
             var problems = new List<string>();
-            if (airing.Episode is not { } episode)
+            if (airing.Episode is null && airing.SequenceNumber is null)
             {
-                errors[$"#{position}"] = ["An airing needs an episode."];
+                errors[$"@{position}"] = ["An airing needs an episode or a sequence number."];
                 continue;
             }
 
@@ -618,28 +651,55 @@ public partial class AiringScheduleService
             else if (airing.Kind is EpisodeAiringKind.DetectedRerun)
                 problems.Add($"\"{airing.Kind}\" is set by the core, never by a provider.");
 
-            var (source, id) = GetEntityKey(episode);
-            var key = string.IsNullOrWhiteSpace(airing.Key) ? AiringScheduleUtility.GetDerivedAiringKey(source, id) : airing.Key.Trim();
+            var sequenceNumber = airing.SequenceNumber;
+            var episodeKey = default((MetadataSource Source, string ID)?);
+            if (airing.Episode is { } episode)
+            {
+                var (source, id) = GetEntityKey(episode);
+                episodeKey = (source, id);
+                if (source != row.SeriesSource || episode.SeriesID.ID != row.SeriesID)
+                    problems.Add("The episode does not belong to the schedule's series.");
+                else if (seasonEpisodes is not null && !seasonEpisodes.Contains((source, id)))
+                    problems.Add("The episode does not belong to the schedule's season.");
+                if (episode.Type is EpisodeType.Episode && sequenceNumber is null)
+                {
+                    if (episode.EpisodeNumber < row.FirstEpisodeNumber)
+                        problems.Add($"The episode is before the schedule's coverage, which starts at episode {row.FirstEpisodeNumber}.");
+                    else
+                        sequenceNumber = episode.EpisodeNumber - row.FirstEpisodeNumber + 1;
+                }
+            }
+
+            if (sequenceNumber is { } number)
+            {
+                if (number < 1)
+                    problems.Add("The sequence number is below 1.");
+                else if (row.LastEpisodeNumber is { } last && row.FirstEpisodeNumber + number - 1 > last)
+                    problems.Add($"The airing is past the schedule's coverage, which ends at episode {last}.");
+            }
+
+            // An episode the place resolves to anyway is the place's to name,
+            // so it moves with the numbering rather than staying pinned.
+            if (episodeKey is { } pinned && sequenceNumber is { } placed && placed >= 1 &&
+                context.GetScheduleEpisodeByNumber(row, row.FirstEpisodeNumber + placed - 1) is { } atPlace && GetEntityKey(atPlace) == pinned)
+                episodeKey = null;
+
+            var key = !string.IsNullOrWhiteSpace(airing.Key)
+                ? airing.Key.Trim()
+                : sequenceNumber is { } derived && derived >= 1
+                    ? AiringScheduleUtility.GetDerivedSequenceAiringKey(derived)
+                    : episodeKey is { } episodeOnly
+                        ? AiringScheduleUtility.GetDerivedAiringKey(episodeOnly.Source, episodeOnly.ID)
+                        : $"@{position}";
             if (!seen.Add(key))
                 problems.Add($"Two airings share the key \"{key}\".");
             if (removalKeys is not null && removalKeys.Contains(key))
                 problems.Add("The airing is both submitted and removed by the same write.");
-            if (source != row.SeriesSource || episode.SeriesID.ID != row.SeriesID)
-                problems.Add("The episode does not belong to the schedule's series.");
-            else if (seasonEpisodes is not null && !seasonEpisodes.Contains((source, id)))
-                problems.Add("The episode does not belong to the schedule's season.");
-            if (episode.Type is EpisodeType.Episode)
-            {
-                if (row.FirstEpisodeNumber is { } first && episode.EpisodeNumber < first)
-                    problems.Add($"The episode is before the schedule's coverage, which starts at episode {first}.");
-                if (row.LastEpisodeNumber is { } last && episode.EpisodeNumber > last)
-                    problems.Add($"The episode is past the schedule's coverage, which ends at episode {last}.");
-            }
 
             if (problems.Count > 0)
                 errors[key] = problems;
             else
-                submissions.Add(new AiringSubmission(key, source, id, airing));
+                submissions.Add(new AiringSubmission(key, sequenceNumber, episodeKey?.Source, episodeKey?.ID, airing));
         }
 
         if (errors.Count > 0)
@@ -710,26 +770,27 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// The episode keys of this schedule's slotless airings that another
+    /// The line keys of this schedule's slotless airings that another
     /// channel-mate has since aired, which is what turns a kept hiatus row into
     /// history.
     /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
     /// <param name="row">The schedule being written to.</param>
     /// <param name="existingRows">The schedule's current airings.</param>
     /// <param name="now">The current time, in UTC.</param>
-    /// <returns>The superseded episode keys.</returns>
-    private HashSet<string> GetSupersededEpisodeKeys(AiringSchedule row, IReadOnlyList<EpisodeAiring> existingRows, DateTime now)
+    /// <returns>The superseded line keys.</returns>
+    private HashSet<string> GetSupersededEpisodeKeys(AiringReadContext context, AiringSchedule row, IReadOnlyList<EpisodeAiring> existingRows, DateTime now)
     {
         var superseded = new HashSet<string>(StringComparer.Ordinal);
+        var scheduleView = context.GetSchedule(row);
         foreach (var entry in existingRows.Where(entry => entry.AiredAt is null))
         {
-            foreach (var other in RepoFactory.EpisodeAiring.GetByEpisodeID(entry.EpisodeSource, entry.EpisodeID))
+            var target = new EpisodeAiringView(context, scheduleView, entry).Target;
+            foreach (var (otherSchedule, other) in context.GetStoredAirings(target, episodeLinked: true, positionLinked: true))
             {
                 // An advance screening or a rerun is not the showing a hiatus
                 // waits for.
                 if (other.EpisodeAiringID == entry.EpisodeAiringID || other.Kind is not EpisodeAiringKind.Normal || other.AiredAt is not { } airedAt || airedAt > now)
-                    continue;
-                if (RepoFactory.AiringSchedule.GetByID(other.AiringScheduleID) is not { } otherSchedule)
                     continue;
                 // Another channel airing the episode doesn't supersede it, and a
                 // channel-less airing is only superseded by another one.
@@ -738,7 +799,7 @@ public partial class AiringScheduleService
                 if (!HasMatchingTrack(row.Tracks, otherSchedule.Tracks))
                     continue;
 
-                superseded.Add(AiringScheduleUtility.GetDerivedAiringKey(entry.EpisodeSource, entry.EpisodeID));
+                superseded.Add(GetLineKey(entry));
                 break;
             }
         }
@@ -781,15 +842,41 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// The episode number an airing counts as for coverage, which only normal
-    /// episodes have; a special is never in a range and never estimated.
+    /// The key of the place an airing is for, which the inference matches the
+    /// airings of one episode by: its sequence number's, else its pinned
+    /// episode's.
+    /// </summary>
+    /// <param name="entry">The stored airing.</param>
+    /// <returns>The key.</returns>
+    internal static string GetLineKey(EpisodeAiring entry)
+        => entry.SequenceNumber is { } sequenceNumber
+            ? AiringScheduleUtility.GetDerivedSequenceAiringKey(sequenceNumber)
+            : entry.IsPinned
+                ? AiringScheduleUtility.GetDerivedAiringKey(entry.EpisodeSource, entry.EpisodeID)
+                : entry.Key;
+
+    /// <summary>
+    /// The episode number an airing counts as for coverage: its number on the
+    /// line, else its pinned episode's when that is a regular one. A special
+    /// is never in a range and never estimated.
     /// </summary>
     /// <param name="context">The read the resolution belongs to.</param>
-    /// <param name="source">The source of the episode.</param>
-    /// <param name="id">The ID of the episode within its source.</param>
+    /// <param name="row">The airing's schedule.</param>
+    /// <param name="entry">The stored airing.</param>
     /// <returns>The episode number, or <c>null</c>.</returns>
-    private static int? GetNormalEpisodeNumber(AiringReadContext context, MetadataSource source, string id)
-        => context.GetEpisode(source, id) is { Type: EpisodeType.Episode } episode ? episode.EpisodeNumber : null;
+    private static int? GetLineNumber(AiringReadContext context, AiringSchedule row, EpisodeAiring entry)
+        => entry.SequenceNumber is { } sequenceNumber
+            ? row.FirstEpisodeNumber + sequenceNumber - 1
+            : context.ResolveEpisode(row, entry) is { Type: EpisodeType.Episode } episode ? episode.EpisodeNumber : null;
+
+    /// <summary>
+    /// The public ID an estimate at a number on a schedule's line gets.
+    /// </summary>
+    /// <param name="row">The schedule.</param>
+    /// <param name="episodeNumber">The number on the line.</param>
+    /// <returns>The ID.</returns>
+    private static Guid GetEstimateID(AiringSchedule row, int episodeNumber)
+        => AiringScheduleUtility.GetEpisodeAiringID(row.ID, AiringScheduleUtility.GetDerivedSequenceAiringKey(episodeNumber - row.FirstEpisodeNumber + 1));
 
     /// <summary>
     /// The stored airing a provider handed back, checked against the owner
@@ -880,6 +967,13 @@ public partial class AiringScheduleService
             return _airingIDs = map;
         }
     }
+
+    /// <summary>
+    /// Drop the whole map from public to local airing IDs, after a change made
+    /// outside the service re-keyed airings, so the next lookup rebuilds it.
+    /// </summary>
+    internal void ForgetAiringIDs()
+        => _airingIDs = null;
 
     /// <summary>
     /// Record an airing's public ID, so a write doesn't cost a rebuild of the

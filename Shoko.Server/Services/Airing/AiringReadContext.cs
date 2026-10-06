@@ -51,13 +51,25 @@ internal sealed class AiringReadContext
 
     private readonly Dictionary<(MetadataSource Source, string ID), IReadOnlyList<(MetadataSource Source, string ID)>> _linkedEpisodeKeys = [];
 
-    private readonly Dictionary<(MetadataSource Source, string ID), DateTime?> _firstOriginalAirings = [];
+    private readonly Dictionary<int, IReadOnlyDictionary<int, IEpisode?>> _scheduleEpisodesByNumber = [];
+
+    private readonly Dictionary<(int ScheduleID, int EpisodeNumber), (int AnimeID, int EpisodeNumber)?> _anidbPositions = [];
+
+    private readonly Dictionary<int, IReadOnlyDictionary<int, IAnidbEpisode>> _anidbEpisodesByNumber = [];
+
+    private readonly Dictionary<int, IAnidbAnime?> _anidbAnime = [];
+
+    private readonly Dictionary<int, IShokoSeries?> _shokoSeriesByAnimeID = [];
+
+    private readonly Dictionary<(TargetMemoKey Target, bool EpisodeLinked, bool PositionLinked), IReadOnlyList<(AiringSchedule Schedule, EpisodeAiring Entry)>> _storedAirings = [];
+
+    private readonly Dictionary<TargetMemoKey, DateTime?> _firstOriginalAirings = [];
 
     private readonly Dictionary<(MetadataSource Source, string ID), DateTime?> _anidbAirDates = [];
 
     private readonly Dictionary<MetadataGuid, AiringSeriesState> _seriesStates = [];
 
-    private readonly Dictionary<(MetadataSource Source, string ID), IReadOnlyList<(AiringSchedule Schedule, DateTime AiredAt)>> _firstNormalAirings = [];
+    private readonly Dictionary<TargetMemoKey, IReadOnlyList<(AiringSchedule Schedule, DateTime AiredAt)>> _firstNormalAirings = [];
 
     private readonly Dictionary<int, bool> _detectedReruns = [];
 
@@ -372,6 +384,143 @@ internal sealed class AiringReadContext
 
     #endregion
 
+    #region Resolution
+
+    /// <summary>
+    /// The regular episode at a number on a schedule's line: the one of the
+    /// schedule's season, or its series, with that number. The schedule's
+    /// episodes are gathered once per read.
+    /// </summary>
+    /// <param name="row">The schedule.</param>
+    /// <param name="episodeNumber">The number on the line.</param>
+    /// <returns>The episode, or <c>null</c> when none has the number, or two do.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="row"/> is <c>null</c>.</exception>
+    public IEpisode? GetScheduleEpisodeByNumber(AiringSchedule row, int episodeNumber)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        if (!_scheduleEpisodesByNumber.TryGetValue(row.AiringScheduleID, out var byNumber))
+        {
+            var episodes = new Dictionary<int, IEpisode?>();
+            foreach (var episode in AiringScheduleService.GetScheduleEpisodes(this, row))
+            {
+                if (episode.Type is not EpisodeType.Episode)
+                    continue;
+
+                // Two episodes sharing a number leave it unresolved rather than picking one.
+                episodes[episode.EpisodeNumber] = episodes.ContainsKey(episode.EpisodeNumber) ? null : episode;
+            }
+
+            _scheduleEpisodesByNumber[row.AiringScheduleID] = byNumber = episodes;
+        }
+
+        return byNumber.GetValueOrDefault(episodeNumber);
+    }
+
+    /// <summary>
+    /// The episode a stored airing is for: the pinned one, else the regular
+    /// episode at its number on the line.
+    /// </summary>
+    /// <param name="row">The airing's schedule.</param>
+    /// <param name="entry">The stored airing.</param>
+    /// <returns>The episode, or <c>null</c> when the airing is unresolved.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="row"/> or <paramref name="entry"/> is <c>null</c>.</exception>
+    public IEpisode? ResolveEpisode(AiringSchedule row, EpisodeAiring entry)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        ArgumentNullException.ThrowIfNull(entry);
+
+        if (entry.IsPinned)
+            return GetEpisode(entry.EpisodeSource, entry.EpisodeID);
+
+        return entry.SequenceNumber is { } sequenceNumber ? GetScheduleEpisodeByNumber(row, row.FirstEpisodeNumber + sequenceNumber - 1) : null;
+    }
+
+    /// <summary>
+    /// The AniDB anime and regular episode number a number on a schedule's
+    /// line stands for, from the schedule's series alone, worked out once per
+    /// schedule, number and read.
+    /// </summary>
+    /// <param name="row">The schedule.</param>
+    /// <param name="episodeNumber">The number on the line.</param>
+    /// <returns>The AniDB anime and episode number, or <c>null</c> when the series leads to none.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="row"/> is <c>null</c>.</exception>
+    public (int AnimeID, int EpisodeNumber)? GetAnidbPosition(AiringSchedule row, int episodeNumber)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        var key = (row.AiringScheduleID, episodeNumber);
+        if (_anidbPositions.TryGetValue(key, out var position))
+            return position;
+
+        return _anidbPositions[key] = AiringScheduleService.FindAnidbPosition(this, row, episodeNumber);
+    }
+
+    /// <summary>
+    /// The regular AniDB episode with a number in an anime, when AniDB lists
+    /// it, from the anime's episodes gathered once per read.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime.</param>
+    /// <param name="episodeNumber">The regular episode number.</param>
+    /// <returns>The episode, or <c>null</c> when AniDB lists none.</returns>
+    public IAnidbEpisode? GetAnidbEpisode(int anidbAnimeID, int episodeNumber)
+    {
+        if (!_anidbEpisodesByNumber.TryGetValue(anidbAnimeID, out var byNumber))
+        {
+            _anidbEpisodesByNumber[anidbAnimeID] = byNumber = RepoFactory.AniDB_Episode.GetByAnimeID(anidbAnimeID)
+                .Where(episode => episode.EpisodeType is EpisodeType.Episode)
+                .DistinctBy(episode => episode.EpisodeNumber)
+                .ToDictionary(episode => episode.EpisodeNumber, IAnidbEpisode (episode) => episode);
+        }
+
+        return byNumber.GetValueOrDefault(episodeNumber);
+    }
+
+    /// <summary>
+    /// The AniDB anime behind an ID, looked up once per read.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <returns>The anime, or <c>null</c> when it is not cached.</returns>
+    public IAnidbAnime? GetAnidbAnime(int anidbAnimeID)
+    {
+        if (_anidbAnime.TryGetValue(anidbAnimeID, out var anime))
+            return anime;
+
+        return _anidbAnime[anidbAnimeID] = RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeID);
+    }
+
+    /// <summary>
+    /// The shoko series of an AniDB anime, looked up once per read.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <returns>The shoko series, or <c>null</c> when the anime is not in the collection.</returns>
+    public IShokoSeries? GetShokoSeriesByAnimeID(int anidbAnimeID)
+    {
+        if (_shokoSeriesByAnimeID.TryGetValue(anidbAnimeID, out var series))
+            return series;
+
+        return _shokoSeriesByAnimeID[anidbAnimeID] = RepoFactory.AnimeSeries.GetByAnimeID(anidbAnimeID);
+    }
+
+    /// <summary>
+    /// The stored airings a read gathers for a target, worked out once per
+    /// target and read.
+    /// </summary>
+    /// <param name="target">The target.</param>
+    /// <param name="episodeLinked">Whether the episode's links are followed.</param>
+    /// <param name="positionLinked">Whether a place on a line is looked up on the schedules of other sources too.</param>
+    /// <returns>Every stored airing of the target, each with its schedule.</returns>
+    public IReadOnlyList<(AiringSchedule Schedule, EpisodeAiring Entry)> GetStoredAirings(AiringReadTarget target, bool episodeLinked, bool positionLinked)
+    {
+        var key = (TargetMemoKey.For(target), episodeLinked, positionLinked);
+        if (_storedAirings.TryGetValue(key, out var airings))
+            return airings;
+
+        return _storedAirings[key] = AiringScheduleService.CollectStoredAirings(this, target, episodeLinked, positionLinked);
+    }
+
+    #endregion
+
     #region Links
 
     /// <summary>
@@ -535,83 +684,76 @@ internal sealed class AiringReadContext
     /// <param name="airing">The airing.</param>
     /// <returns>The series, or <c>null</c> when none could be resolved.</returns>
     public static ISeries? GetSeriesFor(IEpisodeAiring airing)
-        => (ISeries?)airing.ShokoEpisode?.Series ?? airing.AnidbEpisode?.Series ?? airing.Episode?.Series ?? airing.Schedule?.Series;
+        => (ISeries?)airing.ShokoEpisode?.Series ??
+            airing.AnidbEpisode?.Series ??
+            airing.ShokoSeries ??
+            airing.AnidbAnime ??
+            airing.Episode?.Series ??
+            airing.Schedule?.Series;
 
     #endregion
 
     #region Anchors
 
     /// <summary>
-    /// The earliest known real Original airing of an episode, across every
+    /// The earliest known real Original airing of a target, across every
     /// visible schedule of every entity linked to it, leaving out advance
     /// screenings and reruns. It is what a simulpub's estimates anchor on and
     /// what <see cref="IEpisodeAiring.OffsetFromOriginal"/> is measured from.
     /// </summary>
-    /// <param name="source">The source of the episode.</param>
-    /// <param name="id">The ID of the episode within its source.</param>
+    /// <param name="target">The target.</param>
     /// <returns>The earliest Original airing, or <c>null</c> when none is known.</returns>
-    public DateTime? GetFirstOriginalAiringAt(MetadataSource source, string id)
+    public DateTime? GetFirstOriginalAiringAt(AiringReadTarget target)
     {
-        if (_firstOriginalAirings.TryGetValue((source, id), out var firstAiring))
+        var key = TargetMemoKey.For(target);
+        if (_firstOriginalAirings.TryGetValue(key, out var firstAiring))
             return firstAiring;
 
-        // Seed the entry first: resolving the episode's links can come back
-        // around to the same episode, and an anchor is never a cycle.
-        _firstOriginalAirings[(source, id)] = null;
+        // Seed the entry first: resolving the target's links can come back
+        // around to the same target, and an anchor is never a cycle.
+        _firstOriginalAirings[key] = null;
 
-        var keys = GetEpisode(source, id) is { } episode ? GetLinkedEpisodeKeys(episode) : [(source, id)];
         var earliest = default(DateTime?);
-        foreach (var (keySource, keyID) in keys)
+        foreach (var (schedule, row) in GetStoredAirings(target, episodeLinked: true, positionLinked: true))
         {
-            foreach (var row in RepoFactory.EpisodeAiring.GetByEpisodeID(keySource, keyID))
-            {
-                if (row.Kind is not EpisodeAiringKind.Normal || row.AiredAt is not { } airedAt || earliest is { } current && airedAt >= current)
-                    continue;
-                if (RepoFactory.AiringSchedule.GetByID(row.AiringScheduleID) is not { } schedule)
-                    continue;
-                if (!IsProviderVisible(schedule.ProviderID))
-                    continue;
-                if (!schedule.Tracks.Any(track => track.Kind is AiringKind.Original))
-                    continue;
+            if (row.Kind is not EpisodeAiringKind.Normal || row.AiredAt is not { } airedAt || earliest is { } current && airedAt >= current)
+                continue;
+            if (!IsProviderVisible(schedule.ProviderID))
+                continue;
+            if (!schedule.Tracks.Any(track => track.Kind is AiringKind.Original))
+                continue;
 
-                earliest = airedAt;
-            }
+            earliest = airedAt;
         }
 
-        return _firstOriginalAirings[(source, id)] = earliest;
+        return _firstOriginalAirings[key] = earliest;
     }
 
     /// <summary>
-    /// The earliest stored <see cref="EpisodeAiringKind.Normal"/> airing of an
-    /// episode on each schedule, across every entity linked to it, whatever
-    /// the schedule's provider, channel or tracks.
+    /// The earliest stored <see cref="EpisodeAiringKind.Normal"/> airing of a
+    /// target on each schedule, across every entity linked to it, whatever the
+    /// schedule's provider, channel or tracks.
     /// </summary>
-    /// <param name="source">The source of the episode.</param>
-    /// <param name="id">The ID of the episode within its source.</param>
-    /// <returns>One entry per schedule with a normal airing of the episode.</returns>
-    public IReadOnlyList<(AiringSchedule Schedule, DateTime AiredAt)> GetFirstNormalAirings(MetadataSource source, string id)
+    /// <param name="target">The target.</param>
+    /// <returns>One entry per schedule with a normal airing of the target.</returns>
+    public IReadOnlyList<(AiringSchedule Schedule, DateTime AiredAt)> GetFirstNormalAirings(AiringReadTarget target)
     {
-        if (_firstNormalAirings.TryGetValue((source, id), out var known))
+        var key = TargetMemoKey.For(target);
+        if (_firstNormalAirings.TryGetValue(key, out var known))
             return known;
 
-        var keys = GetEpisode(source, id) is { } episode ? GetLinkedEpisodeKeys(episode) : [(source, id)];
         var earliest = new Dictionary<int, (AiringSchedule Schedule, DateTime AiredAt)>();
-        foreach (var (keySource, keyID) in keys)
+        foreach (var (schedule, row) in GetStoredAirings(target, episodeLinked: true, positionLinked: true))
         {
-            foreach (var row in RepoFactory.EpisodeAiring.GetByEpisodeID(keySource, keyID))
-            {
-                if (row.Kind is not EpisodeAiringKind.Normal || row.AiredAt is not { } airedAt)
-                    continue;
-                if (earliest.TryGetValue(row.AiringScheduleID, out var current) && current.AiredAt <= airedAt)
-                    continue;
-                if (RepoFactory.AiringSchedule.GetByID(row.AiringScheduleID) is not { } schedule)
-                    continue;
+            if (row.Kind is not EpisodeAiringKind.Normal || row.AiredAt is not { } airedAt)
+                continue;
+            if (earliest.TryGetValue(row.AiringScheduleID, out var current) && current.AiredAt <= airedAt)
+                continue;
 
-                earliest[row.AiringScheduleID] = (schedule, airedAt);
-            }
+            earliest[row.AiringScheduleID] = (schedule, airedAt);
         }
 
-        return _firstNormalAirings[(source, id)] = [.. earliest.Values];
+        return _firstNormalAirings[key] = [.. earliest.Values];
     }
 
     /// <summary>
@@ -686,9 +828,19 @@ internal sealed class AiringReadContext
         if (anidbEpisode.Runtime > TimeSpan.Zero)
             return anidbEpisode.Runtime;
 
-        var animeID = anidbEpisode.AnidbAnimeID;
-        if (!_usualEpisodeLengths.TryGetValue(animeID, out var usual))
-            _usualEpisodeLengths[animeID] = usual = AnidbAnimeCatalog.GetEpisodeDuration(RepoFactory.AniDB_Episode.GetByAnimeID(animeID));
+        return GetUsualEpisodeDuration(anidbEpisode.AnidbAnimeID);
+    }
+
+    /// <summary>
+    /// The median length of an AniDB anime's regular episodes, worked out once
+    /// per anime.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime.</param>
+    /// <returns>The length, or <c>null</c> when it is not known.</returns>
+    public TimeSpan? GetUsualEpisodeDuration(int anidbAnimeID)
+    {
+        if (!_usualEpisodeLengths.TryGetValue(anidbAnimeID, out var usual))
+            _usualEpisodeLengths[anidbAnimeID] = usual = AnidbAnimeCatalog.GetEpisodeDuration(RepoFactory.AniDB_Episode.GetByAnimeID(anidbAnimeID));
 
         return usual;
     }
@@ -782,4 +934,21 @@ internal sealed class AiringReadContext
     }
 
     #endregion
+
+    /// <summary>
+    /// A target as a read memoizes it: by its episode's stored key rather than
+    /// the episode object, so two lookups of one episode share an entry.
+    /// </summary>
+    /// <param name="Episode">The stored key of the target's episode, if any.</param>
+    /// <param name="Key">The target's key.</param>
+    private readonly record struct TargetMemoKey((MetadataSource Source, string ID)? Episode, AiringEpisodeKey Key)
+    {
+        /// <summary>
+        /// The memo key of a target.
+        /// </summary>
+        /// <param name="target">The target.</param>
+        /// <returns>The memo key.</returns>
+        public static TargetMemoKey For(AiringReadTarget target)
+            => new(target.Episode is { } episode ? (episode.Source, episode.ID.ID) : null, target.Key);
+    }
 }

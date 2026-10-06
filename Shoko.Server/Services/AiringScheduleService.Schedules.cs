@@ -119,8 +119,8 @@ public partial class AiringScheduleService
         var row = GetOwnedSchedule(info, schedule, nameof(schedule));
         if (data.Tracks is { } tracks)
             row.Tracks = NormalizeTracks(info, tracks, nameof(data));
-        if (data.HasFirstEpisodeNumberSet)
-            row.FirstEpisodeNumber = data.FirstEpisodeNumber;
+        if (data.FirstEpisodeNumber is { } firstEpisodeNumber)
+            row.FirstEpisodeNumber = firstEpisodeNumber;
         if (data.HasLastEpisodeNumberSet)
             row.LastEpisodeNumber = data.LastEpisodeNumber;
         ValidateCoverage(row.FirstEpisodeNumber, row.LastEpisodeNumber, nameof(data));
@@ -217,7 +217,7 @@ public partial class AiringScheduleService
         var rows = RepoFactory.AiringSchedule.GetBySeriesID(seriesKey.Source, seriesKey.ID).ToList();
         if (options.LinkedEntitySchedules ?? series is IShokoSeries)
             foreach (var shokoSeries in series is IShokoSeries own ? [own] : series.ShokoSeries)
-                rows.AddRange(GetLinkedSeriesSchedules(shokoSeries, seriesKey));
+                rows.AddRange(GetLinkedSeriesSchedules(context, shokoSeries, seriesKey));
 
         return FilterSchedules(context, rows, options, anchor);
     }
@@ -237,7 +237,7 @@ public partial class AiringScheduleService
             .ToList();
         if (options.LinkedEntitySchedules ?? season is ISeason<IShokoSeries, IShokoEpisode>)
             foreach (var shokoSeason in season is ISeason<IShokoSeries, IShokoEpisode> own ? [own] : season.Series?.ShokoSeries.SelectMany(s => s.Seasons) ?? [])
-                rows.AddRange(GetLinkedSeasonSchedules(shokoSeason, season));
+                rows.AddRange(GetLinkedSeasonSchedules(context, shokoSeason, season));
 
         return FilterSchedules(context, rows, options, anchor);
     }
@@ -272,10 +272,11 @@ public partial class AiringScheduleService
     /// only counts when it has an airing on an episode linked to this series,
     /// or it narrows to one of this series' linked seasons.
     /// </summary>
+    /// <param name="context">The read the resolutions belong to.</param>
     /// <param name="shokoSeries">The shoko series the read is for.</param>
     /// <param name="ownKey">The key of the entity the read started from, which is never walked twice.</param>
     /// <returns>The schedules that belong through a link.</returns>
-    private IEnumerable<AiringSchedule> GetLinkedSeriesSchedules(IShokoSeries shokoSeries, (MetadataSource Source, string ID) ownKey)
+    private static IEnumerable<AiringSchedule> GetLinkedSeriesSchedules(AiringReadContext context, IShokoSeries shokoSeries, (MetadataSource Source, string ID) ownKey)
     {
         var seen = new HashSet<(MetadataSource, string)> { ownKey };
         var linkedSeries = new List<(MetadataSource Source, string ID)>();
@@ -306,8 +307,7 @@ public partial class AiringScheduleService
                     continue;
                 }
 
-                if (RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID)
-                    .Any(airing => episodeKeys.Contains((airing.EpisodeSource, airing.EpisodeID))))
+                if (HasAiringOn(context, row, episodeKeys))
                     yield return row;
             }
         }
@@ -318,10 +318,15 @@ public partial class AiringScheduleService
     /// the linked series that have an airing on one of the season's linked
     /// episodes.
     /// </summary>
+    /// <param name="context">The read the resolutions belong to.</param>
     /// <param name="shokoSeason">The shoko season the read is for.</param>
     /// <param name="ownSeason">The season the read started from, which is never walked twice.</param>
     /// <returns>The schedules that belong through a link.</returns>
-    private IEnumerable<AiringSchedule> GetLinkedSeasonSchedules(ISeason<IShokoSeries, IShokoEpisode> shokoSeason, ISeason ownSeason)
+    private static IEnumerable<AiringSchedule> GetLinkedSeasonSchedules(
+        AiringReadContext context,
+        ISeason<IShokoSeries, IShokoEpisode> shokoSeason,
+        ISeason ownSeason
+    )
     {
         var ownKey = GetEntityKey(ownSeason);
         var episodeKeys = shokoSeason.Episodes
@@ -340,11 +345,21 @@ public partial class AiringScheduleService
             // A series-level schedule of the linked entity still belongs to this
             // season when its airings land on the season's own episodes.
             foreach (var row in RepoFactory.AiringSchedule.GetBySeriesIDAndSeasonID(season.Source, season.SeriesID.ID, null))
-                if (RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID)
-                    .Any(airing => episodeKeys.Contains((airing.EpisodeSource, airing.EpisodeID))))
+                if (HasAiringOn(context, row, episodeKeys))
                     yield return row;
         }
     }
+
+    /// <summary>
+    /// Whether any airing on a schedule resolves to one of a set of episodes.
+    /// </summary>
+    /// <param name="context">The read the resolutions belong to.</param>
+    /// <param name="row">The schedule.</param>
+    /// <param name="episodeKeys">The stored keys of the episodes.</param>
+    /// <returns><c>true</c> when one does.</returns>
+    private static bool HasAiringOn(AiringReadContext context, AiringSchedule row, IReadOnlySet<(MetadataSource Source, string ID)> episodeKeys)
+        => RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID)
+            .Any(airing => context.ResolveEpisode(row, airing) is { } episode && episodeKeys.Contains(GetEntityKey(episode)));
 
     /// <summary>
     /// Run the schedule filters over a set of rows and hand back the views that
@@ -496,10 +511,12 @@ public partial class AiringScheduleService
     /// <param name="firstEpisodeNumber">The first episode the schedule covers.</param>
     /// <param name="lastEpisodeNumber">The last episode the schedule covers.</param>
     /// <param name="paramName">The name of the argument the range arrived in.</param>
-    /// <exception cref="ArgumentException">The first episode is after the last.</exception>
-    private static void ValidateCoverage(int? firstEpisodeNumber, int? lastEpisodeNumber, string paramName)
+    /// <exception cref="ArgumentException">The first episode is below 1, or after the last.</exception>
+    private static void ValidateCoverage(int firstEpisodeNumber, int? lastEpisodeNumber, string paramName)
     {
-        if (firstEpisodeNumber is { } first && lastEpisodeNumber is { } last && first > last)
+        if (firstEpisodeNumber < 1)
+            throw new ArgumentException("The first episode of the coverage is below 1.", paramName);
+        if (lastEpisodeNumber is { } last && firstEpisodeNumber > last)
             throw new ArgumentException("The first episode of the coverage is after the last.", paramName);
     }
 

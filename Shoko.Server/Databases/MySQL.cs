@@ -1696,6 +1696,13 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 303, "CREATE UNIQUE INDEX `UIX_AniDB_Anime_StartSeasonOverride_AnimeID` ON `AniDB_Anime_StartSeasonOverride`(`AnimeID`);"),
         new(194, 304, "ALTER TABLE `AiringChannel` ADD COLUMN `IsHidden` BIT NOT NULL DEFAULT 0;"),
         new(194, 305, DatabaseFixes.RestoreAnidbAnimeDates),
+        new(194, 306, "UPDATE `AiringSchedule` SET `FirstEpisodeNumber` = 1 WHERE `FirstEpisodeNumber` IS NULL;"),
+        new(194, 307, "ALTER TABLE `AiringSchedule` MODIFY `FirstEpisodeNumber` INT NOT NULL;"),
+        new(194, 308, "ALTER TABLE `EpisodeAiring` ADD COLUMN `SequenceNumber` INT NULL;"),
+        new(194, 309, "ALTER TABLE `EpisodeAiring` MODIFY `EpisodeSource` TINYINT UNSIGNED NULL;"),
+        new(194, 310, "ALTER TABLE `EpisodeAiring` MODIFY `EpisodeID` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        new(194, 311, "CREATE INDEX `IX_EpisodeAiring_AiringScheduleID_SequenceNumber` ON `EpisodeAiring`(`AiringScheduleID`, `SequenceNumber`);"),
+        new(194, 312, DatabaseFixes.AssignEpisodeAiringSequenceNumbers),
     ];
 
     #endregion

@@ -36,9 +36,10 @@ public sealed record AiringScheduleData
 
     /// <summary>
     ///   Optional. The first episode the schedule covers, in the series' (or
-    ///   season's) numbering. <c>null</c> leaves the range open-ended.
+    ///   season's) numbering. At least <c>1</c>, which is the default, and no
+    ///   later than <see cref="LastEpisodeNumber"/>.
     /// </summary>
-    public int? FirstEpisodeNumber { get; init; }
+    public int FirstEpisodeNumber { get; init; } = 1;
 
     /// <summary>
     ///   Optional. The last episode the schedule covers, in the series' (or

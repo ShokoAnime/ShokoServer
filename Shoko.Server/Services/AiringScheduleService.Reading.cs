@@ -64,7 +64,7 @@ public partial class AiringScheduleService
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled, at: options.At);
         context.Remember(episode);
-        return ReadEntityAirings(context, [episode], options, ResolveAnchor(options.EntityAnchor, episode));
+        return ReadEntityAirings(context, GetEpisodeTargets(context, [episode], options), options, ResolveAnchor(options.EntityAnchor, episode));
     }
 
     /// <inheritdoc/>
@@ -81,7 +81,7 @@ public partial class AiringScheduleService
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled, at: options.At);
         var anchor = ResolveAnchor(options.EntityAnchor, series);
-        return ReadEntityAirings(context, series.Episodes, options, anchor);
+        return ReadEntityAirings(context, GetSeriesTargets(context, series, options), options, anchor);
     }
 
     /// <inheritdoc/>
@@ -106,7 +106,7 @@ public partial class AiringScheduleService
                 continue;
 
             var anchor = ResolveAnchor(options.EntityAnchor, entry);
-            airings[entry.ID] = ReadEntityAirings(context, entry.Episodes, options, anchor);
+            airings[entry.ID] = ReadEntityAirings(context, GetSeriesTargets(context, entry, options), options, anchor);
         }
 
         return airings;
@@ -122,7 +122,7 @@ public partial class AiringScheduleService
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled, at: options.At);
         var anchor = ResolveAnchor(options.EntityAnchor, season);
-        return ReadEntityAirings(context, season.Episodes, options, anchor);
+        return ReadEntityAirings(context, GetSeasonTargets(context, season, options), options, anchor);
     }
 
     /// <inheritdoc/>
@@ -146,16 +146,16 @@ public partial class AiringScheduleService
         var now = context.Now;
         var airings = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID);
         var views = airings
-            .Where(entry => !IsHidden(row, entry, now))
+            .Where(entry => !IsHidden(context, row, entry, now))
             .Select(entry => new EpisodeAiringView(context, scheduleView, entry))
             .ToList();
         if (options.IncludeEstimates)
         {
-            var covered = airings.Select(entry => (entry.EpisodeSource, entry.EpisodeID)).ToHashSet();
+            var coverage = GetCoverage(context, row, airings);
             foreach (var episode in GetScheduleEpisodes(context, row))
             {
                 var key = GetEntityKey(episode);
-                if (covered.Contains(key))
+                if (coverage.Covers(key, episode))
                     continue;
                 if (Estimate(context, row, scheduleView, episode, key) is { } estimate)
                     views.Add(estimate);
@@ -164,7 +164,7 @@ public partial class AiringScheduleService
             foreach (var (episode, number) in GetUnlinkedEpisodes(context, row))
             {
                 var key = GetEntityKey(episode);
-                if (!covered.Contains(key) && Estimate(context, row, scheduleView, episode, key, scheduleEpisodeNumber: number) is { } estimate)
+                if (!coverage.Covers(key, number) && Estimate(context, row, scheduleView, episode, key, scheduleEpisodeNumber: number) is { } estimate)
                     views.Add(estimate);
             }
         }
@@ -174,22 +174,19 @@ public partial class AiringScheduleService
         if (!options.NextOnly)
             return MarkPreferred(Order(context, views, options));
 
-        var premiered = new Dictionary<(MetadataSource Source, string ID), bool>();
-        bool IsNew(IEpisodeAiring airing)
+        var premiered = new Dictionary<AiringEpisodeKey, bool>();
+        bool IsNew(EpisodeAiringView airing)
         {
-            if (airing.Episode is not { } episode)
-                return true;
-
-            var key = GetEntityKey(episode);
-            if (!premiered.TryGetValue(key, out var value))
-                premiered[key] = value = HasPremieredBefore(context, episode, options, now);
+            var target = airing.Target;
+            if (!premiered.TryGetValue(target.Key, out var value))
+                premiered[target.Key] = value = HasPremieredBefore(context, target, options, now);
 
             return !value;
         }
 
         var upcoming = MarkPreferred(
             Order(context, views, options, preferredOnly: false)
-                .Where(airing => GetNextTime(airing, now, DateOnly.FromDateTime(now), TimeSpan.Zero) is not null && IsNew(airing))
+                .Where(airing => GetNextTime(airing, now, DateOnly.FromDateTime(now), TimeSpan.Zero) is not null && IsNew((EpisodeAiringView)airing))
         );
         return ReduceToNext(
             options.PreferredOnly ? upcoming.Where(airing => airing.IsPreferred) : upcoming,
@@ -252,44 +249,70 @@ public partial class AiringScheduleService
         // delayed out of it, which is what a calendar draws its gap from. Every
         // hard filter is schedule-level, so a candidate whose only airings are
         // on schedules the read filtered out is dropped here rather than after
-        // it has been through the whole per-episode pipeline.
+        // it has been through the whole per-target pipeline.
         var candidates = RepoFactory.EpisodeAiring.GetByDayRange(firstBucket, lastBucket)
             .Concat(includeGaps ? RepoFactory.EpisodeAiring.GetDelayedByOriginalDayRange(firstBucket, lastBucket) : [])
+            .DistinctBy(entry => entry.EpisodeAiringID)
             .Where(entry => MatchesSchedule(entry.AiringScheduleID))
-            .Select(entry => (entry.EpisodeSource, entry.EpisodeID))
-            .ToHashSet();
-        if (options.IncludeEstimates)
-            foreach (var key in GetEstimableEpisodeKeys(context, fromUtc, toUtc, options))
-                candidates.Add(key);
+            .ToList();
 
-        var targets = new Dictionary<(MetadataSource, string), IEpisode>();
-        foreach (var (source, id) in candidates)
+        // One airing linked to two AniDB episodes is two targets, but the same
+        // episode or place reached through two airings is still one.
+        var linked = options.LinkedEntityAirings ?? true;
+        var targets = new Dictionary<AiringEpisodeKey, AiringReadTarget>();
+        var targetEpisodes = new HashSet<(MetadataSource Source, string ID)>();
+        void AddTarget(AiringReadTarget target)
         {
-            if (context.GetEpisode(source, id) is not { } episode)
-                continue;
-
-            // One airing linked to two AniDB episodes is two views, but the same
-            // episode reached through two keys is still one.
-            var linked = options.LinkedEntityAirings ?? true;
-            var resolved = linked && episode is not IShokoEpisode && episode.ShokoEpisodes.Count > 0
-                ? episode.ShokoEpisodes.Cast<IEpisode>().ToList()
-                : [episode];
-            foreach (var target in resolved)
-                targets.TryAdd(GetEntityKey(target), target);
+            if (target.Episode is { } episode)
+                targetEpisodes.Add(GetEntityKey(episode));
+            if (!targets.TryGetValue(target.Key, out var existing) || GetTargetRank(target) < GetTargetRank(existing))
+                targets[target.Key] = target;
         }
 
-        // The window narrows first and the preference reduces afterwards, so an
-        // episode is answered with the best airing it has in the window. The
-        // other way round an episode whose best airing is elsewhere would drop
+        foreach (var entry in candidates)
+        {
+            var scheduleView = context.GetSchedule(entry.AiringScheduleID)!;
+            var view = new EpisodeAiringView(context, scheduleView, entry);
+            if (view.Episode is not { } episode)
+            {
+                AddTarget(new(null, linked ? AiringEpisodeKey.For(view) : AiringEpisodeKey.ForUnlinked(view)));
+                continue;
+            }
+
+            foreach (var target in GetLinkedTargets(episode, linked))
+            {
+                var key = linked
+                    ? AiringEpisodeKey.For(new EpisodeAiringView(context, scheduleView, entry, target))
+                    : AiringEpisodeKey.ForEpisode(target.Source, target.ID.ID);
+                AddTarget(new(target, key));
+            }
+        }
+
+        if (options.IncludeEstimates)
+        {
+            foreach (var (source, id) in GetEstimableEpisodeKeys(context, fromUtc, toUtc, options))
+            {
+                if (context.GetEpisode(source, id) is not { } episode)
+                    continue;
+
+                foreach (var target in GetLinkedTargets(episode, linked))
+                    if (!targetEpisodes.Contains(GetEntityKey(target)))
+                        AddTarget(new(target, GetEpisodeTargetKey(context, target, linked)));
+            }
+        }
+
+        // The window narrows first and the preference reduces afterwards, so a
+        // target is answered with the best airing it has in the window. The
+        // other way round a target whose best airing is elsewhere would drop
         // out of the day it actually airs on.
         var airings = targets.Values
-            .SelectMany(episode =>
+            .SelectMany(target =>
             {
                 var inRange = MarkPreferred(
-                    ReadAirings(context, episode, options, anchor, preferredOnly: false)
+                    ReadAirings(context, target, options, anchor, preferredOnly: false)
                         .Where(airing => IsInRange(airing, fromUtc, toUtc, includeGaps, includeOnAir: options.NextOnly))
                 );
-                if (options.NextOnly && inRange.Count > 0 && HasPremieredBefore(context, episode, options, fromUtc))
+                if (options.NextOnly && inRange.Count > 0 && HasPremieredBefore(context, target, options, fromUtc))
                     return [];
 
                 return options.PreferredOnly ? inRange.Take(1) : inRange;
@@ -318,20 +341,20 @@ public partial class AiringScheduleService
     #region Episode Airings | Pipeline
 
     /// <summary>
-    /// The one read every airing read runs: collect the episode's keys, load
-    /// what is stored under them, filter, add the estimates the surviving
-    /// schedules produce, de-duplicate channels and order by preference.
+    /// The one read every airing read runs: gather what is stored for the
+    /// target, filter, add the estimates the surviving schedules produce,
+    /// de-duplicate channels and order by preference.
     /// </summary>
     /// <param name="context">The read the views belong to.</param>
-    /// <param name="episode">The episode the read is for.</param>
+    /// <param name="target">The episode or place the read is for.</param>
     /// <param name="options">The filters and preference to read with.</param>
     /// <param name="anchor">The resolved entity anchor, never <see cref="AiringEntityAnchor.Auto"/>.</param>
-    /// <param name="preferredOnly">Whether to reduce the answer to the episode's best airing, overriding <see cref="EpisodeAiringFilteringOptions.PreferredOnly"/>.</param>
+    /// <param name="preferredOnly">Whether to reduce the answer to the target's best airing, overriding <see cref="EpisodeAiringFilteringOptions.PreferredOnly"/>.</param>
     /// <param name="honourHiddenChannels">Whether a schedule on a hidden channel is left out when the read names no channels.</param>
-    /// <returns>The episode's airings, best first.</returns>
+    /// <returns>The target's airings, best first.</returns>
     private List<IEpisodeAiring> ReadAirings(
         AiringReadContext context,
-        IEpisode episode,
+        AiringReadTarget target,
         EpisodeAiringFilteringOptions options,
         AiringEntityAnchor anchor,
         bool? preferredOnly = null,
@@ -339,28 +362,25 @@ public partial class AiringScheduleService
     )
     {
         var now = context.Now;
-        var linked = options.LinkedEntityAirings ?? episode is IShokoEpisode;
-        var keys = linked ? context.GetLinkedEpisodeKeys(episode) : [GetEntityKey(episode)];
+        var episodeLinked = options.LinkedEntityAirings ?? target.Episode is IShokoEpisode;
+        var positionLinked = options.LinkedEntityAirings ?? true;
         var views = new List<EpisodeAiringView>();
         var covered = new HashSet<int>();
-        foreach (var (source, id) in keys)
+        foreach (var (row, entry) in context.GetStoredAirings(target, episodeLinked, positionLinked))
         {
-            foreach (var entry in RepoFactory.EpisodeAiring.GetByEpisodeID(source, id))
-            {
-                if (RepoFactory.AiringSchedule.GetByID(entry.AiringScheduleID) is not { } row)
-                    continue;
+            covered.Add(entry.AiringScheduleID);
+            var scheduleView = context.GetSchedule(row);
+            if (!MatchesFilters(context, scheduleView, options, honourHiddenChannels) || IsHidden(context, row, entry, now))
+                continue;
 
-                covered.Add(entry.AiringScheduleID);
-                var scheduleView = context.GetSchedule(row);
-                if (!MatchesFilters(context, scheduleView, options, honourHiddenChannels) || IsHidden(row, entry, now))
-                    continue;
-
-                views.Add(new EpisodeAiringView(context, scheduleView, entry, episode));
-            }
+            views.Add(new EpisodeAiringView(context, scheduleView, entry, target.Episode, target.Key));
         }
 
-        if (options.IncludeEstimates)
-            views.AddRange(GetEstimates(context, episode, keys, covered, options, honourHiddenChannels));
+        if (options.IncludeEstimates && target.Episode is { } episode)
+        {
+            var keys = episodeLinked ? context.GetLinkedEpisodeKeys(episode) : [GetEntityKey(episode)];
+            views.AddRange(GetEstimates(context, target, keys, covered, options, honourHiddenChannels));
+        }
 
         // Before the ordering, so a preferred-only read is handed the best of
         // what the anchor and the filters kept rather than nothing at all.
@@ -370,21 +390,329 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// The estimates every schedule that covers an episode, and has no airing
-    /// for it, contributes, the schedules of a linked series whose source does
-    /// not list the episode yet among them. Filtering runs first, so no
-    /// estimate is computed only to be thrown away.
+    /// Every stored airing a target counts: the ones pinned to the episode or
+    /// its linked ones, the ones whose number on a schedule of those episodes'
+    /// series resolves to them, the ones an <see cref="AiringEpisodeOffset"/>
+    /// places on an AniDB episode, and, for a place no episode stands for, the
+    /// ones at that place.
+    /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
+    /// <param name="target">The target.</param>
+    /// <param name="episodeLinked">Whether the episode's links are followed.</param>
+    /// <param name="positionLinked">Whether a place is looked up on the schedules of other sources too.</param>
+    /// <returns>The stored airings, each with its schedule.</returns>
+    internal static IReadOnlyList<(AiringSchedule Schedule, EpisodeAiring Entry)> CollectStoredAirings(
+        AiringReadContext context,
+        AiringReadTarget target,
+        bool episodeLinked,
+        bool positionLinked
+    )
+    {
+        var found = new Dictionary<int, (AiringSchedule Schedule, EpisodeAiring Entry)>();
+        void AddAt(AiringSchedule row, int episodeNumber, Func<EpisodeAiring, bool>? predicate = null)
+        {
+            var sequenceNumber = episodeNumber - row.FirstEpisodeNumber + 1;
+            if (sequenceNumber < 1)
+                return;
+
+            foreach (var entry in RepoFactory.EpisodeAiring.GetByScheduleIDAndSequenceNumber(row.AiringScheduleID, sequenceNumber))
+                if (!entry.IsPinned && (predicate is null || predicate(entry)))
+                    found.TryAdd(entry.EpisodeAiringID, (row, entry));
+        }
+
+        if (target.Episode is { } episode)
+        {
+            var keys = episodeLinked ? context.GetLinkedEpisodeKeys(episode) : [GetEntityKey(episode)];
+            foreach (var (source, id) in keys)
+            {
+                foreach (var entry in RepoFactory.EpisodeAiring.GetByEpisodeID(source, id))
+                    if (RepoFactory.AiringSchedule.GetByID(entry.AiringScheduleID) is { } row)
+                        found.TryAdd(entry.EpisodeAiringID, (row, entry));
+
+                if (context.GetEpisode(source, id) is not { Type: EpisodeType.Episode } keyed)
+                    continue;
+
+                foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(source, keyed.SeriesID.ID))
+                    if (context.GetScheduleEpisodeByNumber(row, keyed.EpisodeNumber) is { } atNumber && GetEntityKey(atNumber) == (source, id))
+                        AddAt(row, keyed.EpisodeNumber);
+
+                // The schedules of a linked series whose source does not list
+                // the episode yet, placed by the offset the anime's linked
+                // episodes give, the way its estimates are.
+                if (keyed is IAnidbEpisode anidbEpisode)
+                    foreach (var (row, number) in GetUnlinkedEpisodeSchedules(context, anidbEpisode))
+                        AddAt(row, number);
+            }
+        }
+
+        // A place an AniDB or shoko episode stands for is already gathered
+        // through that episode. A series place is only ever the unlinked key.
+        if (target.Key.Kind is AiringEpisodeKeyKind.AnidbPosition or AiringEpisodeKeyKind.SeriesPosition &&
+            (target.Episode is null || context.GetEpisodeViews(target.Episode) is (null, null)))
+        {
+            foreach (var (row, number) in GetPositionSchedules(context, target.Key, positionLinked))
+            {
+                var scheduleView = context.GetSchedule(row);
+                AddAt(row, number, entry =>
+                {
+                    var view = new EpisodeAiringView(context, scheduleView, entry);
+                    return AiringEpisodeKey.For(view) == target.Key || AiringEpisodeKey.ForUnlinked(view) == target.Key;
+                });
+            }
+        }
+
+        return [.. found.Values];
+    }
+
+    /// <summary>
+    /// The schedules a place on a line can have airings on, each with the
+    /// number the place has on its line: for an AniDB place, the anime's own
+    /// schedules and, when linked, its shoko series' and the ones an
+    /// <see cref="AiringEpisodeOffset"/> places it on; for a series place, the
+    /// series' schedules on that season.
+    /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
+    /// <param name="key">The place.</param>
+    /// <param name="linked">Whether the schedules of other sources are looked at too.</param>
+    /// <returns>The schedules, with the place's number on each.</returns>
+    private static IEnumerable<(AiringSchedule Schedule, int Number)> GetPositionSchedules(AiringReadContext context, AiringEpisodeKey key, bool linked)
+    {
+        if (key.Kind is AiringEpisodeKeyKind.SeriesPosition)
+        {
+            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesIDAndSeasonID(key.Source, key.ID, key.SeasonID))
+                yield return (row, key.Number);
+
+            yield break;
+        }
+
+        if (key.Kind is not AiringEpisodeKeyKind.AnidbPosition || !int.TryParse(key.ID, out var animeID))
+            yield break;
+
+        foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(MetadataSource.AniDB, key.ID))
+            yield return (row, key.Number);
+
+        if (!linked)
+            yield break;
+
+        if (context.GetShokoSeriesByAnimeID(animeID) is { } shokoSeries)
+        {
+            var (source, id) = GetEntityKey(shokoSeries);
+            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(source, id))
+                yield return (row, key.Number);
+        }
+
+        foreach (var link in context.GetSeriesLinks(animeID))
+        {
+            if (link.Source.IsCore || link.ProviderID is not { } seriesID || seriesID.EntityType != MetadataEntityType.Series)
+                continue;
+
+            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(link.Source, seriesID.ID))
+            {
+                if (context.GetEpisodeOffset(animeID, row) is not { } offset || key.Number <= offset.LastLinkedEpisodeNumber)
+                    continue;
+
+                var number = key.Number + offset.Offset;
+                if (number > offset.LastLinkedScheduleNumber && number > 0)
+                    yield return (row, number);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The AniDB anime and regular episode number a number on a schedule's
+    /// line stands for: on an AniDB or shoko schedule the series' own anime at
+    /// the same number, and on a plugin source's schedule the first anime
+    /// linked to its series whose <see cref="AiringEpisodeOffset"/> places the
+    /// number past its linked episodes and within the anime's episode count.
+    /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
+    /// <param name="row">The schedule.</param>
+    /// <param name="episodeNumber">The number on the line.</param>
+    /// <returns>The AniDB anime and episode number, or <c>null</c> when the series leads to none.</returns>
+    internal static (int AnimeID, int EpisodeNumber)? FindAnidbPosition(AiringReadContext context, AiringSchedule row, int episodeNumber)
+    {
+        if (row.SeriesSource == MetadataSource.AniDB)
+            return int.TryParse(row.SeriesID, out var anidbAnimeID) ? (anidbAnimeID, episodeNumber) : null;
+
+        if (row.SeriesSource.IsCore)
+            return context.GetSeries(row.SeriesSource, row.SeriesID) is IShokoSeries shokoSeries ? (shokoSeries.AnidbAnimeID, episodeNumber) : null;
+
+        foreach (var animeID in context.GetLinkedAnimeIDs(row.SeriesSource, row.SeriesID))
+        {
+            if (context.GetEpisodeOffset(animeID, row) is not { } offset || episodeNumber <= offset.LastLinkedScheduleNumber)
+                continue;
+
+            var number = episodeNumber - offset.Offset;
+            if (number <= offset.LastLinkedEpisodeNumber)
+                continue;
+
+            if (RepoFactory.AniDB_Anime.GetByAnimeID(animeID) is { EpisodeCountNormal: > 0 } anime && number > anime.EpisodeCountNormal)
+                continue;
+
+            return (animeID, number);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The targets an episode read is for, each under the key its airings are
+    /// merged by.
+    /// </summary>
+    /// <param name="context">The read the keys belong to.</param>
+    /// <param name="episodes">The episodes.</param>
+    /// <param name="options">The read's options, for the links it walks.</param>
+    /// <returns>The targets.</returns>
+    private static IEnumerable<AiringReadTarget> GetEpisodeTargets(AiringReadContext context, IEnumerable<IEpisode> episodes, EpisodeAiringFilteringOptions options)
+        => episodes.Select(episode => new AiringReadTarget(episode, GetEpisodeTargetKey(context, episode, options.LinkedEntityAirings ?? episode is IShokoEpisode)));
+
+    /// <summary>
+    /// The targets a series read is for: its episodes, and, unless the read
+    /// leaves them out, the places on the lines of its schedules that no
+    /// episode stands for yet.
+    /// </summary>
+    /// <param name="context">The read the keys belong to.</param>
+    /// <param name="series">The series.</param>
+    /// <param name="options">The read's options.</param>
+    /// <returns>The targets, the episodes first.</returns>
+    private List<AiringReadTarget> GetSeriesTargets(AiringReadContext context, ISeries series, EpisodeAiringFilteringOptions options)
+    {
+        var targets = GetEpisodeTargets(context, series.Episodes, options).ToList();
+        if (!options.IncludeUnresolved)
+            return targets;
+
+        var linked = options.LinkedEntityAirings ?? series is IShokoSeries;
+        var seriesKeys = linked ? GetInvalidationKeys(series) : [GetEntityKey(series)];
+        var schedules = seriesKeys.SelectMany(key => RepoFactory.AiringSchedule.GetBySeriesID(key.Source, key.ID));
+        return AddUnresolvedTargets(context, targets, schedules, linked);
+    }
+
+    /// <summary>
+    /// The targets a season read is for: its episodes, and, unless the read
+    /// leaves them out, the places on the lines of the schedules narrowed to
+    /// it that no episode stands for yet.
+    /// </summary>
+    /// <param name="context">The read the keys belong to.</param>
+    /// <param name="season">The season.</param>
+    /// <param name="options">The read's options.</param>
+    /// <returns>The targets, the episodes first.</returns>
+    private static List<AiringReadTarget> GetSeasonTargets(AiringReadContext context, ISeason season, EpisodeAiringFilteringOptions options)
+    {
+        var targets = GetEpisodeTargets(context, season.Episodes, options).ToList();
+        if (!options.IncludeUnresolved)
+            return targets;
+
+        var linked = options.LinkedEntityAirings ?? season is ISeason<IShokoSeries, IShokoEpisode>;
+        var seasons = linked ? season.LinkedSeasons.Prepend(season) : [season];
+        var schedules = seasons
+            .DistinctBy(GetEntityKey)
+            .SelectMany(entry => RepoFactory.AiringSchedule.GetBySeriesIDAndSeasonID(entry.Source, entry.SeriesID.ID, entry.ID.ID));
+        return AddUnresolvedTargets(context, targets, schedules, linked);
+    }
+
+    /// <summary>
+    /// Add a target for each unresolved airing on the schedules that no target
+    /// already stands for.
+    /// </summary>
+    /// <param name="context">The read the keys belong to.</param>
+    /// <param name="targets">The targets so far, added to in place.</param>
+    /// <param name="schedules">The schedules to look at, which may repeat.</param>
+    /// <param name="linked">Whether the read follows links, which decides the keys.</param>
+    /// <returns>The targets.</returns>
+    private static List<AiringReadTarget> AddUnresolvedTargets(
+        AiringReadContext context,
+        List<AiringReadTarget> targets,
+        IEnumerable<AiringSchedule> schedules,
+        bool linked
+    )
+    {
+        var known = targets.Select(target => target.Key).ToHashSet();
+        foreach (var row in schedules.DistinctBy(row => row.AiringScheduleID))
+        {
+            var scheduleView = context.GetSchedule(row);
+            foreach (var entry in RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID))
+            {
+                if (entry.IsPinned)
+                    continue;
+
+                var view = new EpisodeAiringView(context, scheduleView, entry);
+                if (view.Episode is not null)
+                    continue;
+
+                var key = linked ? AiringEpisodeKey.For(view) : AiringEpisodeKey.ForUnlinked(view);
+                if (known.Add(key))
+                    targets.Add(new(null, key));
+            }
+        }
+
+        return targets;
+    }
+
+    /// <summary>
+    /// The key an episode's airings are merged by when no airing is in hand:
+    /// its regular AniDB episode's place, else its AniDB or shoko episode,
+    /// else itself.
+    /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
+    /// <param name="episode">The episode.</param>
+    /// <param name="linked">Whether the read follows links; without them the episode is its own key.</param>
+    /// <returns>The key.</returns>
+    private static AiringEpisodeKey GetEpisodeTargetKey(AiringReadContext context, IEpisode episode, bool linked)
+    {
+        if (!linked)
+            return AiringEpisodeKey.ForEpisode(episode.Source, episode.ID.ID);
+
+        var (anidbEpisode, shokoEpisode) = context.GetEpisodeViews(episode);
+        if (anidbEpisode is not null)
+            return ((IEpisode)anidbEpisode).Type is EpisodeType.Episode
+                ? AiringEpisodeKey.ForAnidbPosition(anidbEpisode.AnidbAnimeID, anidbEpisode.EpisodeNumber)
+                : AiringEpisodeKey.ForEpisode(anidbEpisode.ID);
+
+        return shokoEpisode is not null ? AiringEpisodeKey.ForEpisode(shokoEpisode.ID) : AiringEpisodeKey.ForEpisode(episode.ID);
+    }
+
+    /// <summary>
+    /// The episodes an episode stands for in a read: its shoko episodes when
+    /// the read follows links and it has any, else itself.
+    /// </summary>
+    /// <param name="episode">The episode.</param>
+    /// <param name="linked">Whether the read follows links.</param>
+    /// <returns>The episodes.</returns>
+    private static IReadOnlyList<IEpisode> GetLinkedTargets(IEpisode episode, bool linked)
+        => linked && episode is not IShokoEpisode && episode.ShokoEpisodes.Count > 0 ? [.. episode.ShokoEpisodes] : [episode];
+
+    /// <summary>
+    /// Which of two targets under one key a read keeps: one with a shoko
+    /// episode, then one with an AniDB episode, then any episode, then a place
+    /// alone.
+    /// </summary>
+    /// <param name="target">The target.</param>
+    /// <returns>The rank, lower being better.</returns>
+    private static int GetTargetRank(AiringReadTarget target)
+        => target.Episode switch
+        {
+            IShokoEpisode => 0,
+            IAnidbEpisode => 1,
+            null => 3,
+            _ => 2,
+        };
+
+    /// <summary>
+    /// The estimates every schedule that covers a target's episode, and has no
+    /// airing for it, contributes, the schedules of a linked series whose
+    /// source does not list the episode yet among them. Filtering runs first,
+    /// so no estimate is computed only to be thrown away.
     /// </summary>
     /// <param name="context">The read the views belong to.</param>
-    /// <param name="episode">The episode the read is for.</param>
+    /// <param name="target">The target the read is for.</param>
     /// <param name="keys">The episode's own key and its linked ones.</param>
-    /// <param name="covered">The schedules that already have an airing for the episode.</param>
+    /// <param name="covered">The schedules that already have an airing for the target.</param>
     /// <param name="options">The filters to apply.</param>
     /// <param name="honourHiddenChannels">Whether a schedule on a hidden channel is left out when the read names no channels.</param>
     /// <returns>One estimate per schedule that can produce one.</returns>
     private IEnumerable<EpisodeAiringView> GetEstimates(
         AiringReadContext context,
-        IEpisode episode,
+        AiringReadTarget target,
         IReadOnlyList<(MetadataSource Source, string ID)> keys,
         HashSet<int> covered,
         EpisodeAiringFilteringOptions options,
@@ -394,10 +722,10 @@ public partial class AiringScheduleService
         var estimated = new HashSet<int>();
         foreach (var key in keys)
         {
-            if (context.GetEpisode(key.Source, key.ID) is not { Type: EpisodeType.Episode } target)
+            if (context.GetEpisode(key.Source, key.ID) is not { Type: EpisodeType.Episode } episode)
                 continue;
 
-            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(key.Source, target.SeriesID.ID))
+            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(key.Source, episode.SeriesID.ID))
             {
                 if (covered.Contains(row.AiringScheduleID))
                     continue;
@@ -406,7 +734,7 @@ public partial class AiringScheduleService
                 if (!MatchesFilters(context, scheduleView, options, honourHiddenChannels))
                     continue;
 
-                if (Estimate(context, row, scheduleView, target, key, episode) is { } estimate)
+                if (Estimate(context, row, scheduleView, episode, key, target) is { } estimate)
                 {
                     estimated.Add(row.AiringScheduleID);
                     yield return estimate;
@@ -430,7 +758,7 @@ public partial class AiringScheduleService
                 if (!MatchesFilters(context, scheduleView, options, honourHiddenChannels))
                     continue;
 
-                if (Estimate(context, row, scheduleView, anidbEpisode, key, episode, number) is { } estimate)
+                if (Estimate(context, row, scheduleView, anidbEpisode, key, target, number) is { } estimate)
                     yield return estimate;
             }
         }
@@ -443,9 +771,9 @@ public partial class AiringScheduleService
     /// <param name="context">The read the view belongs to.</param>
     /// <param name="row">The schedule doing the estimating.</param>
     /// <param name="scheduleView">The schedule's view.</param>
-    /// <param name="target">The episode being estimated.</param>
+    /// <param name="episode">The episode being estimated.</param>
     /// <param name="key">The stored key of the episode being estimated.</param>
-    /// <param name="resolvedFor">The episode the read ran for.</param>
+    /// <param name="target">The target the read ran for, if any.</param>
     /// <param name="scheduleEpisodeNumber">
     /// The episode's number on the schedule when an <see cref="AiringEpisodeOffset"/>
     /// placed it there, which already satisfied the season; <c>null</c> for
@@ -456,32 +784,44 @@ public partial class AiringScheduleService
         AiringReadContext context,
         AiringSchedule row,
         AiringScheduleView scheduleView,
-        IEpisode target,
+        IEpisode episode,
         (MetadataSource Source, string ID) key,
-        IEpisode? resolvedFor = null,
+        AiringReadTarget? target = null,
         int? scheduleEpisodeNumber = null
     )
     {
-        var episodeNumber = scheduleEpisodeNumber ?? target.EpisodeNumber;
-        if (target.Type is not EpisodeType.Episode)
+        var episodeNumber = scheduleEpisodeNumber ?? episode.EpisodeNumber;
+        if (episode.Type is not EpisodeType.Episode)
             return null;
-        if (row.FirstEpisodeNumber is { } first && episodeNumber < first)
+        if (episodeNumber < row.FirstEpisodeNumber)
             return null;
         if (scheduleEpisodeNumber is null && !string.IsNullOrEmpty(row.SeasonID) && !IsInSeason(context, row, key))
             return null;
 
+        var sequenceNumber = episodeNumber - row.FirstEpisodeNumber + 1;
         var estimate = AiringScheduleUtility.EstimateAiring(context.GetProfile(row), new AiringEstimateTarget()
         {
-            EpisodeKey = AiringScheduleUtility.GetDerivedAiringKey(key.Source, key.ID),
+            EpisodeKey = AiringScheduleUtility.GetDerivedSequenceAiringKey(sequenceNumber),
             EpisodeNumber = episodeNumber,
             IsNormalEpisode = true,
-            AnidbAirDate = context.GetAnidbAirDate(target),
-            FirstOriginalAiringAt = context.GetFirstOriginalAiringAt(key.Source, key.ID),
+            AnidbAirDate = context.GetAnidbAirDate(episode),
+            FirstOriginalAiringAt = context.GetFirstOriginalAiringAt(target ?? new(episode, GetEpisodeTargetKey(context, episode, linked: true))),
         });
         if (estimate is null || (estimate.AiredAt is null && estimate.OriginalAiredAt is null))
             return null;
 
-        return new EpisodeAiringView(context, scheduleView, key.Source, key.ID, estimate.EpisodeKey, estimate.AiredAt, estimate.OriginalAiredAt, resolvedFor ?? target);
+        return new EpisodeAiringView(
+            context,
+            scheduleView,
+            key.Source,
+            key.ID,
+            sequenceNumber,
+            estimate.EpisodeKey,
+            estimate.AiredAt,
+            estimate.OriginalAiredAt,
+            target?.Episode ?? episode,
+            target?.Key
+        );
     }
 
     /// <summary>
@@ -520,7 +860,7 @@ public partial class AiringScheduleService
             // channel, and never a channel's own repeat broadcasts of an episode.
             // Airings without a channel are never de-duplicated at all: there is
             // nothing to say they are the same slot.
-            .GroupBy(view => (view.ScheduleView.Row.ChannelID, Episode: GetDeduplicationKey(view)))
+            .GroupBy(view => (view.ScheduleView.Row.ChannelID, Episode: AiringEpisodeKey.For(view)))
             .SelectMany(group => group.Key.ChannelID is null ? group : DeduplicateChannel(context, group))
             .ToList();
 
@@ -537,21 +877,9 @@ public partial class AiringScheduleService
 
         // One per episode rather than one overall, so a read that spans several
         // episodes keeps the best of each.
-        var seen = new HashSet<(MetadataSource Source, string ID)>();
-        return ordered.Where(view => seen.Add(GetDeduplicationKey(view))).Cast<IEpisodeAiring>();
+        var seen = new HashSet<AiringEpisodeKey>();
+        return ordered.Where(view => seen.Add(AiringEpisodeKey.For(view))).Cast<IEpisodeAiring>();
     }
-
-    /// <summary>
-    /// Which episode a view counts as, for de-duplication and for the one
-    /// airing a preferred-only read keeps. A read that resolved the episode it
-    /// ran for answers with that, so the same slot stored against two linked
-    /// provider episodes is still one episode; a read that named none falls
-    /// back to the airing's own stored episode.
-    /// </summary>
-    /// <param name="view">The airing.</param>
-    /// <returns>The episode's key.</returns>
-    private static (MetadataSource Source, string ID) GetDeduplicationKey(EpisodeAiringView view)
-        => view.ResolvedFor is { } episode ? GetEntityKey(episode) : (view.EpisodeSource, view.EpisodeID);
 
     /// <summary>
     /// Collapse the airings several providers report for one episode on one
@@ -670,8 +998,8 @@ public partial class AiringScheduleService
 
     /// <summary>
     /// Drop the airings a shoko anchor does not want: the ones that resolve to
-    /// no shoko episode at all. A raw anchor keeps everything as the provider
-    /// gave it.
+    /// no shoko episode at all, unless they are unresolved airings of a shoko
+    /// series. A raw anchor keeps everything as the provider gave it.
     /// </summary>
     /// <remarks>
     /// This composes with <see cref="EpisodeAiringFilteringOptions.LinkedEntityAirings"/>
@@ -689,19 +1017,29 @@ public partial class AiringScheduleService
         if (anchor is not AiringEntityAnchor.Shoko)
             return;
 
-        views.RemoveAll(view => view.ShokoEpisode is null);
+        views.RemoveAll(view => !IsAnchoredToShoko(view));
     }
+
+    /// <summary>
+    /// Whether an airing survives a shoko anchor: it has a shoko episode, or it
+    /// is unresolved and its place belongs to a shoko series.
+    /// </summary>
+    /// <param name="airing">The airing.</param>
+    /// <returns><c>true</c> when it survives.</returns>
+    internal static bool IsAnchoredToShoko(IEpisodeAiring airing)
+        => airing.ShokoEpisode is not null || (airing.EpisodeID is null && airing.ShokoSeries is not null);
 
     /// <summary>
     /// Whether a stored airing is hidden from reads, which only happens to a
     /// slotless airing another airing of the same channel has since overtaken.
     /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
     /// <param name="row">The airing's schedule.</param>
     /// <param name="entry">The stored airing.</param>
     /// <param name="now">The current time, in UTC.</param>
     /// <returns><c>true</c> when the airing is hidden.</returns>
-    private bool IsHidden(AiringSchedule row, EpisodeAiring entry, DateTime now)
-        => entry.AiredAt is null && GetSupersededEpisodeKeys(row, [entry], now).Count > 0;
+    private bool IsHidden(AiringReadContext context, AiringSchedule row, EpisodeAiring entry, DateTime now)
+        => entry.AiredAt is null && GetSupersededEpisodeKeys(context, row, [entry], now).Count > 0;
 
     /// <summary>
     /// Whether an episode belongs to the season a schedule narrows to.
@@ -726,12 +1064,63 @@ public partial class AiringScheduleService
     /// <param name="context">The read the resolution belongs to.</param>
     /// <param name="row">The schedule.</param>
     /// <returns>The episodes, or nothing when the entity can't be resolved.</returns>
-    private static IReadOnlyList<IEpisode> GetScheduleEpisodes(AiringReadContext context, AiringSchedule row)
+    internal static IReadOnlyList<IEpisode> GetScheduleEpisodes(AiringReadContext context, AiringSchedule row)
     {
         if (!string.IsNullOrEmpty(row.SeasonID))
             return context.GetSeason(row.SeriesSource, row.SeasonID)?.Episodes ?? [];
 
         return context.GetSeries(row.SeriesSource, row.SeriesID)?.Episodes ?? [];
+    }
+
+    /// <summary>
+    /// What a schedule's stored airings already stand for, so a read estimates
+    /// none of it again: the episodes they resolve to and their numbers on the
+    /// line.
+    /// </summary>
+    /// <param name="context">The read the resolutions belong to.</param>
+    /// <param name="row">The schedule.</param>
+    /// <param name="airings">The schedule's stored airings.</param>
+    /// <returns>The coverage.</returns>
+    private static AiringCoverage GetCoverage(AiringReadContext context, AiringSchedule row, IReadOnlyList<EpisodeAiring> airings)
+    {
+        var episodes = new HashSet<(MetadataSource Source, string ID)>();
+        var numbers = new HashSet<int>();
+        foreach (var entry in airings)
+        {
+            if (context.ResolveEpisode(row, entry) is { } episode)
+                episodes.Add(GetEntityKey(episode));
+            if (entry.SequenceNumber is { } sequenceNumber)
+                numbers.Add(row.FirstEpisodeNumber + sequenceNumber - 1);
+        }
+
+        return new(episodes, numbers);
+    }
+
+    /// <summary>
+    /// What a schedule's stored airings stand for.
+    /// </summary>
+    /// <param name="Episodes">The episodes they resolve to.</param>
+    /// <param name="Numbers">Their numbers on the line.</param>
+    private readonly record struct AiringCoverage(IReadOnlySet<(MetadataSource Source, string ID)> Episodes, IReadOnlySet<int> Numbers)
+    {
+        /// <summary>
+        /// Whether an episode of the schedule's own series or season is
+        /// covered.
+        /// </summary>
+        /// <param name="key">The stored key of the episode.</param>
+        /// <param name="episode">The episode.</param>
+        /// <returns><c>true</c> when it is covered.</returns>
+        public bool Covers((MetadataSource Source, string ID) key, IEpisode episode)
+            => Episodes.Contains(key) || (episode.Type is EpisodeType.Episode && Numbers.Contains(episode.EpisodeNumber));
+
+        /// <summary>
+        /// Whether an episode the schedule places at a number is covered.
+        /// </summary>
+        /// <param name="key">The stored key of the episode.</param>
+        /// <param name="number">Its number on the line.</param>
+        /// <returns><c>true</c> when it is covered.</returns>
+        public bool Covers((MetadataSource Source, string ID) key, int number)
+            => Episodes.Contains(key) || Numbers.Contains(number);
     }
 
     /// <summary>
@@ -851,15 +1240,17 @@ public partial class AiringScheduleService
             var slack = offset.Duration() + TimeSpan.FromDays(1 + Math.Abs(profile.TrailingShiftDays));
             var windowStart = AddClamped(fromUtc, -slack);
             var windowEnd = AddClamped(toUtc, slack);
-            var covered = airings.Select(entry => (entry.EpisodeSource, entry.EpisodeID)).ToHashSet();
-            var episodes = GetScheduleEpisodes(context, row).Concat(GetUnlinkedEpisodes(context, row).Select(entry => (IEpisode)entry.Episode));
-            foreach (var episode in episodes)
+            var coverage = GetCoverage(context, row, airings);
+            var episodes = GetScheduleEpisodes(context, row)
+                .Select(episode => (Episode: episode, Number: (int?)null))
+                .Concat(GetUnlinkedEpisodes(context, row).Select(entry => (Episode: (IEpisode)entry.Episode, Number: (int?)entry.Number)));
+            foreach (var (episode, number) in episodes)
             {
                 if (episode.Type is not EpisodeType.Episode)
                     continue;
 
                 var key = GetEntityKey(episode);
-                if (covered.Contains(key))
+                if (number is { } placed ? coverage.Covers(key, placed) : coverage.Covers(key, episode))
                     continue;
 
                 if (context.GetAnidbAirDate(episode) is { } airDate)
@@ -872,7 +1263,7 @@ public partial class AiringScheduleService
                 // the estimate lands. It is only looked up for the handful of
                 // episodes that have no date, so it costs a range read nothing.
                 else if (profile.Anchor is not AiringAnchor.FirstOriginalAiring ||
-                    context.GetFirstOriginalAiringAt(key.Source, key.ID) is not { } anchor ||
+                    context.GetFirstOriginalAiringAt(new(episode, GetEpisodeTargetKey(context, episode, linked: true))) is not { } anchor ||
                     anchor < windowStart || anchor > windowEnd)
                     continue;
 
@@ -886,18 +1277,18 @@ public partial class AiringScheduleService
     #region Episode Airings | Filters, Date-Only and Next
 
     /// <summary>
-    /// The read every entity read runs: each episode's airings, a date-only
+    /// The read every entity read runs: each target's airings, a date-only
     /// entry for an episode with none when one was asked for, and the next
     /// airing of each group when only that was asked for.
     /// </summary>
     /// <param name="context">The read the views belong to.</param>
-    /// <param name="episodes">The episodes the read is for.</param>
+    /// <param name="targets">The episodes and places the read is for.</param>
     /// <param name="options">The filters and preference to read with.</param>
     /// <param name="anchor">The resolved entity anchor.</param>
-    /// <returns>The airings, each episode's best first.</returns>
+    /// <returns>The airings, each target's best first.</returns>
     private List<IEpisodeAiring> ReadEntityAirings(
         AiringReadContext context,
-        IEnumerable<IEpisode> episodes,
+        IEnumerable<AiringReadTarget> targets,
         EpisodeAiringFilteringOptions options,
         AiringEntityAnchor anchor
     )
@@ -905,25 +1296,26 @@ public partial class AiringScheduleService
         var now = context.Now;
         var today = DateOnly.FromDateTime(now);
         var airings = new List<IEpisodeAiring>();
-        foreach (var episode in episodes)
+        foreach (var target in targets)
         {
             // A next-only read reduces after it has dropped what already aired,
-            // so an episode keeps the best airing it has still to come.
-            IEnumerable<IEpisodeAiring> episodeAirings = MarkPreferred(
+            // so a target keeps the best airing it has still to come.
+            IEnumerable<IEpisodeAiring> targetAirings = MarkPreferred(
                 options.NextOnly
-                    ? ReadAirings(context, episode, options, anchor, preferredOnly: false)
+                    ? ReadAirings(context, target, options, anchor, preferredOnly: false)
                         .Where(airing => GetNextTime(airing, now, today, TimeSpan.Zero) is not null)
-                    : ReadAirings(context, episode, options, anchor)
+                    : ReadAirings(context, target, options, anchor)
             );
-            if (options.NextOnly && episodeAirings.Any() && HasPremieredBefore(context, episode, options, now))
+            if (options.NextOnly && targetAirings.Any() && HasPremieredBefore(context, target, options, now))
                 continue;
 
             if (options.NextOnly && options.PreferredOnly)
-                episodeAirings = episodeAirings.Take(1);
+                targetAirings = targetAirings.Take(1);
 
             var count = airings.Count;
-            airings.AddRange(episodeAirings);
-            if (airings.Count == count && AllowsDateOnly(options) && GetDateOnlyEntry(context, episode, options, anchor, null, null) is { } entry)
+            airings.AddRange(targetAirings);
+            if (airings.Count == count && target.Episode is { } episode && AllowsDateOnly(options) &&
+                GetDateOnlyEntry(context, episode, options, anchor, null, null) is { } entry)
                 airings.Add(entry);
         }
 
@@ -939,12 +1331,12 @@ public partial class AiringScheduleService
     /// <returns>Every airing, in the same order.</returns>
     private static List<IEpisodeAiring> MarkPreferred(IEnumerable<IEpisodeAiring> airings)
     {
-        var seen = new HashSet<(MetadataSource Source, string ID)>();
+        var seen = new HashSet<AiringEpisodeKey>();
         var marked = new List<IEpisodeAiring>();
         foreach (var airing in airings)
         {
             if (airing is EpisodeAiringView view)
-                view.IsPreferred = seen.Add(GetEpisodeKeyFor(airing));
+                view.IsPreferred = seen.Add(AiringEpisodeKey.For(airing));
 
             marked.Add(airing);
         }
@@ -967,9 +1359,15 @@ public partial class AiringScheduleService
         if (options.EpisodeKinds is { } episodeKinds && !episodeKinds.Contains(airing.Kind))
             return false;
 
+        var isUnresolved = airing.EpisodeID is null;
+        if (!options.IncludeUnresolved && isUnresolved)
+            return false;
+
         if (options.EpisodeTypes is { } episodeTypes)
         {
-            var episodeType = ((IEpisode?)airing.AnidbEpisode ?? (IEpisode?)airing.ShokoEpisode ?? airing.Episode)?.Type;
+            // An unresolved airing is on the numbered line, which only regular episodes are.
+            var episodeType = ((IEpisode?)airing.AnidbEpisode ?? (IEpisode?)airing.ShokoEpisode ?? airing.Episode)?.Type ??
+                (isUnresolved ? EpisodeType.Episode : null);
             if (episodeType is not { } type || !episodeTypes.Contains(type))
                 return false;
         }
@@ -1090,7 +1488,7 @@ public partial class AiringScheduleService
         // whatever the read filters its airings by.
         var known = ReadAirings(
             context,
-            anidbEpisode,
+            new(anidbEpisode, GetEpisodeTargetKey(context, anidbEpisode, linked: true)),
             new EpisodeAiringFilteringOptions
             {
                 IncludeEstimates = options.IncludeEstimates,
@@ -1146,21 +1544,21 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// Whether an episode has already premiered: a real
+    /// Whether a target has already premiered: a real
     /// <see cref="EpisodeAiringKind.Normal"/> airing of it, on any schedule of
     /// any provider and channel, whose slot ended by the reference. A next-only
-    /// read skips such an episode, so a delayed broadcast of it is never next.
+    /// read skips such a target, so a delayed broadcast of it is never next.
     /// </summary>
     /// <param name="context">The read the check belongs to.</param>
-    /// <param name="episode">The episode.</param>
+    /// <param name="target">The target.</param>
     /// <param name="options">The read's options, for the links it walks.</param>
     /// <param name="beforeUtc">The reference instant.</param>
-    /// <returns><c>true</c> when the episode has premiered.</returns>
-    private bool HasPremieredBefore(AiringReadContext context, IEpisode episode, EpisodeAiringFilteringOptions options, DateTime beforeUtc)
+    /// <returns><c>true</c> when the target has premiered.</returns>
+    private bool HasPremieredBefore(AiringReadContext context, AiringReadTarget target, EpisodeAiringFilteringOptions options, DateTime beforeUtc)
     {
         var shown = ReadAirings(
             context,
-            episode,
+            target,
             new EpisodeAiringFilteringOptions
             {
                 EpisodeKinds = _premiereKinds,
@@ -1195,7 +1593,7 @@ public partial class AiringScheduleService
     )
     {
         var per = options.NextPer ?? _defaultNextPer;
-        var episodeBest = new Dictionary<(NextGroupKey Group, (MetadataSource Source, string ID) Episode), (DateTime Time, IEpisodeAiring Airing)>();
+        var episodeBest = new Dictionary<(NextGroupKey Group, AiringEpisodeKey Episode), (DateTime Time, IEpisodeAiring Airing)>();
         foreach (var airing in airings)
         {
             if (GetNextTime(airing, afterUtc, afterDate, offset) is not { } time)
@@ -1203,7 +1601,7 @@ public partial class AiringScheduleService
 
             // The first airing seen is the episode's best, and the earliest one
             // is what the episode is next by.
-            var episodeKey = GetEpisodeKeyFor(airing);
+            var episodeKey = AiringEpisodeKey.For(airing);
             foreach (var group in GetNextGroupKeys(airing, per, options.Kinds))
             {
                 episodeBest[(group, episodeKey)] = episodeBest.TryGetValue((group, episodeKey), out var seen)
@@ -1215,7 +1613,10 @@ public partial class AiringScheduleService
         var groups = new Dictionary<NextGroupKey, (DateTime Time, int Number, IEpisodeAiring Airing)>();
         foreach (var ((group, _), (time, airing)) in episodeBest)
         {
-            var number = ((IEpisode?)airing.AnidbEpisode ?? (IEpisode?)airing.ShokoEpisode ?? airing.Episode)?.EpisodeNumber ?? int.MaxValue;
+            var number = ((IEpisode?)airing.AnidbEpisode ?? (IEpisode?)airing.ShokoEpisode ?? airing.Episode)?.EpisodeNumber ??
+                airing.AnidbEpisodeNumber ??
+                airing.EpisodeNumber ??
+                int.MaxValue;
             if (!groups.TryGetValue(group, out var current) ||
                 time < current.Time ||
                 (time == current.Time && (number < current.Number || (number == current.Number && airing.ID.CompareTo(current.Airing.ID) < 0))))
@@ -1261,15 +1662,6 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// Which episode an airing counts as: the one the read resolved it for, or
-    /// its own stored episode.
-    /// </summary>
-    /// <param name="airing">The airing.</param>
-    /// <returns>The episode's key.</returns>
-    private static (MetadataSource Source, string ID) GetEpisodeKeyFor(IEpisodeAiring airing)
-        => airing is EpisodeAiringView view ? GetDeduplicationKey(view) : (airing.EpisodeID.Source, airing.EpisodeID.ID);
-
-    /// <summary>
     /// One group of a next-only read. A part the read does not group by is
     /// <c>null</c>.
     /// </summary>
@@ -1288,9 +1680,9 @@ public partial class AiringScheduleService
     /// the airings fall in, and whether one is still to come.
     /// </summary>
     /// <remarks>
-    /// An airing counts for every AniDB anime its episode is linked to. Old
-    /// seasons may have no airings left to count, since retention removes
-    /// them.
+    /// An airing counts for every AniDB anime its episode is linked to, and an
+    /// unresolved one for the anime its place stands for. Old seasons may have
+    /// no airings left to count, since retention removes them.
     /// </remarks>
     /// <param name="channelIDs">The channels.</param>
     /// <param name="at">The time an airing is still to come after, or <c>null</c> for now.</param>
@@ -1303,13 +1695,13 @@ public partial class AiringScheduleService
         var context = new AiringReadContext(this, at: at);
         var options = new EpisodeAiringFilteringOptions { ChannelIDs = channelIDs };
         var now = context.Now;
-        var animeIDsByEpisode = new Dictionary<(MetadataSource Source, string ID), IReadOnlyList<int>>();
         var found = new Dictionary<int, AnidbAnimeChannelAirings>();
         foreach (var channelID in channelIDs)
         {
             foreach (var row in RepoFactory.AiringSchedule.GetByChannelID(channelID))
             {
-                if (!MatchesFilters(context, context.GetSchedule(row), options))
+                var scheduleView = context.GetSchedule(row);
+                if (!MatchesFilters(context, scheduleView, options))
                     continue;
 
                 foreach (var entry in RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID))
@@ -1317,9 +1709,10 @@ public partial class AiringScheduleService
                     if (entry.AiredAt is not { } airedAt)
                         continue;
 
-                    var key = (entry.EpisodeSource, entry.EpisodeID);
-                    if (!animeIDsByEpisode.TryGetValue(key, out var animeIDs))
-                        animeIDsByEpisode[key] = animeIDs = GetAnidbAnimeIDs(context.GetEpisode(entry.EpisodeSource, entry.EpisodeID));
+                    var view = new EpisodeAiringView(context, scheduleView, entry);
+                    var animeIDs = GetAnidbAnimeIDs(view.Episode);
+                    if (animeIDs.Count is 0 && view.AnidbAnimeID is { } anidbAnimeID)
+                        animeIDs = [anidbAnimeID];
 
                     var quarter = SeasonCalendar.GetCalendarQuarter(DateOnly.FromDateTime(airedAt));
                     foreach (var animeID in animeIDs)
@@ -1380,8 +1773,9 @@ public partial class AiringScheduleService
     /// </summary>
     /// <remarks>
     /// An airing counts for the AniDB episodes behind its episode: its own,
-    /// or those of its Shoko episodes. An episode matched to none counts for
-    /// the anime of an AniDB or Shoko schedule, or for an anime linked to a
+    /// or those of its Shoko episodes. An airing matched to none, unresolved
+    /// ones among them, counts for the anime its number on the line stands
+    /// for: the anime of an AniDB or Shoko schedule, or an anime linked to a
     /// plugin schedule's series whose episode numbering, learned from the
     /// linked episodes, carries on to it within the anime's episode count.
     /// </remarks>
@@ -1391,7 +1785,7 @@ public partial class AiringScheduleService
         var context = new AiringReadContext(this, includeHiddenChannels: true);
         var options = new EpisodeAiringFilteringOptions();
         var matched = new Dictionary<int, Dictionary<int, DateOnly>>();
-        var unmatched = new Dictionary<int, Dictionary<(MetadataSource Source, string ID), DateOnly>>();
+        var unmatched = new Dictionary<int, Dictionary<AiringEpisodeKey, DateOnly>>();
         foreach (var row in RepoFactory.AiringSchedule.GetAll())
         {
             if (!MatchesFilters(context, context.GetSchedule(row), options, honourHiddenChannels: false) || context.IsDetectedRerun(row))
@@ -1404,7 +1798,7 @@ public partial class AiringScheduleService
                     continue;
 
                 var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(airedAt, DateTimeKind.Utc), zone));
-                var episode = context.GetEpisode(entry.EpisodeSource, entry.EpisodeID);
+                var episode = context.ResolveEpisode(row, entry);
                 var anidbEpisodes = GetAnidbEpisodes(episode);
                 foreach (var anidbEpisode in anidbEpisodes)
                     AddEarliest(matched, anidbEpisode.AnidbAnimeID, anidbEpisode.AnidbID, date);
@@ -1413,20 +1807,23 @@ public partial class AiringScheduleService
                     continue;
 
                 // An AniDB episode not cached yet still names itself.
-                if (entry.EpisodeSource == MetadataSource.AniDB && row.SeriesSource == MetadataSource.AniDB &&
+                if (entry.IsPinned && entry.EpisodeSource == MetadataSource.AniDB && row.SeriesSource == MetadataSource.AniDB &&
                     int.TryParse(entry.EpisodeID, out var anidbEpisodeID) && int.TryParse(row.SeriesID, out var anidbAnimeID))
                 {
                     AddEarliest(matched, anidbAnimeID, anidbEpisodeID, date);
                     continue;
                 }
 
-                foreach (var (animeID, placedEpisodeID) in GetUnmatchedAnime(context, row, episode))
-                {
-                    if (placedEpisodeID is { } episodeID)
-                        AddEarliest(matched, animeID, episodeID, date);
-                    else
-                        AddEarliest(unmatched, animeID, (entry.EpisodeSource, entry.EpisodeID), date);
-                }
+                var number = entry.SequenceNumber is { } sequenceNumber
+                    ? row.FirstEpisodeNumber + sequenceNumber - 1
+                    : episode is { Type: EpisodeType.Episode } ? episode.EpisodeNumber : (int?)null;
+                if (number is null || context.GetAnidbPosition(row, number.Value) is not { } position)
+                    continue;
+
+                if (context.GetAnidbEpisode(position.AnimeID, position.EpisodeNumber) is { } listed)
+                    AddEarliest(matched, position.AnimeID, listed.AnidbID, date);
+                else
+                    AddEarliest(unmatched, position.AnimeID, AiringEpisodeKey.ForAnidbPosition(position.AnimeID, position.EpisodeNumber), date);
             }
         }
 
@@ -1462,57 +1859,6 @@ public partial class AiringScheduleService
                     .DistinctBy(anidbEpisode => anidbEpisode.AnidbID),
             ],
         };
-
-    /// <summary>
-    /// The AniDB anime an airing matched to no AniDB episode counts for, by
-    /// its schedule's series.
-    /// </summary>
-    /// <param name="context">The read the lookups are cached in.</param>
-    /// <param name="row">The airing's schedule.</param>
-    /// <param name="episode">The airing's episode, or <c>null</c> when it could not be resolved.</param>
-    /// <returns>
-    ///   The anime, each with the AniDB episode the numbering places the
-    ///   airing on when the anime lists it.
-    /// </returns>
-    private static IEnumerable<(int AnimeID, int? EpisodeID)> GetUnmatchedAnime(AiringReadContext context, AiringSchedule row, IEpisode? episode)
-    {
-        if (row.SeriesSource == MetadataSource.AniDB)
-        {
-            if (int.TryParse(row.SeriesID, out var animeID))
-                yield return (animeID, null);
-
-            yield break;
-        }
-
-        if (row.SeriesSource.IsCore)
-        {
-            if (context.GetSeries(row.SeriesSource, row.SeriesID) is IShokoSeries shokoSeries)
-                yield return (shokoSeries.AnidbAnimeID, null);
-
-            yield break;
-        }
-
-        if (episode is not { Type: EpisodeType.Episode } providerEpisode)
-            yield break;
-
-        foreach (var animeID in context.GetLinkedAnimeIDs(row.SeriesSource, row.SeriesID))
-        {
-            if (context.GetEpisodeOffset(animeID, row) is not { } offset || providerEpisode.EpisodeNumber <= offset.LastLinkedScheduleNumber)
-                continue;
-
-            var number = providerEpisode.EpisodeNumber - offset.Offset;
-            if (number <= offset.LastLinkedEpisodeNumber)
-                continue;
-
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
-            if (anime is { EpisodeCountNormal: > 0 } && number > anime.EpisodeCountNormal)
-                continue;
-
-            var listed = RepoFactory.AniDB_Episode.GetByAnimeID(animeID)
-                .FirstOrDefault(anidbEpisode => anidbEpisode.EpisodeType is EpisodeType.Episode && anidbEpisode.EpisodeNumber == number);
-            yield return (animeID, listed?.EpisodeID);
-        }
-    }
 
     /// <summary>
     /// Keeps the earliest date of a key for an anime.
@@ -1638,21 +1984,22 @@ public partial class AiringScheduleService
         // A simulpub follows the broadcast, not its own channel's history, so a
         // schedule with nothing Original on it anchors on the broadcast instead.
         var anchored = row.Tracks.Count > 0 && row.Tracks.All(track => track.Kind is not AiringKind.Original);
+        var scheduleView = context.GetSchedule(row);
         var samples = airings
             .Select(entry =>
             {
-                var episode = context.GetEpisode(entry.EpisodeSource, entry.EpisodeID);
+                var view = new EpisodeAiringView(context, scheduleView, entry);
                 return new AiringProfileSample()
                 {
-                    EpisodeKey = AiringScheduleUtility.GetDerivedAiringKey(entry.EpisodeSource, entry.EpisodeID),
-                    EpisodeNumber = episode is { Type: EpisodeType.Episode } ? episode.EpisodeNumber : null,
-                    AnidbAirDate = context.GetAnidbAirDate(episode),
+                    EpisodeKey = GetLineKey(entry),
+                    EpisodeNumber = view.EpisodeNumber ?? (view.Episode is { Type: EpisodeType.Episode } episode ? episode.EpisodeNumber : null),
+                    AnidbAirDate = context.GetAnidbAirDate(view.Episode ?? view.AnidbEpisode),
                     AiredAt = entry.AiredAt,
                     OriginalAiredAt = entry.OriginalAiredAt,
                     IsDelayed = entry.IsDelayed,
                     Kind = entry.Kind,
                     LinkKey = linkKeys.GetValueOrDefault(entry.EpisodeAiringID),
-                    FirstOriginalAiringAt = anchored ? context.GetFirstOriginalAiringAt(entry.EpisodeSource, entry.EpisodeID) : null,
+                    FirstOriginalAiringAt = anchored ? context.GetFirstOriginalAiringAt(view.Target) : null,
                 };
             })
             .ToList();

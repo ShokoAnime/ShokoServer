@@ -98,6 +98,20 @@ public static class AiringScheduleUtility
     }
 
     /// <summary>
+    /// Derive the key of an airing on the numbered line that the provider gave
+    /// none for, from its sequence number.
+    /// </summary>
+    /// <param name="sequenceNumber">The airing's place on the line, counted from <c>1</c>.</param>
+    /// <returns>The derived key, <c>#&lt;sequence number&gt;</c>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="sequenceNumber"/> is below <c>1</c>.</exception>
+    public static string GetDerivedSequenceAiringKey(int sequenceNumber)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(sequenceNumber, 1);
+
+        return $"#{sequenceNumber}";
+    }
+
+    /// <summary>
     /// Derive the key of an airing for a provider whose own ID names a whole slot
     /// rather than a single episode, by appending the episode's place in the slot.
     /// </summary>
@@ -982,7 +996,7 @@ public static class AiringScheduleUtility
     {
         if (episodeNumber is not { } number)
             return true;
-        if (options.FirstEpisodeNumber is { } first && number < first)
+        if (number < options.FirstEpisodeNumber)
             return false;
         if (options.LastEpisodeNumber is { } last && number > last)
             return false;

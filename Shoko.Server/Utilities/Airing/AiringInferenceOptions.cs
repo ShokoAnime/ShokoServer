@@ -49,10 +49,10 @@ public sealed record AiringInferenceOptions
     public bool IsFinished { get; init; }
 
     /// <summary>
-    /// Optional. The first episode the schedule covers. A removed airing outside
-    /// the coverage is deleted rather than kept as a hiatus.
+    /// The first episode the schedule covers, <c>1</c> by default. A removed
+    /// airing outside the coverage is deleted rather than kept as a hiatus.
     /// </summary>
-    public int? FirstEpisodeNumber { get; init; }
+    public int FirstEpisodeNumber { get; init; } = 1;
 
     /// <summary>
     /// Optional. The last episode the schedule covers.

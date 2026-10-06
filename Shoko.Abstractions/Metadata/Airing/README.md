@@ -25,13 +25,31 @@ Channel ──< Schedule >── Episode Airing
 | **Channel** | Where something airs, from a registry every provider shares: "TOKYO MX" in `JP` (`Television`), "Crunchyroll" (`Streaming`). The country is a field of its own, never part of the name. |
 | **Schedule** | One provider's run of a series, optionally narrowed to a season, on one channel (or none), releasing a fixed set of tracks. Owned by the provider that created it. |
 | **Track** | A `Kind` (`Original`, `Subtitled`, `Dubbed`) plus a language code and an optional country code. A language released at another time is another schedule. |
-| **Episode airing** | One episode on one schedule: a time, the slot it was first scheduled for, a delay flag, a kind (`Normal`, `Advance` or `Rerun`, or `DetectedRerun` when the core detects one) and an optional link. |
-| **Coverage** | Which episodes a schedule is for: an optional range, and whether the run is finished. Estimates never go past it. |
+| **Episode airing** | One place on a schedule's numbered line, or one pinned episode off it: a time, the slot it was first scheduled for, a delay flag, a kind (`Normal`, `Advance` or `Rerun`, or `DetectedRerun` when the core detects one) and an optional link. |
+| **Sequence number** | An airing's place on its schedule's numbered line, counted from `1`. Sequence `n` stands for episode `FirstEpisodeNumber + n - 1` of the schedule's series or season. |
+| **Coverage** | Which episodes a schedule is for: a first episode (`1` unless the provider says otherwise), an optional last one, and whether the run is finished. Estimates never go past it. |
 | **Link** | Ties airings on one schedule into one unit: a double episode, or a season released at once. |
 | **Estimate** | An airing computed from a schedule's own line for an episode with no reported time. Never stored. |
 
 Delays, hiatuses and learned time slots belong to one schedule's line, never
 to the series: a series on three channels has three independent schedules.
+
+### Places, not episodes
+
+An airing stores what its provider said: a sequence number, an episode to pin
+it to, or both. The episode is worked out when the airing is read: the pinned
+one, else the regular episode at its number in the schedule's season or
+series. Until a source lists that episode the airing is **unresolved**: its
+`EpisodeID` is `null`, and it is shown as "episode N" from `EpisodeNumber`.
+Nothing is rewritten when the episode turns up; the next read resolves it.
+
+`AnidbAnimeID` and `AnidbEpisodeNumber` say which airings are of one episode,
+across providers and whether or not they resolve. They come from the airing's
+AniDB episode, else from its schedule: an AniDB or shoko schedule stands for
+its own anime at the same number, and a plugin source's schedule for the
+anime linked to its series, by the offset described below. A sub and a dub
+of one episode are still two releases: two airings of one place on one
+channel are only collapsed when they share a track.
 
 A schedule estimates the episodes of its own series, and the AniDB episodes
 its source does not list yet. When an anime is linked to the schedule's series
@@ -144,20 +162,21 @@ public async Task<bool> RefreshAsync(ISeries series, CancellationToken cancellat
         IsFinished = listing.HasEnded,
     });
 
-    // OriginalAiredAt and IsDelayed left null: the service infers them from the whole line.
+    // The source's own episode numbers are the places on the line, whether or
+    // not the series lists those episodes yet. OriginalAiredAt and IsDelayed
+    // left null: the service infers them from the whole line.
     var airings = listing.Episodes
         .Select(entry => new EpisodeAiringData
         {
-            Episode = entry.Episode,
+            SequenceNumber = entry.Number,
             AiredAt = entry.AiredAtUtc,
-            Key = entry.Episode.ID.ID,
         })
         .ToList();
     var written = airingScheduleService.SetAirings(this, schedule, airings);
 
     foreach (var doubleBill in listing.DoubleBills)
     {
-        var members = written.Where(a => doubleBill.EpisodeIDs.Any(id => id.ToString() == a.EpisodeID.ID)).ToList();
+        var members = written.Where(a => a.SequenceNumber is { } number && doubleBill.Numbers.Contains(number)).ToList();
         if (members.Count >= 2)
             airingScheduleService.LinkAirings(this, members);
     }
@@ -167,8 +186,25 @@ public async Task<bool> RefreshAsync(ISeries series, CancellationToken cancellat
 ```
 
 A later refresh reporting episode 5 two hours late, with everything after it
-shifted, needs no extra work: `SetAirings` matches by key and works out that
-episode 5 is the delay and the rest moved behind it.
+shifted, needs no extra work: `SetAirings` matches by key (a keyless airing's
+is `#` and its sequence number) and works out that episode 5 is the delay and
+the rest moved behind it.
+
+What an airing is stored under:
+
+| You pass | Stored as |
+|---|---|
+| `SequenceNumber` | That place on the line, resolved when read. |
+| A regular `Episode` | The place its number gives it. |
+| Any other `Episode`, such as a special | Pinned to it, off the line. |
+| Both | Pinned to the episode, at that place on the line. |
+
+Sequence `n` is episode `FirstEpisodeNumber + n - 1` in the series' (or
+season's) own numbering, so `FirstEpisodeNumber` only moves the line forward,
+for a schedule that starts partway into the series. A source whose count runs
+on from an earlier season subtracts that offset itself, so its count `13` for
+the new season's first episode is sequence `1`. A place past
+`LastEpisodeNumber` is refused; a provider filters those out before writing.
 
 A whole-season drop has no cadence: give every airing the same time, pass
 `new EpisodeAiringUpdateOptions { InferDelays = false }`, and link the whole
@@ -270,7 +306,8 @@ methods; pick by the default you want.
   mistake" passes `KeepRemovalsAsHiatus = true` to judge them the same way.
 - **Coverage is not guessed from a delta.** `MergeAirings` never writes
   `FirstEpisodeNumber`, `LastEpisodeNumber` or `IsFinished`; only
-  `AddOrUpdateSchedule` and `UpdateSchedule` do. State what this write knows on
+  `AddOrUpdateSchedule` and `UpdateSchedule` do. State what this write knows
+  of the end of the run (`LastEpisodeNumber`, `IsFinished`) on
   `EpisodeAiringUpdateOptions`, which judges its removals and nothing else.
 
 Everything else (ownership, validation, retention, links and the event) is
@@ -284,6 +321,12 @@ kept as a hiatus; reading the schedule back tells them apart), `Airings` as
 the three together, and a coarse `Reason`. An airing written back unchanged is
 in none of them. A write that changed nothing is still raised, with empty
 lists and `UpdateReason.None`.
+
+`AiringsUpdated` is also raised, once per schedule and with only `Updated`
+filled and `IsResolution` set, for the airings that resolve differently after
+an episode or series is added or removed, or a link to AniDB changes: an
+unresolved airing whose episode was just listed, or one whose AniDB anime
+followed a new link. Nothing stored changed for those.
 
 `AiringsUpdated`, `ScheduleUpdated`, `ChannelRegistered` and `SweepCompleted`
 are raised synchronously on the writer's thread after the rows are saved: a
@@ -426,8 +469,8 @@ computed only when someone wants them, and nothing at all while nobody is
 subscribed.
 
 - **One call per minute, not per airing.** A simulcast arrives as one list;
-  group by `ShokoEpisode` for "aired once" or by `LinkID` for one card per
-  slot. The list is never empty.
+  group by `AnidbAnimeID` and `AnidbEpisodeNumber` (else `EpisodeID`) for
+  "aired once" or by `LinkID` for one card per slot. The list is never empty.
 - **Estimates are predictions** with no retraction. The real airing that
   follows is a different airing with its own ID, so a handler acting on both
   acts twice. Turn them off or check `IsEstimated`.
@@ -448,7 +491,7 @@ The same dispatch reaches SignalR clients as `airing:episode.aired`; see
 |---|---|
 | `Auto` (default) | `Shoko` for a read given a Shoko entity, otherwise `Raw`. |
 | `Raw` | The provider's own entities, as stored. |
-| `Shoko` | Only what resolves to a Shoko entity. |
+| `Shoko` | Only what resolves to a Shoko entity, and the unresolved airings of a Shoko series. |
 
 The linked-entity options (`LinkedEntityAirings`, `LinkedEntitySchedules`)
 decide what a read finds, and the anchor decides what survives, so `Auto`
@@ -462,7 +505,8 @@ Besides the schedule filters (`ProviderIDs`, `Kinds`, `Languages`) it carries:
 
 | Option | Meaning |
 |---|---|
-| `EpisodeTypes` | Only airings of episodes of these types. |
+| `EpisodeTypes` | Only airings of episodes of these types. An unresolved airing counts as `Episode`. |
+| `IncludeUnresolved` | Whether the unresolved airings are returned, which is the default. A series or season read returns those on its own schedules; an episode read never has any. |
 | `EpisodeKinds` | Only airings of these kinds of showing. Leave out both `Rerun` and `DetectedRerun` for no reruns. |
 | `ChannelIDs` | Only these channels, hidden or not. Unset, the channels the server hides (`HiddenChannelIDs`, also `IAiringChannel.IsHidden`) are left out. A schedule read returns its own airings either way. |
 | `InCollection` | An `InclusionFilter` on whether the series has a shoko series. `Only` keeps the collection, `False` keeps what is not in it. |
@@ -571,8 +615,11 @@ picks. A date-only entry is always preferred, while `GetAiringByID` and
   `#schedule`). Backfilling a long-running show is fine; submitting a run that
   ended years ago on its own is not.
 - **A schedule's series, season, key and channel never change**, nor an
-  airing's schedule, key and episode. The one exception is a keyed schedule
-  moving to the channel of the same type and name in another country.
+  airing's schedule and key. The one exception is a keyed schedule moving to
+  the channel of the same type and name in another country.
+- **Pass the place, not a guess.** Give the sequence number your source has
+  even when the series does not list the episode yet, and pin an episode only
+  when the airing is off the line or the number would land on the wrong one.
 - **Pass a stable `Key`.** A keyless schedule's key is derived from its channel
   and tracks, so adding a language creates a new schedule.
 
@@ -588,9 +635,9 @@ Every member documents its exceptions; the shape of the contract:
 | `FindOrRegisterChannel` | `ArgumentException` | The name is blank once normalised, or the country is not two letters. |
 | `AddChannelAliases`, `SetChannelAliases` | `ChannelAliasConflictException` | An alias already names another channel of the same type and country. |
 | `MergeChannels` | `ArgumentException` | A channel is unregistered, the target itself, or of another type. |
-| `AddOrUpdateSchedule`, `UpdateSchedule` | `ArgumentException` | No tracks, an undeclared kind, an unregistered or changed channel, or a backwards coverage range. |
+| `AddOrUpdateSchedule`, `UpdateSchedule` | `ArgumentException` | No tracks, an undeclared kind, an unregistered or changed channel, a first episode below `1`, or a backwards coverage range. |
 | Anything taking a time zone | `TimeZoneNotFoundException` | The zone is neither an IANA id nor a fixed offset. |
-| `SetAirings`, `MergeAirings` | `AiringScheduleValidationException` | An episode outside the schedule, a duplicate key, an airing both submitted and removed, or the retention rule. A `GenericValidationException` keyed by airing key, reporting every rejection at once. |
+| `SetAirings`, `MergeAirings` | `AiringScheduleValidationException` | Neither an episode nor a sequence number (under `@` and the airing's position), a place outside the coverage, an episode outside the schedule, a duplicate key, an airing both submitted and removed, or the retention rule. A `GenericValidationException` keyed by airing key, reporting every rejection at once. |
 | `MergeAirings` | `ArgumentException` | A removal is an estimate, unknown, or on another schedule. |
 | `LinkAirings`, `UnlinkAiring` | `ArgumentException` | Fewer than two airings, or more than one schedule. |
 | `RefreshAsync` (the awaitable overloads) | `OperationCanceledException` | The token was cancelled; a provider's own exception is reported in the result. |

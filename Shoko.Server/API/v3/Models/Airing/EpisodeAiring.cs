@@ -169,21 +169,36 @@ public class EpisodeAiring
 
     /// <summary>
     /// How many videos are in the collection for the episode. <c>0</c> when
-    /// none are, which is also what an airing with no resolvable episode
-    /// reports. Use it to mark a calendar row as already held.
+    /// none are, which is also what an unresolved airing reports. Use it to
+    /// mark a calendar row as already held.
     /// </summary>
     [Required]
     public int VideoCount { get; init; }
 
     /// <summary>
-    /// The type of the episode, or <c>null</c> when no episode could be
-    /// resolved for the airing.
+    /// The airing's place on its schedule's numbered line, counted from
+    /// <c>1</c>, or <c>null</c> when it is off the line or a date-only entry.
+    /// </summary>
+    public int? SequenceNumber { get; init; }
+
+    /// <summary>
+    /// Whether an episode is listed for the airing. An unresolved airing is
+    /// for a place no source lists an episode at yet: show it as
+    /// "episode <see cref="Number"/>" of its series.
+    /// </summary>
+    [Required]
+    public bool IsResolved { get; init; }
+
+    /// <summary>
+    /// The type of the episode: a regular <c>Episode</c> for an unresolved
+    /// airing, or <c>null</c> when nothing places it.
     /// </summary>
     public EpisodeType? Type { get; init; }
 
     /// <summary>
-    /// The number of the episode within its type, or <c>null</c> when no
-    /// episode could be resolved for the airing.
+    /// The number of the episode within its type, the AniDB number where one
+    /// is known, else the number on the schedule's line, or <c>null</c> when
+    /// nothing places it.
     /// </summary>
     public int? Number { get; init; }
 
@@ -255,12 +270,14 @@ public class EpisodeAiring
         {
             ShokoEpisode = airing.ShokoEpisode?.LocalID,
             AnidbEpisode = airing.AnidbEpisode?.AnidbID,
-            ShokoSeries = airing.ShokoEpisode?.Series?.LocalID,
-            AnidbAnime = airing.AnidbEpisode?.AnidbAnimeID,
+            ShokoSeries = airing.ShokoSeries?.LocalID,
+            AnidbAnime = airing.AnidbAnimeID,
         };
+        SequenceNumber = airing.SequenceNumber;
+        IsResolved = airing.EpisodeID is not null;
         VideoCount = episode?.Videos.Count ?? 0;
-        Type = episode?.Type;
-        Number = episode?.EpisodeNumber;
+        Number = airing.AnidbEpisodeNumber ?? episode?.EpisodeNumber ?? airing.EpisodeNumber;
+        Type = episode?.Type ?? (Number is null ? null : EpisodeType.Episode);
         EpisodeTitle = episodeTitle;
         Series = series;
         Poster = poster;
@@ -286,12 +303,14 @@ public class AiringIDs
     public int? AnidbEpisode { get; init; }
 
     /// <summary>
-    /// The ID of the shoko series the episode belongs to.
+    /// The ID of the shoko series the airing is for, which an unresolved
+    /// airing has too.
     /// </summary>
     public int? ShokoSeries { get; init; }
 
     /// <summary>
-    /// The ID of the AniDB anime the episode belongs to.
+    /// The ID of the AniDB anime the airing is for, which an unresolved airing
+    /// has too.
     /// </summary>
     public int? AnidbAnime { get; init; }
 }

@@ -11,15 +11,17 @@ namespace Shoko.Server.Repositories.Cached.Airing;
 
 /// <summary>
 /// Cached repository for <see cref="EpisodeAiring"/>. Per-episode reads go
-/// through the episode key index and range reads through the day buckets, so
-/// no read scans the cache.
+/// through the pinned episode and the sequence number indexes, and range reads
+/// through the day buckets, so no read scans the cache.
 /// </summary>
 /// <param name="databaseFactory">The database factory.</param>
 public class EpisodeAiringRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<EpisodeAiring, int>(databaseFactory)
 {
     private PocoIndex<int, EpisodeAiring, int>? _scheduleIDs;
 
-    private PocoIndex<int, EpisodeAiring, (MetadataSource EpisodeSource, string EpisodeID)>? _episodeKeys;
+    private PocoIndex<int, EpisodeAiring, (int ScheduleID, int? SequenceNumber)>? _sequenceNumbers;
+
+    private PocoIndex<int, EpisodeAiring, (MetadataSource? EpisodeSource, string? EpisodeID)>? _episodeKeys;
 
     private PocoIndex<int, EpisodeAiring, int?>? _linkHeads;
 
@@ -35,6 +37,7 @@ public class EpisodeAiringRepository(DatabaseFactory databaseFactory) : BaseCach
     public override void PopulateIndexes()
     {
         _scheduleIDs = Cache.CreateIndex(a => a.AiringScheduleID);
+        _sequenceNumbers = Cache.CreateIndex(a => (a.AiringScheduleID, a.SequenceNumber));
         _episodeKeys = Cache.CreateIndex(a => (a.EpisodeSource, a.EpisodeID));
         _linkHeads = Cache.CreateIndex(a => a.LinkedToID);
         _dayBuckets = Cache.CreateIndex(a => a.DayBucket);
@@ -53,8 +56,20 @@ public class EpisodeAiringRepository(DatabaseFactory databaseFactory) : BaseCach
             .ToList();
 
     /// <summary>
-    /// Gets every airing attached to an episode, across every schedule and
-    /// provider.
+    /// Gets every airing at one place on a schedule's numbered line.
+    /// </summary>
+    /// <param name="scheduleID">The local database ID of the schedule.</param>
+    /// <param name="sequenceNumber">The place on the line, counted from <c>1</c>.</param>
+    /// <returns>The airings, ordered by their current slot.</returns>
+    public IReadOnlyList<EpisodeAiring> GetByScheduleIDAndSequenceNumber(int scheduleID, int sequenceNumber)
+        => _sequenceNumbers!.GetMultiple((scheduleID, sequenceNumber))
+            .OrderBy(a => a.AiredAt ?? a.OriginalAiredAt ?? DateTime.MaxValue)
+            .ThenBy(a => a.Key, StringComparer.Ordinal)
+            .ToList();
+
+    /// <summary>
+    /// Gets every airing pinned to an episode, across every schedule and
+    /// provider. An airing its sequence number alone places is not among them.
     /// </summary>
     /// <param name="episodeSource">The source of the episode.</param>
     /// <param name="episodeID">The ID of the episode within its source.</param>

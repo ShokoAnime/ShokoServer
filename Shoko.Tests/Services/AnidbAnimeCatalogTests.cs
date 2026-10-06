@@ -1290,13 +1290,25 @@ public class AnidbAnimeCatalogTests
 
         public DateOnly? AirDate { get; init; }
 
-        public required MetadataGuid EpisodeID { get; init; }
+        public int? SequenceNumber => null;
+
+        public int? EpisodeNumber => null;
+
+        public required MetadataGuid? EpisodeID { get; init; }
 
         public IEpisode? Episode => null;
 
         public IAnidbEpisode? AnidbEpisode => null;
 
         public IShokoEpisode? ShokoEpisode => null;
+
+        public int? AnidbAnimeID => null;
+
+        public IAnidbAnime? AnidbAnime => null;
+
+        public int? AnidbEpisodeNumber => null;
+
+        public IShokoSeries? ShokoSeries => null;
 
         public IAiringChannel? Channel { get; init; }
 

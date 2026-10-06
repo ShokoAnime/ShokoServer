@@ -1406,6 +1406,12 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(173, 302, "CREATE UNIQUE INDEX UIX_AniDB_Anime_StartSeasonOverride_AnimeID ON AniDB_Anime_StartSeasonOverride(AnimeID);"),
         new(173, 303, "ALTER TABLE AiringChannel ADD COLUMN IsHidden INTEGER NOT NULL DEFAULT 0;"),
         new(173, 304, DatabaseFixes.RestoreAnidbAnimeDates),
+        new(173, 305, MakeAiringScheduleFirstEpisodeNumberNotNull),
+        new(173, 306, "ALTER TABLE EpisodeAiring ADD COLUMN SequenceNumber INTEGER NULL;"),
+        new(173, 307, MakeEpisodeAiringEpisodeSourceNullable),
+        new(173, 308, MakeEpisodeAiringEpisodeIDNullable),
+        new(173, 309, "CREATE INDEX IX_EpisodeAiring_AiringScheduleID_SequenceNumber ON EpisodeAiring(AiringScheduleID, SequenceNumber);"),
+        new(173, 310, DatabaseFixes.AssignEpisodeAiringSequenceNumbers),
     ];
 
     #endregion
@@ -1620,6 +1626,15 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
 
     private static Tuple<bool, string?> MakeAniDB_EpisodeAirDateNullable(object connection)
         => MakeColumnNullable(connection, "AniDB_Episode", "AirDate");
+
+    private static Tuple<bool, string?> MakeAiringScheduleFirstEpisodeNumberNotNull(object connection)
+        => MakeColumnNotNull(connection, "AiringSchedule", "FirstEpisodeNumber", "1");
+
+    private static Tuple<bool, string?> MakeEpisodeAiringEpisodeSourceNullable(object connection)
+        => MakeColumnNullable(connection, "EpisodeAiring", "EpisodeSource");
+
+    private static Tuple<bool, string?> MakeEpisodeAiringEpisodeIDNullable(object connection)
+        => MakeColumnNullable(connection, "EpisodeAiring", "EpisodeID");
 
     private static Tuple<bool, string?> MakeColumnNullable(object connection, string tableName, string columnName)
     {

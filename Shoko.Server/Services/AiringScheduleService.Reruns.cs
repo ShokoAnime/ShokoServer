@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Repositories;
@@ -88,14 +87,16 @@ public partial class AiringScheduleService
     /// <returns>The earliest showing, or <c>null</c> when the episodes aired nowhere else.</returns>
     private static DateTime? GetEarliestShowingElsewhere(AiringReadContext context, AiringSchedule row, IReadOnlyList<EpisodeAiring> airings)
     {
-        var probed = new HashSet<(MetadataSource Source, string ID)>();
+        var scheduleView = context.GetSchedule(row);
+        var probed = new HashSet<AiringEpisodeKey>();
         var earliest = default(DateTime?);
         foreach (var entry in airings)
         {
-            if (!probed.Add((entry.EpisodeSource, entry.EpisodeID)))
+            var target = new EpisodeAiringView(context, scheduleView, entry).Target;
+            if (!probed.Add(target.Key))
                 continue;
 
-            foreach (var (schedule, airedAt) in context.GetFirstNormalAirings(entry.EpisodeSource, entry.EpisodeID))
+            foreach (var (schedule, airedAt) in context.GetFirstNormalAirings(target))
             {
                 if (schedule.AiringScheduleID == row.AiringScheduleID || earliest is { } current && airedAt >= current)
                     continue;

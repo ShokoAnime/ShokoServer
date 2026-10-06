@@ -23,27 +23,10 @@ public sealed class AiringScheduleUpdateData
     public IReadOnlyList<AiringTrackData>? Tracks { get; set; }
 
     /// <summary>
-    ///   Used by the service to determine whether
-    ///   <see cref="FirstEpisodeNumber"/> should be updated. Set to <c>true</c>
-    ///   when the property is set.
-    /// </summary>
-    public bool HasFirstEpisodeNumberSet { get; private set; }
-
-    private int? _firstEpisodeNumber;
-
-    /// <summary>
     ///   The first episode the schedule covers, in the series' (or season's)
-    ///   numbering. Set it to <c>null</c> to leave the range open-ended.
+    ///   numbering, at least <c>1</c>. <c>null</c> leaves it alone.
     /// </summary>
-    public int? FirstEpisodeNumber
-    {
-        get => _firstEpisodeNumber;
-        set
-        {
-            HasFirstEpisodeNumberSet = true;
-            _firstEpisodeNumber = value;
-        }
-    }
+    public int? FirstEpisodeNumber { get; set; }
 
     /// <summary>
     ///   Used by the service to determine whether

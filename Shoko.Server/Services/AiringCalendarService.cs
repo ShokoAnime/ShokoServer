@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Services.Airing;
 
 namespace Shoko.Server.Services;
 
@@ -374,24 +375,15 @@ public class AiringCalendarService(
     /// <returns>The other airings.</returns>
     private static IReadOnlyList<IEpisodeAiring> GetOtherAirings(IEpisodeAiring next, IReadOnlyList<IEpisodeAiring> perChannel)
     {
-        var episodeID = GetEpisodeID(next);
+        var episodeKey = AiringEpisodeKey.For(next);
         return
         [
             .. perChannel
-                .Where(airing => airing.ID != next.ID && !airing.IsDateOnly && GetEpisodeID(airing) == episodeID)
+                .Where(airing => airing.ID != next.ID && !airing.IsDateOnly && AiringEpisodeKey.For(airing) == episodeKey)
                 .OrderBy(airing => airing.AiredAt ?? DateTime.MaxValue)
                 .ThenBy(airing => airing.Channel?.Name ?? string.Empty, StringComparer.Ordinal),
         ];
     }
-
-    /// <summary>
-    ///   The episode an airing was read for: the Shoko episode, else the
-    ///   AniDB one, else the stored one.
-    /// </summary>
-    /// <param name="airing">The airing.</param>
-    /// <returns>The episode's ID.</returns>
-    private static MetadataGuid GetEpisodeID(IEpisodeAiring airing)
-        => airing.ShokoEpisode?.ID ?? airing.AnidbEpisode?.ID ?? airing.EpisodeID;
 
     /// <summary>
     ///   Whether an anime has a next airing, has finished, or neither is
@@ -528,7 +520,10 @@ public class AiringCalendarService(
     /// <summary>
     ///   Groups one day's airings by episode, keeping the order of the leads.
     ///   The lead is the preferred airing, else the first timed one, else the
-    ///   date-only one; an airing of an unknown episode stays on its own.
+    ///   date-only one. Airings are of one episode when they share an AniDB
+    ///   anime and regular episode number, so an unresolved airing joins the
+    ///   ones its place stands for; an airing of an unknown episode with no
+    ///   place stays on its own.
     /// </summary>
     /// <param name="entries">The day's entries, the date-only ones first, then by time.</param>
     /// <param name="everyChannel">Whether to keep each episode's other airings, or only its lead.</param>
@@ -536,15 +531,14 @@ public class AiringCalendarService(
     private static IReadOnlyList<AiringCalendarEpisode> GroupByEpisode(IReadOnlyList<AiringCalendarEntry> entries, bool everyChannel)
     {
         var groups = new List<(List<int> Members, int Lead)>();
-        var byEpisode = new Dictionary<MetadataGuid, int>();
+        var byEpisode = new Dictionary<AiringEpisodeKey, int>();
         for (var index = 0; index < entries.Count; index++)
         {
             var airing = entries[index].Airing;
-            var episodeID = airing.AnidbEpisode?.ID ?? airing.ShokoEpisode?.ID;
-            if (episodeID is not { } key || !byEpisode.TryGetValue(key, out var groupIndex))
+            var episodeKey = AiringEpisodeKey.For(airing);
+            if (!byEpisode.TryGetValue(episodeKey, out var groupIndex))
             {
-                if (episodeID is { } newKey)
-                    byEpisode[newKey] = groups.Count;
+                byEpisode[episodeKey] = groups.Count;
 
                 groups.Add(([index], index));
                 continue;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Utilities;
 
@@ -65,8 +66,18 @@ internal sealed class EpisodeAirDateView : IEpisodeAiring
     /// <inheritdoc/>
     public DateOnly? AirDate { get; }
 
+    /// <summary>
+    /// Always <c>null</c>: a date-only entry is on no schedule's line.
+    /// </summary>
+    public int? SequenceNumber => null;
+
+    /// <summary>
+    /// Always <c>null</c>: a date-only entry is on no schedule's line.
+    /// </summary>
+    public int? EpisodeNumber => null;
+
     /// <inheritdoc/>
-    public MetadataGuid EpisodeID => _anidbEpisode.ID;
+    public MetadataGuid? EpisodeID => _anidbEpisode.ID;
 
     /// <inheritdoc/>
     public IEpisode? Episode => _anidbEpisode;
@@ -76,6 +87,18 @@ internal sealed class EpisodeAirDateView : IEpisodeAiring
 
     /// <inheritdoc/>
     public IShokoEpisode? ShokoEpisode { get; }
+
+    /// <inheritdoc/>
+    public int? AnidbAnimeID => _anidbEpisode.AnidbAnimeID;
+
+    /// <inheritdoc/>
+    public IAnidbAnime? AnidbAnime => _context.GetAnidbAnime(_anidbEpisode.AnidbAnimeID);
+
+    /// <inheritdoc/>
+    public int? AnidbEpisodeNumber => ((IEpisode)_anidbEpisode).Type is EpisodeType.Episode ? _anidbEpisode.EpisodeNumber : null;
+
+    /// <inheritdoc/>
+    public IShokoSeries? ShokoSeries => ShokoEpisode?.Series ?? _context.GetShokoSeriesByAnimeID(_anidbEpisode.AnidbAnimeID);
 
     /// <inheritdoc/>
     public IAiringChannel? Channel => null;

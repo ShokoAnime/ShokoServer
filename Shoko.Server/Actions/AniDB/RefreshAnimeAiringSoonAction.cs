@@ -168,8 +168,8 @@ public sealed class RefreshAnimeAiringSoonAction(
 
     /// <summary>
     ///   The AniDB anime an airing is for: its AniDB episode's, else its Shoko
-    ///   episode's, and every one linked to the series of the airing's episode
-    ///   or schedule.
+    ///   episode's, else the one an unresolved airing's place stands for, and
+    ///   every one linked to the series of the airing's episode or schedule.
     /// </summary>
     /// <param name="airing">The airing.</param>
     /// <returns>The AniDB anime IDs, possibly repeated.</returns>
@@ -179,6 +179,8 @@ public sealed class RefreshAnimeAiringSoonAction(
             yield return anidbEpisode.AnidbAnimeID;
         else if (airing.ShokoEpisode is { } shokoEpisode)
             yield return shokoEpisode.Series.AnidbAnimeID;
+        else if (airing.AnidbAnimeID is { } anidbAnimeID)
+            yield return anidbAnimeID;
 
         var series = airing.Episode?.Series ?? airing.Schedule?.Series;
         if (series is null)

@@ -17,8 +17,9 @@ public class EpisodeAiringMap : ClassMap<EpisodeAiring>
         Map(x => x.AiringScheduleID).Not.Nullable();
         // Quoted, since "Key" is a reserved word on some backends.
         Map(x => x.Key).Column("`Key`").Not.Nullable();
-        Map(x => x.EpisodeSource).CustomType<MetadataSourceType>().Not.Nullable();
-        Map(x => x.EpisodeID).Not.Nullable();
+        Map(x => x.SequenceNumber).Nullable();
+        Map(x => x.EpisodeSource).CustomType<MetadataSourceType>().Nullable();
+        Map(x => x.EpisodeID).Nullable();
         Map(x => x.Url).Nullable();
         Map(x => x.AiredAt).Nullable();
         Map(x => x.OriginalAiredAt).Nullable();

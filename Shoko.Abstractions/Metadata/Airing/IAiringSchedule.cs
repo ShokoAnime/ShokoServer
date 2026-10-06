@@ -88,9 +88,10 @@ public interface IAiringSchedule
 
     /// <summary>
     ///   The first episode the schedule covers, in the series' (or season's)
-    ///   numbering, or <c>null</c> when the range is open-ended.
+    ///   numbering. <c>1</c> unless the provider said otherwise, and never
+    ///   below it.
     /// </summary>
-    int? FirstEpisodeNumber { get; }
+    int FirstEpisodeNumber { get; }
 
     /// <summary>
     ///   The last episode the schedule covers, in the series' (or season's)

@@ -31,6 +31,13 @@ namespace Shoko.Abstractions.Metadata.Airing;
 ///     changed nothing at all is still dispatched, with three empty lists and
 ///     a <see cref="Reason"/> of <see cref="UpdateReason.None"/>.
 ///   </para>
+///   <para>
+///     <b>Resolutions are announced too.</b> When an episode or series is
+///     added or removed, or a link to AniDB changes, the airings whose episode,
+///     AniDB anime or AniDB episode number changes with it are dispatched as
+///     <see cref="Updated"/>, with <see cref="IsResolution"/> set. Nothing
+///     stored changed for those.
+///   </para>
 /// </remarks>
 public class EpisodeAiringsUpdatedEventArgs : EventArgs
 {
@@ -45,6 +52,13 @@ public class EpisodeAiringsUpdatedEventArgs : EventArgs
     ///   including a write that did more than one of those things.
     /// </summary>
     public required UpdateReason Reason { get; init; }
+
+    /// <summary>
+    ///   Whether the event announces airings that resolve differently after an
+    ///   episode, series or link change, rather than a write. Only
+    ///   <see cref="Updated"/> is filled then.
+    /// </summary>
+    public bool IsResolution { get; init; }
 
     /// <summary>
     ///   The schedule the airings belong to.

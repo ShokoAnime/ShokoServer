@@ -3,15 +3,36 @@ using System;
 namespace Shoko.Abstractions.Metadata.Airing;
 
 /// <summary>
-///   One episode on one airing schedule, as a provider submits it.
+///   One episode on one airing schedule, as a provider submits it: its place
+///   on the schedule's numbered line, an episode to pin it to, or both.
 /// </summary>
+/// <remarks>
+///   <list type="bullet">
+///     <item>A sequence number alone is resolved when the airing is read: to
+///     the regular episode numbered <c>FirstEpisodeNumber + n - 1</c> in the
+///     schedule's series or season, or to no episode yet.</item>
+///     <item>A regular episode alone takes the sequence number its own number
+///     gives it.</item>
+///     <item>Any other episode alone is pinned to it, off the numbered
+///     line.</item>
+///     <item>Both pin the airing to the episode, and the sequence number places
+///     it on the line.</item>
+///   </list>
+/// </remarks>
 public sealed record EpisodeAiringData
 {
     /// <summary>
-    ///   The episode the airing is for. It must belong to the schedule's
-    ///   series, and to its season when one is set.
+    ///   Optional. The episode to pin the airing to. It must belong to the
+    ///   schedule's series, and to its season when one is set.
     /// </summary>
-    public required IEpisode Episode { get; init; }
+    public IEpisode? Episode { get; init; }
+
+    /// <summary>
+    ///   Optional. The airing's place on the schedule's numbered line, counted
+    ///   from <c>1</c>, which is episode <c>FirstEpisodeNumber</c>. It may not
+    ///   run past the schedule's <c>LastEpisodeNumber</c>.
+    /// </summary>
+    public int? SequenceNumber { get; init; }
 
     /// <summary>
     ///   When the episode airs, in UTC. <c>null</c> means the airing has no
@@ -21,7 +42,8 @@ public sealed record EpisodeAiringData
 
     /// <summary>
     ///   Optional. A key that is stable for this schedule. <c>null</c> derives
-    ///   one from the episode.
+    ///   one from the sequence number, or from the episode when the airing is
+    ///   off the line.
     /// </summary>
     public string? Key { get; init; }
 

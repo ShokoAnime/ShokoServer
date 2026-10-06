@@ -23,7 +23,7 @@ public class AiringScheduleMap : ClassMap<AiringSchedule>
         Map(x => x.Key).Column("`Key`").Not.Nullable();
         Map(x => x.ChannelID).Nullable();
         Map(x => x.Tracks).CustomType<JsonListConverter<AiringTrackData>>().Not.Nullable();
-        Map(x => x.FirstEpisodeNumber).Nullable();
+        Map(x => x.FirstEpisodeNumber).Not.Nullable();
         Map(x => x.LastEpisodeNumber).Nullable();
         Map(x => x.IsFinished).Not.Nullable();
         Map(x => x.TimeZoneID).Nullable();

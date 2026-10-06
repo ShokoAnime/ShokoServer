@@ -56,7 +56,11 @@ response are always UTC.
   *Hidden channels*, below.
 - `provider`: comma-delimited airing schedule provider IDs, from `GET
   /api/v3/AiringSchedule/Provider`.
-- `type`: comma-delimited episode types. Omit it for every type.
+- `type`: comma-delimited episode types. Omit it for every type. An unresolved
+  airing counts as `Episode`.
+- `includeUnresolved`: whether to return the unresolved airings, the ones no
+  source lists the episode for yet. On by default. See *Unresolved airings*,
+  below.
 - `episodeKind`: comma-delimited kinds of showing, matched against each
   airing's `Kind`. Omit it for every kind. See *Advance screenings and
   reruns*, below.
@@ -80,6 +84,24 @@ to the series you have files for.
 An item's `Tracks` are the schedule's, repeated on every airing so a row can be
 labelled without a second request. A global release is one item listing every
 track it matches, not one item per language.
+
+### Unresolved airings
+
+A provider stores an airing by its place on the schedule's numbered line,
+`SequenceNumber`, counted from `1`, and only pins it to an episode when the
+place would not find it. The episode is worked out on every read, so an airing
+for episode 14 of a show AniDB lists only 13 episodes of is still returned,
+with `IsResolved: false`. Show it as "episode `Number`" of its series: `Type`
+is `Episode`, `Number` is the AniDB episode number where one is known and the
+number on the schedule's line otherwise, `IDs.AnidbAnime` and
+`IDs.ShokoSeries` name the series, and the episode IDs are `null`. Once the
+episode is listed the same airing, with the same ID, comes back resolved.
+
+Two providers' airings of one place are of one episode: an item's
+`IDs.AnidbAnime` and `Number` together say which, whether or not either is
+resolved, and the calendar groups them under one episode. `includeUnresolved=false`
+leaves the unresolved ones out. A series or season read returns the unresolved
+airings of its own schedules; an episode read never has any.
 
 ### Date-only entries
 
@@ -177,9 +199,9 @@ not only debug ones.
 ### Display data is opt-in
 
 The default item is deliberately slim: IDs, times, flags, the channel, the time
-zone, the tracks, the episode's `Type` and `Number`, and `VideoCount` (how many
-videos the collection holds for the episode, `0` when none are or when no
-episode could be resolved). A calendar week is many episodes of few series, so
+zone, the tracks, `SequenceNumber`, `IsResolved`, the episode's `Type` and
+`Number`, and `VideoCount` (how many videos the collection holds for the
+episode, `0` when none are or when the airing is unresolved). A calendar week is many episodes of few series, so
 anything that costs a lookup is asked for through `include`:
 
 - `EpisodeTitle`: the episode's title.
@@ -334,14 +356,15 @@ receives it. Its `IDs` name the AniDB and Shoko episodes, so it is ordered,
 marked `IsPreferred` and picked as the next airing like any other airing of the
 episode. An anime with no linked episodes on that source gets no such estimate.
 
-An estimate's ID is derived from its schedule's and its episode's exactly as a
-stored airing's is, so `GET /Airing/{airingID}` resolves it and
-`GET /Airing/{airingID}/Linked` answers with an empty list, an estimate never
-being part of a link set. The ID is stable for as long as the estimate exists,
-but the estimate itself is recomputed on every read and its slot can move.
-When the provider finally reports the real airing it is a different airing with
-its own ID, and the estimate's ID stops resolving, which means the guess is
-gone, not the episode.
+An estimate's ID is derived from its schedule's and its place on the line
+exactly as the ID of a stored airing without a key of its own is, so
+`GET /Airing/{airingID}` resolves it and `GET /Airing/{airingID}/Linked`
+answers with an empty list, an estimate never being part of a link set. The ID
+is stable for as long as the estimate exists, but the estimate itself is
+recomputed on every read and its slot can move. When the provider finally
+reports the real airing, the estimate is gone: a real airing without a key of
+its own takes over the same ID, and one with its own key has a different ID,
+while the estimate's stops resolving.
 
 ## Delays
 

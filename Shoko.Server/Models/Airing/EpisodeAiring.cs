@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Server.Repositories;
@@ -15,7 +16,8 @@ namespace Shoko.Server.Models.Airing;
 /// </summary>
 /// <remarks>
 /// Only what the provider submitted, plus the delay state a write inferred, is
-/// stored. Estimates are never rows.
+/// stored: the place on the line and the pinned episode, never the episode
+/// the place resolves to. Estimates are never rows.
 /// </remarks>
 public class EpisodeAiring
 {
@@ -32,21 +34,29 @@ public class EpisodeAiring
     public int AiringScheduleID { get; set; }
 
     /// <summary>
-    /// The provider's own key, or the one derived from the episode when the
-    /// provider gave none.
+    /// The provider's own key, or the one derived from the sequence number, or
+    /// from the pinned episode off the line, when the provider gave none.
     /// </summary>
     public string Key { get; set; } = string.Empty;
 
     /// <summary>
-    /// The source of the episode the airing is for.
+    /// The airing's place on the schedule's numbered line, counted from
+    /// <c>1</c>, or <c>null</c> when it is off the line.
     /// </summary>
-    public MetadataSource EpisodeSource { get; set; } = null!;
+    public int? SequenceNumber { get; set; }
 
     /// <summary>
-    /// The ID of the episode the airing is for, relative to
-    /// <see cref="EpisodeSource"/>.
+    /// The source of the episode the airing is pinned to, or <c>null</c> when
+    /// its sequence number alone places it.
     /// </summary>
-    public string EpisodeID { get; set; } = string.Empty;
+    public MetadataSource? EpisodeSource { get; set; }
+
+    /// <summary>
+    /// The ID of the episode the airing is pinned to, relative to
+    /// <see cref="EpisodeSource"/>, or <c>null</c> when its sequence number
+    /// alone places it.
+    /// </summary>
+    public string? EpisodeID { get; set; }
 
     /// <summary>
     /// The airing's own page, or <c>null</c> when the provider gave none and
@@ -98,6 +108,13 @@ public class EpisodeAiring
     #endregion
 
     #region Computed Properties
+
+    /// <summary>
+    /// Whether the airing is pinned to an episode.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(EpisodeSource), nameof(EpisodeID))]
+    public bool IsPinned
+        => EpisodeSource is not null && !string.IsNullOrEmpty(EpisodeID);
 
     /// <summary>
     /// The public ID of the airing, derived from its schedule's public ID and

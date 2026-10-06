@@ -16,6 +16,12 @@ namespace Shoko.Abstractions.Metadata.Airing;
 ///   <see cref="AnidbEpisode"/> each time. Estimates are views too, and are
 ///   never stored. So is a date-only entry, which a read only returns when it
 ///   asks for one, and which has no schedule, provider, channel or time.
+///   <para>
+///     Only the provider's sequence number and pinned episode are stored. The
+///     episode, the AniDB anime and the AniDB episode number are worked out
+///     when the airing is read, so an airing for an episode no source lists
+///     yet resolves as soon as one does.
+///   </para>
 /// </remarks>
 public interface IEpisodeAiring
 {
@@ -27,8 +33,8 @@ public interface IEpisodeAiring
     Guid ID { get; }
 
     /// <summary>
-    ///   The provider's own key, or the one derived from the episode when the
-    ///   provider gave none.
+    ///   The provider's own key, or the one derived from the sequence number,
+    ///   or from the episode off the line, when the provider gave none.
     /// </summary>
     string Key { get; }
 
@@ -65,13 +71,28 @@ public interface IEpisodeAiring
     DateOnly? AirDate { get; }
 
     /// <summary>
-    ///   The episode the airing is for.
+    ///   The airing's place on its schedule's numbered line, counted from
+    ///   <c>1</c>, or <c>null</c> when it is off the line.
     /// </summary>
-    MetadataGuid EpisodeID { get; }
+    int? SequenceNumber { get; }
 
     /// <summary>
-    ///   The episode the airing is attached to, or <c>null</c> when it could
-    ///   not be resolved.
+    ///   The episode number the sequence number stands for, in the series' (or
+    ///   season's) numbering: <c>FirstEpisodeNumber + SequenceNumber - 1</c>.
+    ///   <c>null</c> off the line.
+    /// </summary>
+    int? EpisodeNumber { get; }
+
+    /// <summary>
+    ///   The episode the airing is for: the pinned one, else the regular
+    ///   episode at <see cref="EpisodeNumber"/>. <c>null</c> while no episode
+    ///   is listed there, which makes the airing unresolved.
+    /// </summary>
+    MetadataGuid? EpisodeID { get; }
+
+    /// <summary>
+    ///   The episode behind <see cref="EpisodeID"/>, or <c>null</c> when it
+    ///   is unresolved or could not be looked up.
     /// </summary>
     IEpisode? Episode { get; }
 
@@ -86,6 +107,33 @@ public interface IEpisodeAiring
     ///   there is none.
     /// </summary>
     IShokoEpisode? ShokoEpisode { get; }
+
+    /// <summary>
+    ///   The ID of the AniDB anime the airing is for, from its AniDB episode,
+    ///   else from its schedule's series and its place on the line. <c>null</c>
+    ///   when neither leads to one.
+    /// </summary>
+    int? AnidbAnimeID { get; }
+
+    /// <summary>
+    ///   The AniDB anime behind <see cref="AnidbAnimeID"/>, or <c>null</c> when
+    ///   there is none or it is not cached.
+    /// </summary>
+    IAnidbAnime? AnidbAnime { get; }
+
+    /// <summary>
+    ///   The regular AniDB episode number the airing is for, whether AniDB
+    ///   lists that episode yet or not. <c>null</c> for any other episode type
+    ///   and when no number is known. Together with
+    ///   <see cref="AnidbAnimeID"/> it says which airings are of one episode.
+    /// </summary>
+    int? AnidbEpisodeNumber { get; }
+
+    /// <summary>
+    ///   The shoko series the airing is for, from its shoko episode, else from
+    ///   its AniDB anime. <c>null</c> when it is not in the collection.
+    /// </summary>
+    IShokoSeries? ShokoSeries { get; }
 
     /// <summary>
     ///   The schedule's channel, exposed here for convenience, or <c>null</c>

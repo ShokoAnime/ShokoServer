@@ -101,13 +101,14 @@ public class AiringEventEmitter : BaseEventEmitter, IDisposable
     }
 
     /// <summary>
-    /// The AniDB anime of an airing's series, found the way the airing calendar
-    /// finds it.
+    /// The AniDB anime of an airing: its own, which an unresolved airing has
+    /// too, else that of its series, found the way the airing calendar finds
+    /// it.
     /// </summary>
     /// <param name="airing">The airing.</param>
     /// <returns>The AniDB anime ID, or <c>null</c> when the series is of another source or unknown.</returns>
     private static int? AnimeIDOf(IEpisodeAiring airing)
-        => ((ISeries?)airing.ShokoEpisode?.Series ?? airing.AnidbEpisode?.Series ?? airing.Episode?.Series ?? airing.Schedule?.Series) switch
+        => airing.AnidbAnimeID ?? ((ISeries?)airing.ShokoEpisode?.Series ?? airing.Episode?.Series ?? airing.Schedule?.Series) switch
         {
             IShokoSeries series => series.AnidbAnimeID,
             IAnidbAnime anime => anime.AnidbID,

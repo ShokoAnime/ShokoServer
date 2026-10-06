@@ -82,9 +82,10 @@ public class AiringSchedule(IAiringSchedule schedule)
 
     /// <summary>
     /// The first episode the schedule covers, in the series' (or season's)
-    /// numbering, or <c>null</c> when the range is open-ended.
+    /// numbering. <c>1</c> unless the provider said otherwise.
     /// </summary>
-    public int? FirstEpisodeNumber { get; init; } = schedule.FirstEpisodeNumber;
+    [Required]
+    public int FirstEpisodeNumber { get; init; } = schedule.FirstEpisodeNumber;
 
     /// <summary>
     /// The last episode the schedule covers, in the series' (or season's)

@@ -53,31 +53,6 @@ public sealed class EpisodeAiringUpdateOptions
 
     /// <summary>
     ///   Used by the service to determine whether
-    ///   <see cref="FirstEpisodeNumber"/> was stated. Set to <c>true</c> when
-    ///   the property is set.
-    /// </summary>
-    public bool HasFirstEpisodeNumberSet { get; private set; }
-
-    private int? _firstEpisodeNumber;
-
-    /// <summary>
-    ///   The first episode this write judges a removal against, in the series'
-    ///   (or season's) numbering. Set it to <c>null</c> to state that the range
-    ///   is open-ended at that end; leave it alone to read the schedule's own
-    ///   value.
-    /// </summary>
-    public int? FirstEpisodeNumber
-    {
-        get => _firstEpisodeNumber;
-        init
-        {
-            HasFirstEpisodeNumberSet = true;
-            _firstEpisodeNumber = value;
-        }
-    }
-
-    /// <summary>
-    ///   Used by the service to determine whether
     ///   <see cref="LastEpisodeNumber"/> was stated. Set to <c>true</c> when the
     ///   property is set.
     /// </summary>

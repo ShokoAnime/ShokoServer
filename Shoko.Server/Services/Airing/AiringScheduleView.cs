@@ -176,7 +176,7 @@ internal sealed class AiringScheduleView : IAiringSchedule
     }
 
     /// <inheritdoc/>
-    public int? FirstEpisodeNumber => _row.FirstEpisodeNumber;
+    public int FirstEpisodeNumber => _row.FirstEpisodeNumber;
 
     /// <inheritdoc/>
     public int? LastEpisodeNumber => _row.LastEpisodeNumber;

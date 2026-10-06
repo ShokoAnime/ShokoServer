@@ -13,8 +13,10 @@ namespace Shoko.Abstractions.Metadata.Airing;
 ///     airings on the same minute — the same episode at 11:25 on both テレビ愛知
 ///     and テレビ東京 — and they arrive together, in slot order, as one list. A
 ///     consumer that wants "this episode aired, once" groups
-///     <see cref="Airings"/> by <see cref="IEpisodeAiring.ShokoEpisode"/> or
-///     <see cref="IEpisodeAiring.Episode"/>; one that wants a card per slot
+///     <see cref="Airings"/> by <see cref="IEpisodeAiring.AnidbAnimeID"/> and
+///     <see cref="IEpisodeAiring.AnidbEpisodeNumber"/>, which an unresolved
+///     airing has too, else by <see cref="IEpisodeAiring.EpisodeID"/>; one
+///     that wants a card per slot
 ///     groups by <see cref="IEpisodeAiring.LinkID"/>; one that wants a row per
 ///     channel takes the list as it is.
 ///   </para>
