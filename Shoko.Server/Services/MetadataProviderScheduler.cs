@@ -24,7 +24,8 @@ namespace Shoko.Server.Services;
 ///   whatever the source.
 /// </remarks>
 /// <param name="providerManager">The registered providers.</param>
-/// <param name="crossReferences">The links, to tell which sources an anime is linked on.</param>
+/// <param name="crossReferences">The links, to tell what an anime is linked to on each source.</param>
+/// <param name="refreshState">When each linked entry was last refreshed, to tell which are due.</param>
 /// <param name="scheduler">The queue.</param>
 /// <param name="jobFactory">Runs a job at once, for a caller that waits for it.</param>
 /// <param name="logger">Where skipped requests are reported.</param>
@@ -32,6 +33,7 @@ namespace Shoko.Server.Services;
 public class MetadataProviderScheduler(
     IMetadataProviderManager providerManager,
     IMetadataCrossReferenceStore crossReferences,
+    IMetadataRefreshState refreshState,
     IQueueScheduler scheduler,
     IJobFactory jobFactory,
     ILogger<MetadataProviderScheduler> logger,
@@ -53,9 +55,15 @@ public class MetadataProviderScheduler(
     #region Refresh
 
     /// <summary>
-    ///   Queue a refresh of everything an anime links to, from every enabled
-    ///   provider whose source it has links on, or from one source.
+    ///   Queue a refresh of each entry an anime links to, one job per entry,
+    ///   from every enabled provider whose source it has links on, or from
+    ///   one source.
     /// </summary>
+    /// <remarks>
+    ///   Unless forced, only the entries due are queued. A source where no
+    ///   series is has the anime's episodes matched again, unless the refresh
+    ///   is quick.
+    /// </remarks>
     /// <param name="anidbAnimeID">The AniDB anime ID.</param>
     /// <param name="source">One source, or every source when left out.</param>
     /// <param name="force">
@@ -65,7 +73,8 @@ public class MetadataProviderScheduler(
     /// </param>
     /// <param name="options">What to fetch, or <c>null</c> for <see cref="FullRefresh"/>.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>How many providers were asked.</returns>
+    /// <returns>How many entry refreshes were queued.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public async Task<int> ScheduleRefreshForAnime(
         int anidbAnimeID,
         MetadataSource? source = null,
@@ -77,37 +86,116 @@ public class MetadataProviderScheduler(
         if (anidbAnimeID <= 0)
             return 0;
 
-        var asked = 0;
-        foreach (var info in providerManager.MetadataProviders.Where(info => info.Enabled && (source is null || info.Source == source)))
+        var queued = 0;
+        var sources = providerManager.MetadataProviders
+            .Where(info => source is null || info.Source == source)
+            .GroupBy(info => info.Source);
+        foreach (var group in sources)
+        {
+            // A source with every provider disabled still has its episodes matched.
+            var enabled = group.Where(info => info.Enabled).ToList();
+            queued += await ScheduleRefreshForAnime(group.Key, enabled, anidbAnimeID, force, options, cancellationToken).ConfigureAwait(false);
+        }
+
+        return queued;
+    }
+
+    /// <summary>
+    ///   Queue a refresh from one provider of each entry an anime links to on
+    ///   its source, one job per entry.
+    /// </summary>
+    /// <remarks>
+    ///   Unless forced, only the entries due are queued. When no series is,
+    ///   the anime's episodes are matched again, unless the refresh is quick.
+    /// </remarks>
+    /// <param name="info">The provider.</param>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <param name="force">Whether to refresh every entry however recently it was refreshed.</param>
+    /// <param name="options">What to fetch and why, or <c>null</c> for <see cref="FullRefresh"/>.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <returns>How many entry refreshes were queued.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <c>null</c>.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public Task<int> ScheduleRefreshForAnime(
+        MetadataProviderInfo info,
+        int anidbAnimeID,
+        bool force = false,
+        MetadataRefreshOptions? options = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(info);
+        return anidbAnimeID <= 0 ? Task.FromResult(0) : ScheduleRefreshForAnime(info.Source, [info], anidbAnimeID, force, options, cancellationToken);
+    }
+
+    /// <summary>
+    ///   Queue a refresh from some providers of one source of each entry an
+    ///   anime links to there, matching the anime's episodes again when no
+    ///   series was due.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="providers">The enabled providers on the source.</param>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <param name="force">Whether to refresh every entry however recently it was refreshed.</param>
+    /// <param name="options">What to fetch and why, or <c>null</c> for <see cref="FullRefresh"/>.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <returns>How many entry refreshes were queued.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    private async Task<int> ScheduleRefreshForAnime(
+        MetadataSource source,
+        IReadOnlyList<MetadataProviderInfo> providers,
+        int anidbAnimeID,
+        bool force,
+        MetadataRefreshOptions? options,
+        CancellationToken cancellationToken
+    )
+    {
+        var linked = crossReferences.GetLinkedEntries(anidbAnimeID, source);
+        if (linked.Count is 0)
+            return 0;
+
+        var queued = 0;
+        var queuedSeries = false;
+        foreach (var info in providers)
         {
             try
             {
-                if (await ScheduleRefresh(info, anidbAnimeID, null, force, options, cancellationToken).ConfigureAwait(false))
-                    asked++;
+                foreach (var entry in linked.Where(entry => IsDue(info, entry, force)))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!await ScheduleRefresh(info, entry, force, options, cancellationToken).ConfigureAwait(false))
+                        continue;
+
+                    queued++;
+                    queuedSeries |= entry.EntityType == MetadataEntityType.Series;
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // One provider failing to queue is no reason for the rest to
                 // go unasked.
-                logger.LogError(ex, "Failed to queue a refresh from {Provider} for anime {AnimeID}.", info.Name, anidbAnimeID);
+                logger.LogError(ex, "Failed to queue a refresh from {Provider} for AniDB anime {AnimeID}.", info.Name, anidbAnimeID);
             }
         }
 
-        return asked;
+        // A series refresh matches every anime linked to the series, so only
+        // an anime without one due is matched here.
+        if (!queuedSeries && options?.QuickRefresh is not true)
+            await ScheduleEpisodeMatch(source, anidbAnimeID, cancellationToken).ConfigureAwait(false);
+
+        return queued;
     }
 
     /// <summary>
-    ///   Queue a refresh from one provider of everything an anime links to on
-    ///   its source, or of one entry.
+    ///   Queue a refresh of one series, film or collection from one provider.
     /// </summary>
+    /// <remarks>
+    ///   The queue merges it with a refresh of the same entry already waiting,
+    ///   however many anime asked for it.
+    /// </remarks>
     /// <param name="info">The provider.</param>
-    /// <param name="anidbAnimeID">
-    ///   The AniDB anime ID: the anime whose linked entries are refreshed,
-    ///   or the one <paramref name="entryID"/> is refreshed for. 0 when there
-    ///   is none.
-    /// </param>
-    /// <param name="entryID">One linked entry to refresh instead of everything, or <c>null</c>.</param>
-    /// <param name="force">Whether to refresh the entries however recently they were refreshed.</param>
+    /// <param name="entryID">The entry, on the provider's source.</param>
+    /// <param name="force">Whether to refresh the entry however recently it was refreshed.</param>
     /// <param name="options">
     ///   What to fetch and why, or <c>null</c> for
     ///   <see cref="FullRefresh"/>. A forced refresh is never told it was
@@ -116,21 +204,19 @@ public class MetadataProviderScheduler(
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <param name="immediate">Whether to run the refresh now and wait for it rather than queue it.</param>
     /// <param name="allowUnlinked">
-    ///   Whether to refresh <paramref name="entryID"/> even when nothing links
-    ///   to it, for an entry somebody asked for by name.
+    ///   Whether to refresh the entry even when nothing links to it, for an
+    ///   entry somebody asked for by name.
     /// </param>
     /// <param name="prioritize">Whether to queue it ahead of the rest even though it is not forced.</param>
     /// <returns>
-    ///   <c>true</c> when something was queued or ran, or
-    ///   <c>false</c> when the anime has no links on the source,
+    ///   <c>true</c> when it was queued or ran, or <c>false</c> when
     ///   the provider refreshes nothing, or it was asked to run at once while
     ///   it cannot.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     public async Task<bool> ScheduleRefresh(
         MetadataProviderInfo info,
-        int anidbAnimeID,
-        MetadataGuid? entryID = null,
+        MetadataGuid entryID,
         bool force = false,
         MetadataRefreshOptions? options = null,
         CancellationToken cancellationToken = default,
@@ -140,9 +226,7 @@ public class MetadataProviderScheduler(
     )
     {
         ArgumentNullException.ThrowIfNull(info);
-        if (entryID is null && !IsLinked(anidbAnimeID, info.Source))
-            return false;
-
+        ArgumentNullException.ThrowIfNull(entryID);
         if (MetadataProviderJobs.GetRefreshJobType(info.Provider.GetType()) is not { } jobType)
             return false;
 
@@ -153,10 +237,9 @@ public class MetadataProviderScheduler(
         return await Dispatch(info, jobType, job =>
         {
             var refresh = (IMetadataRefreshJob)job;
-            refresh.AnimeID = Math.Max(anidbAnimeID, 0);
-            refresh.EntryID = entryID?.ToString();
+            refresh.EntryID = entryID.ToString();
             refresh.Force = force;
-            refresh.AllowUnlinked = allowUnlinked && entryID is not null;
+            refresh.AllowUnlinked = allowUnlinked;
             refresh.Apply(options);
         }, force || prioritize, immediate).ConfigureAwait(false);
     }
@@ -214,7 +297,7 @@ public class MetadataProviderScheduler(
         // Only a request naming the entry fetches it unlinked; read before a
         // forced refresh has its reason turned into a request.
         var allowUnlinked = options?.Reason is MetadataRefreshReason.Requested;
-        return ScheduleRefresh(info, 0, entryID, force, options, cancellationToken, immediate, allowUnlinked, prioritize);
+        return ScheduleRefresh(info, entryID, force, options, cancellationToken, immediate, allowUnlinked, prioritize);
     }
 
     /// <summary>
@@ -661,14 +744,18 @@ public class MetadataProviderScheduler(
             : entityType == MetadataEntityType.Collection && provider is IMetadataCollectionProvider;
 
     /// <summary>
-    ///   Whether an anime is linked to any series or film on a source, counting
-    ///   the series its episode links point into.
+    ///   Whether a provider would refresh a linked entry now: one of a kind it
+    ///   refreshes and is enabled for, forced or refreshed never or longer ago
+    ///   than <see cref="MetadataRefreshState.FreshFor"/>.
     /// </summary>
-    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
-    /// <param name="source">The source.</param>
-    /// <returns><c>true</c> when it has one.</returns>
-    private bool IsLinked(int anidbAnimeID, MetadataSource source)
-        => anidbAnimeID > 0 && crossReferences.GetLinkedEntries(anidbAnimeID, source).Count > 0;
+    /// <param name="info">The provider.</param>
+    /// <param name="entryID">The linked series or film.</param>
+    /// <param name="force">Whether the refresh is forced.</param>
+    /// <returns><c>true</c> when the entry is due.</returns>
+    private bool IsDue(MetadataProviderInfo info, MetadataGuid entryID, bool force)
+        => Refreshes(info.Provider, entryID.EntityType) &&
+            MayRefresh(info, entryID.EntityType) &&
+            (force || !MetadataRefreshState.IsFresh(refreshState.GetLastRefreshedAt(entryID)));
 
     #endregion
 }

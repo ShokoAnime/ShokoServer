@@ -201,6 +201,7 @@ public class MetadataEntityRefreshTests
             var providerScheduler = new MetadataProviderScheduler(
                 Manager.Object,
                 Mock.Of<IMetadataCrossReferenceStore>(),
+                Mock.Of<IMetadataRefreshState>(),
                 Queue.Object,
                 Mock.Of<IJobFactory>(),
                 NullLogger<MetadataProviderScheduler>.Instance,
@@ -527,6 +528,7 @@ public class MetadataEntityRefreshTests
         var scheduler = new MetadataProviderScheduler(
             world.Manager.Object,
             Mock.Of<IMetadataCrossReferenceStore>(),
+            Mock.Of<IMetadataRefreshState>(),
             Mock.Of<IQueueScheduler>(),
             Mock.Of<IJobFactory>(),
             NullLogger<MetadataProviderScheduler>.Instance,

@@ -23,6 +23,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Actions;
 using Shoko.Server.Models.AniDB;
@@ -305,7 +306,7 @@ public class MetadataProviderJobTests
 
         public Mock<IMetadataService> Metadata { get; } = new();
 
-        public FakeRefreshState RefreshState { get; } = new();
+        public FakeRefreshState RefreshState => Queue.RefreshState;
 
         public MetadataEntryLocks Locks { get; } = new();
 
@@ -440,25 +441,36 @@ public class MetadataProviderJobTests
 
     #region Refresh
 
+    /// <summary>
+    /// A refresh job for one entry, as the scheduler queues it.
+    /// </summary>
+    private static RefreshMetadataJob<TProvider> For<TProvider>(RefreshMetadataJob<TProvider> job, MetadataGuid entry)
+        where TProvider : class, IMetadataProvider
+    {
+        job.EntryID = entry.ToString();
+        return job;
+    }
+
     [Fact]
-    public async Task ARefreshHasTheProviderRefreshEveryLinkedSeriesAndFilm()
+    public async Task ARefreshHasTheProviderRefreshItsEntry()
     {
         var harness = new RefreshHarness();
-        var job = harness.Job(Info(harness.Provider), Links(series: ["1"], movies: ["9"]));
-        job.AnimeID = AnimeID;
-        job.Reason = MetadataRefreshReason.Scheduled;
-
-        await job.Execute();
-
+        var info = Info(harness.Provider);
         var series = ID(MetadataEntityType.Series, "1");
         var movie = ID(MetadataEntityType.Movie, "9");
+        foreach (var entry in new[] { series, movie })
+        {
+            var job = For(harness.Job(info, Links(series: ["1"], movies: ["9"])), entry);
+            job.Reason = MetadataRefreshReason.Linked;
+            await job.Execute();
+        }
+
         Assert.Equal([series, movie], harness.Provider.Refreshed);
         foreach (var options in harness.Provider.Options.Values)
         {
             Assert.False(options.QuickRefresh);
-            Assert.Equal(MetadataRefreshReason.Scheduled, options.Reason);
+            Assert.Equal(MetadataRefreshReason.Linked, options.Reason);
             Assert.Null(options.LastRefreshedAt);
-            Assert.Equal(AnimeID, options.AnidbAnimeID);
         }
 
         Assert.Equal([series, movie], harness.RefreshState.Times.Keys);
@@ -466,19 +478,7 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task AFilmClaimingTheWholeAnimeIsRefreshedAsAFilm()
-    {
-        var harness = new RefreshHarness();
-        var job = harness.Job(Info(harness.Provider), Links(series: ["9"], seriesKind: MetadataEntityType.Movie));
-        job.AnimeID = AnimeID;
-
-        await job.Execute();
-
-        Assert.Equal([ID(MetadataEntityType.Movie, "9")], harness.Provider.Refreshed);
-    }
-
-    [Fact]
-    public async Task TheSeriesAnEpisodeLinkPointsIntoIsRefreshedAndKeptLinked()
+    public async Task TheSeriesAnEpisodeLinkPointsIntoIsKeptLinked()
     {
         var harness = new RefreshHarness();
         var series = ID(MetadataEntityType.Series, "7");
@@ -486,10 +486,8 @@ public class MetadataProviderJobTests
         var links = Links();
         links.Setup(s => s.GetEpisodeLinksForSeries(AnimeID, Source)).Returns([link]);
         links.Setup(s => s.GetEpisodeLinksInto(series)).Returns([link]);
-        var job = harness.Job(Info(harness.Provider), links);
-        job.AnimeID = AnimeID;
 
-        await job.Execute();
+        await For(harness.Job(Info(harness.Provider), links), series).Execute();
 
         Assert.Equal([series], harness.Provider.Refreshed);
     }
@@ -498,69 +496,36 @@ public class MetadataProviderJobTests
     public async Task ADisabledProviderIsNotAsked()
     {
         var harness = new RefreshHarness();
-        var job = harness.Job(Info(harness.Provider, enabled: false), Links(series: ["1"]));
-        job.AnimeID = AnimeID;
 
-        await job.Execute();
+        await For(harness.Job(Info(harness.Provider, enabled: false), Links(series: ["1"])), ID(MetadataEntityType.Series, "1")).Execute();
 
         Assert.Empty(harness.Provider.Refreshed);
     }
 
-    [Fact]
-    public async Task OnlyTheEntityTypesTurnedOnAreRefreshed()
-    {
-        var harness = new RefreshHarness();
-        var job = harness.Job(Info(harness.Provider, entityTypes: [MetadataEntityType.Movie]), Links(series: ["1"], movies: ["9"]));
-        job.AnimeID = AnimeID;
-
-        await job.Execute();
-
-        Assert.Equal([ID(MetadataEntityType.Movie, "9")], harness.Provider.Refreshed);
-    }
-
     [Theory]
-    [InlineData("episode")]
-    [InlineData("season")]
-    public async Task AProviderOnForEpisodesOrSeasonsAloneRefreshesTheSeries(string entityType)
+    [InlineData("movie", "movie")]
+    [InlineData("episode", "series")]
+    [InlineData("season", "series")]
+    public async Task OnlyTheKindsTurnedOnAreRefreshed_ASeriesByAnyOfItsParts(string enabled, string refreshed)
     {
         var harness = new RefreshHarness();
-        var job = harness.Job(Info(harness.Provider, entityTypes: [MetadataEntityType.Parse(entityType)]), Links(series: ["1"], movies: ["9"]));
-        job.AnimeID = AnimeID;
+        var info = Info(harness.Provider, entityTypes: [MetadataEntityType.Parse(enabled)]);
+        foreach (var entry in new[] { ID(MetadataEntityType.Series, "1"), ID(MetadataEntityType.Movie, "9") })
+            await For(harness.Job(info, Links(series: ["1"], movies: ["9"])), entry).Execute();
 
-        await job.Execute();
-
-        Assert.Equal([ID(MetadataEntityType.Series, "1")], harness.Provider.Refreshed);
+        Assert.Equal([MetadataEntityType.Parse(refreshed)], harness.Provider.Refreshed.Select(entry => entry.EntityType));
     }
 
     [Fact]
-    public async Task OneEntryIsRefreshedWhenNamed()
-    {
-        var harness = new RefreshHarness();
-        var series = ID(MetadataEntityType.Series, "5");
-        var job = harness.Job(Info(harness.Provider), Links(series: ["1", "5"]));
-        job.AnimeID = AnimeID;
-        job.EntryID = series.ToString();
-        job.Reason = MetadataRefreshReason.Linked;
-
-        await job.Execute();
-
-        Assert.Equal([series], harness.Provider.Refreshed);
-        Assert.Equal(MetadataRefreshReason.Linked, harness.Provider.Options[series].Reason);
-        Assert.Equal(AnimeID, harness.Provider.Options[series].AnidbAnimeID);
-    }
-
-    [Fact]
-    public async Task ANamedEntryNoLongerLinkedIsNotRefreshed()
+    public async Task AnEntryNoLongerLinkedIsNotRefreshed()
     {
         var harness = new RefreshHarness();
         var info = Info(harness.Provider);
-        var job = harness.Job(info, Links(series: ["1"]));
-        job.EntryID = ID(MetadataEntityType.Series, "5").ToString();
+        var series = ID(MetadataEntityType.Series, "5");
+        var job = For(harness.Job(info, Links(series: ["1"])), series);
 
         // Forced and requested, but not asked for by name.
-        var requested = harness.Job(info, Links(series: ["1"]));
-        requested.AnimeID = AnimeID;
-        requested.EntryID = job.EntryID;
+        var requested = For(harness.Job(info, Links(series: ["1"])), series);
         requested.Reason = MetadataRefreshReason.Requested;
         requested.Force = true;
 
@@ -572,7 +537,7 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task ANamedCollectionIsRefreshedOnlyWhileItIsStoredOrALinkedMovieNamesIt()
+    public async Task ACollectionIsRefreshedOnlyWhileItIsStoredOrALinkedMovieNamesIt()
     {
         var harness = new RefreshHarness();
         var stored = ID(MetadataEntityType.Collection, "c");
@@ -582,24 +547,17 @@ public class MetadataProviderJobTests
         harness.Movies = [new() { Metadata_MovieID = 9, Source = Source, ProviderID = "9", ExtraData = new() { CollectionID = named.ID } }];
         var info = Info(harness.Provider);
         foreach (var entry in new[] { stored, named, gone })
-        {
-            var job = harness.Job(info, Links(movies: ["9"]));
-            job.EntryID = entry.ToString();
-            await job.Execute();
-        }
+            await For(harness.Job(info, Links(movies: ["9"])), entry).Execute();
 
         Assert.Equal([stored, named], harness.Provider.Refreshed);
-        Assert.Null(harness.Provider.Options[stored].AnidbAnimeID);
     }
 
     [Fact]
     public async Task AnEntryOnAnotherSourceIsNotRefreshed()
     {
         var harness = new RefreshHarness();
-        var job = harness.Job(Info(harness.Provider), Links());
-        job.EntryID = new MetadataGuid(TestSources.AniList, MetadataEntityType.Series, "5").ToString();
 
-        await job.Execute();
+        await For(harness.Job(Info(harness.Provider), Links()), new MetadataGuid(TestSources.AniList, MetadataEntityType.Series, "5")).Execute();
 
         Assert.Empty(harness.Provider.Refreshed);
     }
@@ -615,23 +573,20 @@ public class MetadataProviderJobTests
         harness.RefreshState.Times[fresh] = freshAt;
         harness.RefreshState.Times[stale] = staleAt;
         var info = Info(harness.Provider);
-        var scheduled = harness.Job(info, Links(series: ["1", "2"]));
-        scheduled.AnimeID = AnimeID;
-
-        await scheduled.Execute();
+        foreach (var entry in new[] { fresh, stale })
+            await For(harness.Job(info, Links(series: ["1", "2"])), entry).Execute();
 
         Assert.Equal([stale], harness.Provider.Refreshed);
         Assert.Equal(staleAt, harness.Provider.Options[stale].LastRefreshedAt);
         Assert.Equal(freshAt, harness.RefreshState.Times[fresh]);
         Assert.True(harness.RefreshState.Times[stale] > staleAt);
 
-        var forced = harness.Job(info, Links(series: ["1", "2"]));
-        forced.AnimeID = AnimeID;
+        var forced = For(harness.Job(info, Links(series: ["1", "2"])), fresh);
         forced.Force = true;
 
         await forced.Execute();
 
-        Assert.Equal([stale, fresh, stale], harness.Provider.Refreshed);
+        Assert.Equal([stale, fresh], harness.Provider.Refreshed);
         Assert.Null(harness.Provider.Options[fresh].LastRefreshedAt);
         Assert.True(harness.RefreshState.Times[fresh] > freshAt);
     }
@@ -642,12 +597,10 @@ public class MetadataProviderJobTests
         var harness = new RefreshHarness();
         var series = ID(MetadataEntityType.Series, "5");
         var info = Info(harness.Provider);
-        var requested = harness.Job(info, Links());
-        requested.EntryID = series.ToString();
+        var requested = For(harness.Job(info, Links()), series);
         requested.Reason = MetadataRefreshReason.Requested;
         requested.AllowUnlinked = true;
-        var linked = harness.Job(info, Links());
-        linked.EntryID = series.ToString();
+        var linked = For(harness.Job(info, Links()), series);
         linked.Reason = MetadataRefreshReason.Linked;
         linked.Force = true;
 
@@ -670,8 +623,7 @@ public class MetadataProviderJobTests
             started.TrySetResult();
             await gate.Task;
         };
-        var job = harness.Job(Info(harness.Provider), Links(series: ["1"]));
-        job.AnimeID = AnimeID;
+        var job = For(harness.Job(Info(harness.Provider), Links(series: ["1"])), series);
 
         Assert.False(await harness.Locks.WaitForUpdate(series, TestContext.Current.CancellationToken));
         var run = Task.Run(job.Execute, TestContext.Current.CancellationToken);
@@ -691,23 +643,19 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task OneFailingEntryDoesNotStopTheRestButFailsTheJob()
+    public async Task AFailedRefreshFailsTheJobAndQueuesNothing()
     {
         var harness = new RefreshHarness();
         var series = ID(MetadataEntityType.Series, "1");
-        var movie = ID(MetadataEntityType.Movie, "9");
         harness.Provider.Failing.Add(series);
-        var job = harness.Job(Info(harness.Provider), Links(series: ["1"], movies: ["9"]));
-        job.AnimeID = AnimeID;
+        var job = For(harness.Job(Info(harness.Provider), Links(series: ["1"])), series);
         job.DownloadImages = true;
 
         await Assert.ThrowsAsync<InvalidOperationException>(job.Execute);
 
-        Assert.Equal([series, movie], harness.Provider.Refreshed);
-        Assert.Equal([movie], harness.RefreshState.Times.Keys);
-        var images = Assert.Single(harness.Queue.Queued, queued => queued.JobType == typeof(DownloadMetadataImagesJob<FakeProvider>));
-        Assert.Equal(movie.ToString(), ((IMetadataImagesJob)images.Job).EntryID);
-        Assert.DoesNotContain(harness.Queue.Queued, queued => queued.JobType == typeof(SyncEpisodeLinksJob));
+        Assert.Equal([series], harness.Provider.Refreshed);
+        Assert.Empty(harness.RefreshState.Times);
+        Assert.Empty(harness.Queue.Queued);
     }
 
     [Fact]
@@ -722,12 +670,14 @@ public class MetadataProviderJobTests
             Mock.Of<ICollection>(c => c.ID == collection),
             Mock.Of<ICollection>(c => c.ID == foreign),
         ]);
-        var job = harness.Job(Info(harness.Provider), Links(series: ["1"], movies: ["9"]));
-        job.AnimeID = AnimeID;
-        job.DownloadImages = true;
-        job.DownloadAlternateOrdering = false;
-
-        await job.Execute();
+        var info = Info(harness.Provider);
+        foreach (var entry in new[] { series, movie })
+        {
+            var job = For(harness.Job(info, Links(series: ["1"], movies: ["9"])), entry);
+            job.DownloadImages = true;
+            job.DownloadAlternateOrdering = false;
+            await job.Execute();
+        }
 
         Assert.All(harness.Provider.Options.Values, options =>
         {
@@ -738,10 +688,10 @@ public class MetadataProviderJobTests
         Assert.Equal(Source.Value, sync.Source);
         Assert.Equal("1", sync.SeriesID);
         var images = harness.Queue.Queued.Where(queued => queued.JobType == typeof(DownloadMetadataImagesJob<FakeProvider>)).ToList();
-        Assert.Equal([series.ToString(), movie.ToString(), collection.ToString()], images.Select(queued => ((IMetadataImagesJob)queued.Job).EntryID));
+        Assert.Equal([series.ToString(), collection.ToString(), movie.ToString()], images.Select(queued => ((IMetadataImagesJob)queued.Job).EntryID));
         Assert.All(images, queued => Assert.False(((IMetadataImagesJob)queued.Job).Force));
         Assert.All(images, queued => Assert.False(queued.Prioritized));
-        Assert.Equal([true, true, false], images.Select(queued => ((IMetadataImagesJob)queued.Job).IsNew));
+        Assert.Equal([true, false, true], images.Select(queued => ((IMetadataImagesJob)queued.Job).IsNew));
     }
 
     [Fact]
@@ -750,26 +700,24 @@ public class MetadataProviderJobTests
         var quick = new RefreshHarness();
         var off = new RefreshHarness();
         var notAsked = new RefreshHarness();
+        var series = ID(MetadataEntityType.Series, "1");
         off.Settings.Metadata.SourceDefaults.Images = NoImages();
-        var quickJob = quick.Job(Info(quick.Provider), Links(series: ["1"]));
-        quickJob.AnimeID = AnimeID;
+        var quickJob = For(quick.Job(Info(quick.Provider), Links(series: ["1"])), series);
         quickJob.QuickRefresh = true;
         quickJob.DownloadImages = true;
-        var offJob = off.Job(Info(off.Provider), Links(series: ["1"]));
-        offJob.AnimeID = AnimeID;
+        var offJob = For(off.Job(Info(off.Provider), Links(series: ["1"])), series);
         offJob.DownloadImages = true;
-        var notAskedJob = notAsked.Job(Info(notAsked.Provider), Links(series: ["1"]));
-        notAskedJob.AnimeID = AnimeID;
+        var notAskedJob = For(notAsked.Job(Info(notAsked.Provider), Links(series: ["1"])), series);
 
         await quickJob.Execute();
         await offJob.Execute();
         await notAskedJob.Execute();
 
-        Assert.True(quick.Provider.Options[ID(MetadataEntityType.Series, "1")].QuickRefresh);
-        Assert.False(notAsked.Provider.Options[ID(MetadataEntityType.Series, "1")].DownloadImages);
+        Assert.True(quick.Provider.Options[series].QuickRefresh);
+        Assert.False(notAsked.Provider.Options[series].DownloadImages);
         foreach (var harness in new[] { quick, off, notAsked })
         {
-            Assert.Equal([ID(MetadataEntityType.Series, "1")], harness.Provider.Refreshed);
+            Assert.Equal([series], harness.Provider.Refreshed);
             Assert.Equal(
                 [typeof(SyncEpisodeLinksJob)],
                 harness.Queue.Queued.Select(queued => queued.JobType).Where(type => type != typeof(MatchMetadataEpisodesJob))
@@ -786,11 +734,9 @@ public class MetadataProviderJobTests
         off.Settings.Metadata.SourceDefaults.Images = NoImages();
         foreach (var harness in new[] { off, noImages })
             harness.Contributors.SetupGet(m => m.ImageContributors).Returns([ContributorInfo(new ImageOnlyContributor())]);
-        var offJob = off.Job(Info(off.Provider), Links(series: ["1"]));
-        offJob.AnimeID = AnimeID;
+        var offJob = For(off.Job(Info(off.Provider), Links(series: ["1"])), series);
         offJob.DownloadImages = true;
-        var noImagesJob = noImages.Job<SeriesOnlyProvider>(Info(new SeriesOnlyProvider()), Links(series: ["1"]));
-        noImagesJob.AnimeID = AnimeID;
+        var noImagesJob = For(noImages.Job<SeriesOnlyProvider>(Info(new SeriesOnlyProvider()), Links(series: ["1"])), series);
         noImagesJob.DownloadImages = true;
 
         await offJob.Execute();
@@ -809,11 +755,9 @@ public class MetadataProviderJobTests
         var harness = new RefreshHarness();
         var series = ID(MetadataEntityType.Series, "1");
         var info = Info(harness.Provider);
-        var quick = harness.Job(info, Links(series: ["1"]));
-        quick.AnimeID = AnimeID;
+        var quick = For(harness.Job(info, Links(series: ["1"])), series);
         quick.QuickRefresh = true;
-        var full = harness.Job(info, Links(series: ["1"]));
-        full.AnimeID = AnimeID;
+        var full = For(harness.Job(info, Links(series: ["1"])), series);
 
         await quick.Execute();
 
@@ -827,7 +771,7 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task ARefreshMatchesTheAnimeAndEveryAnimeLinkedToARefreshedSeriesAgain_UnlessItIsQuick()
+    public async Task ASeriesRefreshMatchesEveryAnimeLinkedToItAgain_UnlessItIsQuickOrSkipped()
     {
         const int OtherAnimeID = 200;
         var series = ID(MetadataEntityType.Series, "1");
@@ -838,18 +782,7 @@ public class MetadataProviderJobTests
         var jobs = new List<RefreshMetadataJob<FakeProvider>>();
         foreach (var harness in new[] { full, quick, fresh })
         {
-            var links = Links(series: ["1"]);
-            var other = new CrossRef_AniDB_Metadata_Series
-            {
-                Source = Source,
-                AnidbAnimeID = OtherAnimeID,
-                ProviderID = "1",
-                ProviderType = MetadataEntityType.Series,
-            };
-            links.Setup(s => s.GetLinksTo(series)).Returns([.. links.Object.GetSeriesLinks(AnimeID, Source), other]);
-            links.Setup(s => s.GetSeriesLinks(OtherAnimeID, Source)).Returns([other]);
-            var job = harness.Job(Info(harness.Provider), links);
-            job.AnimeID = AnimeID;
+            var job = For(harness.Job(Info(harness.Provider), SharedSeriesLinks(OtherAnimeID)), series);
             job.QuickRefresh = harness == quick;
             jobs.Add(job);
         }
@@ -857,20 +790,11 @@ public class MetadataProviderJobTests
         foreach (var job in jobs)
             await job.Execute();
 
-        // A fresh series is not refreshed, but the anime the job ran for is still matched.
+        // The scheduler matches an anime whose series was not due itself.
         Assert.Equal([AnimeID, OtherAnimeID], Matched(full));
         Assert.Empty(Matched(quick));
         Assert.Empty(fresh.Provider.Refreshed);
-        Assert.Equal([AnimeID], Matched(fresh));
-
-        static List<int> Matched(RefreshHarness harness)
-            => [
-                .. harness.Queue.Queued
-                    .Where(queued => queued.JobType == typeof(MatchMetadataEpisodesJob))
-                    .Select(queued => (MatchMetadataEpisodesJob)queued.Job)
-                    .Where(job => job.Source == Source.Value)
-                    .Select(job => job.AnimeID),
-            ];
+        Assert.Empty(Matched(fresh));
     }
 
     [Fact]
@@ -879,8 +803,7 @@ public class MetadataProviderJobTests
         var harness = new RefreshHarness();
         var series = ID(MetadataEntityType.Series, "1");
         var links = Links(series: ["1"]);
-        var job = harness.Job(Info(harness.Provider), links);
-        job.EntryID = series.ToString();
+        var job = For(harness.Job(Info(harness.Provider), links), series);
         var purging = await harness.Locks.Acquire(series, TestContext.Current.CancellationToken);
 
         var run = job.Execute();
@@ -893,6 +816,66 @@ public class MetadataProviderJobTests
         Assert.Empty(harness.Provider.Refreshed);
         Assert.False(harness.Locks.IsInUse(series));
     }
+
+    [Fact]
+    public void TwoRequestsForOneEntryAreOneJob_AndTheMergedOneAsksForMore()
+    {
+        RefreshMetadataJob<FakeProvider> Request(bool force = false, bool images = false, bool? orderings = null, MetadataRefreshReason reason = default)
+        {
+            var job = (RefreshMetadataJob<FakeProvider>)RuntimeHelpers.GetUninitializedObject(typeof(RefreshMetadataJob<FakeProvider>));
+            job.EntryID = ID(MetadataEntityType.Series, "1").ToString();
+            job.Force = force;
+            job.DownloadImages = images;
+            job.DownloadAlternateOrdering = orderings;
+            job.Reason = reason;
+            return job;
+        }
+
+        var waiting = Request(orderings: false);
+        var incoming = Request(images: true, reason: MetadataRefreshReason.Linked);
+
+        Assert.Equal(JobKeyBuilder.BuildFor(waiting), JobKeyBuilder.BuildFor(incoming));
+        Assert.NotEqual(JobKeyBuilder.BuildFor(waiting), JobKeyBuilder.BuildFor(Request(force: true)));
+        Assert.True(waiting.TryMerge(incoming));
+        Assert.True(waiting.DownloadImages);
+        Assert.Null(waiting.DownloadAlternateOrdering);
+        Assert.Equal(MetadataRefreshReason.Linked, waiting.Reason);
+        Assert.False(waiting.TryMerge(Request()));
+    }
+
+    /// <summary>
+    /// Links series 1 to <see cref="AnimeID"/> and to another anime.
+    /// </summary>
+    private static Mock<IMetadataCrossReferenceStore> SharedSeriesLinks(int otherAnimeID)
+    {
+        var links = Links(series: ["1"]);
+        var series = ID(MetadataEntityType.Series, "1");
+        var other = new CrossRef_AniDB_Metadata_Series
+        {
+            Source = Source,
+            AnidbAnimeID = otherAnimeID,
+            ProviderID = "1",
+            ProviderType = MetadataEntityType.Series,
+        };
+        links.Setup(s => s.GetLinksTo(series)).Returns([.. links.Object.GetSeriesLinks(AnimeID, Source), other]);
+        links.Setup(s => s.GetSeriesLinks(otherAnimeID, Source)).Returns([other]);
+        return links;
+    }
+
+    /// <summary>
+    /// The anime whose episode matching was queued on <see cref="Source"/>.
+    /// </summary>
+    private static List<int> Matched(SchedulerHarness harness)
+        => [
+            .. harness.Queued
+                .Where(queued => queued.JobType == typeof(MatchMetadataEpisodesJob))
+                .Select(queued => (MatchMetadataEpisodesJob)queued.Job)
+                .Where(job => job.Source == Source.Value)
+                .Select(job => job.AnimeID),
+        ];
+
+    private static List<int> Matched(RefreshHarness harness)
+        => Matched(harness.Queue);
 
     #endregion
 
@@ -1481,8 +1464,7 @@ public class MetadataProviderJobTests
         var (type, queued, _) = Assert.Single(search.Queue.Queued);
         Assert.Equal(typeof(RefreshMetadataJob<FakeAutoLinker>), type);
         var refresh = (IMetadataRefreshJob)queued;
-        Assert.Equal(AnimeID, refresh.AnimeID);
-        Assert.Null(refresh.EntryID);
+        Assert.Equal(ID(MetadataEntityType.Series, "1").ToString(), refresh.EntryID);
         Assert.False(refresh.Force);
         Assert.Equal(MetadataRefreshReason.Linked, refresh.Reason);
     }
@@ -1509,7 +1491,7 @@ public class MetadataProviderJobTests
         Assert.Empty(search.Links.Movies.GetAll());
         Assert.Empty(search.Links.Episodes.GetAll());
         var refresh = (IMetadataRefreshJob)Assert.Single(search.Queue.Queued).Job;
-        Assert.Equal(AnimeID, refresh.AnimeID);
+        Assert.Equal(ID(MetadataEntityType.Series, "2").ToString(), refresh.EntryID);
         Assert.True(refresh.Force);
         Assert.Equal(MetadataRefreshReason.Linked, refresh.Reason);
     }
@@ -1996,11 +1978,13 @@ public class MetadataProviderJobTests
 
         public Mock<IJobFactory> Jobs { get; } = new();
 
+        public FakeRefreshState RefreshState { get; } = new();
+
         public MetadataProviderScheduler Build(Mock<IMetadataCrossReferenceStore> links, params MetadataProviderInfo[] infos)
             => Build(links.Object, infos);
 
         public MetadataProviderScheduler Build(IMetadataCrossReferenceStore links, params MetadataProviderInfo[] infos)
-            => new(Manager(infos).Object, links, Queue(), Jobs.Object, NullLogger<MetadataProviderScheduler>.Instance);
+            => new(Manager(infos).Object, links, RefreshState, Queue(), Jobs.Object, NullLogger<MetadataProviderScheduler>.Instance);
 
         /// <summary>
         /// The collection scheduler, queueing into <see cref="Queued"/>.
@@ -2190,26 +2174,51 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task ARefreshForAnAnimeGoesToTheLinkedEnabledProviders()
+    public async Task ARefreshForAnAnimeQueuesOneJobPerLinkedEntryFromTheLinkedEnabledProviders()
     {
         var harness = new SchedulerHarness();
         var scheduler = harness.Build(
-            Links(series: ["1"]),
+            Links(series: ["1"], movies: ["9"]),
             Info(new FakeProvider()),
             Info(new SeriesOnlyProvider(), enabled: false),
             Info(new FakeTmdbProvider())
         );
 
-        await scheduler.ScheduleRefreshForAnime(AnimeID, force: true, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(2, await scheduler.ScheduleRefreshForAnime(AnimeID, force: true, cancellationToken: TestContext.Current.CancellationToken));
 
-        var (type, job, prioritized) = Assert.Single(harness.Queued);
-        Assert.Equal(typeof(RefreshMetadataJob<FakeProvider>), type);
-        var refresh = (IMetadataRefreshJob)job;
-        Assert.Equal(AnimeID, refresh.AnimeID);
-        Assert.Null(refresh.EntryID);
-        Assert.True(refresh.Force);
-        Assert.Equal(MetadataRefreshReason.Requested, refresh.Reason);
-        Assert.True(prioritized);
+        Assert.All(harness.Queued, queued => Assert.Equal(typeof(RefreshMetadataJob<FakeProvider>), queued.JobType));
+        var jobs = harness.Queued.Select(queued => (IMetadataRefreshJob)queued.Job).ToList();
+        Assert.Equal([ID(MetadataEntityType.Series, "1").ToString(), ID(MetadataEntityType.Movie, "9").ToString()], jobs.Select(job => job.EntryID));
+        Assert.All(jobs, job => Assert.True(job.Force));
+        Assert.All(jobs, job => Assert.Equal(MetadataRefreshReason.Requested, job.Reason));
+        Assert.All(harness.Queued, queued => Assert.True(queued.Prioritized));
+    }
+
+    [Fact]
+    public async Task AFilmClaimingTheWholeAnimeIsQueuedAsAFilm()
+    {
+        var harness = new SchedulerHarness();
+        var scheduler = harness.Build(Links(series: ["9"], seriesKind: MetadataEntityType.Movie), Info(new FakeProvider()));
+
+        await scheduler.ScheduleRefreshForAnime(AnimeID, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(ID(MetadataEntityType.Movie, "9").ToString(), ((IMetadataRefreshJob)Assert.Single(harness.Queued).Job).EntryID);
+    }
+
+    [Fact]
+    public async Task TwoAnimeLinkedToOneEntryQueueTheSameJob()
+    {
+        const int OtherAnimeID = 200;
+        var harness = new SchedulerHarness();
+        var scheduler = harness.Build(SharedSeriesLinks(OtherAnimeID), Info(new FakeProvider()));
+
+        await scheduler.ScheduleRefreshForAnime(AnimeID, cancellationToken: TestContext.Current.CancellationToken);
+        await scheduler.ScheduleRefreshForAnime(OtherAnimeID, cancellationToken: TestContext.Current.CancellationToken);
+
+        // The mock queue keeps both; the real one merges them by key.
+        Assert.Equal(2, harness.Queued.Count);
+        Assert.Single(harness.Queued.Select(queued => JobKeyBuilder.BuildFor(queued.Job)).Distinct());
+        Assert.Empty(Matched(harness));
     }
 
     [Fact]
@@ -2252,7 +2261,7 @@ public class MetadataProviderJobTests
         var harness = new SchedulerHarness();
         var scheduler = harness.Build(Links(), Info(new FakeProvider()));
 
-        Assert.False(await scheduler.ScheduleRefresh(Info(new FakeProvider()), AnimeID, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(0, await scheduler.ScheduleRefreshForAnime(Info(new FakeProvider()), AnimeID, cancellationToken: TestContext.Current.CancellationToken));
         Assert.Empty(harness.Queued);
     }
 
@@ -2352,7 +2361,12 @@ public class MetadataProviderJobTests
         var info = Info(new FakeProvider());
         var scheduler = harness.Build(Links(series: ["1"]), info);
 
-        await scheduler.ScheduleRefresh(info, AnimeID, options: new() { QuickRefresh = true }, cancellationToken: TestContext.Current.CancellationToken);
+        await scheduler.ScheduleRefreshForAnime(
+            info,
+            AnimeID,
+            options: new() { QuickRefresh = true },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.True(((IMetadataRefreshJob)Assert.Single(harness.Queued).Job).QuickRefresh);
     }
@@ -2366,13 +2380,12 @@ public class MetadataProviderJobTests
         var harness = new SchedulerHarness();
         var links = Links(series: ["1"]);
         var infos = new[] { Info(new FakeProvider()), Info(new FakeTmdbProvider()) };
-        var refreshState = new FakeRefreshState();
         if (refreshedMinutesAgo is { } minutes)
-            refreshState.Times[ID(MetadataEntityType.Series, "1")] = DateTime.UtcNow.AddMinutes(minutes);
+            harness.RefreshState.Times[ID(MetadataEntityType.Series, "1")] = DateTime.UtcNow.AddMinutes(minutes);
         var metadata = new Mock<IMetadataService>();
         metadata.Setup(m => m.GetShokoSeriesByAnidbID(AnimeID)).Returns(new Mock<IShokoSeries>().Object);
 
-        await new SupplementaryMetadataScheduler(Manager(infos).Object, harness.Build(links, infos), metadata.Object, links.Object, refreshState)
+        await new SupplementaryMetadataScheduler(Manager(infos).Object, harness.Build(links, infos), metadata.Object, links.Object)
             .ScheduleForAnime(AnimeID);
 
         // TMDB is not linked, so it is searched like any other source.
@@ -2767,7 +2780,6 @@ public class MetadataProviderJobTests
         Assert.Equal([typeof(RefreshMetadataJob<FakeProvider>), typeof(RefreshMetadataJob<FakeTmdbProvider>)], harness.Queued.Select(queued => queued.JobType));
         var refresh = (IMetadataRefreshJob)harness.Queued[0].Job;
         Assert.Equal(collectionID.ToString(), refresh.EntryID);
-        Assert.Equal(0, refresh.AnimeID);
         Assert.True(refresh.Force);
         Assert.Equal(MetadataRefreshReason.Requested, refresh.Reason);
         Assert.True(harness.Queued[0].Prioritized);
@@ -2872,7 +2884,6 @@ public class MetadataProviderJobTests
             [ID(MetadataEntityType.Series, "1").ToString(), ID(MetadataEntityType.Movie, "9").ToString(), collectionID.ToString()],
             jobs.Select(job => job.EntryID)
         );
-        Assert.All(jobs.Take(2), job => Assert.Equal(AnimeID, job.AnimeID));
         Assert.All(jobs, job => Assert.False(job.Force));
         Assert.All(jobs, job => Assert.Equal(MetadataRefreshReason.Requested, job.Reason));
         Assert.All(jobs, job => Assert.False(job.AllowUnlinked));
@@ -2899,7 +2910,6 @@ public class MetadataProviderJobTests
 
         var refreshed = harness.Queued.Take(2).Select(queued => (IMetadataRefreshJob)queued.Job).ToList();
         Assert.Equal([ID(MetadataEntityType.Series, "2").ToString(), ID(MetadataEntityType.Series, "3").ToString()], refreshed.Select(job => job.EntryID));
-        Assert.All(refreshed, job => Assert.Equal(AnimeID, job.AnimeID));
         Assert.Equal(
             [ID(MetadataEntityType.Series, "2").ToString(), ID(MetadataEntityType.Series, "3").ToString()],
             harness.Queued.Skip(2).Select(queued => ((IMetadataImagesJob)queued.Job).EntryID)

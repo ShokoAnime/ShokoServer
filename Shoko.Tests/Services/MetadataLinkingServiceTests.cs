@@ -160,7 +160,14 @@ public class MetadataLinkingServiceTests
                 queued.Add((typeof(PurgeMetadataJob), job));
                 return Task.CompletedTask;
             });
-        var scheduler = new MetadataProviderScheduler(manager.Object, store, queue.Object, Mock.Of<IJobFactory>(), NullLogger<MetadataProviderScheduler>.Instance);
+        var scheduler = new MetadataProviderScheduler(
+            manager.Object,
+            store,
+            Mock.Of<IMetadataRefreshState>(),
+            queue.Object,
+            Mock.Of<IJobFactory>(),
+            NullLogger<MetadataProviderScheduler>.Instance
+        );
 
         var service = new MetadataLinkingService(
             NullLogger<MetadataLinkingService>.Instance,

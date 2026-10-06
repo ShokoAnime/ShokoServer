@@ -76,7 +76,7 @@ public class DownloadMetadataImagesJob<TProvider>(
 
     /// <inheritdoc />
     public override Dictionary<string, object> Details
-        => new Dictionary<string, object> { ["Provider"] = _providerInfo?.Name ?? typeof(TProvider).Name }.WithEntry(EntryID);
+        => new Dictionary<string, object> { ["Provider"] = _providerInfo?.Name ?? typeof(TProvider).Name }.WithEntry(EntryID, _providerInfo?.Source);
 
     /// <inheritdoc />
     public override void PostInit()

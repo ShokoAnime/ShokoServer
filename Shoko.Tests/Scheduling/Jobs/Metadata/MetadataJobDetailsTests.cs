@@ -6,19 +6,19 @@ using Xunit;
 namespace Shoko.Tests.Scheduling.Jobs.Metadata;
 
 /// <summary>
-/// How a metadata job shows its entry in the queue: as the entry's source, kind and ID in their display form.
+/// How a metadata job shows its entry in the queue: as the entry's kind and ID, with its source unless the job's provider names it.
 /// </summary>
 public class MetadataJobDetailsTests
 {
     [Fact]
-    public void AnEntryIsShownAsItsSourceKindAndID()
+    public void AnEntryIsShownAsItsKindAndID_WithItsSourceUnlessTheProviderNamesIt()
     {
         var details = new Dictionary<string, object>().WithEntry("tmdb://series/21985");
+        var ownSource = new Dictionary<string, object>().WithEntry("tmdb://series/21985", MetadataSource.TMDB);
 
         Assert.Equal(MetadataSource.TMDB.Name, details["Source"]);
-        Assert.Equal(MetadataEntityType.Series.Name, details["Kind"]);
-        Assert.Equal("21985", details["ID"]);
-        Assert.False(details.ContainsKey("Entry"));
+        Assert.Equal($"{MetadataEntityType.Series.Name} 21985", details["Entry"]);
+        Assert.Equal(["Entry"], ownSource.Keys);
     }
 
     [Fact]

@@ -21,19 +21,15 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.Scheduling.Jobs.Metadata;
 
 /// <summary>
-///   Has one provider refresh what is linked to an anime on its source, or
-///   one entry that is still linked or that somebody asked for by name.
+///   Has one provider refresh one series, film or collection on its source.
 /// </summary>
 /// <remarks>
 ///   One job type per provider, so a paused or limited provider holds back only
-///   its own refreshes. The provider writes the stores itself; the core takes each
-///   entry's lock, skips one refreshed within <see cref="MetadataRefreshState.FreshFor"/>
-///   unless forced, records the refresh unless it was quick, then queues the episode
-///   link sync, the episode matching of the anime and of every anime linked to a
-///   refreshed series unless it was quick, the collection each refreshed film names
-///   when it is due, and, when asked, the images. A failed entry
-///   keeps its refresh time and does not stop the rest, but the job fails afterwards so
-///   the queue retries it.
+///   its own refreshes, and one job per entry, so an entry linked from several
+///   anime is refreshed once. The core takes the entry's lock, skips it when it
+///   was refreshed within <see cref="MetadataRefreshState.FreshFor"/> unless
+///   forced, records the refresh unless it was quick, then queues the follow-ups.
+///   A failed refresh keeps its refresh time and fails the job, so the queue retries it.
 /// </remarks>
 /// <typeparam name="TProvider">The provider to refresh from.</typeparam>
 [DatabaseRequired]
@@ -53,61 +49,57 @@ public class RefreshMetadataJob<TProvider>(
     MetadataCollectionRefreshScheduler collectionScheduler,
     ISettingsProvider settingsProvider,
     IJobCancellationAccessor cancellationAccessor
-) : BaseJob, IMetadataRefreshJob where TProvider : class, IMetadataProvider
+) : BaseJob, IMetadataRefreshJob, IJobMerge where TProvider : class, IMetadataProvider
 {
     #region Properties
 
     private MetadataProviderInfo? _providerInfo;
 
     /// <summary>
-    ///   The AniDB anime whose linked entries are refreshed, or, with
-    ///   <see cref="EntryID"/>, the anime the entry was refreshed for. 0 when
-    ///   there is none.
+    ///   The series, film or collection to refresh, as its
+    ///   <see cref="MetadataGuid"/> string.
     /// </summary>
-    public int AnimeID { get; set; }
+    public string EntryID { get; set; } = string.Empty;
 
     /// <summary>
-    ///   One series, film or collection to refresh instead of everything the
-    ///   anime links to, as its <see cref="MetadataGuid"/> string.
-    /// </summary>
-    public string? EntryID { get; set; }
-
-    /// <summary>
-    ///   Whether to refresh the entries however recently they were refreshed.
-    ///   Never passed on to the provider.
+    ///   Whether to refresh the entry however recently it was refreshed.
+    ///   Never passed on to the provider. Part of the job's key, so a forced
+    ///   request is never merged into an unforced one already running.
     /// </summary>
     public bool Force { get; set; }
 
     /// <summary>
-    ///   Whether to refresh the entry asked for with <see cref="EntryID"/>
-    ///   even when nothing links to it, so somebody can look at it before
-    ///   linking it. Set only for a refresh asked for by name; every other
-    ///   refresh skips an entry that is no longer linked when its turn comes.
-    /// </summary>
-    public bool AllowUnlinked { get; set; }
-
-    /// <summary>
-    ///   Whether to queue the images of what was refreshed afterwards, which
-    ///   is skipped after a quick refresh.
-    /// </summary>
-    public bool DownloadImages { get; set; }
-
-    /// <summary>
-    ///   Whether the provider should fetch a series' alternate orderings, or
-    ///   <c>null</c> to go by the settings.
-    /// </summary>
-    public bool? DownloadAlternateOrdering { get; set; }
-
-    /// <summary>
     ///   Whether this is a quick refresh, which the provider is told about
-    ///   and after which no images are queued.
+    ///   and after which no images are queued. Part of the job's key, so a
+    ///   full request is never merged into a quick one already running.
     /// </summary>
     public bool QuickRefresh { get; set; }
 
     /// <summary>
+    ///   Whether to refresh the entry even when nothing links to it, so
+    ///   somebody can look at it before linking it. Set only for a refresh
+    ///   asked for by name. Left out of the job's key.
+    /// </summary>
+    [JobKeyIgnore]
+    public bool AllowUnlinked { get; set; }
+
+    /// <summary>
+    ///   Whether to queue the images of what was refreshed afterwards, which
+    ///   is skipped after a quick refresh. Left out of the job's key.
+    /// </summary>
+    [JobKeyIgnore]
+    public bool DownloadImages { get; set; }
+
+    /// <summary>
+    ///   Whether the provider should fetch a series' alternate orderings, or
+    ///   <c>null</c> to go by the settings. Left out of the job's key.
+    /// </summary>
+    [JobKeyIgnore]
+    public bool? DownloadAlternateOrdering { get; set; }
+
+    /// <summary>
     ///   Why the refresh was queued, passed on to the provider. Left out of
-    ///   the job's key, so requests that differ only in why they were made
-    ///   merge.
+    ///   the job's key.
     /// </summary>
     [JobKeyIgnore]
     public MetadataRefreshReason Reason { get; set; }
@@ -120,19 +112,53 @@ public class RefreshMetadataJob<TProvider>(
 
     /// <inheritdoc />
     public override Dictionary<string, object> Details
-    {
-        get
-        {
-            var details = new Dictionary<string, object> { ["Provider"] = _providerInfo?.Name ?? typeof(TProvider).Name };
-            if (AnimeID > 0)
-                details["AnimeID"] = AnimeID;
-            return details.WithEntry(EntryID);
-        }
-    }
+        => new Dictionary<string, object> { ["Provider"] = _providerInfo?.Name ?? typeof(TProvider).Name }.WithEntry(EntryID, _providerInfo?.Source);
 
     /// <inheritdoc />
     public override void PostInit()
         => _providerInfo = MetadataProviderJobContext.Find<TProvider>(providerManager);
+
+    /// <summary>
+    ///   Takes in a request for the same entry, keeping whichever asks for
+    ///   more: images, the alternate orderings, the entry fetched unlinked,
+    ///   and the strongest reason.
+    /// </summary>
+    /// <param name="incoming">The request merged in.</param>
+    /// <returns><c>true</c> when anything changed.</returns>
+    public bool TryMerge(IQueueJob incoming)
+    {
+        if (incoming is not RefreshMetadataJob<TProvider> other)
+            return false;
+
+        var changed = false;
+        if (!DownloadImages && other.DownloadImages)
+        {
+            DownloadImages = true;
+            changed = true;
+        }
+
+        if (!AllowUnlinked && other.AllowUnlinked)
+        {
+            AllowUnlinked = true;
+            changed = true;
+        }
+
+        // Fetching the orderings beats the settings, and the settings beat not fetching them.
+        static int Rank(bool? orderings) => orderings switch { true => 2, null => 1, false => 0 };
+        if (Rank(other.DownloadAlternateOrdering) > Rank(DownloadAlternateOrdering))
+        {
+            DownloadAlternateOrdering = other.DownloadAlternateOrdering;
+            changed = true;
+        }
+
+        if (other.Reason > Reason)
+        {
+            Reason = other.Reason;
+            changed = true;
+        }
+
+        return changed;
+    }
 
     #endregion
 
@@ -151,79 +177,39 @@ public class RefreshMetadataJob<TProvider>(
             return;
         }
 
-        var entries = GetEntries(info.Source);
-        if (entries is null)
-            return;
-
-        var token = cancellationAccessor.Token;
-        var failures = new List<Exception>();
-        var refreshed = new List<MetadataGuid>();
-        var firstRefreshed = new HashSet<MetadataGuid>();
-        foreach (var entry in entries)
-            if (await Refresh(info, provider, entry, failures, firstRefreshed, token).ConfigureAwait(false))
-                refreshed.Add(entry);
-
-        await ScheduleFollowUps(info, refreshed, firstRefreshed, token).ConfigureAwait(false);
-
-        if (failures.Count is 1)
-            throw failures[0];
-        if (failures.Count > 1)
-            throw new AggregateException($"Refreshing from {info.Name} failed for {failures.Count} entries.", failures);
-    }
-
-    /// <summary>
-    ///   The entries to refresh: the one asked for, or every series and film
-    ///   the anime links to on the source, with the series its episode links
-    ///   point into.
-    /// </summary>
-    /// <param name="source">The provider's source.</param>
-    /// <returns>The entries, or <c>null</c> when the one asked for is not valid.</returns>
-    private List<MetadataGuid>? GetEntries(MetadataSource source)
-    {
-        if (EntryID is not null)
+        if (!MetadataGuid.TryParse(EntryID, out var entry) || entry.Source != info.Source)
         {
-            if (!MetadataGuid.TryParse(EntryID, out var entry) || entry.Source != source)
-            {
-                _logger.LogWarning("Not refreshing {EntryID}, which is not an entry on {Source}.", EntryID, source);
-                return null;
-            }
-
-            return [entry];
+            _logger.LogWarning("Not refreshing {EntryID}, which is not an entry on {Source}.", EntryID, info.Source);
+            return;
         }
 
-        if (AnimeID <= 0)
-            return [];
-
-        return crossReferences.GetLinkedEntries(AnimeID, source);
+        var token = cancellationAccessor.Token;
+        if (await Refresh(info, provider, entry, token).ConfigureAwait(false) is { } isNew)
+            await ScheduleFollowUps(info, entry, isNew, token).ConfigureAwait(false);
     }
 
     /// <summary>
-    ///   Has the provider refresh one entry, under the entry's lock, when it
+    ///   Has the provider refresh the entry, under the entry's lock, when it
     ///   is still linked and due.
     /// </summary>
     /// <param name="info">The provider's info.</param>
     /// <param name="provider">The provider.</param>
     /// <param name="entry">The entry.</param>
-    /// <param name="failures">Where a failure is collected.</param>
-    /// <param name="firstRefreshed">Where an entry refreshed for the first time is collected.</param>
     /// <param name="token">Cancels the work.</param>
-    /// <returns>Whether the provider refreshed the entry.</returns>
+    /// <returns>
+    ///   Whether this was the entry's first refresh, or <c>null</c> when
+    ///   the provider did not refresh it.
+    /// </returns>
     /// <exception cref="OperationCanceledException">The job was cancelled.</exception>
-    private async Task<bool> Refresh(
-        MetadataProviderInfo info,
-        TProvider provider,
-        MetadataGuid entry,
-        List<Exception> failures,
-        HashSet<MetadataGuid> firstRefreshed,
-        CancellationToken token
-    )
+    /// <exception cref="Exception">The provider failed to refresh the entry.</exception>
+    private async Task<bool?> Refresh(MetadataProviderInfo info, TProvider provider, MetadataGuid entry, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         var kind = entry.EntityType;
         if (!MetadataProviderScheduler.MayRefresh(info, kind))
         {
             _logger.LogDebug("Not refreshing {Entry}: {Provider} is not enabled for {Kind}.", entry, info.Name, kind);
-            return false;
+            return null;
         }
 
         Func<MetadataRefreshOptions, Task>? refresh = provider switch
@@ -236,24 +222,24 @@ public class RefreshMetadataJob<TProvider>(
         if (refresh is null)
         {
             _logger.LogDebug("Not refreshing {Entry}: {Provider} does not refresh a {Kind}.", entry, info.Name, kind);
-            return false;
+            return null;
         }
 
         using var entryLock = await entryLocks.Acquire(entry, token).ConfigureAwait(false);
 
         // Checked under the lock, as a purge or unlink may have come first. An entry asked for
         // by name is fetched even when unlinked, so it can be looked at before linking.
-        if (!(AllowUnlinked && EntryID is not null) && !IsStillLinked(entry))
+        if (!AllowUnlinked && !IsStillLinked(entry))
         {
             _logger.LogDebug("Not refreshing {Entry}, which is no longer linked.", entry);
-            return false;
+            return null;
         }
 
         var lastRefreshedAt = refreshState.GetLastRefreshedAt(entry);
         if (!Force && MetadataRefreshState.IsFresh(lastRefreshedAt))
         {
             _logger.LogDebug("Not refreshing {Entry}, which {Provider} last refreshed at {LastRefreshedAt}.", entry, info.Name, lastRefreshedAt);
-            return false;
+            return null;
         }
 
         try
@@ -261,21 +247,12 @@ public class RefreshMetadataJob<TProvider>(
             // A forced refresh vouches for nothing fetched before, so the
             // provider is not told when that was.
             using var updating = entryLocks.MarkUpdating(entry);
-            await refresh(this.ToOptions() with
-            {
-                LastRefreshedAt = Force ? null : lastRefreshedAt,
-                AnidbAnimeID = AnimeID > 0 ? AnimeID : null,
-            }).ConfigureAwait(false);
+            await refresh(this.ToOptions() with { LastRefreshedAt = Force ? null : lastRefreshedAt }).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException || !token.IsCancellationRequested)
         {
             _logger.LogError(ex, "{Provider} failed to refresh {Entry}.", info.Name, entry);
-            failures.Add(ex);
-            return false;
+            throw;
         }
 
         // A quick refresh leaves out what is costly to fetch, so the next
@@ -283,11 +260,8 @@ public class RefreshMetadataJob<TProvider>(
         if (!QuickRefresh)
             refreshState.RecordRefresh(entry, DateTime.UtcNow);
 
-        if (lastRefreshedAt is null)
-            firstRefreshed.Add(entry);
-
         _logger.LogDebug("{Provider} refreshed {Entry}.", info.Name, entry);
-        return true;
+        return lastRefreshedAt is null;
     }
 
     /// <summary>
@@ -303,24 +277,24 @@ public class RefreshMetadataJob<TProvider>(
             : crossReferences.IsLinked(entry);
 
     /// <summary>
-    ///   Queues what follows a refresh: each refreshed series' episode link
-    ///   sync; unless it was quick, the episode matching and the collection
-    ///   each refreshed film names; and, when images were asked for and it was
-    ///   not quick, the images of the refreshed entries and of the stored
-    ///   collections holding them, through the owner's image job or else the
-    ///   image contributors' jobs.
+    ///   Queues what follows a refresh: a series' episode link sync; unless it
+    ///   was quick, the episode matching of every anime linked to a series and
+    ///   the collection a film names; and, when images were asked for and it
+    ///   was not quick, the images of the entry and of the stored collections
+    ///   holding it, through the owner's image job or else the contributors' jobs.
     /// </summary>
     /// <param name="info">The provider's info.</param>
-    /// <param name="refreshed">The entries the provider refreshed.</param>
-    /// <param name="firstRefreshed">The entries refreshed for the first time, whose images are new.</param>
+    /// <param name="entry">The entry the provider refreshed.</param>
+    /// <param name="isNew">Whether this was its first refresh, so its images are new.</param>
     /// <param name="token">Cancels the work.</param>
     /// <returns>A task that completes once the jobs are queued.</returns>
-    private async Task ScheduleFollowUps(MetadataProviderInfo info, List<MetadataGuid> refreshed, HashSet<MetadataGuid> firstRefreshed, CancellationToken token)
+    /// <exception cref="OperationCanceledException">The job was cancelled.</exception>
+    private async Task ScheduleFollowUps(MetadataProviderInfo info, MetadataGuid entry, bool isNew, CancellationToken token)
     {
         // A quick refresh leaves out too much to match against.
         if (!QuickRefresh)
         {
-            foreach (var anidbAnimeID in GetAnimeToMatch(refreshed))
+            foreach (var anidbAnimeID in GetAnimeToMatch(entry))
                 await Queue(
                     "the episode matching",
                     $"AniDB anime {anidbAnimeID}",
@@ -328,14 +302,11 @@ public class RefreshMetadataJob<TProvider>(
                 ).ConfigureAwait(false);
 
             // The provider names a film's collection by ID; the core fetches it.
-            foreach (var entry in refreshed.Where(entry => entry.EntityType == MetadataEntityType.Movie))
+            if (entry.EntityType == MetadataEntityType.Movie)
                 collectionScheduler.ScheduleIfDue(metadataService.GetMovie(entry)?.CollectionID);
         }
 
-        if (refreshed.Count is 0)
-            return;
-
-        foreach (var entry in refreshed.Where(entry => entry.EntityType == MetadataEntityType.Series))
+        if (entry.EntityType == MetadataEntityType.Series)
             await Queue("the episode link sync", entry.ToString(), () => providerScheduler.ScheduleLinkSync(entry, token)).ConfigureAwait(false);
 
         if (!DownloadImages || QuickRefresh)
@@ -345,46 +316,53 @@ public class RefreshMetadataJob<TProvider>(
         // they are queued here only for what it does not run for.
         var ownerImages = info.Provider is IMetadataImageProvider &&
             settingsProvider.GetSettings().Metadata.GetImageSettings(info.Source).AnyEnabled;
-        var withImages = refreshed
-            .Concat(refreshed
-                .Where(entry => entry.EntityType != MetadataEntityType.Collection)
-                .SelectMany(entry => collectionStore.GetCollectionsWith(entry))
+        var collections = entry.EntityType == MetadataEntityType.Collection
+            ? []
+            : collectionStore.GetCollectionsWith(entry)
                 .Select(collection => collection.ID)
-                .Where(collection => collection.Source == info.Source))
-            .Distinct()
-            .ToList();
-        foreach (var entry in withImages)
-        {
-            var isNew = firstRefreshed.Contains(entry);
-            await Queue("the images", entry.ToString(), async () =>
-            {
-                if (!ownerImages || !await providerScheduler.ScheduleImages(info, entry, cancellationToken: token, isNew: isNew).ConfigureAwait(false))
-                    await contributorScheduler.ScheduleForEntry(entry, isNew: isNew, cancellationToken: token).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
+                .Where(collection => collection.Source == info.Source)
+                .Distinct()
+                .ToList();
+        await QueueImages(info, entry, ownerImages, isNew, token).ConfigureAwait(false);
+        foreach (var collection in collections)
+            await QueueImages(info, collection, ownerImages, isNew: false, token).ConfigureAwait(false);
     }
 
     /// <summary>
-    ///   The anime whose episodes are matched again after the job: the one
-    ///   it ran for, whether or not anything was due, and every anime linked
-    ///   to a series it refreshed.
+    ///   Queues the images of one entry through the owner's image job, or
+    ///   else through the contributors' jobs.
     /// </summary>
-    /// <param name="refreshed">The entries the provider refreshed.</param>
-    /// <returns>The AniDB anime IDs, each once.</returns>
-    private List<int> GetAnimeToMatch(List<MetadataGuid> refreshed)
-    {
-        var anime = new List<int>();
-        if (AnimeID > 0)
-            anime.Add(AnimeID);
+    /// <param name="info">The provider's info.</param>
+    /// <param name="entry">The entry.</param>
+    /// <param name="ownerImages">Whether the provider's own image job may run for the source.</param>
+    /// <param name="isNew">Whether this is the entry's first image run.</param>
+    /// <param name="token">Cancels the work.</param>
+    /// <returns>A task that completes once the jobs are queued.</returns>
+    /// <exception cref="OperationCanceledException">The job was cancelled.</exception>
+    private Task QueueImages(MetadataProviderInfo info, MetadataGuid entry, bool ownerImages, bool isNew, CancellationToken token)
+        => Queue("the images", entry.ToString(), async () =>
+        {
+            if (!ownerImages || !await providerScheduler.ScheduleImages(info, entry, cancellationToken: token, isNew: isNew).ConfigureAwait(false))
+                await contributorScheduler.ScheduleForEntry(entry, isNew: isNew, cancellationToken: token).ConfigureAwait(false);
+        });
 
-        anime.AddRange(refreshed
-            .Where(entry => entry.EntityType == MetadataEntityType.Series)
-            .SelectMany(crossReferences.GetLinksTo)
-            .OfType<IMetadataSeriesCrossReference>()
-            .Select(link => link.AnidbAnimeID)
-            .Where(anidbAnimeID => anidbAnimeID > 0));
-        return [.. anime.Distinct()];
-    }
+    /// <summary>
+    ///   The anime whose episodes are matched again after a series was
+    ///   refreshed: every anime linked to it. The queue merges the matching of
+    ///   an anime asked for by several of its entries.
+    /// </summary>
+    /// <param name="entry">The entry the provider refreshed.</param>
+    /// <returns>The AniDB anime IDs, each once.</returns>
+    private List<int> GetAnimeToMatch(MetadataGuid entry)
+        => entry.EntityType != MetadataEntityType.Series
+            ? []
+            : [
+                .. crossReferences.GetLinksTo(entry)
+                    .OfType<IMetadataSeriesCrossReference>()
+                    .Select(link => link.AnidbAnimeID)
+                    .Where(anidbAnimeID => anidbAnimeID > 0)
+                    .Distinct(),
+            ];
 
     /// <summary>
     ///   Queues one follow-up job, logging a failure rather than failing the

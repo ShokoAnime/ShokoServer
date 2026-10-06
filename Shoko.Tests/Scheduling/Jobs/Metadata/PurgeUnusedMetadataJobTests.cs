@@ -150,7 +150,14 @@ public class PurgeUnusedMetadataJobTests
                 return Task.CompletedTask;
             });
         var manager = Manager();
-        var scheduler = new MetadataProviderScheduler(manager, links.Object, queue.Object, Mock.Of<IJobFactory>(), NullLogger<MetadataProviderScheduler>.Instance);
+        var scheduler = new MetadataProviderScheduler(
+            manager,
+            links.Object,
+            Mock.Of<IMetadataRefreshState>(),
+            queue.Object,
+            Mock.Of<IJobFactory>(),
+            NullLogger<MetadataProviderScheduler>.Instance
+        );
 
         // The unused purge reads none of the orphan purge's parts.
         var purge = new MetadataPurgeService(

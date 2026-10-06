@@ -9,25 +9,17 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 internal interface IMetadataRefreshJob
 {
     /// <summary>
-    ///   The AniDB anime whose linked entries are refreshed, or, with
-    ///   <see cref="EntryID"/>, the anime the entry was refreshed for. 0 when
-    ///   there is none.
+    ///   The series, film or collection to refresh, as its metadata ID string.
     /// </summary>
-    int AnimeID { get; set; }
+    string EntryID { get; set; }
 
     /// <summary>
-    ///   One entry to refresh instead, as its metadata ID string.
-    /// </summary>
-    string? EntryID { get; set; }
-
-    /// <summary>
-    ///   Whether to refresh the entries however recently they were refreshed.
+    ///   Whether to refresh the entry however recently it was refreshed.
     /// </summary>
     bool Force { get; set; }
 
     /// <summary>
-    ///   Whether to refresh the one entry asked for even when nothing links
-    ///   to it.
+    ///   Whether to refresh the entry even when nothing links to it.
     /// </summary>
     bool AllowUnlinked { get; set; }
 
@@ -73,7 +65,7 @@ internal static class MetadataRefreshJobExtensions
 
     /// <summary>
     ///   The options a refresh job was queued with, as the provider is told
-    ///   them, without the refresh time and the anime.
+    ///   them, without the refresh time.
     /// </summary>
     /// <param name="job">The job.</param>
     /// <returns>The options.</returns>

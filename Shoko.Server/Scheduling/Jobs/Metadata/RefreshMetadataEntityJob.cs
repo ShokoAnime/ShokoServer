@@ -66,7 +66,7 @@ public class RefreshMetadataEntityJob<TProvider>(
 
     /// <inheritdoc />
     public override Dictionary<string, object> Details
-        => new Dictionary<string, object> { ["Provider"] = _providerInfo?.Name ?? typeof(TProvider).Name }.WithEntry(EntityID);
+        => new Dictionary<string, object> { ["Provider"] = _providerInfo?.Name ?? typeof(TProvider).Name }.WithEntry(EntityID, _providerInfo?.Source);
 
     /// <inheritdoc />
     public override void PostInit()

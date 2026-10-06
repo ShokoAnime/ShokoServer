@@ -161,8 +161,8 @@ does; see [`../Resources/README.md`](../Resources/README.md).
 # Refreshing, purging and linking
 
 `IMetadataRefreshService` queues the providers' jobs:
-`RefreshEntry` (one series, film or collection), `RefreshForAnime` and
-`RefreshAllLinked`, the image jobs (`DownloadImages`, `DownloadImagesForAnime`,
+`RefreshEntry` (one series, film or collection), `RefreshForAnime` (one job
+per entry the anime links to) and `RefreshAllLinked`, the image jobs (`DownloadImages`, `DownloadImagesForAnime`,
 `DownloadAllImages`) and the auto-linker's searches (`AutoSearch`,
 `AutoSearchAll`). A force flag skips the hour-long freshness window, and
 `MetadataRefreshOptions` carries the refresh switches. `IsRefreshing` and

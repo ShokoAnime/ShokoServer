@@ -34,22 +34,25 @@ internal static class MetadataProviderJobContext
     }
 
     /// <summary>
-    ///   Adds an entry to a job's details as its source, kind and ID, each in
-    ///   its display form, or as the text given when it is no entry ID.
+    ///   Adds an entry to a job's details as its kind and ID on its source,
+    ///   e.g. <c>Entry: Series 21459</c>, with the source's name unless the
+    ///   job's provider already names it, or as the text given when it is no
+    ///   entry ID.
     /// </summary>
     /// <param name="details">The details to add to.</param>
     /// <param name="entryID">The entry, as its <see cref="MetadataGuid"/> string.</param>
+    /// <param name="providerSource">The source of the job's provider, or <c>null</c> when it has none.</param>
     /// <returns>The same details.</returns>
-    public static Dictionary<string, object> WithEntry(this Dictionary<string, object> details, string? entryID)
+    public static Dictionary<string, object> WithEntry(this Dictionary<string, object> details, string? entryID, MetadataSource? providerSource = null)
     {
         if (string.IsNullOrEmpty(entryID))
             return details;
 
         if (MetadataGuid.TryParse(entryID, out var entry))
         {
-            details["Source"] = entry.Source.Name;
-            details["Kind"] = entry.EntityType.Name;
-            details["ID"] = entry.ID;
+            if (entry.Source != providerSource)
+                details["Source"] = entry.Source.Name;
+            details["Entry"] = $"{entry.EntityType.Name} {entry.ID}";
         }
         else
         {

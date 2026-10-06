@@ -112,8 +112,8 @@ public class MetadataRefreshService : IMetadataRefreshService
             // One refresh for each entry, however many anime link to it, so a
             // forced refresh does not fetch a shared entry once per anime.
             var entries = GetLinkedEntriesInLibrary(info.Source)
-                .Where(pair => entityType is null || pair.Entry.EntityType == entityType)
-                .DistinctBy(pair => pair.Entry)
+                .Where(entry => entityType is null || entry.EntityType == entityType)
+                .Distinct()
                 .ToList();
 
             // Nothing links a collection, so each stored one is asked for by name.
@@ -122,11 +122,11 @@ public class MetadataRefreshService : IMetadataRefreshService
                     ? []
                     : _metadataService.GetAllCollectionsForSource(info.Source).ToList();
             var items = new ItemProgress(stages, entries.Count + collections.Count);
-            foreach (var (animeID, entry) in entries)
+            foreach (var entry in entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (MetadataProviderScheduler.Refreshes(info.Provider, entry.EntityType) && MetadataProviderScheduler.MayRefresh(info, entry.EntityType) &&
-                    await _providerScheduler.ScheduleRefresh(info, animeID, entry, force, options, cancellationToken).ConfigureAwait(false))
+                    await _providerScheduler.ScheduleRefresh(info, entry, force, options, cancellationToken).ConfigureAwait(false))
                     queued++;
 
                 items.Increment();
@@ -135,7 +135,7 @@ public class MetadataRefreshService : IMetadataRefreshService
             foreach (var collection in collections)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (await _providerScheduler.ScheduleRefresh(info, 0, collection.ID, force, options, cancellationToken).ConfigureAwait(false))
+                if (await _providerScheduler.ScheduleRefresh(info, collection.ID, force, options, cancellationToken).ConfigureAwait(false))
                     queued++;
 
                 items.Increment();
@@ -212,7 +212,6 @@ public class MetadataRefreshService : IMetadataRefreshService
         foreach (var info in providers)
         {
             var entries = GetLinkedEntriesInLibrary(info.Source)
-                .Select(pair => pair.Entry)
                 .Distinct()
                 .ToList();
             var items = new ItemProgress(stages, entries.Count);
@@ -234,12 +233,12 @@ public class MetadataRefreshService : IMetadataRefreshService
 
     /// <summary>
     ///   Every series and film linked on a source to an anime in the library,
-    ///   with the anime linking to each. A link imported for an anime the user
-    ///   does not have is left for when they add it.
+    ///   once for each anime linking to it. A link imported for an anime the
+    ///   user does not have is left for when they add it.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns>Each anime and the entry it links to.</returns>
-    private IEnumerable<(int AnidbAnimeID, MetadataGuid Entry)> GetLinkedEntriesInLibrary(MetadataSource source)
+    /// <returns>The entries.</returns>
+    private IEnumerable<MetadataGuid> GetLinkedEntriesInLibrary(MetadataSource source)
     {
         var inLibrary = new Dictionary<int, bool>();
         return _crossReferences.GetAllLinkedEntries(source)
@@ -248,7 +247,8 @@ public class MetadataRefreshService : IMetadataRefreshService
                 if (!inLibrary.TryGetValue(pair.AnidbAnimeID, out var found))
                     inLibrary[pair.AnidbAnimeID] = found = _metadataService.GetShokoSeriesByAnidbID(pair.AnidbAnimeID) is not null;
                 return found;
-            });
+            })
+            .Select(pair => pair.Entry);
     }
 
     #endregion

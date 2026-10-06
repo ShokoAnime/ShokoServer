@@ -50,7 +50,7 @@ public class MatchMetadataEpisodesJob(
     public override string Title => "Matching Metadata Episodes";
 
     /// <inheritdoc />
-    public override Dictionary<string, object> Details => new() { { "Source", Source }, { "AnimeID", AnimeID } };
+    public override Dictionary<string, object> Details => new() { { "Source", Source }, { "AniDB Anime ID", AnimeID } };
 
     #endregion
 

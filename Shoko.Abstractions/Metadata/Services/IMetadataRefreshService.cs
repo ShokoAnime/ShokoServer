@@ -67,12 +67,14 @@ public interface IMetadataRefreshService
     );
 
     /// <summary>
-    ///   Queue a refresh of everything an anime links to, from every enabled
-    ///   provider or from one source.
+    ///   Queue a refresh of each entry an anime links to, one job per entry,
+    ///   from every enabled provider or from one source.
     /// </summary>
     /// <remarks>
     ///   A source the anime has no links on is left alone: finding something
-    ///   new is auto-linking's job, not this.
+    ///   new is auto-linking's job, not this. Unless forced, only the entries
+    ///   due are queued, and an anime with no series due has its episodes
+    ///   matched again. An entry linked from several anime is refreshed once.
     /// </remarks>
     /// <param name="anidbAnimeID">The AniDB anime ID.</param>
     /// <param name="source">One source, or every source when left out.</param>
@@ -86,7 +88,7 @@ public interface IMetadataRefreshService
     ///   by the settings and downloads the images.
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>How many providers were asked.</returns>
+    /// <returns>How many entry refreshes were queued.</returns>
     Task<int> RefreshForAnime(
         int anidbAnimeID,
         MetadataSource? source = null,
@@ -100,9 +102,9 @@ public interface IMetadataRefreshService
     ///   anime in the library, and of the source's stored collections.
     /// </summary>
     /// <remarks>
-    ///   Each entry is queued once, however many anime link to it, for the
-    ///   first anime that does, and is refreshed only if it is still linked
-    ///   when its turn comes, whatever the options' reason.
+    ///   Each entry is queued once, however many anime link to it, and is
+    ///   refreshed only if it is still linked when its turn comes, whatever
+    ///   the options' reason.
     /// </remarks>
     /// <param name="source">The source.</param>
     /// <param name="force">Whether to refresh every entry however recently it last was.</param>

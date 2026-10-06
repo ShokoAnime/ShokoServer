@@ -69,8 +69,8 @@ public class SearchMetadataJob<TProvider>(
 
     /// <inheritdoc />
     public override Dictionary<string, object> Details => _providerInfo is { } info
-        ? new() { ["Provider"] = info.Name, ["Source"] = info.Source.Name, ["AnimeID"] = AnimeID }
-        : new() { ["Provider"] = typeof(TProvider).Name, ["AnimeID"] = AnimeID };
+        ? new() { ["Provider"] = info.Name, ["Source"] = info.Source.Name, ["AniDB Anime ID"] = AnimeID }
+        : new() { ["Provider"] = typeof(TProvider).Name, ["AniDB Anime ID"] = AnimeID };
 
     /// <inheritdoc />
     public override void PostInit()
@@ -131,10 +131,15 @@ public class SearchMetadataJob<TProvider>(
         if (linked.Count is 0)
             return;
 
-        // Writing a link queues nothing by itself, so the search refreshes what it linked;
-        // what is already fresh is skipped unless forced.
-        await providerScheduler.ScheduleRefresh(info, AnimeID, force: Force || Replace, options: MetadataProviderScheduler.FullRefresh(MetadataRefreshReason.Linked), cancellationToken: token)
-            .ConfigureAwait(false);
+        // Writing a link queues nothing by itself, so the search refreshes what it linked, one
+        // job per entry; what is already fresh is skipped unless forced.
+        await providerScheduler.ScheduleRefreshForAnime(
+            info,
+            AnimeID,
+            force: Force || Replace,
+            options: MetadataProviderScheduler.FullRefresh(MetadataRefreshReason.Linked),
+            cancellationToken: token
+        ).ConfigureAwait(false);
     }
 
     #endregion

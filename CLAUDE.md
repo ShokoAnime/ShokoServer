@@ -430,8 +430,10 @@ SearchMetadataJob<TProvider>  (Shoko.Server/Scheduling/Jobs/Metadata/SearchMetad
         │
         ▼
 RefreshMetadataJob<TProvider>  (Shoko.Server/Scheduling/Jobs/Metadata/RefreshMetadataJob.cs)
-  Refreshes each linked series, movie or collection through the provider
-  (writing the shared Metadata_* stores, titles and overviews included)
+  One job per linked series, movie or collection, refreshed through the provider
+  (writing the shared Metadata_* stores, titles and overviews included); an entry
+  linked from several anime is queued once, and a series refresh queues the
+  episode matching of every anime linked to it
         │
         ▼
 DownloadMetadataImagesJob<TProvider>  (Shoko.Server/Scheduling/Jobs/Metadata/DownloadMetadataImagesJob.cs)

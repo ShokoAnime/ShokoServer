@@ -10,8 +10,8 @@ namespace Shoko.Abstractions.Metadata.Providers;
 ///   the provider for each entry refreshed. A switch left
 ///   <c>null</c> means "as the provider's settings say". There is
 ///   no force flag: the core only asks for an entry that is due or forced.
-///   <see cref="LastRefreshedAt"/> and <see cref="AnidbAnimeID"/> are set by
-///   the core, replacing what a caller put there.
+///   <see cref="LastRefreshedAt"/> is set by the core, replacing what a
+///   caller put there.
 /// </remarks>
 public sealed record MetadataRefreshOptions
 {
@@ -50,11 +50,4 @@ public sealed record MetadataRefreshOptions
     ///   vouches for nothing fetched before. Filled in by the core.
     /// </summary>
     public DateTime? LastRefreshedAt { get; init; }
-
-    /// <summary>
-    ///   The AniDB anime whose linked entries are being refreshed, or
-    ///   <c>null</c> when the entry was asked for on its own.
-    ///   Filled in by the core.
-    /// </summary>
-    public int? AnidbAnimeID { get; init; }
 }

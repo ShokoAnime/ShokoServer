@@ -363,11 +363,11 @@ is kept and nothing is fetched.
 `MetadataRefreshOptions` carries the refresh switches (`DownloadImages`, and
 `DownloadAlternateOrdering` with `null` meaning your settings; ignore what
 means nothing for you), `QuickRefresh` (skip what is costly; no images, and it
-does not count as a refresh), `Reason` (`Scheduled`, `Linked` or `Requested`),
-`LastRefreshedAt` (UTC) and `AnidbAnimeID`. The core keeps that time on the
-stored entry, read back as `LastRefreshedAt` on series, movies, collections,
-people, studios and networks; you never set it. A resolver's own entries
-answer it themselves, or `null`.
+does not count as a refresh), `Reason` (`Scheduled`, `Linked` or `Requested`)
+and `LastRefreshedAt` (UTC). The core keeps that time on the stored entry, read
+back as `LastRefreshedAt` on series, movies, collections, people, studios and
+networks; you never set it. A resolver's own entries answer it themselves, or
+`null`.
 
 Your options carry no force flag. Before calling you the core:
 
@@ -380,9 +380,9 @@ Your options carry no force flag. Before calling you the core:
   is `Requested`.
 
 Throw when a refresh fails: it is logged, the entry keeps its last refresh
-time, the anime's other entries still refresh, and the job retries. After a
-refresh, the core syncs the series' episode links and queues your image job
-unless it was a quick one.
+time, and the job retries. Each entry is its own job, so the anime's other
+entries refresh regardless. After a refresh, the core syncs the series' episode
+links and queues your image job unless it was a quick one.
 
 ## The core's jobs
 
@@ -390,7 +390,7 @@ You write no queue code. The core registers one job type per provider:
 
 | Job | Calls | Queued by |
 |---|---|---|
-| `RefreshMetadataJob<TProvider>` | Your refresh calls for what an anime links to, or the one entry asked for | AniDB telling the core about an anime, `RefreshForAnime`, `RefreshEntry`, the search job after it linked something, the refresh actions |
+| `RefreshMetadataJob<TProvider>` | Your refresh call for one series, film or collection; a refresh for an anime queues one job per linked entry | AniDB telling the core about an anime, `RefreshForAnime`, `RefreshEntry`, the search job after it linked something, the refresh actions |
 | `SearchMetadataJob<TProvider>` | `IMetadataAutoLinkingProvider.FindAutoLinks`, then links what you took | An anime not linked on your source, `IMetadataLinkingService.AutoLink`, the search actions |
 | `DownloadMetadataImagesJob<TProvider>` | `IMetadataImageProvider.GetImages` for each entity under the entry | A refresh asking for images, `IMetadataRefreshService.DownloadImages`, the image actions |
 | `RefreshMetadataEntityJob<TProvider>` | `IMetadataEntityProvider.RefreshEntity` for one entry | A store write naming a stub or stale entry, `RefreshEntry`, the "Refresh Missing and Stale People, Studios, Networks and Collections" action |
