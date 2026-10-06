@@ -1466,7 +1466,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 100, "ALTER TABLE `AniDB_Anime` ADD COLUMN `PreferredOrderingID` VARCHAR(256) NULL;"),
         new(194, 101, "ALTER TABLE `AniDB_Episode` ADD COLUMN `IsHidden` BIT NOT NULL DEFAULT 0;"),
         new(194, 102, "ALTER TABLE `TMDB_Show` ADD COLUMN `PreferredOrderingID` VARCHAR(256) NULL;"),
-        new(194, 103, "UPDATE `TMDB_Show` SET `PreferredOrderingID` = CONCAT('tmdb://ordering/', `PreferredAlternateOrderingID`) WHERE `PreferredAlternateOrderingID` <> '' AND `PreferredAlternateOrderingID` <> CAST(`TmdbShowID` AS CHAR);"),
+        new(194, 103, "UPDATE `TMDB_Show` SET `PreferredOrderingID` = CONCAT('tmdb://ordering/', `PreferredAlternateOrderingID`) WHERE `PreferredAlternateOrderingID` <> '' AND CAST(`PreferredAlternateOrderingID` AS BINARY) <> CAST(`TmdbShowID` AS BINARY);"),
         new(194, 104, "ALTER TABLE `TMDB_Show` DROP COLUMN `PreferredAlternateOrderingID`;"),
         new(194, 105, "CREATE TABLE `Metadata_ContentRating` (`Metadata_ContentRatingID` INT NOT NULL AUTO_INCREMENT, `Source` TINYINT UNSIGNED NOT NULL, `EntityType` TINYINT UNSIGNED NOT NULL, `EntityID` VARCHAR(128) NOT NULL, `CountryCode` VARCHAR(32) NOT NULL, `LanguageCode` VARCHAR(32) NOT NULL, `Rating` VARCHAR(128) NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`Metadata_ContentRatingID`));"),
         new(194, 106, "CREATE UNIQUE INDEX `UIX_Metadata_ContentRating_Country` ON `Metadata_ContentRating`(`Source`, `EntityType`, `EntityID`, `CountryCode`);"),
