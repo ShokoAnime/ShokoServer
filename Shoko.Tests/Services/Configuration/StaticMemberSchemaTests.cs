@@ -29,20 +29,24 @@ public class StaticMemberSchemaTests
         public int Value { get; set; }
     }
 
-    private static JObject Schema(Type type)
-        => JObject.Parse(
-            new ShokoJsonSchemaGenerator(new JsonSerializerSettings { Converters = [new StringEnumConverter()] }, new JsonSerializerOptions())
-                .GetSchemaForType(type)
-                .Schema
-                .ToJson()
-        );
+    private static WrappedJsonSchema Generate(Type type)
+        => new ShokoJsonSchemaGenerator(new JsonSerializerSettings { Converters = [new StringEnumConverter()] }, new JsonSerializerOptions())
+            .GetSchemaForType(type);
 
-    private static string[] Structure(JObject schema)
-        => [.. ((JObject)schema["x-uiDefinition"]!["structure"]!).Properties().Select(property => property.Name)];
+    private static JObject Schema(Type type)
+        => JObject.Parse(Generate(type).Schema.ToJson());
+
+    private static string[] Structure(Type type)
+    {
+        // The authored member order lives on the typed builders now; the
+        // `x-uiDefinition` bag only carries what the validator reads back.
+        var wrapped = Generate(type);
+        return [.. wrapped.UiBuilders[wrapped.Schema].Structure.Select(entry => entry.Name)];
+    }
 
     [Fact]
     public void TheStructureListsOnlyTheInstanceSettings()
-        => Assert.Equal([nameof(ConfigurationWithStatics.Value)], Structure(Schema(typeof(ConfigurationWithStatics))));
+        => Assert.Equal([nameof(ConfigurationWithStatics.Value)], Structure(typeof(ConfigurationWithStatics)));
 
     [Fact]
     public void TheAiringScheduleSettingsListOnlyTheirSettingsWithTheirLimits()
@@ -50,8 +54,8 @@ public class StaticMemberSchemaTests
         var schema = Schema(typeof(AiringScheduleServiceSettings));
         var properties = ((JObject)schema["properties"]!).Properties().Select(property => property.Name).ToHashSet();
 
-        Assert.All(Structure(schema), name => Assert.Contains(name, properties));
-        Assert.DoesNotContain(Structure(schema), name => name.StartsWith("Minimum") || name.StartsWith("Maximum") || name.StartsWith("Default"));
+        Assert.All(Structure(typeof(AiringScheduleServiceSettings)), name => Assert.Contains(name, properties));
+        Assert.DoesNotContain(Structure(typeof(AiringScheduleServiceSettings)), name => name.StartsWith("Minimum") || name.StartsWith("Maximum") || name.StartsWith("Default"));
         Assert.Equal(
             (AiringScheduleServiceSettings.MinimumSweepBudgetSeconds, AiringScheduleServiceSettings.MaximumSweepBudgetSeconds),
             (schema["properties"]!["SweepBudgetSeconds"]!["minimum"]!.Value<int>(), schema["properties"]!["SweepBudgetSeconds"]!["maximum"]!.Value<int>())

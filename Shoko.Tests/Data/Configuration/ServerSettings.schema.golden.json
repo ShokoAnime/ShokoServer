@@ -211,19 +211,6 @@
             "$ref": "#/definitions/ImageTemplateUrl"
           }
         },
-        "MetadataSourceDefaults": {
-          "title": "Metadata Source Image Defaults",
-          "description": "Which images to download for a metadata source that has no settings of its own in MetadataSources.",
-          "$ref": "#/definitions/MetadataImage"
-        },
-        "MetadataSources": {
-          "title": "Metadata Source Images",
-          "type": "array",
-          "description": "Which images to download for each plugin metadata source, keyed by source, in place of MetadataSourceDefaults.",
-          "items": {
-            "$ref": "#/definitions/MetadataSourceImage"
-          }
-        },
         "AutoPurge": {
           "title": "Auto Purge Orphaned Images",
           "type": "boolean",
@@ -256,209 +243,6 @@
             "null",
             "string"
           ]
-        }
-      }
-    },
-    "MetadataImage": {
-      "type": "object",
-      "description": "Which images to download for a metadata source that has a provider, per image type.",
-      "properties": {
-        "ImageLanguageOrder": {
-          "title": "Image Language Order",
-          "type": "array",
-          "description": "Image language preference order, in text form for storage. \"main\" is the entry's original language, and \"none\" an image without text.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "AutoDownloadBackdrops": {
-          "title": "Auto Download Backdrops",
-          "type": "boolean",
-          "description": "Automatically download backdrops, up to MaxAutoBackdrops per entity."
-        },
-        "MaxAutoBackdrops": {
-          "title": "Max Auto Backdrops",
-          "type": "integer",
-          "description": "The maximum number of backdrops to download for each entity. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadPosters": {
-          "title": "Auto Download Posters",
-          "type": "boolean",
-          "description": "Automatically download posters, up to MaxAutoPosters per entity."
-        },
-        "MaxAutoPosters": {
-          "title": "Max Auto Posters",
-          "type": "integer",
-          "description": "The maximum number of posters to download for each entity. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadLogos": {
-          "title": "Auto Download Logos",
-          "type": "boolean",
-          "description": "Automatically download logos, up to MaxAutoLogos per entity."
-        },
-        "MaxAutoLogos": {
-          "title": "Max Auto Logos",
-          "type": "integer",
-          "description": "The maximum number of logos to download for each entity. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadBanners": {
-          "title": "Auto Download Banners",
-          "type": "boolean",
-          "description": "Automatically download banners, up to MaxAutoBanners per entity."
-        },
-        "MaxAutoBanners": {
-          "title": "Max Auto Banners",
-          "type": "integer",
-          "description": "The maximum number of banners to download for each entity. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadThumbnails": {
-          "title": "Auto Download Thumbnails",
-          "type": "boolean",
-          "description": "Automatically download episode thumbnails, up to MaxAutoThumbnails per episode."
-        },
-        "MaxAutoThumbnails": {
-          "title": "Max Auto Thumbnails",
-          "type": "integer",
-          "description": "The maximum number of thumbnails to download for each episode. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadStaffImages": {
-          "title": "Auto Download Staff Images",
-          "type": "boolean",
-          "description": "Automatically download images of creators and characters, up to MaxAutoStaffImages per person."
-        },
-        "MaxAutoStaffImages": {
-          "title": "Max Auto Staff Images",
-          "type": "integer",
-          "description": "The maximum number of images to download for each creator or character. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadStudioImages": {
-          "title": "Auto Download Studio Images",
-          "type": "boolean",
-          "description": "Automatically download studio images."
-        }
-      }
-    },
-    "MetadataSourceImage": {
-      "type": "object",
-      "description": "Which images to download for one metadata source with a provider, in place of the shared defaults.",
-      "required": [
-        "Source"
-      ],
-      "properties": {
-        "ImageLanguageOrder": {
-          "title": "Image Language Order",
-          "type": "array",
-          "description": "Image language preference order, in text form for storage. \"main\" is the entry's original language, and \"none\" an image without text.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "AutoDownloadBackdrops": {
-          "title": "Auto Download Backdrops",
-          "type": "boolean",
-          "description": "Automatically download backdrops, up to MaxAutoBackdrops per entity."
-        },
-        "MaxAutoBackdrops": {
-          "title": "Max Auto Backdrops",
-          "type": "integer",
-          "description": "The maximum number of backdrops to download for each entity. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadPosters": {
-          "title": "Auto Download Posters",
-          "type": "boolean",
-          "description": "Automatically download posters, up to MaxAutoPosters per entity."
-        },
-        "MaxAutoPosters": {
-          "title": "Max Auto Posters",
-          "type": "integer",
-          "description": "The maximum number of posters to download for each entity. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadLogos": {
-          "title": "Auto Download Logos",
-          "type": "boolean",
-          "description": "Automatically download logos, up to MaxAutoLogos per entity."
-        },
-        "MaxAutoLogos": {
-          "title": "Max Auto Logos",
-          "type": "integer",
-          "description": "The maximum number of logos to download for each entity. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadBanners": {
-          "title": "Auto Download Banners",
-          "type": "boolean",
-          "description": "Automatically download banners, up to MaxAutoBanners per entity."
-        },
-        "MaxAutoBanners": {
-          "title": "Max Auto Banners",
-          "type": "integer",
-          "description": "The maximum number of banners to download for each entity. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadThumbnails": {
-          "title": "Auto Download Thumbnails",
-          "type": "boolean",
-          "description": "Automatically download episode thumbnails, up to MaxAutoThumbnails per episode."
-        },
-        "MaxAutoThumbnails": {
-          "title": "Max Auto Thumbnails",
-          "type": "integer",
-          "description": "The maximum number of thumbnails to download for each episode. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadStaffImages": {
-          "title": "Auto Download Staff Images",
-          "type": "boolean",
-          "description": "Automatically download images of creators and characters, up to MaxAutoStaffImages per person."
-        },
-        "MaxAutoStaffImages": {
-          "title": "Max Auto Staff Images",
-          "type": "integer",
-          "description": "The maximum number of images to download for each creator or character. Set to `0` to disable the limit.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadStudioImages": {
-          "title": "Auto Download Studio Images",
-          "type": "boolean",
-          "description": "Automatically download studio images."
-        },
-        "Source": {
-          "title": "Source",
-          "type": "string",
-          "description": "The source these settings are for.",
-          "minLength": 1
         }
       }
     },
@@ -1205,7 +989,7 @@
         "PurgeOrphanedAfterDays": {
           "title": "Purge Orphaned Metadata After (days)",
           "type": "integer",
-          "description": "Number of days a creator, character, studio or network of a plugin source may go unused before it is purged. Purged daily, and when the purge action is run.",
+          "description": "Number of days a creator, character, studio, network or image may go unused before it is purged. Purged daily, and the default for the purge actions.",
           "format": "int32",
           "default": 7,
           "maximum": 365.0,
@@ -1231,6 +1015,180 @@
             "envVar": "METADATA_AUTO_PURGE_UNLINKED_AFTER_DAYS",
             "envVarOverridable": false
           }
+        },
+        "SourceDefaults": {
+          "title": "Metadata Source Defaults",
+          "description": "What the core does with every plugin source that has no value of its own in Sources.",
+          "$ref": "#/definitions/MetadataSourceDefaults"
+        },
+        "Sources": {
+          "title": "Metadata Sources",
+          "type": "array",
+          "description": "What the core does with each plugin source, keyed by source, in place of SourceDefaults.",
+          "items": {
+            "$ref": "#/definitions/MetadataSourceOverrides"
+          }
+        }
+      }
+    },
+    "MetadataSourceDefaults": {
+      "type": "object",
+      "description": "What the core does with every plugin metadata source that has no value of its own in Sources.",
+      "properties": {
+        "EpisodeMatchLookAheadDays": {
+          "title": "Match Episodes Airing Within (days)",
+          "type": "integer",
+          "description": "Number of days after today an AniDB episode may air and still be matched to a source's episode, counted from its earliest showing. Set to `0` to match only what aired by today.",
+          "format": "int32",
+          "default": 7,
+          "maximum": 365.0,
+          "minimum": 0.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "METADATA_EPISODE_MATCH_LOOK_AHEAD_DAYS",
+            "envVarOverridable": false
+          }
+        },
+        "Images": {
+          "title": "Images",
+          "description": "Which images to download, per image type.",
+          "$ref": "#/definitions/MetadataImage"
+        }
+      }
+    },
+    "MetadataImage": {
+      "type": "object",
+      "description": "Which images to download for a metadata source that has a provider, per image type.",
+      "properties": {
+        "ImageLanguageOrder": {
+          "title": "Image Language Order",
+          "type": "array",
+          "description": "Image language preference order, in text form for storage. \"main\" is the entry's original language, and \"none\" an image without text.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "AutoDownloadBackdrops": {
+          "title": "Auto Download Backdrops",
+          "type": "boolean",
+          "description": "Automatically download backdrops, up to MaxAutoBackdrops per entity."
+        },
+        "MaxAutoBackdrops": {
+          "title": "Max Auto Backdrops",
+          "type": "integer",
+          "description": "The maximum number of backdrops to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadPosters": {
+          "title": "Auto Download Posters",
+          "type": "boolean",
+          "description": "Automatically download posters, up to MaxAutoPosters per entity."
+        },
+        "MaxAutoPosters": {
+          "title": "Max Auto Posters",
+          "type": "integer",
+          "description": "The maximum number of posters to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadLogos": {
+          "title": "Auto Download Logos",
+          "type": "boolean",
+          "description": "Automatically download logos, up to MaxAutoLogos per entity."
+        },
+        "MaxAutoLogos": {
+          "title": "Max Auto Logos",
+          "type": "integer",
+          "description": "The maximum number of logos to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadBanners": {
+          "title": "Auto Download Banners",
+          "type": "boolean",
+          "description": "Automatically download banners, up to MaxAutoBanners per entity."
+        },
+        "MaxAutoBanners": {
+          "title": "Max Auto Banners",
+          "type": "integer",
+          "description": "The maximum number of banners to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadThumbnails": {
+          "title": "Auto Download Thumbnails",
+          "type": "boolean",
+          "description": "Automatically download episode thumbnails, up to MaxAutoThumbnails per episode."
+        },
+        "MaxAutoThumbnails": {
+          "title": "Max Auto Thumbnails",
+          "type": "integer",
+          "description": "The maximum number of thumbnails to download for each episode. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadStaffImages": {
+          "title": "Auto Download Staff Images",
+          "type": "boolean",
+          "description": "Automatically download images of creators and characters, up to MaxAutoStaffImages per person."
+        },
+        "MaxAutoStaffImages": {
+          "title": "Max Auto Staff Images",
+          "type": "integer",
+          "description": "The maximum number of images to download for each creator or character. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadStudioImages": {
+          "title": "Auto Download Studio Images",
+          "type": "boolean",
+          "description": "Automatically download studio images."
+        }
+      }
+    },
+    "MetadataSourceOverrides": {
+      "type": "object",
+      "description": "What the core does with one plugin metadata source in place of the shared defaults. A value left empty uses the default.",
+      "required": [
+        "Source"
+      ],
+      "properties": {
+        "Source": {
+          "title": "Source",
+          "type": "string",
+          "description": "The source these settings are for.",
+          "minLength": 1
+        },
+        "EpisodeMatchLookAheadDays": {
+          "title": "Match Episodes Airing Within (days)",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Number of days after today an AniDB episode may air and still be matched to one of the source's episodes, or empty to use the default.",
+          "format": "int32",
+          "maximum": 365.0,
+          "minimum": 0.0
+        },
+        "Images": {
+          "title": "Images",
+          "description": "Which images to download for the source, per image type, or empty to use the default.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/MetadataImage"
+            }
+          ]
         }
       }
     },
@@ -1445,6 +1403,20 @@
             "elementType": "auto",
             "requiresRestart": true,
             "envVar": "QUEUE_MAX_WORKERS",
+            "envVarOverridable": false
+          }
+        },
+        "DefaultPoolMaxWorkers": {
+          "title": "Default Pool Max Workers",
+          "type": "integer",
+          "description": "Maximum concurrent workers in the catch-all Default pool, for the jobs without a pool of their own. 0 matches the max total workers, and a higher value is capped to it.",
+          "format": "int32",
+          "maximum": 2147483647.0,
+          "minimum": 0.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "QUEUE_DEFAULT_POOL_MAX_WORKERS",
             "envVarOverridable": false
           }
         },
