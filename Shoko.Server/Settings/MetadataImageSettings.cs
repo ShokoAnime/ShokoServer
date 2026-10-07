@@ -4,7 +4,6 @@ using System.Linq;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
