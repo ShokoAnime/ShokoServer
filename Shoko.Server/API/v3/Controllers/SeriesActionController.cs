@@ -11,6 +11,7 @@ using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.UI;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.Repositories.Cached;
@@ -69,15 +70,18 @@ public class SeriesActionController(IActionService actionService, AnimeSeriesRep
     /// <param name="seriesID">Series ID.</param>
     /// <param name="actionID">Action ID.</param>
     /// <param name="parameters">Optional. The parameters entered so far.</param>
+    /// <param name="target">The part of the member to list for: its values by default, or <c>Keys</c> for a dictionary's keys.</param>
     /// <param name="path">Path to the parameter, the same path a configuration's custom action is invoked with.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns>The options, in the order the provider listed them.</returns>
     [HttpPost("{actionID:guid}/Options")]
+    [HttpPost("{actionID:guid}/Options/{target}")]
     public async Task<ActionResult<IReadOnlyList<UiOption>>> GetOptions(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] Guid actionID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JObject? parameters,
         [FromQuery] string path = "",
+        [FromRoute] OptionsTarget target = OptionsTarget.Values,
         CancellationToken token = default
     )
     {
@@ -93,7 +97,7 @@ public class SeriesActionController(IActionService actionService, AnimeSeriesRep
 
         try
         {
-            return Ok(await actionService.GetParameterOptionsAsync(actionID, seriesEntity, path, parameters.ToParameters(), User, token));
+            return Ok(await actionService.GetParameterOptionsAsync(actionID, seriesEntity, path, target, parameters.ToParameters(), User, token));
         }
         catch (GenericValidationException ex)
         {

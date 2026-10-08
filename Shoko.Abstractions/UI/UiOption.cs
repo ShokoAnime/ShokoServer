@@ -6,6 +6,10 @@ namespace Shoko.Abstractions.UI;
 /// One value the server offers for an element whose
 /// <see cref="UiElement.OptionsRoute"/> is set.
 /// </summary>
+/// <remarks>
+/// Options keep the order the provider listed them in, duplicates included,
+/// with nulls left out.
+/// </remarks>
 public class UiOption
 {
     /// <summary>
@@ -15,7 +19,8 @@ public class UiOption
     public JToken? Value { get; init; }
 
     /// <summary>
-    /// The label to show for the value, or <c>null</c> to show the value itself.
+    /// The label to show for the value: the provider's own, or the value in
+    /// text form when it gave none.
     /// </summary>
-    public string? Label { get; init; }
+    public required string Label { get; init; }
 }

@@ -1,15 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Newtonsoft.Json.Linq;
+using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Components;
 using Shoko.Abstractions.UI.Elements;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Services.Configuration;
 using Xunit;
 
@@ -31,27 +35,40 @@ public class UiOptionsProviderTests
         var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(OptionsConfiguration));
         var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Options", null, wrapped, "route");
         var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
-        var row = Assert.IsType<UiSectionContainerElement>(Assert.IsType<UiListElement>(root.Items["Rows"]).Item);
+        var rows = Assert.IsType<UiListElement>(root.Items["Rows"]);
+        var row = Assert.IsType<UiSectionContainerElement>(rows.Item);
+        var tags = Assert.IsType<UiListElement>(root.Items["Tags"]);
+        var weights = Assert.IsType<UiRecordElement>(root.Items["Weights"]);
+        var groups = Assert.IsType<UiRecordElement>(root.Items["Groups"]);
 
+        // Each route sits on the element that renders the choice: a list's
+        // entry, a dictionary's key or value, or the member itself.
         Assert.All(
-            new[] { root.Items["Port"], root.Items["Mode"], root.Items["Tags"], root.Items["Tag"], row.Items["Name"] },
+            new[] { root.Items["Port"], root.Items["Mode"], tags.Item, root.Items["Tag"], row.Items["Name"], weights.Item, Assert.IsType<UiListElement>(groups.Item).Item },
             element => Assert.Equal("route", element.OptionsRoute)
         );
-        Assert.Null(root.Items["Plain"].OptionsRoute);
-        Assert.Null(row.Items["Prefix"].OptionsRoute);
+        Assert.Equal("route/Keys", weights.KeyItem.OptionsRoute);
+        Assert.All(
+            new[] { root.Items["Plain"], row.Items["Prefix"], tags, rows, weights, groups.KeyItem },
+            element => Assert.Null(element.OptionsRoute)
+        );
     }
 
     [Theory]
     [InlineData(typeof(MissingMemberConfiguration), "does not have")]
     [InlineData(typeof(MixedMembersConfiguration), "whose options are Int32 and String")]
-    [InlineData(typeof(ClaimedTwiceConfiguration), "already provides for")]
+    [InlineData(typeof(ClaimedTwiceConfiguration), "whose values Value already provides for")]
     [InlineData(typeof(WrongElementConfiguration), "rather than a collection of Int32")]
-    [InlineData(typeof(DictionaryMemberConfiguration), "is a dictionary")]
+    [InlineData(typeof(KeysOfAScalarConfiguration), "is not a dictionary, so it has no keys")]
+    [InlineData(typeof(WrongKeyTypeConfiguration), "rather than a collection of String")]
+    [InlineData(typeof(ComplexOptionConfiguration), "neither a primitive nor convertible to and from one")]
+    [InlineData(typeof(ConvertedForTextConfiguration), "returns TestColour[] rather than a collection of String")]
+    [InlineData(typeof(TextForConvertedConfiguration), "returns String[] rather than a collection of TestColour")]
     public void AProviderThatDoesNotFitFailsGeneration(Type type, string fault)
     {
         var exception = Assert.Throws<NotSupportedException>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type));
 
-        Assert.Contains($"The options provider {type.Name}.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains($"The options provider '{type.Name}.", exception.Message, StringComparison.Ordinal);
         Assert.Contains(fault, exception.Message, StringComparison.Ordinal);
     }
 
@@ -82,7 +99,41 @@ public class UiOptionsProviderTests
     {
         var options = await ListAsync(new OptionsConfiguration(), path);
 
-        Assert.Equal([("a", "Alpha"), ("b", null)], options.Select(x => (x.Value!.Value<string>(), x.Label)));
+        Assert.Equal([("a", "Alpha"), ("b", "b")], options.Select(x => (x.Value!.Value<string>(), x.Label)));
+    }
+
+    [Fact]
+    public async Task ADictionaryListsItsKeysAndValuesApartWithoutNulls()
+    {
+        var keys = await ListAsync(new OptionsConfiguration(), "Weights", OptionsTarget.Keys);
+        var values = await ListAsync(new OptionsConfiguration(), "Weights");
+
+        // A value without a label is labelled with its own text.
+        Assert.Equal([("first", "first"), ("first", "first")], keys.Select(x => (x.Value!.Value<string>(), x.Label)));
+        Assert.Equal([("1", "1"), ("2", "2")], values.Select(x => (x.Value!.ToString(), x.Label)));
+    }
+
+    [Theory]
+    [InlineData(nameof(RefusingConfiguration.Sync))]
+    [InlineData(nameof(RefusingConfiguration.Async))]
+    public async Task AProviderRefusalSurfacesAsThrown(string path)
+    {
+        var configuration = new RefusingConfiguration();
+        var (owner, method) = UiOptionsProvider.Resolve(configuration, path, OptionsTarget.Values, isNewtonsoftJson: true);
+
+        var exception = await Assert.ThrowsAsync<GenericValidationException>(
+            () => UiOptionsProvider.InvokeAsync(method, Mock.Of<IPluginManager>(), owner, [], value => JToken.FromObject(value!))
+        );
+
+        Assert.Equal([path], exception.ValidationErrors.Keys);
+    }
+
+    [Fact]
+    public async Task APluginTypeWithAConverterIsLabelledThroughIt()
+    {
+        var options = await ListAsync(new OptionsConfiguration(), "Colour");
+
+        Assert.Equal(["#ff0000"], options.Select(x => x.Label));
     }
 
     [Fact]
@@ -101,11 +152,11 @@ public class UiOptionsProviderTests
     [InlineData("Rows[3].Name")]
     [InlineData("Rows[0]")]
     public void APathNotEndingInAProvidedMemberIsRejected(string path)
-        => Assert.ThrowsAny<ArgumentException>(() => UiOptionsProvider.Resolve(new OptionsConfiguration { Rows = [new()] }, path, isNewtonsoftJson: true));
+        => Assert.ThrowsAny<ArgumentException>(() => UiOptionsProvider.Resolve(new OptionsConfiguration { Rows = [new()] }, path, OptionsTarget.Values, isNewtonsoftJson: true));
 
-    private static async Task<IReadOnlyList<UiOption>> ListAsync(OptionsConfiguration configuration, string path)
+    private static async Task<IReadOnlyList<UiOption>> ListAsync(OptionsConfiguration configuration, string path, OptionsTarget target = OptionsTarget.Values)
     {
-        var (owner, method) = UiOptionsProvider.Resolve(configuration, path, isNewtonsoftJson: true);
+        var (owner, method) = UiOptionsProvider.Resolve(configuration, path, target, isNewtonsoftJson: true);
         return await UiOptionsProvider.InvokeAsync(
             method,
             Mock.Of<IPluginManager>(),
@@ -140,6 +191,15 @@ public class UiOptionsProviderTests
         /// <summary>Entries with options of their own.</summary>
         public List<OptionsRow> Rows { get; set; } = [];
 
+        /// <summary>A plugin type converted to and from text.</summary>
+        public TestColour Colour { get; set; } = new(0, 0, 0);
+
+        /// <summary>A dictionary whose keys and values have providers of their own.</summary>
+        public Dictionary<string, int?> Weights { get; set; } = [];
+
+        /// <summary>A dictionary of lists, whose entries share the values' provider.</summary>
+        public Dictionary<string, List<int>> Groups { get; set; } = [];
+
         /// <summary>Lists ports around the edited one.</summary>
         [OptionsProvider(nameof(Port))]
         public int[] ListPorts()
@@ -149,6 +209,24 @@ public class UiOptionsProviderTests
         [OptionsProvider(nameof(Mode))]
         public Task<IReadOnlyList<int>> ListModesAsync()
             => Task.FromResult<IReadOnlyList<int>>([1, 2]);
+
+        /// <summary>Lists colours.</summary>
+        [OptionsProvider(nameof(Colour))]
+        public static TestColour[] ListColours()
+            => [new(255, 0, 0)];
+
+        /// <summary>Lists dictionary keys, duplicates kept.</summary>
+        [OptionsProvider(nameof(Weights), Target = OptionsTarget.Keys)]
+        public string[] ListWeightKeys()
+            => ["first", "first"];
+
+        /// <summary>Lists dictionary values, a null among them.</summary>
+        [OptionsProvider(nameof(Weights), nameof(Groups))]
+        public int?[] ListWeightValues()
+            => [1, null, 2];
+
+        /// <summary>A method of the same name, which is not registered and so not checked.</summary>
+        public void ListWeightValues(int unrelated) { }
 
         /// <summary>Lists tags.</summary>
         [OptionsProvider(nameof(Tags), nameof(Tag))]
@@ -227,17 +305,126 @@ public class UiOptionsProviderTests
             => [];
     }
 
-    /// <summary>Asks for options on a dictionary.</summary>
-    public class DictionaryMemberConfiguration
+    /// <summary>Asks for the keys of a scalar.</summary>
+    public class KeysOfAScalarConfiguration
     {
         /// <summary>The member.</summary>
-        public Dictionary<string, int> Weights { get; set; } = [];
+        public int Number { get; set; }
 
-        /// <summary>Lists values.</summary>
-        [OptionsProvider(nameof(Weights))]
+        /// <summary>Lists keys.</summary>
+        [OptionsProvider(nameof(Number), Target = OptionsTarget.Keys)]
         public int[] Value()
             => [];
     }
 
+    /// <summary>Lists keys of the value type.</summary>
+    public class WrongKeyTypeConfiguration
+    {
+        /// <summary>The member.</summary>
+        public Dictionary<string, int> Weights { get; set; } = [];
+
+        /// <summary>Lists numbers for string keys.</summary>
+        [OptionsProvider(nameof(Weights), Target = OptionsTarget.Keys)]
+        public int[] Value()
+            => [];
+    }
+
+    /// <summary>Lists options of a type that cannot be told apart as text.</summary>
+    public class ComplexOptionConfiguration
+    {
+        /// <summary>The member.</summary>
+        public OptionsRow Row { get; set; } = new();
+
+        /// <summary>Lists rows.</summary>
+        [OptionsProvider(nameof(Row))]
+        public OptionsRow[] Value()
+            => [];
+    }
+
+    /// <summary>Lists a convertible type for a text member, which a conversion does not bridge.</summary>
+    public class ConvertedForTextConfiguration
+    {
+        /// <summary>The member.</summary>
+        public string Text { get; set; } = string.Empty;
+
+        /// <summary>Lists colours.</summary>
+        [OptionsProvider(nameof(Text))]
+        public TestColour[] Value()
+            => [];
+    }
+
+    /// <summary>Lists text for a convertible member, which a conversion does not bridge.</summary>
+    public class TextForConvertedConfiguration
+    {
+        /// <summary>The member.</summary>
+        public TestColour Colour { get; set; } = new(0, 0, 0);
+
+        /// <summary>Lists text.</summary>
+        [OptionsProvider(nameof(Colour))]
+        public string[] Value()
+            => [];
+    }
+
+    /// <summary>Providers refusing the draft, one sync and one async.</summary>
+    public class RefusingConfiguration
+    {
+        /// <summary>Refused synchronously.</summary>
+        public int Sync { get; set; }
+
+        /// <summary>Refused through a task.</summary>
+        public int Async { get; set; }
+
+        /// <summary>Refuses at once.</summary>
+        [OptionsProvider(nameof(Sync))]
+        public int[] ListSync()
+            => throw Refusal(nameof(Sync));
+
+        /// <summary>Refuses after awaiting.</summary>
+        [OptionsProvider(nameof(Async))]
+        public async Task<int[]> ListAsync()
+        {
+            await Task.Yield();
+            throw Refusal(nameof(Async));
+        }
+
+        private static GenericValidationException Refusal(string member)
+            => new("Refused.", new Dictionary<string, IReadOnlyList<string>> { [member] = ["Refused."] });
+    }
+
     #endregion
+}
+
+/// <summary>
+///   A plugin-defined colour, converted to and from <c>#rrggbb</c>.
+/// </summary>
+/// <param name="Red">The red channel.</param>
+/// <param name="Green">The green channel.</param>
+/// <param name="Blue">The blue channel.</param>
+[TypeConverter(typeof(TestColourConverter))]
+public sealed record TestColour(byte Red, byte Green, byte Blue);
+
+/// <summary>
+///   Converts a <see cref="TestColour"/> to and from <c>#rrggbb</c>.
+/// </summary>
+public sealed class TestColourConverter : TypeConverter
+{
+    /// <inheritdoc />
+    public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
+        => sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+
+    /// <inheritdoc />
+    public override bool CanConvertTo(ITypeDescriptorContext? context, Type? destinationType)
+        => destinationType == typeof(string) || base.CanConvertTo(context, destinationType);
+
+    /// <inheritdoc />
+    public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
+        => value is string text
+            ? new TestColour(Convert.ToByte(text[1..3], 16), Convert.ToByte(text[3..5], 16), Convert.ToByte(text[5..7], 16))
+            : base.ConvertFrom(context, culture, value);
+
+    /// <inheritdoc />
+    public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType)
+        => value is TestColour colour && destinationType == typeof(string)
+            ? $"#{colour.Red:x2}{colour.Green:x2}{colour.Blue:x2}"
+            : base.ConvertTo(context, culture, value, destinationType);
 }

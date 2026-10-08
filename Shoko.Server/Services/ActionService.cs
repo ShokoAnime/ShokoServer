@@ -21,6 +21,7 @@ using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
@@ -370,50 +371,55 @@ public class ActionService : IActionService
     public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default
-    ) => GetParameterOptionsCoreAsync(actionId, null, path, parameters, caller, token);
+    ) => GetParameterOptionsCoreAsync(actionId, null, path, target, parameters, caller, token);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
         IShokoGroup group,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default
-    ) => GetParameterOptionsCoreAsync(actionId, group, path, parameters, caller, token);
+    ) => GetParameterOptionsCoreAsync(actionId, group, path, target, parameters, caller, token);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
         IShokoSeries series,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default
-    ) => GetParameterOptionsCoreAsync(actionId, series, path, parameters, caller, token);
+    ) => GetParameterOptionsCoreAsync(actionId, series, path, target, parameters, caller, token);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
         IShokoEpisode episode,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default
-    ) => GetParameterOptionsCoreAsync(actionId, episode, path, parameters, caller, token);
+    ) => GetParameterOptionsCoreAsync(actionId, episode, path, target, parameters, caller, token);
 
     /// <inheritdoc />
     public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
         IVideo video,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default
-    ) => GetParameterOptionsCoreAsync(actionId, video, path, parameters, caller, token);
+    ) => GetParameterOptionsCoreAsync(actionId, video, path, target, parameters, caller, token);
 
     /// <summary>
     ///   The options entry point, scope-agnostic in the same way as
@@ -427,6 +433,7 @@ public class ActionService : IActionService
         Guid actionId,
         object? scopeEntity,
         string path,
+        OptionsTarget target,
         IReadOnlyDictionary<string, object?>? parameters,
         IUser? caller,
         CancellationToken token
@@ -442,7 +449,7 @@ public class ActionService : IActionService
         MethodInfo method;
         try
         {
-            (owner, method) = UiOptionsProvider.Resolve(probe!, path, isNewtonsoftJson: true);
+            (owner, method) = UiOptionsProvider.Resolve(probe!, path, target, isNewtonsoftJson: true);
         }
         catch (ArgumentException ex)
         {

@@ -33,7 +33,12 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         Diagnostics.NotAGenericDictionary,
         Diagnostics.UnusableCondition,
         Diagnostics.UnusableReactiveHandler,
-        Diagnostics.UnusableOptionsProvider);
+        Diagnostics.UnusableOptionsProviderMethod,
+        Diagnostics.UnknownOptionsMember,
+        Diagnostics.MemberTakesNoOptions,
+        Diagnostics.UnusableOptionType,
+        Diagnostics.OptionTypeMismatch,
+        Diagnostics.OptionsClaimedTwice);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -157,21 +162,23 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         if (known.OptionsProviderAttribute is null)
             return;
 
-        var claimed = new Dictionary<string, IMethodSymbol>(StringComparer.Ordinal);
+        // Keyed by member and part, since a dictionary's keys and values may
+        // each have a provider of their own.
+        var claimed = new Dictionary<(string Member, bool Keys), IMethodSymbol>();
         for (var current = owner; current is not null && current.SpecialType is not SpecialType.System_Object; current = current.BaseType)
         {
             foreach (var method in current.GetMembers().OfType<IMethodSymbol>())
             {
                 if (method.MethodKind is not MethodKind.Ordinary || ConfigurationMembers.FindAttribute(method, known.OptionsProviderAttribute) is not { } attribute)
                     continue;
-                if (GetOptionsProviderFault(method, attribute, owner, claimed, known) is not { } fault)
+                if (GetOptionsProviderFault(method, attribute, owner, claimed, known) is not var (rule, fault))
                     continue;
 
                 var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
                     ?? method.Locations.FirstOrDefault()
                     ?? Location.None;
                 Report(context, reported, Diagnostic.Create(
-                    Diagnostics.UnusableOptionsProvider,
+                    rule,
                     location,
                     $"{owner.Name}.{method.Name}",
                     fault));
@@ -179,18 +186,21 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private static string? GetOptionsProviderFault(
+    /// <summary>
+    /// The first thing wrong with a provider, and the rule it breaks.
+    /// </summary>
+    private static (DiagnosticDescriptor Rule, string Fault)? GetOptionsProviderFault(
         IMethodSymbol method,
         AttributeData attribute,
         INamedTypeSymbol owner,
-        Dictionary<string, IMethodSymbol> claimed,
+        Dictionary<(string Member, bool Keys), IMethodSymbol> claimed,
         KnownSymbols known
     )
     {
         if (method.DeclaredAccessibility is not Accessibility.Public)
-            return "is not public";
+            return (Diagnostics.UnusableOptionsProviderMethod, "is not public");
         if (method.IsGenericMethod)
-            return "is generic";
+            return (Diagnostics.UnusableOptionsProviderMethod, "is generic");
 
         // `params string[]` arrives as one array argument, however it was written.
         var argument = attribute.ConstructorArguments.FirstOrDefault();
@@ -198,7 +208,10 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
             ? argument.Values.Select(x => x.Value as string).ToList()
             : [];
         if (members.Count is 0)
-            return "names no members";
+            return (Diagnostics.UnknownOptionsMember, "names no members");
+
+        // `Target` is `OptionsTarget`, where `Keys` is 1 and the default `Values` is 0.
+        var forKeys = attribute.NamedArguments.Any(x => x.Key is "Target" && x.Value.Value is 1);
 
         ITypeSymbol? optionType = null;
         string? firstMember = null;
@@ -207,15 +220,20 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
             if (member is null)
                 return null;
             if (FindProperty(owner, member) is not { } property)
-                return $"names \"{member}\", which {owner.Name} does not have";
-            if (GetOptionType(property.Type, known, out var shapeFault) is not { } memberOptionType)
-                return shapeFault is null ? null : $"names \"{member}\", which {shapeFault}";
-            if (claimed.TryGetValue(member, out var other))
+                return (Diagnostics.UnknownOptionsMember, $"names \"{member}\", which {owner.Name} does not have");
+            if (GetOptionType(property.Type, forKeys, known, out var shapeFault) is not { } memberOptionType)
+                return shapeFault is null ? null : (Diagnostics.MemberTakesNoOptions, $"names \"{member}\", which {shapeFault}");
+            if (!IsAllowedOptionType(memberOptionType, known))
+            {
+                var typeName = memberOptionType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
+                return (Diagnostics.UnusableOptionType, $"names \"{member}\", whose options would be {typeName}, which is neither a primitive nor convertible to and from one");
+            }
+            if (claimed.TryGetValue((member, forKeys), out var other))
                 return SymbolEqualityComparer.Default.Equals(other, method)
-                    ? $"names \"{member}\" twice"
-                    : $"names \"{member}\", which {other.Name} already provides for";
+                    ? (Diagnostics.UnknownOptionsMember, $"names \"{member}\" twice")
+                    : (Diagnostics.OptionsClaimedTwice, $"names \"{member}\", whose {(forKeys ? "keys" : "values")} {other.Name} already provides for");
 
-            claimed[member] = method;
+            claimed[(member, forKeys)] = method;
             if (optionType is null)
             {
                 (optionType, firstMember) = (memberOptionType, member);
@@ -224,7 +242,7 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
             {
                 var firstName = optionType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
                 var otherName = memberOptionType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
-                return $"names \"{firstMember}\" and \"{member}\", whose options are {firstName} and {otherName}";
+                return (Diagnostics.OptionTypeMismatch, $"names \"{firstMember}\" and \"{member}\", whose options are {firstName} and {otherName}");
             }
         }
 
@@ -243,7 +261,9 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
 
         var returnName = returnType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
         var optionName = optionType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
-        return $"returns {returnName} rather than a collection of {optionName}";
+        return returned is null
+            ? (Diagnostics.UnusableOptionsProviderMethod, $"returns {returnName}, which is not a collection of options")
+            : (Diagnostics.OptionTypeMismatch, $"returns {returnName} rather than a collection of {optionName}");
     }
 
     /// <summary>
@@ -264,14 +284,90 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// The type of a single option for a member: a collection takes options for its entries, and a
-    /// nullable value for the type it wraps.
+    /// The type of a single option for a part of a member, the way
+    /// <c>UiOptionsProvider.GetOptionType</c> works it out: a list takes options for its entries, a
+    /// dictionary for its values or keys, and a nullable value for the type it wraps.
     /// </summary>
-    private static ITypeSymbol? GetOptionType(ITypeSymbol memberType, KnownSymbols known, out string? fault)
+    private static ITypeSymbol? GetOptionType(ITypeSymbol memberType, bool forKeys, KnownSymbols known, out string? fault)
     {
         fault = null;
         if (CollectionShape.Unwrap(memberType) is not { } type)
             return null;
+
+        var shape = CollectionShape.Classify(type, known);
+        if (shape.Kind is not CollectionKind.Dictionary)
+        {
+            if (forKeys)
+            {
+                fault = "is not a dictionary, so it has no keys";
+                return null;
+            }
+
+            return GetValueOptionType(type, known, out fault);
+        }
+
+        if (shape.Element is null)
+        {
+            fault = "is a dictionary without key and value types";
+            return null;
+        }
+
+        if (forKeys)
+            return CollectionShape.Unwrap(shape.Key);
+        if (CollectionShape.Unwrap(shape.Element) is not { } valueType)
+            return null;
+        if (CollectionShape.Classify(valueType, known).Kind is CollectionKind.Dictionary)
+        {
+            fault = "holds dictionaries, which have no single value to offer options for";
+            return null;
+        }
+
+        return GetValueOptionType(valueType, known, out fault);
+    }
+
+    /// <summary>
+    /// Mirrors <c>UiOptionsProvider.IsAllowedOptionType</c>: a primitive, a string, a decimal, an
+    /// enum, one of the common value types that round-trip through text, or a type implementing
+    /// <c>IParsable</c> of itself or carrying <c>[TypeConverter]</c>. Whether that converter really
+    /// handles text or a primitive is left to the startup check, which can run it.
+    /// </summary>
+    private static bool IsAllowedOptionType(ITypeSymbol type, KnownSymbols known)
+    {
+        if (type.TypeKind is TypeKind.Enum)
+            return true;
+        switch (type.SpecialType)
+        {
+            case SpecialType.System_Boolean or SpecialType.System_Char or SpecialType.System_String or SpecialType.System_Decimal or
+                SpecialType.System_SByte or SpecialType.System_Byte or SpecialType.System_Int16 or SpecialType.System_UInt16 or
+                SpecialType.System_Int32 or SpecialType.System_UInt32 or SpecialType.System_Int64 or SpecialType.System_UInt64 or
+                SpecialType.System_IntPtr or SpecialType.System_UIntPtr or SpecialType.System_Single or SpecialType.System_Double or
+                SpecialType.System_DateTime:
+                return true;
+        }
+
+        if (type.ToDisplayString() is "System.Guid" or "System.DateTimeOffset" or "System.DateOnly" or "System.TimeOnly" or "System.TimeSpan" or "System.Uri")
+            return true;
+
+        if (known.Parsable is not null && type.AllInterfaces.Any(x =>
+            SymbolEqualityComparer.Default.Equals(x.OriginalDefinition, known.Parsable) &&
+            SymbolEqualityComparer.Default.Equals(x.TypeArguments[0], type)))
+            return true;
+
+        for (var current = type; current is not null; current = current.BaseType)
+        {
+            if (known.TypeConverterAttribute is not null && ConfigurationMembers.HasAttribute(current, known.TypeConverterAttribute))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The option type of a value that is not a dictionary: itself, or a list's entries.
+    /// </summary>
+    private static ITypeSymbol? GetValueOptionType(ITypeSymbol type, KnownSymbols known, out string? fault)
+    {
+        fault = null;
         if (type is INamedTypeSymbol named && known.SelectComponent is not null &&
             SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, known.SelectComponent))
         {
@@ -281,13 +377,6 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
 
         if (type.SpecialType is SpecialType.System_String)
             return type;
-        if (CollectionShape.IsGenericDictionary(type, known) ||
-            (known.NonGenericDictionary is not null && CollectionShape.Implements(type, known.NonGenericDictionary)))
-        {
-            fault = "is a dictionary, which has no single value to offer options for";
-            return null;
-        }
-
         if (type is IArrayTypeSymbol array)
             return CollectionShape.Unwrap(array.ElementType);
         if (CollectionShape.FindEnumerable(type) is { } enumerable)
@@ -307,10 +396,10 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
             returnType = named.TypeArguments[0];
         if (returnType.SpecialType is SpecialType.System_String)
             return null;
-        if (returnType is IArrayTypeSymbol array)
-            return array.ElementType;
 
-        return CollectionShape.FindEnumerable(returnType)?.TypeArguments[0];
+        // A nullable entry is listed for the type it wraps, its nulls skipped.
+        var element = returnType is IArrayTypeSymbol array ? array.ElementType : CollectionShape.FindEnumerable(returnType)?.TypeArguments[0];
+        return element is null ? null : CollectionShape.Unwrap(element) ?? element;
     }
 
     /// <summary>

@@ -64,6 +64,16 @@ internal sealed class KnownSymbols
     public INamedTypeSymbol? SelectOption { get; }
 
     /// <summary>
+    /// <c>System.IParsable&lt;&gt;</c>, if the target framework has it.
+    /// </summary>
+    public INamedTypeSymbol? Parsable { get; }
+
+    /// <summary>
+    /// <c>System.ComponentModel.TypeConverterAttribute</c>.
+    /// </summary>
+    public INamedTypeSymbol? TypeConverterAttribute { get; }
+
+    /// <summary>
     /// <c>System.Threading.Tasks.Task&lt;&gt;</c>.
     /// </summary>
     public INamedTypeSymbol? GenericTask { get; }
@@ -132,6 +142,8 @@ internal sealed class KnownSymbols
         SelectComponent = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Components.SelectComponent`1");
         SelectOption = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Components.SelectOption`1");
         GenericTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+        Parsable = compilation.GetTypeByMetadataName("System.IParsable`1");
+        TypeConverterAttribute = compilation.GetTypeByMetadataName("System.ComponentModel.TypeConverterAttribute");
         GenericValueTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
         NonGenericDictionary = compilation.GetTypeByMetadataName("System.Collections.IDictionary");
         GenericDictionary = compilation.GetTypeByMetadataName("System.Collections.Generic.IDictionary`2");

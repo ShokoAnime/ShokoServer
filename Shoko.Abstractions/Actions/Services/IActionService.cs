@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.UI;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
 
@@ -99,6 +100,7 @@ public interface IActionService
     ///   The path of the parameter, the same path a configuration's custom
     ///   action is invoked with.
     /// </param>
+    /// <param name="target">The part of the parameter the options are for.</param>
     /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
     /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
     /// <param name="token">Cancellation token.</param>
@@ -113,6 +115,7 @@ public interface IActionService
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default
@@ -133,6 +136,7 @@ public interface IActionService
     ///   The path of the parameter, the same path a configuration's custom
     ///   action is invoked with.
     /// </param>
+    /// <param name="target">The part of the parameter the options are for.</param>
     /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
     /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
     /// <param name="token">Cancellation token.</param>
@@ -148,6 +152,7 @@ public interface IActionService
         Guid actionId,
         IShokoGroup group,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default
@@ -168,6 +173,7 @@ public interface IActionService
     ///   The path of the parameter, the same path a configuration's custom
     ///   action is invoked with.
     /// </param>
+    /// <param name="target">The part of the parameter the options are for.</param>
     /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
     /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
     /// <param name="token">Cancellation token.</param>
@@ -183,6 +189,7 @@ public interface IActionService
         Guid actionId,
         IShokoSeries series,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default
@@ -203,6 +210,7 @@ public interface IActionService
     ///   The path of the parameter, the same path a configuration's custom
     ///   action is invoked with.
     /// </param>
+    /// <param name="target">The part of the parameter the options are for.</param>
     /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
     /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
     /// <param name="token">Cancellation token.</param>
@@ -218,6 +226,7 @@ public interface IActionService
         Guid actionId,
         IShokoEpisode episode,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default
@@ -238,6 +247,7 @@ public interface IActionService
     ///   The path of the parameter, the same path a configuration's custom
     ///   action is invoked with.
     /// </param>
+    /// <param name="target">The part of the parameter the options are for.</param>
     /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
     /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
     /// <param name="token">Cancellation token.</param>
@@ -253,6 +263,7 @@ public interface IActionService
         Guid actionId,
         IVideo video,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default

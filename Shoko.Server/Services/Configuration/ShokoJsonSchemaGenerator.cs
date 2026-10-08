@@ -469,8 +469,9 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         if (info.GetAttribute<BadgeAttribute>(false) is { } badgeAttribute && !string.IsNullOrWhiteSpace(badgeAttribute.Name))
             builder.Badge = new UiBadgeBuilder { Name = badgeAttribute.Name, Theme = badgeAttribute.Theme };
 
-        if (UiOptionsProvider.GetProviders(info.MemberInfo.ReflectedType!).TryGetValue(info.Name, out var optionsProvider))
-            builder.OptionsProvider = optionsProvider.Name;
+        var optionsProviders = UiOptionsProvider.GetProviders(info.MemberInfo.ReflectedType!);
+        builder.HasValueOptions = optionsProviders.ContainsKey((info.Name, OptionsTarget.Values));
+        builder.HasKeyOptions = optionsProviders.ContainsKey((info.Name, OptionsTarget.Keys));
 
         if (contextualType.Type.IsGenericType && contextualType.Type.GetGenericTypeDefinition() == typeof(SelectComponent<>))
         {

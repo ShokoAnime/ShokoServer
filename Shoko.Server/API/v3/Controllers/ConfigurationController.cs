@@ -12,8 +12,10 @@ using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
@@ -459,15 +461,18 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     ///   Optional. The edited configuration, unsaved changes included. The
     ///   saved one is used when it is left out.
     /// </param>
+    /// <param name="target">The part of the member to list for: its values by default, or <c>Keys</c> for a dictionary's keys.</param>
     /// <param name="path">Path to the member, the same path a custom action is invoked with.</param>
     /// <returns>The options, in the order the provider listed them.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [HttpPost("{configID:guid}/Options")]
+    [HttpPost("{configID:guid}/Options/{target}")]
     public async Task<ActionResult<IReadOnlyList<UiOption>>> GetConfigurationOptions(
         Guid configID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body,
-        [FromQuery] string path = ""
+        [FromQuery] string path = "",
+        [FromRoute] OptionsTarget target = OptionsTarget.Values
     )
     {
         if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
@@ -479,9 +484,11 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
                 ? configurationService.RestoreMaskedSecrets(configInfo, incomingJson)
                 : configurationService.Serialize(configurationService.Load(configInfo));
             var config = configurationService.Deserialize(configInfo, json);
-            return Ok(await configurationService.GetOptionsAsync(configInfo, config, path, User, BaseUri));
+            return Ok(await configurationService.GetOptionsAsync(configInfo, config, path, target, User, BaseUri));
         }
-        catch (ConfigurationValidationException ex)
+        // The draft failing to load and the provider refusing it are both
+        // validation problems, the provider's keyed as it threw them.
+        catch (GenericValidationException ex)
         {
             return ValidationProblem(ex.ValidationErrors);
         }

@@ -77,6 +77,12 @@ public class ConfigurationTypeAnalyzerTests
                 Contains = 8,
             }
 
+            public enum OptionsTarget
+            {
+                Values = 0,
+                Keys = 1,
+            }
+
             public enum DisplayListType
             {
                 Auto = 0,
@@ -115,6 +121,7 @@ public class ConfigurationTypeAnalyzerTests
             {
                 public OptionsProviderAttribute(params string[] members) { Members = members; }
                 public string[] Members { get; }
+                public OptionsTarget Target { get; set; }
             }
 
             [System.AttributeUsage(System.AttributeTargets.Method)]
@@ -947,10 +954,15 @@ public class ConfigurationTypeAnalyzerTests
         await VerifyAsync("""
             #nullable enable
             using System.Collections.Generic;
+            using System.ComponentModel;
             using System.Threading.Tasks;
             using Shoko.Abstractions.Config;
             using Shoko.Abstractions.UI.Attributes;
             using Shoko.Abstractions.UI.Components;
+            using Shoko.Abstractions.UI.Enums;
+
+            [TypeConverter(typeof(TypeConverter))]
+            public record Colour(int Value);
 
             public class MyConfigBase
             {
@@ -965,14 +977,28 @@ public class ConfigurationTypeAnalyzerTests
                 public int? Mode { get; set; }
                 public List<string> Tags { get; set; } = new();
                 public string Name { get; set; } = "";
+                public Dictionary<string, List<int>> Weights { get; set; } = new();
+                public Colour Colour { get; set; } = new(0);
 
                 public override int[] ListPorts() => new int[0];
 
+                // Unregistered, so its shape is the class's own business.
+                public object ListPorts(string anything) => anything;
+
                 [OptionsProvider(nameof(Mode))]
-                public Task<IReadOnlyList<int>> ListModes() => Task.FromResult<IReadOnlyList<int>>(new int[0]);
+                public Task<IReadOnlyList<int?>> ListModes() => Task.FromResult<IReadOnlyList<int?>>(new int?[0]);
 
                 [OptionsProvider(nameof(Tags), nameof(Name))]
                 public static ValueTask<SelectOption<string>[]> ListTags() => new(new SelectOption<string>[0]);
+
+                [OptionsProvider(nameof(Weights), Target = OptionsTarget.Keys)]
+                public string[] ListWeightKeys() => new string[0];
+
+                [OptionsProvider(nameof(Weights))]
+                public int[] ListWeightValues() => new int[0];
+
+                [OptionsProvider(nameof(Colour))]
+                public Colour[] ListColours() => new Colour[0];
             }
             """);
     }
@@ -986,12 +1012,16 @@ public class ConfigurationTypeAnalyzerTests
             using System.Threading.Tasks;
             using Shoko.Abstractions.Config;
             using Shoko.Abstractions.UI.Attributes;
+            using Shoko.Abstractions.UI.Enums;
+
+            public class Row { public string Name { get; set; } = ""; }
 
             public class MyConfig : IConfiguration
             {
                 public int? Port { get; set; }
                 public string Name { get; set; } = "";
                 public Dictionary<string, long> Weights { get; set; } = new();
+                public Row Row { get; set; } = new();
 
                 [{|#0:OptionsProvider("Nope")|}]
                 public int[] ListMissing() => new int[0];
@@ -999,58 +1029,94 @@ public class ConfigurationTypeAnalyzerTests
                 [{|#1:OptionsProvider(nameof(Port))|}]
                 public Task<long[]> ListLongs() => Task.FromResult(new long[0]);
 
-                [{|#2:OptionsProvider(nameof(Port), nameof(Name))|}]
-                public int[] ListMixed() => new int[0];
+                [{|#2:OptionsProvider(nameof(Weights), Target = OptionsTarget.Keys)|}]
+                public int[] ListWeightKeys() => new int[0];
 
-                [{|#3:OptionsProvider(nameof(Weights))|}]
-                public long[] ListWeights() => new long[0];
+                [{|#3:OptionsProvider(nameof(Name), Target = OptionsTarget.Keys)|}]
+                public string[] ListNameKeys() => new string[0];
 
                 [{|#4:OptionsProvider(nameof(Port))|}]
                 public int[] ListAgain() => new int[0];
 
                 [{|#5:OptionsProvider(nameof(Name))|}]
                 private string[] ListHidden() => new string[0];
+
+                [{|#6:OptionsProvider(nameof(Row))|}]
+                public Row[] ListRows() => new Row[0];
+
+                [{|#7:OptionsProvider(nameof(Name))|}]
+                public string ListScalar() => "";
+
+                [{|#8:OptionsProvider(nameof(Name))|}]
+                public T[] ListGeneric<T>() => new T[0];
+
+                [{|#9:OptionsProvider|}]
+                public int[] ListNothing() => new int[0];
             }
             """,
-            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+            new DiagnosticResult(Diagnostics.UnknownOptionsMember)
                 .WithLocation(0)
                 .WithArguments("MyConfig.ListMissing", "names \"Nope\", which MyConfig does not have"),
-            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+            new DiagnosticResult(Diagnostics.OptionTypeMismatch)
                 .WithLocation(1)
                 .WithArguments("MyConfig.ListLongs", "returns Task<long[]> rather than a collection of int"),
-            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+            new DiagnosticResult(Diagnostics.OptionTypeMismatch)
                 .WithLocation(2)
-                .WithArguments("MyConfig.ListMixed", "names \"Port\", which ListLongs already provides for"),
-            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+                .WithArguments("MyConfig.ListWeightKeys", "returns int[] rather than a collection of string"),
+            new DiagnosticResult(Diagnostics.MemberTakesNoOptions)
                 .WithLocation(3)
-                .WithArguments("MyConfig.ListWeights", "names \"Weights\", which is a dictionary, which has no single value to offer options for"),
-            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+                .WithArguments("MyConfig.ListNameKeys", "names \"Name\", which is not a dictionary, so it has no keys"),
+            new DiagnosticResult(Diagnostics.OptionsClaimedTwice)
                 .WithLocation(4)
-                .WithArguments("MyConfig.ListAgain", "names \"Port\", which ListLongs already provides for"),
-            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+                .WithArguments("MyConfig.ListAgain", "names \"Port\", whose values ListLongs already provides for"),
+            new DiagnosticResult(Diagnostics.UnusableOptionsProviderMethod)
                 .WithLocation(5)
-                .WithArguments("MyConfig.ListHidden", "is not public"));
+                .WithArguments("MyConfig.ListHidden", "is not public"),
+            new DiagnosticResult(Diagnostics.UnusableOptionType)
+                .WithLocation(6)
+                .WithArguments("MyConfig.ListRows", "names \"Row\", whose options would be Row, which is neither a primitive nor convertible to and from one"),
+            new DiagnosticResult(Diagnostics.UnusableOptionsProviderMethod)
+                .WithLocation(7)
+                .WithArguments("MyConfig.ListScalar", "returns string, which is not a collection of options"),
+            new DiagnosticResult(Diagnostics.UnusableOptionsProviderMethod)
+                .WithLocation(8)
+                .WithArguments("MyConfig.ListGeneric", "is generic"),
+            new DiagnosticResult(Diagnostics.UnknownOptionsMember)
+                .WithLocation(9)
+                .WithArguments("MyConfig.ListNothing", "names no members"));
     }
 
     [Fact]
-    public async Task AnOptionsProviderNamingMembersOfDifferentTypes_IsReported()
+    public async Task AnOptionsProviderBridgingTypes_IsReported()
     {
+        // A conversion decides what an option may be, never which member it fits.
         await VerifyAsync("""
+            using System.ComponentModel;
             using Shoko.Abstractions.Config;
             using Shoko.Abstractions.UI.Attributes;
+
+            [TypeConverter(typeof(TypeConverter))]
+            public record Colour(int Value);
 
             public class MyConfig : IConfiguration
             {
                 public int Port { get; set; }
                 public string Name { get; set; } = "";
+                public Colour Colour { get; set; } = new(0);
 
                 [{|#0:OptionsProvider(nameof(Port), nameof(Name))|}]
                 public int[] ListMixed() => new int[0];
+
+                [{|#1:OptionsProvider(nameof(Colour))|}]
+                public string[] ListText() => new string[0];
             }
             """,
-            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+            new DiagnosticResult(Diagnostics.OptionTypeMismatch)
                 .WithLocation(0)
-                .WithArguments("MyConfig.ListMixed", "names \"Port\" and \"Name\", whose options are int and string"));
+                .WithArguments("MyConfig.ListMixed", "names \"Port\" and \"Name\", whose options are int and string"),
+            new DiagnosticResult(Diagnostics.OptionTypeMismatch)
+                .WithLocation(1)
+                .WithArguments("MyConfig.ListText", "returns string[] rather than a collection of Colour"));
     }
 
     [Fact]
