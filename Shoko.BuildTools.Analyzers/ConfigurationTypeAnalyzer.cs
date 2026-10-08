@@ -127,7 +127,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        foreach (var member in members)
+        // Only events may have been named, which leaves the members unset.
+        foreach (var member in members.IsDefault ? [] : members)
         {
             if (member.Value is not string path || string.IsNullOrWhiteSpace(path))
                 continue;

@@ -1052,4 +1052,22 @@ public class ConfigurationTypeAnalyzerTests
                 .WithLocation(0)
                 .WithArguments("MyConfig.ListMixed", "names \"Port\" and \"Name\", whose options are int and string"));
     }
+
+    [Fact]
+    public async Task AHandlerNamingOnlyEvents_IsNotReported()
+    {
+        await VerifyAsync("""
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.Config.Attributes;
+            using Shoko.Abstractions.Config.Enums;
+
+            public class MyConfig : IConfiguration
+            {
+                public string Path { get; set; } = "";
+
+                [ConfigurationAction(ConfigurationActionType.LiveEdit, Events = new[] { ReactiveEventType.Edited })]
+                public void OnEdit() { }
+            }
+            """);
+    }
 }
