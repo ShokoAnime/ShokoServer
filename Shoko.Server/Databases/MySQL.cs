@@ -1703,7 +1703,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 310, "ALTER TABLE `EpisodeAiring` MODIFY `EpisodeID` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
         new(194, 311, "CREATE INDEX `IX_EpisodeAiring_AiringScheduleID_SequenceNumber` ON `EpisodeAiring`(`AiringScheduleID`, `SequenceNumber`);"),
         new(194, 312, DatabaseFixes.AssignEpisodeAiringSequenceNumbers),
-        new(194, 313, DatabaseFixes.RepairExternalSubtitleLanguages),
+        new(195,   1, DatabaseFixes.RepairExternalSubtitleLanguages),
     ];
 
     #endregion

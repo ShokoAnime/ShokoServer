@@ -1588,7 +1588,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(192, 318, "CREATE INDEX IX_EpisodeAiring_EpisodeSource_EpisodeID ON EpisodeAiring(EpisodeSource, EpisodeID);"),
         new(192, 319, "CREATE INDEX IX_EpisodeAiring_AiringScheduleID_SequenceNumber ON EpisodeAiring(AiringScheduleID, SequenceNumber);"),
         new(192, 320, DatabaseFixes.AssignEpisodeAiringSequenceNumbers),
-        new(192, 321, DatabaseFixes.RepairExternalSubtitleLanguages),
+        new(193,   1, DatabaseFixes.RepairExternalSubtitleLanguages),
     ];
 
     #endregion
