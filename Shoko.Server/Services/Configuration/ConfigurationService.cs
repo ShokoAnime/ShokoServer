@@ -699,8 +699,11 @@ public partial class ConfigurationService : IConfigurationService
         {
             if (string.IsNullOrEmpty(actionID))
                 throw new InvalidConfigurationActionException($"Invalid action with ID \"{actionID}\" for path \"{path}\"", nameof(actionID));
+            // Only a method registered as a custom action can be invoked as
+            // one; any other method of the same name is the class's own.
             var method = type.Methods
-                .FirstOrDefault(method => string.Equals(method.Name, actionID, StringComparison.Ordinal));
+                .FirstOrDefault(method => string.Equals(method.Name, actionID, StringComparison.Ordinal) &&
+                    method.GetAttribute<CustomActionAttribute>(false) is not null);
             if (method is not null)
             {
                 innovationValue = value;
