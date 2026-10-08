@@ -125,9 +125,3 @@ public interface IAiringScheduleProvider
 ///   The airing schedule provider configuration type.
 /// </typeparam>
 public interface IAiringScheduleProvider<TConfiguration> : IAiringScheduleProvider where TConfiguration : IAiringScheduleProviderConfiguration { }
-
-/// <summary>
-///   Interface for signaling that the configuration is tied to an airing
-///   schedule provider.
-/// </summary>
-public interface IAiringScheduleProviderConfiguration : IHiddenConfiguration { }

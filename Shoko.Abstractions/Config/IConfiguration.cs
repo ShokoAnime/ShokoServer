@@ -56,6 +56,18 @@ public interface IRelocationProviderConfiguration : IHiddenConfiguration, IBaseC
 public interface IVideoStreamTransformConfiguration : IHiddenConfiguration { }
 
 /// <summary>
+/// Interface for signaling that the configuration is tied to an airing
+/// schedule provider.
+/// </summary>
+public interface IAiringScheduleProviderConfiguration : IHiddenConfiguration { }
+
+/// <summary>
+/// Interface for signaling that the configuration is tied to a metadata
+/// provider.
+/// </summary>
+public interface IMetadataProviderConfiguration : IHiddenConfiguration { }
+
+/// <summary>
 /// Interface for allowing plugins to apply migrations to their configuration
 /// before loading it from disk.
 /// </summary>

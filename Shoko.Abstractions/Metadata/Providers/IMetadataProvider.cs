@@ -154,4 +154,4 @@ public interface IMetadataProvider
 /// </summary>
 /// <typeparam name="TConfiguration">The configuration's type.</typeparam>
 public interface IMetadataProvider<TConfiguration> : IMetadataProvider
-    where TConfiguration : class, IConfiguration, new();
+    where TConfiguration : class, IMetadataProviderConfiguration, new();

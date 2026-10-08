@@ -17,7 +17,7 @@ namespace Shoko.Plugin.Tmdb;
 /// </remarks>
 [Display(Name = "TMDb")]
 [StorageLocation(FileName = "tmdb")]
-public class TmdbConfiguration : IConfiguration
+public class TmdbConfiguration : IMetadataProviderConfiguration
 {
     #region Linking
 
