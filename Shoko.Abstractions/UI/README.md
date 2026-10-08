@@ -344,7 +344,9 @@ An option type is one a client can tell apart and show as text:
   `IParsable<TSelf>` of itself, or carries `[TypeConverter]` naming a
   converter that converts it to and from a string or one of the primitives.
 
-A class, record or struct with neither, or a collection, is refused.
+A class, record or struct with neither, or a collection, is refused. A member of
+a type parsable from text or converted by a `[TypeConverter]` is described as
+text in the form, so give it a JSON converter that writes it as text too.
 
 ### What comes back
 
