@@ -280,39 +280,108 @@ no event raises, fails when the configuration is described.
 ## Options the server lists
 
 `[OptionsProvider(nameof(A), nameof(B))]` on a method turns the members it names
-into choices from values the server lists when asked. Each member keeps its own
-type and its own element; the element gains an `OptionsRoute`, and a client
-POSTs the edited document to it with the member's path as `path`, the same path
-a custom action is invoked with. What comes back is a list of
-`{ "Value": …, "Label": … }`. A scoped action's route holds the entity's
-placeholder, such as `{seriesID}`, for the client to fill in.
+into choices from values the server lists when asked. A method without the
+attribute is never checked, whatever its name or shape, so a model keeps any
+other methods it likes.
 
 ```csharp
 public int LibraryId { get; set; }
 
 public List<int> ExtraLibraryIds { get; set; } = [];
 
+public Dictionary<string, TestMode> ModeByFolder { get; set; } = [];
+
 [OptionsProvider(nameof(LibraryId), nameof(ExtraLibraryIds))]
 public async Task<IReadOnlyList<SelectOption<int>>> ListLibraries(ILibraryService libraries)
     => (await libraries.GetAll()).Select(x => new SelectOption<int>(x.ID, x.Name)).ToList();
+
+[OptionsProvider(nameof(ModeByFolder), Target = OptionsTarget.Keys)]
+public string[] ListFolders(IFolderService folders)
+    => folders.GetNames();
 ```
 
-The method is public, static or not, and not generic. Every member it names is
-a property of the same class, and they all take the same option type: a list
-takes options for its entries and a nullable member for the type it wraps, so an
-`int?` and a `List<int>` both want `int`s. A dictionary or a `SelectComponent<T>`
-cannot take options, and a member has one provider at most. The method returns
-a collection of that type, or of `SelectOption<T>` of it when each option wants a
-label, directly or through a `Task` or `ValueTask`.
+### The method
 
-Parameters are filled in the way a custom action's are: the configuration being
-edited, unsaved changes included, the user and any registered service. On an
-executable action the provider runs on an instance prepared the way invoking it
-prepares one, scoped to its entity, given its caller and populated with the
+It is public, static or not, and not generic. It returns an array or any
+`IEnumerable<T>` of the option type, or of `SelectOption<T>` of it when each
+option wants a label, directly or through a `Task` or a `ValueTask`. A nullable
+`T?` is fine too; its nulls are left out.
+
+Its parameters are filled in the way a custom action's are: the configuration
+being edited, unsaved changes included, the user and any registered service. On
+an executable action the provider runs on an instance prepared the way invoking
+it prepares one, scoped to its entity, given its caller and populated with the
 parameters entered so far, and may take the entity, the caller and services too.
 
-A provider that does not fit fails startup, and the SHOKO0008 analyzer rule
-says so at compile time.
+### Which part of a member
+
+`Target` picks the part the options are for:
+
+| Member | `OptionsTarget.Values` (default) | `OptionsTarget.Keys` |
+|---|---|---|
+| A scalar, `T` or `T?` | the value itself | refused |
+| A list, `List<T>` or `T[]` | each entry | refused |
+| A dictionary, `Dictionary<K, V>` | each value, or each entry of a list value | each key |
+
+A select component carries its own options and takes none, and so does a
+dictionary of dictionaries. Each part of a member has one provider at most, so
+a dictionary's keys and its values may each have their own.
+
+### The option type
+
+Every member one provider names takes the same option type for its target, and
+the method lists exactly that type. There is no bridging: a provider listing
+`long` for an `int` member, or strings for a member of a type that converts from
+a string, is refused.
+
+An option type is one a client can tell apart and show as text:
+
+- a primitive (`bool`, `char`, the integer and floating types), `string`,
+  `decimal` or an enum;
+- `Guid`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan` or
+  `Uri`;
+- any type of any origin, a plugin's own included, that implements
+  `IParsable<TSelf>` of itself, or carries `[TypeConverter]` naming a
+  converter that converts it to and from a string or one of the primitives.
+
+A class, record or struct with neither, or a collection, is refused.
+
+### What comes back
+
+The element that renders the choice carries an `OptionsRoute`: a scalar member
+itself, a list's `Item`, a dictionary's `Item` (or the item of a list value) for
+values, and its `KeyItem` for keys, whose route ends in `/Keys`. A client POSTs
+the edited document to it with the member's path as `path`, the same path a
+custom action is invoked with. The path is always the member's own, so an entry
+or a key needs no index of its own. A scoped action's route holds the entity's
+placeholder, such as `{seriesID}`, for the client to fill in.
+
+```
+POST /api/v3/Configuration/{configID}/Options[/Keys]?path=…
+POST /api/v3/Action/{actionID}/Options[/Keys]?path=…
+POST /api/v3/{Group|Series|Episode|File}/{id}/Action/{actionID}/Options[/Keys]?path=…
+```
+
+The answer is a list of `{ "Value": …, "Label": "…" }`:
+
+- `Value` is serialised the way the member itself is.
+- `Label` is always set: the provider's own when it gave one through
+  `SelectOption<T>`, otherwise the value as text, using the type converter's
+  text when it has one and invariant formatting otherwise. An enum is labelled
+  with its name.
+- The order is the provider's, duplicates included; nulls are left out.
+- An empty list means there is nothing to choose from right now.
+
+A provider may refuse the draft by throwing `GenericValidationException`, for
+example when the credentials it needs are wrong. The route then answers with a
+validation problem, its errors keyed by member path as thrown. Any other
+exception is a server error.
+
+### Checks
+
+A provider that does not fit fails startup, and the analyzer reports the same
+mistakes at compile time as SHOKO0008 to SHOKO0013; see
+[the analyzer rules](../../Shoko.BuildTools.Analyzers/README.md).
 
 ## Pattern: a choice only the server can enumerate
 
