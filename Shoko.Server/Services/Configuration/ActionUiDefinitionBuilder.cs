@@ -60,6 +60,7 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
     /// <param name="name">The action's display name.</param>
     /// <param name="description">The action's description.</param>
     /// <param name="actionType">The concrete action type.</param>
+    /// <param name="optionsRoute">Where the action's parameter options are listed.</param>
     /// <returns>
     ///   The description, or <c>null</c> when the action declares no
     ///   parameters.
@@ -79,7 +80,7 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
     /// <exception cref="InvalidOperationException">
     ///   A parameter is laid out as a dictionary without implementing one.
     /// </exception>
-    public ActionParameterDescription? Build(Guid id, string name, string? description, Type actionType)
+    public ActionParameterDescription? Build(Guid id, string name, string? description, Type actionType, string? optionsRoute = null)
     {
         ArgumentNullException.ThrowIfNull(actionType);
 
@@ -93,7 +94,7 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
         if (wrapped.Schema.ActualProperties.Count is 0)
             return null;
 
-        return new(_uiDefinitionBuilder.Build(id, name, description, wrapped, $"/api/v3/Action/{id}/Options"), wrapped.Schema);
+        return new(_uiDefinitionBuilder.Build(id, name, description, wrapped, optionsRoute), wrapped.Schema);
     }
 
     /// <summary>

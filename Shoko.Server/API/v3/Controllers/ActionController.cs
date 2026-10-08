@@ -124,13 +124,9 @@ public class ActionController(
         {
             return Ok(await actionService.GetParameterOptionsAsync(actionID, path, parameters.ToParameters(), User, token));
         }
-        catch (UnauthorizedAccessException ex)
+        catch (GenericValidationException ex)
         {
-            return StatusCode(StatusCodes.Status403Forbidden, ex.Message);
-        }
-        catch (ArgumentException ex)
-        {
-            return ValidationProblem(ex.Message, ex.ParamName ?? nameof(path));
+            return ValidationProblem(ex.ValidationErrors);
         }
     }
 

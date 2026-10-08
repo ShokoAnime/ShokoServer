@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions.Services;
+using Shoko.Abstractions.Exceptions;
+using Shoko.Abstractions.UI;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.Repositories.Cached;
@@ -57,5 +60,44 @@ public class EpisodeActionController(IActionService actionService, AnimeEpisodeR
         // action taking none has always been invoked with.
         var validation = await actionService.InvokeAsync(actionID, episodeEntity, parameters.ToParameters(), caller: User, token: token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
+    }
+
+    /// <summary>
+    ///   List the options the server offers for one of a episode-scoped
+    ///   action's parameters, as the parameter's <c>OptionsRoute</c> says to.
+    /// </summary>
+    /// <param name="episodeID">Episode ID.</param>
+    /// <param name="actionID">Action ID.</param>
+    /// <param name="parameters">Optional. The parameters entered so far.</param>
+    /// <param name="path">Path to the parameter, the same path a configuration's custom action is invoked with.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    [HttpPost("{actionID:guid}/Options")]
+    public async Task<ActionResult<IReadOnlyList<UiOption>>> GetOptions(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromRoute] Guid actionID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JObject? parameters,
+        [FromQuery] string path = "",
+        CancellationToken token = default
+    )
+    {
+        if (actionService.GetActionInfo(actionID) is null)
+            return NotFound("Action not found.");
+
+        var episodeEntity = episodes.GetByID(episodeID);
+        if (episodeEntity is null)
+            return NotFound("Episode not found.");
+
+        if (actionService.ValidateParameters(actionID, parameters) is { Count: > 0 } errors)
+            return ValidationProblem(errors);
+
+        try
+        {
+            return Ok(await actionService.GetParameterOptionsAsync(actionID, episodeEntity, path, parameters.ToParameters(), User, token));
+        }
+        catch (GenericValidationException ex)
+        {
+            return ValidationProblem(ex.ValidationErrors);
+        }
     }
 }

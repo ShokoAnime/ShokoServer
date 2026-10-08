@@ -86,7 +86,8 @@ public abstract class UiElement
     /// POST to it with the element's own path as the <c>path</c> query
     /// parameter, the same path a custom action is invoked with, and the
     /// edited document as the body to list the options for it. On a list the
-    /// options are for its entries.
+    /// options are for its entries. A scoped action's route holds the entity's
+    /// placeholder, such as <c>{seriesID}</c>, for the client to fill in.
     /// </remarks>
     public string? OptionsRoute { get; set; }
 
