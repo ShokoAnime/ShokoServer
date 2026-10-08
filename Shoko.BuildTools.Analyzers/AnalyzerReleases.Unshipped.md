@@ -12,4 +12,4 @@ SHOKO0004 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a complex `
 SHOKO0005 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a record-shaped property that is not a generic dictionary makes UI schema generation throw.
 SHOKO0006 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a condition that could never hold makes UI schema generation throw.
 SHOKO0007 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a handler that cannot react to what it names makes UI schema generation throw.
-SHOKO0008 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, an options provider that is missing or lists values its member cannot take makes UI schema generation throw.
+SHOKO0008 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, an options provider that names members it cannot list for, or lists values they cannot take, makes UI schema generation throw.

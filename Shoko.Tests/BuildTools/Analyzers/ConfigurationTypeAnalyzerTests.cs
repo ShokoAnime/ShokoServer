@@ -110,11 +110,11 @@ public class ConfigurationTypeAnalyzerTests
                 public object?[]? DisableWhenSetToAny { get; set; }
             }
 
-            [System.AttributeUsage(System.AttributeTargets.Property)]
+            [System.AttributeUsage(System.AttributeTargets.Method)]
             public class OptionsProviderAttribute : System.Attribute
             {
-                public OptionsProviderAttribute(string methodName) { MethodName = methodName; }
-                public string MethodName { get; }
+                public OptionsProviderAttribute(params string[] members) { Members = members; }
+                public string[] Members { get; }
             }
 
             [System.AttributeUsage(System.AttributeTargets.Method)]
@@ -954,27 +954,25 @@ public class ConfigurationTypeAnalyzerTests
 
             public class MyConfigBase
             {
+                public int Port { get; set; }
+
+                [OptionsProvider(nameof(Port))]
                 public virtual int[] ListPorts() => new int[0];
             }
 
             public class MyConfig : MyConfigBase, IConfiguration
             {
-                [OptionsProvider(nameof(ListPorts))]
-                public int Port { get; set; }
-
-                [OptionsProvider(nameof(ListModes))]
                 public int? Mode { get; set; }
-
-                [OptionsProvider(nameof(ListTags))]
                 public List<string> Tags { get; set; } = new();
-
-                [OptionsProvider(nameof(ListNames))]
                 public string Name { get; set; } = "";
 
                 public override int[] ListPorts() => new int[0];
+
+                [OptionsProvider(nameof(Mode))]
                 public Task<IReadOnlyList<int>> ListModes() => Task.FromResult<IReadOnlyList<int>>(new int[0]);
-                public static SelectOption<string>[] ListTags() => new SelectOption<string>[0];
-                public ValueTask<List<string>> ListNames() => new(new List<string>());
+
+                [OptionsProvider(nameof(Tags), nameof(Name))]
+                public static ValueTask<SelectOption<string>[]> ListTags() => new(new SelectOption<string>[0]);
             }
             """);
     }
@@ -991,41 +989,67 @@ public class ConfigurationTypeAnalyzerTests
 
             public class MyConfig : IConfiguration
             {
-                [{|#0:OptionsProvider("Nope")|}]
-                public int Missing { get; set; }
-
-                [{|#1:OptionsProvider(nameof(ListLongs))|}]
                 public int? Port { get; set; }
-
-                [{|#2:OptionsProvider(nameof(ListOne))|}]
                 public string Name { get; set; } = "";
-
-                [{|#3:OptionsProvider(nameof(ListLongs))|}]
                 public Dictionary<string, long> Weights { get; set; } = new();
 
-                [{|#4:OptionsProvider(nameof(ListTwice))|}]
-                public int Count { get; set; }
+                [{|#0:OptionsProvider("Nope")|}]
+                public int[] ListMissing() => new int[0];
 
+                [{|#1:OptionsProvider(nameof(Port))|}]
                 public Task<long[]> ListLongs() => Task.FromResult(new long[0]);
-                public string ListOne() => "";
-                public int[] ListTwice() => new int[0];
-                public int[] ListTwice(int count) => new int[count];
+
+                [{|#2:OptionsProvider(nameof(Port), nameof(Name))|}]
+                public int[] ListMixed() => new int[0];
+
+                [{|#3:OptionsProvider(nameof(Weights))|}]
+                public long[] ListWeights() => new long[0];
+
+                [{|#4:OptionsProvider(nameof(Port))|}]
+                public int[] ListAgain() => new int[0];
+
+                [{|#5:OptionsProvider(nameof(Name))|}]
+                private string[] ListHidden() => new string[0];
             }
             """,
             new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
                 .WithLocation(0)
-                .WithArguments("MyConfig.Missing", "names \"Nope\", which is not a public method of MyConfig"),
+                .WithArguments("MyConfig.ListMissing", "names \"Nope\", which MyConfig does not have"),
             new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
                 .WithLocation(1)
-                .WithArguments("MyConfig.Port", "names \"ListLongs\", which returns Task<long[]> rather than a collection of int"),
+                .WithArguments("MyConfig.ListLongs", "returns Task<long[]> rather than a collection of int"),
             new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
                 .WithLocation(2)
-                .WithArguments("MyConfig.Name", "names \"ListOne\", which returns string rather than a collection of string"),
+                .WithArguments("MyConfig.ListMixed", "names \"Port\", which ListLongs already provides for"),
             new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
                 .WithLocation(3)
-                .WithArguments("MyConfig.Weights", "is a dictionary, which has no single value to offer options for"),
+                .WithArguments("MyConfig.ListWeights", "names \"Weights\", which is a dictionary, which has no single value to offer options for"),
             new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
                 .WithLocation(4)
-                .WithArguments("MyConfig.Count", "names \"ListTwice\", which has more than one overload"));
+                .WithArguments("MyConfig.ListAgain", "names \"Port\", which ListLongs already provides for"),
+            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+                .WithLocation(5)
+                .WithArguments("MyConfig.ListHidden", "is not public"));
+    }
+
+    [Fact]
+    public async Task AnOptionsProviderNamingMembersOfDifferentTypes_IsReported()
+    {
+        await VerifyAsync("""
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+
+            public class MyConfig : IConfiguration
+            {
+                public int Port { get; set; }
+                public string Name { get; set; } = "";
+
+                [{|#0:OptionsProvider(nameof(Port), nameof(Name))|}]
+                public int[] ListMixed() => new int[0];
+            }
+            """,
+            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+                .WithLocation(0)
+                .WithArguments("MyConfig.ListMixed", "names \"Port\" and \"Name\", whose options are int and string"));
     }
 }

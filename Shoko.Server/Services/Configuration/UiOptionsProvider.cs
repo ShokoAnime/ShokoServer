@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -26,46 +27,76 @@ internal static class UiOptionsProvider
 {
     #region Validation
 
+    private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, MethodInfo>> _providers = new();
+
     /// <summary>
-    ///   Finds the method a member takes its options from, and checks that it
-    ///   lists values the member can take.
+    ///   Finds every options provider a type declares, and checks that each
+    ///   lists values every member it names can take.
     /// </summary>
-    /// <param name="owner">The type declaring the member.</param>
-    /// <param name="member">The member.</param>
-    /// <param name="methodName">The method the attribute names.</param>
-    /// <returns>The method.</returns>
+    /// <param name="owner">The type declaring the providers and their members.</param>
+    /// <returns>The provider of each member that has one, by member name.</returns>
     /// <exception cref="NotSupportedException">
-    ///   Thrown when the member cannot take options, or the method is missing,
-    ///   overloaded, generic or returns something else.
+    ///   Thrown when a provider is not public, is generic, names a member the
+    ///   type does not have, one that cannot take options or one another
+    ///   provider claimed, names members of different option types, or returns
+    ///   something else.
     /// </exception>
-    public static MethodInfo ResolveMethod(Type owner, PropertyInfo member, string methodName)
+    public static IReadOnlyDictionary<string, MethodInfo> GetProviders(Type owner)
+        => _providers.GetOrAdd(owner, CollectProviders);
+
+    private static IReadOnlyDictionary<string, MethodInfo> CollectProviders(Type owner)
     {
-        var declaredBy = $"{owner.Name}.{member.Name}";
-        if (GetOptionType(member.PropertyType, out var shapeFailure) is not { } optionType)
-            throw Invalid(declaredBy, shapeFailure!);
-
-        var methods = owner
-            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy)
-            .Where(method => string.Equals(method.Name, methodName, StringComparison.Ordinal))
-            .ToList();
-        if (methods.Count is 0)
-            throw Invalid(declaredBy, $"names \"{methodName}\", which is not a public method of {owner.Name}");
-        if (methods.Count > 1)
-            throw Invalid(declaredBy, $"names \"{methodName}\", which has more than one overload");
-
-        var resolved = methods[0];
-        if (resolved.IsGenericMethodDefinition)
-            throw Invalid(declaredBy, $"names \"{methodName}\", which is generic");
-
-        var returned = GetReturnedOptionType(resolved.ReturnType);
-        if (returned != optionType && returned != typeof(SelectOption<>).TryMakeGenericType(optionType))
+        var providers = new Dictionary<string, MethodInfo>(StringComparer.Ordinal);
+        var methods = owner.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+        foreach (var method in methods)
         {
-            var returnName = ShokoJsonSchemaGenerator.GetFriendlyTypeName(resolved.ReturnType);
-            var optionName = ShokoJsonSchemaGenerator.GetFriendlyTypeName(optionType);
-            throw Invalid(declaredBy, $"names \"{methodName}\", which returns {returnName} rather than a collection of {optionName}");
+            if (method.GetCustomAttribute<OptionsProviderAttribute>(true) is not { } attribute)
+                continue;
+
+            var declaredBy = $"{owner.Name}.{method.Name}";
+            if (!method.IsPublic)
+                throw Invalid(declaredBy, "is not public");
+            if (method.IsGenericMethodDefinition)
+                throw Invalid(declaredBy, "is generic");
+            if (attribute.Members is not { Length: > 0 } members)
+                throw Invalid(declaredBy, "names no members");
+
+            var (optionType, firstMember) = ((Type?)null, (string?)null);
+            foreach (var member in members)
+            {
+                if (owner.GetProperty(member, BindingFlags.Public | BindingFlags.Instance) is not { } property)
+                    throw Invalid(declaredBy, $"names \"{member}\", which {owner.Name} does not have");
+                if (GetOptionType(property.PropertyType, out var shapeFailure) is not { } memberOptionType)
+                    throw Invalid(declaredBy, $"names \"{member}\", which {shapeFailure}");
+                if (providers.TryGetValue(member, out var other))
+                    throw Invalid(
+                        declaredBy,
+                        other == method ? $"names \"{member}\" twice" : $"names \"{member}\", which {other.Name} already provides for"
+                    );
+                if (optionType is null)
+                {
+                    (optionType, firstMember) = (memberOptionType, member);
+                }
+                else if (memberOptionType != optionType)
+                {
+                    var firstName = ShokoJsonSchemaGenerator.GetFriendlyTypeName(optionType);
+                    var otherName = ShokoJsonSchemaGenerator.GetFriendlyTypeName(memberOptionType);
+                    throw Invalid(declaredBy, $"names \"{firstMember}\" and \"{member}\", whose options are {firstName} and {otherName}");
+                }
+
+                providers[member] = method;
+            }
+
+            var returned = GetReturnedOptionType(method.ReturnType);
+            if (returned != optionType && returned != typeof(SelectOption<>).TryMakeGenericType(optionType!))
+            {
+                var returnName = ShokoJsonSchemaGenerator.GetFriendlyTypeName(method.ReturnType);
+                var optionName = ShokoJsonSchemaGenerator.GetFriendlyTypeName(optionType!);
+                throw Invalid(declaredBy, $"returns {returnName} rather than a collection of {optionName}");
+            }
         }
 
-        return resolved;
+        return providers;
     }
 
     /// <summary>
@@ -132,7 +163,7 @@ internal static class UiOptionsProvider
     }
 
     private static NotSupportedException Invalid(string declaredBy, string failure)
-        => new($"The options provider of {declaredBy} {failure}.");
+        => new($"The options provider {declaredBy} {failure}.");
 
     #endregion
 
@@ -163,10 +194,10 @@ internal static class UiOptionsProvider
 
         if (FindProperty(owner.GetType(), parts[^1], isNewtonsoftJson) is not { } property)
             throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
-        if (property.GetCustomAttribute<OptionsProviderAttribute>(false) is not { } attribute)
+        if (!GetProviders(property.ReflectedType!).TryGetValue(property.Name, out var method))
             throw new ArgumentException($"The member at \"{path}\" takes no options", nameof(path));
 
-        return (owner, ResolveMethod(property.ReflectedType!, property, attribute.MethodName));
+        return (owner, method);
 
         object? Step(object value, string part)
         {
@@ -197,7 +228,7 @@ internal static class UiOptionsProvider
     /// <summary>
     ///   Runs an options method and serialises what it listed.
     /// </summary>
-    /// <param name="method">The method, as <see cref="ResolveMethod"/> found it.</param>
+    /// <param name="method">The method, as <see cref="GetProviders"/> found it.</param>
     /// <param name="pluginManager">Resolves the parameters no argument fills.</param>
     /// <param name="owner">The instance declaring the member.</param>
     /// <param name="arguments">The values the method's parameters may take.</param>
