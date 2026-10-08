@@ -18,7 +18,7 @@ public sealed class PurgeExpiredOrphanedMetadataAction(IQueueScheduler scheduler
 
     public override string? Description => "Removes the people, studios and networks of the plugin metadata sources that nothing has used for longer than the metadata settings allow.";
 
-    public override ActionCategory Category => ActionCategory.Maintenance;
+    public override ActionCategory Category => ActionCategory.Destructive;
 
     public override IReadOnlyList<ActionTrigger> DefaultTriggers => [ActionTrigger.Every(TimeSpan.FromHours(24))];
 }

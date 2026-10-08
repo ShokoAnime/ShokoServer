@@ -14,15 +14,21 @@ namespace Shoko.Server.Settings;
 public class MetadataSettings
 {
     /// <summary>
-    /// Number of days a creator, character, studio or network of a plugin
-    /// source may go unused before it is purged. Purged daily, and when the purge action is run.
+    /// Number of days a creator, character, studio, network or image may go
+    /// unused before it is purged. Purged daily, and the default for the purge
+    /// actions.
     /// </summary>
     [Visibility(Size = DisplayElementSize.Large)]
     [Display(Name = "Purge Orphaned Metadata After (days)")]
     [EnvironmentVariable("METADATA_PURGE_ORPHANED_AFTER_DAYS")]
-    [Range(1, 365)]
+    [Range(1, MaxPurgeOrphanedAfterDays)]
     [DefaultValue(7)]
     public int PurgeOrphanedAfterDays { get; set; } = 7;
+
+    /// <summary>
+    /// The most days <see cref="PurgeOrphanedAfterDays"/> takes.
+    /// </summary>
+    public const int MaxPurgeOrphanedAfterDays = 365;
 
     /// <summary>
     /// Number of days a series, movie or collection of a plugin source

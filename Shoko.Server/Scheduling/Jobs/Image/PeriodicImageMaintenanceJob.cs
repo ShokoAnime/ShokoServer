@@ -33,8 +33,9 @@ public class PeriodicImageMaintenanceJob(
         stages.Report(0);
         if (purge)
         {
-            _logger.LogInformation("Purging orphaned images older than 7 days...");
-            var purged = await imageManager.PurgeOrphanedImages(7, null, stages, cancellation.Token).ConfigureAwait(false);
+            var days = settings.Metadata.PurgeOrphanedAfterDays;
+            _logger.LogInformation("Purging orphaned images older than {Days} days...", days);
+            var purged = await imageManager.PurgeOrphanedImages(days, null, stages, cancellation.Token).ConfigureAwait(false);
             _logger.LogInformation("Purged {Count} orphaned images.", purged);
         }
 

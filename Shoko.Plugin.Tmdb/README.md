@@ -37,8 +37,6 @@ back from them. Up to four TMDB jobs of each kind run at once.
   has no character pages.
 - **Generic titles.** Passed on as TMDB gives them, such as "Season N" or
   "Episode N". The core drops them on write and synthesizes its own.
-- **Purging images.** The "Purge Unused TMDB Images" scheduled action removes
-  every TMDB image nothing links to.
 
 ## Configuration
 
