@@ -1040,7 +1040,7 @@ public class VideoRelocationService(
                 if (oldUid == newUid)
                     caseOnlyRename = true;
                 else
-                    logger.LogInformation("Resolved to relocate {OldFilePath} over a different file at {NewFilePath}.", oldFullPath, newFullPath);
+                    logger.LogWarning("Resolved to relocate {OldFilePath} over a different file at {NewFilePath}.", oldFullPath, newFullPath);
             }
         }
 
@@ -1161,8 +1161,8 @@ public class VideoRelocationService(
                 await _videoLocalPlaceService.RemoveRecord(destVideoLocalPlace);
             }
 
-            var tempFullPath = caseOnlyRename ? newFullPath + ".tmp-name" : null;
             // Move
+            var tempFullPath = caseOnlyRename ? newFullPath + ".tmp-name" : null;
             fileWatcherService.AddFileWatcherExclusion(oldFullPath);
             fileWatcherService.AddFileWatcherExclusion(newFullPath);
             if (tempFullPath is not null)
