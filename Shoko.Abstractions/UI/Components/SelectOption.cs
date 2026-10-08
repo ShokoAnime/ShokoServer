@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
@@ -8,7 +9,7 @@ namespace Shoko.Abstractions.UI.Components;
 /// <summary>
 ///   A select option for the UI.
 /// </summary>
-public class SelectOption<TValue> : IEquatable<SelectOption<TValue>> where TValue : IEquatable<TValue>
+public class SelectOption<TValue> : IEquatable<SelectOption<TValue>>
 {
     /// <summary>
     ///   The label for the option.
@@ -83,7 +84,7 @@ public class SelectOption<TValue> : IEquatable<SelectOption<TValue>> where TValu
 
     /// <inheritdoc/>
     public bool Equals(SelectOption<TValue>? other)
-        => other is not null && Value.Equals(other.Value);
+        => other is not null && EqualityComparer<TValue>.Default.Equals(Value, other.Value);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj)
@@ -91,5 +92,5 @@ public class SelectOption<TValue> : IEquatable<SelectOption<TValue>> where TValu
 
     /// <inheritdoc/>
     public override int GetHashCode()
-        => Value.GetHashCode();
+        => Value is null ? 0 : EqualityComparer<TValue>.Default.GetHashCode(Value);
 }

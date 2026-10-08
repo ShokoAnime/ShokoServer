@@ -149,6 +149,14 @@ public class UiOptionsProviderTests
     }
 
     [Fact]
+    public async Task AnEnumIsLabelledAsTheFormNamesItsMembersUnlessTheProviderSaysOtherwise()
+    {
+        var options = await ListAsync(new OptionsConfiguration(), "Speed");
+
+        Assert.Equal(["Go Fast", "Very Slow", "Mine"], options.Select(x => x.Label));
+    }
+
+    [Fact]
     public async Task APathIntoAListEntryListsForThatEntry()
     {
         var configuration = new OptionsConfiguration { Rows = [new() { Prefix = "x" }, new() { Prefix = "y" }] };
@@ -206,6 +214,9 @@ public class UiOptionsProviderTests
         /// <summary>A plugin type converted to and from text.</summary>
         public TestColour Colour { get; set; } = new(0, 0, 0);
 
+        /// <summary>An enum narrowed by its provider.</summary>
+        public TestSpeed Speed { get; set; }
+
         /// <summary>A dictionary whose keys and values have providers of their own.</summary>
         public Dictionary<string, int?> Weights { get; set; } = [];
 
@@ -226,6 +237,11 @@ public class UiOptionsProviderTests
         [OptionsProvider(nameof(Colour))]
         public static TestColour[] ListColours()
             => [new(255, 0, 0)];
+
+        /// <summary>Lists speeds, one with a label of its own.</summary>
+        [OptionsProvider(nameof(Speed))]
+        public static SelectOption<TestSpeed>[] ListSpeeds()
+            => [new(TestSpeed.Fast), new(TestSpeed.VerySlow), new(TestSpeed.Medium, "Mine")];
 
         /// <summary>Lists dictionary keys, duplicates kept.</summary>
         [OptionsProvider(nameof(Weights), Target = OptionsTarget.Keys)]
@@ -476,4 +492,20 @@ public readonly record struct TestVersion(int Major, int Minor) : IParsable<Test
         result = new(major, minor);
         return true;
     }
+}
+
+/// <summary>
+///   Speeds, one renamed for the form.
+/// </summary>
+public enum TestSpeed
+{
+    /// <summary>Slow.</summary>
+    VerySlow = 0,
+
+    /// <summary>Medium.</summary>
+    Medium = 1,
+
+    /// <summary>Fast.</summary>
+    [System.ComponentModel.DataAnnotations.Display(Name = "Go Fast")]
+    Fast = 2,
 }

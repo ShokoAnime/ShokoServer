@@ -369,10 +369,15 @@ The answer is a list of `{ "Value": …, "Label": "…" }`:
 - `Value` is serialised the way the member itself is.
 - `Label` is always set: the provider's own when it gave one through
   `SelectOption<T>`, otherwise the value as text, using the type converter's
-  text when it has one and invariant formatting otherwise. An enum is labelled
-  with its name.
+  text when it has one and invariant formatting otherwise. An enum member is
+  labelled the way the form's own list of the enum names it (`[Display(Name)]`,
+  or its name split into words), so a provider narrowing an enum to the members
+  that apply right now reads exactly like the full list. `SelectOption<T>`
+  takes any `T`, enums included, when a label of its own is wanted.
 - The order is the provider's, duplicates included; nulls are left out.
 - An empty list means there is nothing to choose from right now.
+- The list is the full current one. There is no server-side search, so a
+  client filters it locally as the user types.
 
 Labels are for more than the picker. A client should also use them to show the
 existing entries whose value a provider lists, such as a dictionary key stored

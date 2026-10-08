@@ -16,6 +16,7 @@ using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Components;
 using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Extensions;
+using Shoko.Server.Plugin;
 
 namespace Shoko.Server.Services.Configuration;
 
@@ -395,6 +396,9 @@ internal static class UiOptionsProvider
     private static string Stringify(object value)
         => value switch
         {
+            // An enum reads the way the form's own list of its members does.
+            Enum when Enum.GetName(value.GetType(), value) is { } name
+                => TypeReflectionExtensions.GetDisplayName(value.GetType().ToContextualType().GetField(name)!),
             IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
             _ when HasConverter(value.GetType()) && TypeDescriptor.GetConverter(value) is { } converter && converter.CanConvertTo(typeof(string))
                 => converter.ConvertToInvariantString(value) ?? string.Empty,
