@@ -87,8 +87,26 @@ def _match_gitignore(rel_path, patterns):
     return excluded
 
 
+def _rel(root, name):
+    """The path of `name` in `root`, relative to the current directory, with forward slashes."""
+    return os.path.relpath(os.path.join(root, name), '.').replace(os.sep, '/')
+
+
 def _find_cs_files(all_files=False):
     """Find all .cs files, optionally excluding .gitignore'd paths."""
+    # Inside a git checkout, let git apply every .gitignore (nested ones and
+    # worktrees under ignored folders included).
+    try:
+        output = subprocess.run(
+            ['git', 'ls-files', '--cached', '--others', '--exclude-standard', '--', '*.cs'],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        return [os.path.join('.', line) for line in output.splitlines() if line and os.path.isfile(line)]
+    except (OSError, subprocess.CalledProcessError):
+        pass
+
     file_list = []
 
     # Find the closest .gitignore from current directory
@@ -99,29 +117,15 @@ def _find_cs_files(all_files=False):
             break
 
     for root, dirs, files in os.walk('.'):
-        # Filter out directories that match gitignore patterns (in-place to prevent descent)
+        # Prune ignored directories so os.walk never descends into them.
         if gitignore_patterns:
-            filtered_dirs = []
-            for d in dirs:
-                dir_rel = os.path.join(root, d).lstrip('./')
-                if not _match_gitignore(dir_rel, gitignore_patterns):
-                    filtered_dirs.append(d)
-                else:
-                    # Mark for removal - use a sentinel approach
-                    pass
-            # We need to remove excluded dirs from dirs to prevent os.walk from descending
-            excluded_dirs = {d for d in dirs if os.path.join(root, d).lstrip('./') in
-                           [_match_gitignore(os.path.join(root, x).lstrip('./'), gitignore_patterns) and x for x in dirs]}
-            # Simpler approach: rebuild dirs
-            dirs[:] = [d for d in dirs if not _match_gitignore(
-                os.path.join(root, d).lstrip('./'), gitignore_patterns)]
+            dirs[:] = [d for d in dirs if not _match_gitignore(_rel(root, d), gitignore_patterns)]
 
         for f in files:
             if f.endswith('.cs'):
-                full = os.path.join(root, f)
-                rel = full.lstrip('./')
+                rel = _rel(root, f)
                 if not gitignore_patterns or not _match_gitignore(rel, gitignore_patterns):
-                    file_list.append(full)
+                    file_list.append(os.path.join(root, f))
 
     return file_list
 
@@ -240,13 +244,12 @@ def process_file(filepath, strip_bom=False):
     #   ReSharper comments (if any)
     #   blank line
     #   pragmas + nullable + namespace (no whitespace between them)
-    normal_usings = system_usings + other_usings + static_usings
-    new_content = '\n'.join(normal_usings)
-    if alias_usings:
-        new_content += '\n\n' + '\n'.join(alias_usings)
-    if resharper_comments:
-        new_content += '\n\n' + '\n'.join(resharper_comments)
-    new_content += '\n\n'
+    # Empty blocks are skipped, so a file with only alias usings (or only
+    # comments) gets no blank lines in front of them.
+    blocks = [system_usings + other_usings + static_usings, alias_usings, resharper_comments]
+    new_content = '\n\n'.join('\n'.join(block) for block in blocks if block)
+    if new_content:
+        new_content += '\n\n'
     # Footer: pragmas, nullable, namespace — no blank lines between
     if existing_pragmas:
         new_content += '\n'.join(existing_pragmas) + '\n'
