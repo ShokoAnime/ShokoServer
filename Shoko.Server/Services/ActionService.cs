@@ -19,6 +19,7 @@ using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.UI;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
@@ -363,6 +364,35 @@ public class ActionService : IActionService
 
         return _configurationService.Validate(parameters.ToString(Formatting.None), schema);
     }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    )
+    {
+        var registered = ResolveAction(actionId);
+        if (caller is not null && registered.Info.Permission is ActionPermission.Admin && !caller.IsAdmin)
+            throw new UnauthorizedAccessException("Administrator privileges are required for this action.");
+
+        var probe = (IExecutableAction)_services.GetRequiredService(registered.ActionType);
+        if (probe is IActionCaller callerAware && caller is not null)
+            callerAware.SetCaller(caller);
+        PopulateParameters(probe, parameters);
+
+        var (owner, method) = UiOptionsProvider.Resolve(probe, path, isNewtonsoftJson: true);
+        return UiOptionsProvider.InvokeAsync(method, _pluginManager, owner, [probe, caller, token], ConvertParameterValue);
+    }
+
+    /// <summary>
+    ///   Serialises a parameter value the way the action's own parameter
+    ///   schema was generated.
+    /// </summary>
+    private static JToken? ConvertParameterValue(object? value)
+        => value is null ? null : JToken.FromObject(value, JsonSerializer.Create(ShokoJsonSerializers.CreateNewtonsoftSettings()));
 
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
     public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)

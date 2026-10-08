@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -438,6 +439,47 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             var config = configurationService.Deserialize(configInfo, json);
             var result = configurationService.PerformCustomAction(configInfo, config, path, actionName, User, BaseUri);
             return Ok(new ConfigurationActionResult(result, configurationService, json));
+        }
+        catch (ConfigurationValidationException ex)
+        {
+            return ValidationProblem(ex.ValidationErrors);
+        }
+        catch (InvalidConfigurationActionException ex)
+        {
+            return ValidationProblem(ex.Message, ex.ParamName);
+        }
+    }
+
+    /// <summary>
+    ///   List the options the server offers for a member of the configuration
+    ///   with the given id, as the member's <c>OptionsRoute</c> says to.
+    /// </summary>
+    /// <param name="configID">Configuration id</param>
+    /// <param name="body">
+    ///   Optional. The edited configuration, unsaved changes included. The
+    ///   saved one is used when it is left out.
+    /// </param>
+    /// <param name="path">Path to the member, the same path a custom action is invoked with.</param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [HttpPost("{configID:guid}/Options")]
+    public async Task<ActionResult<IReadOnlyList<UiOption>>> GetConfigurationOptions(
+        Guid configID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body,
+        [FromQuery] string path = ""
+    )
+    {
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
+
+        try
+        {
+            var json = body?.ToString(Formatting.None, new StringEnumConverter()) is { } incomingJson
+                ? configurationService.RestoreMaskedSecrets(configInfo, incomingJson)
+                : configurationService.Serialize(configurationService.Load(configInfo));
+            var config = configurationService.Deserialize(configInfo, json);
+            return Ok(await configurationService.GetOptionsAsync(configInfo, config, path, User, BaseUri));
         }
         catch (ConfigurationValidationException ex)
         {

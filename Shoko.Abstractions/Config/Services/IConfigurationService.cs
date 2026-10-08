@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NJsonSchema;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Config.Events;
@@ -230,6 +231,65 @@ public interface IConfigurationService
     ///   The result of the action.
     /// </returns>
     ConfigurationActionResult PerformCustomAction<TConfig>(TConfig configuration, string path, string actionID, IUser? user = null, Uri? uri = null) where TConfig : class, IConfiguration, new();
+
+    /// <summary>
+    ///   Lists the options the server offers for a member marked with
+    ///   <see cref="UI.Attributes.OptionsProviderAttribute"/>.
+    /// </summary>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" /> the configuration belongs to.
+    /// </param>
+    /// <param name="configuration">
+    ///   The configuration instance, edits not yet saved included.
+    /// </param>
+    /// <param name="path">
+    ///   The path of the member, the same path a custom action is invoked with.
+    /// </param>
+    /// <param name="user">
+    ///   The user asking, if applicable.
+    /// </param>
+    /// <param name="uri">
+    ///   The base URI used to access the server by the user, if applicable.
+    /// </param>
+    /// <exception cref="InvalidConfigurationActionException">
+    ///   Thrown when the path does not lead to a member that takes options.
+    /// </exception>
+    /// <returns>
+    ///   The options, in the order the provider listed them.
+    /// </returns>
+    Task<IReadOnlyList<UiOption>> GetOptionsAsync(ConfigurationInfo info, IConfiguration configuration, string path, IUser? user = null, Uri? uri = null);
+
+    /// <summary>
+    ///   Lists the options the server offers for a member marked with
+    ///   <see cref="UI.Attributes.OptionsProviderAttribute"/>.
+    /// </summary>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
+    /// <param name="configuration">
+    ///   The configuration instance, edits not yet saved included.
+    /// </param>
+    /// <param name="path">
+    ///   The path of the member, the same path a custom action is invoked with.
+    /// </param>
+    /// <param name="user">
+    ///   The user asking, if applicable.
+    /// </param>
+    /// <param name="uri">
+    ///   The base URI used to access the server by the user, if applicable.
+    /// </param>
+    /// <exception cref="InvalidConfigurationActionException">
+    ///   Thrown when the path does not lead to a member that takes options.
+    /// </exception>
+    /// <returns>
+    ///   The options, in the order the provider listed them.
+    /// </returns>
+    Task<IReadOnlyList<UiOption>> GetOptionsAsync<TConfig>(
+        TConfig configuration,
+        string path,
+        IUser? user = null,
+        Uri? uri = null
+    ) where TConfig : class, IConfiguration, new();
 
     /// <summary>
     ///   Report that a value has changed in the configuration instance for
