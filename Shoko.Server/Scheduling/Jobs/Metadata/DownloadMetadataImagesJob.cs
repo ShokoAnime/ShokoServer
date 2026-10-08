@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Connectivity.Suspensions.Attributes;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
@@ -10,7 +11,6 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Workers;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
@@ -29,7 +29,8 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 /// </remarks>
 /// <typeparam name="TProvider">The provider to ask.</typeparam>
 [DatabaseRequired]
-[MetadataProviderJob]
+[NetworkRequired]
+[ProviderJob]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.Metadata)]
 [JobPriority(Default = 10, Prioritized = 60)]

@@ -235,7 +235,7 @@ Timer-based `IHostedService` on a fixed interval the admin cannot change; the co
 - `[NetworkRequired]` — waits until network connectivity is confirmed.
 - `[AniDBUdpRateLimited]` — respects AniDB UDP rate limits.
 - `[AniDBHttpRateLimited]` — respects AniDB HTTP rate limits.
-- The jobs of every metadata or release provider a suspended `ISuspensionProvider` lists in `HeldProviderTypes` are held back (`SuspensionAcquisitionFilter`, fed by `ISuspensionService`); the TMDB plugin suspends this way for a 429 or its 5XX circuit breaker.
+- The jobs of every metadata or release provider a suspended `ISuspensionProvider` lists in `HeldProviderTypes` are held back (`SuspensionAcquisitionFilter`, fed by `ISuspensionService`, attached to the pools of the jobs marked `[ProviderJob]`); the TMDB plugin suspends this way for a 429 or its 5XX circuit breaker.
 
 **`IJobFactory`** (`Shoko.QueueProcessor/JobFactory.cs`): DI-resolved single-shot execution via `Execute<T>()`. Used internally by the worker and by tests or services that need to run a job inline.
 
@@ -401,13 +401,13 @@ HashFileJob  (Shoko.Server/Scheduling/Jobs/Shoko/HashFileJob.cs)
   Only now saves the VideoLocal and its VideoLocal_Place: a VideoLocal never exists without its ED2K
         │
         ▼  [VideoReleaseService builds a chain via IJobChainBuilder]
+ProcessReleaseProviderJob<TProvider>  (Shoko.Server/Scheduling/Jobs/Shoko/ProcessReleaseProviderJob.cs)
+  One closed job type per release provider, implementing IVideoReleaseProviderJob<TProvider>
+  Asks the provider for the video's release; creates CrossRef_File_Episode + StoredReleaseInfo
+─── or, for a provider with a dedicated job class ───
 AnidbProcessFileJob  (Shoko.Server/Scheduling/Jobs/Shoko/AnidbProcessFileJob.cs)
-  Implements IVideoReleaseProviderJob<AnidbReleaseProvider>
-  Queries AniDB UDP for episode mapping; creates CrossRef_File_Episode + StoredReleaseInfo
+  Subclass of ProcessReleaseProviderJob<AnidbReleaseProvider> adding AniDB UDP limits
   Adds file to AniDB MyList (unless skipped)
-─── or, for providers without a dedicated job class ───
-ProcessReleaseProviderJob  (Shoko.Server/Scheduling/Jobs/Shoko/ProcessReleaseProviderJob.cs)
-  Generic fallback; identified by ProviderID (Guid)
         │
         ▼
 FinalizeReleaseSearchJob  (Shoko.Server/Scheduling/Jobs/Shoko/FinalizeReleaseSearchJob.cs)
@@ -444,7 +444,7 @@ DownloadMetadataImagesJob<TProvider>  (Shoko.Server/Scheduling/Jobs/Metadata/Dow
 
 ### Orchestration Pattern
 
-Jobs do not use a central orchestrator. Each job enqueues its successor via `IQueueScheduler.RunAfterCurrent<T>()` or `IJobChainBuilder`. The provider job chain is built by `VideoReleaseService` using `CreateJobChain()`: one entry per enabled `IReleaseInfoProvider` (using the provider's dedicated `IVideoReleaseProviderJob<TProvider>` class if registered, otherwise `ProcessReleaseProviderJob`), with `FinalizeReleaseSearchJob` appended as the terminal step. Provider jobs read the `AnimeID` from the release info and enqueue `GetAniDBAnimeJob` when a new anime is encountered.
+Jobs do not use a central orchestrator. Each job enqueues its successor via `IQueueScheduler.RunAfterCurrent<T>()` or `IJobChainBuilder`. The provider job chain is built by `VideoReleaseService` using `CreateJobChain()`: one entry per enabled `IReleaseInfoProvider` (using the provider's dedicated `IVideoReleaseProviderJob<TProvider>` class if registered, otherwise the closed `ProcessReleaseProviderJob<TProvider>` that `PluginManager` registers for it through `ReleaseProviderJobs`), with `FinalizeReleaseSearchJob` appended as the terminal step. Provider jobs read the `AnimeID` from the release info and enqueue `GetAniDBAnimeJob` when a new anime is encountered.
 
 **Import sweep.** What the live pipeline missed is caught by scheduled actions of their own, run by hand or on the triggers an admin sets. The legacy `RunImport` routes queue these in the old import's order through `LegacyScheduledActions.InvokeImport` (`Shoko.Server/API/LegacyScheduledActions.cs`), logging any that fails and going on: "Hash Unhashed Files", "Scan Managed Folders" (`IVideoService.ScheduleScanForManagedFolders()`: drop sources in full, the rest for new files), "Search for Metadata Matches" (every source that auto-links), "Purge Expired Orphaned Metadata", "Download All Images", "Check for Previously Ignored Files" and "Check AniDB File Updates" (release searches for files without an episode, then the anime those files need). "Import New Files" scans for new files only.
 

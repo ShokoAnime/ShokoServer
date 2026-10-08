@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Connectivity.Suspensions.Attributes;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Services;
@@ -18,15 +20,28 @@ using Shoko.Server.Services;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 /// <summary>
-/// Generic fallback job for release providers that do not register a specific
-/// provider job class implementing IVideoReleaseProviderJob&lt;TProvider&gt;.
-/// Runs a single enabled provider identified by <see cref="ProviderID"/>.
+///   Asks one release provider for the release of a video, as one step of a
+///   release search chain.
 /// </summary>
+/// <remarks>
+///   One job type per provider, so each can be held back and limited alone. A
+///   provider without a job class of its own runs through this one; a job
+///   class of its own derives from this one to change its attributes.
+/// </remarks>
+/// <typeparam name="TProvider">The provider to ask.</typeparam>
 [DatabaseRequired]
+[NetworkRequired]
+[ProviderJob]
 [JobKeyGroup(JobKeyGroup.Import)]
 [JobPriority(Default = 20, Prioritized = 70)]
-public class ProcessReleaseProviderJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob
+public class ProcessReleaseProviderJob<TProvider>(
+    IVideoReleaseService videoReleaseService,
+    VideoLocalRepository videoLocals,
+    StoredReleaseInfo_MatchAttemptRepository matchAttempts
+) : BaseJob, IVideoReleaseProviderJob<TProvider> where TProvider : class, IReleaseInfoProvider
 {
+    #region Properties
+
     private readonly VideoReleaseService _videoReleaseService = (VideoReleaseService)videoReleaseService;
 
     private VideoLocal? _vlocal;
@@ -39,32 +54,41 @@ public class ProcessReleaseProviderJob(IVideoReleaseService videoReleaseService,
 
     private string? _fileName;
 
+    /// <summary>
+    ///   The video to find the release of.
+    /// </summary>
     public int VideoLocalID { get; set; }
 
+    /// <summary>
+    ///   Whether saving a found release skips the events and the MyList update.
+    /// </summary>
     public bool SkipEvents { get; set; }
 
+    /// <summary>
+    ///   The match attempt the chain records its outcome on.
+    /// </summary>
     public int MatchAttemptID { get; set; }
 
-    public Guid ProviderID { get; set; }
-
+    /// <inheritdoc />
     public override string TypeName => "Get Release Information for Video From Provider";
 
+    /// <inheritdoc />
     public override string Title => "Getting Release Information for Video From Provider";
 
+    /// <inheritdoc />
     public override Dictionary<string, object> Details
     {
         get
         {
-            var result = new Dictionary<string, object>();
-            if (_providerInfo is not null)
-                result["Provider"] = _providerInfo.Name;
-            else
-                result["Provider ID"] = ProviderID;
+            var providerName = _providerInfo?.Name ?? typeof(TProvider).Name;
+            var result = new Dictionary<string, object>
+            {
+                ["Provider"] = providerName,
+            };
             if (_attemptNumber.HasValue)
             {
                 result["Attempt Number"] = _attemptNumber;
-                if (_providerInfo is not null)
-                    result["Attempt Chain Index"] = _matchAttempt!.AttemptedProviderNames.IndexOf(_providerInfo.Name);
+                result["Attempt Chain Index"] = _matchAttempt!.AttemptedProviderNames.IndexOf(providerName);
             }
             if (string.IsNullOrEmpty(_fileName))
                 result["Video"] = VideoLocalID;
@@ -75,6 +99,11 @@ public class ProcessReleaseProviderJob(IVideoReleaseService videoReleaseService,
         }
     }
 
+    #endregion
+
+    #region Execution
+
+    /// <inheritdoc />
     public override void PostInit()
     {
         _vlocal = videoLocals.GetByID(VideoLocalID);
@@ -82,22 +111,28 @@ public class ProcessReleaseProviderJob(IVideoReleaseService videoReleaseService,
         if (_vlocal is not null && _matchAttempt is not null)
             _attemptNumber = matchAttempts.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize)
                 .FindIndex(m => m.StoredReleaseInfo_MatchAttemptID == MatchAttemptID) + 1;
-        _providerInfo = _videoReleaseService.GetProviderInfo(ProviderID);
+        _providerInfo = FindProviderInfo();
         _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
+    /// <inheritdoc />
     public override async Task Execute()
     {
-        _logger.LogInformation("Processing {Job}: {FileName} (Provider={ProviderID})", nameof(ProcessReleaseProviderJob), _fileName ?? VideoLocalID.ToString(), ProviderID);
+        _logger.LogInformation(
+            "Processing {Job}: {FileName}",
+            JobTypeNames.Short(GetType()),
+            _fileName ?? VideoLocalID.ToString()
+        );
 
         _vlocal ??= videoLocals.GetByID(VideoLocalID);
         _matchAttempt ??= matchAttempts.GetByID(MatchAttemptID);
         if (_vlocal is null || _matchAttempt is null) return;
 
-        _providerInfo ??= _videoReleaseService.GetProviderInfo(ProviderID);
+        // The release service's own instance, which keeps the provider's memory cache.
+        _providerInfo ??= FindProviderInfo();
         if (_providerInfo is null)
         {
-            _logger.LogWarning("Provider with id {ProviderID} not found, skipping.", ProviderID);
+            _logger.LogWarning("Release provider {Provider} is not registered, skipping.", typeof(TProvider).FullName);
             return;
         }
 
@@ -133,4 +168,8 @@ public class ProcessReleaseProviderJob(IVideoReleaseService videoReleaseService,
         }
     }
 
+    private ReleaseProviderInfo? FindProviderInfo()
+        => _videoReleaseService.GetAvailableProviders().FirstOrDefault(info => info.Provider.GetType() == typeof(TProvider));
+
+    #endregion
 }

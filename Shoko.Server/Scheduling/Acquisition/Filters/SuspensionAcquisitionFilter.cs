@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Connectivity.Suspensions;
+using Shoko.Abstractions.Connectivity.Suspensions.Attributes;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling.Jobs.Metadata;
+using Shoko.Server.Scheduling.Jobs;
 
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
 
@@ -16,8 +17,8 @@ namespace Shoko.Server.Scheduling.Acquisition.Filters;
 ///   provider's jobs and a release provider's own job.
 /// </summary>
 /// <remarks>
-///   The held jobs may carry any attribute, so the filter watches every
-///   attribute and attaches to each pool whose jobs carry one.
+///   The held jobs carry <see cref="ProviderJobAttribute"/>, which attaches the
+///   filter to their pools.
 /// </remarks>
 public sealed class SuspensionAcquisitionFilter : IAcquisitionFilter, IDisposable
 {
@@ -44,8 +45,9 @@ public sealed class SuspensionAcquisitionFilter : IAcquisitionFilter, IDisposabl
     {
         _suspensionService = suspensionService;
         _jobTypesByProvider = jobTypes
-            .SelectMany(type => GetProviderTypes(type).Select(providerType => (JobType: type, ProviderType: providerType)))
-            .GroupBy(pair => pair.ProviderType)
+            .Select(type => (JobType: type, ProviderType: ProviderJobs.GetProviderType(type)))
+            .Where(pair => pair.ProviderType is not null)
+            .GroupBy(pair => pair.ProviderType!)
             .ToDictionary(group => group.Key, group => group.Select(pair => pair.JobType).Distinct().ToArray());
         _suspensionService.SuspensionChanged += OnSuspensionChanged;
         Update();
@@ -56,31 +58,13 @@ public sealed class SuspensionAcquisitionFilter : IAcquisitionFilter, IDisposabl
         => _suspensionService.SuspensionChanged -= OnSuspensionChanged;
 
     /// <inheritdoc />
-    public Type? WatchedAttributeType => typeof(Attribute);
+    public Type? WatchedAttributeType => typeof(ProviderJobAttribute);
 
     /// <inheritdoc />
     public IEnumerable<Type> GetTypesToExclude() => _excluded;
 
     /// <inheritdoc />
     public event EventHandler? StateChanged;
-
-    /// <summary>
-    ///   The providers a job type runs for: the metadata provider of a
-    ///   metadata job, and the release provider of a release provider job.
-    /// </summary>
-    /// <param name="jobType">The job type.</param>
-    /// <returns>The provider types, which is empty for any other job.</returns>
-    internal static IEnumerable<Type> GetProviderTypes(Type jobType)
-    {
-        if (MetadataProviderJobs.GetProviderType(jobType) is { } metadataProviderType)
-            yield return metadataProviderType;
-
-        foreach (var interfaceType in jobType.GetInterfaces())
-        {
-            if (interfaceType.IsGenericType && interfaceType.GetGenericTypeDefinition() == typeof(IVideoReleaseProviderJob<>))
-                yield return interfaceType.GetGenericArguments()[0];
-        }
-    }
 
     private void OnSuspensionChanged(object? sender, SuspensionChangedEventArgs e)
     {

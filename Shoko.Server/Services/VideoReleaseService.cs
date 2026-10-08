@@ -70,7 +70,7 @@ public class VideoReleaseService(
 
     private Dictionary<Guid, ReleaseProviderInfo> _releaseProviderInfos = [];
 
-    // Maps IReleaseInfoProvider concrete type → job type (from IVideoReleaseProviderJob<T> implementations)
+    // Maps IReleaseInfoProvider concrete type → job type, a job class of its own or the generic one
     private Dictionary<Type, Type> _providerJobTypes = [];
 
     private readonly HashSet<int> _unknownEpisodeIDs = [];
@@ -149,12 +149,7 @@ public class VideoReleaseService(
 
         UpdateProviders(false);
 
-        // Build the provider type → job type map from IVideoReleaseProviderJob<T> implementations
-        _providerJobTypes = jobTypeRegistry.JobTypes
-            .SelectMany(jobType => jobType.GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IVideoReleaseProviderJob<>))
-                .Select(i => (providerType: i.GetGenericArguments()[0], jobType)))
-            .ToDictionary(t => t.providerType, t => t.jobType);
+        _providerJobTypes = ReleaseProviderJobs.GetJobTypesByProvider(jobTypeRegistry.JobTypes);
 
         logger.LogInformation("Loaded {ProviderCount} providers, {JobCount} provider job mappings.",
             _releaseProviderInfos.Count, _providerJobTypes.Count);
@@ -390,7 +385,7 @@ public class VideoReleaseService(
         var startedAt = DateTime.Now;
         var providers = GetAvailableProviders(onlyEnabled: true).ToList();
         var providerList = providers
-            .Where(IsProviderCurrentlyUsable)
+            .Where(IsProviderQueueable)
             .DistinctBy(p => p.ID)
             .Select((provider, index) => new ReleaseProviderInfo()
             {
@@ -445,21 +440,12 @@ public class VideoReleaseService(
         var chain = schedulerFactory.CreateJobChain();
         foreach (var p in providerList)
         {
-            if (_providerJobTypes.TryGetValue(p.Provider.GetType(), out var jobType))
-                chain.Then(jobType, j => SetProviderJobProps(
-                    j,
-                    video.LocalID,
-                    matchAttempt.StoredReleaseInfo_MatchAttemptID,
-                    skipEvents
-                ));
-            else
-                chain.Then<ProcessReleaseProviderJob>(c =>
-                {
-                    c.VideoLocalID = video.LocalID;
-                    c.MatchAttemptID = matchAttempt.StoredReleaseInfo_MatchAttemptID;
-                    c.SkipEvents = skipEvents;
-                    c.ProviderID = p.ID;
-                });
+            chain.Then(_providerJobTypes[p.Provider.GetType()], j => SetProviderJobProps(
+                j,
+                video.LocalID,
+                matchAttempt.StoredReleaseInfo_MatchAttemptID,
+                skipEvents
+            ));
         }
 
         chain.Then<FinalizeReleaseSearchJob>(c =>
@@ -529,17 +515,18 @@ public class VideoReleaseService(
     }
 
     private bool IsProviderCurrentlyUsable(ReleaseProviderInfo provider)
-    {
-        var jobType = _providerJobTypes.GetValueOrDefault(provider.Provider.GetType()) ?? typeof(ProcessReleaseProviderJob);
-        return !schedulerFactory.IsJobTypeBlocked(jobType);
-    }
+        => !_providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) || !schedulerFactory.IsJobTypeBlocked(jobType);
+
+    // A provider without a job type, whose job's stored name is too long for the queue, is never queued.
+    private bool IsProviderQueueable(ReleaseProviderInfo provider)
+        => _providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) && !schedulerFactory.IsJobTypeBlocked(jobType);
 
     private static void SetProviderJobProps(IQueueJob job, int videoLocalID, int MatchAttemptID, bool skipEvents)
     {
         var type = job.GetType();
-        type.GetProperty(nameof(ProcessReleaseProviderJob.VideoLocalID))?.SetValue(job, videoLocalID);
-        type.GetProperty(nameof(ProcessReleaseProviderJob.MatchAttemptID))?.SetValue(job, MatchAttemptID);
-        type.GetProperty(nameof(ProcessReleaseProviderJob.SkipEvents))?.SetValue(job, skipEvents);
+        type.GetProperty(nameof(ProcessReleaseProviderJob<>.VideoLocalID))?.SetValue(job, videoLocalID);
+        type.GetProperty(nameof(ProcessReleaseProviderJob<>.MatchAttemptID))?.SetValue(job, MatchAttemptID);
+        type.GetProperty(nameof(ProcessReleaseProviderJob<>.SkipEvents))?.SetValue(job, skipEvents);
     }
 
 
@@ -582,6 +569,7 @@ public class VideoReleaseService(
         var providerList = lastMatchAttempt.AttemptedProviderNames
             .Where(allProviders.ContainsKey)
             .Select(p => allProviders[p])
+            .Where(providerInfo => _providerJobTypes.ContainsKey(providerInfo.Provider.GetType()))
             .Where(providerInfo => !(providerInfo.Provider.GetRescanDelay(existingRelease, lastMatchAttempt) is not { } delay || now < lastMatchAttempt.AttemptEndedAt + delay))
             .Select((provider, index) => new ReleaseProviderInfo()
             {
@@ -613,21 +601,12 @@ public class VideoReleaseService(
         var chain = schedulerFactory.CreateJobChain();
         foreach (var p in providerList)
         {
-            if (_providerJobTypes.TryGetValue(p.Provider.GetType(), out var jobType))
-                chain.Then(jobType, j => SetProviderJobProps(
-                    j,
-                    video.LocalID,
-                    matchAttempt.StoredReleaseInfo_MatchAttemptID,
-                    false
-                ));
-            else
-                chain.Then<ProcessReleaseProviderJob>(c =>
-                {
-                    c.VideoLocalID = video.LocalID;
-                    c.MatchAttemptID = matchAttempt.StoredReleaseInfo_MatchAttemptID;
-                    c.SkipEvents = false;
-                    c.ProviderID = p.ID;
-                });
+            chain.Then(_providerJobTypes[p.Provider.GetType()], j => SetProviderJobProps(
+                j,
+                video.LocalID,
+                matchAttempt.StoredReleaseInfo_MatchAttemptID,
+                false
+            ));
         }
 
         chain.Then<FinalizeReleaseSearchJob>(c =>

@@ -15,9 +15,8 @@ namespace Shoko.Server.Scheduling.Jobs.Airing;
 
 /// <summary>
 /// Asks one airing schedule provider to refresh what it knows about one
-/// entity. It stands in for every provider, the way
-/// <c>ProcessReleaseProviderJob</c> does for release providers without a job
-/// of their own, so a provider implements only the work.
+/// entity. It stands in for every provider, so a provider implements only the
+/// work.
 /// </summary>
 /// <remarks>
 /// The job is keyed by provider and entity, so a hint that arrives while the

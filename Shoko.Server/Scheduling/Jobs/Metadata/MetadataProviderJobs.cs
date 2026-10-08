@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.QueueProcessor;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
 
 namespace Shoko.Server.Scheduling.Jobs.Metadata;
 
@@ -72,19 +70,18 @@ public static class MetadataProviderJobs
     }
 
     /// <summary>
-    ///   The provider type a job runs for.
+    ///   The metadata provider type a job runs for.
     /// </summary>
     /// <param name="jobType">The job type.</param>
     /// <returns>
     ///   The provider type, or <c>null</c> when the job is not one
-    ///   of a provider's.
+    ///   of a metadata provider's.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="jobType"/> is <c>null</c>.</exception>
     public static Type? GetProviderType(Type jobType)
-        => jobType is { IsConstructedGenericType: true, GenericTypeArguments: [var providerType] } &&
-            jobType.GetCustomAttribute<MetadataProviderJobAttribute>(inherit: true) is not null &&
-            typeof(IMetadataProvider).IsAssignableFrom(providerType)
-                ? providerType
-                : null;
+        => ProviderJobs.GetProviderType(jobType) is { } providerType && typeof(IMetadataProvider).IsAssignableFrom(providerType)
+            ? providerType
+            : null;
 
     /// <summary>
     ///   The refresh job type for a provider type.

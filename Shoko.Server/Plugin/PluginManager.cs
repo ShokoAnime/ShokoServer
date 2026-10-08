@@ -40,6 +40,7 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.Server.API.Swagger;
 using Shoko.Server.Plugin.Databases;
 using Shoko.Server.Scheduling.Jobs.Metadata;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Configuration;
@@ -689,6 +690,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     JobTypeNames.Short(overlong), providerType.FullName
                 );
 
+        // One job type per release provider without a job class of its own, likewise.
+        foreach (var overlong in ReleaseProviderJobs.GetOverlongJobTypes(providerTypes))
+            logger.LogWarning(
+                "Not registering {JobType}: its stored name is longer than the queue keeps, so its jobs cannot be queued.",
+                JobTypeNames.Short(overlong)
+            );
+
         // One job type per image contributor too, so each gets a pool of its own.
         foreach (var contributorType in providerTypes)
             if (MetadataImageContributorJobs.GetOverlongJobType(contributorType) is { } overlong)
@@ -700,10 +708,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var providerJobTypes = providerTypes
             .SelectMany(MetadataProviderJobs.GetJobTypes)
             .Concat(providerTypes.Select(MetadataImageContributorJobs.GetJobType).OfType<Type>())
+            .Concat(ReleaseProviderJobs.GetJobTypes(providerTypes))
             .ToList();
         if (providerJobTypes.Count > 0)
         {
-            logger.LogTrace("Registering {Count} metadata provider and image contributor job types.", providerJobTypes.Count);
+            logger.LogTrace("Registering {Count} metadata provider, release provider and image contributor job types.", providerJobTypes.Count);
             serviceCollection.AddQueueJobTypes(providerJobTypes);
         }
 
