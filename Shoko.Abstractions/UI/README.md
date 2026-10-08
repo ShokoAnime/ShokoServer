@@ -107,17 +107,12 @@ so those members are gathered into the default section; give it a name with
 ### Buttons
 
 A `[CustomAction]` method becomes a button. Where it lands follows the same
-rules as a field, with one addition:
+rules as a field:
 
 | Authored as | Renders |
 |---|---|
 | `Position = Auto` | Inline, in the order it was declared, among the fields |
 | `Position = Start` / `End` | Pinned to the top or bottom of whatever holds it |
-| `AttachToMember = nameof(Path)` | On that member's row, with `Position` choosing the edge |
-
-An attached action leaves the container's own order entirely: it appears in the
-element's `AttachedStartActions` or `AttachedEndActions` and nowhere else, so it
-is described once and drawn once.
 
 ---
 
@@ -389,22 +384,6 @@ What each piece buys:
 
 Guard the handler on state rather than on which member changed, as above. It is
 then safe to run for any event.
-
-## Pattern: refreshing a field in place
-
-An action attached to a member renders on that member's row, which suits
-anything that acts on the field next to it.
-
-```csharp
-[Display(Name = "Refresh")]
-[CustomAction(Icon = "Magnify", AttachToMember = nameof(Path), Position = DisplayButtonPosition.End)]
-public async Task<ConfigurationActionResult> RefreshPaths(ConfigurationActionContext<MyConfiguration> context, IBrowser browser)
-{
-    PathSelector ??= new();
-    PathSelector.Options = (await browser.List(Path)).Select(x => new SelectOption<string>(x)).ToList();
-    return new(context.Configuration);
-}
-```
 
 ## Pattern: rows that identify themselves
 

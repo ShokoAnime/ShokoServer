@@ -48,18 +48,6 @@ public class CustomActionAttribute : Attribute
     public DisplayButtonPosition Position { get; set; }
 
     /// <summary>
-    /// When set, the action renders on the row of the named member rather than
-    /// among the class's own members, with <see cref="Position"/> choosing which
-    /// edge of that row it sits on.
-    /// </summary>
-    /// <remarks>
-    /// The name is the member's own, as <c>nameof</c> gives it, even where the
-    /// serializer renames it in the document. An action naming a member the
-    /// class does not have renders with the rest instead.
-    /// </remarks>
-    public string? AttachToMember { get; set; }
-
-    /// <summary>
     /// The member whose value shows the action, which stays hidden otherwise.
     /// <see cref="ToggleOperator"/> picks how it is compared.
     /// </summary>

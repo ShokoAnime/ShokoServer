@@ -725,7 +725,6 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                     Position = action.Position,
                     Size = action.Size,
                     Icon = string.IsNullOrWhiteSpace(action.Icon) ? null : action.Icon.Trim(),
-                    MemberName = string.IsNullOrEmpty(action.AttachToMember) ? null : action.AttachToMember,
                     SectionName = string.IsNullOrEmpty(action.SectionName) ? null : action.SectionName,
                     Toggle = action.HasToggleCondition
                         ? new UiConditionBuilder
