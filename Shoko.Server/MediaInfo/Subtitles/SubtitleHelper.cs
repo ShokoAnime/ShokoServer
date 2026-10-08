@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Utilities;
 
@@ -66,7 +67,7 @@ public static class SubtitleHelper
 
         // sub format of filename_eng.srt or filename_eng_1.srt (duplicate-track suffix)
         if (GetTrailingLanguageSuffix(Path.GetFileNameWithoutExtension(filename)) is { } underscoreLang)
-            return underscoreLang.Length == 3 ? MediaInfoUtility.GetLanguageFromCode(underscoreLang) ?? underscoreLang : underscoreLang;
+            return NormalizeLanguageTag(underscoreLang);
 
         // sub format of filename.eng.srt
         var parts = filename.Split('.');
@@ -98,6 +99,36 @@ public static class SubtitleHelper
             last = parts[^2];
         }
 
-        return last.Length is 2 or 3 && last.All(char.IsAsciiLetter) ? last : null;
+        return IsLanguageTag(last) ? last : null;
+    }
+
+    // "eng", "en", or either with a region such as "pt-BR", "spa-ES" or "es-419".
+    internal static bool IsLanguageTag(string tag)
+    {
+        var dash = tag.IndexOf('-');
+        var language = dash < 0 ? tag : tag[..dash];
+        if (language.Length is not (2 or 3) || !language.All(char.IsAsciiLetter))
+            return false;
+
+        if (dash < 0)
+            return true;
+
+        var region = tag[(dash + 1)..];
+        if (!(region.Length == 2 && region.All(char.IsAsciiLetter) || region.Length == 3 && region.All(char.IsAsciiDigit)))
+            return false;
+
+        // Rules out suffixes such as "OP-NC", whose first part is not a language.
+        var normalized = NormalizeLanguageTag(tag);
+        return normalized[..normalized.IndexOf('-')].TryGetTitleLanguage(out _);
+    }
+
+    private static string NormalizeLanguageTag(string tag)
+    {
+        var dash = tag.IndexOf('-');
+        var language = dash < 0 ? tag : tag[..dash];
+        if (language.Length == 3)
+            language = MediaInfoUtility.GetLanguageFromCode(language) ?? language;
+
+        return dash < 0 ? language : language + tag[dash..];
     }
 }
