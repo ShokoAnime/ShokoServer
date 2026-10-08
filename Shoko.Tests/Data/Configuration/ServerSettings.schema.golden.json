@@ -666,29 +666,11 @@
         },
         "SyncTargets": {
           "title": "Sync Targets",
+          "type": "array",
           "description": "Which tiers of the MyList to reconcile during a sync.",
-          "$ref": "#/definitions/MylistSyncTargets",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "None",
-                "aliasValues": ""
-              },
-              {
-                "value": "Videos",
-                "aliasValues": ""
-              },
-              {
-                "value": "Episodes",
-                "aliasValues": ""
-              },
-              {
-                "value": "All",
-                "aliasValues": ""
-              }
-            ]
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/MylistSyncTargets"
           }
         },
         "WatchedEpisodeMode": {
@@ -837,41 +819,11 @@
         },
         "FetchMode": {
           "title": "Fetch Mode",
+          "type": "array",
           "description": "How to fetch MyList entries from AniDB.",
-          "$ref": "#/definitions/MylistFetchMode",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "None",
-                "aliasValues": ""
-              },
-              {
-                "value": "Http",
-                "aliasValues": ""
-              },
-              {
-                "value": "Udp",
-                "aliasValues": ""
-              },
-              {
-                "value": "Cache",
-                "aliasValues": ""
-              },
-              {
-                "value": "Default",
-                "aliasValues": ""
-              },
-              {
-                "value": "IgnoreTimeCheck",
-                "aliasValues": ""
-              },
-              {
-                "value": "Auto",
-                "aliasValues": ""
-              }
-            ]
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/MylistFetchMode"
           }
         }
       }
@@ -879,18 +831,13 @@
     "MylistSyncTargets": {
       "type": "string",
       "description": "Which tiers of the MyList a sync reconciles. The two are independent: a file entry covers one release, while a generic entry covers an episode the user has no file for.",
-      "x-enumFlags": true,
       "x-enumNames": [
-        "None",
         "Videos",
-        "Episodes",
-        "All"
+        "Episodes"
       ],
       "enum": [
-        "None",
         "Videos",
-        "Episodes",
-        "All"
+        "Episodes"
       ]
     },
     "MylistWatchedEpisodeMode": {
@@ -962,24 +909,17 @@
     "MylistFetchMode": {
       "type": "string",
       "description": "How to fetch entries from the AniDB MyList. The freshness of the local cache only gates the HTTP transport, while UDP is never time-gated.",
-      "x-enumFlags": true,
       "x-enumNames": [
-        "None",
         "Http",
         "Udp",
         "Cache",
-        "Default",
-        "IgnoreTimeCheck",
-        "Auto"
+        "IgnoreTimeCheck"
       ],
       "enum": [
-        "None",
         "Http",
         "Udp",
         "Cache",
-        "Default",
-        "IgnoreTimeCheck",
-        "Auto"
+        "IgnoreTimeCheck"
       ]
     },
     "Metadata": {

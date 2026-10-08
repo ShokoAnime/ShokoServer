@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using NJsonSchema;
 using NJsonSchema.Validation;
 using NJsonSchema.Validation.FormatValidators;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services.Configuration;
 
@@ -50,6 +51,15 @@ public class JsonSchemaValidatorBase
         var errors = new List<ValidationError>();
         if (token is null)
             return errors;
+
+        // A flags enum was once written as text or a number, and is still read
+        // from either or with combined members, so the list it stands for is
+        // what gets validated.
+        if (ReadFlagEnumList(token, schema) is { } list)
+        {
+            NormalizeFlagEnum(token, list, schema, propertyName, propertyPath);
+            token = list;
+        }
 
         var actualSchema = schema.ActualSchema;
         ValidateAnyOf(parentToken, token, actualSchema, schemaType, propertyName, propertyPath, errors);
@@ -423,6 +433,48 @@ public class JsonSchemaValidatorBase
     /// token to the casing the member is declared with. Does nothing by default, keeping validation free of side effects.
     /// </summary>
     protected virtual void NormalizeEnum(JToken token, string enumerationValue, JsonSchema schema, string? propertyName, string propertyPath) { }
+
+    #endregion
+
+    #region Flag Enum
+
+    /// <summary>
+    /// Reads a flags enum written as text, a number, or a list naming combined members or other casings, into the list
+    /// of member names it is written as now. Returns <c>null</c> when the token is no flags enum, is already that list,
+    /// or names what the enum does not have, which validation then reports.
+    /// </summary>
+    protected static JArray? ReadFlagEnumList(JToken token, JsonSchema schema)
+    {
+        if (!FlagEnumSchemaGenerator.TryGetFlagEnum(schema, out var flagEnum))
+            return null;
+
+        try
+        {
+            var enumValue = token switch
+            {
+                JValue { Type: JTokenType.Integer } number => FlagEnums.FromNumber(flagEnum.EnumType, number.Value<long>()),
+                JValue { Type: JTokenType.String } text => FlagEnums.FromText(flagEnum.EnumType, text.Value<string>()!, flagEnum.IsNewtonsoftJson),
+                JArray array when array.All(x => x.Type is JTokenType.String) =>
+                    FlagEnums.FromNames(flagEnum.EnumType, array.Values<string>().Select(x => x!), flagEnum.IsNewtonsoftJson),
+                _ => null,
+            };
+            if (enumValue is null)
+                return null;
+
+            var list = new JArray(FlagEnums.GetNames(flagEnum.EnumType, enumValue, flagEnum.IsNewtonsoftJson));
+            return JToken.DeepEquals(list, token) ? null : list;
+        }
+        catch (Exception ex) when (ex is FormatException or OverflowException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Called when a flags enum was read from another form than the list it is written as now, so an extending class
+    /// can rewrite the token to that list. Does nothing by default, keeping validation free of side effects.
+    /// </summary>
+    protected virtual void NormalizeFlagEnum(JToken token, JArray list, JsonSchema schema, string? propertyName, string propertyPath) { }
 
     #endregion
 

@@ -21,7 +21,8 @@ own business, whatever its name or shape.
 
 A list of lists, a dictionary of dictionaries, a list of dictionaries or a
 jagged array. The UI has no way to render one, and the generator cannot tell
-the two levels apart. A dictionary of lists is fine.
+the two levels apart. A dictionary of lists is fine. A `[Flags]` enum is a list
+of its members, so a list of one is reported too.
 
 ```csharp
 public List<List<string>> Groups { get; set; } = [];           // reported
@@ -38,7 +39,8 @@ collection cannot hold another collection directly, …`
 **Dictionary key is not serializable to text.**
 
 JSON object keys are text, so a dictionary key must be a string, an enum, a type
-marked `[Serializable]` or implementing `ISerializable`.
+marked `[Serializable]` or implementing `ISerializable`. A `[Flags]` enum is
+written as a list of its members, so it is no key.
 
 ```csharp
 public Dictionary<Point, int> Weights { get; set; } = [];      // reported
@@ -237,3 +239,21 @@ are separate parts, so each may have one.
 
 Startup: `The options provider 'MyConfig.ListMore' names "Port", whose values
 ListPorts already provides for.`
+
+## SHOKO0014
+
+**Flags enum has no single-bit members.**
+
+A `[Flags]` enum is rendered as a list of its members with a single bit set.
+Zero and combined members are only accepted on read, so an enum with none of
+the first kind has nothing to list.
+
+```csharp
+[Flags] public enum Mode { None = 0, All = 3 }
+public Mode Mode { get; set; }                                 // reported
+
+[Flags] public enum Mode { None = 0, Read = 1, Write = 2, All = Read | Write }  // fixed
+```
+
+Startup: `Configuration property "MyConfig.Mode" holds the flags enum Mode,
+which has no member with a single bit set. …`

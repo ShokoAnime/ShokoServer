@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Shoko.Abstractions.UI.Enums;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services.Configuration;
 
@@ -138,6 +139,9 @@ internal static class UiConditionValidator
     {
         if (type == typeof(string))
             return null;
+        // A flags enum is a list of its own members.
+        if (FlagEnums.IsFlagEnum(type))
+            return type;
         if (type.IsArray)
             return type.GetElementType();
 

@@ -9,6 +9,7 @@ using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Components;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Abstractions.UI.Enums;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services.Configuration;
 
@@ -230,7 +231,6 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         => new()
         {
             Values = ReadEnumValues(enumBuilder, resolved),
-            IsFlag = enumBuilder?.IsFlag ?? false,
         };
 
     private static UiCodeEditorElement BuildCodeEditor(UiCodeEditorElementBuilder? codeEditorBuilder)
@@ -558,7 +558,6 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             { IsEnum: true } when record!.KeyEnumValues is { } enumValues => new UiEnumElement
             {
                 Values = enumValues.Select(ToEnumValue).ToList(),
-                IsFlag = record.KeyEnumIsFlag,
             },
             not null when keyType == typeof(bool) => new UiBooleanElement(),
             not null when keyType == typeof(byte) || keyType == typeof(sbyte) || keyType == typeof(short) || keyType == typeof(ushort) ||
@@ -722,8 +721,10 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             UiRecordElement record => record.Item,
             _ => element,
         };
+        // A flags enum denies its entries only: zero and a combined member are
+        // no entry, and are left to the server's own validation.
         if (CanDenyValues(target))
-            target.DeniedValues = [.. denied.Select(state.ConvertToken)];
+            target.DeniedValues = [.. denied.Select(state.ConvertEntryToken).Where(x => x is not null)];
     }
 
     /// <summary>
@@ -805,7 +806,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
                     {
                         Path = toggle.Path,
                         Operator = toggle.Operator,
-                        Value = state.ConvertToken(toggle.Value),
+                        Value = toggle.Operator is UiConditionOperator.Contains ? state.ConvertEntryToken(toggle.Value) ?? state.ConvertToken(toggle.Value) : state.ConvertToken(toggle.Value),
                         Values = toggle.Values?.Select(state.ConvertToken).ToList(),
                         Visibility = toggle.Visibility ?? DisplayVisibility.Visible,
                     }
@@ -854,7 +855,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             {
                 Path = condition.Path,
                 Operator = condition.Operator,
-                Value = state.ConvertToken(condition.Value),
+                Value = condition.Operator is UiConditionOperator.Contains ? state.ConvertEntryToken(condition.Value) ?? state.ConvertToken(condition.Value) : state.ConvertToken(condition.Value),
                 Values = condition.Values?.Select(state.ConvertToken).ToList(),
             };
 
@@ -896,6 +897,22 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
 
         public JToken? ConvertToken(object? value)
             => wrapped.EmitContext is { } context ? context.ConvertToken(value) : ToToken(value);
+
+        /// <summary>
+        ///   Serialises a value an entry of a list is compared with. A flags
+        ///   enum is an entry only when it is one single-bit member, written
+        ///   as that member's name, and is <c>null</c> otherwise.
+        /// </summary>
+        public JToken? ConvertEntryToken(object? value)
+        {
+            if (value is not Enum || !FlagEnums.IsFlagEnum(value.GetType()))
+                return ConvertToken(value);
+
+            return Enum.GetName(value.GetType(), value) is { } name && FlagEnums.IsEntry(value.GetType().GetField(name)!)
+                && ConvertToken(value) is JArray { Count: 1 } list
+                ? list[0]
+                : null;
+        }
 
         public string GetDefinitionName(JsonSchema schema)
             => _names.TryGetValue(schema, out var name) ? name : schema.Title ?? "Anonymous";

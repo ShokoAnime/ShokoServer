@@ -38,7 +38,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         Diagnostics.MemberTakesNoOptions,
         Diagnostics.UnusableOptionType,
         Diagnostics.OptionTypeMismatch,
-        Diagnostics.OptionsClaimedTwice);
+        Diagnostics.OptionsClaimedTwice,
+        Diagnostics.FlagEnumWithoutMembers);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -442,7 +443,10 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         if (shape.Kind is CollectionKind.None)
             return;
 
-        var inner = CollectionShape.Classify(shape.Element, known);
+        AnalyzeFlagEnum(context, property, owner, shape, known, reported);
+
+        // A flags enum is a list of its own members, which hold nothing further.
+        var inner = shape.IsFlagEnum ? CollectionShape.None : CollectionShape.Classify(shape.Element, known);
         // A dictionary of collections is fine: the two levels get distinct keys
         // (`+Dict` and `+List`) and the generator produces a usable schema. Only
         // same-kind nesting collides on one key, and only a dictionary inside a
@@ -483,6 +487,32 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
 
         if (shape.Kind is CollectionKind.List)
             AnalyzeListType(context, property, owner, shape.Element, known, reported);
+    }
+
+    /// <summary>
+    /// Reports a <c>[Flags]</c> enum, held by the property or as a dictionary's values, with no
+    /// single-bit member for its list to hold.
+    /// </summary>
+    private static void AnalyzeFlagEnum(
+        SymbolAnalysisContext context,
+        IPropertySymbol property,
+        INamedTypeSymbol owner,
+        CollectionShape shape,
+        KnownSymbols known,
+        ConcurrentDictionary<string, byte> reported
+    )
+    {
+        var flagEnum = shape.IsFlagEnum
+            ? shape.Element
+            : shape.Kind is CollectionKind.Dictionary && CollectionShape.IsFlagEnumType(shape.Element, known) ? CollectionShape.Unwrap(shape.Element) : null;
+        if (flagEnum is null || CollectionShape.HasSingleBitMember(flagEnum))
+            return;
+
+        Report(context, reported, Diagnostic.Create(
+            Diagnostics.FlagEnumWithoutMembers,
+            GetTypeLocation(property, owner, context.CancellationToken),
+            property.Name,
+            flagEnum.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat)));
     }
 
     /// <summary>
@@ -575,12 +605,15 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         };
 
     /// <summary>
-    /// Mirrors <c>ShokoJsonSchemaGenerator.AssertKeyUsable</c>, which throws for anything else.
+    /// Mirrors <c>ShokoJsonSchemaGenerator.AssertKeyUsable</c>, which throws for anything else. A
+    /// <c>[Flags]</c> enum is written as a list of its members, which no key can be.
     /// </summary>
     private static bool IsUsableDictionaryKey(ITypeSymbol? key, KnownSymbols known)
     {
         if (CollectionShape.Unwrap(key) is not { } unwrapped)
             return true;
+        if (CollectionShape.IsFlagEnumType(unwrapped, known))
+            return false;
         if (unwrapped.SpecialType is SpecialType.System_String || unwrapped.TypeKind is TypeKind.Enum)
             return true;
         // [Serializable] is a metadata flag, not a stored custom attribute. The runtime synthesises

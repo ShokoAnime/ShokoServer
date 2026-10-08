@@ -74,6 +74,11 @@ internal sealed class KnownSymbols
     public INamedTypeSymbol? TypeConverterAttribute { get; }
 
     /// <summary>
+    /// <c>System.FlagsAttribute</c>.
+    /// </summary>
+    public INamedTypeSymbol? FlagsAttribute { get; }
+
+    /// <summary>
     /// <c>System.Threading.Tasks.Task&lt;&gt;</c>.
     /// </summary>
     public INamedTypeSymbol? GenericTask { get; }
@@ -144,6 +149,7 @@ internal sealed class KnownSymbols
         GenericTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
         Parsable = compilation.GetTypeByMetadataName("System.IParsable`1");
         TypeConverterAttribute = compilation.GetTypeByMetadataName("System.ComponentModel.TypeConverterAttribute");
+        FlagsAttribute = compilation.GetTypeByMetadataName("System.FlagsAttribute");
         GenericValueTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
         NonGenericDictionary = compilation.GetTypeByMetadataName("System.Collections.IDictionary");
         GenericDictionary = compilation.GetTypeByMetadataName("System.Collections.Generic.IDictionary`2");

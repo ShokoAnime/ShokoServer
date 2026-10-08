@@ -1136,4 +1136,73 @@ public class ConfigurationTypeAnalyzerTests
             }
             """);
     }
+
+    [Fact]
+    public async Task AFlagsEnumAsAList_IsNotReported()
+    {
+        await VerifyAsync("""
+            using System;
+            using System.Collections.Generic;
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+            using Shoko.Abstractions.UI.Enums;
+
+            [Flags]
+            public enum Access { None = 0, Read = 1, Write = 2, All = Read | Write }
+
+            public class MyConfig : IConfiguration
+            {
+                [List(ListType = DisplayListType.EnumCheckbox)]
+                public Access Access { get; set; }
+
+                public Dictionary<string, Access> Grants { get; set; } = new();
+
+                [OptionsProvider(nameof(Access), nameof(Grants))]
+                public Access[] ListAccess() => new[] { Access.Read };
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task FlagsEnumShapesItCannotRender_AreReported()
+    {
+        await VerifyAsync("""
+            using System;
+            using System.Collections.Generic;
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+
+            [Flags]
+            public enum Access { None = 0, Read = 1, Write = 2 }
+
+            [Flags]
+            public enum Empty { None = 0, Both = 3 }
+
+            public class MyConfig : IConfiguration
+            {
+                public {|#0:List<Access>|} Accesses { get; set; } = new();
+
+                public {|#1:Dictionary<Access, string>|} Names { get; set; } = new();
+
+                public {|#2:Empty|} Empty { get; set; }
+
+                public Access Access { get; set; }
+
+                [{|#3:OptionsProvider(nameof(Access))|}]
+                public int[] ListAccess() => new int[0];
+            }
+            """,
+            new DiagnosticResult(Diagnostics.NestedCollection)
+                .WithLocation(0)
+                .WithArguments("Accesses", "List<Access>", "list"),
+            new DiagnosticResult(Diagnostics.UnusableDictionaryKey)
+                .WithLocation(1)
+                .WithArguments("Names", "Access"),
+            new DiagnosticResult(Diagnostics.FlagEnumWithoutMembers)
+                .WithLocation(2)
+                .WithArguments("Empty", "Empty"),
+            new DiagnosticResult(Diagnostics.OptionTypeMismatch)
+                .WithLocation(3)
+                .WithArguments("MyConfig.ListAccess", "returns int[] rather than a collection of Access"));
+    }
 }

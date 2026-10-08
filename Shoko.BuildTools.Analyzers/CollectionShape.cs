@@ -32,7 +32,8 @@ internal enum CollectionKind
 /// <paramref name="kind"/> is not <see cref="CollectionKind.None"/>.
 /// </param>
 /// <param name="key">The key type, for a dictionary.</param>
-internal readonly struct CollectionShape(CollectionKind kind, ITypeSymbol? element, ITypeSymbol? key)
+/// <param name="isFlagEnum">Whether the type is a <c>[Flags]</c> enum, a list of its own members.</param>
+internal readonly struct CollectionShape(CollectionKind kind, ITypeSymbol? element, ITypeSymbol? key, bool isFlagEnum = false)
 {
     /// <summary>
     /// A type that is not a collection.
@@ -55,6 +56,12 @@ internal readonly struct CollectionShape(CollectionKind kind, ITypeSymbol? eleme
     public ITypeSymbol? Key { get; } = key;
 
     /// <summary>
+    /// Whether the type is a <c>[Flags]</c> enum, which is described as a list of its own members, so
+    /// <see cref="Element"/> is the type itself and holds nothing further.
+    /// </summary>
+    public bool IsFlagEnum { get; } = isFlagEnum;
+
+    /// <summary>
     /// The word to use for this collection kind in a diagnostic message.
     /// </summary>
     public string Noun => Kind switch
@@ -67,7 +74,7 @@ internal readonly struct CollectionShape(CollectionKind kind, ITypeSymbol? eleme
     /// <summary>
     /// Classifies a type the same way the configuration UI schema generator does: dictionaries
     /// first, then anything else enumerable, with the types the generator maps to a JSON scalar
-    /// excluded.
+    /// excluded. A <c>[Flags]</c> enum is a list of its own members.
     /// </summary>
     /// <param name="type">The type to classify.</param>
     /// <param name="known">The symbols for the current compilation.</param>
@@ -81,6 +88,8 @@ internal readonly struct CollectionShape(CollectionKind kind, ITypeSymbol? eleme
         // array in the generated schema.
         if (unwrapped.SpecialType is SpecialType.System_String)
             return None;
+        if (IsFlagEnumType(unwrapped, known))
+            return new CollectionShape(CollectionKind.List, unwrapped, null, isFlagEnum: true);
         if (unwrapped is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_Byte })
             return None;
 
@@ -130,6 +139,49 @@ internal readonly struct CollectionShape(CollectionKind kind, ITypeSymbol? eleme
             INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable => nullable.TypeArguments[0],
             _ => type,
         };
+
+    /// <summary>
+    /// Whether the type, unwrapped, is an enum marked with <c>[Flags]</c>.
+    /// </summary>
+    /// <param name="type">The type to test.</param>
+    /// <param name="known">The symbols for the current compilation.</param>
+    /// <returns><c>true</c> for a flags enum.</returns>
+    public static bool IsFlagEnumType(ITypeSymbol? type, KnownSymbols known)
+        => Unwrap(type) is { TypeKind: TypeKind.Enum } unwrapped &&
+            known.FlagsAttribute is not null &&
+            ConfigurationMembers.HasAttribute(unwrapped, known.FlagsAttribute);
+
+    /// <summary>
+    /// Whether a <c>[Flags]</c> enum has a member with a single bit set, which is what its list
+    /// holds. An enum whose values cannot be read is assumed to have one.
+    /// </summary>
+    /// <param name="type">The flags enum.</param>
+    /// <returns><c>true</c> when it has an entry to render.</returns>
+    public static bool HasSingleBitMember(ITypeSymbol type)
+    {
+        foreach (var member in type.GetMembers())
+        {
+            if (member is not IFieldSymbol { HasConstantValue: true, ConstantValue: { } value })
+                continue;
+
+            var bits = value switch
+            {
+                sbyte x => (ulong)(byte)x,
+                short x => (ulong)(ushort)x,
+                int x => (ulong)(uint)x,
+                long x => (ulong)x,
+                byte x => x,
+                ushort x => x,
+                uint x => x,
+                ulong x => x,
+                _ => 1UL,
+            };
+            if (bits != 0 && (bits & (bits - 1)) == 0)
+                return true;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Whether the type is, or implements, the given non-generic interface.
