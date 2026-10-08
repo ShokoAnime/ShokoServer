@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -253,7 +254,7 @@ public class ActionService : IActionService
             // The action's parameters are its own settable, serialized
             // properties, described the same way a configuration is. Null when
             // the action declares none.
-            var parameters = _actionUiDefinitionBuilder.Build(id, probe.Name, probe.Description, actionType);
+            var parameters = _actionUiDefinitionBuilder.Build(id, probe.Name, probe.Description, actionType, GetOptionsRoute(id, scope));
 
             var info = new ExecutableActionInfo(
                 id,
@@ -372,20 +373,106 @@ public class ActionService : IActionService
         IReadOnlyDictionary<string, object?>? parameters = null,
         IUser? caller = null,
         CancellationToken token = default
+    ) => GetParameterOptionsCoreAsync(actionId, null, path, parameters, caller, token);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IShokoGroup group,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    ) => GetParameterOptionsCoreAsync(actionId, group, path, parameters, caller, token);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IShokoSeries series,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    ) => GetParameterOptionsCoreAsync(actionId, series, path, parameters, caller, token);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IShokoEpisode episode,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    ) => GetParameterOptionsCoreAsync(actionId, episode, path, parameters, caller, token);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IVideo video,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    ) => GetParameterOptionsCoreAsync(actionId, video, path, parameters, caller, token);
+
+    /// <summary>
+    ///   The options entry point, scope-agnostic in the same way as
+    ///   <see cref="InvokeCoreAsync"/>.
+    /// </summary>
+    /// <exception cref="GenericValidationException">
+    ///   The action may not be invoked here or by this caller, or the path
+    ///   does not lead to a parameter that takes options.
+    /// </exception>
+    private Task<IReadOnlyList<UiOption>> GetParameterOptionsCoreAsync(
+        Guid actionId,
+        object? scopeEntity,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters,
+        IUser? caller,
+        CancellationToken token
     )
     {
         var registered = ResolveAction(actionId);
-        if (caller is not null && registered.Info.Permission is ActionPermission.Admin && !caller.IsAdmin)
-            throw new UnauthorizedAccessException("Administrator privileges are required for this action.");
+        var rejection = CheckApplicable(registered, ScopeOf(scopeEntity), caller);
+        var (probe, hidden) = rejection is null ? PrepareProbe(registered, scopeEntity, parameters, caller) : (null, rejection);
+        if (hidden is not null)
+            throw new GenericValidationException(hidden.Reason, new Dictionary<string, IReadOnlyList<string>> { [string.Empty] = [hidden.Reason] });
 
-        var probe = (IExecutableAction)_services.GetRequiredService(registered.ActionType);
-        if (probe is IActionCaller callerAware && caller is not null)
-            callerAware.SetCaller(caller);
-        PopulateParameters(probe, parameters);
+        object owner;
+        MethodInfo method;
+        try
+        {
+            (owner, method) = UiOptionsProvider.Resolve(probe!, path, isNewtonsoftJson: true);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new GenericValidationException(ex.Message, new Dictionary<string, IReadOnlyList<string>> { [nameof(path)] = [ex.Message] });
+        }
 
-        var (owner, method) = UiOptionsProvider.Resolve(probe, path, isNewtonsoftJson: true);
-        return UiOptionsProvider.InvokeAsync(method, _pluginManager, owner, [probe, caller, token], ConvertParameterValue);
+        // Handed what execution has: the prepared instance, its entity and its
+        // caller, with services for anything else.
+        return UiOptionsProvider.InvokeAsync(
+            method,
+            _pluginManager,
+            owner,
+            [probe, scopeEntity, caller, token],
+            ConvertParameterValue
+        );
     }
+
+    /// <summary>
+    ///   Where an action's parameter options are listed. A scoped action's
+    ///   route keeps the entity's placeholder for the client to fill in.
+    /// </summary>
+    private static string GetOptionsRoute(Guid id, ActionScope scope)
+        => scope switch
+        {
+            ActionScope.Group => $"/api/v3/Group/{{groupID}}/Action/{id}/Options",
+            ActionScope.Series => $"/api/v3/Series/{{seriesID}}/Action/{id}/Options",
+            ActionScope.Episode => $"/api/v3/Episode/{{episodeID}}/Action/{id}/Options",
+            ActionScope.Video => $"/api/v3/File/{{fileID}}/Action/{id}/Options",
+            _ => $"/api/v3/Action/{id}/Options",
+        };
 
     /// <summary>
     ///   Serialises a parameter value the way the action's own parameter
@@ -631,16 +718,34 @@ public class ActionService : IActionService
     /// </returns>
     private async Task<ActionValidationResult?> ValidateEntryAsync(RegisteredAction registered, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
     {
+        var (probe, rejection) = PrepareProbe(registered, scopeEntity, parameters, caller);
+        return rejection ?? await probe!.Validate(token);
+    }
+
+    /// <summary>
+    ///   Resolves a throwaway instance and prepares it the way execution will
+    ///   see it: scoped, given its caller and populated with the parameters.
+    /// </summary>
+    /// <returns>
+    ///   The instance, or the reason the caller may not act on the entity.
+    /// </returns>
+    private (IExecutableAction? Probe, ActionValidationResult? Rejection) PrepareProbe(
+        RegisteredAction registered,
+        object? scopeEntity,
+        IReadOnlyDictionary<string, object?>? parameters,
+        IUser? caller
+    )
+    {
         var probe = (IExecutableAction)_services.GetRequiredService(registered.ActionType);
         if (CheckVisible(probe, scopeEntity, caller) is { } hidden)
-            return hidden;
+            return (null, hidden);
 
         if (probe is IScopedAction scoped && scopeEntity is not null)
             scoped.SetContext(scopeEntity);
         if (probe is IActionCaller callerAware)
         {
             if (caller is null)
-                return new ActionValidationResult($"The action '{registered.Info.Name}' requires a calling user.");
+                return (null, new ActionValidationResult($"The action '{registered.Info.Name}' requires a calling user."));
 
             callerAware.SetCaller(caller);
         }
@@ -648,8 +753,7 @@ public class ActionService : IActionService
         // Populate the probe with the caller's parameters too, so Validate
         // observes the same values Execute will, not the compiled-in defaults.
         PopulateParameters(probe, parameters);
-
-        return await probe.Validate(token);
+        return (probe, null);
     }
 
     /// <summary>
