@@ -374,6 +374,11 @@ The answer is a list of `{ "Value": …, "Label": "…" }`:
 - The order is the provider's, duplicates included; nulls are left out.
 - An empty list means there is nothing to choose from right now.
 
+Labels are for more than the picker. A client should also use them to show the
+existing entries whose value a provider lists, such as a dictionary key stored
+as a Guid shown by its name, and fall back to the raw value for an entry the
+provider does not list.
+
 A provider may refuse the draft by throwing `GenericValidationException`, for
 example when the credentials it needs are wrong. The route then answers with a
 validation problem, its errors keyed by member path as thrown. Any other
