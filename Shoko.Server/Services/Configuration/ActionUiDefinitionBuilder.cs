@@ -52,7 +52,7 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
     ///   generator cannot render is a defect in the action, not a condition to
     ///   recover from, so it fails startup exactly as the equivalent
     ///   configuration would rather than leaving a half-usable action behind
-    ///   with no way to invoke it from a UI. The SHOKO0001 to SHOKO0008 analyzer
+    ///   with no way to invoke it from a UI. The SHOKO0001 to SHOKO0013 analyzer
     ///   rules catch these shapes at compile time for anyone referencing the
     ///   package.
     /// </remarks>

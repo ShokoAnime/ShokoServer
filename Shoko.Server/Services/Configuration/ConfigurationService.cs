@@ -504,14 +504,21 @@ public partial class ConfigurationService : IConfigurationService
         return RunAction(loggerFactory, pluginManager, configurationService, info, configuration, path, target, methodInfo, schema, type, ReactiveEventType.All, user, uri);
     }
 
-    public Task<IReadOnlyList<UiOption>> GetOptionsAsync(ConfigurationInfo info, IConfiguration configuration, string path, IUser? user = null, Uri? uri = null)
+    public Task<IReadOnlyList<UiOption>> GetOptionsAsync(
+        ConfigurationInfo info,
+        IConfiguration configuration,
+        string path,
+        OptionsTarget target = OptionsTarget.Values,
+        IUser? user = null,
+        Uri? uri = null
+    )
     {
         try
         {
             return (Task<IReadOnlyList<UiOption>>)typeof(ConfigurationService)
                 .GetMethod(nameof(GetOptionsInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
                 .MakeGenericMethod(configuration.GetType())
-                .Invoke(this, [info, configuration, path, user, uri])!;
+                .Invoke(this, [info, configuration, path, target, user, uri])!;
         }
         catch (TargetInvocationException ex)
         {
@@ -524,15 +531,17 @@ public partial class ConfigurationService : IConfigurationService
     public Task<IReadOnlyList<UiOption>> GetOptionsAsync<TConfig>(
         TConfig configuration,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IUser? user = null,
         Uri? uri = null
     ) where TConfig : class, IConfiguration, new()
-        => GetOptionsInternal(GetConfigurationInfo<TConfig>(), configuration, path, user, uri);
+        => GetOptionsInternal(GetConfigurationInfo<TConfig>(), configuration, path, target, user, uri);
 
     private Task<IReadOnlyList<UiOption>> GetOptionsInternal<TConfig>(
         ConfigurationInfo info,
         TConfig configuration,
         string path,
+        OptionsTarget target,
         IUser? user,
         Uri? uri
     ) where TConfig : class, IConfiguration, new()
@@ -541,7 +550,7 @@ public partial class ConfigurationService : IConfigurationService
         MethodInfo method;
         try
         {
-            (owner, method) = UiOptionsProvider.Resolve(configuration, path, info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)));
+            (owner, method) = UiOptionsProvider.Resolve(configuration, path, target, info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)));
         }
         catch (ArgumentException ex) when (ex is not InvalidConfigurationActionException)
         {

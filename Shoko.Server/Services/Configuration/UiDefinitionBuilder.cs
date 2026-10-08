@@ -663,12 +663,42 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         element.EnvironmentVariable = isNamedMember && property?.EnvironmentVariable is { Length: > 0 } envVar
             ? new UiEnvironmentVariable { Name = envVar, AllowOverride = property!.EnvironmentVariableOverridable }
             : null;
-        element.OptionsRoute = isNamedMember && property?.OptionsProvider is not null ? state.OptionsRoute : null;
+        if (isNamedMember && property is not null)
+            ApplyOptionsRoutes(state, element, property);
         element.Default = ToToken(declared.Default ?? resolved.Default);
         element.IsRequired = isRequired;
         element.IsNullable = declared.IsNullable(SchemaType.JsonSchema) || resolved.IsNullable(SchemaType.JsonSchema);
         ApplyDeniedValues(state, element, property);
         return element;
+    }
+
+    /// <summary>
+    ///   Files the options routes on the elements that render the choices: an
+    ///   entry of a list, a key or value of a dictionary, or the element itself.
+    /// </summary>
+    /// <remarks>
+    ///   The path sent with the request is always the member's own, so a key
+    ///   or an entry is listed for without an index of its own.
+    /// </remarks>
+    private static void ApplyOptionsRoutes(WalkState state, UiElement element, UiPropertyBuilder property)
+    {
+        if (state.OptionsRoute is not { } route)
+            return;
+
+        if (property.HasValueOptions)
+        {
+            var target = element switch
+            {
+                UiListElement list => list.Item,
+                UiRecordElement { Item: UiListElement valueList } => valueList.Item,
+                UiRecordElement record => record.Item,
+                _ => element,
+            };
+            target.OptionsRoute = route;
+        }
+
+        if (property.HasKeyOptions && element is UiRecordElement keyed)
+            keyed.KeyItem.OptionsRoute = $"{route}/Keys";
     }
 
     /// <summary>

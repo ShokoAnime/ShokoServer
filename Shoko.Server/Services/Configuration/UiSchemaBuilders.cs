@@ -348,8 +348,11 @@ internal sealed class UiPropertyBuilder
     /// <summary>The badge to render next to the label, if any.</summary>
     public UiBadgeBuilder? Badge { get; set; }
 
-    /// <summary>The method the property's options are listed by, if the server lists them.</summary>
-    public string? OptionsProvider { get; set; }
+    /// <summary>Whether the server lists options for the property's value, or its entries or values.</summary>
+    public bool HasValueOptions { get; set; }
+
+    /// <summary>Whether the server lists options for the keys of the property's dictionary.</summary>
+    public bool HasKeyOptions { get; set; }
 
     /// <summary>The kind-specific part of the definition, if any.</summary>
     public UiElementBuilder? Element { get; set; }

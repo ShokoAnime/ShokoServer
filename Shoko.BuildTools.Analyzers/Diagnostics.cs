@@ -18,7 +18,7 @@ public static class Diagnostics
     /// </summary>
     public const string Category = "Shoko.Configuration";
 
-    private const string HelpLinkPrefix = "https://docs.shokoanime.com/dev/plugin-analyzers#";
+    private const string HelpLinkPrefix = "https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools.Analyzers/README.md#";
 
     /// <summary>
     /// A property nests a collection directly inside another collection.
@@ -112,15 +112,80 @@ public static class Diagnostics
         helpLinkUri: HelpLinkPrefix + "shoko0007");
 
     /// <summary>
-    /// An options provider names members it cannot list options for, or lists something they cannot take.
+    /// An options provider method cannot be called, or returns no collection.
     /// </summary>
-    public static readonly DiagnosticDescriptor UnusableOptionsProvider = new(
+    public static readonly DiagnosticDescriptor UnusableOptionsProviderMethod = new(
         id: "SHOKO0008",
-        title: "Options provider does not fit its members",
+        title: "Options provider method cannot be used",
         messageFormat: "The options provider '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "An [OptionsProvider] method is public and not generic. Every member it names is a public property of the same class, claimed by no other provider, and every one of them takes the same option type: a collection takes options for its entries and a nullable member for the type it wraps, while a dictionary or a select component takes none. The method returns a collection of that type, or of SelectOption of it to label each option, directly or through a Task or ValueTask.",
+        description: "Only a method carrying [OptionsProvider] is checked, and any other method is the class's own. That method is public and not generic, and returns a collection of options, an array or any IEnumerable, directly or through a Task or ValueTask.",
         helpLinkUri: HelpLinkPrefix + "shoko0008");
+
+    /// <summary>
+    /// An options provider names no member, a member the class does not have, or a member twice.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnknownOptionsMember = new(
+        id: "SHOKO0009",
+        title: "Options provider names no usable member",
+        messageFormat: "The options provider '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "[OptionsProvider] names at least one member, and each one once. Every name is a public instance property of the class declaring the method, as nameof gives it.",
+        helpLinkUri: HelpLinkPrefix + "shoko0009");
+
+    /// <summary>
+    /// A named member has no part the options could be for.
+    /// </summary>
+    public static readonly DiagnosticDescriptor MemberTakesNoOptions = new(
+        id: "SHOKO0010",
+        title: "Member cannot take options",
+        messageFormat: "The options provider '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Values, the default target, is a scalar itself, a list's entries or a dictionary's values; Keys is a dictionary's keys. A select component carries its own options, and a dictionary of dictionaries or one without key and value types has no single value to offer options for.",
+        helpLinkUri: HelpLinkPrefix + "shoko0010");
+
+    /// <summary>
+    /// A named member's options would be of a type that cannot be told apart as text.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnusableOptionType = new(
+        id: "SHOKO0011",
+        title: "Option type is not allowed",
+        messageFormat: "The options provider '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "An option is a primitive, a string, a decimal, an enum, a Guid, a date, time or time span, a Uri, or a type of any origin that implements IParsable of itself or carries [TypeConverter], with nullable types unwrapped. The startup check also makes sure the converter turns the type into text or a primitive and back.",
+        helpLinkUri: HelpLinkPrefix + "shoko0011");
+
+    /// <summary>
+    /// The named members take different options, or the method lists another type.
+    /// </summary>
+    public static readonly DiagnosticDescriptor OptionTypeMismatch = new(
+        id: "SHOKO0012",
+        title: "Options do not match their members",
+        messageFormat: "The options provider '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Every member one provider names takes the same option type, and the method lists exactly that type, or SelectOption of it to label each option. A conversion decides what an option may be, never which member it fits, so no type stands in for another.",
+        helpLinkUri: HelpLinkPrefix + "shoko0012");
+
+    /// <summary>
+    /// A part of a member already has a provider.
+    /// </summary>
+    public static readonly DiagnosticDescriptor OptionsClaimedTwice = new(
+        id: "SHOKO0013",
+        title: "Member's options are provided twice",
+        messageFormat: "The options provider '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Each part of a member has one provider at most. A dictionary's keys and values are separate parts, so each may have its own.",
+        helpLinkUri: HelpLinkPrefix + "shoko0013");
 }

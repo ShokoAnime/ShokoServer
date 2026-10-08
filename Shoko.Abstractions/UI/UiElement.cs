@@ -83,11 +83,20 @@ public abstract class UiElement
     /// server does not list them.
     /// </summary>
     /// <remarks>
-    /// POST to it with the element's own path as the <c>path</c> query
-    /// parameter, the same path a custom action is invoked with, and the
-    /// edited document as the body to list the options for it. On a list the
-    /// options are for its entries. A scoped action's route holds the entity's
-    /// placeholder, such as <c>{seriesID}</c>, for the client to fill in.
+    /// <para>
+    /// POST to it with the member's path as the <c>path</c> query parameter,
+    /// the same path a custom action is invoked with, and the edited document
+    /// as the body. The path is always the member's own, so an entry of a list
+    /// or a key or value of a dictionary, which carries the route itself, is
+    /// listed for by its member's path. A key element's route ends in
+    /// <c>/Keys</c>. A scoped action's route holds the entity's placeholder,
+    /// such as <c>{seriesID}</c>, for the client to fill in.
+    /// </para>
+    /// <para>
+    /// The answer is a list of <see cref="UiOption"/> in the provider's order,
+    /// possibly empty, or a validation problem keyed by member path when the
+    /// provider refused the draft.
+    /// </para>
     /// </remarks>
     public string? OptionsRoute { get; set; }
 

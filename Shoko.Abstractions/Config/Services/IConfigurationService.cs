@@ -7,6 +7,7 @@ using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Config.Services;
@@ -245,6 +246,9 @@ public interface IConfigurationService
     /// <param name="path">
     ///   The path of the member, the same path a custom action is invoked with.
     /// </param>
+    /// <param name="target">
+    ///   The part of the member the options are for.
+    /// </param>
     /// <param name="user">
     ///   The user asking, if applicable.
     /// </param>
@@ -257,7 +261,14 @@ public interface IConfigurationService
     /// <returns>
     ///   The options, in the order the provider listed them.
     /// </returns>
-    Task<IReadOnlyList<UiOption>> GetOptionsAsync(ConfigurationInfo info, IConfiguration configuration, string path, IUser? user = null, Uri? uri = null);
+    Task<IReadOnlyList<UiOption>> GetOptionsAsync(
+        ConfigurationInfo info,
+        IConfiguration configuration,
+        string path,
+        OptionsTarget target = OptionsTarget.Values,
+        IUser? user = null,
+        Uri? uri = null
+    );
 
     /// <summary>
     ///   Lists the options the server offers for a member marked with
@@ -271,6 +282,9 @@ public interface IConfigurationService
     /// </param>
     /// <param name="path">
     ///   The path of the member, the same path a custom action is invoked with.
+    /// </param>
+    /// <param name="target">
+    ///   The part of the member the options are for.
     /// </param>
     /// <param name="user">
     ///   The user asking, if applicable.
@@ -287,6 +301,7 @@ public interface IConfigurationService
     Task<IReadOnlyList<UiOption>> GetOptionsAsync<TConfig>(
         TConfig configuration,
         string path,
+        OptionsTarget target = OptionsTarget.Values,
         IUser? user = null,
         Uri? uri = null
     ) where TConfig : class, IConfiguration, new();
