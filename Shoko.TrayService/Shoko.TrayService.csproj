@@ -1,4 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <!-- Opt out of Avalonia's build telemetry: its stats task only runs while UsedAvaloniaProducts is set. -->
+    <PropertyGroup>
+        <UsedAvaloniaProducts />
+    </PropertyGroup>
+
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
