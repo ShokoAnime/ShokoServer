@@ -54,6 +54,18 @@ public class UiOptionsProviderTests
         );
     }
 
+    [Fact]
+    public void AParsableTypeIsDescribedAsText()
+    {
+        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(ParsableConfiguration));
+        var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Parsable", null, wrapped, "route");
+        var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
+
+        Assert.IsType<UiStringElement>(root.Items["Version"]);
+        Assert.IsType<UiStringElement>(Assert.IsType<UiListElement>(root.Items["Versions"]).Item);
+        Assert.IsType<UiSectionContainerElement>(root.Items["Row"]);
+    }
+
     [Theory]
     [InlineData(typeof(MissingMemberConfiguration), "does not have")]
     [InlineData(typeof(MixedMembersConfiguration), "whose options are Int32 and String")]
@@ -365,6 +377,19 @@ public class UiOptionsProviderTests
             => [];
     }
 
+    /// <summary>Members of a parsable type next to a plain one.</summary>
+    public class ParsableConfiguration
+    {
+        /// <summary>A parsable value.</summary>
+        public TestVersion Version { get; set; } = new(1, 0);
+
+        /// <summary>A list of parsable values.</summary>
+        public List<TestVersion> Versions { get; set; } = [];
+
+        /// <summary>A plain record, still an object.</summary>
+        public OptionsRow Row { get; set; } = new();
+    }
+
     /// <summary>Providers refusing the draft, one sync and one async.</summary>
     public class RefusingConfiguration
     {
@@ -427,4 +452,28 @@ public sealed class TestColourConverter : TypeConverter
         => value is TestColour colour && destinationType == typeof(string)
             ? $"#{colour.Red:x2}{colour.Green:x2}{colour.Blue:x2}"
             : base.ConvertTo(context, culture, value, destinationType);
+}
+
+/// <summary>
+///   A version parsable from <c>major.minor</c>, without a type converter.
+/// </summary>
+/// <param name="Major">The major part.</param>
+/// <param name="Minor">The minor part.</param>
+public readonly record struct TestVersion(int Major, int Minor) : IParsable<TestVersion>
+{
+    /// <inheritdoc />
+    public static TestVersion Parse(string s, IFormatProvider? provider)
+        => TryParse(s, provider, out var result) ? result : throw new FormatException(s);
+
+    /// <inheritdoc />
+    public static bool TryParse(string? s, IFormatProvider? provider, out TestVersion result)
+    {
+        result = default;
+        var parts = s?.Split('.');
+        if (parts is not { Length: 2 } || !int.TryParse(parts[0], provider, out var major) || !int.TryParse(parts[1], provider, out var minor))
+            return false;
+
+        result = new(major, minor);
+        return true;
+    }
 }

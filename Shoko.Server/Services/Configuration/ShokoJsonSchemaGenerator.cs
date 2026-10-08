@@ -168,6 +168,8 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             }));
             generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(MetadataSource), s => s.Type = JsonObjectType.String));
             generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(MetadataEntityType), s => s.Type = JsonObjectType.String));
+            foreach (var parsableType in FindParsableValueTypes(type))
+                generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(parsableType, s => s.Type = JsonObjectType.String));
 
             _schemaCache.Clear();
             _schemaKeys.Clear();
@@ -899,6 +901,56 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         return type.GetInterfaces()
             .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>))
             ?.GetGenericArguments()[0];
+    }
+
+    /// <summary>
+    ///   Finds the member value types, at any depth, that a plugin made
+    ///   parsable from text without a type converter, so they are described as
+    ///   the text they round-trip through rather than as objects.
+    /// </summary>
+    /// <remarks>
+    ///   A type with a converter is already described as text, and the
+    ///   framework's own parsable types are already mapped, so only the rest
+    ///   are collected.
+    /// </remarks>
+    /// <param name="root">The type being described.</param>
+    /// <returns>The parsable types, each once.</returns>
+    private static HashSet<Type> FindParsableValueTypes(Type root)
+    {
+        var found = new HashSet<Type>();
+        var seen = new HashSet<Type>();
+        var pending = new Stack<Type>([root]);
+        while (pending.TryPop(out var type))
+        {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            if (!seen.Add(type) || type.IsPrimitive || type.IsEnum || type == typeof(string))
+                continue;
+            if (type.IsArray)
+            {
+                pending.Push(type.GetElementType()!);
+                continue;
+            }
+
+            if (type.IsGenericType)
+            {
+                foreach (var argument in type.GetGenericArguments())
+                    pending.Push(argument);
+            }
+
+            if (type.Namespace?.StartsWith("System", StringComparison.Ordinal) is true)
+                continue;
+            if (type.GetCustomAttribute<TypeConverterAttribute>(true) is null &&
+                type.GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IParsable<>) && x.GetGenericArguments()[0] == type))
+            {
+                found.Add(type);
+                continue;
+            }
+
+            foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                pending.Push(property.PropertyType);
+        }
+
+        return found;
     }
 
     /// <summary>
