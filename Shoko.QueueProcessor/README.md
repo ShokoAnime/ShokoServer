@@ -584,11 +584,7 @@ The interval is fixed by the code that registers it; `Reschedule<T>` and `Unsche
 
 A filter says "while my condition holds, don't dispatch these job types." A worker that picks up a job whose type is excluded simply skips it — the slot is free for the next eligible job.
 
-Bundled filter, which the host registers as an `IAcquisitionFilter` itself:
-
-- `NetworkRequiredAcquisitionFilter` gates `[NetworkRequired]` (and subclasses) on `IConnectivityService.NetworkAvailability`.
-
-The library has no filter for `[DatabaseRequired]`: the host knows when its database is ready. Shoko Server registers its own filters for the database, the AniDB HTTP and UDP rate limits, and suspended providers (the jobs of each metadata or release provider a suspended `ISuspensionProvider` holds back wait, and every other provider's jobs keep running).
+The library bundles no filters: the host knows when its database is ready and when it is online. Shoko Server registers its own filters for the database, the network (`[NetworkRequired]` and its subclasses, gated on `IConnectivityService.NetworkAvailability`), the AniDB HTTP and UDP rate limits, and suspended providers (the jobs of each metadata or release provider a suspended `ISuspensionProvider` holds back wait, and every other provider's jobs keep running).
 
 Implement your own by registering an `IAcquisitionFilter` in DI:
 

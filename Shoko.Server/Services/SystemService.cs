@@ -41,7 +41,6 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Web.Services;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Acquisition.Filters;
 using Shoko.Server.API;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Databases;
