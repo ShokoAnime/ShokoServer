@@ -18,7 +18,7 @@ using TmdbNetwork = TMDbLib.Objects.TvShows.Network;
 namespace Shoko.Plugin.Tmdb.Mapping;
 
 /// <summary>
-///   Turns what TMDb answers into what the core's stores take.
+///   Turns what TMDB answers into what the core's stores take.
 /// </summary>
 public static class TmdbEntityMapper
 {
@@ -87,7 +87,7 @@ public static class TmdbEntityMapper
     ///   One episode of a season, as the season lists it and, when it was
     ///   fetched on its own, with its translations and external IDs.
     /// </summary>
-    /// <param name="seasonID">The TMDb season ID.</param>
+    /// <param name="seasonID">The TMDB season ID.</param>
     /// <param name="listed">The episode as the season lists it.</param>
     /// <param name="details">The episode fetched on its own, or <c>null</c>.</param>
     /// <param name="languages">The languages to keep.</param>
@@ -116,9 +116,9 @@ public static class TmdbEntityMapper
     }
 
     /// <summary>
-    ///   Where a show is in its release, from TMDb's status.
+    ///   Where a show is in its release, from TMDB's status.
     /// </summary>
-    /// <param name="status">TMDb's status, e.g. <c>Returning Series</c>.</param>
+    /// <param name="status">TMDB's status, e.g. <c>Returning Series</c>.</param>
     /// <returns>The release status.</returns>
     public static ReleaseStatus ReleaseStatusOf(string? status)
         => status?.Trim().ToLowerInvariant() switch
@@ -135,7 +135,7 @@ public static class TmdbEntityMapper
     #region Movies & Collections
 
     /// <summary>
-    ///   A movie, with the collection TMDb puts it in, whether or not the
+    ///   A movie, with the collection TMDB puts it in, whether or not the
     ///   collection is downloaded.
     /// </summary>
     /// <param name="movie">The movie, with its translations, alternative titles, release dates and external IDs.</param>
@@ -173,7 +173,7 @@ public static class TmdbEntityMapper
 
     /// <summary>
     ///   When a movie was first released: its theatrical release, or its
-    ///   premiere, in the first country that made it, else the date TMDb
+    ///   premiere, in the first country that made it, else the date TMDB
     ///   gives the movie.
     /// </summary>
     /// <param name="movie">The movie, with its release dates.</param>
@@ -191,7 +191,7 @@ public static class TmdbEntityMapper
     }
 
     /// <summary>
-    ///   A collection, with every movie TMDb lists in it.
+    ///   A collection, with every movie TMDB lists in it.
     /// </summary>
     /// <param name="collection">The collection, with its parts and translations.</param>
     /// <param name="languages">The languages to keep.</param>
@@ -216,7 +216,7 @@ public static class TmdbEntityMapper
     #region People, Studios & Networks
 
     /// <summary>
-    ///   A person, as their own record on TMDb has them.
+    ///   A person, as their own record on TMDB has them.
     /// </summary>
     /// <param name="person">The person, with their translations and external IDs.</param>
     /// <returns>The creator to store.</returns>
@@ -242,12 +242,12 @@ public static class TmdbEntityMapper
     }
 
     /// <summary>
-    ///   A company, as a studio, with the logo TMDb names as its default.
+    ///   A company, as a studio, with the logo TMDB names as its default.
     /// </summary>
-    /// <param name="id">The TMDb company ID.</param>
+    /// <param name="id">The TMDB company ID.</param>
     /// <param name="name">The company's name.</param>
     /// <param name="countryOfOrigin">The country the company is from.</param>
-    /// <param name="logoPath">TMDb's path for the company's logo, or <c>null</c> when it has none.</param>
+    /// <param name="logoPath">TMDB's path for the company's logo, or <c>null</c> when it has none.</param>
     /// <returns>The studio to store.</returns>
     public static MetadataStudioData ToStudioData(int id, string? name, string? countryOfOrigin, string? logoPath)
         => new()
@@ -261,7 +261,7 @@ public static class TmdbEntityMapper
     /// <summary>
     ///   A network.
     /// </summary>
-    /// <param name="id">The TMDb network ID.</param>
+    /// <param name="id">The TMDB network ID.</param>
     /// <param name="name">The network's name.</param>
     /// <param name="countryOfOrigin">The country the network is from.</param>
     /// <returns>The network to store, leaving its default logo as it is.</returns>
@@ -269,7 +269,7 @@ public static class TmdbEntityMapper
         => new() { ID = TmdbIds.Network(id), Name = TmdbTexts.Clean(name) ?? string.Empty, CountryOfOrigin = TmdbTexts.Clean(countryOfOrigin) };
 
     /// <summary>
-    ///   A network as a listing names it, with the logo TMDb names as its
+    ///   A network as a listing names it, with the logo TMDB names as its
     ///   default.
     /// </summary>
     /// <param name="network">The network.</param>
@@ -280,14 +280,14 @@ public static class TmdbEntityMapper
     /// <summary>
     ///   The companies that made an entry, as studios, and their part in it.
     /// </summary>
-    /// <param name="companies">The production companies TMDb lists.</param>
+    /// <param name="companies">The production companies TMDB lists.</param>
     /// <returns>The studios to store, and the entry's studios.</returns>
     public static (IReadOnlyList<MetadataStudioData> Studios, IReadOnlyList<MetadataEntryStudioData> Entry) Studios(IEnumerable<ProductionCompany>? companies)
     {
         var listed = (companies ?? []).Where(company => company.Id > 0).DistinctBy(company => company.Id).ToList();
         return (
             [.. listed.Select(company => ToStudioData(company.Id, company.Name, company.OriginCountry, company.LogoPath))],
-            // TMDb does not say what a company did, so none is claimed.
+            // TMDB does not say what a company did, so none is claimed.
             [.. listed.Select(company => new MetadataEntryStudioData { StudioID = TmdbIds.Studio(company.Id), StudioName = TmdbTexts.Clean(company.Name), Type = StudioType.None })]
         );
     }
@@ -295,7 +295,7 @@ public static class TmdbEntityMapper
     /// <summary>
     ///   The networks a show aired on.
     /// </summary>
-    /// <param name="networks">The networks TMDb lists.</param>
+    /// <param name="networks">The networks TMDB lists.</param>
     /// <returns>The networks to store, and the show's networks.</returns>
     public static (IReadOnlyList<MetadataNetworkData> Networks, IReadOnlyList<MetadataEntryNetworkData> Entry) Networks(IEnumerable<NetworkWithLogo>? networks)
     {
@@ -307,7 +307,7 @@ public static class TmdbEntityMapper
     }
 
     /// <summary>
-    ///   A network as TMDb's own record has it.
+    ///   A network as TMDB's own record has it.
     /// </summary>
     /// <param name="network">The network.</param>
     /// <returns>The network to store.</returns>
@@ -315,9 +315,9 @@ public static class TmdbEntityMapper
         => ToNetworkData(network.Id, network.Name, network.OriginCountry);
 
     /// <summary>
-    ///   A person's gender, from TMDb's.
+    ///   A person's gender, from TMDB's.
     /// </summary>
-    /// <param name="gender">TMDb's gender.</param>
+    /// <param name="gender">TMDB's gender.</param>
     /// <returns>The gender.</returns>
     public static Shoko.Abstractions.Metadata.Enums.PersonGender GenderOf(TmdbGender gender)
         => gender switch
@@ -333,7 +333,7 @@ public static class TmdbEntityMapper
     #region Tags
 
     /// <summary>
-    ///   An entry's genres and keywords, as tags keyed by TMDb's own IDs, the
+    ///   An entry's genres and keywords, as tags keyed by TMDB's own IDs, the
     ///   genres first, each part of a genre joining two its own tag.
     /// </summary>
     /// <param name="genres">The genres.</param>
@@ -351,7 +351,7 @@ public static class TmdbEntityMapper
     }
 
     /// <summary>
-    ///   A genre as tags: one by its name as TMDb writes it, or one per part
+    ///   A genre as tags: one by its name as TMDB writes it, or one per part
     ///   of a genre that joins two with <c>&amp;</c>, such as
     ///   <c>Action &amp; Adventure</c>.
     /// </summary>
@@ -369,7 +369,7 @@ public static class TmdbEntityMapper
     ///   The names a genre stands for: each part of one that joins two with
     ///   <c>&amp;</c>, else its own name.
     /// </summary>
-    /// <param name="name">The genre's name, as TMDb writes it.</param>
+    /// <param name="name">The genre's name, as TMDB writes it.</param>
     /// <returns>The names, or none for a blank name.</returns>
     public static IReadOnlyList<string> GenreNames(string? name)
         => [.. (name ?? string.Empty).Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Distinct(StringComparer.Ordinal)];
@@ -379,10 +379,10 @@ public static class TmdbEntityMapper
     #region Suggestions
 
     /// <summary>
-    ///   What TMDb suggests for an entry: its recommendations, then its
-    ///   similar titles, each ranked as TMDb ranks them.
+    ///   What TMDB suggests for an entry: its recommendations, then its
+    ///   similar titles, each ranked as TMDB ranks them.
     /// </summary>
-    /// <param name="ownID">The entry's own TMDb ID, which is never suggested for itself.</param>
+    /// <param name="ownID">The entry's own TMDB ID, which is never suggested for itself.</param>
     /// <param name="recommended">The recommendations.</param>
     /// <param name="similar">The similar titles.</param>
     /// <param name="idOf">The identifier of a suggested ID.</param>
@@ -405,7 +405,7 @@ public static class TmdbEntityMapper
     #region Helpers
 
     /// <summary>
-    ///   The IDs other sources gave an entry, as TMDb lists them.
+    ///   The IDs other sources gave an entry, as TMDB lists them.
     /// </summary>
     /// <param name="entityType">The entry's kind.</param>
     /// <param name="imdbID">The IMDb ID, if any.</param>
@@ -423,7 +423,7 @@ public static class TmdbEntityMapper
     }
 
     /// <summary>
-    ///   The ISO codes of the countries TMDb lists, sorted, each once.
+    ///   The ISO codes of the countries TMDB lists, sorted, each once.
     /// </summary>
     /// <param name="countries">The countries.</param>
     /// <returns>The codes.</returns>
@@ -432,7 +432,7 @@ public static class TmdbEntityMapper
 
     /// <summary>
     ///   The content ratings to keep: those of the countries whose language
-    ///   is kept, in TMDb's order, a country as often as TMDb rates it but
+    ///   is kept, in TMDB's order, a country as often as TMDB rates it but
     ///   each rating of it once.
     /// </summary>
     /// <param name="ratings">The ratings, by ISO country code.</param>

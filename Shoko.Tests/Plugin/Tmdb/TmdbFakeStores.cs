@@ -13,7 +13,7 @@ using Shoko.Plugin.Tmdb.Services;
 namespace Shoko.Tests.Plugin.Tmdb;
 
 /// <summary>
-///   The core's stores, kept in memory, as the TMDb plugin writes and reads
+///   The core's stores, kept in memory, as the TMDB plugin writes and reads
 ///   them. Each records what was written and reads it back as the core
 ///   would, through mocks of the read models.
 /// </summary>

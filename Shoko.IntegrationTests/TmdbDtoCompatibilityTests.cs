@@ -95,7 +95,7 @@ public class TmdbDtoCompatibilityTests(DatabaseMigrationFixture fixture)
 
     /// <summary>
     /// Points the golden file's image addresses at the template TMDB's images use in this run, which
-    /// another test may have changed. The TMDb plugin is not loaded here, so the template it would
+    /// another test may have changed. The TMDB plugin is not loaded here, so the template it would
     /// register is registered when there is none.
     /// </summary>
     private void UseImageTemplate(JObject golden)

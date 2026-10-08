@@ -23,7 +23,7 @@ public sealed record MetadataMovieData
     /// <remarks>
     ///   The main title (<see cref="TitleType.Main"/>) is the movie's default.
     ///   Without one, the movie gets a synthesized default such as
-    ///   <c>TMDb Movie 129</c>, never stored.
+    ///   <c>TMDB Movie 129</c>, never stored.
     /// </remarks>
     public IReadOnlyList<ITitle> Titles { get; init; } = [];
 

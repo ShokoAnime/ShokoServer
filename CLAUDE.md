@@ -84,7 +84,7 @@ throughput gain on real libraries.
 - **`Shoko.CLI`** — Headless server entry point. Instantiates and manages `SystemService` directly.
 - **`Shoko.TrayService`** — Cross-platform tray app (Avalonia) embedding the server. Runs on Windows, Linux, and macOS.
 - **`Shoko.Plugin.WebAOM`** — Bundled first-party plugin holding the WebAOM renamer, the default relocation provider. `BundledPlugins.targets`, imported by `Shoko.CLI` and `Shoko.TrayService`, builds every bundled plugin and copies it to `plugins/<project name>/` in their build and publish output.
-- **`Shoko.Plugin.Tmdb`** — Bundled first-party plugin serving the `tmdb` source: TMDb client, rate limiter, mapping onto the shared metadata stores, and `TmdbMetadataProvider`. Its configuration is `tmdb.json` (`TmdbConfiguration`), and its built-in API key is stamped into `Constants.ApiKey` by `.github/workflows/ReplaceTmdbApiKey.ps1`. The core holds no TMDb code beyond its database and settings migrations, `MetadataSource.TMDB` and the APIv3 TMDB routes and models, which read the shared stores.
+- **`Shoko.Plugin.Tmdb`** — Bundled first-party plugin serving the `tmdb` source: TMDB client, rate limiter, mapping onto the shared metadata stores, and `TmdbMetadataProvider`. Its configuration is `tmdb.json` (`TmdbConfiguration`), and its built-in API key is stamped into `Constants.ApiKey` by `.github/workflows/ReplaceTmdbApiKey.ps1`. The core holds no TMDB code beyond its database and settings migrations, `MetadataSource.TMDB` and the APIv3 TMDB routes and models, which read the shared stores.
 - **`Shoko.Tests`** — Unit tests.
 - **`Shoko.QueueProcessor.Tests`** — Tests for the job queue.
 - **`Shoko.IntegrationTests`** — Integration tests.
@@ -123,7 +123,7 @@ and should not be used for new code unless DI is not an option and only as a las
 
 **Global action filters** (registered on all MVC controllers):
 - `DatabaseBlockedFilter` — returns 400 if DB is blocked, exempted via `[DatabaseBlockedExempt]`
-- `MetadataProviderUnavailableAttribute` (exception filter) — a `MetadataProviderUnavailableException` answers 502 with `Retry-After`; a `MetadataProviderNotConfiguredException` (the TMDb plugin without an API key among them) answers 503
+- `MetadataProviderUnavailableAttribute` (exception filter) — a `MetadataProviderUnavailableException` answers 502 with `Retry-After`; a `MetadataProviderNotConfiguredException` (the TMDB plugin without an API key among them) answers 503
 
 **Action constraints**:
 - `RedirectConstraint` — redirects root `/` to WebUI public path if configured
@@ -162,7 +162,7 @@ NHibernate-mapped entities. Organized by source:
 - `Shoko.Server.Models.Shoko` — core domain: `AnimeSeries`, `AnimeGroup`, `AnimeEpisode`, the `*_User` data, `VideoLocal` and its places/hashes, `JMMUser`, `FilterPreset`, `CustomTag`, and the image store (`ShokoImage`, `ShokoImage_Entity`)
 - `Shoko.Server.Models.AniDB` — AniDB metadata cache: `AniDB_Anime`, `AniDB_Episode`, `AniDB_Character`, `AniDB_Creator`, `AniDB_Tag`, etc.
 - `Shoko.Server.Models.Airing` — airing schedules: `AiringChannel`, `AiringSchedule`, `EpisodeAiring`, `AiringScheduleSweepState`
-- `Shoko.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔MAL, and AniDB↔any plugin source, TMDb's included, through the shared `CrossRef_AniDB_Metadata_*` tables) and files/tags (`CrossRef_File_Episode`, `CrossRef_CustomTag`)
+- `Shoko.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔MAL, and AniDB↔any plugin source, TMDB's included, through the shared `CrossRef_AniDB_Metadata_*` tables) and files/tags (`CrossRef_File_Episode`, `CrossRef_CustomTag`)
 - `Shoko.Server.Models.Release` — release info for video files (`StoredReleaseInfo`, match attempts, release candidates and overrides)
 - `Shoko.Server.Models.Internal` — internal tracking entities (`AuthTokens`, `ScheduledUpdate`, `Versions`)
 - `Shoko.Server.Models.Metadata` — the rows behind the plugin metadata stores: series, seasons, episodes, movies, collections, people, credits, tags, studios, networks, relations, suggestions, the titles and overviews of every entry of any source (`Metadata_Title`, `Metadata_Overview`, held in memory by `TextCache`), orderings and last-refresh times
@@ -235,7 +235,7 @@ Timer-based `IHostedService` on a fixed interval the admin cannot change; the co
 - `[NetworkRequired]` — waits until network connectivity is confirmed.
 - `[AniDBUdpRateLimited]` — respects AniDB UDP rate limits.
 - `[AniDBHttpRateLimited]` — respects AniDB HTTP rate limits.
-- The jobs of a metadata provider that implements `IPausableMetadataProvider` are held back while it reports itself paused (`MetadataProviderPausedAcquisitionFilter`); the TMDb plugin pauses this way for a 429 or its 5XX circuit breaker.
+- The jobs of a metadata provider that implements `IPausableMetadataProvider` are held back while it reports itself paused (`MetadataProviderPausedAcquisitionFilter`); the TMDB plugin pauses this way for a 429 or its 5XX circuit breaker.
 
 **`IJobFactory`** (`Shoko.QueueProcessor/JobFactory.cs`): DI-resolved single-shot execution via `Execute<T>()`. Used internally by the worker and by tests or services that need to run a job inline.
 
@@ -372,13 +372,13 @@ AnimeGroup (self-referential parent ──< children)
 
 ### Series/Episode → plugin sources
 
-AniDB entities are connected to other sources through cross-reference tables, not direct FKs. Every plugin source, TMDb and AniList included, shares one set of tables, keyed by `MetadataSource` and the source's own ID as a string, and written through `IMetadataCrossReferenceStore` (the APIv3 `CrossRef_AniDB_TMDB_Show`/`_Movie`/`_Episode` classes are read-only views over them):
+AniDB entities are connected to other sources through cross-reference tables, not direct FKs. Every plugin source, TMDB and AniList included, shares one set of tables, keyed by `MetadataSource` and the source's own ID as a string, and written through `IMetadataCrossReferenceStore` (the APIv3 `CrossRef_AniDB_TMDB_Show`/`_Movie`/`_Episode` classes are read-only views over them):
 
 - `CrossRef_AniDB_Metadata_Series` — `AniDB_Anime` ↔ a provider's series
 - `CrossRef_AniDB_Metadata_Movie` — `AniDB_Anime` ↔ a provider's movie, kept against the AniDB episode standing for it
 - `CrossRef_AniDB_Metadata_Episode` — `AniDB_Episode` ↔ a provider's episode
 
-One anime can match multiple TMDb shows (e.g., split-cour series on TMDb) and one TMDb show can match multiple anime. A provider's series, seasons, episodes, movies, collections, people, studios, networks, tags and texts live in the shared `Metadata_*` tables, written through the stores; the TMDb plugin keeps nothing else. A plugin source may keep models of its own in its own database (`AddPluginDbContext`). Images from every source are stored as `ShokoImage` rows, linked to their entities through `ShokoImage_Entity`.
+One anime can match multiple TMDB shows (e.g., split-cour series on TMDB) and one TMDB show can match multiple anime. A provider's series, seasons, episodes, movies, collections, people, studios, networks, tags and texts live in the shared `Metadata_*` tables, written through the stores; the TMDB plugin keeps nothing else. A plugin source may keep models of its own in its own database (`AddPluginDbContext`). Images from every source are stored as `ShokoImage` rows, linked to their entities through `ShokoImage_Entity`.
 
 ## Import Pipeline
 
@@ -420,11 +420,11 @@ GetAniDBAnimeJob  (Shoko.Server/Scheduling/Jobs/AniDB/GetAniDBAnimeJob.cs)
         ▼
 SupplementaryMetadataScheduler.ScheduleForAnime  (Shoko.Server/Services/SupplementaryMetadataScheduler.cs)
   Asks every registered metadata provider for the anime (also called when a release links a file)
-        │  [per metadata provider, the TMDb plugin's among them]
+        │  [per metadata provider, the TMDB plugin's among them]
         ▼
 SearchMetadataJob<TProvider>  (Shoko.Server/Scheduling/Jobs/Metadata/SearchMetadataJob.cs)
   For a source the anime is not linked on: asks the auto-linker's FindAutoLinks for its scored
-  candidates (TMDb searches by title, dates and episode count), then MetadataLinkingService
+  candidates (TMDB searches by title, dates and episode count), then MetadataLinkingService
   refuses what may not be linked, logs every candidate and links the rest (a person's search
   of one anime replaces its links on that source once something new is written)
         │
@@ -485,7 +485,7 @@ If no release provider returns a match, the provider chain completes without cre
 | `AnidbProcessFileJob` | 4, and group-limited (`AniDB_UDP`) | AniDB UDP rate limit |
 | `GetAniDBAnimeJob` | group-limited (`AniDB_HTTP`) | AniDB HTTP bulkhead |
 | `AVDumpFilesJob` | 1 (16) | AVDump resource limits |
-| `RefreshMetadataJob<T>`, `SearchMetadataJob<T>`, `DownloadMetadataImagesJob<T>` | The provider's `MaxConcurrentJobs` (TMDb: 4) | One pool per provider job type |
+| `RefreshMetadataJob<T>`, `SearchMetadataJob<T>`, `DownloadMetadataImagesJob<T>` | The provider's `MaxConcurrentJobs` (TMDB: 4) | One pool per provider job type |
 | `DownloadContributedImagesJob<T>` | The contributor's `MaxConcurrentJobs` (default 2) | One pool per image contributor |
 | `DownloadImageJob` | 4 | Image download throughput |
 | `ValidateAllImagesJob` | 1 (1) | Sequential validation |

@@ -9,13 +9,13 @@ using TmdbImageData = TMDbLib.Objects.General.ImageData;
 namespace Shoko.Plugin.Tmdb.Mapping;
 
 /// <summary>
-///   Turns TMDb's images into the core's image candidates, and TMDb's
+///   Turns TMDB's images into the core's image candidates, and TMDB's
 ///   paths into the resource IDs the image template completes.
 /// </summary>
 public static class TmdbImages
 {
     /// <summary>
-    ///   The size the image template asks TMDb's image server for.
+    ///   The size the image template asks TMDB's image server for.
     /// </summary>
     public const string TemplateSize = "original";
 
@@ -29,10 +29,10 @@ public static class TmdbImages
         => $"{(imageServerUrl.EndsWith('/') ? imageServerUrl : imageServerUrl + "/")}{TemplateSize}/{{0}}";
 
     /// <summary>
-    ///   The resource ID an image is stored under for TMDb's path: the path
+    ///   The resource ID an image is stored under for TMDB's path: the path
     ///   without its leading slash, with an SVG asked for as a PNG.
     /// </summary>
-    /// <param name="filePath">TMDb's path for the image.</param>
+    /// <param name="filePath">TMDB's path for the image.</param>
     /// <returns>The resource ID.</returns>
     public static string ResourceID(string filePath)
     {
@@ -44,22 +44,22 @@ public static class TmdbImages
     ///   The full address of an image, for a search result.
     /// </summary>
     /// <param name="imageServerUrl">The image server's base URL.</param>
-    /// <param name="filePath">TMDb's path for the image, if any.</param>
+    /// <param name="filePath">TMDB's path for the image, if any.</param>
     /// <returns>The URL, or <c>null</c> without a path.</returns>
     public static string? Url(string imageServerUrl, string? filePath)
         => string.IsNullOrEmpty(filePath) ? null : string.Format(Template(imageServerUrl), ResourceID(filePath));
 
     /// <summary>
-    ///   The images TMDb names on an entry, by type, as the defaults stored
+    ///   The images TMDB names on an entry, by type, as the defaults stored
     ///   with the entry.
     /// </summary>
-    /// <param name="paths">TMDb's path of each type's image, if any.</param>
+    /// <param name="paths">TMDB's path of each type's image, if any.</param>
     /// <returns>The resource IDs, by type, leaving out the types without a path.</returns>
     public static IReadOnlyDictionary<ImageEntityType, string> Defaults(params (ImageEntityType Type, string? FilePath)[] paths)
         => paths.Where(path => !string.IsNullOrEmpty(path.FilePath)).ToDictionary(path => path.Type, path => ResourceID(path.FilePath!));
 
     /// <summary>
-    ///   TMDb's images of one type, as candidates in TMDb's order.
+    ///   TMDB's images of one type, as candidates in TMDB's order.
     /// </summary>
     /// <param name="images">The images.</param>
     /// <param name="imageType">Their type.</param>
@@ -85,9 +85,9 @@ public static class TmdbImages
             .DistinctBy(candidate => candidate.ResourceID);
 
     /// <summary>
-    ///   The one image TMDb names on an entry, such as a company's logo.
+    ///   The one image TMDB names on an entry, such as a company's logo.
     /// </summary>
-    /// <param name="filePath">TMDb's path for the image, if any.</param>
+    /// <param name="filePath">TMDB's path for the image, if any.</param>
     /// <param name="imageType">Its type.</param>
     /// <returns>The candidate, or none.</returns>
     public static IEnumerable<ImageCandidate> Single(string? filePath, ImageEntityType imageType)

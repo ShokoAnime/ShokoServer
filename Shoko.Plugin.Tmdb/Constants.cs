@@ -7,7 +7,7 @@ namespace Shoko.Plugin.Tmdb;
 internal static class Constants
 {
     /// <summary>
-    /// The TMDb API key official builds ship with, substituted by CI from the
+    /// The TMDB API key official builds ship with, substituted by CI from the
     /// <c>TMDB_API</c> secret. For a build from source the placeholder stays,
     /// and the plugin then needs a key from its configuration.
     /// </summary>

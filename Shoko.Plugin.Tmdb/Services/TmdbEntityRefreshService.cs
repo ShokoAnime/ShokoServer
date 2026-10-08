@@ -16,7 +16,7 @@ using TmdbImageData = TMDbLib.Objects.General.ImageData;
 namespace Shoko.Plugin.Tmdb.Services;
 
 /// <summary>
-///   Refreshes TMDb's people, companies and networks one at a time, when the
+///   Refreshes TMDB's people, companies and networks one at a time, when the
 ///   core asks for a stub or a stale entry.
 /// </summary>
 /// <remarks>
@@ -25,7 +25,7 @@ namespace Shoko.Plugin.Tmdb.Services;
 ///   and networks are written in full by the refresh that names them, so
 ///   this only brings them up to date once they go stale.
 /// </remarks>
-/// <param name="apiClient">The TMDb client.</param>
+/// <param name="apiClient">The TMDB client.</param>
 /// <param name="stores">The core's stores.</param>
 /// <param name="configurationProvider">The plugin's configuration.</param>
 /// <param name="logger">The logger.</param>
@@ -57,7 +57,7 @@ public sealed class TmdbEntityRefreshService(
     /// </summary>
     /// <param name="entityID">The entry.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>Whether TMDb had it.</returns>
+    /// <returns>Whether TMDB had it.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
     /// <exception cref="MetadataProviderNotConfiguredException">No API key is configured.</exception>
     public Task<bool> Refresh(MetadataGuid entityID, CancellationToken cancellationToken = default)
@@ -78,14 +78,14 @@ public sealed class TmdbEntityRefreshService(
     ///   Fetches a person and writes them, with their biographies in the
     ///   languages kept, the English one on the person itself.
     /// </summary>
-    /// <param name="personID">The TMDb person ID.</param>
+    /// <param name="personID">The TMDB person ID.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>Whether TMDb had the person.</returns>
+    /// <returns>Whether TMDB had the person.</returns>
     public async Task<bool> RefreshPerson(int personID, CancellationToken cancellationToken = default)
     {
         if (await apiClient.GetPerson(personID, cancellationToken).ConfigureAwait(false) is not { } person)
         {
-            logger.LogDebug("TMDb has no person with ID {PersonID}.", personID);
+            logger.LogDebug("TMDB has no person with ID {PersonID}.", personID);
             return false;
         }
 
@@ -102,46 +102,46 @@ public sealed class TmdbEntityRefreshService(
         if (person.Images?.Profiles is { } profiles)
             _personImages[personID] = (apiClient.TimeProvider.GetUtcNow(), profiles);
 
-        logger.LogDebug("Refreshed TMDb person {PersonID} ({Name}).", personID, person.Name);
+        logger.LogDebug("Refreshed TMDB person {PersonID} ({Name}).", personID, person.Name);
         return true;
     }
 
     /// <summary>
     ///   Fetches a company and writes it as a studio.
     /// </summary>
-    /// <param name="companyID">The TMDb company ID.</param>
+    /// <param name="companyID">The TMDB company ID.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>Whether TMDb had the company.</returns>
+    /// <returns>Whether TMDB had the company.</returns>
     public async Task<bool> RefreshCompany(int companyID, CancellationToken cancellationToken = default)
     {
         if (await apiClient.GetCompany(companyID, cancellationToken).ConfigureAwait(false) is not { } company)
         {
-            logger.LogDebug("TMDb has no company with ID {CompanyID}.", companyID);
+            logger.LogDebug("TMDB has no company with ID {CompanyID}.", companyID);
             return false;
         }
 
         stores.Studios.SaveStudios([TmdbEntityMapper.ToStudioData(companyID, company.Name, company.OriginCountry, company.LogoPath)]);
         _companyLogos[companyID] = (apiClient.TimeProvider.GetUtcNow(), company.LogoPath);
-        logger.LogDebug("Refreshed TMDb company {CompanyID} ({Name}).", companyID, company.Name);
+        logger.LogDebug("Refreshed TMDB company {CompanyID} ({Name}).", companyID, company.Name);
         return true;
     }
 
     /// <summary>
     ///   Fetches a network and writes it.
     /// </summary>
-    /// <param name="networkID">The TMDb network ID.</param>
+    /// <param name="networkID">The TMDB network ID.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>Whether TMDb had the network.</returns>
+    /// <returns>Whether TMDB had the network.</returns>
     public async Task<bool> RefreshNetwork(int networkID, CancellationToken cancellationToken = default)
     {
         if (await apiClient.GetNetwork(networkID, cancellationToken).ConfigureAwait(false) is not { } network)
         {
-            logger.LogDebug("TMDb has no network with ID {NetworkID}.", networkID);
+            logger.LogDebug("TMDB has no network with ID {NetworkID}.", networkID);
             return false;
         }
 
         stores.Studios.SaveNetworks([TmdbEntityMapper.ToNetworkData(networkID, network.Name, network.OriginCountry)]);
-        logger.LogDebug("Refreshed TMDb network {NetworkID} ({Name}).", networkID, network.Name);
+        logger.LogDebug("Refreshed TMDB network {NetworkID} ({Name}).", networkID, network.Name);
         return true;
     }
 
@@ -152,7 +152,7 @@ public sealed class TmdbEntityRefreshService(
     /// <summary>
     ///   The photos fetched with a person within the last two hours.
     /// </summary>
-    /// <param name="personID">The TMDb person ID.</param>
+    /// <param name="personID">The TMDB person ID.</param>
     /// <returns>The photos, or <c>null</c> when none were fetched lately.</returns>
     public IReadOnlyList<TmdbImageData>? GetFetchedPersonImages(int personID)
     {
@@ -166,8 +166,8 @@ public sealed class TmdbEntityRefreshService(
     /// <summary>
     ///   The logo fetched with a company within the last two hours.
     /// </summary>
-    /// <param name="companyID">The TMDb company ID.</param>
-    /// <param name="logoPath">TMDb's path for the logo, or <c>null</c> when it has none.</param>
+    /// <param name="companyID">The TMDB company ID.</param>
+    /// <param name="logoPath">TMDB's path for the logo, or <c>null</c> when it has none.</param>
     /// <returns>Whether the company was fetched lately.</returns>
     public bool TryGetFetchedCompanyLogo(int companyID, out string? logoPath)
     {

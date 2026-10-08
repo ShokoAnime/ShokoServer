@@ -11,15 +11,15 @@ using Shoko.Plugin.Tmdb.Mapping;
 namespace Shoko.Plugin.Tmdb.Services;
 
 /// <summary>
-///   Keeps TMDb's genres in the core's tag store, so a search hit that names
+///   Keeps TMDB's genres in the core's tag store, so a search hit that names
 ///   its genres by ID can be told their names.
 /// </summary>
 /// <remarks>
-///   TMDb's genre lists are written into the tag store once per start, and
+///   TMDB's genre lists are written into the tag store once per start, and
 ///   again, at most hourly, when a hit names a genre the store lacks. There is
 ///   no genre catalogue of the plugin's own: the tag store is it.
 /// </remarks>
-/// <param name="apiClient">The TMDb client.</param>
+/// <param name="apiClient">The TMDB client.</param>
 /// <param name="tagStore">The core's tag store.</param>
 /// <param name="logger">The logger.</param>
 public sealed class TmdbTagService(TmdbApiClient apiClient, IMetadataTagStore tagStore, ILogger<TmdbTagService> logger) : IDisposable
@@ -37,7 +37,7 @@ public sealed class TmdbTagService(TmdbApiClient apiClient, IMetadataTagStore ta
     #region Genres
 
     /// <summary>
-    ///   Writes TMDb's show and movie genres into the tag store, unless that
+    ///   Writes TMDB's show and movie genres into the tag store, unless that
     ///   was done since the plugin started.
     /// </summary>
     /// <param name="force">Whether to write them again anyway.</param>
@@ -66,7 +66,7 @@ public sealed class TmdbTagService(TmdbApiClient apiClient, IMetadataTagStore ta
 
             _filled = true;
             _filledAt = apiClient.TimeProvider.GetUtcNow();
-            logger.LogDebug("Stored {Count} TMDb genres in the tag store.", genres.Count);
+            logger.LogDebug("Stored {Count} TMDB genres in the tag store.", genres.Count);
             return genres.Count;
         }
         finally
@@ -80,7 +80,7 @@ public sealed class TmdbTagService(TmdbApiClient apiClient, IMetadataTagStore ta
     ///   the tag store first when it lacks one of them.
     /// </summary>
     /// <remarks>
-    ///   A failure to fetch TMDb's lists leaves the hits with the genres the
+    ///   A failure to fetch TMDB's lists leaves the hits with the genres the
     ///   store already knows.
     /// </remarks>
     /// <param name="genreIDs">The genre IDs the hits name.</param>
@@ -89,7 +89,7 @@ public sealed class TmdbTagService(TmdbApiClient apiClient, IMetadataTagStore ta
     public async Task<Func<int, IReadOnlyList<string>>> GetGenreNames(IEnumerable<int> genreIDs, CancellationToken cancellationToken = default)
     {
         var wanted = genreIDs.Where(id => id > 0).ToHashSet();
-        // A genre TMDb's lists lack is not asked for again for an hour.
+        // A genre TMDB's lists lack is not asked for again for an hour.
         if (wanted.Any(id => GenreNames(id).Count is 0) && (!_filled || apiClient.TimeProvider.GetUtcNow() - _filledAt >= TimeSpan.FromHours(1)))
         {
             try
@@ -98,7 +98,7 @@ public sealed class TmdbTagService(TmdbApiClient apiClient, IMetadataTagStore ta
             }
             catch (Exception ex) when (TmdbApiClient.IsTransient(ex))
             {
-                logger.LogDebug(ex, "Unable to fetch TMDb's genres; naming only the genres already stored.");
+                logger.LogDebug(ex, "Unable to fetch TMDB's genres; naming only the genres already stored.");
             }
         }
 
@@ -109,7 +109,7 @@ public sealed class TmdbTagService(TmdbApiClient apiClient, IMetadataTagStore ta
     ///   The names of a genre the tag store holds: its own, or those of its
     ///   parts when it joins two.
     /// </summary>
-    /// <param name="genreID">The TMDb genre ID.</param>
+    /// <param name="genreID">The TMDB genre ID.</param>
     /// <returns>The names, or none when the store has no such genre.</returns>
     public IReadOnlyList<string> GenreNames(int genreID)
     {

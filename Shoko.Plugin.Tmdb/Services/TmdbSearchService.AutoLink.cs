@@ -55,7 +55,7 @@ public sealed partial class TmdbSearchService
     /// </summary>
     /// <param name="service">The search service.</param>
     /// <param name="anime">The anime.</param>
-    /// <param name="imageServer">TMDb's image server.</param>
+    /// <param name="imageServer">TMDB's image server.</param>
     /// <param name="cancellationToken">Cancels the search.</param>
     private sealed class AutoSearch(TmdbSearchService service, IAnidbAnime anime, string imageServer, CancellationToken cancellationToken)
     {
@@ -78,10 +78,10 @@ public sealed partial class TmdbSearchService
             var hints = await FindHints().ConfigureAwait(false);
             IReadOnlyList<TmdbAutoSearchResult> results = anime.Type switch
             {
-                // TMDb holds no music videos, and the other and unknown types are hard to map, so none are searched.
+                // TMDB holds no music videos, and the other and unknown types are hard to map, so none are searched.
                 AnimeType.MusicVideo or AnimeType.Other or AnimeType.Unknown => [],
                 AnimeType.Movie => await SearchMovies(hints).ConfigureAwait(false),
-                // A short OVA or web series may be a movie on TMDb; a show is tried when no movie is taken.
+                // A short OVA or web series may be a movie on TMDB; a show is tried when no movie is taken.
                 AnimeType.OVA or AnimeType.Web when IsShortForm(anime) => await SearchMoviesThenShow(hints).ConfigureAwait(false),
                 _ => await SearchShow(hints).ConfigureAwait(false),
             };
@@ -203,7 +203,7 @@ public sealed partial class TmdbSearchService
             var candidates = new List<SearchMovie>();
 
             // The full title and its form without a sequel suffix, with the year and then without,
-            // as TMDb's year is the release's and a movie dated otherwise on AniDB is missed with it.
+            // as TMDB's year is the release's and a movie dated otherwise on AniDB is missed with it.
             var stripped = TitleVariants.WithoutSequelSuffix(query);
             await CollectMovies(candidates, query, includeRestricted, year, seen, candidateCount).ConfigureAwait(false);
             if (!string.IsNullOrEmpty(stripped) && candidates.Count < candidateCount)
@@ -262,7 +262,7 @@ public sealed partial class TmdbSearchService
             var mainTitle = allTitles.FirstOrDefault(title => title.Type is TitleType.Main) ?? allTitles[0];
             var language = OriginalLanguageOf(mainTitle.Language);
 
-            // Walk back to the earliest prequel, whose titles a sequel's TMDb show usually goes by.
+            // Walk back to the earliest prequel, whose titles a sequel's TMDB show usually goes by.
             ISeries series = anime;
             var currentDate = airDate;
             IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> relations = anime.RelatedSeries;
@@ -302,7 +302,7 @@ public sealed partial class TmdbSearchService
             // The last attempt is the main title, in no other language.
             match ??= await SearchByTitle(mainTitle.Value, series.Restricted, false).ConfigureAwait(false);
 
-            // A prequel's titles find the wrong show when the anime is its own TMDb show, so its own are tried too.
+            // A prequel's titles find the wrong show when the anime is its own TMDB show, so its own are tried too.
             if (!ownAnime)
             {
                 TmdbAutoSearchResult? ownMatch = null;
@@ -445,9 +445,9 @@ public sealed partial class TmdbSearchService
 
         /// <summary>
         ///   A stored show's episodes filled in for every season, so the
-        ///   matching engine can line them up without asking TMDb.
+        ///   matching engine can line them up without asking TMDB.
         /// </summary>
-        /// <param name="candidate">The show, as TMDb answered it.</param>
+        /// <param name="candidate">The show, as TMDB answered it.</param>
         /// <returns>The show, unchanged when it is not stored.</returns>
         private MetadataSeriesSearchResult WithStoredEpisodes(MetadataSeriesSearchResult candidate)
         {
@@ -475,8 +475,8 @@ public sealed partial class TmdbSearchService
         #region Hints
 
         /// <summary>
-        ///   The TMDb entries the anime's cross-source IDs name, or, when they
-        ///   name none, the ones TMDb finds for the IMDb titles they name, and
+        ///   The TMDB entries the anime's cross-source IDs name, or, when they
+        ///   name none, the ones TMDB finds for the IMDb titles they name, and
         ///   after them the ones the anime's links on other sources name.
         /// </summary>
         /// <returns>The hints, each entry once.</returns>
@@ -509,7 +509,7 @@ public sealed partial class TmdbSearchService
                     : await JudgeShowHint(hint, searched).ConfigureAwait(false);
                 if (judged is not { } verdict)
                 {
-                    Logger.LogDebug("{Hint} for AniDB anime {AnimeID}, which could not be had from TMDb.", hint.Source, anime.AnidbID);
+                    Logger.LogDebug("{Hint} for AniDB anime {AnimeID}, which could not be had from TMDB.", hint.Source, anime.AnidbID);
                     continue;
                 }
 
@@ -642,7 +642,7 @@ public sealed partial class TmdbSearchService
         #region Fetching
 
         /// <summary>
-        ///   Searches TMDb's shows and adds the animated hits not seen yet to
+        ///   Searches TMDB's shows and adds the animated hits not seen yet to
         ///   the candidates, up to a cap.
         /// </summary>
         /// <param name="candidates">The candidates so far.</param>
@@ -656,7 +656,7 @@ public sealed partial class TmdbSearchService
             => Collect(candidates, (await service.SearchShowsRaw(query, restricted, year, cancellationToken: cancellationToken).ConfigureAwait(false)).Page, seen, cap, restricted);
 
         /// <summary>
-        ///   Searches TMDb's movies and adds the animated hits not seen yet to
+        ///   Searches TMDB's movies and adds the animated hits not seen yet to
         ///   the candidates, up to a cap.
         /// </summary>
         /// <param name="candidates">The candidates so far.</param>

@@ -24,7 +24,7 @@ public sealed record MetadataSeriesData
     /// <remarks>
     ///   The main title (<see cref="TitleType.Main"/>) is the series's default.
     ///   Without one, the series gets a synthesized default such as
-    ///   <c>TMDb Series 46195</c>, never stored.
+    ///   <c>TMDB Series 46195</c>, never stored.
     /// </remarks>
     public IReadOnlyList<ITitle> Titles { get; init; } = [];
 

@@ -41,8 +41,8 @@ provider per source.
   `shoko`, `user` and `generated` name no provider. The full list is
   `IMetadataProviderManager.ReservedSources`, and it can grow.
 - **Any other source is yours to claim** when your data is what it names.
-  TMDb and AniList are among them, each served by its own plugin like any
-  other; `tmdb` is registered up front for the bundled TMDb plugin.
+  TMDB and AniList are among them, each served by its own plugin like any
+  other; `tmdb` is registered up front for the bundled TMDB plugin.
 - **There is no catch-all source.** Register your own with
   `MetadataSource.Register` and pass that instance wherever a source is asked
   for.
@@ -597,7 +597,7 @@ without one no image of your source is linked.
 ### Adding images to other sources' entries
 
 A plugin with images but no entries of its own, such as an artwork service for
-TMDb's shows and movies, implements `IMetadataImageContributor`. It names the
+TMDB's shows and movies, implements `IMetadataImageContributor`. It names the
 source its images are kept under (registered by the plugin as a remote source)
 and the sources and kinds it adds images for, core sources included:
 
@@ -687,13 +687,13 @@ source's, is served at `GET /api/v3/Metadata/Provider/{providerID}/Icon`.
 A series or episode asked for with `includeDataFrom=<source>` gains a
 `Sources` object keyed by your source, with a generic view of each linked
 series, episode and movie read back through `IMetadataService`: ID, entity
-type, titles, overview, dates, rating and preferred images. AniDB and TMDb
-keep their own blocks, TMDb's for the APIv3 TMDB routes and models. A link to
+type, titles, overview, dates, rating and preferred images. AniDB and TMDB
+keep their own blocks, TMDB's for the APIv3 TMDB routes and models. A link to
 nothing, or to an entry not stored yet, is left out.
 
-## TMDb
+## TMDB
 
-TMDb is served by the bundled plugin `Shoko.Plugin.Tmdb`, a provider like any
+TMDB is served by the bundled plugin `Shoko.Plugin.Tmdb`, a provider like any
 other: it claims `tmdb`, runs through the same jobs, freshness check and
 locking, and keeps its entries in the shared stores, so the core resolves,
 refreshes and purges them the same way:
@@ -701,7 +701,7 @@ refreshes and purges them the same way:
 - Its refresh calls write the series, movie, collection, people, studio, tag,
   suggestion and ordering stores, and the texts through the series and movie
   data. A genre joining two with `&` is stored as one tag per part.
-- Its image settings are TMDb's entry in the per-source metadata settings. It
+- Its image settings are TMDB's entry in the per-source metadata settings. It
   saves the images each entry names as its defaults with the entry, and hands
   over a person's images only when a refresh fetched the person within two
   hours.

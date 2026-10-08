@@ -1,7 +1,7 @@
 namespace Shoko.Plugin.Tmdb;
 
 /// <summary>
-/// Picks the TMDb API key to send.
+/// Picks the TMDB API key to send.
 /// </summary>
 /// <remarks>
 /// CI rewrites <see cref="Constants.ApiKey"/> for official builds, so in the

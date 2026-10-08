@@ -28,7 +28,7 @@ public sealed record MetadataOrderingData
     /// <remarks>
     ///   The main title (<see cref="TitleType.Main"/>) is the ordering's
     ///   default. Without one, the ordering gets a synthesized default such as
-    ///   <c>TMDb Ordering 5f0c…</c>, never stored.
+    ///   <c>TMDB Ordering 5f0c…</c>, never stored.
     /// </remarks>
     public IReadOnlyList<ITitle> Titles { get; init; } = [];
 

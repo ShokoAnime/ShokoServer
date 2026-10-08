@@ -13,12 +13,12 @@ namespace Shoko.Plugin.Tmdb.Services;
 
 /// <summary>
 ///   The little the plugin does on its own at start-up: registering the
-///   image template, and once the server has started, writing TMDb's genres
+///   image template, and once the server has started, writing TMDB's genres
 ///   into the tag store.
 /// </summary>
 /// <param name="systemService">The core's system service, for when the server has started.</param>
 /// <param name="imageManager">The core's image manager, which takes the template.</param>
-/// <param name="apiClient">The TMDb client, asked whether a key is configured.</param>
+/// <param name="apiClient">The TMDB client, asked whether a key is configured.</param>
 /// <param name="tags">Writes the genres.</param>
 /// <param name="logger">The logger.</param>
 public sealed class TmdbBackgroundService(
@@ -49,12 +49,12 @@ public sealed class TmdbBackgroundService(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "Unable to store TMDb's genres; they are stored on the next search or refresh instead.");
+            logger.LogWarning(ex, "Unable to store TMDB's genres; they are stored on the next search or refresh instead.");
         }
     }
 
     /// <summary>
-    ///   Registers the default image template: TMDb's image server in the
+    ///   Registers the default image template: TMDB's image server in the
     ///   original size, or the one the environment names. A template the
     ///   user set in the server's settings goes before it.
     /// </summary>
@@ -69,7 +69,7 @@ public sealed class TmdbBackgroundService(
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            logger.LogWarning(ex, "Unable to register the TMDb image template URL {Template}.", template);
+            logger.LogWarning(ex, "Unable to register the TMDB image template URL {Template}.", template);
             return null;
         }
     }
@@ -77,7 +77,7 @@ public sealed class TmdbBackgroundService(
     /// <summary>
     ///   The default image template for a configured image server.
     /// </summary>
-    /// <param name="imageCdnUrl">An image server's base URL, or a template with a <c>{0}</c>, or <c>null</c> for TMDb's own.</param>
+    /// <param name="imageCdnUrl">An image server's base URL, or a template with a <c>{0}</c>, or <c>null</c> for TMDB's own.</param>
     /// <returns>The template.</returns>
     internal static string DefaultTemplate(string? imageCdnUrl)
     {

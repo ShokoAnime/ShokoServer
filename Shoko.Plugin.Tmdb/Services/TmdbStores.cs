@@ -9,7 +9,7 @@ namespace Shoko.Plugin.Tmdb.Services;
 /// <remarks>
 ///   The plugin keeps nothing of its own: every show, movie, collection,
 ///   person, studio, network, tag, suggestion, ordering and text it learns
-///   from TMDb goes into these.
+///   from TMDB goes into these.
 /// </remarks>
 /// <param name="series">The store of shows with their seasons and episodes.</param>
 /// <param name="movies">The store of movies.</param>

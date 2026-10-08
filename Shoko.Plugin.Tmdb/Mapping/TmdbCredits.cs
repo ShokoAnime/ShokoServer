@@ -13,14 +13,14 @@ using TvCast = TMDbLib.Objects.TvShows.Cast;
 namespace Shoko.Plugin.Tmdb.Mapping;
 
 /// <summary>
-///   Turns TMDb's credits into the core's, and works out a show's and a
+///   Turns TMDB's credits into the core's, and works out a show's and a
 ///   season's credits from its episodes'.
 /// </summary>
 /// <remarks>
-///   TMDb has no characters of its own, so a cast credit names the person
+///   TMDB has no characters of its own, so a cast credit names the person
 ///   and the role they are credited under. Each credit carries the person's
 ///   name, so the core keeps a stub for anyone not fetched yet. The language
-///   is the work's original one, as TMDb only lists the original cast.
+///   is the work's original one, as TMDB only lists the original cast.
 /// </remarks>
 public static class TmdbCredits
 {
@@ -41,7 +41,7 @@ public static class TmdbCredits
     /// <param name="cast">The regular cast.</param>
     /// <param name="guestStars">The guest stars.</param>
     /// <param name="languageCode">The show's original language.</param>
-    /// <returns>The credits, in TMDb's order.</returns>
+    /// <returns>The credits, in TMDB's order.</returns>
     public static IReadOnlyList<MetadataCastData> EpisodeCast(IEnumerable<TvCast>? cast, IEnumerable<TvCast>? guestStars, string? languageCode)
         => [
             .. (cast ?? []).Where(credit => credit.Id > 0).Select(credit => Cast(credit.Id, credit.Name, credit.Character, languageCode, null)),
@@ -53,7 +53,7 @@ public static class TmdbCredits
     /// </summary>
     /// <param name="cast">The cast.</param>
     /// <param name="languageCode">The movie's original language.</param>
-    /// <returns>The credits, in TMDb's order.</returns>
+    /// <returns>The credits, in TMDB's order.</returns>
     public static IReadOnlyList<MetadataCastData> MovieCast(IEnumerable<MovieCast>? cast, string? languageCode)
         => [.. (cast ?? []).Where(credit => credit.Id > 0).OrderBy(credit => credit.Order).Select(credit => Cast(credit.Id, credit.Name, credit.Character, languageCode, null))];
 
@@ -62,7 +62,7 @@ public static class TmdbCredits
     /// </summary>
     /// <param name="crew">The crew.</param>
     /// <param name="languageCode">The work's original language.</param>
-    /// <returns>The credits, by department, job and TMDb's credit ID, each job of a person once.</returns>
+    /// <returns>The credits, by department, job and TMDB's credit ID, each job of a person once.</returns>
     public static IReadOnlyList<MetadataCrewData> Crew(IEnumerable<TmdbCrew>? crew, string? languageCode)
         => [
             .. (crew ?? [])
@@ -82,7 +82,7 @@ public static class TmdbCredits
         ];
 
     /// <summary>
-    ///   What a crew credit is called: TMDb's department and job.
+    ///   What a crew credit is called: TMDB's department and job.
     /// </summary>
     /// <param name="department">The department, e.g. <c>Directing</c>.</param>
     /// <param name="job">The job, e.g. <c>Director</c>.</param>
@@ -97,7 +97,7 @@ public static class TmdbCredits
         };
 
     /// <summary>
-    ///   The kind of a crew job, where TMDb's wording maps onto one.
+    ///   The kind of a crew job, where TMDB's wording maps onto one.
     /// </summary>
     /// <param name="job">The job.</param>
     /// <returns>The kind, or <see cref="CrewRoleType.None"/>.</returns>
@@ -130,13 +130,13 @@ public static class TmdbCredits
     /// <summary>
     ///   A show's or a season's cast, from the cast of its episodes: each
     ///   person in each role once, at their place on the first episode, by
-    ///   TMDb's ID for the episode, they appear in.
+    ///   TMDB's ID for the episode, they appear in.
     /// </summary>
     /// <remarks>
-    ///   The order is the one the core gave TMDb's shows and seasons: a
+    ///   The order is the one the core gave TMDB's shows and seasons: a
     ///   show's by place, then person, and a season's by person, then place.
     /// </remarks>
-    /// <param name="episodes">Each episode's cast, in the order of TMDb's IDs for the episodes.</param>
+    /// <param name="episodes">Each episode's cast, in the order of TMDB's IDs for the episodes.</param>
     /// <param name="season">Whether the credits are a season's rather than a show's.</param>
     /// <returns>The credits.</returns>
     public static IReadOnlyList<MetadataCastData> AggregateCast(IEnumerable<IReadOnlyList<MetadataCastData>> episodes, bool season = false)
@@ -164,7 +164,7 @@ public static class TmdbCredits
     ///   person in each job once.
     /// </summary>
     /// <remarks>
-    ///   The order is the one the core gave TMDb's shows and seasons: a
+    ///   The order is the one the core gave TMDB's shows and seasons: a
     ///   show's by department, job and person, and a season's by person, job
     ///   and department.
     /// </remarks>
@@ -198,7 +198,7 @@ public static class TmdbCredits
         => name.IndexOf(", ", StringComparison.Ordinal) is var index and >= 0 ? (name[..index], name[(index + 2)..]) : (string.Empty, name);
 
     /// <summary>
-    ///   TMDb's ID for a credited person, as a number.
+    ///   TMDB's ID for a credited person, as a number.
     /// </summary>
     /// <param name="creatorID">The person.</param>
     /// <returns>The ID, or <c>0</c> when there is none.</returns>

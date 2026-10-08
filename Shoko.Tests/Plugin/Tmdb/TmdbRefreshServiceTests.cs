@@ -50,7 +50,7 @@ public sealed class TmdbRefreshServiceTests : IDisposable
         Assert.Equal(new DateOnly(2023, 9, 29), first.AirDate);
         Assert.Equal(["imdb://episode/tt30000001", "tvdb://episode/9000001"], first.CrossSourceIDs.Select(id => id.ToString()));
 
-        // The images TMDb names on each entry are its defaults.
+        // The images TMDB names on each entry are its defaults.
         Assert.Equal(
             [(ImageEntityType.Primary, "show-poster.jpg"), (ImageEntityType.Backdrop, "show-backdrop.jpg")],
             series.DefaultImageResourceIDs!.Select(pair => (pair.Key, pair.Value))
@@ -295,12 +295,12 @@ public sealed class TmdbRefreshServiceTests : IDisposable
         Assert.Equal(new DateOnly(2025, 1, 10), movie.ReleaseDate);
         Assert.Equal(TimeSpan.FromMinutes(106), movie.Runtime);
         Assert.Equal(["JP", "US"], movie.ProductionCountries);
-        // Every certification of a country once, in TMDb's order.
+        // Every certification of a country once, in TMDB's order.
         Assert.Equal([("US", "PG"), ("JP", "G"), ("JP", "PG12")], movie.ContentRatings.Select(rating => (rating.CountryCode, rating.Rating)));
         Assert.Equal(["imdb://movie/tt40000001"], movie.CrossSourceIDs.Select(id => id.ToString()));
         Assert.Equal(("en", TitleType.Main, "Journey's End: The Movie"), (movie.Titles[0].LanguageCode, movie.Titles[0].Type, movie.Titles[0].Value));
 
-        // In TMDb's billing order.
+        // In TMDB's billing order.
         Assert.Equal(["Frieren", "Fern"], _harness.StoreData.Cast[TmdbIds.Movie(7001)].Select(credit => credit.Name));
         Assert.Equal([TmdbIds.Genre(16), TmdbIds.Genre(14), TmdbIds.Keyword(210024)], _harness.StoreData.EntryTags[TmdbIds.Movie(7001)].Select(tag => tag.TagID));
 

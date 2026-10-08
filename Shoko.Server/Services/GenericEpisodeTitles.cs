@@ -446,7 +446,7 @@ internal static class GenericEpisodeTitles
 
     /// <summary>
     ///   Synthesizes the name of an entry with no generic name, such as a
-    ///   series: its source, kind and ID, as in <c>TMDb Series 46195</c>.
+    ///   series: its source, kind and ID, as in <c>TMDB Series 46195</c>.
     /// </summary>
     /// <param name="entityID">The entry.</param>
     /// <returns>The title, in no known language, listed as the main one and marked as synthesized.</returns>

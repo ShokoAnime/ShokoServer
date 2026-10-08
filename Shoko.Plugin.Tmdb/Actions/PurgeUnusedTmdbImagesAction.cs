@@ -9,16 +9,16 @@ using Shoko.Abstractions.ScheduledActions;
 namespace Shoko.Plugin.Tmdb.Actions;
 
 /// <summary>
-///   Purges every TMDb image that nothing links to any more.
+///   Purges every TMDB image that nothing links to any more.
 /// </summary>
 /// <param name="imageManager">The core's image manager, which removes them.</param>
 public sealed class PurgeUnusedTmdbImagesAction(IImageManager imageManager) : IScheduledAction
 {
     /// <inheritdoc/>
-    public string Name => "Purge Unused TMDb Images";
+    public string Name => "Purge Unused TMDB Images";
 
     /// <inheritdoc/>
-    public string? Description => "Remove all TMDb images that are not linked to any entity.";
+    public string? Description => "Remove all TMDB images that are not linked to any entity.";
 
     /// <inheritdoc/>
     public ActionCategory Category => ActionCategory.Images;
@@ -27,7 +27,7 @@ public sealed class PurgeUnusedTmdbImagesAction(IImageManager imageManager) : IS
     public bool RequiresConfirmation => true;
 
     /// <inheritdoc/>
-    public string? ConfirmationMessage => "Are you sure you want to remove all unused TMDb images from the database?";
+    public string? ConfirmationMessage => "Are you sure you want to remove all unused TMDB images from the database?";
 
     /// <inheritdoc/>
     public Task Execute(IProgress<decimal> progress, CancellationToken token)

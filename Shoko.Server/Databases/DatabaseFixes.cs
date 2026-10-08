@@ -609,13 +609,13 @@ public partial class DatabaseFixes
                 var count = 0;
 
                 total += files.Length;
-                _logger.Info($"Moving TMDb images on disc for folder {folderCount} out of {folders.Length}: {count}/{files.Length} ({total} total, {skipped} skipped)");
+                _logger.Info($"Moving TMDB images on disc for folder {folderCount} out of {folders.Length}: {count}/{files.Length} ({total} total, {skipped} skipped)");
                 systemService.StartupMessage = $"{str} - {folderCount} / {folders.Length} folders - 0 / {files.Length} images - {total} total, {skipped} skipped";
                 foreach (var file in files)
                 {
                     if (++count % 10 == 0 || count == files.Length)
                     {
-                        _logger.Info($"Moving TMDb images on disc for folder {folderCount} out of {folders.Length}: {count}/{files.Length} ({total} total, {skipped} skipped)");
+                        _logger.Info($"Moving TMDB images on disc for folder {folderCount} out of {folders.Length}: {count}/{files.Length} ({total} total, {skipped} skipped)");
                         systemService.StartupMessage = $"{str} - {folderCount} / {folders.Length} folders - {count} / {files.Length} images - {total} total, {skipped} skipped";
                     }
 
@@ -658,13 +658,13 @@ public partial class DatabaseFixes
             var count = 0;
 
             total += files.Length;
-            _logger.Info($"Moving TMDb {imageType} images on disc: 0/{files.Length}");
+            _logger.Info($"Moving TMDB {imageType} images on disc: 0/{files.Length}");
             systemService.StartupMessage = $"{str} - 0 / {files.Length} {imageType} images";
             foreach (var file in files)
             {
                 if (++count % 10 == 0 || count == files.Length)
                 {
-                    _logger.Info($"Moving TMDb {imageType} images on disc: {count}/{files.Length}");
+                    _logger.Info($"Moving TMDB {imageType} images on disc: {count}/{files.Length}");
                     systemService.StartupMessage = $"{str} - {count} / {files.Length} {imageType} images";
                 }
 
@@ -688,7 +688,7 @@ public partial class DatabaseFixes
             Directory.Delete(imageTypeDir);
         }
 
-        _logger.Info($"Moved {total} TMDb images on disc. Skipped {skipped} images.");
+        _logger.Info($"Moved {total} TMDB images on disc. Skipped {skipped} images.");
     }
 
     public static void MoveAnidbFileDataToReleaseInfoFormat()

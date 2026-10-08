@@ -12,7 +12,7 @@ and what a plugin writes for its own entities. Reading and adding images is in
 `ShokoImage_Entity` stores the ID's three parts in `EntitySource`,
 `EntityType` and `EntityID` (`NVARCHAR(128)`, the most a `MetadataGuid` ID can
 hold). Nothing else of the entity is stored, which lets one image be shared by
-an AniDB anime, a TMDb show and a plugin's entity without a table each. The
+an AniDB anime, a TMDB show and a plugin's entity without a table each. The
 ID part is the source's own ID, as `IMetadata.ID` carries it; a video's is
 `<ED2K>+<file size>`.
 

@@ -12,8 +12,8 @@ using Xunit;
 namespace Shoko.Tests.Plugin.Tmdb;
 
 /// <summary>
-///   The plugin's TMDb client over the fixtures: what it answers for an entry
-///   TMDb lacks, how it retries, and how it feeds the rate limiter.
+///   The plugin's TMDB client over the fixtures: what it answers for an entry
+///   TMDB lacks, how it retries, and how it feeds the rate limiter.
 /// </summary>
 public sealed class TmdbApiClientTests
 {

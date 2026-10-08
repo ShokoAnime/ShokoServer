@@ -42,10 +42,10 @@ contract or service each.
 
 ### Metadata sources a plugin reads
 
-The core serves AniDB itself. Any other source, TMDb and AniList included,
+The core serves AniDB itself. Any other source, TMDB and AniList included,
 comes from a plugin's metadata provider, is kept in the core's metadata
-stores, and is read through the general metadata services below. TMDb comes
-from the bundled TMDb plugin.
+stores, and is read through the general metadata services below. TMDB comes
+from the bundled TMDB plugin.
 
 - [AniDB](Metadata/Anidb/Services/README.md), metadata, MyList and AVDump
 
@@ -442,7 +442,7 @@ interfaces, secrets and the `[Required]` trap.
 The server scans two directories, in this order:
 
 1. `{ApplicationPath}/plugins`, next to the server executable, for plugins that
-   ship with the install, such as the bundled TMDb plugin and the WebAOM
+   ship with the install, such as the bundled TMDB plugin and the WebAOM
    renamer. These are system plugins: the user can disable them but not
    uninstall them.
 2. `{DataPath}/plugins` (`IApplicationPaths.PluginsPath`), the user's own

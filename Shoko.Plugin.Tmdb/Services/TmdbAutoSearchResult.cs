@@ -31,7 +31,7 @@ internal sealed class TmdbAutoSearchResult
     public bool IsMovie => Candidate is MetadataMovieSearchResult;
 
     /// <summary>
-    ///   Its TMDb ID.
+    ///   Its TMDB ID.
     /// </summary>
     public int TmdbID => Candidate.ID.TryGetNumericID<int>(out var id) ? id : 0;
 
@@ -46,7 +46,7 @@ internal sealed class TmdbAutoSearchResult
     public bool IsLocal { get; init; }
 
     /// <summary>
-    ///   Whether it was fetched from TMDb.
+    ///   Whether it was fetched from TMDB.
     /// </summary>
     public bool IsRemote { get; init; }
 

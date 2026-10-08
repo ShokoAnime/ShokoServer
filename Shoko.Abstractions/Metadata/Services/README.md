@@ -82,7 +82,7 @@ still read. "Nothing" is `null` or an empty sequence, never an exception.
 
 Some IDs are shaped rather than numbered: a Shoko or AniDB season is
 `<series ID>:<episode type>:<season number>` (found but not enumerated), a
-video `<ED2K>+<file size>`, a TMDb genre or keyword `genre/<id>`,
+video `<ED2K>+<file size>`, a TMDB genre or keyword `genre/<id>`,
 `genre/<id>/<part>` or `keyword/<id>`, and an airing channel its GUID. Cast
 and crew credits, cross-references and search results are not entries; a
 cross-reference carries the ID of the entry it points at.
@@ -270,7 +270,7 @@ listed first in `Titles` as its main title and never stored
 (`ITitle.IsSynthesized`): an episode's generic title and a season's generic
 name (`Season 2`, `Staffel 2`, `Specials`) in each episode language the user
 picked that has a form, then in English, or `<source> <kind> <id>` for any
-other kind, such as `TMDb Series 46195`.
+other kind, such as `TMDB Series 46195`.
 
 An episode as an ordering other than the default presents it, such as a
 place's untyped `Episode`, is numbered by its place there, so its synthesized
@@ -437,7 +437,7 @@ the regular episodes around it are followed back through the episode links
 to the Shoko episodes of the special's series. A source whose neighbours
 lead outside the series is left out; of two linked episodes of one source
 placing it, the first in link order counts. Only default orderings are read,
-never a stored one such as a TMDb episode group. `AirsAfterEpisodeID` and
+never a stored one such as a TMDB episode group. `AirsAfterEpisodeID` and
 `AirsBeforeEpisodeID` are `shoko://episode/<id>` IDs, `null` when the special
 airs first or last. A regular episode has none. The optional `source` keeps
 one source.
@@ -456,9 +456,9 @@ entry's own row (Shoko series or episode, AniDB anime or episode, or the
 plugin's in the series store, whose saves keep them), so an entry only a
 resolver serves can have neither.
 
-The TMDb plugin stores its episode groups as global orderings of its shows,
+The TMDB plugin stores its episode groups as global orderings of its shows,
 `tmdb://ordering/<collection ID>`, whose groups keep their season IDs and
-TMDb's numbers. An
+TMDB's numbers. An
 ordering carries images like
 any entry, but `IImageManager` links images only to users' and plugins'
 stored orderings and their groups, never to a default ordering or one a core

@@ -23,11 +23,11 @@ using TMDbLib.Utilities.Serializer;
 namespace Shoko.Tests.Plugin.Tmdb;
 
 /// <summary>
-///   Answers TMDb's API from the fixtures, by the path asked for, so the
-///   plugin's client reads them through TMDbLib as it would TMDb's answers.
+///   Answers TMDB's API from the fixtures, by the path asked for, so the
+///   plugin's client reads them through TMDbLib as it would TMDB's answers.
 /// </summary>
 /// <remarks>
-///   A path nobody routed answers 404 as TMDb does. A route may hold several
+///   A path nobody routed answers 404 as TMDB does. A route may hold several
 ///   answers, given in turn, the last one again once the rest are used up.
 /// </remarks>
 internal sealed class TmdbRoutes : HttpMessageHandler
@@ -76,7 +76,7 @@ internal sealed class TmdbRoutes : HttpMessageHandler
     }
 
     /// <summary>
-    ///   Answers a path with TMDb's error body.
+    ///   Answers a path with TMDB's error body.
     /// </summary>
     /// <param name="path">The path.</param>
     /// <param name="status">The status code.</param>
@@ -116,7 +116,7 @@ internal sealed class TmdbRoutes : HttpMessageHandler
 }
 
 /// <summary>
-///   Builds the plugin's TMDb client over <see cref="TmdbRoutes"/>, and
+///   Builds the plugin's TMDB client over <see cref="TmdbRoutes"/>, and
 ///   its configuration.
 /// </summary>
 internal static class TmdbTestClient

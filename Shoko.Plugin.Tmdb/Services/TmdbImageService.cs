@@ -12,26 +12,26 @@ using Shoko.Plugin.Tmdb.Mapping;
 namespace Shoko.Plugin.Tmdb.Services;
 
 /// <summary>
-///   Hands the core the images TMDb has for one of its entities, asking
-///   TMDb for them when the image job asks.
+///   Hands the core the images TMDB has for one of its entities, asking
+///   TMDB for them when the image job asks.
 /// </summary>
 /// <remarks>
 ///   A show's, season's and episode's are asked for by the numbers the
 ///   stored entries carry, so only stored entries get any. An episode's
-///   stills are its backdrops. The images come in TMDb's order; the ones
-///   TMDb names on an entry are stored with it as its defaults on refresh.
+///   stills are its backdrops. The images come in TMDB's order; the ones
+///   TMDB names on an entry are stored with it as its defaults on refresh.
 /// </remarks>
-/// <param name="apiClient">The TMDb client.</param>
+/// <param name="apiClient">The TMDB client.</param>
 /// <param name="stores">The core's stores.</param>
 /// <param name="entities">The entity refresh, which keeps the photos and logos it fetched.</param>
 public sealed class TmdbImageService(TmdbApiClient apiClient, TmdbStores stores, TmdbEntityRefreshService entities)
 {
     /// <summary>
-    ///   The images TMDb has for an entity.
+    ///   The images TMDB has for an entity.
     /// </summary>
     /// <param name="entityID">The entity.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>The images, in TMDb's order, or <c>null</c> to leave the entity's images alone.</returns>
+    /// <returns>The images, in TMDB's order, or <c>null</c> to leave the entity's images alone.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
     public async Task<IReadOnlyList<ImageCandidate>?> GetImages(MetadataGuid entityID, CancellationToken cancellationToken = default)
     {

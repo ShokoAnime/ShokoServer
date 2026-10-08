@@ -31,7 +31,7 @@ Discord, and we'll be more than happy to provide guidance and assistance.
 The server ships with two first-party plugins. They load as system plugins, are enabled by default and cannot be
 uninstalled:
 
-- **TMDb** (`Shoko.Plugin.Tmdb`) supplies The Movie Database metadata for the `tmdb` source: shows, seasons, episodes,
+- **TMDB** (`Shoko.Plugin.Tmdb`) supplies The Movie Database metadata for the `tmdb` source: shows, seasons, episodes,
   movies, collections, people, studios and networks, their titles, overviews and images, and alternate orderings. It is
   configured from its plugin settings (`tmdb.json` in the plugin's configuration folder), not from the server settings.
 - **WebAOM** (`Shoko.Plugin.WebAOM`) holds the WebAOM renamer, the default relocation provider.

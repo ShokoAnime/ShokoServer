@@ -16,11 +16,11 @@ using TMDbLib.Objects.TvShows;
 namespace Shoko.Plugin.Tmdb.Services;
 
 /// <summary>
-///   Searches TMDb for the shows and movies a person or the auto-linker
+///   Searches TMDB for the shows and movies a person or the auto-linker
 ///   might link an anime to.
 /// </summary>
 /// <remarks>
-///   A search hands back what TMDb said, its hits of the animation genre
+///   A search hands back what TMDB said, its hits of the animation genre
 ///   first, with the genres named through the tag store. The auto-linker's
 ///   half is in the other part of this class.
 /// </remarks>
@@ -51,9 +51,9 @@ public sealed partial class TmdbSearchService
     /// <summary>
     ///   Creates the search service.
     /// </summary>
-    /// <param name="apiClient">The TMDb client.</param>
+    /// <param name="apiClient">The TMDB client.</param>
     /// <param name="stores">The core's _stores.</param>
-    /// <param name="tags">Names the genres of TMDb's search hits.</param>
+    /// <param name="tags">Names the genres of TMDB's search hits.</param>
     /// <param name="matchingEngine">The core's matching engine, which judges the auto-search's candidates.</param>
     /// <param name="metadataService">The core's metadata service, for the links of an anime's prequel.</param>
     /// <param name="linkingService">The core's linking service, for the hints the anime's other links give.</param>
@@ -85,11 +85,11 @@ public sealed partial class TmdbSearchService
     #region Constants
 
     /// <summary>
-    ///   TMDb's ID for the animation genre, the same for shows and movies.
+    ///   TMDB's ID for the animation genre, the same for shows and movies.
     /// </summary>
     internal const int AnimationGenreID = 16;
 
-    // "cn" is TMDb's code for Cantonese.
+    // "cn" is TMDB's code for Cantonese.
     private static readonly HashSet<string> RestrictedLanguages = new(StringComparer.OrdinalIgnoreCase) { "ja", "zh", "cn", "ko" };
 
     #endregion
@@ -97,7 +97,7 @@ public sealed partial class TmdbSearchService
     #region Searching
 
     /// <summary>
-    ///   Searches TMDb's shows.
+    ///   Searches TMDB's shows.
     /// </summary>
     /// <param name="options">What to search for.</param>
     /// <param name="cancellationToken">Cancels the search.</param>
@@ -114,7 +114,7 @@ public sealed partial class TmdbSearchService
     }
 
     /// <summary>
-    ///   Searches TMDb's movies.
+    ///   Searches TMDB's movies.
     /// </summary>
     /// <param name="options">What to search for.</param>
     /// <param name="cancellationToken">Cancels the search.</param>
@@ -132,11 +132,11 @@ public sealed partial class TmdbSearchService
 
     /// <summary>
     ///   Looks one show up by its ID: the stored one when there is one, else
-    ///   TMDb's.
+    ///   TMDB's.
     /// </summary>
-    /// <param name="showID">The TMDb show ID.</param>
+    /// <param name="showID">The TMDB show ID.</param>
     /// <param name="cancellationToken">Cancels the lookup.</param>
-    /// <returns>The show, or <c>null</c> when TMDb has none.</returns>
+    /// <returns>The show, or <c>null</c> when TMDB has none.</returns>
     public async Task<MetadataSeriesSearchResult?> LookupSeries(int showID, CancellationToken cancellationToken = default)
     {
         var imageServer = await _apiClient.GetImageServerUrl(cancellationToken).ConfigureAwait(false);
@@ -150,11 +150,11 @@ public sealed partial class TmdbSearchService
 
     /// <summary>
     ///   Looks one movie up by its ID: the stored one when there is one, else
-    ///   TMDb's.
+    ///   TMDB's.
     /// </summary>
-    /// <param name="movieID">The TMDb movie ID.</param>
+    /// <param name="movieID">The TMDB movie ID.</param>
     /// <param name="cancellationToken">Cancels the lookup.</param>
-    /// <returns>The movie, or <c>null</c> when TMDb has none.</returns>
+    /// <returns>The movie, or <c>null</c> when TMDB has none.</returns>
     public async Task<MetadataMovieSearchResult?> LookupMovie(int movieID, CancellationToken cancellationToken = default)
     {
         var imageServer = await _apiClient.GetImageServerUrl(cancellationToken).ConfigureAwait(false);
@@ -167,8 +167,8 @@ public sealed partial class TmdbSearchService
     }
 
     /// <summary>
-    ///   One page of TMDb's show search, cut to the page size asked for from
-    ///   TMDb's own pages, the hits of the animation genre first.
+    ///   One page of TMDB's show search, cut to the page size asked for from
+    ///   TMDB's own pages, the hits of the animation genre first.
     /// </summary>
     /// <param name="query">What to search for.</param>
     /// <param name="includeRestricted">Whether to include adult shows.</param>
@@ -196,7 +196,7 @@ public sealed partial class TmdbSearchService
     }
 
     /// <summary>
-    ///   One page of TMDb's movie search, as <see cref="SearchShowsRaw"/>.
+    ///   One page of TMDB's movie search, as <see cref="SearchShowsRaw"/>.
     /// </summary>
     /// <param name="query">What to search for.</param>
     /// <param name="includeRestricted">Whether to include adult movies.</param>
@@ -224,12 +224,12 @@ public sealed partial class TmdbSearchService
     }
 
     /// <summary>
-    ///   Cuts a page of a size out of TMDb's own pages, fetching the ones it
+    ///   Cuts a page of a size out of TMDB's own pages, fetching the ones it
     ///   spans.
     /// </summary>
-    /// <typeparam name="TContainer">TMDb's page.</typeparam>
+    /// <typeparam name="TContainer">TMDB's page.</typeparam>
     /// <typeparam name="THit">One hit.</typeparam>
-    /// <param name="fetch">Fetches one of TMDb's pages.</param>
+    /// <param name="fetch">Fetches one of TMDB's pages.</param>
     /// <param name="read">Reads a page's hits and totals.</param>
     /// <param name="page">The page wanted, from one.</param>
     /// <param name="pageSize">How many hits the page wanted holds, or <c>0</c> for only the total.</param>

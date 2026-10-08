@@ -9,7 +9,7 @@ using Xunit;
 namespace Shoko.Tests.Plugin.Tmdb;
 
 /// <summary>
-///   The routed refresh of TMDb's people, companies and networks, and the
+///   The routed refresh of TMDB's people, companies and networks, and the
 ///   images handed out for them and for the shows.
 /// </summary>
 public sealed class TmdbEntityRefreshTests : IDisposable

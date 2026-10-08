@@ -13,12 +13,12 @@ using Shoko.Plugin.Tmdb.Mapping;
 namespace Shoko.Plugin.Tmdb.Services;
 
 /// <summary>
-///   Lines an anime's episodes up with a TMDb show's. The links are the
+///   Lines an anime's episodes up with a TMDB show's. The links are the
 ///   core's, written through its linking service; this picks the candidates.
 /// </summary>
 /// <remarks>
 ///   The core's matching engine lines the episodes up by air date and title
-///   within TMDb's seasons, over the episodes the core's series store holds:
+///   within TMDB's seasons, over the episodes the core's series store holds:
 ///   the whole show, one season with the specials, or one group of an
 ///   ordering, less those other anime are linked to when they count.
 /// </remarks>
@@ -43,7 +43,7 @@ public sealed class TmdbLinkingService(
     /// </summary>
     /// <param name="anime">The AniDB anime.</param>
     /// <param name="anidbEpisodes">The episodes in scope.</param>
-    /// <param name="showID">The TMDb show ID.</param>
+    /// <param name="showID">The TMDB show ID.</param>
     /// <param name="seasonID">
     ///   One season of the show, whose specials come with it, or one group of
     ///   one of its orderings; <c>null</c> for the whole show.
@@ -82,7 +82,7 @@ public sealed class TmdbLinkingService(
             candidates = [.. candidates.Where(episode => !claimed.Contains(episode.ID))];
         }
 
-        // A link to an episode TMDb removed from the show is matched again;
+        // A link to an episode TMDB removed from the show is matched again;
         // one into another show is left to the engine.
         var episodeIDs = series.Episodes.Select(episode => episode.ID).ToHashSet();
         var kept = existing?

@@ -19,15 +19,15 @@ namespace Shoko.Plugin.Tmdb.Services;
 
 /// <summary>
 ///   The half of the plugin that fetches shows, movies and collections from
-///   TMDb and writes them into the core's stores.
+///   TMDB and writes them into the core's stores.
 /// </summary>
 /// <remarks>
 ///   The core's refresh job calls in through the provider once an entry is
 ///   due, holding its lock, so nothing here checks freshness. What did not
-///   change on TMDb since the last refresh is carried over from the stores
-///   rather than fetched again, by TMDb's changes feed.
+///   change on TMDB since the last refresh is carried over from the stores
+///   rather than fetched again, by TMDB's changes feed.
 /// </remarks>
-/// <param name="apiClient">The TMDb client.</param>
+/// <param name="apiClient">The TMDB client.</param>
 /// <param name="stores">The core's stores.</param>
 /// <param name="configurationProvider">The plugin's configuration.</param>
 /// <param name="logger">The logger.</param>
@@ -53,17 +53,17 @@ public sealed class TmdbRefreshService(
     ///   open. A quick refresh leaves out the credits and the episode groups
     ///   and fetches no episode on its own. A refresh with a last refresh
     ///   time inside the changes window only fetches the seasons and episodes
-    ///   TMDb changed since. A show TMDb no longer has is left as it was
+    ///   TMDB changed since. A show TMDB no longer has is left as it was
     ///   stored. The core matches the linked anime's episodes again once the
     ///   refresh is done.
     /// </remarks>
-    /// <param name="showID">The TMDb show ID.</param>
+    /// <param name="showID">The TMDB show ID.</param>
     /// <param name="options">What kind of refresh it is.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>Whether TMDb had the show.</returns>
+    /// <returns>Whether TMDB had the show.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
     /// <exception cref="MetadataProviderNotConfiguredException">No API key is configured.</exception>
-    /// <exception cref="InvalidOperationException">TMDb listed a season it then did not give.</exception>
+    /// <exception cref="InvalidOperationException">TMDB listed a season it then did not give.</exception>
     public async Task<bool> RefreshShow(int showID, MetadataRefreshOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -79,10 +79,10 @@ public sealed class TmdbRefreshService(
         if (downloadOrderings)
             methods |= TvShowMethods.EpisodeGroups;
 
-        logger.LogInformation("Refreshing TMDb show {ShowID}.", showID);
+        logger.LogInformation("Refreshing TMDB show {ShowID}.", showID);
         if (await apiClient.GetShow(showID, methods, cancellationToken).ConfigureAwait(false) is not { } show)
         {
-            logger.LogWarning("TMDb has no show with ID {ShowID}. Keeping what is stored.", showID);
+            logger.LogWarning("TMDB has no show with ID {ShowID}. Keeping what is stored.", showID);
             return false;
         }
 
@@ -103,7 +103,7 @@ public sealed class TmdbRefreshService(
             var seasonID = TmdbIds.Season(listedSeason.Id);
             if (changes is not null && !changes.SeasonNumbers.Contains(listedSeason.SeasonNumber) && storedSeasons.TryGetValue(seasonID, out var unchangedSeason))
             {
-                logger.LogDebug("Keeping season {SeasonNumber} of TMDb show {ShowID}, which did not change.", listedSeason.SeasonNumber, show.Id);
+                logger.LogDebug("Keeping season {SeasonNumber} of TMDB show {ShowID}, which did not change.", listedSeason.SeasonNumber, show.Id);
                 seasons.Add(CarrySeason(unchangedSeason));
                 foreach (var episode in storedEpisodes.Values.Where(episode => episode.SeasonID == seasonID).OrderBy(episode => episode.EpisodeNumber))
                 {
@@ -115,7 +115,7 @@ public sealed class TmdbRefreshService(
             }
 
             var season = await apiClient.GetSeason(show.Id, listedSeason.SeasonNumber, TvSeasonMethods.Translations, cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidOperationException($"TMDb listed season {listedSeason.SeasonNumber} of show {show.Id}, then gave none.");
+                ?? throw new InvalidOperationException($"TMDB listed season {listedSeason.SeasonNumber} of show {show.Id}, then gave none.");
             seasons.Add(TmdbEntityMapper.ToSeasonData(season, languages) with { ID = seasonID });
             foreach (var listed in season.Episodes ?? [])
             {
@@ -180,7 +180,7 @@ public sealed class TmdbRefreshService(
             await UpdateOrderings(show, data.Episodes.Select(episode => episode.ID).ToHashSet(), cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
-            "Refreshed TMDb show {ShowID} ({Title}): {Changes} changes to the show and its {Seasons} seasons and {Episodes} episodes.",
+            "Refreshed TMDB show {ShowID} ({Title}): {Changes} changes to the show and its {Seasons} seasons and {Episodes} episodes.",
             show.Id,
             show.Name,
             changed,
@@ -191,10 +191,10 @@ public sealed class TmdbRefreshService(
     }
 
     /// <summary>
-    ///   What TMDb changed of a show since its last refresh, or
-    ///   <c>null</c> to fetch it whole, as when TMDb cannot say.
+    ///   What TMDB changed of a show since its last refresh, or
+    ///   <c>null</c> to fetch it whole, as when TMDB cannot say.
     /// </summary>
-    /// <param name="showID">The TMDb show ID.</param>
+    /// <param name="showID">The TMDB show ID.</param>
     /// <param name="since">The last refresh, in UTC.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>What changed, or <c>null</c>.</returns>
@@ -206,7 +206,7 @@ public sealed class TmdbRefreshService(
         }
         catch (Exception ex) when (TmdbApiClient.IsTransient(ex))
         {
-            logger.LogWarning(ex, "Unable to ask TMDb what changed of show {ShowID}; fetching it whole.", showID);
+            logger.LogWarning(ex, "Unable to ask TMDB what changed of show {ShowID}; fetching it whole.", showID);
             return null;
         }
     }
@@ -240,7 +240,7 @@ public sealed class TmdbRefreshService(
             ));
         }
 
-        // A credit takes its place from the first episode it is on by TMDb's ID, as it always has.
+        // A credit takes its place from the first episode it is on by TMDB's ID, as it always has.
         resolved = [.. resolved.OrderBy(episode => episode.EpisodeID)];
         foreach (var season in resolved.GroupBy(episode => episode.SeasonID))
         {
@@ -265,7 +265,7 @@ public sealed class TmdbRefreshService(
     /// <param name="storedEpisodes">The show's stored episodes.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>A task that completes once the orderings are written.</returns>
-    /// <exception cref="InvalidOperationException">TMDb listed an episode group it then did not give.</exception>
+    /// <exception cref="InvalidOperationException">TMDB listed an episode group it then did not give.</exception>
     private async Task UpdateOrderings(TvShow show, IReadOnlySet<MetadataGuid> storedEpisodes, CancellationToken cancellationToken)
     {
         var seriesID = TmdbIds.Series(show.Id);
@@ -277,7 +277,7 @@ public sealed class TmdbRefreshService(
 
             // The show only lists a collection; its groups come on their own.
             var collection = await apiClient.GetEpisodeGroup(listed.Id, cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidOperationException($"TMDb listed episode group {listed.Id} of show {show.Id}, then gave none.");
+                ?? throw new InvalidOperationException($"TMDB listed episode group {listed.Id} of show {show.Id}, then gave none.");
             kept.Add(TmdbIds.Ordering(listed.Id));
             if (collection.Network is { Id: > 0 } network)
                 stores.Studios.SaveNetworks([TmdbEntityMapper.ToNetworkData(network)]);
@@ -290,7 +290,7 @@ public sealed class TmdbRefreshService(
             }
             catch (ArgumentException ex)
             {
-                logger.LogWarning(ex, "Unable to store episode group {GroupID} of TMDb show {ShowID}.", listed.Id, show.Id);
+                logger.LogWarning(ex, "Unable to store episode group {GroupID} of TMDB show {ShowID}.", listed.Id, show.Id);
             }
         }
 
@@ -299,7 +299,7 @@ public sealed class TmdbRefreshService(
             .ToList();
         foreach (var ordering in gone)
         {
-            logger.LogInformation("Removing ordering {OrderingID}, which TMDb no longer has.", ordering.ID);
+            logger.LogInformation("Removing ordering {OrderingID}, which TMDB no longer has.", ordering.ID);
             stores.Orderings.RemoveOrdering(ordering.ID);
         }
     }
@@ -346,7 +346,7 @@ public sealed class TmdbRefreshService(
     private IReadOnlyList<IText> StoredOverviews(MetadataGuid entryID)
         => stores.Texts.GetOverviews(entryID, StoredTexts());
 
-    // TMDb's own texts of the entry, disabled ones included so a user's choice is kept.
+    // TMDB's own texts of the entry, disabled ones included so a user's choice is kept.
     private static TextFilteringOptions StoredTexts()
         => new() { Source = MetadataSource.TMDB, IsEnabled = null, IncludeInlineDefault = false };
 
@@ -366,7 +366,7 @@ public sealed class TmdbRefreshService(
 
     /// <summary>
     ///   Fetches a movie and whatever the options and settings ask for, and
-    ///   writes it into the stores, unless TMDb changed nothing since its
+    ///   writes it into the stores, unless TMDB changed nothing since its
     ///   last refresh.
     /// </summary>
     /// <remarks>
@@ -374,9 +374,9 @@ public sealed class TmdbRefreshService(
     ///   people by ID. The movie names its collection by ID, and the core
     ///   fetches the collection through <see cref="RefreshCollection"/>, and
     ///   the people and studios through the entity provider, for the kinds
-    ///   turned on. A movie TMDb no longer has is left as it was stored.
+    ///   turned on. A movie TMDB no longer has is left as it was stored.
     /// </remarks>
-    /// <param name="movieID">The TMDb movie ID.</param>
+    /// <param name="movieID">The TMDB movie ID.</param>
     /// <param name="options">What kind of refresh it is.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>Whether the movie was written.</returns>
@@ -395,7 +395,7 @@ public sealed class TmdbRefreshService(
         if (stores.Movies.GetMovie(movieGuid) is not null && options.LastRefreshedAt is { } lastRefreshedAt &&
             !await HasMovieChanged(movieID, lastRefreshedAt, cancellationToken).ConfigureAwait(false))
         {
-            logger.LogInformation("Skipping TMDb movie {MovieID}, which did not change since {LastRefreshedAt}.", movieID, lastRefreshedAt);
+            logger.LogInformation("Skipping TMDB movie {MovieID}, which did not change since {LastRefreshedAt}.", movieID, lastRefreshedAt);
             return false;
         }
 
@@ -404,10 +404,10 @@ public sealed class TmdbRefreshService(
         if (downloadCredits)
             methods |= MovieMethods.Credits;
 
-        logger.LogInformation("Refreshing TMDb movie {MovieID}.", movieID);
+        logger.LogInformation("Refreshing TMDB movie {MovieID}.", movieID);
         if (await apiClient.GetMovie(movieID, methods, cancellationToken).ConfigureAwait(false) is not { } movie)
         {
-            logger.LogWarning("TMDb has no movie with ID {MovieID}. Keeping what is stored.", movieID);
+            logger.LogWarning("TMDB has no movie with ID {MovieID}. Keeping what is stored.", movieID);
             return false;
         }
 
@@ -432,7 +432,7 @@ public sealed class TmdbRefreshService(
             stores.People.SetCrew(movieGuid, TmdbCredits.Crew(movieCredits.Crew, movie.OriginalLanguage));
         }
 
-        logger.LogInformation("Refreshed TMDb movie {MovieID} ({Title}).", movie.Id, movie.Title);
+        logger.LogInformation("Refreshed TMDB movie {MovieID} ({Title}).", movie.Id, movie.Title);
         return true;
     }
 
@@ -444,7 +444,7 @@ public sealed class TmdbRefreshService(
         }
         catch (Exception ex) when (TmdbApiClient.IsTransient(ex))
         {
-            logger.LogWarning(ex, "Unable to ask TMDb whether movie {MovieID} changed; fetching it whole.", movieID);
+            logger.LogWarning(ex, "Unable to ask TMDB whether movie {MovieID} changed; fetching it whole.", movieID);
             return true;
         }
     }
@@ -455,12 +455,12 @@ public sealed class TmdbRefreshService(
 
     /// <summary>
     ///   Fetches a collection with its titles, overviews and the movies it
-    ///   holds, and writes it into the store. One TMDb no longer has is
+    ///   holds, and writes it into the store. One TMDB no longer has is
     ///   removed from it.
     /// </summary>
-    /// <param name="collectionID">The TMDb collection ID.</param>
+    /// <param name="collectionID">The TMDB collection ID.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>Whether TMDb had the collection.</returns>
+    /// <returns>Whether TMDB had the collection.</returns>
     /// <exception cref="MetadataProviderNotConfiguredException">No API key is configured.</exception>
     public async Task<bool> RefreshCollection(int collectionID, CancellationToken cancellationToken = default)
     {
@@ -470,7 +470,7 @@ public sealed class TmdbRefreshService(
         var collectionGuid = TmdbIds.Collection(collectionID);
         if (await apiClient.GetCollection(collectionID, cancellationToken).ConfigureAwait(false) is not { } collection)
         {
-            logger.LogWarning("TMDb has no collection with ID {CollectionID}. Removing what is stored.", collectionID);
+            logger.LogWarning("TMDB has no collection with ID {CollectionID}. Removing what is stored.", collectionID);
             if (stores.Collections.GetCollection(collectionGuid) is not null)
                 stores.Collections.RemoveCollection(collectionGuid);
             return false;
@@ -478,7 +478,7 @@ public sealed class TmdbRefreshService(
 
         var languages = TmdbTextLanguages.From(configurationProvider.Load(), stores.Texts);
         stores.Collections.SaveCollection(TmdbEntityMapper.ToCollectionData(collection, languages));
-        logger.LogDebug("Refreshed TMDb collection {CollectionID} ({Title}).", collection.Id, collection.Name);
+        logger.LogDebug("Refreshed TMDB collection {CollectionID} ({Title}).", collection.Id, collection.Name);
         return true;
     }
 

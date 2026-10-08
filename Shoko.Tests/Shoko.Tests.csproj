@@ -24,8 +24,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Hand-written TMDb answers in the shapes TMDb's API documents, for the
-         TMDb plugin's client to read through TMDbLib. -->
+    <!-- Hand-written TMDB answers in the shapes TMDB's API documents, for the
+         TMDB plugin's client to read through TMDbLib. -->
     <Content Include="Plugin\Tmdb\Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

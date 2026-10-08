@@ -81,7 +81,7 @@ public sealed partial class TmdbSearchService
 
     /// <summary>
     ///   Whether an anime has at most four regular episodes, which may make
-    ///   it a movie on TMDb.
+    ///   it a movie on TMDB.
     /// </summary>
     /// <param name="anime">The anime.</param>
     /// <returns><c>true</c> for a short-form anime.</returns>
@@ -432,7 +432,7 @@ public sealed partial class TmdbSearchService
             : [.. anime.Episodes.Where(episode => episode.Type is EpisodeType.Special or EpisodeType.Other).OrderBy(episode => episode.Type).ThenBy(episode => episode.EpisodeNumber)];
     }
 
-    // TMDb's genre tags are sparse for adult titles, so a restricted anime also takes an East Asian original language.
+    // TMDB's genre tags are sparse for adult titles, so a restricted anime also takes an East Asian original language.
     private static bool IsAnimation(List<int>? genreIDs, string? originalLanguage, bool restricted)
         => (genreIDs?.Contains(AnimationGenreID) ?? false) || (restricted && originalLanguage is not null && RestrictedLanguages.Contains(originalLanguage));
 
@@ -463,9 +463,9 @@ public sealed partial class TmdbSearchService
     #region Hints
 
     /// <summary>
-    ///   A TMDb entry the anime's other sources name.
+    ///   A TMDB entry the anime's other sources name.
     /// </summary>
-    /// <param name="TmdbID">The show's or movie's TMDb ID.</param>
+    /// <param name="TmdbID">The show's or movie's TMDB ID.</param>
     /// <param name="IsMovie">Whether it is a movie rather than a show.</param>
     /// <param name="ImdbID">The IMDb title it was found through, or <c>null</c>.</param>
     /// <param name="NamedBy">The linked entries of other sources naming it, or <c>null</c> for the anime's own cross-source IDs.</param>
@@ -489,10 +489,10 @@ public sealed partial class TmdbSearchService
         {
             ({ Count: > 0 } namedBy, _) =>
                 $"{namedBy[0]}{(namedBy.Count > 1 ? $" and {namedBy.Count - 1} more" : string.Empty)}, linked to the anime, " +
-                $"{(namedBy.Count > 1 ? "name" : "names")} TMDb {(IsMovie ? "movie" : "show")} {TmdbID}",
-            (not null, _) => $"The anime's links name TMDb {(IsMovie ? "movie" : "show")} {TmdbID}",
-            (_, null) => $"AniDB names TMDb {(IsMovie ? "movie" : "show")} {TmdbID}",
-            _ => $"AniDB names IMDb title {ImdbID}, which is TMDb {(IsMovie ? "movie" : "show")} {TmdbID}",
+                $"{(namedBy.Count > 1 ? "name" : "names")} TMDB {(IsMovie ? "movie" : "show")} {TmdbID}",
+            (not null, _) => $"The anime's links name TMDB {(IsMovie ? "movie" : "show")} {TmdbID}",
+            (_, null) => $"AniDB names TMDB {(IsMovie ? "movie" : "show")} {TmdbID}",
+            _ => $"AniDB names IMDb title {ImdbID}, which is TMDB {(IsMovie ? "movie" : "show")} {TmdbID}",
         };
 
         /// <summary>
@@ -502,7 +502,7 @@ public sealed partial class TmdbSearchService
     }
 
     /// <summary>
-    ///   The TMDb shows and movies among an anime's cross-source IDs, which
+    ///   The TMDB shows and movies among an anime's cross-source IDs, which
     ///   carry its AniDB resources.
     /// </summary>
     /// <param name="crossSourceIDs">The cross-source IDs.</param>
@@ -518,7 +518,7 @@ public sealed partial class TmdbSearchService
         ];
 
     /// <summary>
-    ///   The TMDb entries the anime's links on other sources name.
+    ///   The TMDB entries the anime's links on other sources name.
     /// </summary>
     /// <param name="hints">The hints the core read from the linked entries.</param>
     /// <returns>Each show and movie once, in the core's order.</returns>
@@ -548,7 +548,7 @@ public sealed partial class TmdbSearchService
         ];
 
     /// <summary>
-    ///   The kinds of TMDb entry a hint may be taken as for an anime: the
+    ///   The kinds of TMDB entry a hint may be taken as for an anime: the
     ///   ones its search looks for.
     /// </summary>
     /// <param name="type">The anime's type.</param>
@@ -595,7 +595,7 @@ public sealed partial class TmdbSearchService
                 Details = $"{hint.Source}, and the anime is {animeType switch
                 {
                     AnimeType.Movie => "a film",
-                    AnimeType.MusicVideo => "a music video, which TMDb does not hold",
+                    AnimeType.MusicVideo => "a music video, which TMDB does not hold",
                     AnimeType.Other or AnimeType.Unknown => $"of type {animeType}, which is not auto-linked",
                     _ => "a series",
                 }}. A hint of another kind is only listed. {judged}",

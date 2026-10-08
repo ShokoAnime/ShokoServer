@@ -7,7 +7,7 @@ using Shoko.Abstractions.Config.Enums;
 namespace Shoko.Plugin.Tmdb;
 
 /// <summary>
-/// Configuration for the TMDb plugin, kept in <c>tmdb.json</c> in the
+/// Configuration for the TMDB plugin, kept in <c>tmdb.json</c> in the
 /// plugin's configuration folder.
 /// </summary>
 /// <remarks>
@@ -15,7 +15,7 @@ namespace Shoko.Plugin.Tmdb;
 /// settings migration moved here as it was. The image server is not here: it
 /// is the image template URL for the <c>tmdb</c> source.
 /// </remarks>
-[Display(Name = "TMDb")]
+[Display(Name = "TMDB")]
 [StorageLocation(FileName = "tmdb")]
 public class TmdbConfiguration : IMetadataProviderConfiguration
 {
@@ -23,7 +23,7 @@ public class TmdbConfiguration : IMetadataProviderConfiguration
 
     /// <summary>
     /// Determines whether to consider existing cross-reference links to other
-    /// AniDB anime when linking an AniDB anime to a TMDb show.
+    /// AniDB anime when linking an AniDB anime to a TMDB show.
     /// </summary>
     /// <remarks>
     /// This setting also applies to the auto-matching process and can be
@@ -37,21 +37,21 @@ public class TmdbConfiguration : IMetadataProviderConfiguration
     #region Downloads
 
     /// <summary>
-    /// Indicates that all titles should be stored locally for the TMDb entity,
+    /// Indicates that all titles should be stored locally for the TMDB entity,
     /// otherwise the server's series or episode title language order decides
     /// which titles to store locally.
     /// </summary>
     public bool DownloadAllTitles { get; set; } = false;
 
     /// <summary>
-    /// Indicates that all overviews should be stored locally for the TMDb
+    /// Indicates that all overviews should be stored locally for the TMDB
     /// entity, otherwise the server's description language order decides
     /// which overviews to store locally.
     /// </summary>
     public bool DownloadAllOverviews { get; set; } = false;
 
     /// <summary>
-    /// Indicates that all content-ratings should be stored locally for the TMDb
+    /// Indicates that all content-ratings should be stored locally for the TMDB
     /// entity, otherwise the server's series or episode title language order
     /// decides which content-ratings to store locally.
     /// </summary>
@@ -68,7 +68,7 @@ public class TmdbConfiguration : IMetadataProviderConfiguration
     #region Connection
 
     /// <summary>
-    /// Optional. User provided TMDb API key to use.
+    /// Optional. User provided TMDB API key to use.
     /// </summary>
     [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
     [Visibility(Advanced = true)]
@@ -82,7 +82,7 @@ public class TmdbConfiguration : IMetadataProviderConfiguration
     /// disable incremental changes.
     /// </summary>
     /// <remarks>
-    /// The TMDb API covers at most the last 14 days. So we can only use
+    /// The TMDB API covers at most the last 14 days. So we can only use
     /// incremental changes detection for up-to the last 14 days.
     /// </remarks>
     [Visibility(Size = DisplayElementSize.Large)]
@@ -96,28 +96,28 @@ public class TmdbConfiguration : IMetadataProviderConfiguration
     #region Searching
 
     /// <summary>
-    /// The maximum number of TMDb search candidates to evaluate per auto-search
+    /// The maximum number of TMDB search candidates to evaluate per auto-search
     /// attempt for shows. Each candidate that passes the animation filter is
     /// fetched in full and scored, and the highest-scoring result is used.
     /// </summary>
     /// <remarks>
-    /// Higher values improve accuracy at the cost of more TMDb API calls, which
+    /// Higher values improve accuracy at the cost of more TMDB API calls, which
     /// are paced by the rate limiter, so a higher value slows searches down
-    /// rather than tripping TMDb's limits. The year-free candidate pool is
+    /// rather than tripping TMDB's limits. The year-free candidate pool is
     /// capped at twice this value.
     /// </remarks>
     [Range(1, 10)]
     public int AutoSearchShowCandidateCount { get; set; } = 5;
 
     /// <summary>
-    /// The maximum number of TMDb search candidates to evaluate per auto-search
+    /// The maximum number of TMDB search candidates to evaluate per auto-search
     /// attempt for movies. Each candidate that passes the animation filter is
     /// fetched in full and scored, and the highest-scoring result is used.
     /// </summary>
     /// <remarks>
-    /// Higher values improve accuracy at the cost of more TMDb API calls, which
+    /// Higher values improve accuracy at the cost of more TMDB API calls, which
     /// are paced by the rate limiter, so a higher value slows searches down
-    /// rather than tripping TMDb's limits. The year-free candidate pool is
+    /// rather than tripping TMDB's limits. The year-free candidate pool is
     /// capped at twice this value.
     /// </remarks>
     [Range(1, 10)]
@@ -128,7 +128,7 @@ public class TmdbConfiguration : IMetadataProviderConfiguration
     #region Rate Limit
 
     /// <summary>
-    /// Rate limit settings for the TMDb API.
+    /// Rate limit settings for the TMDB API.
     /// </summary>
     public TmdbRateLimitConfiguration RateLimit { get; set; } = new();
 

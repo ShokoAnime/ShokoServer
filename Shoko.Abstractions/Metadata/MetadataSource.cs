@@ -108,7 +108,7 @@ public sealed partial class MetadataSource : IEquatable<MetadataSource>, ICompar
             "Data synthesized on the server rather than entered by a person, such as thumbnails and stand-in episode titles.");
         AniDB = RegisterCore("AniDB", "anidb", [], false, "The anime database at anidb.net, which every series in Shoko is built on.");
         // Pre-registered, but kept like any other source's: in the shared stores.
-        TMDB = RegisterInternal("TMDb", "tmdb", ["themoviedb"], false, "The Movie Database at themoviedb.org, for shows, movies and their artwork.", core: false);
+        TMDB = RegisterInternal("TMDB", "tmdb", ["themoviedb"], false, "The Movie Database at themoviedb.org, for shows, movies and their artwork.", core: false);
     }
 
     /// <summary>

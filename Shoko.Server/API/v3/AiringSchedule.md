@@ -116,7 +116,7 @@ rarely gives them a 1970-01-01 placeholder. The only regular episode of an
 anime that started on a known day by 1970-01-01 takes the anime's start date.
 Any other undated regular episode of an anime starting by 1970-01-01 takes the
 earliest pre-1970 air date among the episodes linked to it from any other
-source, such as TMDb. With no such date there is no entry.
+source, such as TMDB. With no such date there is no entry.
 
 A date-only entry has `IsDateOnly: true` and `AirDate` set to that date, a
 calendar date in no particular time zone. It has no time, so `AiredAt`,

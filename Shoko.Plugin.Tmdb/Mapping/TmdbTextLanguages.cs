@@ -7,7 +7,7 @@ using Shoko.Abstractions.Metadata.Services;
 namespace Shoko.Plugin.Tmdb.Mapping;
 
 /// <summary>
-///   The languages a refresh keeps TMDb's translations and content ratings
+///   The languages a refresh keeps TMDB's translations and content ratings
 ///   in. A <c>null</c> set keeps them all.
 /// </summary>
 /// <param name="Titles">The languages of the titles of anything but an episode.</param>
@@ -22,7 +22,7 @@ public sealed record TmdbTextLanguages(
 )
 {
     /// <summary>
-    ///   Keeps everything TMDb lists.
+    ///   Keeps everything TMDB lists.
     /// </summary>
     public static TmdbTextLanguages All { get; } = new(null, null, null, null);
 

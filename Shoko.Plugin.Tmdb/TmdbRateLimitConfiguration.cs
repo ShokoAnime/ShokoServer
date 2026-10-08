@@ -5,12 +5,12 @@ using Shoko.Abstractions.Config.Enums;
 namespace Shoko.Plugin.Tmdb;
 
 /// <summary>
-/// Settings for rate limiting the requests sent to TMDb.
+/// Settings for rate limiting the requests sent to TMDB.
 /// </summary>
 public class TmdbRateLimitConfiguration
 {
     /// <summary>
-    /// Maximum number of requests allowed within the rate limit window. TMDb
+    /// Maximum number of requests allowed within the rate limit window. TMDB
     /// allows up to 40 requests per second; this defaults to 10 to spare
     /// end-user hardware the data processing that follows each request.
     /// </summary>

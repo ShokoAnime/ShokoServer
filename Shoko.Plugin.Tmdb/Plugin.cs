@@ -8,7 +8,7 @@ using Shoko.Plugin.Tmdb.Services;
 namespace Shoko.Plugin.Tmdb;
 
 /// <summary>
-///   The bundled first-party plugin for TMDb, which serves the <c>tmdb</c>
+///   The bundled first-party plugin for TMDB, which serves the <c>tmdb</c>
 ///   source.
 /// </summary>
 public class Plugin : IPlugin, IPluginServiceRegistration
@@ -25,17 +25,17 @@ public class Plugin : IPlugin, IPluginServiceRegistration
     internal const string ThumbnailResourceName = "Shoko.Plugin.Tmdb.Assets.thumbnail.svg";
 
     /// <summary>
-    ///   The embedded resource of the plugin's icon, which is TMDb's source icon
+    ///   The embedded resource of the plugin's icon, which is TMDB's source icon
     ///   too.
     /// </summary>
     internal const string IconResourceName = "Shoko.Plugin.Tmdb.Assets.icon.svg";
 
     /// <inheritdoc/>
-    public string Name { get; private init; } = "TMDb";
+    public string Name { get; private init; } = "TMDB";
 
     /// <inheritdoc/>
     public string Description { get; private init; } = """
-        Supplies TMDb metadata for shows, movies, collections, people, studios
+        Supplies TMDB metadata for shows, movies, collections, people, studios
         and networks. Bundled with the server.
         """;
 

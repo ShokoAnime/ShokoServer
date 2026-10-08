@@ -4,7 +4,7 @@
         <OutputType>Library</OutputType>
         <LangVersion>latest</LangVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <Title>Shoko TMDb Metadata</Title>
+        <Title>Shoko TMDB Metadata</Title>
         <Authors>Shoko Team</Authors>
         <Version>1.0.0</Version>
         <Configurations>Debug;Release</Configurations>
@@ -27,7 +27,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- The plugin's own TMDb client. Its Newtonsoft.Json is the server's,
+        <!-- The plugin's own TMDB client. Its Newtonsoft.Json is the server's,
              referenced for compiling only, so the plugin ships no second copy. -->
         <PackageReference Include="TMDbLib" Version="3.0.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" ExcludeAssets="runtime" PrivateAssets="All" />

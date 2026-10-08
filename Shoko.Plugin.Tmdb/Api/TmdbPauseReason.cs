@@ -1,7 +1,7 @@
 namespace Shoko.Plugin.Tmdb.Api;
 
 /// <summary>
-///   Why the plugin's requests to TMDb are paused.
+///   Why the plugin's requests to TMDB are paused.
 /// </summary>
 public enum TmdbPauseReason
 {
@@ -11,12 +11,12 @@ public enum TmdbPauseReason
     None = 0,
 
     /// <summary>
-    ///   TMDb answered 429 and asked for a wait.
+    ///   TMDB answered 429 and asked for a wait.
     /// </summary>
     RateLimited = 1,
 
     /// <summary>
-    ///   TMDb answered with server errors in quick succession.
+    ///   TMDB answered with server errors in quick succession.
     /// </summary>
     ServerErrors = 2,
 }

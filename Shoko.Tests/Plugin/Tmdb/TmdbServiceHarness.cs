@@ -12,7 +12,7 @@ using Shoko.Plugin.Tmdb.Services;
 namespace Shoko.Tests.Plugin.Tmdb;
 
 /// <summary>
-///   The TMDb plugin's services wired together over the fixtures and the
+///   The TMDB plugin's services wired together over the fixtures and the
 ///   fake stores, the way the plugin's registration wires them.
 /// </summary>
 internal sealed class TmdbServiceHarness : IDisposable
@@ -37,7 +37,7 @@ internal sealed class TmdbServiceHarness : IDisposable
 
     #region Parts
 
-    /// <summary>The answers TMDb gives.</summary>
+    /// <summary>The answers TMDB gives.</summary>
     public TmdbRoutes Routes { get; } = new();
 
     /// <summary>The plugin's configuration.</summary>
@@ -148,7 +148,7 @@ internal sealed class TmdbServiceHarness : IDisposable
     }
 
     /// <summary>
-    ///   Routes TMDb's genre lists and image server.
+    ///   Routes TMDB's genre lists and image server.
     /// </summary>
     /// <returns>The harness.</returns>
     public TmdbServiceHarness RouteBasics()

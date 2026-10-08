@@ -9,13 +9,13 @@ using TMDbLib.Objects.TvShows;
 namespace Shoko.Plugin.Tmdb.Mapping;
 
 /// <summary>
-///   Turns TMDb's episode group collections into orderings of their show.
+///   Turns TMDB's episode group collections into orderings of their show.
 /// </summary>
 /// <remarks>
 ///   Each collection is an ordering and each of its groups a season of it,
-///   in TMDb's order and numbered as TMDb orders it. The first group
+///   in TMDB's order and numbered as TMDB orders it. The first group
 ///   numbered <c>0</c> holds the specials. Only the show's stored episodes
-///   are placed, as an ordering may name no other. TMDb gives the names and
+///   are placed, as an ordering may name no other. TMDB gives the names and
 ///   descriptions in American English.
 /// </remarks>
 public static class TmdbOrderings
@@ -23,7 +23,7 @@ public static class TmdbOrderings
     /// <summary>
     ///   An episode group collection, as an ordering of its show.
     /// </summary>
-    /// <param name="showID">The TMDb show ID.</param>
+    /// <param name="showID">The TMDB show ID.</param>
     /// <param name="collection">The collection, with its groups and episodes.</param>
     /// <param name="storedEpisodes">The show's stored episodes.</param>
     /// <returns>The ordering, or <c>null</c> when none of its episodes is stored.</returns>
@@ -78,15 +78,15 @@ public static class TmdbOrderings
     ///   The titles of a collection or group: its American English name as its
     ///   main title, or none when it has no name.
     /// </summary>
-    /// <param name="name">The name TMDb gave it.</param>
+    /// <param name="name">The name TMDB gave it.</param>
     /// <returns>The titles.</returns>
     private static IReadOnlyList<ITitle> Titles(string? name)
         => TmdbTexts.Clean(name) is { } value ? [TmdbTexts.Title("en", "US", value, TitleType.Main)] : [];
 
     /// <summary>
-    ///   What an ordering follows, from TMDb's kind of collection.
+    ///   What an ordering follows, from TMDB's kind of collection.
     /// </summary>
-    /// <param name="type">TMDb's kind.</param>
+    /// <param name="type">TMDB's kind.</param>
     /// <returns>The ordering type.</returns>
     public static OrderingType TypeOf(TvGroupType type)
         => type switch

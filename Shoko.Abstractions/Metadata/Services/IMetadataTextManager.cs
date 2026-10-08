@@ -186,7 +186,7 @@ public interface IMetadataTextManager
     /// <remarks>
     ///   A plugin source's entry with no default on its row and no main title
     ///   gets a synthesized one, never stored: an episode's or season's generic
-    ///   name, or its source, kind and ID, such as <c>TMDb Series 46195</c>.
+    ///   name, or its source, kind and ID, such as <c>TMDB Series 46195</c>.
     /// </remarks>
     /// <param name="entityID">The entry.</param>
     /// <returns>

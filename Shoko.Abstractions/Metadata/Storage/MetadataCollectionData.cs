@@ -22,7 +22,7 @@ public sealed record MetadataCollectionData
     /// <remarks>
     ///   The main title (<see cref="TitleType.Main"/>) is the collection's default.
     ///   Without one, the collection gets a synthesized default such as
-    ///   <c>TMDb Collection 10</c>, never stored.
+    ///   <c>TMDB Collection 10</c>, never stored.
     /// </remarks>
     public IReadOnlyList<ITitle> Titles { get; init; } = [];
 

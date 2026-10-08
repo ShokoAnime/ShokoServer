@@ -11,11 +11,11 @@ using TMDbLib.Objects.TvShows;
 namespace Shoko.Plugin.Tmdb.Mapping;
 
 /// <summary>
-///   Turns TMDb's shows and movies, searched, fetched or stored, into the
+///   Turns TMDB's shows and movies, searched, fetched or stored, into the
 ///   results a search offers.
 /// </summary>
 /// <remarks>
-///   TMDb names the genres of a search hit by ID only, so their names are
+///   TMDB names the genres of a search hit by ID only, so their names are
 ///   looked up through the genre lookup given, which reads the tag store. A
 ///   genre joining two with <c>&amp;</c> gives each part.
 /// </remarks>
@@ -27,7 +27,7 @@ public static class TmdbSearchResults
     ///   A show a search turned up.
     /// </summary>
     /// <param name="show">The show.</param>
-    /// <param name="imageServerUrl">TMDb's image server.</param>
+    /// <param name="imageServerUrl">TMDB's image server.</param>
     /// <param name="genreName">Looks a genre's names up by its ID.</param>
     /// <returns>The result.</returns>
     public static MetadataSeriesSearchResult FromSearch(SearchTv show, string imageServerUrl, Func<int, IReadOnlyList<string>> genreName)
@@ -47,11 +47,11 @@ public static class TmdbSearchResults
         };
 
     /// <summary>
-    ///   A show as TMDb answered it, with its translated names when it was
+    ///   A show as TMDB answered it, with its translated names when it was
     ///   fetched with its translations, and its regular seasons.
     /// </summary>
     /// <param name="show">The show.</param>
-    /// <param name="imageServerUrl">TMDb's image server.</param>
+    /// <param name="imageServerUrl">TMDB's image server.</param>
     /// <returns>The result.</returns>
     public static MetadataSeriesSearchResult FromShow(TvShow show, string imageServerUrl)
         => new()
@@ -83,10 +83,10 @@ public static class TmdbSearchResults
 
     /// <summary>
     ///   A stored show, with the episodes of its regular seasons, so a match
-    ///   can line them up without asking TMDb.
+    ///   can line them up without asking TMDB.
     /// </summary>
     /// <param name="series">The stored show.</param>
-    /// <param name="imageServerUrl">TMDb's image server.</param>
+    /// <param name="imageServerUrl">TMDB's image server.</param>
     /// <returns>The result.</returns>
     public static MetadataSeriesSearchResult FromStored(ISeries series, string imageServerUrl)
     {
@@ -148,7 +148,7 @@ public static class TmdbSearchResults
     ///   A movie a search turned up.
     /// </summary>
     /// <param name="movie">The movie.</param>
-    /// <param name="imageServerUrl">TMDb's image server.</param>
+    /// <param name="imageServerUrl">TMDB's image server.</param>
     /// <param name="genreName">Looks a genre's names up by its ID.</param>
     /// <returns>The result.</returns>
     public static MetadataMovieSearchResult FromSearch(SearchMovie movie, string imageServerUrl, Func<int, IReadOnlyList<string>> genreName)
@@ -170,11 +170,11 @@ public static class TmdbSearchResults
         };
 
     /// <summary>
-    ///   A movie as TMDb answered it, with its translated titles and its
+    ///   A movie as TMDB answered it, with its translated titles and its
     ///   release dates in every country when it was fetched with them.
     /// </summary>
     /// <param name="movie">The movie.</param>
-    /// <param name="imageServerUrl">TMDb's image server.</param>
+    /// <param name="imageServerUrl">TMDB's image server.</param>
     /// <returns>The result.</returns>
     public static MetadataMovieSearchResult FromMovie(Movie movie, string imageServerUrl)
         => new()
@@ -206,7 +206,7 @@ public static class TmdbSearchResults
     ///   A stored movie.
     /// </summary>
     /// <param name="movie">The stored movie.</param>
-    /// <param name="imageServerUrl">TMDb's image server.</param>
+    /// <param name="imageServerUrl">TMDB's image server.</param>
     /// <returns>The result.</returns>
     public static MetadataMovieSearchResult FromStored(IMovie movie, string imageServerUrl)
         => new()

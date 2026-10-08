@@ -50,7 +50,7 @@ carries it, and every reference from one entry to another is one too.
 
 | Type | Names | The core registers |
 |---|---|---|
-| `MetadataSource` | Where the data comes from | `shoko`, `user` and `generated` (local), `anidb` (remote), and `tmdb`, which the bundled TMDb plugin serves |
+| `MetadataSource` | Where the data comes from | `shoko`, `user` and `generated` (local), `anidb` (remote), and `tmdb`, which the bundled TMDB plugin serves |
 | `MetadataEntityType` | What kind of entry it is | `series`, `season`, `episode`, `movie`, `collection`, `studio`, `network`, `channel`, `creator`, `character`, `tag`, `filter`, `video`, `user` and `ordering` |
 | `MetadataGuid` | One entry: a source, a kind and an ID of 1 to 128 characters | nothing; any source and kind combine |
 
@@ -68,9 +68,9 @@ Sources and kinds are registries of shared instances:
 
 The core serves `anidb` and keeps `shoko`, `user` and `generated` for data
 made on the server; no plugin provider may claim them
-(`IMetadataProviderManager.ReservedSources`). Every other source, TMDb and
+(`IMetadataProviderManager.ReservedSources`). Every other source, TMDB and
 AniList included, is a plugin's. `tmdb` is registered up front for the
-bundled TMDb plugin, and is kept in the shared stores like any other. See
+bundled TMDB plugin, and is kept in the shared stores like any other. See
 [choosing a source](Providers/README.md#choosing-a-source),
 [entity types](Providers/README.md#entity-types) and
 [identifiers](Providers/README.md#identifiers).
@@ -179,7 +179,7 @@ the stores leave such titles out when they carry the entry's own number. The rul
 An ordering groups a series' episodes in viewing order, such as a DVD order.
 Every series has an unstored default one from its own seasons; a plugin saves
 global orderings under its own source (`IMetadataOrderingService.SaveOrdering`),
-such as TMDb's episode groups, and users keep local orderings under `user`.
+such as TMDB's episode groups, and users keep local orderings under `user`.
 
 | Read | From |
 |---|---|
@@ -378,11 +378,11 @@ through `LinkedMovies`.
 | `Score` | A source's net score, may be negative. `HasScore` checks it. |
 
 The ranking fields are not interchangeable: AniDB fills `ApprovalVotes`,
-`Votes` and so `ApprovalRating`, TMDb only `Order`, and a scoring source such as AniList fills `Order`
+`Votes` and so `ApprovalRating`, TMDB only `Order`, and a scoring source such as AniList fills `Order`
 and `Score`. Sort a mixed list within each source.
 
 The core merges no directions on a source's behalf. A plugin serving a
 symmetric source may merge both directions itself when it writes suggestions,
-which recovers entries a paged list cuts off on one side. AniDB and TMDb are
+which recovers entries a paged list cuts off on one side. AniDB and TMDB are
 not merged: their reverse entries carry different votes or ranks, or do not
 exist.

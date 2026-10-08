@@ -4,8 +4,8 @@ using Shoko.Abstractions.Metadata;
 namespace Shoko.Plugin.Tmdb.Mapping;
 
 /// <summary>
-///   The identifiers of TMDb's entries under the <c>tmdb</c> source, and
-///   the way back to TMDb's own IDs.
+///   The identifiers of TMDB's entries under the <c>tmdb</c> source, and
+///   the way back to TMDB's own IDs.
 /// </summary>
 /// <remarks>
 ///   A genre and a keyword share the tag kind, so each is filed under its
@@ -13,7 +13,7 @@ namespace Shoko.Plugin.Tmdb.Mapping;
 ///   A genre joining two with <c>&amp;</c> is filed as one tag per part,
 ///   numbered from 1: <c>tmdb://tag/genre/10759/1</c>. An episode group
 ///   collection is an ordering and each of its groups a season, both by
-///   TMDb's own string IDs.
+///   TMDB's own string IDs.
 /// </remarks>
 public static class TmdbIds
 {
@@ -36,7 +36,7 @@ public static class TmdbIds
     /// <summary>
     ///   A show.
     /// </summary>
-    /// <param name="showID">The TMDb show ID.</param>
+    /// <param name="showID">The TMDB show ID.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid Series(int showID)
         => Of(MetadataEntityType.Series, showID);
@@ -44,7 +44,7 @@ public static class TmdbIds
     /// <summary>
     ///   A show's season.
     /// </summary>
-    /// <param name="seasonID">The TMDb season ID.</param>
+    /// <param name="seasonID">The TMDB season ID.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid Season(int seasonID)
         => Of(MetadataEntityType.Season, seasonID);
@@ -52,7 +52,7 @@ public static class TmdbIds
     /// <summary>
     ///   A show's episode.
     /// </summary>
-    /// <param name="episodeID">The TMDb episode ID.</param>
+    /// <param name="episodeID">The TMDB episode ID.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid Episode(int episodeID)
         => Of(MetadataEntityType.Episode, episodeID);
@@ -60,7 +60,7 @@ public static class TmdbIds
     /// <summary>
     ///   A movie.
     /// </summary>
-    /// <param name="movieID">The TMDb movie ID.</param>
+    /// <param name="movieID">The TMDB movie ID.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid Movie(int movieID)
         => Of(MetadataEntityType.Movie, movieID);
@@ -68,7 +68,7 @@ public static class TmdbIds
     /// <summary>
     ///   A collection of movies.
     /// </summary>
-    /// <param name="collectionID">The TMDb collection ID.</param>
+    /// <param name="collectionID">The TMDB collection ID.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid Collection(int collectionID)
         => Of(MetadataEntityType.Collection, collectionID);
@@ -76,7 +76,7 @@ public static class TmdbIds
     /// <summary>
     ///   A person.
     /// </summary>
-    /// <param name="personID">The TMDb person ID.</param>
+    /// <param name="personID">The TMDB person ID.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid Creator(int personID)
         => Of(MetadataEntityType.Creator, personID);
@@ -84,7 +84,7 @@ public static class TmdbIds
     /// <summary>
     ///   A company, as a studio.
     /// </summary>
-    /// <param name="companyID">The TMDb company ID.</param>
+    /// <param name="companyID">The TMDB company ID.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid Studio(int companyID)
         => Of(MetadataEntityType.Studio, companyID);
@@ -92,7 +92,7 @@ public static class TmdbIds
     /// <summary>
     ///   A network.
     /// </summary>
-    /// <param name="networkID">The TMDb network ID.</param>
+    /// <param name="networkID">The TMDB network ID.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid Network(int networkID)
         => Of(MetadataEntityType.Network, networkID);
@@ -100,7 +100,7 @@ public static class TmdbIds
     /// <summary>
     ///   A genre, as a tag.
     /// </summary>
-    /// <param name="genreID">The TMDb genre ID.</param>
+    /// <param name="genreID">The TMDB genre ID.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid Genre(int genreID)
         => new(MetadataSource.TMDB, MetadataEntityType.Tag, GenrePrefix + Format(genreID));
@@ -108,7 +108,7 @@ public static class TmdbIds
     /// <summary>
     ///   One part of a genre that joins two, as a tag.
     /// </summary>
-    /// <param name="genreID">The TMDb genre ID.</param>
+    /// <param name="genreID">The TMDB genre ID.</param>
     /// <param name="part">The part, from <c>1</c>.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid GenrePart(int genreID, int part)
@@ -117,7 +117,7 @@ public static class TmdbIds
     /// <summary>
     ///   A keyword, as a tag.
     /// </summary>
-    /// <param name="keywordID">The TMDb keyword ID.</param>
+    /// <param name="keywordID">The TMDB keyword ID.</param>
     /// <returns>The identifier.</returns>
     public static MetadataGuid Keyword(int keywordID)
         => new(MetadataSource.TMDB, MetadataEntityType.Tag, KeywordPrefix + Format(keywordID));
@@ -139,7 +139,7 @@ public static class TmdbIds
         => new(MetadataSource.TMDB, MetadataEntityType.Season, groupID);
 
     /// <summary>
-    ///   An ID as TMDb writes it.
+    ///   An ID as TMDB writes it.
     /// </summary>
     /// <param name="id">The ID.</param>
     /// <returns>The ID as text.</returns>
@@ -154,12 +154,12 @@ public static class TmdbIds
     #region Reading
 
     /// <summary>
-    ///   Reads TMDb's ID out of an entry of one kind.
+    ///   Reads TMDB's ID out of an entry of one kind.
     /// </summary>
     /// <param name="id">The entry.</param>
     /// <param name="entityType">The kind it must be.</param>
-    /// <param name="tmdbID">TMDb's ID.</param>
-    /// <returns><c>true</c> for a TMDb entry of the kind with a positive ID.</returns>
+    /// <param name="tmdbID">TMDB's ID.</param>
+    /// <returns><c>true</c> for a TMDB entry of the kind with a positive ID.</returns>
     public static bool TryGetID(MetadataGuid? id, MetadataEntityType entityType, out int tmdbID)
     {
         tmdbID = 0;

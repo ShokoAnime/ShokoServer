@@ -10,15 +10,15 @@ using TMDbLib.Objects.General;
 namespace Shoko.Plugin.Tmdb.Mapping;
 
 /// <summary>
-///   Works out which of the titles and overviews TMDb lists for an entry
+///   Works out which of the titles and overviews TMDB lists for an entry
 ///   are stored, and in what order.
 /// </summary>
 /// <remarks>
 ///   The American English text comes first, the title as the entry's main
-///   one, then the original title, then the translations in TMDb's order,
+///   one, then the original title, then the translations in TMDB's order,
 ///   then the transcriptions among the alternative titles. A translation
 ///   equal to the English or the original title is not stored again.
-///   Generic titles are passed on as TMDb gives them; the core drops them.
+///   Generic titles are passed on as TMDB gives them; the core drops them.
 /// </remarks>
 public static class TmdbTexts
 {
@@ -27,14 +27,14 @@ public static class TmdbTexts
     /// <summary>
     ///   The titles to store for an entry.
     /// </summary>
-    /// <param name="englishTitle">The American English title, which TMDb falls back to the original for.</param>
-    /// <param name="originalTitle">The title in the original language, if TMDb has one.</param>
+    /// <param name="englishTitle">The American English title, which TMDB falls back to the original for.</param>
+    /// <param name="originalTitle">The title in the original language, if TMDB has one.</param>
     /// <param name="originalLanguageCode">The original language's code, if known.</param>
-    /// <param name="translations">The translations TMDb lists, or <c>null</c>.</param>
-    /// <param name="alternativeTitles">The alternative titles TMDb lists, for a show or a movie, or <c>null</c>.</param>
+    /// <param name="translations">The translations TMDB lists, or <c>null</c>.</param>
+    /// <param name="alternativeTitles">The alternative titles TMDB lists, for a show or a movie, or <c>null</c>.</param>
     /// <param name="languages">The languages to keep translations in besides the English and original ones, or <c>null</c> for all.</param>
     /// <param name="ownName">
-    ///   The name TMDb gives the entry itself, which, without an English title, marks the main one among the others, or is the main one
+    ///   The name TMDB gives the entry itself, which, without an English title, marks the main one among the others, or is the main one
     ///   in no known language.
     /// </param>
     /// <returns>The titles, in order.</returns>
@@ -64,7 +64,7 @@ public static class TmdbTexts
             titles.Add(Title(languageCode, countryCode, text, type));
         }
 
-        // Without an English title, the original title, or the one TMDb names the entry by, is the main one.
+        // Without an English title, the original title, or the one TMDB names the entry by, is the main one.
         Add("en", "US", english, TitleType.Main);
         if (!string.IsNullOrEmpty(original) && original is not "en")
             Add(original, string.Empty, originalValue, english is null ? TitleType.Main : TitleType.Official);
@@ -120,8 +120,8 @@ public static class TmdbTexts
     /// <summary>
     ///   The overviews to store for an entry.
     /// </summary>
-    /// <param name="englishOverview">The American English overview, if TMDb has one.</param>
-    /// <param name="translations">The translations TMDb lists, or <c>null</c>.</param>
+    /// <param name="englishOverview">The American English overview, if TMDB has one.</param>
+    /// <param name="translations">The translations TMDB lists, or <c>null</c>.</param>
     /// <param name="languages">The languages to keep besides American English, or <c>null</c> for all.</param>
     /// <returns>The overviews, in order.</returns>
     public static IReadOnlyList<IText> Overviews(string? englishOverview, TranslationsContainer? translations, IReadOnlySet<TitleLanguage>? languages)
@@ -148,16 +148,16 @@ public static class TmdbTexts
     }
 
     /// <summary>
-    ///   The English text of an entry: the one TMDb's English translation
+    ///   The English text of an entry: the one TMDB's English translation
     ///   gives, or the entry's own when it gives none and it is English.
     /// </summary>
     /// <remarks>
-    ///   Without an English translation TMDb gives the original language's
+    ///   Without an English translation TMDB gives the original language's
     ///   text as the entry's own. That counts as English only for an entry
     ///   first made in English, or when it is in the Latin script and is not
     ///   the original title or a translation's text.
     /// </remarks>
-    /// <param name="translations">The translations TMDb lists, or <c>null</c>.</param>
+    /// <param name="translations">The translations TMDB lists, or <c>null</c>.</param>
     /// <param name="read">Reads the text out of a translation.</param>
     /// <param name="fallback">The entry's own text.</param>
     /// <param name="originalTitle">The title in the original language, for a show's or movie's title, or <c>null</c>.</param>
@@ -202,7 +202,7 @@ public static class TmdbTexts
         => downloadAll ? null : order.Where(language => language is not (TitleLanguage.Main or TitleLanguage.Unknown or TitleLanguage.None)).ToHashSet();
 
     /// <summary>
-    ///   The language of a TMDb text, from its codes. TMDb's own <c>xx</c>
+    ///   The language of a TMDB text, from its codes. TMDB's own <c>xx</c>
     ///   means no language and <c>cn</c> Cantonese; a code no language
     ///   matches is unknown, without reporting it.
     /// </summary>
@@ -265,7 +265,7 @@ public static class TmdbTexts
     };
 
     /// <summary>
-    ///   The transcriptions among the alternative titles TMDb lists, at most
+    ///   The transcriptions among the alternative titles TMDB lists, at most
     ///   one per transcription language.
     /// </summary>
     /// <remarks>
@@ -275,7 +275,7 @@ public static class TmdbTexts
     /// </remarks>
     /// <param name="alternativeTitles">The alternative titles, or <c>null</c>.</param>
     /// <param name="originalLanguageCode">The original language's code, or <c>null</c>.</param>
-    /// <returns>The transcriptions' language codes and values, in TMDb's order.</returns>
+    /// <returns>The transcriptions' language codes and values, in TMDB's order.</returns>
     public static IReadOnlyList<(string LanguageCode, string Value)> TranscribedTitles(IEnumerable<AlternativeTitle>? alternativeTitles, string? originalLanguageCode)
     {
         var fallback = originalLanguageCode?.Trim().ToLowerInvariant() switch
@@ -360,7 +360,7 @@ public static class TmdbTexts
     #region Helpers
 
     /// <summary>
-    ///   A title from TMDb.
+    ///   A title from TMDB.
     /// </summary>
     /// <param name="languageCode">The language code, in lower case.</param>
     /// <param name="countryCode">The country code, in upper case, or empty.</param>
@@ -379,7 +379,7 @@ public static class TmdbTexts
         };
 
     /// <summary>
-    ///   An overview from TMDb.
+    ///   An overview from TMDB.
     /// </summary>
     /// <param name="languageCode">The language code, in lower case.</param>
     /// <param name="countryCode">The country code, in upper case, or empty.</param>

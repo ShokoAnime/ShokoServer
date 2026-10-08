@@ -8,13 +8,13 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Shoko.Plugin.Tmdb.Api;
 
 /// <summary>
-///   Paces the requests sent to TMDb and holds the pause the plugin reports
-///   while TMDb will not take work. Thread-safe.
+///   Paces the requests sent to TMDB and holds the pause the plugin reports
+///   while TMDB will not take work. Thread-safe.
 /// </summary>
 /// <remarks>
 ///   <para>
 ///     A sliding window smooths the requests out. A 429 pauses every request
-///     for as long as TMDb asks, and three server errors within the error
+///     for as long as TMDB asks, and three server errors within the error
 ///     window pause them for an escalating while, from a minute to an hour.
 ///   </para>
 ///   <para>
@@ -155,7 +155,7 @@ public sealed class TmdbRateLimiter : IDisposable
     public event EventHandler? PauseStateChanged;
 
     /// <summary>
-    ///   Why TMDb is not given work, or <see cref="TmdbPauseReason.None"/>
+    ///   Why TMDB is not given work, or <see cref="TmdbPauseReason.None"/>
     ///   while it is.
     /// </summary>
     public TmdbPauseReason PauseReason
@@ -192,22 +192,22 @@ public sealed class TmdbRateLimiter : IDisposable
     }
 
     /// <summary>
-    ///   TMDb answered 429: pauses every request for as long as it asks, or
+    ///   TMDB answered 429: pauses every request for as long as it asks, or
     ///   for longer when a longer pause is on.
     /// </summary>
-    /// <param name="retryAfter">How long TMDb asked to wait; a second when left out.</param>
+    /// <param name="retryAfter">How long TMDB asked to wait; a second when left out.</param>
     public void NotifyRateLimitExceeded(TimeSpan? retryAfter)
     {
         var delay = retryAfter is { Ticks: > 0 } wait ? wait : TimeSpan.FromSeconds(1);
         if (!Pause(delay, TmdbPauseReason.RateLimited))
             return;
 
-        _logger.LogInformation("TMDb is rate limiting requests. All TMDb jobs paused for {Duration} seconds. They will resume automatically.", (int)Math.Ceiling(delay.TotalSeconds));
+        _logger.LogInformation("TMDB is rate limiting requests. All TMDB jobs paused for {Duration} seconds. They will resume automatically.", (int)Math.Ceiling(delay.TotalSeconds));
         PauseStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
-    ///   TMDb answered with a server error. The third within the error window
+    ///   TMDB answered with a server error. The third within the error window
     ///   pauses every request, for longer each time until a request succeeds
     ///   after the pause.
     /// </summary>
@@ -242,11 +242,11 @@ public sealed class TmdbRateLimiter : IDisposable
 
         if (!changed)
         {
-            _logger.LogDebug("TMDb is temporarily unavailable, but a longer pause is already on.");
+            _logger.LogDebug("TMDB is temporarily unavailable, but a longer pause is already on.");
             return;
         }
 
-        _logger.LogInformation("TMDb is temporarily unavailable. All TMDb jobs paused for {Duration} minutes. They will resume automatically.", (int)duration!.Value.TotalMinutes);
+        _logger.LogInformation("TMDB is temporarily unavailable. All TMDB jobs paused for {Duration} minutes. They will resume automatically.", (int)duration!.Value.TotalMinutes);
         PauseStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -273,7 +273,7 @@ public sealed class TmdbRateLimiter : IDisposable
         if (!lifted)
             return;
 
-        _logger.LogInformation("TMDb is available again. Queued TMDb jobs will now resume.");
+        _logger.LogInformation("TMDB is available again. Queued TMDB jobs will now resume.");
         PauseStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -348,7 +348,7 @@ public sealed class TmdbRateLimiter : IDisposable
         }
 
         _logger.LogInformation(
-            reason is TmdbPauseReason.RateLimited ? "TMDb rate limit pause expired. Queued TMDb jobs will now resume." : "TMDb pause expired. Queued TMDb jobs will now resume."
+            reason is TmdbPauseReason.RateLimited ? "TMDB rate limit pause expired. Queued TMDB jobs will now resume." : "TMDB pause expired. Queued TMDB jobs will now resume."
         );
         PauseStateChanged?.Invoke(this, EventArgs.Empty);
     }
