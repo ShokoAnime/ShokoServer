@@ -1009,6 +1009,8 @@ public class VideoRelocationService(
         var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.Ordinal);
         var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase);
 
+        var caseOnlyRename = false;
+
         // Check if we're attempting to move the file onto itself.
         if (string.Equals(newFullPath, oldFullPath, StringComparison.OrdinalIgnoreCase))
         {
@@ -1018,19 +1020,27 @@ public class VideoRelocationService(
                 return (RelocationResponse.FromResult(request.ManagedFolder, newRelativePath), false);
             }
 
-            // Same file on a case-insensitive file system, a valid rename on a case-sensitive one.
-            var oldUid = fileSystemHelpers.GetVideoFileUID(oldFullPath);
-            var newUid = fileSystemHelpers.GetVideoFileUID(newFullPath);
-            if (fileSystemHelpers.FileExists(newFullPath) && (oldUid is null || newUid is null || oldUid == newUid))
+            // A valid rename on a case-sensitive file system, or the same file on a case-insensitive one.
+            if (fileSystemHelpers.FileExists(newFullPath))
             {
-                logger.LogWarning(
-                    "Resolved to relocate {OldFilePath} to {NewFilePath}. Which is the same location in a case-insensitive file system. Aborting.",
-                    oldFullPath,
-                    newFullPath
-                );
-                return (RelocationResponse.FromError(
-                    "Resolved to relocate onto the same location in a case-insensitive file system."
-                ), false);
+                var oldUid = fileSystemHelpers.GetVideoFileUID(oldFullPath);
+                var newUid = fileSystemHelpers.GetVideoFileUID(newFullPath);
+                if (oldUid is null || newUid is null)
+                {
+                    logger.LogWarning(
+                        "Resolved to relocate {OldFilePath} to {NewFilePath}, which only differs by case, but could not tell if they are the same file. Aborting.",
+                        oldFullPath,
+                        newFullPath
+                    );
+                    return (RelocationResponse.FromError(
+                        "Resolved to relocate onto a path that only differs by case, and could not verify if it is the same file."
+                    ), false);
+                }
+
+                if (oldUid == newUid)
+                    caseOnlyRename = true;
+                else
+                    logger.LogInformation("Resolved to relocate {OldFilePath} over a different file at {NewFilePath}.", oldFullPath, newFullPath);
             }
         }
 
@@ -1068,7 +1078,7 @@ public class VideoRelocationService(
 
         var destVideoLocalPlace = videoLocalPlace.GetByRelativePathAndManagedFolderID(newRelativePath, request.ManagedFolder.ID);
         var relocatedFile = false;
-        if (fileSystemHelpers.FileExists(newFullPath))
+        if (!caseOnlyRename && fileSystemHelpers.FileExists(newFullPath))
         {
             // A file with the same name exists at the destination.
             logger.LogTrace("A file already exists at the new location, checking it for duplicate…");
@@ -1145,19 +1155,30 @@ public class VideoRelocationService(
                     "Cancellation requested before relocation took place."
                 ), false);
 
-            if (destVideoLocalPlace is not null)
+            if (destVideoLocalPlace is not null && !caseOnlyRename)
             {
                 logger.LogTrace("An entry already exists for the new location at {NewPath} but no physical file resides there. Removing the entry.", newFullPath);
                 await _videoLocalPlaceService.RemoveRecord(destVideoLocalPlace);
             }
 
+            var tempFullPath = caseOnlyRename ? newFullPath + ".tmp-name" : null;
             // Move
             fileWatcherService.AddFileWatcherExclusion(oldFullPath);
             fileWatcherService.AddFileWatcherExclusion(newFullPath);
+            if (tempFullPath is not null)
+                fileWatcherService.AddFileWatcherExclusion(tempFullPath);
             logger.LogInformation("Moving file from {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
             try
             {
-                fileSystemHelpers.MoveFile(oldFullPath, newFullPath);
+                if (tempFullPath is not null)
+                {
+                    fileSystemHelpers.MoveFile(oldFullPath, tempFullPath);
+                    fileSystemHelpers.MoveFile(tempFullPath, newFullPath);
+                }
+                else
+                {
+                    fileSystemHelpers.MoveFile(oldFullPath, newFullPath);
+                }
                 SetLinuxPermissions(newFullPath);
             }
             catch (Exception ex)
@@ -1170,6 +1191,8 @@ public class VideoRelocationService(
             {
                 fileWatcherService.RemoveFileWatcherExclusion(oldFullPath);
                 fileWatcherService.RemoveFileWatcherExclusion(newFullPath);
+                if (tempFullPath is not null)
+                    fileWatcherService.RemoveFileWatcherExclusion(tempFullPath);
             }
 
             place.ManagedFolderID = request.ManagedFolder.ID;

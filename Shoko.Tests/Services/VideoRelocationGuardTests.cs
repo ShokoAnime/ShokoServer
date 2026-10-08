@@ -291,16 +291,16 @@ public class VideoRelocationGuardTests
     }
 
     [Fact]
-    public async Task ACaseOnlyRenameOnACaseInsensitiveFileSystemIsRejected()
+    public async Task ACaseOnlyRenameWithAnUnverifiableFileIsRejected()
     {
         using var harness = Create();
-        harness.FileSystem.Setup(f => f.GetVideoFileUID(It.IsAny<string>())).Returns(5);
+        harness.FileSystem.Setup(f => f.GetVideoFileUID(It.IsAny<string>())).Returns((long?)null);
 
         var response = await harness.Service.DirectlyRelocateFile(
             harness.Place, Request(harness.SourceFolder, "Show/Episode.mkv"));
 
         Assert.False(response.Success);
-        Assert.Contains("same location", response.Error?.Message ?? string.Empty);
+        Assert.Contains("could not verify", response.Error?.Message ?? string.Empty);
         harness.AssertNothingWasMoved();
     }
 
