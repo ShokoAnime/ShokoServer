@@ -664,9 +664,9 @@ public static partial class APIExtensions
                 DefaultContentType = "text/html",
                 OnPrepareResponse = ctx =>
                 {
-                    var requestPath = ctx.File.PhysicalPath;
-                    // We set the cache headers only for index.html file because it doesn't have a different hash when changed
-                    if (requestPath?.EndsWith("index.html", StringComparison.OrdinalIgnoreCase) ?? false)
+                    // We set the cache headers only for index.html file because it doesn't have a different hash when changed.
+                    // The served index is an in-memory copy without a physical path, so match it by name.
+                    if (string.Equals(ctx.File.Name, "index.html", StringComparison.OrdinalIgnoreCase))
                     {
                         ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
                         ctx.Context.Response.Headers.Append("Expires", "0");
