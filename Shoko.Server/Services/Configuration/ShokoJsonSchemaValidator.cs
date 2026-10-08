@@ -90,15 +90,28 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
                                 envVar = enumValue;
                             envVar = $"\"{envVar}\"";
                         }
+                        // A flags enum is set from its names, separated by commas, or from its
+                        // number, both of which validation reads into the list it stands for.
+                        else if (FlagEnumSchemaGenerator.TryGetFlagEnum(schema, out _) && !envVar.TrimStart().StartsWith('['))
+                        {
+                            if (!long.TryParse(envVar, out _))
+                                envVar = '"' + envVar.Replace(InvalidQuoteRegex(), "\\\"") + '"';
+                        }
                         else if (
                             schema.Type.HasFlag(JsonObjectType.String) &&
                             (envVar.Length < 2 || envVar[0] != '"' || envVar[^1] != '"') && (!schema.Type.HasFlag(JsonObjectType.Null) || envVar != "null")
                         )
                             envVar = '"' + envVar.Replace(InvalidQuoteRegex(), "\\\"") + '"';
 
+                        // Validation may have rewritten the token in place, leaving this one detached.
+                        if (token is { Parent: null } && parentToken is JObject parentObject && propertyName is not null)
+                            token = parentObject[propertyName];
+
                         try
                         {
                             var parsedToken = JToken.Parse(envVar);
+                            if (ReadFlagEnumList(parsedToken, schema) is { } flagEnumList)
+                                parsedToken = flagEnumList;
                             _loadedEnvironmentVariables.Add(envVarName, (parsedToken.ToJson(), token?.ToJson()));
                             if (token is not null)
                                 token.Replace(parsedToken);
@@ -164,6 +177,15 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
 
         _logger.LogTrace("Normalizing the casing of the enum value at {PropertyPath} from {OldValue} to {NewValue}.", propertyPath, token.ToString(), enumerationValue);
         token.Replace(new JValue(enumerationValue));
+    }
+
+    protected override void NormalizeFlagEnum(JToken token, JArray list, JsonSchema schema, string? propertyName, string propertyPath)
+    {
+        if (token.Parent is null)
+            return;
+
+        _logger.LogTrace("Normalizing the flags enum value at {PropertyPath} from {OldValue} to a list of its members.", propertyPath, token.ToString());
+        token.Replace(list);
     }
 
     private JToken? GetPropertyPath(string propertyPath)

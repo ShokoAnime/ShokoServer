@@ -17,6 +17,7 @@ using Shoko.Abstractions.UI.Components;
 using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Plugin;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services.Configuration;
 
@@ -330,7 +331,10 @@ internal static class UiOptionsProvider
     /// <param name="owner">The instance declaring the member.</param>
     /// <param name="arguments">The values the method's parameters may take.</param>
     /// <param name="convert">Serialises a value the way its owner would.</param>
-    /// <returns>The options, in the order the method listed them.</returns>
+    /// <returns>
+    ///   The options, in the order the method listed them, without those of a
+    ///   flags enum that are not one single-bit member.
+    /// </returns>
     public static async Task<IReadOnlyList<UiOption>> InvokeAsync(
         MethodInfo method,
         IPluginManager pluginManager,
@@ -376,18 +380,38 @@ internal static class UiOptionsProvider
                 if (valueType.GetProperty(nameof(SelectOption<int>.Value))!.GetValue(value) is not { } optionValue)
                     continue;
 
+                if (ConvertOption(optionValue, convert) is not { } optionToken)
+                    continue;
+
                 options.Add(new()
                 {
-                    Value = convert(optionValue),
+                    Value = optionToken,
                     Label = (string?)valueType.GetProperty(nameof(SelectOption<int>.Label))!.GetValue(value) ?? Stringify(optionValue),
                 });
                 continue;
             }
 
-            options.Add(new() { Value = convert(value), Label = Stringify(value) });
+            if (ConvertOption(value, convert) is not { } token)
+                continue;
+
+            options.Add(new() { Value = token, Label = Stringify(value) });
         }
 
         return options;
+    }
+
+    /// <summary>
+    ///   Serialises an option. An option of a flags enum is an entry of its
+    ///   list, so it is the one name of a single-bit member, and any other
+    ///   value of it is skipped.
+    /// </summary>
+    private static JToken? ConvertOption(object value, Func<object?, JToken?> convert)
+    {
+        var token = convert(value);
+        if (!FlagEnums.IsFlagEnum(value.GetType()))
+            return token;
+
+        return token is JArray { Count: 1 } list ? list[0] : null;
     }
 
     /// <summary>

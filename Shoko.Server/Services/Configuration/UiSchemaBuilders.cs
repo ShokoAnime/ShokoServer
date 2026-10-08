@@ -228,9 +228,6 @@ internal sealed class UiRecordElementBuilder : UiElementBuilder
     /// </summary>
     public IReadOnlyList<UiEnumValueBuilder>? KeyEnumValues { get; set; }
 
-    /// <summary>Whether the key enumeration is a flags enumeration.</summary>
-    public bool KeyEnumIsFlag { get; set; }
-
     /// <summary>
     ///   The property definition the record's inner type contributed. Note that
     ///   this may describe the <em>key</em> rather than the value; see
@@ -256,9 +253,6 @@ internal sealed class UiEnumElementBuilder : UiElementBuilder
 
     /// <summary>The selectable values, in declaration order.</summary>
     public required IReadOnlyList<UiEnumValueBuilder> Values { get; init; }
-
-    /// <summary>Whether the values are bit flags.</summary>
-    public required bool IsFlag { get; init; }
 }
 
 /// <summary>

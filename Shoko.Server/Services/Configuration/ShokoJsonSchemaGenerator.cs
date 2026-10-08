@@ -26,6 +26,7 @@ using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Components;
 using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Plugin;
+using Shoko.Server.Utilities;
 
 using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -272,7 +273,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         var serializerSettings = contractResolver is null
             ? _newtonsoftJsonSerializerSettings
             : new JsonSerializerSettings(_newtonsoftJsonSerializerSettings) { ContractResolver = contractResolver };
-        var generator = new JsonSchemaGenerator(new NewtonsoftJsonSchemaGeneratorSettings
+        var generator = new FlagEnumSchemaGenerator(new NewtonsoftJsonSchemaGeneratorSettings
         {
             SerializerSettings = serializerSettings,
             SchemaType = SchemaType.JsonSchema,
@@ -282,13 +283,13 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             AllowReferencesWithProperties = true,
             SchemaNameGenerator = this,
             XmlDocumentationFormatting = XmlDocsFormattingMode.Markdown,
-        });
+        }, isNewtonsoftJson: true);
         return generator;
     }
 
     private JsonSchemaGenerator GetSystemTextJsonSchemaForType()
     {
-        var generator = new JsonSchemaGenerator(new SystemTextJsonSchemaGeneratorSettings
+        var generator = new FlagEnumSchemaGenerator(new SystemTextJsonSchemaGeneratorSettings
         {
             SerializerOptions = _systemTextJsonSerializerOptions,
             SchemaType = SchemaType.JsonSchema,
@@ -298,7 +299,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             AllowReferencesWithProperties = true,
             SchemaNameGenerator = this,
             XmlDocumentationFormatting = XmlDocsFormattingMode.Markdown,
-        });
+        }, isNewtonsoftJson: false);
         return generator;
     }
 
@@ -486,12 +487,15 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         }
         else if (schema.Item is { } itemSchema)
         {
+            // A flags enum is a set of its members, which has no order of its
+            // own and holds each member once.
+            var isFlagEnum = FlagEnums.IsFlagEnum(contextualType.Type);
             var listAttribute = info.GetAttribute<ListAttribute>(false);
             var element = new UiListElementBuilder
             {
                 ListType = listAttribute?.ListType ?? DisplayListType.Auto,
-                Sortable = listAttribute?.Sortable ?? true,
-                UniqueItems = listAttribute?.UniqueItems ?? false,
+                Sortable = !isFlagEnum && (listAttribute?.Sortable ?? true),
+                UniqueItems = isFlagEnum || (listAttribute?.UniqueItems ?? false),
                 HideAddAction = listAttribute?.HideAddAction ?? false,
                 HideRemoveAction = listAttribute?.HideRemoveAction ?? false,
             };
@@ -545,10 +549,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 ValueType = valueType,
             };
             if (keyType.IsEnum)
-            {
                 element.KeyEnumValues = CollectEnumValues(keyType.ToContextualType()).Values;
-                element.KeyEnumIsFlag = keyType.GetCustomAttribute<FlagsAttribute>() is not null;
-            }
             element.Item = classBuilder.GetProperty(propertyName);
             builder.Element = element;
         }
@@ -557,13 +558,27 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             schema.Enumeration.Clear();
             schema.EnumerationNames.Clear();
 
+            // Only ever reached as the entry of a flags enum's list, which
+            // holds one single-bit member and is no flags enum of its own.
+            if (FlagEnums.IsFlagEnum(contextualType.Type))
+            {
+                if (FlagEnums.GetEntries(contextualType.Type).Count is 0)
+                    throw new NotSupportedException(
+                        $"Configuration property \"{GetFriendlyTypeName(info.MemberInfo.DeclaringType!)}.{info.Name}\" holds the flags enum {contextualType.Type.Name}, " +
+                        "which has no member with a single bit set. A flags enum is rendered as a list of its single-bit members, so this one has nothing to offer."
+                    );
+
+                schema.EnumerationDescriptions.Clear();
+                schema.IsFlagEnumerable = false;
+            }
+
             var (values, enumeration) = CollectEnumValues(contextualType);
             foreach (var (value, name) in enumeration)
             {
                 schema.Enumeration.Add(value);
                 schema.EnumerationNames.Add(name);
             }
-            builder.Element = new UiEnumElementBuilder { Values = values, IsFlag = schema.IsFlagEnumerable };
+            builder.Element = new UiEnumElementBuilder { Values = values };
         }
         else if (info.GetAttribute<CodeEditorAttribute>(false) is { } codeBlockAttribute)
         {
@@ -782,7 +797,8 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     /// <summary>
     ///   Reads every member of an enumeration, collapsing members that share an
-    ///   underlying value onto a single entry and recording the aliases.
+    ///   underlying value onto a single entry and recording the aliases. Of a
+    ///   flags enum, only the single-bit members are read, in declaration order.
     /// </summary>
     /// <param name="contextualType">The enumeration.</param>
     /// <returns>
@@ -795,7 +811,10 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         var values = new List<UiEnumValueBuilder>();
         var enumeration = new List<(string Value, string Name)>();
         var known = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var enumName in Enum.GetNames(contextualType.Type))
+        var enumNames = FlagEnums.IsFlagEnum(contextualType.Type)
+            ? FlagEnums.GetEntries(contextualType.Type).Select(x => x.Name)
+            : Enum.GetNames(contextualType.Type);
+        foreach (var enumName in enumNames)
         {
             var field = contextualType.GetField(enumName)!;
             var title = TypeReflectionExtensions.GetDisplayName(field);
@@ -863,6 +882,9 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     /// </exception>
     private static void AssertNoNestedCollection(ContextualPropertyInfo info)
     {
+        // A flags enum is a list of itself, and nothing nests in it.
+        if (FlagEnums.IsFlagEnum(info.PropertyType.Type, out _))
+            return;
         if (GetCollectionElementType(info.PropertyType.Type) is not { } elementType)
             return;
         if (GetCollectionElementType(elementType) is null)
@@ -886,12 +908,15 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     /// <summary>
     ///   Returns what a collection type holds (the value type for a
     ///   dictionary, the element type otherwise), or <c>null</c> when the type
-    ///   is not a collection. Strings are deliberately not collections here.
+    ///   is not a collection. Strings are deliberately not collections here,
+    ///   and a flags enum is a list of its own members.
     /// </summary>
     private static Type? GetCollectionElementType(Type type)
     {
         if (type == typeof(string))
             return null;
+        if (FlagEnums.IsFlagEnum(type, out var flagEnumType))
+            return flagEnumType;
         if (IsDictionary(type).isDictionary)
             return GetTKeyAndTValue(type).ValueType;
         if (type.IsArray)
@@ -1033,6 +1058,10 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     private void AssertKeyUsable(Type keyType)
     {
+        // A flags enum is written as a list of its members, which no key can be.
+        if (FlagEnums.IsFlagEnum(keyType, out _))
+            throw new ArgumentException($"Type \"{keyType.FullName!}\" is a flags enum, which is a list of its members rather than text, and therefore cannot be used as a key in a dictionary inside a configuration.", nameof(keyType));
+
         if (keyType == typeof(string) || keyType == typeof(MetadataSource) || keyType == typeof(MetadataEntityType) || keyType.GetTypeInfo().IsEnum)
             return;
 

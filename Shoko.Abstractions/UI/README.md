@@ -137,6 +137,25 @@ select whose options live in the configuration value, carries none.
 | `section-container` | A nested class |
 | `reference` | A type that recursed, pointing into `Definitions` |
 
+### Flag enums
+
+A `[Flags]` enum is a list of its members. It renders exactly as a
+`List<TEnum>` does (an `enum` item, `[List(ListType = DisplayListType.EnumCheckbox)]`
+for checkboxes), unique and unsorted, and its item lists only the members with a
+single bit set, in declaration order. A configuration or action parameter
+stores and sends it as an array of those names: `["Read", "Write"]`, and `[]`
+for zero. This covers the configuration and action routes only; the APIv3
+models keep their own shapes. Members combining several
+bits (`All = Read | Write`) are server-side only: accepted on read, expanded
+into their bits, and never written or listed. The comma-separated text and the
+number a flags enum used to be written as are accepted on read, not documented:
+the schema only describes the array. Bits no single-bit member names are
+refused. A list of flags enums and a flags enum as a dictionary key are refused
+like any other list in a list or list as a key, and one with no single-bit
+member at all is refused too (SHOKO0014). An options provider for a flags member
+lists its entries: the option type is the enum itself, and an option that is
+not one single-bit member is left out.
+
 ---
 
 ## Showing and hiding
@@ -321,6 +340,7 @@ parameters entered so far, and may take the entity, the caller and services too.
 |---|---|---|
 | A scalar, `T` or `T?` | the value itself | refused |
 | A list, `List<T>` or `T[]` | each entry | refused |
+| A `[Flags]` enum `T` | each entry, a single-bit member of `T` | refused |
 | A dictionary, `Dictionary<K, V>` | each value, or each entry of a list value | each key |
 
 A select component carries its own options and takes none, and so does a

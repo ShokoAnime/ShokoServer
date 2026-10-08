@@ -39,11 +39,11 @@ public static class Diagnostics
     public static readonly DiagnosticDescriptor UnusableDictionaryKey = new(
         id: "SHOKO0002",
         title: "Dictionary key is not serializable to text",
-        messageFormat: "Type '{1}' is not serializable to text and therefore cannot be used as a key in a dictionary the UI schema generator walks, but property '{0}' uses it as one. Schema generation throws, leaving the whole type without a schema and without a UI. Use 'string', an enum, a type marked with [Serializable], or a type implementing ISerializable.",
+        messageFormat: "Type '{1}' is not serializable to text and therefore cannot be used as a key in a dictionary the UI schema generator walks, but property '{0}' uses it as one. Schema generation throws, leaving the whole type without a schema and without a UI. Use 'string', an enum without [Flags], a type marked with [Serializable], or a type implementing ISerializable.",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "JSON object keys are text. The UI schema generator rejects any dictionary key type that is not a string, not an enum, not marked with [Serializable] (or, on the System.Text.Json path, [JsonSerializable]) and does not implement ISerializable, by throwing while building the schema. A key type coming from a reference assembly is not reported, because reference assemblies drop the [Serializable] metadata flag and the analyzer cannot tell.",
+        description: "JSON object keys are text. A [Flags] enum is written as a list of its members, so it is no key. The UI schema generator rejects any dictionary key type that is not a string, not an enum, not marked with [Serializable] (or, on the System.Text.Json path, [JsonSerializable]) and does not implement ISerializable, by throwing while building the schema. A key type coming from a reference assembly is not reported, because reference assemblies drop the [Serializable] metadata flag and the analyzer cannot tell.",
         helpLinkUri: HelpLinkPrefix + "shoko0002");
 
     /// <summary>
@@ -188,4 +188,17 @@ public static class Diagnostics
         isEnabledByDefault: true,
         description: "Each part of a member has one provider at most. A dictionary's keys and values are separate parts, so each may have its own.",
         helpLinkUri: HelpLinkPrefix + "shoko0013");
+
+    /// <summary>
+    /// A <c>[Flags]</c> enum has no single-bit member for its list to hold.
+    /// </summary>
+    public static readonly DiagnosticDescriptor FlagEnumWithoutMembers = new(
+        id: "SHOKO0014",
+        title: "Flags enum has no single-bit members",
+        messageFormat: "Property '{0}' holds the flags enum '{1}', which has no member with a single bit set. A flags enum is rendered as a list of its single-bit members, so this one has nothing to offer. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A [Flags] enum is described as a list of its members with a single bit set. Zero and members combining several bits are only accepted on read. An enum with no single-bit member has no entries to list, so give it one per flag, or drop [Flags].",
+        helpLinkUri: HelpLinkPrefix + "shoko0014");
 }

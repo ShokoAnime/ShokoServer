@@ -43,6 +43,7 @@ using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services;
 
@@ -336,11 +337,13 @@ public class ActionService : IActionService
     /// <summary>
     ///   The action's own metadata is hidden from population as well as from
     ///   the schema, so a payload naming <c>Name</c> or <c>Permission</c> cannot
-    ///   write to the instance even if it somehow reaches here unvalidated.
+    ///   write to the instance even if it somehow reaches here unvalidated. A
+    ///   flags enum is read from the list of its members.
     /// </summary>
     private static readonly JsonSerializerSettings _populateSettings = new()
     {
         ContractResolver = new ActionMetadataContractResolver(),
+        Converters = [FlagEnumNewtonsoftConverter.Instance],
     };
 
     /// <inheritdoc />
