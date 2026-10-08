@@ -79,28 +79,6 @@ public abstract class UiElement
     public IReadOnlyList<Config.Enums.ReactiveEventType> ReactsToLiveEdit { get; set; } = [];
 
     /// <summary>
-    /// Actions rendering on the leading edge of this element's row, keyed by
-    /// <see cref="UiAction.Name"/> in the containing section container's
-    /// <see cref="Elements.UiSectionContainerElement.Actions"/>.
-    /// </summary>
-    /// <remarks>
-    /// An attached action belongs to the element rather than to the order its
-    /// container renders in, so it appears here and nowhere else.
-    /// </remarks>
-    public IReadOnlyList<string> AttachedStartActions { get; set; } = [];
-
-    /// <summary>
-    /// Actions rendering on the trailing edge of this element's row, keyed by
-    /// <see cref="UiAction.Name"/> in the containing section container's
-    /// <see cref="Elements.UiSectionContainerElement.Actions"/>.
-    /// </summary>
-    /// <remarks>
-    /// An action attached without naming an edge lands here, since a button
-    /// after the field it acts on is the common case.
-    /// </remarks>
-    public IReadOnlyList<string> AttachedEndActions { get; set; } = [];
-
-    /// <summary>
     /// Where to fetch the values the element may take, or <c>null</c> when the
     /// server does not list them.
     /// </summary>

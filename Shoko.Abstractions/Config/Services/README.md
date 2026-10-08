@@ -233,7 +233,6 @@ reacts while the user edits, and the patterns worth copying:
 | Attribute | On | What it does |
 |---|---|---|
 | `[Section(DisplaySectionType)]` | Class | Picks the section style, names the default section, controls whether a save button is shown. |
-| `[CustomAction(AttachToMember = ...)]` | Method | Renders the button on that member's row rather than among the class's own members. |
 | `[SectionName("Login")]` | Member | Groups members into a named section. |
 | `[FloatingSection("Login", Description = ...)]` | Class | Describes a section members are grouped into. |
 | `[Visibility]` | Member | Hides a member, marks it advanced, or sets its size. |
