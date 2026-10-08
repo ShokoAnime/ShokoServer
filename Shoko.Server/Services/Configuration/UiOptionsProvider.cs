@@ -1,0 +1,246 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using Namotion.Reflection;
+using Newtonsoft.Json.Linq;
+using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.UI;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Components;
+using Shoko.Server.Extensions;
+
+namespace Shoko.Server.Services.Configuration;
+
+/// <summary>
+///   Finds, checks and runs the method an <see cref="OptionsProviderAttribute"/>
+///   names, for a configuration and an executable action alike.
+/// </summary>
+/// <remarks>
+///   The same shapes are reported at the authoring site by the SHOKO0008
+///   analyzer rule; the check here is for a plugin built without it.
+/// </remarks>
+internal static class UiOptionsProvider
+{
+    #region Validation
+
+    /// <summary>
+    ///   Finds the method a member takes its options from, and checks that it
+    ///   lists values the member can take.
+    /// </summary>
+    /// <param name="owner">The type declaring the member.</param>
+    /// <param name="member">The member.</param>
+    /// <param name="methodName">The method the attribute names.</param>
+    /// <returns>The method.</returns>
+    /// <exception cref="NotSupportedException">
+    ///   Thrown when the member cannot take options, or the method is missing,
+    ///   overloaded, generic or returns something else.
+    /// </exception>
+    public static MethodInfo ResolveMethod(Type owner, PropertyInfo member, string methodName)
+    {
+        var declaredBy = $"{owner.Name}.{member.Name}";
+        if (GetOptionType(member.PropertyType, out var shapeFailure) is not { } optionType)
+            throw Invalid(declaredBy, shapeFailure!);
+
+        var methods = owner
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy)
+            .Where(method => string.Equals(method.Name, methodName, StringComparison.Ordinal))
+            .ToList();
+        if (methods.Count is 0)
+            throw Invalid(declaredBy, $"names \"{methodName}\", which is not a public method of {owner.Name}");
+        if (methods.Count > 1)
+            throw Invalid(declaredBy, $"names \"{methodName}\", which has more than one overload");
+
+        var resolved = methods[0];
+        if (resolved.IsGenericMethodDefinition)
+            throw Invalid(declaredBy, $"names \"{methodName}\", which is generic");
+
+        var returned = GetReturnedOptionType(resolved.ReturnType);
+        if (returned != optionType && returned != typeof(SelectOption<>).TryMakeGenericType(optionType))
+        {
+            var returnName = ShokoJsonSchemaGenerator.GetFriendlyTypeName(resolved.ReturnType);
+            var optionName = ShokoJsonSchemaGenerator.GetFriendlyTypeName(optionType);
+            throw Invalid(declaredBy, $"names \"{methodName}\", which returns {returnName} rather than a collection of {optionName}");
+        }
+
+        return resolved;
+    }
+
+    /// <summary>
+    ///   The type of a single option for a member, with a collection offering
+    ///   options for its entries and a nullable value for what it wraps.
+    /// </summary>
+    /// <param name="memberType">The member's type.</param>
+    /// <param name="failure">Why the member takes no options, when it cannot.</param>
+    /// <returns>The option type, or <c>null</c> when the member cannot take options.</returns>
+    internal static Type? GetOptionType(Type memberType, out string? failure)
+    {
+        failure = null;
+        var type = Nullable.GetUnderlyingType(memberType) ?? memberType;
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(SelectComponent<>))
+        {
+            failure = "is a select component, which carries its own options";
+            return null;
+        }
+
+        if (type == typeof(string))
+            return type;
+
+        if (typeof(IDictionary).IsAssignableFrom(type) || FindGeneric(type, typeof(IDictionary<,>)) is not null ||
+            FindGeneric(type, typeof(IReadOnlyDictionary<,>)) is not null)
+        {
+            failure = "is a dictionary, which has no single value to offer options for";
+            return null;
+        }
+
+        var element = type.IsArray ? type.GetElementType()! : FindGeneric(type, typeof(IEnumerable<>))?.GetGenericArguments()[0];
+        return element is null ? type : Nullable.GetUnderlyingType(element) ?? element;
+    }
+
+    /// <summary>
+    ///   The type of a single option a method lists, looking through a task.
+    /// </summary>
+    private static Type? GetReturnedOptionType(Type returnType)
+    {
+        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() is var definition &&
+            (definition == typeof(Task<>) || definition == typeof(ValueTask<>)))
+            returnType = returnType.GetGenericArguments()[0];
+        if (returnType == typeof(string))
+            return null;
+
+        return returnType.IsArray ? returnType.GetElementType() : FindGeneric(returnType, typeof(IEnumerable<>))?.GetGenericArguments()[0];
+    }
+
+    private static Type? FindGeneric(Type type, Type definition)
+        => type.IsGenericType && type.GetGenericTypeDefinition() == definition
+            ? type
+            : type.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == definition);
+
+    private static Type? TryMakeGenericType(this Type definition, Type argument)
+    {
+        try
+        {
+            return definition.MakeGenericType(argument);
+        }
+        catch (ArgumentException)
+        {
+            // The argument breaks a constraint, so nothing can be returned as one.
+            return null;
+        }
+    }
+
+    private static NotSupportedException Invalid(string declaredBy, string failure)
+        => new($"The options provider of {declaredBy} {failure}.");
+
+    #endregion
+
+    #region Lookup
+
+    /// <summary>
+    ///   Walks a path to the member it names, and returns the instance holding
+    ///   it along with the method that member takes its options from.
+    /// </summary>
+    /// <param name="root">The configuration or action instance.</param>
+    /// <param name="path">The member's path, as a custom action is invoked with.</param>
+    /// <param name="isNewtonsoftJson">Whether the path uses the Newtonsoft member names.</param>
+    /// <returns>The instance holding the member, and the method.</returns>
+    /// <exception cref="ArgumentException">
+    ///   Thrown when the path does not lead to a member that takes options.
+    /// </exception>
+    public static (object Owner, MethodInfo Method) Resolve(object root, string path, bool isNewtonsoftJson)
+    {
+        var parts = ConfigurationService.SplitPath(path);
+        if (parts.Length is 0 || parts[^1].StartsWith('['))
+            throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
+
+        var owner = root;
+        foreach (var part in parts[..^1])
+        {
+            owner = Step(owner, part) ?? throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
+        }
+
+        if (FindProperty(owner.GetType(), parts[^1], isNewtonsoftJson) is not { } property)
+            throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
+        if (property.GetCustomAttribute<OptionsProviderAttribute>(false) is not { } attribute)
+            throw new ArgumentException($"The member at \"{path}\" takes no options", nameof(path));
+
+        return (owner, ResolveMethod(property.ReflectedType!, property, attribute.MethodName));
+
+        object? Step(object value, string part)
+        {
+            if (part.Length > 4 && part.StartsWith("[\"") && part.EndsWith("\"]"))
+            {
+                var key = part[2..^2];
+                return value is IDictionary dictionary && dictionary.Contains(key) ? dictionary[key] : null;
+            }
+
+            if (part.Length > 2 && part[0] is '[' && part[^1] is ']')
+                return int.TryParse(part[1..^1], out var index) && value is IEnumerable enumerable
+                    ? enumerable.Cast<object?>().ElementAtOrDefault(index)
+                    : null;
+
+            return FindProperty(value.GetType(), part, isNewtonsoftJson)?.GetValue(value);
+        }
+    }
+
+    private static PropertyInfo? FindProperty(Type type, string name, bool isNewtonsoftJson)
+        => type.ToContextualType().Properties
+            .FirstOrDefault(x => string.Equals(ConfigurationService.GetJsonName(x, isNewtonsoftJson), name, StringComparison.Ordinal))
+            ?.PropertyInfo;
+
+    #endregion
+
+    #region Invocation
+
+    /// <summary>
+    ///   Runs an options method and serialises what it listed.
+    /// </summary>
+    /// <param name="method">The method, as <see cref="ResolveMethod"/> found it.</param>
+    /// <param name="pluginManager">Resolves the parameters no argument fills.</param>
+    /// <param name="owner">The instance declaring the member.</param>
+    /// <param name="arguments">The values the method's parameters may take.</param>
+    /// <param name="convert">Serialises a value the way its owner would.</param>
+    /// <returns>The options, in the order the method listed them.</returns>
+    public static async Task<IReadOnlyList<UiOption>> InvokeAsync(
+        MethodInfo method,
+        IPluginManager pluginManager,
+        object owner,
+        IEnumerable<object?> arguments,
+        Func<object?, JToken?> convert
+    )
+    {
+        var result = method.Invoke<object>(pluginManager, owner, arguments);
+        if (result is not null && result.GetType() is { IsGenericType: true } resultType && resultType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+            result = resultType.GetMethod(nameof(ValueTask<object>.AsTask))!.Invoke(result, null);
+        if (result is Task task)
+        {
+            await task.ConfigureAwait(false);
+            result = task.GetType().GetProperty(nameof(Task<object>.Result))!.GetValue(task);
+        }
+
+        if (result is not IEnumerable values)
+            return [];
+
+        var options = new List<UiOption>();
+        foreach (var value in values.Cast<object?>())
+        {
+            if (value is not null && value.GetType() is { IsGenericType: true } valueType && valueType.GetGenericTypeDefinition() == typeof(SelectOption<>))
+            {
+                options.Add(new()
+                {
+                    Value = convert(valueType.GetProperty(nameof(SelectOption<int>.Value))!.GetValue(value)),
+                    Label = (string?)valueType.GetProperty(nameof(SelectOption<int>.Label))!.GetValue(value),
+                });
+                continue;
+            }
+
+            options.Add(new() { Value = convert(value) });
+        }
+
+        return options;
+    }
+
+    #endregion
+}

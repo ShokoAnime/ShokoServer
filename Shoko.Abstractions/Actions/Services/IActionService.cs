@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.UI;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
 
@@ -83,6 +84,40 @@ public interface IActionService
     ///   No action is registered under <paramref name="actionId"/>.
     /// </exception>
     IReadOnlyDictionary<string, IReadOnlyList<string>> ValidateParameters(Guid actionId, JObject? parameters);
+
+    /// <summary>
+    ///   Lists the options the server offers for one of an action's parameters
+    ///   marked with <see cref="UI.Attributes.OptionsProviderAttribute"/>.
+    /// </summary>
+    /// <remarks>
+    ///   The provider runs on an instance holding <paramref name="parameters"/>,
+    ///   the same way validation does, but without an entity to act on.
+    /// </remarks>
+    /// <param name="actionId">The action.</param>
+    /// <param name="path">
+    ///   The path of the parameter, the same path a configuration's custom
+    ///   action is invoked with.
+    /// </param>
+    /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
+    /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered under <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="UnauthorizedAccessException">
+    ///   The action is for administrators and the caller is not one.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   The path does not lead to a parameter that takes options.
+    /// </exception>
+    Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    );
 
     /// <summary>
     ///   Gets the metadata for a registered action by its type, so a plugin

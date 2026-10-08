@@ -50,12 +50,16 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     /// <param name="name">The display name of whatever the schema describes.</param>
     /// <param name="description">An optional description of whatever the schema describes.</param>
     /// <param name="wrapped">The generated schema and its typed builders.</param>
+    /// <param name="optionsRoute">
+    ///   Where the server lists the options of a member that takes them, or
+    ///   <c>null</c> when nothing serves them.
+    /// </param>
     /// <returns>A definition that is self-sufficient for rendering.</returns>
-    public UiDefinition Build(Guid id, string name, string? description, WrappedJsonSchema wrapped)
+    public UiDefinition Build(Guid id, string name, string? description, WrappedJsonSchema wrapped, string? optionsRoute = null)
     {
         ArgumentNullException.ThrowIfNull(wrapped);
 
-        var state = new WalkState(wrapped);
+        var state = new WalkState(wrapped) { OptionsRoute = optionsRoute };
         var root = BuildElement(state, wrapped.Schema, null, null, isRoot: true, isRequired: true);
         while (state.PendingDefinitions.Count > 0)
         {
@@ -686,6 +690,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         element.EnvironmentVariable = isNamedMember && property?.EnvironmentVariable is { Length: > 0 } envVar
             ? new UiEnvironmentVariable { Name = envVar, AllowOverride = property!.EnvironmentVariableOverridable }
             : null;
+        element.OptionsRoute = isNamedMember && property?.OptionsProvider is not null ? state.OptionsRoute : null;
         element.Default = ToToken(declared.Default ?? resolved.Default);
         element.IsRequired = isRequired;
         element.IsNullable = declared.IsNullable(SchemaType.JsonSchema) || resolved.IsNullable(SchemaType.JsonSchema);
@@ -877,6 +882,8 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         ///   no handler of its own.
         /// </summary>
         public IReadOnlyList<ReactiveEventType> InheritedLiveEditEvents { get; set; } = [];
+
+        public string? OptionsRoute { get; init; }
 
         public Dictionary<string, UiElement> Definitions { get; } = new(StringComparer.Ordinal);
 

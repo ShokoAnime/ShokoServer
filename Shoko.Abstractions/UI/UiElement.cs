@@ -101,6 +101,18 @@ public abstract class UiElement
     public IReadOnlyList<string> AttachedEndActions { get; set; } = [];
 
     /// <summary>
+    /// Where to fetch the values the element may take, or <c>null</c> when the
+    /// server does not list them.
+    /// </summary>
+    /// <remarks>
+    /// POST to it with the element's own path as the <c>path</c> query
+    /// parameter, the same path a custom action is invoked with, and the
+    /// edited document as the body to list the options for it. On a list the
+    /// options are for its entries.
+    /// </remarks>
+    public string? OptionsRoute { get; set; }
+
+    /// <summary>
     /// The default value for the element, if the schema declared one.
     /// </summary>
     public JToken? Default { get; set; }

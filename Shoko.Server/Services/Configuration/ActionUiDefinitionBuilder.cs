@@ -52,7 +52,7 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
     ///   generator cannot render is a defect in the action, not a condition to
     ///   recover from, so it fails startup exactly as the equivalent
     ///   configuration would rather than leaving a half-usable action behind
-    ///   with no way to invoke it from a UI. The SHOKO0001 to SHOKO0007 analyzer
+    ///   with no way to invoke it from a UI. The SHOKO0001 to SHOKO0008 analyzer
     ///   rules catch these shapes at compile time for anyone referencing the
     ///   package.
     /// </remarks>
@@ -73,8 +73,8 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
     /// </exception>
     /// <exception cref="NotSupportedException">
     ///   A parameter nests a collection in a collection or asks for a list
-    ///   layout its items cannot take, a condition could never hold, or a hook
-    ///   cannot react to what it names.
+    ///   layout its items cannot take, a condition could never hold, a hook
+    ///   cannot react to what it names, or an options provider does not fit.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     ///   A parameter is laid out as a dictionary without implementing one.
@@ -93,7 +93,7 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
         if (wrapped.Schema.ActualProperties.Count is 0)
             return null;
 
-        return new(_uiDefinitionBuilder.Build(id, name, description, wrapped), wrapped.Schema);
+        return new(_uiDefinitionBuilder.Build(id, name, description, wrapped, $"/api/v3/Action/{id}/Options"), wrapped.Schema);
     }
 
     /// <summary>

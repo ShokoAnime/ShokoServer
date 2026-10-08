@@ -504,6 +504,79 @@ public partial class ConfigurationService : IConfigurationService
         return RunAction(loggerFactory, pluginManager, configurationService, info, configuration, path, target, methodInfo, schema, type, ReactiveEventType.All, user, uri);
     }
 
+    public Task<IReadOnlyList<UiOption>> GetOptionsAsync(ConfigurationInfo info, IConfiguration configuration, string path, IUser? user = null, Uri? uri = null)
+    {
+        try
+        {
+            return (Task<IReadOnlyList<UiOption>>)typeof(ConfigurationService)
+                .GetMethod(nameof(GetOptionsInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
+                .MakeGenericMethod(configuration.GetType())
+                .Invoke(this, [info, configuration, path, user, uri])!;
+        }
+        catch (TargetInvocationException ex)
+        {
+            if (ex.InnerException is null)
+                throw;
+            throw ex.InnerException;
+        }
+    }
+
+    public Task<IReadOnlyList<UiOption>> GetOptionsAsync<TConfig>(
+        TConfig configuration,
+        string path,
+        IUser? user = null,
+        Uri? uri = null
+    ) where TConfig : class, IConfiguration, new()
+        => GetOptionsInternal(GetConfigurationInfo<TConfig>(), configuration, path, user, uri);
+
+    private Task<IReadOnlyList<UiOption>> GetOptionsInternal<TConfig>(
+        ConfigurationInfo info,
+        TConfig configuration,
+        string path,
+        IUser? user,
+        Uri? uri
+    ) where TConfig : class, IConfiguration, new()
+    {
+        object owner;
+        MethodInfo method;
+        try
+        {
+            (owner, method) = UiOptionsProvider.Resolve(configuration, path, info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)));
+        }
+        catch (ArgumentException ex) when (ex is not InvalidConfigurationActionException)
+        {
+            throw new InvalidConfigurationActionException(ex.Message, nameof(path));
+        }
+
+        // The provider is handed what a custom action is, so one written for
+        // either reads the same.
+        var logger = _loggerFactory.CreateLogger<TConfig>();
+        var context = new ConfigurationActionContext<TConfig>
+        {
+            Logger = logger,
+            Configuration = configuration,
+            Info = info,
+            ConfigurationService = this,
+            PluginManager = _pluginManager,
+            Path = path,
+            ReactiveEventType = ReactiveEventType.All,
+            Schema = info.Schema,
+            Type = owner.GetType().ToContextualType(),
+            User = user,
+            Uri = uri,
+        };
+        Func<object?, JToken?> convert = _wrappedSchemas.TryGetValue(info.ID, out var wrapped) && wrapped.EmitContext is { } emitContext
+            ? emitContext.ConvertToken
+            : value => value is null ? null : JToken.FromObject(value);
+        return UiOptionsProvider.InvokeAsync(
+            method,
+            _pluginManager,
+            owner,
+            [logger, path, info, configuration, context, user, uri],
+            convert
+        );
+    }
+
     public ConfigurationActionResult PerformReactiveAction(ConfigurationInfo info, IConfiguration configuration, string path, ConfigurationActionType actionType, ReactiveEventType reactiveEventType = ReactiveEventType.All, IUser? user = null, Uri? uri = null)
     {
         try
@@ -596,6 +669,15 @@ public partial class ConfigurationService : IConfigurationService
 
     [GeneratedRegex(@"(?<=\w|\]|^)\[", RegexOptions.Compiled | RegexOptions.ECMAScript)]
     private static partial Regex IndexNotationFixRegex();
+
+    /// <summary>
+    ///   Splits a member path into its parts: member names, list indices such
+    ///   as <c>[0]</c> and dictionary keys such as <c>["Key"]</c>.
+    /// </summary>
+    /// <param name="path">The path.</param>
+    /// <returns>The parts, in order.</returns>
+    internal static string[] SplitPath(string path)
+        => path.Replace(IndexNotationFixRegex(), ".[").Split(SplitPathToPartsRegex(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     /// <summary>
     ///   Finds the handler a class declares for a lifecycle hook.
@@ -730,7 +812,7 @@ public partial class ConfigurationService : IConfigurationService
         var innovationMethodInfo = (MethodInfo?)null;
         var chain = new List<ReactiveTarget>();
         var isNewtonsoftJson = info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration));
-        var parts = path.Replace(IndexNotationFixRegex(), ".[").Split(SplitPathToPartsRegex(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = SplitPath(path);
         if (actionType is { } rootActionType && reactiveEventType is not ReactiveEventType.NewValue &&
             FindHookHandler(type, rootActionType, reactiveEventType) is { } rootMethod &&
             Watches(type, rootMethod, parts, isNewtonsoftJson))
@@ -1222,7 +1304,8 @@ public partial class ConfigurationService : IConfigurationService
         ArgumentNullException.ThrowIfNull(type);
 
         var id = GetID(type);
-        if (!_configurationTypes.TryGetValue(id, out var info) || info.Type != type || !_wrappedSchemas.TryGetValue(id, out var wrappedSchema))
+        var isRegistered = _configurationTypes.TryGetValue(id, out var info) && info.Type == type;
+        if (!isRegistered || !_wrappedSchemas.TryGetValue(id, out var wrappedSchema))
         {
             wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(type);
             wrappedSchema.Schema.Id = id.ToString();
@@ -1233,7 +1316,8 @@ public partial class ConfigurationService : IConfigurationService
         // whichever way it is reached.
         var name = wrappedSchema.Schema.Title ?? type.Name;
         var description = TypeReflectionExtensions.GetDescription(type.ToContextualType());
-        return _uiDefinitionBuilder.Build(id, name, description, wrappedSchema);
+        // Only a registered configuration is served by the options endpoint.
+        return _uiDefinitionBuilder.Build(id, name, description, wrappedSchema, isRegistered ? $"/api/v3/Configuration/{id}/Options" : null);
     }
 
     private void EnsureSchemaExists(ConfigurationInfo info)

@@ -97,6 +97,43 @@ public class ActionController(
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 
+    /// <summary>
+    ///   List the options the server offers for one of the action's
+    ///   parameters, as the parameter's <c>OptionsRoute</c> says to.
+    /// </summary>
+    /// <param name="actionID">Action ID.</param>
+    /// <param name="parameters">Optional. The parameters entered so far.</param>
+    /// <param name="path">Path to the parameter, the same path a configuration's custom action is invoked with.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    [HttpPost("{actionID:guid}/Options")]
+    public async Task<ActionResult<IReadOnlyList<UiOption>>> GetActionParameterOptions(
+        [FromRoute] Guid actionID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JObject? parameters,
+        [FromQuery] string path = "",
+        CancellationToken token = default
+    )
+    {
+        if (actionService.GetActionInfo(actionID) is null)
+            return NotFound("Action not found.");
+
+        if (actionService.ValidateParameters(actionID, parameters) is { Count: > 0 } errors)
+            return ValidationProblem(errors);
+
+        try
+        {
+            return Ok(await actionService.GetParameterOptionsAsync(actionID, path, parameters.ToParameters(), User, token));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return ValidationProblem(ex.Message, ex.ParamName ?? nameof(path));
+        }
+    }
+
     #region Bulk
 
     /// <summary>

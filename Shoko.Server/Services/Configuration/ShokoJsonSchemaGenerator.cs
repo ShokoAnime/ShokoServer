@@ -469,6 +469,14 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         if (info.GetAttribute<BadgeAttribute>(false) is { } badgeAttribute && !string.IsNullOrWhiteSpace(badgeAttribute.Name))
             builder.Badge = new UiBadgeBuilder { Name = badgeAttribute.Name, Theme = badgeAttribute.Theme };
 
+        if (info.GetAttribute<OptionsProviderAttribute>(false) is { } optionsProviderAttribute)
+        {
+            // Resolved now so a method that does not fit fails startup, rather
+            // than the first request for its options.
+            UiOptionsProvider.ResolveMethod(info.MemberInfo.ReflectedType!, info.PropertyInfo, optionsProviderAttribute.MethodName);
+            builder.OptionsProvider = optionsProviderAttribute.MethodName;
+        }
+
         if (contextualType.Type.IsGenericType && contextualType.Type.GetGenericTypeDefinition() == typeof(SelectComponent<>))
         {
             var selectAttribute = info.GetAttribute<SelectAttribute>(false);
@@ -898,7 +906,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     ///   Renders a type name the way it was written in source, so an error
     ///   message reads like the code that caused it.
     /// </summary>
-    private static string GetFriendlyTypeName(Type type)
+    internal static string GetFriendlyTypeName(Type type)
     {
         if (type.IsArray)
             return $"{GetFriendlyTypeName(type.GetElementType()!)}[]";

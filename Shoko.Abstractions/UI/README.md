@@ -12,8 +12,10 @@ and every element carries a concrete `Kind`. A client never has to interpret the
 schema to draw a form.
 
 ```
-GET /api/v3/Configuration/{configID}/UiDefinition
-GET /api/v3/Action/{actionID}/UiDefinition
+GET  /api/v3/Configuration/{configID}/UiDefinition
+GET  /api/v3/Action/{actionID}/UiDefinition
+POST /api/v3/Configuration/{configID}/Options?path=…
+POST /api/v3/Action/{actionID}/Options?path=…
 ```
 
 ---
@@ -280,7 +282,39 @@ no event raises, fails when the configuration is described.
 
 ---
 
+## Options the server lists
+
+`[OptionsProvider(nameof(Method))]` turns a plain member into a choice from
+values the server lists when asked. The member keeps its own type and its own
+element; the element gains an `OptionsRoute`, and a client POSTs the edited
+document to it with the member's path as `path`, the same path a custom action
+is invoked with. What comes back is a list of `{ "Value": …, "Label": … }`.
+
+```csharp
+[OptionsProvider(nameof(ListLibraries))]
+public int LibraryId { get; set; }
+
+public async Task<IReadOnlyList<SelectOption<int>>> ListLibraries(ILibraryService libraries)
+    => (await libraries.GetAll()).Select(x => new SelectOption<int>(x.ID, x.Name)).ToList();
+```
+
+The method lives on the class declaring the member, is public, static or not,
+and has no overloads. It returns a collection of the member's value type, or of
+`SelectOption<T>` of it when each option wants a label, directly or through a
+`Task` or `ValueTask`. A list takes options for its entries and a nullable member
+for the type it wraps, so an `int?` or a `List<int>` both want `int`s. A
+dictionary or a `SelectComponent<T>` cannot take options. Parameters are filled
+in the way a custom action's are: the configuration being edited, unsaved
+changes included, or the action with the parameters entered so far, the user,
+and any registered service.
+
+A method that does not fit fails startup, and the SHOKO0008 analyzer rule says
+so at compile time.
+
 ## Pattern: a choice only the server can enumerate
+
+When the stored value can simply be the chosen option, `[OptionsProvider]` above
+is all it takes. The pattern below is for a choice that needs more than that.
 
 A dropdown whose options come from the machine (folders on disk, users in the
 database, devices a probe found) should not persist those options. Store the
