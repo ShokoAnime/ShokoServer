@@ -10,7 +10,6 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
-using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Abstractions;
@@ -152,7 +151,7 @@ public class RefreshAnimeAiringSoonActionTests
             NullLogger<RefreshAnimeAiringSoonAction>.Instance,
             new StubSettingsProvider(settings),
             new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
-            Mock.Of<IAnidbService>(),
+            SuspensionTestDoubles.Service().Object,
             airingService.Object,
             series,
             updates.Object,

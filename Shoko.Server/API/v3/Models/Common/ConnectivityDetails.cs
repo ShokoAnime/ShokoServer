@@ -30,11 +30,13 @@ public class ConnectivityDetails
     /// Are we currently banned from using the AniDB HTTP API?
     /// </summary>
     [Required]
+    [Obsolete("Use the suspension service (ISuspensionService, /api/v3/Suspension, the suspension feed).")]
     public bool IsAniDBHttpBanned { get; init; }
 
     /// <summary>
     /// Are we currently banned from using the AniDB UDP API?
     /// </summary>
     [Required]
+    [Obsolete("Use the suspension service (ISuspensionService, /api/v3/Suspension, the suspension feed).")]
     public bool IsAniDBUdpBanned { get; init; }
 }

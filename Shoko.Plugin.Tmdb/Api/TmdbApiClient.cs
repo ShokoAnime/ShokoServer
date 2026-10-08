@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
+using Shoko.Abstractions.Connectivity.Suspensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
 using TMDbLib.Client;
@@ -83,9 +84,15 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="configurationProvider">The plugin's configuration, for the key, the window and the changes window.</param>
     /// <param name="logger">Where the calls are logged.</param>
-    /// <param name="timeProvider">The clock the pauses and the changes window are measured by; the system's when left out.</param>
-    public TmdbApiClient(ConfigurationProvider<TmdbConfiguration> configurationProvider, ILogger<TmdbApiClient> logger, TimeProvider? timeProvider = null)
-        : this(configurationProvider, logger, apiKey => new TMDbClient(apiKey), timeProvider)
+    /// <param name="suspensionReporter">Where the rate limiter reports its waits.</param>
+    /// <param name="timeProvider">The clock the waits and the changes window are measured by; the system's when left out.</param>
+    public TmdbApiClient(
+        ConfigurationProvider<TmdbConfiguration> configurationProvider,
+        ILogger<TmdbApiClient> logger,
+        ISuspensionReporter<TmdbSuspensionProvider> suspensionReporter,
+        TimeProvider? timeProvider = null
+    )
+        : this(configurationProvider, logger, apiKey => new TMDbClient(apiKey), timeProvider, suspensionReporter)
     {
     }
 
@@ -97,18 +104,20 @@ public sealed class TmdbApiClient : IDisposable
     /// <param name="logger">Where the calls are logged.</param>
     /// <param name="clientFactory">Makes TMDB's client for an API key.</param>
     /// <param name="timeProvider">The clock; the system's when left out.</param>
+    /// <param name="suspensionReporter">Where the rate limiter reports its waits; nowhere when left out.</param>
     internal TmdbApiClient(
         ConfigurationProvider<TmdbConfiguration> configurationProvider,
         ILogger<TmdbApiClient> logger,
         Func<string, TMDbClient> clientFactory,
-        TimeProvider? timeProvider = null
+        TimeProvider? timeProvider = null,
+        ISuspensionReporter<TmdbSuspensionProvider>? suspensionReporter = null
     )
     {
         _configurationProvider = configurationProvider;
         _logger = logger;
         _clientFactory = clientFactory;
         TimeProvider = timeProvider ?? TimeProvider.System;
-        RateLimiter = new(configurationProvider.Load().RateLimit, TimeProvider);
+        RateLimiter = new(configurationProvider.Load().RateLimit, TimeProvider, reporter: suspensionReporter);
         _configurationProvider.Saved += OnConfigurationSaved;
     }
 
@@ -118,7 +127,7 @@ public sealed class TmdbApiClient : IDisposable
 
     /// <summary>
     ///   The rate limiter every request goes through, which also holds the
-    ///   plugin's pause.
+    ///   requests while TMDB will not take them.
     /// </summary>
     public TmdbRateLimiter RateLimiter { get; }
 

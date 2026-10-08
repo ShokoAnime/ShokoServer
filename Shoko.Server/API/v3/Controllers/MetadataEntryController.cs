@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -77,6 +78,8 @@ public partial class MetadataEntryController : BaseController
 
     private readonly MetadataModelBuilder _models;
 
+    private readonly ISuspensionService _suspensionService;
+
     private JMMUser? _viewer;
 
     #endregion
@@ -87,7 +90,7 @@ public partial class MetadataEntryController : BaseController
     /// Takes the services the routes read through.
     /// </summary>
     /// <param name="settingsProvider">The settings.</param>
-    /// <param name="logger">Logs refreshes refused while a source is paused.</param>
+    /// <param name="logger">Logs refreshes refused while a source is suspended.</param>
     /// <param name="metadataService">Resolves entries and links.</param>
     /// <param name="refreshService">Waits out refreshes and queues new ones.</param>
     /// <param name="purgeService">Purges entries.</param>
@@ -98,6 +101,7 @@ public partial class MetadataEntryController : BaseController
     /// <param name="linkingService">Changes how far links are trusted.</param>
     /// <param name="crossReferences">Finds the links to change.</param>
     /// <param name="models">Builds the models sent.</param>
+    /// <param name="suspensionService">Tells whether a source is suspended.</param>
     public MetadataEntryController(
         ISettingsProvider settingsProvider,
         ILogger<MetadataEntryController> logger,
@@ -110,9 +114,11 @@ public partial class MetadataEntryController : BaseController
         IFuzzySearchService fuzzySearch,
         IMetadataLinkingService linkingService,
         IMetadataCrossReferenceStore crossReferences,
-        MetadataModelBuilder models
+        MetadataModelBuilder models,
+        ISuspensionService suspensionService
     ) : base(settingsProvider)
     {
+        _suspensionService = suspensionService;
         _logger = logger;
         _metadataService = metadataService;
         _refreshService = refreshService;
@@ -764,28 +770,28 @@ public partial class MetadataEntryController : BaseController
 
     /// <summary>
     /// Answers <c>503 Service Unavailable</c> with a <c>Retry-After</c> while
-    /// the source is paused, after queueing the work at the front when the
+    /// the source is suspended, after queueing the work at the front when the
     /// caller did not ask to wait for it, so a caller knows nothing ran yet.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="queue">Queues the work at the front.</param>
     /// <param name="description">What the work is, for the log.</param>
     /// <param name="immediate">Whether the caller wanted to wait for the work.</param>
-    /// <returns>The answer while paused, or <c>null</c> to go ahead.</returns>
+    /// <returns>The answer while suspended, or <c>null</c> to go ahead.</returns>
     private async Task<ActionResult?> QueueWhenPaused(MetadataSource source, Func<Task> queue, string description, bool immediate)
     {
-        var status = _refreshService.GetPauseStatus(source);
-        if (!status.IsPaused)
+        var status = SourceSuspension.For(_suspensionService, source);
+        if (!status.IsSuspended)
             return null;
 
         var seconds = MetadataPauseResponses.RetryAfterSeconds(status);
         if (immediate)
         {
-            _logger.LogInformation("{Source} is paused. {Work} was asked for at once and was refused; retry in about {Seconds} second(s).", source.Name, description, seconds);
+            _logger.LogInformation("{Source} is suspended. {Work} was asked for at once and was refused; retry in about {Seconds} second(s).", source.Name, description, seconds);
         }
         else
         {
-            _logger.LogInformation("{Source} is paused. {Work} was queued and starts in about {Seconds} second(s).", source.Name, description, seconds);
+            _logger.LogInformation("{Source} is suspended. {Work} was queued and starts in about {Seconds} second(s).", source.Name, description, seconds);
             await queue().ConfigureAwait(false);
         }
 
@@ -798,10 +804,10 @@ public partial class MetadataEntryController : BaseController
     /// <param name="entry">The series or movie.</param>
     /// <param name="body">How to refresh it.</param>
     /// <param name="cancellationToken">Cancels a refresh waited on.</param>
-    /// <returns>200 when it ran, 204 when it was queued, or 503 while the source is paused.</returns>
+    /// <returns>200 when it ran, 204 when it was queued, or 503 while the source is suspended.</returns>
     private async Task<ActionResult> Refresh(IMetadata entry, MetadataRefreshBody body, CancellationToken cancellationToken)
     {
-        // Answered from what is stored, so a paused source is no reason to refuse it.
+        // Answered from what is stored, so a suspended source is no reason to refuse it.
         if (body.Immediate && body.QuickRefresh && _refreshService.IsRefreshing(entry.ID) && entry is ISeries { Episodes.Count: > 0 })
             return Ok();
 
@@ -822,7 +828,7 @@ public partial class MetadataEntryController : BaseController
     /// <param name="entryID">The series or movie.</param>
     /// <param name="body">How to refresh it.</param>
     /// <param name="cancellationToken">Cancels a refresh waited on.</param>
-    /// <returns>200 when it ran, 204 when it was queued, or 503 while the source is paused.</returns>
+    /// <returns>200 when it ran, 204 when it was queued, or 503 while the source is suspended.</returns>
     private async Task<ActionResult> RefreshMissing(MetadataGuid entryID, MetadataRefreshBody body, CancellationToken cancellationToken)
     {
         var options = body.ToOptions(body.Immediate && body.QuickRefresh);
@@ -839,7 +845,7 @@ public partial class MetadataEntryController : BaseController
     /// <param name="entry">The series or movie.</param>
     /// <param name="body">How to download them.</param>
     /// <param name="cancellationToken">Cancels a download waited on.</param>
-    /// <returns>200 when it ran, 204 when it was queued, or 503 while the source is paused.</returns>
+    /// <returns>200 when it ran, 204 when it was queued, or 503 while the source is suspended.</returns>
     private async Task<ActionResult> DownloadImages(IMetadata entry, MetadataDownloadImagesBody body, CancellationToken cancellationToken)
     {
         if (await QueueWhenPaused(entry.Source, () => _refreshService.DownloadImages(entry.ID, body.Force, prioritize: true, cancellationToken: cancellationToken), "An image download", body.Immediate).ConfigureAwait(false) is { } paused)

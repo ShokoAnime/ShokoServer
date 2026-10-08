@@ -29,8 +29,8 @@ namespace Shoko.Plugin.Tmdb.Metadata;
 ///   The core runs the refresh, search, image and entity jobs and calls in
 ///   here; the provider fetches from TMDB and writes into the core's stores,
 ///   and the core reads everything back from them. Without an API key it says
-///   it is not configured, and while TMDB rate limits it or fails it says it
-///   is paused, so the core holds its jobs back.
+///   it is not configured, and while TMDB rate limits it or fails its
+///   suspension provider is suspended, so the core holds its jobs back.
 /// </remarks>
 public sealed class TmdbMetadataProvider :
     IMetadataSeriesLinkingProvider,
@@ -39,9 +39,7 @@ public sealed class TmdbMetadataProvider :
     IMetadataEntityProvider,
     IMetadataAutoLinkingProvider,
     IMetadataImageProvider,
-    IPausableMetadataProvider,
-    IMetadataProvider<TmdbConfiguration>,
-    IDisposable
+    IMetadataProvider<TmdbConfiguration>
 {
     #region Fields
 
@@ -95,7 +93,6 @@ public sealed class TmdbMetadataProvider :
         _imageService = imageService;
         _metadataService = metadataService;
         _logger = logger;
-        _apiClient.RateLimiter.PauseStateChanged += OnPauseStateChanged;
     }
 
     #endregion
@@ -215,39 +212,6 @@ public sealed class TmdbMetadataProvider :
         ArgumentNullException.ThrowIfNull(entry);
         return TmdbSiteUrls.ForEntry(entry);
     }
-
-    #endregion
-
-    #region Pausing
-
-    /// <summary>
-    ///   Paused while TMDB rate limits the plugin or answers with server
-    ///   errors.
-    /// </summary>
-    public MetadataProviderPauseStatus PauseStatus
-    {
-        get
-        {
-            var rateLimiter = _apiClient.RateLimiter;
-            if (rateLimiter.PauseReason is var reason and not TmdbPauseReason.None)
-                return new()
-                {
-                    IsPaused = true,
-                    Reason = reason is TmdbPauseReason.RateLimited
-                        ? "TMDB is limiting the rate of requests, so its requests are paused for a while."
-                        : "TMDB answered with server errors, so its requests are paused for a while.",
-                    ResumesAt = rateLimiter.ResumesAt?.UtcDateTime,
-                };
-
-            return MetadataProviderPauseStatus.NotPaused;
-        }
-    }
-
-    /// <inheritdoc/>
-    public event EventHandler? PauseStatusChanged;
-
-    private void OnPauseStateChanged(object? sender, EventArgs eventArgs)
-        => PauseStatusChanged?.Invoke(this, EventArgs.Empty);
 
     #endregion
 
@@ -403,10 +367,4 @@ public sealed class TmdbMetadataProvider :
     }
 
     #endregion
-
-    /// <summary>
-    ///   Stops listening for pauses.
-    /// </summary>
-    public void Dispose()
-        => _apiClient.RateLimiter.PauseStateChanged -= OnPauseStateChanged;
 }

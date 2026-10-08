@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
@@ -51,23 +52,24 @@ public partial class TmdbController(
     IMetadataCrossReferenceTransferService _crossReferenceTransferService,
     IMetadataOrderingService _orderingService,
     IImageManager _imageManager,
-    IMetadataService _metadataService
+    IMetadataService _metadataService,
+    ISuspensionService _suspensionService
 ) : BaseController(settingsProvider)
 {
-    // A fast 503 with Retry-After while paused; queues the job first unless the caller waits for it.
-    // Not the safety net: the queue already holds back every job of a paused provider.
+    // A fast 503 with Retry-After while suspended; queues the job first unless the caller waits for it.
+    // Not the safety net: the queue already holds back every job of a suspended provider.
     private async Task<ActionResult?> TryQueueWhenPaused(Func<Task> queue, string jobDescription, bool immediate)
     {
-        var status = _metadataRefreshService.GetPauseStatus(MetadataSource.TMDB);
-        if (!status.IsPaused) return null;
-        var seconds = (int)(status.GetRemainingPauseTime()?.TotalSeconds ?? 0);
+        var status = SourceSuspension.For(_suspensionService, MetadataSource.TMDB);
+        if (!status.IsSuspended) return null;
+        var seconds = (int)(status.GetRemainingTime()?.TotalSeconds ?? 0);
         if (immediate)
         {
-            _logger.LogInformation("TMDB is currently paused. {Job} was requested immediately and has been refused; retry in approximately {Seconds} second(s).", jobDescription, seconds);
+            _logger.LogInformation("TMDB is currently suspended. {Job} was requested immediately and has been refused; retry in approximately {Seconds} second(s).", jobDescription, seconds);
         }
         else
         {
-            _logger.LogInformation("TMDB is currently paused. {Job} has been queued and will start in approximately {Seconds} second(s).", jobDescription, seconds);
+            _logger.LogInformation("TMDB is currently suspended. {Job} has been queued and will start in approximately {Seconds} second(s).", jobDescription, seconds);
             await queue();
         }
         Response.Headers.RetryAfter = seconds.ToString();
@@ -76,14 +78,14 @@ public partial class TmdbController(
 
     /// <summary>
     ///   Queues a TMDB entry's refresh, or runs it at once, answering 503 while
-    ///   TMDB is paused.
+    ///   TMDB is suspended.
     /// </summary>
     /// <param name="entry">The show, movie or collection.</param>
     /// <param name="force">Whether to refresh it however recently it was.</param>
     /// <param name="options">What to fetch.</param>
     /// <param name="description">What is refreshed, for the log.</param>
     /// <param name="immediate">Whether to run it at once and wait for it.</param>
-    /// <returns>200 when it ran, 204 when it was queued, or 503 while TMDB is paused.</returns>
+    /// <returns>200 when it ran, 204 when it was queued, or 503 while TMDB is suspended.</returns>
     private async Task<ActionResult> RefreshTmdbEntry(MetadataGuid entry, bool force, MetadataRefreshOptions options, string description, bool immediate)
     {
         if (await TryQueueWhenPaused(() => _metadataRefreshService.RefreshEntry(entry, force, options, prioritize: true), description, immediate) is { } paused)
@@ -101,13 +103,13 @@ public partial class TmdbController(
 
     /// <summary>
     ///   Queues the image download of a TMDB entry, or runs it at once,
-    ///   answering 503 while TMDB is paused.
+    ///   answering 503 while TMDB is suspended.
     /// </summary>
     /// <param name="entry">The show or movie.</param>
     /// <param name="force">Whether to download the images again even when they are there.</param>
     /// <param name="description">What is downloaded, for the log.</param>
     /// <param name="immediate">Whether to run it at once and wait for it.</param>
-    /// <returns>200 when it ran, 204 when it was queued, or 503 while TMDB is paused.</returns>
+    /// <returns>200 when it ran, 204 when it was queued, or 503 while TMDB is suspended.</returns>
     private async Task<ActionResult> DownloadTmdbEntryImages(MetadataGuid entry, bool force, string description, bool immediate)
     {
         if (await TryQueueWhenPaused(() => _metadataRefreshService.DownloadImages(entry, force, prioritize: true), description, immediate) is { } paused)
@@ -1884,7 +1886,7 @@ public partial class TmdbController(
     )
     {
         // If we want quick results, we're already running an update, and we already have episodes to use, then
-        // just return early. This is answered entirely from local state, so it must run before the pause check
+        // just return early. This is answered entirely from local state, so it must run before the suspension check
         // below — it never touches TMDB and shouldn't be refused just because TMDB itself is unavailable.
         if (body.Immediate && body.QuickRefresh && _metadataRefreshService.IsRefreshing(ShowEntry(showID)) && TmdbCompatibility.GetShow(showID)?.TmdbEpisodes.Count > 0)
             return Ok();

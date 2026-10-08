@@ -7,6 +7,7 @@ using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Suspensions;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Settings;
@@ -31,6 +32,7 @@ public static class AniDBStartup
         services.AddSingleton<IUDPConnectionHandler>(sp => sp.GetRequiredService<AniDBUDPConnectionHandler>());
         services.AddSingleton<IAniDbUdpRequestChannel>(sp => sp.GetRequiredService<AniDBUDPConnectionHandler>());
         services.AddSingleton<IRequestFactory, RequestFactory>();
+        services.AddHostedService<AnidbSuspensionMonitor>();
 
         // Register Requests
         var requestType = typeof(IRequest);

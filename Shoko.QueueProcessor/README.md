@@ -588,7 +588,7 @@ Bundled filter, which the host registers as an `IAcquisitionFilter` itself:
 
 - `NetworkRequiredAcquisitionFilter` gates `[NetworkRequired]` (and subclasses) on `IConnectivityService.NetworkAvailability`.
 
-The library has no filter for `[DatabaseRequired]`: the host knows when its database is ready. Shoko Server registers its own filters for the database, the AniDB HTTP and UDP rate limits, and paused metadata providers (a provider implementing `IPausableMetadataProvider` holds back its own jobs while it reports itself paused, and every other provider's jobs keep running).
+The library has no filter for `[DatabaseRequired]`: the host knows when its database is ready. Shoko Server registers its own filters for the database, the AniDB HTTP and UDP rate limits, and suspended providers (the jobs of each metadata or release provider a suspended `ISuspensionProvider` holds back wait, and every other provider's jobs keep running).
 
 Implement your own by registering an `IAcquisitionFilter` in DI:
 

@@ -18,7 +18,7 @@ using Shoko.Server.Settings;
 
 namespace Shoko.Server.Services;
 
-public class MetadataProviderManager : IMetadataProviderManager, IMetadataProviderPauseState
+public class MetadataProviderManager : IMetadataProviderManager
 {
     private List<ProviderEntry>? _metadataProviders;
 
@@ -102,16 +102,6 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     ///   route through.
     /// </summary>
     internal IReadOnlyList<ProviderEntry> Entries => _metadataProviders ?? [];
-
-    /// <inheritdoc />
-    public event EventHandler? PausedProvidersChanged;
-
-    private void OnProviderPausedChanged(object? sender, EventArgs eventArgs)
-        => PausedProvidersChanged?.Invoke(this, EventArgs.Empty);
-
-    /// <inheritdoc />
-    public IReadOnlyList<Type> GetPausedProviderTypes()
-        => [.. Entries.Where(entry => entry.Provider is IPausableMetadataProvider pausable && pausable.PauseStatus.IsPaused).Select(entry => entry.Provider.GetType())];
 
     #region Source Icons
 
@@ -299,7 +289,6 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
                 SupportsAutoLinking = provider is IMetadataAutoLinkingProvider,
                 Source = source,
                 MaxConcurrentJobs = provider.MaxConcurrentJobs is > 0 and var limit ? limit : null,
-                SupportsPausing = provider is IPausableMetadataProvider,
                 SupportsImages = provider is IMetadataImageProvider,
                 SupportsLookup = Overrides(providerType, typeof(IMetadataSeriesLinkingProvider), nameof(IMetadataSeriesLinkingProvider.LookupSeries)) ||
                     Overrides(providerType, typeof(IMetadataMovieLinkingProvider), nameof(IMetadataMovieLinkingProvider.LookupMovie)),
@@ -357,13 +346,6 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
         SettingsMigrations.ClearKindsOffCarryOver(_applicationPaths.DataPath);
 
         ApplyProviderSettings();
-
-        // A provider's pause is read whether or not it is enabled, since a
-        // job queued before it was turned off must still wait for it.
-        foreach (var entry in _metadataProviders)
-            if (entry.Provider is IPausableMetadataProvider pausable)
-                pausable.PauseStatusChanged += OnProviderPausedChanged;
-        PausedProvidersChanged?.Invoke(this, EventArgs.Empty);
 
         _logger.LogInformation(
             "Registered {Count} metadata providers: {Providers}.",

@@ -76,8 +76,9 @@ core answers its routes with `503`.
 
 Every request goes through the plugin's own sliding-window rate limiter and a
 bulkhead. While TMDB limits the rate or answers with server errors, the
-provider reports itself paused through `IPausableMetadataProvider`, and the
-core holds its jobs back until it resumes.
+plugin's `TmdbSuspensionProvider` (named "TMDB") reports a `RateLimited` or
+`ServerErrors` suspension with its end, the two kept apart, and the core holds
+the provider's jobs back until it runs out.
 
 ## Images
 

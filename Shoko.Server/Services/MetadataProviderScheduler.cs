@@ -612,8 +612,8 @@ public class MetadataProviderScheduler(
     /// <param name="priority">The priority to queue it at in place of the type's own, or <c>null</c> for the type's own.</param>
     /// <returns>
     ///   <c>true</c> once it is queued or has run, or
-    ///   <c>false</c> when it was to run now but the provider is
-    ///   paused or the queue holds its jobs back.
+    ///   <c>false</c> when it was to run now but the queue holds its
+    ///   jobs back, as it does while the provider is suspended.
     /// </returns>
     private Task<bool> Dispatch(MetadataProviderInfo info, Type jobType, Action<IQueueJob> configure, bool prioritize, bool immediate, int? priority = null)
         => Dispatch(scheduler, jobFactory, logger, info, jobType, configure, prioritize, immediate, priority);
@@ -633,8 +633,8 @@ public class MetadataProviderScheduler(
     /// <param name="priority">The priority to queue it at in place of the type's own, or <c>null</c> for the type's own.</param>
     /// <returns>
     ///   <c>true</c> once it is queued or has run, or
-    ///   <c>false</c> when it was to run now but the provider is
-    ///   paused or the queue holds its jobs back.
+    ///   <c>false</c> when it was to run now but the queue holds its
+    ///   jobs back, as it does while the provider is suspended.
     /// </returns>
     internal static async Task<bool> Dispatch(
         IQueueScheduler scheduler,
@@ -657,12 +657,6 @@ public class MetadataProviderScheduler(
             return true;
         }
 
-        if (info.Provider is IPausableMetadataProvider { PauseStatus.IsPaused: true })
-        {
-            logger.LogInformation("Not running a job for {Provider} at once, as it is paused.", info.Name);
-            return false;
-        }
-
         try
         {
             await ((Task)_executeNow.MakeGenericMethod(jobType).Invoke(null, [jobFactory, configure])!).ConfigureAwait(false);
@@ -670,7 +664,7 @@ public class MetadataProviderScheduler(
         }
         catch (JobBlockedException)
         {
-            logger.LogInformation("Not running a job for {Provider} at once, as the queue holds its jobs back.", info.Name);
+            logger.LogInformation("Not running a job for {Provider} at once, as the queue holds its jobs back (it may be suspended).", info.Name);
             return false;
         }
     }

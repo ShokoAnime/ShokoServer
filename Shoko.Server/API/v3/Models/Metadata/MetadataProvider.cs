@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.API.v3.Models.Plugin;
+using Shoko.Server.API.v3.Models.Suspension;
 
 namespace Shoko.Server.API.v3.Models.Metadata;
 
@@ -20,11 +21,11 @@ public class MetadataProvider
     /// Describes a provider as it is registered now.
     /// </summary>
     /// <param name="info">The provider's registration.</param>
-    /// <param name="status">The pause status of the provider's source.</param>
+    /// <param name="status">What holds the provider's source back.</param>
     /// <param name="providers">Every registered provider, to tell whether the source is configured.</param>
     /// <param name="hasIcon">Whether the provider's source has an icon.</param>
     /// <exception cref="ArgumentNullException"><paramref name="info"/>, <paramref name="status"/> or <paramref name="providers"/> is <c>null</c>.</exception>
-    public MetadataProvider(MetadataProviderInfo info, MetadataProviderPauseStatus status, IEnumerable<MetadataProviderInfo> providers, bool hasIcon)
+    public MetadataProvider(MetadataProviderInfo info, SourceSuspension status, IEnumerable<MetadataProviderInfo> providers, bool hasIcon)
     {
         ArgumentNullException.ThrowIfNull(info);
         ArgumentNullException.ThrowIfNull(status);
@@ -44,7 +45,6 @@ public class MetadataProvider
         SupportsImages = info.SupportsImages;
         SupportsAutoLinking = info.SupportsAutoLinking;
         SupportsLookup = info.SupportsLookup;
-        SupportsPausing = info.SupportsPausing;
         AvailableEntityTypes = [.. info.AvailableEntityTypes.Order()];
         EnabledEntityTypes = [.. info.EnabledEntityTypes.Order()];
         DefaultEnabledEntityTypes = [.. info.DefaultEnabledEntityTypes.Order()];
@@ -159,12 +159,6 @@ public class MetadataProvider
     public bool SupportsLookup { get; init; }
 
     /// <summary>
-    /// Whether the provider can be paused, and says so in its status.
-    /// </summary>
-    [Required]
-    public bool SupportsPausing { get; init; }
-
-    /// <summary>
     /// The kinds of entries the provider can answer for.
     /// </summary>
     [Required]
@@ -235,7 +229,7 @@ public class MetadataProvider
     public bool AutoLinkRestricted { get; init; }
 
     /// <summary>
-    /// Whether the source is paused now, and for how long.
+    /// Whether the source is suspended now, and for how long.
     /// </summary>
     [Required]
     public MetadataSourceStatus Status { get; init; }
@@ -244,8 +238,8 @@ public class MetadataProvider
 }
 
 /// <summary>
-/// Whether a metadata source is configured, and whether it is paused and for
-/// how long.
+/// Whether a metadata source is configured, and whether it is suspended and
+/// for how long.
 /// </summary>
 public class MetadataSourceStatus
 {
@@ -253,20 +247,21 @@ public class MetadataSourceStatus
     /// Describes a source's status.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <param name="status">Its pause status.</param>
+    /// <param name="status">What holds it back.</param>
     /// <param name="providers">Every registered provider, to tell whether the source's are configured.</param>
     /// <exception cref="ArgumentNullException"><paramref name="source"/>, <paramref name="status"/> or <paramref name="providers"/> is <c>null</c>.</exception>
-    public MetadataSourceStatus(MetadataSource source, MetadataProviderPauseStatus status, IEnumerable<MetadataProviderInfo> providers)
+    public MetadataSourceStatus(MetadataSource source, SourceSuspension status, IEnumerable<MetadataProviderInfo> providers)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(status);
 
         Source = source;
         (IsConfigured, NotConfiguredReason) = MetadataPauseResponses.GetConfiguration(source, providers);
-        IsPaused = status.IsPaused;
-        Reason = status.IsPaused ? status.Reason : null;
-        ResumesAt = status.IsPaused ? status.ResumesAt?.ToUniversalTime() : null;
-        RetryAfterSeconds = status.IsPaused ? MetadataPauseResponses.RetryAfterSeconds(status) : null;
+        IsPaused = status.IsSuspended;
+        Reason = status.IsSuspended ? status.Reason : null;
+        ResumesAt = status.IsSuspended ? status.ResumesAt : null;
+        RetryAfterSeconds = status.IsSuspended ? MetadataPauseResponses.RetryAfterSeconds(status) : null;
+        Suspensions = [.. status.Suspensions.Select(suspension => new SuspensionDetails(suspension))];
     }
 
     /// <summary>
@@ -278,7 +273,7 @@ public class MetadataSourceStatus
     /// <summary>
     /// Whether every enabled provider of the source is configured. While the
     /// one a route would talk to is not, the route answers <c>503 Service
-    /// Unavailable</c> without a <c>Retry-After</c> header. Not a pause.
+    /// Unavailable</c> without a <c>Retry-After</c> header. Not a suspension.
     /// </summary>
     [Required]
     public bool IsConfigured { get; init; }
@@ -290,27 +285,35 @@ public class MetadataSourceStatus
     public string? NotConfiguredReason { get; init; }
 
     /// <summary>
-    /// Whether the source is paused. While it is, the routes that would talk
-    /// to its provider answer <c>503 Service Unavailable</c>.
+    /// Whether a suspension holds the source back. While one does, the routes
+    /// that would talk to its provider answer <c>503 Service Unavailable</c>.
     /// </summary>
     [Required]
     public bool IsPaused { get; init; }
 
     /// <summary>
-    /// Why the source is paused, when it is and says why.
+    /// The reason of the longest-blocking suspension, when it gives one.
     /// </summary>
     public string? Reason { get; init; }
 
     /// <summary>
-    /// When the pause ends, in UTC, when it is paused and the end is known.
+    /// When the last suspension ends, in UTC, when every suspension has an
+    /// end.
     /// </summary>
     public DateTime? ResumesAt { get; init; }
 
     /// <summary>
-    /// The seconds left of the pause, as a <c>Retry-After</c> header would
-    /// send them, when it is paused.
+    /// The seconds left of the suspensions, as a <c>Retry-After</c> header
+    /// would send them, when suspended.
     /// </summary>
     public int? RetryAfterSeconds { get; init; }
+
+    /// <summary>
+    /// Every suspension holding the source back, merged from the suspension
+    /// providers holding its providers. Empty while none does.
+    /// </summary>
+    [Required]
+    public IReadOnlyList<SuspensionDetails> Suspensions { get; init; }
 }
 
 /// <summary>

@@ -21,21 +21,25 @@ public interface IAnidbService
     /// <summary>
     /// Dispatched when an AniDB HTTP or UDP ban occurs.
     /// </summary>
+    [Obsolete("Use the suspension service (ISuspensionService, /api/v3/Suspension, the suspension feed).")]
     event EventHandler<AnidbBanOccurredEventArgs> BanOccurred;
 
     /// <summary>
     /// Dispatched when an AniDB HTTP or UDP ban expires.
     /// </summary>
+    [Obsolete("Use the suspension service (ISuspensionService, /api/v3/Suspension, the suspension feed).")]
     event EventHandler<AnidbBanOccurredEventArgs> BanExpired;
 
     /// <summary>
     /// Indicates we are currently banned from using the AniDB HTTP API.
     /// </summary>
+    [Obsolete("Use the suspension service (ISuspensionService, /api/v3/Suspension, the suspension feed).")]
     bool IsAnidbHttpBanned { get; }
 
     /// <summary>
     /// Indicates we are currently banned from using the AniDB UDP API.
     /// </summary>
+    [Obsolete("Use the suspension service (ISuspensionService, /api/v3/Suspension, the suspension feed).")]
     bool IsAnidbUdpBanned { get; }
 
     /// <summary>
@@ -47,12 +51,14 @@ public interface IAnidbService
     /// The last event arguments indicating when the last or current AniDB HTTP
     /// ban started, and/or if a ban is currently still in effect.
     /// </summary>
+    [Obsolete("Use the suspension service (ISuspensionService, /api/v3/Suspension, the suspension feed).")]
     AnidbBanOccurredEventArgs LastHttpBanEventArgs { get; }
 
     /// <summary>
     /// The last event arguments indicating when the last or current AniDB UDP
     /// ban started, and/or if a ban is currently still in effect.
     /// </summary>
+    [Obsolete("Use the suspension service (ISuspensionService, /api/v3/Suspension, the suspension feed).")]
     AnidbBanOccurredEventArgs LastUdpBanEventArgs { get; }
 
     #endregion

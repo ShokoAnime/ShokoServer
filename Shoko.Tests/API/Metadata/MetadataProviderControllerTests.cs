@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
@@ -57,6 +58,8 @@ public class MetadataProviderControllerTests
 
         public Mock<IMetadataRefreshService> Refresh { get; } = new();
 
+        public Mock<ISuspensionService> Suspensions { get; } = SuspensionTestDoubles.Service();
+
         public Mock<IMetadataPurgeService> Purge { get; } = new();
 
         public Mock<IMetadataLinkingService> Linking { get; } = new();
@@ -83,7 +86,6 @@ public class MetadataProviderControllerTests
 
         public Fixture()
         {
-            Refresh.Setup(r => r.GetPauseStatus(It.IsAny<MetadataSource>())).Returns(MetadataProviderPauseStatus.NotPaused);
             Providers.SetupGet(p => p.MetadataProviders).Returns(() => Registered);
             Providers.Setup(p => p.GetProviderInfo(It.IsAny<Guid>())).Returns((Guid id) => Registered.FirstOrDefault(info => info.ID == id));
             Providers.Setup(p => p.GetAvailableProviders(It.IsAny<MetadataEntityType>(), It.IsAny<MetadataSource?>()))
@@ -121,7 +123,7 @@ public class MetadataProviderControllerTests
         }
 
         public void Pause(TimeSpan left)
-            => Refresh.Setup(r => r.GetPauseStatus(Source)).Returns(new MetadataProviderPauseStatus { IsPaused = true, Reason = "Rate limited.", ResumesAt = DateTime.UtcNow + left });
+            => Suspensions.Suspend(Source, DateTime.UtcNow + left, "Rate limited.");
 
         public MetadataSourceActions Actions
             => new(Refresh.Object, Purge.Object, Linking.Object, Images.Object, NullLogger<MetadataSourceActions>.Instance);
@@ -130,7 +132,7 @@ public class MetadataProviderControllerTests
             => new(
                 new StubSettingsProvider(new ServerSettings()),
                 providers ?? Providers.Object,
-                Refresh.Object,
+                Suspensions.Object,
                 Linking.Object,
                 Metadata.Object,
                 Transfer.Object,

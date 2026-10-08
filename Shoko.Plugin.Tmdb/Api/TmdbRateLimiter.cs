@@ -4,23 +4,26 @@ using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Shoko.Abstractions.Connectivity.Suspensions;
 
 namespace Shoko.Plugin.Tmdb.Api;
 
 /// <summary>
-///   Paces the requests sent to TMDB and holds the pause the plugin reports
-///   while TMDB will not take work. Thread-safe.
+///   Paces the requests sent to TMDB and holds them while TMDB will not take
+///   work, reporting why through the plugin's suspension provider.
+///   Thread-safe.
 /// </summary>
 /// <remarks>
 ///   <para>
-///     A sliding window smooths the requests out. A 429 pauses every request
+///     A sliding window smooths the requests out. A 429 holds every request
 ///     for as long as TMDB asks, and three server errors within the error
-///     window pause them for an escalating while, from a minute to an hour.
+///     window hold them for an escalating while, from a minute to an hour.
+///     The two waits are kept apart, and a request waits for the later.
 ///   </para>
 ///   <para>
-///     The provider hands the pause to the core, which holds the plugin's
-///     jobs back until it runs out. A timer lifts it on time even when no
-///     request runs.
+///     Each wait is reported as a <see cref="SuspensionKind.RateLimited"/>
+///     or <see cref="SuspensionKind.ServerErrors"/> suspension with its end,
+///     so the core holds the plugin's jobs back until it runs out.
 ///   </para>
 /// </remarks>
 public sealed class TmdbRateLimiter : IDisposable
@@ -50,11 +53,11 @@ public sealed class TmdbRateLimiter : IDisposable
 
     private int _serverErrorLevel;
 
-    private DateTimeOffset? _pausedUntil;
+    private readonly ISuspensionReporter<TmdbSuspensionProvider>? _reporter;
 
-    private TmdbPauseReason _pauseReason;
+    private DateTimeOffset? _rateLimitedUntil;
 
-    private ITimer? _pauseTimer;
+    private DateTimeOffset? _serverErrorsUntil;
 
     private bool _disposed;
 
@@ -66,14 +69,22 @@ public sealed class TmdbRateLimiter : IDisposable
     ///   Creates the rate limiter.
     /// </summary>
     /// <param name="settings">How many requests a window takes, and how long a window is.</param>
-    /// <param name="timeProvider">The clock the pauses are measured by; the system's when left out.</param>
-    /// <param name="logger">Where pauses are logged; nowhere when left out.</param>
-    /// <param name="errorWindow">How close together the server errors that trip the pause must be; ten seconds when left out.</param>
+    /// <param name="timeProvider">The clock the waits are measured by; the system's when left out.</param>
+    /// <param name="logger">Where waits are logged; nowhere when left out.</param>
+    /// <param name="errorWindow">How close together the server errors that trip the wait must be; ten seconds when left out.</param>
+    /// <param name="reporter">Where the waits are reported as suspensions; nowhere when left out.</param>
     /// <exception cref="ArgumentNullException"><paramref name="settings"/> is <c>null</c>.</exception>
-    public TmdbRateLimiter(TmdbRateLimitConfiguration settings, TimeProvider? timeProvider = null, ILogger<TmdbRateLimiter>? logger = null, TimeSpan? errorWindow = null)
+    public TmdbRateLimiter(
+        TmdbRateLimitConfiguration settings,
+        TimeProvider? timeProvider = null,
+        ILogger<TmdbRateLimiter>? logger = null,
+        TimeSpan? errorWindow = null,
+        ISuspensionReporter<TmdbSuspensionProvider>? reporter = null
+    )
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        _reporter = reporter;
         _timeProvider = timeProvider ?? TimeProvider.System;
         _logger = logger ?? NullLogger<TmdbRateLimiter>.Instance;
         _errorWindow = errorWindow ?? TimeSpan.FromSeconds(10);
@@ -101,7 +112,7 @@ public sealed class TmdbRateLimiter : IDisposable
     }
 
     /// <summary>
-    ///   Waits out any pause and a slot in the window, then runs a request.
+    ///   Waits out any hold and a slot in the window, then runs a request.
     /// </summary>
     /// <typeparam name="T">What the request answers.</typeparam>
     /// <param name="request">The request.</param>
@@ -119,7 +130,7 @@ public sealed class TmdbRateLimiter : IDisposable
             await WaitForPauseAsync(linked.Token).ConfigureAwait(false);
             using var lease = await _limiter.AcquireAsync(1, linked.Token).ConfigureAwait(false);
 
-            // A pause may have begun while the slot was waited for.
+            // A hold may have begun while the slot was waited for.
             if (RemainingPause() is not null)
                 continue;
 
@@ -129,7 +140,7 @@ public sealed class TmdbRateLimiter : IDisposable
 
     private async Task WaitForPauseAsync(CancellationToken cancellationToken)
     {
-        // A pause may be pushed back while it is waited out, so it is read again.
+        // A hold may be pushed back while it is waited out, so it is read again.
         while (RemainingPause() is { } remaining)
             await Task.Delay(remaining + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 50)), _timeProvider, cancellationToken).ConfigureAwait(false);
     }
@@ -147,35 +158,42 @@ public sealed class TmdbRateLimiter : IDisposable
 
     #endregion
 
-    #region Pausing
+    #region Suspending
 
     /// <summary>
-    ///   Raised when a pause begins, ends or changes its reason.
+    ///   When the rate limit TMDB asked for runs out, while one is on.
     /// </summary>
-    public event EventHandler? PauseStateChanged;
-
-    /// <summary>
-    ///   Why TMDB is not given work, or <see cref="TmdbPauseReason.None"/>
-    ///   while it is.
-    /// </summary>
-    public TmdbPauseReason PauseReason
+    public DateTimeOffset? RateLimitedUntil
     {
         get
         {
             lock (_lock)
-                return _pauseReason;
+                return Active(_rateLimitedUntil);
         }
     }
 
     /// <summary>
-    ///   When the pause runs out, while there is one.
+    ///   When the pause for server errors runs out, while one is on.
+    /// </summary>
+    public DateTimeOffset? ServerErrorsUntil
+    {
+        get
+        {
+            lock (_lock)
+                return Active(_serverErrorsUntil);
+        }
+    }
+
+    /// <summary>
+    ///   When every request may go again: the later of the two waits, while
+    ///   either is on.
     /// </summary>
     public DateTimeOffset? ResumesAt
     {
         get
         {
             lock (_lock)
-                return _pauseReason is TmdbPauseReason.None ? null : _pausedUntil;
+                return Latest();
         }
     }
 
@@ -192,31 +210,44 @@ public sealed class TmdbRateLimiter : IDisposable
     }
 
     /// <summary>
-    ///   TMDB answered 429: pauses every request for as long as it asks, or
-    ///   for longer when a longer pause is on.
+    ///   TMDB answered 429: holds every request for as long as it asks, or
+    ///   for longer when a longer rate limit is on, and reports it.
     /// </summary>
     /// <param name="retryAfter">How long TMDB asked to wait; a second when left out.</param>
     public void NotifyRateLimitExceeded(TimeSpan? retryAfter)
     {
         var delay = retryAfter is { Ticks: > 0 } wait ? wait : TimeSpan.FromSeconds(1);
-        if (!Pause(delay, TmdbPauseReason.RateLimited))
-            return;
+        DateTimeOffset until;
+        lock (_lock)
+        {
+            if (_disposed)
+                return;
+
+            until = _timeProvider.GetUtcNow() + delay;
+            if (_rateLimitedUntil is { } current && current >= until)
+                return;
+
+            _rateLimitedUntil = until;
+        }
 
         _logger.LogInformation("TMDB is rate limiting requests. All TMDB jobs paused for {Duration} seconds. They will resume automatically.", (int)Math.Ceiling(delay.TotalSeconds));
-        PauseStateChanged?.Invoke(this, EventArgs.Empty);
+        Report(SuspensionKind.RateLimited, until);
     }
 
     /// <summary>
     ///   TMDB answered with a server error. The third within the error window
-    ///   pauses every request, for longer each time until a request succeeds
-    ///   after the pause.
+    ///   holds every request, for longer each time until a request succeeds
+    ///   after the wait, and reports it.
     /// </summary>
     public void NotifyServerError()
     {
-        TimeSpan? duration = null;
-        var changed = false;
+        TimeSpan duration;
+        DateTimeOffset until;
         lock (_lock)
         {
+            if (_disposed)
+                return;
+
             var now = _timeProvider.GetUtcNow();
             _errorTimes[_errorSlot] = now;
             _errorSlot = (_errorSlot + 1) % ErrorsToTrip;
@@ -237,51 +268,43 @@ public sealed class TmdbRateLimiter : IDisposable
             _errorSlot = 0;
             _serverErrorLevel = Math.Min(_serverErrorLevel + 1, 5);
             duration = GetServerErrorPause(_serverErrorLevel);
-            changed = PauseUnderLock(duration.Value, TmdbPauseReason.ServerErrors);
+            until = now + duration;
+            if (_serverErrorsUntil is { } current && current >= until)
+            {
+                _logger.LogDebug("TMDB is temporarily unavailable, but a longer pause is already on.");
+                return;
+            }
+
+            _serverErrorsUntil = until;
         }
 
-        if (!changed)
-        {
-            _logger.LogDebug("TMDB is temporarily unavailable, but a longer pause is already on.");
-            return;
-        }
-
-        _logger.LogInformation("TMDB is temporarily unavailable. All TMDB jobs paused for {Duration} minutes. They will resume automatically.", (int)duration!.Value.TotalMinutes);
-        PauseStateChanged?.Invoke(this, EventArgs.Empty);
+        _logger.LogInformation("TMDB is temporarily unavailable. All TMDB jobs paused for {Duration} minutes. They will resume automatically.", (int)duration.TotalMinutes);
+        Report(SuspensionKind.ServerErrors, until);
     }
 
     /// <summary>
-    ///   A request succeeded: lifts a pause that has run out and resets the
-    ///   escalation once the pause is over.
+    ///   A request succeeded: resets the escalation once the server error wait
+    ///   is over.
     /// </summary>
     public void NotifySuccess()
     {
-        var lifted = false;
         lock (_lock)
         {
-            if (_serverErrorLevel is 0 && _pauseReason is TmdbPauseReason.None)
-                return;
-            if (_pausedUntil is { } until && until > _timeProvider.GetUtcNow())
+            if (_serverErrorLevel is 0 || Active(_serverErrorsUntil) is not null)
                 return;
 
             _serverErrorLevel = 0;
+            _serverErrorsUntil = null;
             Array.Clear(_errorTimes);
             _errorSlot = 0;
-            lifted = Lift();
         }
-
-        if (!lifted)
-            return;
-
-        _logger.LogInformation("TMDB is available again. Queued TMDB jobs will now resume.");
-        PauseStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
-    ///   How long a trip of the given level pauses the requests.
+    ///   How long a trip of the given level holds the requests.
     /// </summary>
     /// <param name="level">The level, from one.</param>
-    /// <returns>The pause.</returns>
+    /// <returns>The wait.</returns>
     internal static TimeSpan GetServerErrorPause(int level) => level switch
     {
         1 => TimeSpan.FromMinutes(1),
@@ -291,94 +314,48 @@ public sealed class TmdbRateLimiter : IDisposable
         _ => TimeSpan.FromMinutes(60),
     };
 
-    private bool Pause(TimeSpan duration, TmdbPauseReason reason)
+    // The core clears the suspension once its end passes, so nothing resumes it here.
+    private void Report(SuspensionKind kind, DateTimeOffset until)
     {
-        lock (_lock)
-            return PauseUnderLock(duration, reason);
-    }
-
-    // The longer pause wins, whatever its reason. Called under the lock.
-    private bool PauseUnderLock(TimeSpan duration, TmdbPauseReason reason)
-    {
-        if (_disposed)
-            return false;
-
-        var until = _timeProvider.GetUtcNow() + duration;
-        if (_pausedUntil is { } current && current >= until)
-            return false;
-
-        var changed = _pauseReason != reason;
-        _pausedUntil = until;
-        _pauseReason = reason;
-        Arm(duration);
-        return changed;
-    }
-
-    private void Arm(TimeSpan dueTime)
-    {
-        var clamped = dueTime < TimeSpan.Zero ? TimeSpan.Zero : dueTime > TimeSpan.FromDays(1) ? TimeSpan.FromDays(1) : dueTime;
-        if (_pauseTimer is { } timer)
-        {
-            timer.Change(clamped, Timeout.InfiniteTimeSpan);
+        if (_reporter is null)
             return;
-        }
 
-        // The timer outlives the request that armed it, so it takes nothing of its context along.
-        using (ExecutionContext.SuppressFlow())
-            _pauseTimer = _timeProvider.CreateTimer(_ => Expire(), null, clamped, Timeout.InfiniteTimeSpan);
-    }
-
-    private void Expire()
-    {
-        TmdbPauseReason reason;
-        lock (_lock)
+        try
         {
-            if (_disposed || _pauseReason is TmdbPauseReason.None)
-                return;
-
-            // A timer that fired early waits out the rest of the pause.
-            if (RemainingPauseUnderLock() is { } remaining)
-            {
-                Arm(remaining);
-                return;
-            }
-
-            reason = _pauseReason;
-            Lift();
+            _reporter.Suspend(kind, resumesAt: until.UtcDateTime);
         }
-
-        _logger.LogInformation(
-            reason is TmdbPauseReason.RateLimited ? "TMDB rate limit pause expired. Queued TMDB jobs will now resume." : "TMDB pause expired. Queued TMDB jobs will now resume."
-        );
-        PauseStateChanged?.Invoke(this, EventArgs.Empty);
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Could not report the TMDB {Kind} suspension.", kind);
+        }
     }
 
     // Called under the lock.
-    private bool Lift()
-    {
-        _pausedUntil = null;
-        if (_pauseReason is TmdbPauseReason.None)
-            return false;
+    private DateTimeOffset? Active(DateTimeOffset? until)
+        => until is { } at && at > _timeProvider.GetUtcNow() ? at : null;
 
-        _pauseReason = TmdbPauseReason.None;
-        return true;
-    }
+    // Called under the lock.
+    private DateTimeOffset? Latest()
+        => (Active(_rateLimitedUntil), Active(_serverErrorsUntil)) switch
+        {
+            ({ } rate, { } errors) => rate > errors ? rate : errors,
+            ({ } rate, null) => rate,
+            (null, { } errors) => errors,
+            _ => null,
+        };
 
     private TimeSpan? RemainingPause()
     {
         lock (_lock)
-            return RemainingPauseUnderLock();
+            return Latest() is { } until ? until - _timeProvider.GetUtcNow() : null;
     }
-
-    private TimeSpan? RemainingPauseUnderLock()
-        => _pausedUntil is { } until && until - _timeProvider.GetUtcNow() is { Ticks: > 0 } remaining ? remaining : null;
 
     #endregion
 
     #region Disposal
 
     /// <summary>
-    ///   Stops the pause timer and gives up on the requests still waiting.
+    ///   Gives up on the requests still waiting.
     /// </summary>
     public void Dispose()
     {
@@ -388,7 +365,6 @@ public sealed class TmdbRateLimiter : IDisposable
                 return;
 
             _disposed = true;
-            _pauseTimer?.Dispose();
         }
 
         _disposeCts.Cancel();

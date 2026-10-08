@@ -21,6 +21,7 @@ using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Connectivity.Services;
+using Shoko.Abstractions.Connectivity.Suspensions;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Events;
 using Shoko.Abstractions.Core.Exceptions;
@@ -460,6 +461,10 @@ public class SystemService : ISystemService
             services.AddSingleton(pluginManager);
             services.AddSingleton(ApplicationPaths.Instance);
             services.AddSingleton(typeof(PluginPaths<>));
+            // Concrete and forwarded, so the reporters and the service share one instance.
+            services.AddSingleton<SuspensionService>();
+            services.AddSingleton<ISuspensionService>(provider => provider.GetRequiredService<SuspensionService>());
+            services.AddSingleton(typeof(ISuspensionReporter<>), typeof(SuspensionReporter<>));
             services.AddSingleton<PluginDatabaseServer>();
             services.AddSingleton<PluginDatabaseGate>();
             services.AddSingleton<PluginDatabaseMigrator>();
@@ -605,7 +610,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
-            services.AddSingleton<IAcquisitionFilter, MetadataProviderPausedAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, SuspensionAcquisitionFilter>();
 
             // Each metadata provider's job types follow the limit it declared.
             services.AddSingleton<IJobConcurrencyProvider, MetadataProviderJobConcurrency>();

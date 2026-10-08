@@ -21,7 +21,7 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 ///   and schedules the downloads the image settings ask for.
 /// </summary>
 /// <remarks>
-///   One job type per provider, so a paused or limited provider holds back only
+///   One job type per provider, so a suspended or limited provider holds back only
 ///   its own image jobs. It holds the entry's image lock (and outside the core's
 ///   own sources the entry's lock), so no purge or refresh removes what it links. A failed entity
 ///   does not stop the rest, but the job fails afterwards so the queue retries it.

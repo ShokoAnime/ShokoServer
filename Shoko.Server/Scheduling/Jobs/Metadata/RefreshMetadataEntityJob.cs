@@ -20,7 +20,7 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 ///   its source.
 /// </summary>
 /// <remarks>
-///   One job type per provider, so a paused or limited provider holds back only
+///   One job type per provider, so a suspended or limited provider holds back only
 ///   its own refreshes, and one job per entry, so an entry named by many series
 ///   is fetched once. The core takes the entry's lock and skips one no longer
 ///   due unless forced. Every refresh is stamped on the entry's row, found or not,

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User.Services;
@@ -54,12 +55,13 @@ public class EpisodeMetadataController : ShokoMetadataControllerBase
     /// Takes the services the routes work through.
     /// </summary>
     /// <param name="settingsProvider">The settings.</param>
-    /// <param name="logger">Logs refreshes refused while a source is paused.</param>
+    /// <param name="logger">Logs refreshes refused while a source is suspended.</param>
     /// <param name="userService">Tells who is asking.</param>
     /// <param name="metadataService">Reads the episode, the links and the linked entries.</param>
     /// <param name="linkingService">Makes and breaks the links.</param>
     /// <param name="refreshService">Refreshes what is linked.</param>
     /// <param name="models">Builds the models sent.</param>
+    /// <param name="suspensionService">Tells whether a source is suspended.</param>
     public EpisodeMetadataController(
         ISettingsProvider settingsProvider,
         ILogger<EpisodeMetadataController> logger,
@@ -67,8 +69,9 @@ public class EpisodeMetadataController : ShokoMetadataControllerBase
         IMetadataService metadataService,
         IMetadataLinkingService linkingService,
         IMetadataRefreshService refreshService,
-        MetadataModelBuilder models
-    ) : base(settingsProvider, logger, userService, metadataService, refreshService)
+        MetadataModelBuilder models,
+        ISuspensionService suspensionService
+    ) : base(settingsProvider, logger, userService, metadataService, refreshService, suspensionService)
     {
         _metadataService = metadataService;
         _linkingService = linkingService;

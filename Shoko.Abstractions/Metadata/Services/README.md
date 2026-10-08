@@ -13,7 +13,7 @@ Every interface here is implemented by the server and called by you.
 | `IMetadataProviderManager` | See and set which provider answers for which source and kind, in what order the rest stand by, which sources are reserved, and each source's icon |
 | `IMetadataImageContributorManager` | List the image contributors and turn each one on or off per source and kind |
 | `IMetadataLinkingService` | Make, break and correct links between Shoko entries and a source's, one at a time or in bulk |
-| `IMetadataRefreshService` | Ask the providers to refresh entries, download their images and auto-search, and read why a source is paused |
+| `IMetadataRefreshService` | Ask the providers to refresh entries, download their images and auto-search |
 | `IMetadataPurgeService` | Purge a source's entries, unused entries, collections and orphaned people, studios and networks |
 | `IMetadataCrossReferenceTransferService` | Export a source's links to CSV and import them back |
 | `IMetadataMatchingEngine` | Judge how well a source's data lines up with AniDB's |
@@ -168,8 +168,8 @@ per entry the anime links to) and `RefreshAllLinked`, the image jobs (`DownloadI
 `MetadataRefreshOptions` carries the refresh switches. `IsRefreshing` and
 `WaitForRefresh` let a reader avoid handing back a copy that is about to
 change, and `GetLastRefreshedAt` reads when a series, film or collection was
-last refreshed. `GetPauseStatus` and `PauseStatusChanged` say why a source cannot take
-work.
+last refreshed. Why a source cannot take work is `ISuspensionService.GetForSource`'s
+to say.
 
 `IMetadataPurgeService` queues the core's purge job: `PurgeEntry`,
 `PurgeUnused` (entries nothing links to, optionally by age or kind),

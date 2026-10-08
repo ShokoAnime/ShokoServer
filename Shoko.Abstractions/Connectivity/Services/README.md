@@ -96,3 +96,66 @@ reachable, but:
   `RemoveMonitorDefinition` returns `false` when there was nothing to remove.
 
 Use `HEAD` (`ConnectivityCheckType.Head`) where the endpoint supports it.
+
+---
+
+## Suspensions
+
+A service you talk to may refuse work for a while: it rate limits you, bans
+you, answers with server errors, or rejects your key. Say so through the
+suspension contract, in `Connectivity/Suspensions/`, and the core holds back
+the queued jobs of the providers you name, shows the status to clients and
+lets an admin lift what can be lifted.
+
+Export one `ISuspensionProvider` per status (a service with two channels that
+are limited on their own exports two):
+
+```csharp
+public sealed class MyServiceSuspensionProvider : ISuspensionProvider
+{
+    public string Name => "My Service";
+
+    public string? Description => null;
+
+    public IReadOnlyList<Type> HeldProviderTypes => [typeof(MyMetadataProvider)];
+
+    public Task Lift(SuspensionKind kind, CancellationToken token) => Task.CompletedTask;
+}
+```
+
+Report through `ISuspensionReporter<TProvider>`, injected wherever the
+knowledge lives, such as your rate limiter:
+
+```csharp
+public class MyRateLimiter(ISuspensionReporter<MyServiceSuspensionProvider> reporter)
+{
+    public void OnTooManyRequests(TimeSpan retryAfter)
+        => reporter.Suspend(SuspensionKind.RateLimited, resumesAt: DateTime.UtcNow + retryAfter);
+}
+```
+
+| Member | Notes |
+|---|---|
+| `Suspend(kind, reason, resumesAt, isLiftable)` | One suspension per kind. Reporting a kind again updates its reason, end and liftability, and keeps `RaisedAt`. An end already in the past is ignored. |
+| `Resume(kind)`, `ResumeAll()` | End what you reported, as soon as you know it is over. |
+| `Current` | Your status as the core keeps it. |
+
+- **Ends.** With a `resumesAt` the core clears the suspension once it passes,
+  so you never need a timer of your own. Without one it lasts until you
+  resume it or an admin lifts it.
+- **Reasons.** Leave `reason` `null` unless the service told you something a
+  client could not word from the kind. The core adds no text of its own.
+- **Lifting.** Only a suspension reported with `isLiftable: true` can be
+  lifted. The core calls your `Lift`, then removes it.
+- **Timing.** Every reporter member throws `InvalidOperationException` until
+  the providers are registered at start-up, and for a provider type that was
+  not loaded.
+
+`ISuspensionService` reads it all back: `GetAll`, `Get(providerID)`,
+`GetForSource(source)` (the statuses holding a source's metadata providers),
+`Lift`, and `SuspensionChanged`, raised after every change with what was
+raised, updated and removed (and why: `Expired`, `Resumed` or `Lifted`).
+
+Clients read the same statuses from `GET /api/v3/Suspension` and the
+`suspension` SignalR feed; an admin lifts through
+`POST /api/v3/Suspension/{providerID}/{kind}/Lift`.

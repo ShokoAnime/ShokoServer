@@ -123,7 +123,7 @@ and should not be used for new code unless DI is not an option and only as a las
 
 **Global action filters** (registered on all MVC controllers):
 - `DatabaseBlockedFilter` — returns 400 if DB is blocked, exempted via `[DatabaseBlockedExempt]`
-- `MetadataProviderUnavailableAttribute` (exception filter) — a `MetadataProviderUnavailableException` answers 502 with `Retry-After`; a `MetadataProviderNotConfiguredException` (the TMDB plugin without an API key among them) answers 503
+- `MetadataProviderUnavailableAttribute` (exception filter) — a `MetadataProviderUnavailableException` answers 502 with `Retry-After` (the exception's wait, else what is left of the source's suspensions); a `MetadataProviderNotConfiguredException` (the TMDB plugin without an API key among them) answers 503
 
 **Action constraints**:
 - `RedirectConstraint` — redirects root `/` to WebUI public path if configured
@@ -147,7 +147,7 @@ Two hubs, only mapped when `EnableSignalR` is on:
 - **`LoggingHub`** (`/signalr/logging`, admins only) — streams buffered server logs to connecting clients, separate from the aggregate hub because it can become noisy, fast.
 - **`AggregateHub`** (`/signalr/aggregate`, any authenticated user) — subscription only; clients call `feed.join_single` / `feed.join_many` etc. to subscribe to event categories, and cannot call into a feed.
 
-Event emitters (`Shoko.Server/API/SignalR/Aggregate/`) bridge internal domain events to SignalR: `AiringEventEmitter`, `AnidbEventEmitter`, `AvdumpEventEmitter`, `ConfigurationEventEmitter`, `FileEventEmitter`, `GroupEventEmitter`, `ManagedFolderEventEmitter`, `MetadataEventEmitter`, `NetworkEventEmitter`, `PluginEventEmitter`, `QueueEventEmitter`, `ReleaseEventEmitter`, `RestartEventEmitter`, `UserDataEventEmitter`, `UserEventEmitter`. An emitter can refuse a user by overriding `CanConnect`; `RestartEventEmitter` (the `restart` feed, carrying `ISystemService.RestartReasons`) takes admins only.
+Event emitters (`Shoko.Server/API/SignalR/Aggregate/`) bridge internal domain events to SignalR: `AiringEventEmitter`, `AnidbEventEmitter`, `AvdumpEventEmitter`, `ConfigurationEventEmitter`, `FileEventEmitter`, `GroupEventEmitter`, `ManagedFolderEventEmitter`, `MetadataEventEmitter`, `NetworkEventEmitter`, `PluginEventEmitter`, `QueueEventEmitter`, `ReleaseEventEmitter`, `RestartEventEmitter`, `SuspensionEventEmitter`, `UserDataEventEmitter`, `UserEventEmitter`. An emitter can refuse a user by overriding `CanConnect`; `RestartEventEmitter` (the `restart` feed, carrying `ISystemService.RestartReasons`) takes admins only. `SuspensionEventEmitter` (the `suspension` feed) sends every provider's status on joining and `suspension:changed` with the changed provider's status; `AnidbEventEmitter` (the `anidb` feed) is obsolete in its favor.
 
 The feed contract lives in `Shoko.Abstractions/Web/SignalR/` (`IEventEmitter`, base class `EventEmitter`), so plugins add feeds of their own to the aggregate hub. Every emitter declares its feed's `Name`, matched ignoring case; `EventEmitterRegistry` keeps the first of two emitters sharing a name and logs a warning. By convention a plugin names its feeds after itself.
 
@@ -235,7 +235,7 @@ Timer-based `IHostedService` on a fixed interval the admin cannot change; the co
 - `[NetworkRequired]` — waits until network connectivity is confirmed.
 - `[AniDBUdpRateLimited]` — respects AniDB UDP rate limits.
 - `[AniDBHttpRateLimited]` — respects AniDB HTTP rate limits.
-- The jobs of a metadata provider that implements `IPausableMetadataProvider` are held back while it reports itself paused (`MetadataProviderPausedAcquisitionFilter`); the TMDB plugin pauses this way for a 429 or its 5XX circuit breaker.
+- The jobs of every metadata or release provider a suspended `ISuspensionProvider` lists in `HeldProviderTypes` are held back (`SuspensionAcquisitionFilter`, fed by `ISuspensionService`); the TMDB plugin suspends this way for a 429 or its 5XX circuit breaker.
 
 **`IJobFactory`** (`Shoko.QueueProcessor/JobFactory.cs`): DI-resolved single-shot execution via `Execute<T>()`. Used internally by the worker and by tests or services that need to run a job inline.
 
@@ -250,6 +250,8 @@ The queue system lives in the QueueProcessor project, but the Shoko-specific cod
 Plugins can also implement `IPluginApplicationRegistration` to register custom middleware via `RegisterServices(IApplicationBuilder, IApplicationPaths)` — invoked during `UseAPI()` after `UseEndpoints` but before CORS.
 
 Plugin controllers are registered via `AddPluginControllers` during API setup. Plugins add SignalR feeds with `services.AddEventEmitter<TFeed>()`.
+
+A plugin says a service it talks to cannot take work by exporting an `ISuspensionProvider` (one per status, collected like every other provider) and reporting through `ISuspensionReporter<TProvider>`, an open-generic singleton like `PluginPaths<TPlugin>`. `SuspensionService` keeps one suspension per `SuspensionKind`, clears them when `ResumesAt` passes, and lifts liftable ones for an admin.
 
 ### Configuration System
 

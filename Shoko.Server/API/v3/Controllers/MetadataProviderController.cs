@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Providers;
@@ -30,7 +31,7 @@ using MetadataSearchResult = Shoko.Server.API.v3.Models.Metadata.MetadataSearchR
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>
-/// The metadata providers and what each source offers as a whole: its pause
+/// The metadata providers and what each source offers as a whole: its suspension
 /// status, searching and looking up its entries, exporting and importing its
 /// links, and the actions that run over all of its entries.
 /// </summary>
@@ -39,11 +40,11 @@ namespace Shoko.Server.API.v3.Controllers;
 /// ignoring case; any other answers <c>404</c>. Reading is open to every user;
 /// changes and provider searches are for admins. A route calling a provider at
 /// once answers with a problem body: <c>503</c> while it is not configured,
-/// <c>503</c> with <c>Retry-After</c> while paused, <c>502</c> with one while unreachable.
+/// <c>503</c> with <c>Retry-After</c> while suspended, <c>502</c> with one while unreachable.
 /// </remarks>
 /// <param name="settingsProvider">The settings.</param>
 /// <param name="providerManager">Lists and sets up the providers.</param>
-/// <param name="refreshService">Tells whether a source is paused.</param>
+/// <param name="suspensionService">Tells whether a source is suspended.</param>
 /// <param name="linkingService">Searches and looks entries up.</param>
 /// <param name="metadataService">Reads stored entries.</param>
 /// <param name="transferService">Exports and imports links.</param>
@@ -58,7 +59,7 @@ namespace Shoko.Server.API.v3.Controllers;
 public class MetadataProviderController(
     ISettingsProvider settingsProvider,
     IMetadataProviderManager providerManager,
-    IMetadataRefreshService refreshService,
+    ISuspensionService suspensionService,
     IMetadataLinkingService linkingService,
     IMetadataService metadataService,
     IMetadataCrossReferenceTransferService transferService,
@@ -148,7 +149,7 @@ public class MetadataProviderController(
                 group.Any(info => Links(info, MetadataEntityType.Movie)),
                 LinkingProvider(group.Key, MetadataEntityType.Series) is not null,
                 LinkingProvider(group.Key, MetadataEntityType.Movie) is not null,
-                new(group.Key, refreshService.GetPauseStatus(group.Key), providerManager.MetadataProviders),
+                new(group.Key, SourceSuspension.For(suspensionService, group.Key), providerManager.MetadataProviders),
                 providerManager.GetSourceIcon(group.Key) is not null,
                 group.First().PluginInfo.ID
             ))
@@ -181,7 +182,7 @@ public class MetadataProviderController(
     /// <remarks>
     /// The first enabled provider of a kind answers for it. The rest stand
     /// by: the next enabled one takes over when it is turned off or removed.
-    /// A paused or unconfigured provider is not skipped.
+    /// A suspended or unconfigured provider is not skipped.
     /// </remarks>
     /// <param name="source">The source.</param>
     /// <returns>The kinds, in kind order.</returns>
@@ -285,13 +286,13 @@ public class MetadataProviderController(
 
     /// <summary>
     /// Get whether a source's providers are configured, and whether it is
-    /// paused and for how long.
+    /// suspended and for how long.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>The status.</returns>
     [HttpGet("{source:metadata-source}/Status")]
     public ActionResult<MetadataSourceStatus> GetStatus([FromRoute] MetadataSource source)
-        => new MetadataSourceStatus(source, refreshService.GetPauseStatus(source), providerManager.MetadataProviders);
+        => new MetadataSourceStatus(source, SourceSuspension.For(suspensionService, source), providerManager.MetadataProviders);
 
     /// <summary>
     /// The order of every kind of entry a provider claims on a source.
@@ -316,7 +317,7 @@ public class MetadataProviderController(
     /// <param name="info">The provider.</param>
     /// <returns>The model.</returns>
     private MetadataProvider ToModel(MetadataProviderInfo info)
-        => new(info, refreshService.GetPauseStatus(info.Source), providerManager.MetadataProviders, providerManager.GetSourceIcon(info.Source) is not null);
+        => new(info, SourceSuspension.For(suspensionService, info.Source), providerManager.MetadataProviders, providerManager.GetSourceIcon(info.Source) is not null);
 
     #endregion
 
@@ -338,7 +339,7 @@ public class MetadataProviderController(
     /// <param name="cancellationToken">Cancels the search.</param>
     /// <returns>
     /// The page of what the provider found, or <c>503 Service Unavailable</c>
-    /// while the provider is not configured or the source is paused.
+    /// while the provider is not configured or the source is suspended.
     /// </returns>
     [Authorize("admin")]
     [HttpGet("{source:metadata-source}/Search")]
@@ -361,7 +362,7 @@ public class MetadataProviderController(
             return ValidationProblem("Only series and movies can be searched for.", nameof(kind));
 
         var provider = LinkingProvider(source, kind);
-        if (MetadataPauseResponses.Refuse(Response, source, provider, refreshService.GetPauseStatus(source)) is { } refused)
+        if (MetadataPauseResponses.Refuse(Response, source, provider, SourceSuspension.For(suspensionService, source)) is { } refused)
             return refused;
 
         var options = new MetadataSearchOptions
@@ -545,7 +546,7 @@ public class MetadataProviderController(
     /// Refuses a lookup the source's provider cannot answer now: with
     /// <c>400 Bad Request</c> when it does not look entries up at all, or
     /// <c>503 Service Unavailable</c> while it is not configured or the source
-    /// is paused.
+    /// is suspended.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="kind">Series or movies.</param>
@@ -555,7 +556,7 @@ public class MetadataProviderController(
         if (LinkingProvider(source, kind) is not { SupportsLookup: true } provider)
             return ValidationProblem($"{source.Name} does not look a {kind.Value} up by its ID.", "source");
 
-        return MetadataPauseResponses.Refuse(Response, source, provider, refreshService.GetPauseStatus(source));
+        return MetadataPauseResponses.Refuse(Response, source, provider, SourceSuspension.For(suspensionService, source));
     }
 
     /// <summary>

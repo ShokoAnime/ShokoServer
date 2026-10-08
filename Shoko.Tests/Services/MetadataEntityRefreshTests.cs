@@ -234,14 +234,6 @@ public class MetadataEntityRefreshTests
             => _scope.Dispose();
     }
 
-    private sealed class PausedEntityProvider : IMetadataProviderPauseState
-    {
-        public event EventHandler? PausedProvidersChanged { add { } remove { } }
-
-        public IReadOnlyList<Type> GetPausedProviderTypes()
-            => [typeof(EntityProvider)];
-    }
-
     private static string Name(IMetadataStubRow row)
         => row switch
         {
@@ -625,14 +617,16 @@ public class MetadataEntityRefreshTests
     }
 
     [Fact]
-    public void AnEntityProvidersRefreshesAreItsOwnJobTypeAndWaitOutItsPause()
+    public void AnEntityProvidersRefreshesAreItsOwnJobTypeAndWaitOutItsSuspension()
     {
         var jobType = typeof(RefreshMetadataEntityJob<EntityProvider>);
         Assert.Contains(jobType, MetadataProviderJobs.GetJobTypes(typeof(EntityProvider)));
         Assert.Equal(jobType, MetadataProviderJobs.GetEntityRefreshJobType(typeof(EntityProvider)));
         Assert.Equal(typeof(EntityProvider), MetadataProviderJobs.GetProviderType(jobType));
 
-        using var filter = new MetadataProviderPausedAcquisitionFilter(new PausedEntityProvider(), MetadataProviderJobs.GetJobTypes(typeof(EntityProvider)));
+        var suspensions = SuspensionTestDoubles.Service();
+        suspensions.Setup(s => s.GetAll()).Returns([SuspensionTestDoubles.Status(heldProviderTypes: [typeof(EntityProvider)])]);
+        using var filter = new SuspensionAcquisitionFilter(suspensions.Object, MetadataProviderJobs.GetJobTypes(typeof(EntityProvider)));
         Assert.Contains(jobType, filter.GetTypesToExclude());
     }
 

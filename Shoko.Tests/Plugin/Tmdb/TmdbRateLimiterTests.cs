@@ -1,5 +1,7 @@
 using System;
 using System.Threading.Tasks;
+using Moq;
+using Shoko.Abstractions.Connectivity.Suspensions;
 using Shoko.Plugin.Tmdb;
 using Shoko.Plugin.Tmdb.Api;
 using Xunit;
@@ -7,34 +9,53 @@ using Xunit;
 namespace Shoko.Tests.Plugin.Tmdb;
 
 /// <summary>
-///   The plugin's rate limiter: the pauses it holds for a 429 and for server
-///   errors, and when they lift.
+///   The plugin's rate limiter: the waits it holds for a 429 and for server
+///   errors, kept apart, and the suspensions it reports for them.
 /// </summary>
 public sealed class TmdbRateLimiterTests
 {
     private readonly ManualTimeProvider _clock = new();
 
+    private readonly Mock<ISuspensionReporter<TmdbSuspensionProvider>> _reporter = new();
+
     private TmdbRateLimiter Create(TimeSpan? errorWindow = null)
-        => new(new TmdbRateLimitConfiguration { MaxRequestsPerWindow = 40, WindowDurationMs = 1000 }, _clock, errorWindow: errorWindow);
+        => new(new TmdbRateLimitConfiguration { MaxRequestsPerWindow = 40, WindowDurationMs = 1000 }, _clock, errorWindow: errorWindow, reporter: _reporter.Object);
 
     [Fact]
-    public void ARateLimitPausesForAsLongAsTmdbAsks()
+    public void ARateLimitHoldsForAsLongAsTmdbAsksAndIsReportedWithItsEnd()
     {
         using var limiter = Create();
-        var changes = 0;
-        limiter.PauseStateChanged += (_, _) => changes++;
+        var until = _clock.GetUtcNow() + TimeSpan.FromSeconds(30);
 
         limiter.NotifyRateLimitExceeded(TimeSpan.FromSeconds(30));
 
-        Assert.Equal(TmdbPauseReason.RateLimited, limiter.PauseReason);
-        Assert.Equal(_clock.GetUtcNow() + TimeSpan.FromSeconds(30), limiter.ResumesAt);
-        Assert.Equal(1, changes);
+        Assert.Equal(until, limiter.RateLimitedUntil);
+        Assert.Null(limiter.ServerErrorsUntil);
+        _reporter.Verify(r => r.Suspend(SuspensionKind.RateLimited, null, until.UtcDateTime, false), Times.Once);
 
         _clock.Advance(TimeSpan.FromSeconds(30));
 
-        Assert.Equal(TmdbPauseReason.None, limiter.PauseReason);
         Assert.Null(limiter.ResumesAt);
-        Assert.Equal(2, changes);
+    }
+
+    [Fact]
+    public void TheTwoWaitsAreKeptApartAndARequestWaitsForTheLater()
+    {
+        using var limiter = Create(TimeSpan.FromSeconds(10));
+        limiter.NotifyRateLimitExceeded(TimeSpan.FromSeconds(30));
+        limiter.NotifyServerError();
+        limiter.NotifyServerError();
+        limiter.NotifyServerError();
+
+        Assert.Equal(_clock.GetUtcNow() + TimeSpan.FromSeconds(30), limiter.RateLimitedUntil);
+        Assert.Equal(_clock.GetUtcNow() + TmdbRateLimiter.GetServerErrorPause(1), limiter.ServerErrorsUntil);
+        Assert.Equal(limiter.ServerErrorsUntil, limiter.ResumesAt);
+        _reporter.Verify(r => r.Suspend(SuspensionKind.ServerErrors, null, It.IsAny<DateTime?>(), false), Times.Once);
+
+        _clock.Advance(TimeSpan.FromSeconds(30));
+
+        Assert.Null(limiter.RateLimitedUntil);
+        Assert.NotNull(limiter.ServerErrorsUntil);
     }
 
     [Fact]
@@ -47,6 +68,7 @@ public sealed class TmdbRateLimiterTests
         limiter.NotifyRateLimitExceeded(TimeSpan.FromSeconds(1));
 
         Assert.Equal(resumesAt, limiter.ResumesAt);
+        _reporter.Verify(r => r.Suspend(SuspensionKind.RateLimited, null, It.IsAny<DateTime?>(), false), Times.Once);
     }
 
     [Fact]
@@ -56,14 +78,13 @@ public sealed class TmdbRateLimiterTests
 
         limiter.NotifyServerError();
         limiter.NotifyServerError();
-        Assert.Equal(TmdbPauseReason.None, limiter.PauseReason);
+        Assert.Null(limiter.ServerErrorsUntil);
 
         limiter.NotifyServerError();
-        Assert.Equal(TmdbPauseReason.ServerErrors, limiter.PauseReason);
-        Assert.Equal(_clock.GetUtcNow() + TmdbRateLimiter.GetServerErrorPause(1), limiter.ResumesAt);
+        Assert.Equal(_clock.GetUtcNow() + TmdbRateLimiter.GetServerErrorPause(1), limiter.ServerErrorsUntil);
 
         _clock.Advance(TmdbRateLimiter.GetServerErrorPause(1));
-        Assert.Equal(TmdbPauseReason.None, limiter.PauseReason);
+        Assert.Null(limiter.ServerErrorsUntil);
 
         // A second trip before any request succeeded pauses for longer.
         limiter.NotifyServerError();
@@ -83,7 +104,7 @@ public sealed class TmdbRateLimiterTests
         _clock.Advance(TimeSpan.FromSeconds(6));
         limiter.NotifyServerError();
 
-        Assert.Equal(TmdbPauseReason.None, limiter.PauseReason);
+        Assert.Null(limiter.ServerErrorsUntil);
     }
 
     [Fact]

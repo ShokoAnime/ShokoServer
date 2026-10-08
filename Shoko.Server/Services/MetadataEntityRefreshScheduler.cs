@@ -305,7 +305,7 @@ public class MetadataEntityRefreshScheduler(
     /// <returns>
     ///   <c>true</c> once it is queued or has run, or
     ///   <c>false</c> when the provider has no such job, or it was
-    ///   to run now while the provider is paused.
+    ///   to run now while the queue holds its jobs back.
     /// </returns>
     private async Task<bool> Dispatch(MetadataProviderInfo info, MetadataGuid id, bool force, bool prioritize, bool immediate)
     {

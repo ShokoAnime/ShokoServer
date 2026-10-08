@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
@@ -57,6 +58,8 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
 
     private readonly MetadataModelBuilder _models;
 
+    private readonly ISuspensionService _suspensionService;
+
     #endregion
 
     #region Constructors
@@ -72,6 +75,7 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
     /// <param name="refreshService">Refreshes what is linked.</param>
     /// <param name="providerManager">Tells what a source's providers can do.</param>
     /// <param name="models">Builds the models sent.</param>
+    /// <param name="suspensionService">Tells whether a source is suspended.</param>
     public SeriesMetadataController(
         ISettingsProvider settingsProvider,
         ILogger<SeriesMetadataController> logger,
@@ -80,8 +84,9 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
         IMetadataLinkingService linkingService,
         IMetadataRefreshService refreshService,
         IMetadataProviderManager providerManager,
-        MetadataModelBuilder models
-    ) : base(settingsProvider, logger, userService, metadataService, refreshService)
+        MetadataModelBuilder models,
+        ISuspensionService suspensionService
+    ) : base(settingsProvider, logger, userService, metadataService, refreshService, suspensionService)
     {
         _logger = logger;
         _metadataService = metadataService;
@@ -89,6 +94,7 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
         _refreshService = refreshService;
         _providerManager = providerManager;
         _models = models;
+        _suspensionService = suspensionService;
     }
 
     #endregion
@@ -116,7 +122,7 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
     /// <param name="cancellationToken">Cancels the search.</param>
     /// <returns>
     /// The candidates, best first, or <c>503 Service Unavailable</c> while
-    /// the source's auto-linker is paused or not configured.
+    /// the source's auto-linker is suspended or not configured.
     /// </returns>
     [Authorize("admin")]
     [HttpGet("Action/AutoSearch")]
@@ -132,7 +138,7 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
         if (_providerManager.MetadataProviders.FirstOrDefault(info => info.Source == source && info.Enabled && info.IsAutoLinker) is not { } autoLinker)
             return ValidationProblem($"No enabled provider auto-links {source.Name}.", "source");
 
-        if (MetadataPauseResponses.Refuse(Response, source, autoLinker, _refreshService.GetPauseStatus(source)) is { } refused)
+        if (MetadataPauseResponses.Refuse(Response, source, autoLinker, SourceSuspension.For(_suspensionService, source)) is { } refused)
             return refused;
 
         var candidates = await _linkingService.PreviewAutoLink(source, series.AnidbAnimeID, cancellationToken).ConfigureAwait(false);
@@ -487,7 +493,7 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
     /// <param name="source">The source.</param>
     /// <param name="body">How to refresh them.</param>
     /// <param name="cancellationToken">Cancels a refresh waited on.</param>
-    /// <returns>200 when they ran, 204 when they were queued, or 503 while the source is paused.</returns>
+    /// <returns>200 when they ran, 204 when they were queued, or 503 while the source is suspended.</returns>
     [Authorize("admin")]
     [HttpPost("Action/Refresh")]
     public async Task<ActionResult> RefreshLinked(
@@ -523,7 +529,7 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
     /// <param name="source">The source.</param>
     /// <param name="body">How to download them.</param>
     /// <param name="cancellationToken">Cancels a download waited on.</param>
-    /// <returns>200 when they ran, 204 when they were queued, or 503 while the source is paused.</returns>
+    /// <returns>200 when they ran, 204 when they were queued, or 503 while the source is suspended.</returns>
     [Authorize("admin")]
     [HttpPost("Action/DownloadImages")]
     public async Task<ActionResult> DownloadLinkedImages(

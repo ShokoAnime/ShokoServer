@@ -29,7 +29,7 @@ source of its own also implements the provider contracts.
 | `Anidb/` | AniDB's entries, the MyList and AVDump models, and the [AniDB services](Anidb/Services/README.md) |
 | `CrossReferences/` | The link contracts, the link data the link store takes, and the CSV transfer options |
 | `Storage/` | The typed stores a provider writes through, the `Metadata*Data` records they take, and `IMetadataCrossReferenceStore` |
-| `Providers/` | The [provider contracts](Providers/README.md), `IMetadataResolver`, `IResourceResolver`, and the refresh options and pause status |
+| `Providers/` | The [provider contracts](Providers/README.md), `IMetadataResolver`, `IResourceResolver`, and the refresh options |
 | `Services/` | The [services the server implements](Services/README.md) |
 | `Search/`, `Matching/` | What a search, an auto-link preview and an episode match hand back |
 | `Text/`, `Orderings/` | The data and options of the text manager and of the ordering transfer |

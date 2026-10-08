@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.CrossReferences;
@@ -54,6 +55,8 @@ public class SeriesMetadataControllerTests
 
         public Mock<IMetadataRefreshService> Refresh { get; } = new();
 
+        public Mock<ISuspensionService> Suspensions { get; } = SuspensionTestDoubles.Service();
+
         public Mock<IMetadataProviderManager> Providers { get; } = new();
 
         public Mock<IUserService> Users { get; } = new();
@@ -66,7 +69,6 @@ public class SeriesMetadataControllerTests
 
         public Fixture()
         {
-            Refresh.Setup(r => r.GetPauseStatus(It.IsAny<MetadataSource>())).Returns(MetadataProviderPauseStatus.NotPaused);
             Refresh.Setup(r => r.WaitForRefresh(It.IsAny<MetadataGuid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
             Linking.Setup(l => l.MatchEpisodes(It.IsAny<int>(), It.IsAny<MetadataGuid>(), It.IsAny<MetadataGuid?>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync([]);
@@ -127,7 +129,7 @@ public class SeriesMetadataControllerTests
                 link.AnidbAnimeID == AnimeID && link.ProviderID == ID(MetadataEntityType.Series, seriesID) && link.Source == Source && link.EntityType == MetadataEntityType.Series));
 
         public void Pause(TimeSpan left)
-            => Refresh.Setup(r => r.GetPauseStatus(Source)).Returns(new MetadataProviderPauseStatus { IsPaused = true, ResumesAt = DateTime.UtcNow + left });
+            => Suspensions.Suspend(Source, DateTime.UtcNow + left);
 
         /// <summary>
         /// Registers an auto-linker for the fake source.
@@ -175,7 +177,8 @@ public class SeriesMetadataControllerTests
                 Linking.Object,
                 Refresh.Object,
                 Providers.Object,
-                Models
+                Models,
+                Suspensions.Object
             )
             {
                 ControllerContext = Context(),
@@ -189,7 +192,8 @@ public class SeriesMetadataControllerTests
                 Metadata.Object,
                 Linking.Object,
                 Refresh.Object,
-                Models
+                Models,
+                Suspensions.Object
             )
             {
                 ControllerContext = Context(),

@@ -132,12 +132,6 @@ public class MetadataProviderInfo
     public int? MaxConcurrentJobs { get; init; }
 
     /// <summary>
-    ///   Whether the provider can report that it cannot take work right now,
-    ///   through <see cref="IPausableMetadataProvider"/>.
-    /// </summary>
-    public bool SupportsPausing { get; init; }
-
-    /// <summary>
     ///   The entity types this provider can answer for, worked out from the
     ///   shapes it implements.
     /// </summary>

@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -76,11 +77,12 @@ public class MetadataEntryControllerTests
 
         public WritableLinkStore Links { get; } = new();
 
+        public Mock<ISuspensionService> Suspensions { get; } = SuspensionTestDoubles.Service();
+
         public Fixture()
         {
             Linking.Setup(l => l.SetMatchRating(It.IsAny<IEnumerable<IMetadataCrossReference>>(), It.IsAny<MatchRating>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((IEnumerable<IMetadataCrossReference> links, MatchRating _, CancellationToken _) => [.. links]);
-            Refresh.Setup(r => r.GetPauseStatus(It.IsAny<MetadataSource>())).Returns(MetadataProviderPauseStatus.NotPaused);
             Refresh.Setup(r => r.WaitForRefresh(It.IsAny<MetadataGuid>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
             Text.Setup(t => t.GetTitles(It.IsAny<MetadataGuid>(), It.IsAny<Abstractions.Metadata.Text.Options.TextFilteringOptions?>())).Returns([]);
             Text.Setup(t => t.GetOverviews(It.IsAny<MetadataGuid>(), It.IsAny<Abstractions.Metadata.Text.Options.TextFilteringOptions?>())).Returns([]);
@@ -103,7 +105,8 @@ public class MetadataEntryControllerTests
                 Fuzzy.Object,
                 Linking.Object,
                 Links.Store,
-                Models
+                Models,
+                Suspensions.Object
             )
             {
                 ControllerContext = new()
@@ -640,7 +643,7 @@ public class MetadataEntryControllerTests
     {
         var fixture = new Fixture();
         var series = fixture.StoreSeries(new FakeSeries("21", "Show"));
-        fixture.Refresh.Setup(r => r.GetPauseStatus(Source)).Returns(new MetadataProviderPauseStatus { IsPaused = true, ResumesAt = DateTime.UtcNow.AddSeconds(30) });
+        fixture.Suspensions.Suspend(Source, DateTime.UtcNow.AddSeconds(30));
         var controller = fixture.Controller();
 
         var queued = await controller.RefreshSeries(Source, "21", new MetadataRefreshBody { Force = true }, TestContext.Current.CancellationToken);

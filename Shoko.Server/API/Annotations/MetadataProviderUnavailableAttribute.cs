@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Metadata.Providers;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.v3.Helpers;
 
 namespace Shoko.Server.API.Annotations;
@@ -17,7 +17,7 @@ namespace Shoko.Server.API.Annotations;
 ///   once.
 /// </summary>
 /// <remarks>
-///   The wait is the exception's, else the rest of the source's pause, else a
+///   The wait is the exception's, else the rest of the source's suspensions, else a
 ///   minute. A <see cref="MetadataProviderNotConfiguredException"/> answers
 ///   <c>503 Service Unavailable</c> without a <c>Retry-After</c>, as waiting
 ///   does not configure it. Applied to every controller, plugins' included.
@@ -49,7 +49,7 @@ public sealed class MetadataProviderUnavailableAttribute : ExceptionFilterAttrib
             return;
         }
 
-        var seconds = RetryAfterSeconds(exception, context.HttpContext.RequestServices?.GetService<IMetadataRefreshService>());
+        var seconds = RetryAfterSeconds(exception, context.HttpContext.RequestServices?.GetService<ISuspensionService>());
         context.HttpContext.RequestServices?.GetService<ILogger<MetadataProviderUnavailableAttribute>>()?.LogInformation(
             "{Source} is unavailable ({Message}). Refusing the request; retry in about {Seconds} second(s).",
             exception.MetadataSource.Name,
@@ -89,14 +89,14 @@ public sealed class MetadataProviderUnavailableAttribute : ExceptionFilterAttrib
     ///   How long a caller should wait before asking again.
     /// </summary>
     /// <param name="exception">What the provider threw.</param>
-    /// <param name="refreshService">Tells what is left of the source's pause, when available.</param>
+    /// <param name="suspensionService">Tells what is left of the source's suspensions, when available.</param>
     /// <returns>The seconds to wait.</returns>
-    internal static int RetryAfterSeconds(MetadataProviderUnavailableException exception, IMetadataRefreshService? refreshService)
+    internal static int RetryAfterSeconds(MetadataProviderUnavailableException exception, ISuspensionService? suspensionService)
     {
         if (exception.RetryAfter is { } retryAfter)
             return (int)Math.Ceiling(Math.Max(0, retryAfter.TotalSeconds));
 
-        if (refreshService?.GetPauseStatus(exception.MetadataSource) is { IsPaused: true } status && MetadataPauseResponses.RetryAfterSeconds(status) is > 0 and var left)
+        if (suspensionService is not null && SourceSuspension.For(suspensionService, exception.MetadataSource) is { IsSuspended: true } status && MetadataPauseResponses.RetryAfterSeconds(status) is > 0 and var left)
             return left;
 
         return MetadataPauseResponses.DefaultRetryAfterSeconds;

@@ -10,7 +10,7 @@ using Shoko.Abstractions.Metadata.Providers;
 namespace Shoko.Server.API.v3.Helpers;
 
 /// <summary>
-/// The answers the generic metadata routes give while a source is paused,
+/// The answers the generic metadata routes give while a source is suspended,
 /// while its provider cannot be reached, or while it is not configured.
 /// </summary>
 public static class MetadataPauseResponses
@@ -22,20 +22,31 @@ public static class MetadataPauseResponses
     public const int DefaultRetryAfterSeconds = 60;
 
     /// <summary>
-    /// How many whole seconds are left of a pause, rounded up.
+    /// How many whole seconds are left of a source's suspensions, rounded up.
     /// </summary>
-    /// <param name="status">The source's pause status.</param>
+    /// <param name="status">What holds the source back.</param>
     /// <returns>
-    /// The seconds left, or <see cref="DefaultRetryAfterSeconds"/> when the
-    /// pause names no end, so a caller never retries at once.
+    /// The seconds left, or <see cref="DefaultRetryAfterSeconds"/> when a
+    /// suspension names no end, so a caller never retries at once.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="status"/> is <c>null</c>.</exception>
-    public static int RetryAfterSeconds(MetadataProviderPauseStatus status)
+    public static int RetryAfterSeconds(SourceSuspension status)
     {
         ArgumentNullException.ThrowIfNull(status);
 
-        return status.GetRemainingPauseTime() is { } remaining ? (int)Math.Ceiling(remaining.TotalSeconds) : DefaultRetryAfterSeconds;
+        return RetryAfterSeconds(status.GetRemainingTime());
     }
+
+    /// <summary>
+    /// How many whole seconds are left of a wait, rounded up.
+    /// </summary>
+    /// <param name="remaining">The time left, or <c>null</c> when it has no end.</param>
+    /// <returns>
+    /// The seconds left, or <see cref="DefaultRetryAfterSeconds"/> without an
+    /// end, so a caller never retries at once.
+    /// </returns>
+    public static int RetryAfterSeconds(TimeSpan? remaining)
+        => remaining is { } left ? (int)Math.Ceiling(left.TotalSeconds) : DefaultRetryAfterSeconds;
 
     /// <summary>
     /// Sets the <c>Retry-After</c> header of an answer.
@@ -52,20 +63,22 @@ public static class MetadataPauseResponses
 
     /// <summary>
     /// A <c>503 Service Unavailable</c> problem with a <c>Retry-After</c>
-    /// header, for a request refused while its source is paused.
+    /// header, for a request refused while its source is suspended.
     /// </summary>
     /// <param name="response">The answer the header is set on.</param>
-    /// <param name="source">The paused source.</param>
-    /// <param name="status">The source's pause status.</param>
-    /// <returns>The answer, saying why the source is paused when it says.</returns>
+    /// <param name="source">The suspended source.</param>
+    /// <param name="status">What holds the source back.</param>
+    /// <returns>The answer, saying why the source is suspended.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="response"/>, <paramref name="source"/> or <paramref name="status"/> is <c>null</c>.</exception>
-    public static ObjectResult Paused(HttpResponse response, MetadataSource source, MetadataProviderPauseStatus status)
+    public static ObjectResult Paused(HttpResponse response, MetadataSource source, SourceSuspension status)
     {
         ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(status);
 
         SetRetryAfter(response, RetryAfterSeconds(status));
-        var title = $"{source.Name} is paused.";
-        return Problem(title, status.Reason ?? title, source, null);
+        var title = $"{source.Name} is suspended.";
+        var kinds = string.Join(", ", status.Suspensions.Select(suspension => suspension.Kind).Distinct());
+        return Problem(title, status.Reason ?? (kinds.Length > 0 ? $"{source.Name} is suspended ({kinds})." : title), source, null);
     }
 
     /// <summary>
@@ -86,15 +99,15 @@ public static class MetadataPauseResponses
 
     /// <summary>
     /// Refuses a request the provider that would answer it cannot take now:
-    /// while it is not configured, then while its source is paused.
+    /// while it is not configured, then while its source is suspended.
     /// </summary>
-    /// <param name="response">The answer a <c>Retry-After</c> header is set on while paused.</param>
+    /// <param name="response">The answer a <c>Retry-After</c> header is set on while suspended.</param>
     /// <param name="source">The source.</param>
     /// <param name="provider">The provider that would answer, or <c>null</c> when none would.</param>
-    /// <param name="status">The source's pause status.</param>
+    /// <param name="status">What holds the source back.</param>
     /// <returns>The refusal, or <c>null</c> to go ahead.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="response"/>, <paramref name="source"/> or <paramref name="status"/> is <c>null</c>.</exception>
-    public static ObjectResult? Refuse(HttpResponse response, MetadataSource source, MetadataProviderInfo? provider, MetadataProviderPauseStatus status)
+    public static ObjectResult? Refuse(HttpResponse response, MetadataSource source, MetadataProviderInfo? provider, SourceSuspension status)
     {
         ArgumentNullException.ThrowIfNull(response);
         ArgumentNullException.ThrowIfNull(status);
@@ -102,7 +115,7 @@ public static class MetadataPauseResponses
         if (provider is { Provider.IsConfigured: false })
             return NotConfigured(provider);
 
-        return status.IsPaused ? Paused(response, source, status) : null;
+        return status.IsSuspended ? Paused(response, source, status) : null;
     }
 
     /// <summary>

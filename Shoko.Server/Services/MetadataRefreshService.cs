@@ -32,10 +32,9 @@ public class MetadataRefreshService : IMetadataRefreshService
     private readonly MetadataImageContributorScheduler _contributorScheduler;
 
     /// <summary>
-    ///   Asks the providers through the core's jobs, and relays their pause
-    ///   status.
+    ///   Asks the providers through the core's jobs.
     /// </summary>
-    /// <param name="providerManager">The registered providers, which also tell when one is paused or resumed.</param>
+    /// <param name="providerManager">The registered providers.</param>
     /// <param name="crossReferences">The links, to find what a source links to.</param>
     /// <param name="metadataService">
     ///   The Shoko series, for a search of the whole library and to tell the
@@ -63,8 +62,6 @@ public class MetadataRefreshService : IMetadataRefreshService
         _entryLocks = entryLocks;
         _refreshState = refreshState;
         _contributorScheduler = contributorScheduler;
-        if (providerManager is IMetadataProviderPauseState pauseState)
-            pauseState.PausedProvidersChanged += (_, _) => PauseStatusChanged?.Invoke(this, EventArgs.Empty);
     }
 
     #region Refresh
@@ -295,30 +292,6 @@ public class MetadataRefreshService : IMetadataRefreshService
 
         return queued;
     }
-
-    #endregion
-
-    #region Pausing
-
-    /// <inheritdoc />
-    public MetadataProviderPauseStatus GetPauseStatus(MetadataSource source)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-
-        // The provider expected to resume last decides, and one that does not
-        // say when counts as resuming last of all.
-        return _providerManager.MetadataProviders
-            .Where(info => info.Enabled && info.Source == source)
-            .Select(info => info.Provider)
-            .OfType<IPausableMetadataProvider>()
-            .Select(provider => provider.PauseStatus)
-            .Where(status => status.IsPaused)
-            .OrderByDescending(status => status.ResumesAt ?? DateTime.MaxValue)
-            .FirstOrDefault() ?? MetadataProviderPauseStatus.NotPaused;
-    }
-
-    /// <inheritdoc />
-    public event EventHandler? PauseStatusChanged;
 
     #endregion
 }

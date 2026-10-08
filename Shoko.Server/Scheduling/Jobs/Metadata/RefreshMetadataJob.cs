@@ -24,7 +24,7 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 ///   Has one provider refresh one series, film or collection on its source.
 /// </summary>
 /// <remarks>
-///   One job type per provider, so a paused or limited provider holds back only
+///   One job type per provider, so a suspended or limited provider holds back only
 ///   its own refreshes, and one job per entry, so an entry linked from several
 ///   anime is refreshed once. The core takes the entry's lock, skips it when it
 ///   was refreshed within <see cref="MetadataRefreshState.FreshFor"/> unless

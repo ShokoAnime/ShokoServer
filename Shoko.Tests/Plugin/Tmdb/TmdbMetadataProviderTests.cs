@@ -73,21 +73,6 @@ public sealed class TmdbMetadataProviderTests : IDisposable
     }
 
     [Fact]
-    public void ThePauseIsTheRateLimitersAndRaisesItsChange()
-    {
-        var raised = 0;
-        _harness.Provider.PauseStatusChanged += (_, _) => raised++;
-
-        _harness.ApiClient.RateLimiter.NotifyRateLimitExceeded(TimeSpan.FromMinutes(1));
-
-        var status = _harness.Provider.PauseStatus;
-        Assert.True(status.IsPaused);
-        Assert.NotNull(status.Reason);
-        Assert.NotNull(status.ResumesAt);
-        Assert.Equal(1, raised);
-    }
-
-    [Fact]
     public async Task ASearchTmdbCannotAnswerIsUnavailable()
     {
         _harness.Routes.Status("search/tv", HttpStatusCode.BadGateway).Status("configuration", HttpStatusCode.BadGateway);

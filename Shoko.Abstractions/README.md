@@ -72,7 +72,7 @@ from the bundled TMDB plugin.
   back
 - [System lifecycle](Core/Services/README.md), for what state the server is in
 - [Connectivity](Connectivity/Services/README.md), for whether the machine can
-  reach the internet
+  reach the internet, and for saying a service you talk to is suspended
 - [Filtering](Filtering/Services/README.md), for evaluating filters and presets
   over a collection
 - [Web themes](Web/Services/README.md)

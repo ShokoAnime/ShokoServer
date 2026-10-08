@@ -47,7 +47,7 @@ public sealed class TmdbApiClientTests
 
         Assert.Equal(1001, show?.Id);
         Assert.Equal(2, _routes.Count("tv/1001"));
-        Assert.Equal(TmdbPauseReason.None, client.RateLimiter.PauseReason);
+        Assert.Null(client.RateLimiter.ResumesAt);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class TmdbApiClientTests
         for (var attempt = 0; attempt < 3; attempt++)
             await Assert.ThrowsAsync<GeneralHttpException>(() => client.GetShow(1001, TvShowMethods.Undefined, TestContext.Current.CancellationToken));
 
-        Assert.Equal(TmdbPauseReason.ServerErrors, client.RateLimiter.PauseReason);
+        Assert.NotNull(client.RateLimiter.ServerErrorsUntil);
     }
 
     [Fact]

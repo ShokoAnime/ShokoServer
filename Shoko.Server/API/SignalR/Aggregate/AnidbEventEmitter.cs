@@ -8,6 +8,11 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
+/// <summary>
+/// The <c>anidb</c> feed: the raw state updates of the AniDB connections, kept
+/// for the clients that read bans from it.
+/// </summary>
+[Obsolete("Use the suspension service (ISuspensionService, /api/v3/Suspension, the suspension feed).")]
 public class AnidbEventEmitter : BaseEventEmitter, IDisposable
 {
     public override string Name => "anidb";

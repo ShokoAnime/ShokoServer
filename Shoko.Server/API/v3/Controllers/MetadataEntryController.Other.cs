@@ -518,7 +518,7 @@ public partial class MetadataEntryController
     /// <param name="cancellationToken">Cancels a refresh waited on.</param>
     /// <returns>
     /// 200 when it was waited on, 204 when it was queued, 400 when no provider
-    /// refreshes it or it cannot run now, or 503 while the source is paused.
+    /// refreshes it or it cannot run now, or 503 while the source is suspended.
     /// </returns>
     [Authorize("admin")]
     [HttpPost("Creator/{id}/Action/Refresh")]
@@ -540,7 +540,7 @@ public partial class MetadataEntryController
     /// <param name="cancellationToken">Cancels a refresh waited on.</param>
     /// <returns>
     /// 200 when it was waited on, 204 when it was queued, 400 when no provider
-    /// refreshes it or it cannot run now, or 503 while the source is paused.
+    /// refreshes it or it cannot run now, or 503 while the source is suspended.
     /// </returns>
     [Authorize("admin")]
     [HttpPost("Character/{id}/Action/Refresh")]
@@ -562,7 +562,7 @@ public partial class MetadataEntryController
     /// <param name="cancellationToken">Cancels a refresh waited on.</param>
     /// <returns>
     /// 200 when it was waited on, 204 when it was queued, 400 when no provider
-    /// refreshes it or it cannot run now, or 503 while the source is paused.
+    /// refreshes it or it cannot run now, or 503 while the source is suspended.
     /// </returns>
     [Authorize("admin")]
     [HttpPost("Studio/{id}/Action/Refresh")]
@@ -584,7 +584,7 @@ public partial class MetadataEntryController
     /// <param name="cancellationToken">Cancels a refresh waited on.</param>
     /// <returns>
     /// 200 when it was waited on, 204 when it was queued, 400 when no provider
-    /// refreshes it or it cannot run now, or 503 while the source is paused.
+    /// refreshes it or it cannot run now, or 503 while the source is suspended.
     /// </returns>
     [Authorize("admin")]
     [HttpPost("Network/{id}/Action/Refresh")]
@@ -608,7 +608,7 @@ public partial class MetadataEntryController
     /// <param name="cancellationToken">Cancels a refresh waited on.</param>
     /// <returns>
     /// 200 when it ran, 204 when it was queued, 400 when no provider refreshes
-    /// it or it cannot run now, or 503 while the source is paused.
+    /// it or it cannot run now, or 503 while the source is suspended.
     /// </returns>
     private async Task<ActionResult> RefreshEntity(
         MetadataSource source,

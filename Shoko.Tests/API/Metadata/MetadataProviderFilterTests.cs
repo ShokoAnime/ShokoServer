@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Shoko.Abstractions.Connectivity.Suspensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Tests.Infrastructure;
@@ -20,31 +20,35 @@ namespace Shoko.Tests.API.Metadata;
 
 /// <summary>
 /// Covers the refusals of the generic metadata routes: a provider out of
-/// reach answers 502 and a paused source 503, both with a <c>Retry-After</c>,
+/// reach answers 502 and a suspended source 503, both with a <c>Retry-After</c>,
 /// and a provider not configured 503 without one, each with a problem body.
 /// </summary>
 public class MetadataProviderFilterTests
 {
     #region Fixture
 
-    private static HttpContext Context(MetadataProviderPauseStatus? status = null)
+    private static HttpContext Context(SuspensionStatus? status = null)
     {
-        var refresh = new Mock<IMetadataRefreshService>();
-        refresh.Setup(r => r.GetPauseStatus(It.IsAny<MetadataSource>())).Returns(status ?? MetadataProviderPauseStatus.NotPaused);
+        var suspensions = SuspensionTestDoubles.Service();
+        if (status is not null)
+            suspensions.Setup(s => s.GetForSource(It.IsAny<MetadataSource>())).Returns([status]);
         return new DefaultHttpContext
         {
-            RequestServices = new ServiceCollection().AddLogging().AddSingleton(refresh.Object).BuildServiceProvider(),
+            RequestServices = new ServiceCollection().AddLogging().AddSingleton(suspensions.Object).BuildServiceProvider(),
         };
     }
 
-    private static ExceptionContext Failed(Exception exception, MetadataProviderPauseStatus? status = null)
+    private static ExceptionContext Failed(Exception exception, SuspensionStatus? status = null)
         => new(new ActionContext(Context(status), new RouteData(), new ActionDescriptor()), [])
         {
             Exception = exception,
         };
 
-    private static MetadataProviderPauseStatus PausedFor(TimeSpan left)
-        => new() { IsPaused = true, ResumesAt = DateTime.UtcNow + left };
+    private static SuspensionStatus PausedFor(TimeSpan left)
+        => SuspensionTestDoubles.Status(DateTime.UtcNow + left);
+
+    private static SourceSuspension Suspended(DateTime? resumesAt = null, string? reason = null)
+        => SourceSuspension.From([SuspensionTestDoubles.Status(resumesAt, reason)]);
 
     #endregion
 
@@ -137,7 +141,7 @@ public class MetadataProviderFilterTests
     {
         var response = new DefaultHttpContext().Response;
 
-        var result = MetadataPauseResponses.Refuse(response, Source, Provider(configured: true), new() { IsPaused = true, Reason = "Rate limited.", ResumesAt = DateTime.UtcNow.AddSeconds(15) });
+        var result = MetadataPauseResponses.Refuse(response, Source, Provider(configured: true), Suspended(DateTime.UtcNow.AddSeconds(15), "Rate limited."));
 
         Assert.NotNull(result);
         var problem = Assert.IsType<ProblemDetails>(result.Value);
@@ -151,7 +155,7 @@ public class MetadataProviderFilterTests
     {
         var response = new DefaultHttpContext().Response;
 
-        var result = MetadataPauseResponses.Refuse(response, Source, null, new() { IsPaused = true });
+        var result = MetadataPauseResponses.Refuse(response, Source, null, Suspended());
 
         Assert.Equal(503, result!.StatusCode);
         Assert.Equal(MetadataPauseResponses.DefaultRetryAfterSeconds.ToString(), response.Headers.RetryAfter.ToString());
@@ -163,7 +167,7 @@ public class MetadataProviderFilterTests
         var response = new DefaultHttpContext().Response;
         var provider = Provider(configured: false, reason: "No API key is set.");
 
-        var result = MetadataPauseResponses.Refuse(response, Source, provider, new() { IsPaused = true, Reason = "No API key." });
+        var result = MetadataPauseResponses.Refuse(response, Source, provider, Suspended(reason: "No API key."));
 
         Assert.NotNull(result);
         var problem = Assert.IsType<ProblemDetails>(result.Value);
@@ -176,7 +180,7 @@ public class MetadataProviderFilterTests
 
     [Fact]
     public void ARunningConfiguredProviderIsNotRefused()
-        => Assert.Null(MetadataPauseResponses.Refuse(new DefaultHttpContext().Response, Source, Provider(configured: true), MetadataProviderPauseStatus.NotPaused));
+        => Assert.Null(MetadataPauseResponses.Refuse(new DefaultHttpContext().Response, Source, Provider(configured: true), SourceSuspension.None));
 
     private static MetadataProviderInfo Provider(bool configured, string? reason = null)
         => new()

@@ -2,7 +2,7 @@
 
 The server has one SignalR hub for clients to follow what happens, at
 `/signalr/aggregate`, open to any signed-in user. It is split into **feeds**:
-`queue`, `file`, `metadata`, `restart` and the rest of the core's, each a
+`queue`, `file`, `metadata`, `restart`, `suspension` and the rest of the core's, each a
 subscription a client joins and leaves on the same connection. A plugin adds
 feeds of its own the same way, by registering an `IEventEmitter` in DI, and
 its clients need no second connection.

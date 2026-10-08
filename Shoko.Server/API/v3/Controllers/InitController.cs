@@ -174,8 +174,10 @@ public class InitController : BaseController
             NetworkAvailability = _connectivityService.NetworkAvailability,
             LastChangedAt = _connectivityService.LastChangedAt,
             IsAniDBUdpReachable = _udpHandler.IsAlive && _udpHandler.IsNetworkAvailable,
+#pragma warning disable CS0618 // Kept working from the same state until it is removed.
             IsAniDBUdpBanned = _udpHandler.IsBanned,
-            IsAniDBHttpBanned = _httpHandler.IsBanned
+            IsAniDBHttpBanned = _httpHandler.IsBanned,
+#pragma warning restore CS0618
         };
     }
 

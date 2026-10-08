@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
@@ -21,16 +22,18 @@ namespace Shoko.Server.API.v3.Controllers;
 /// is linked to, and refreshing what they link.
 /// </summary>
 /// <param name="settingsProvider">The settings.</param>
-/// <param name="logger">Logs refreshes refused or queued while a source is paused.</param>
+/// <param name="logger">Logs refreshes refused or queued while a source is suspended.</param>
 /// <param name="userService">Tells who is asking.</param>
 /// <param name="metadataService">Reads the Shoko entries and the linked ones.</param>
 /// <param name="refreshService">Refreshes what is linked.</param>
+/// <param name="suspensionService">Tells whether a source is suspended.</param>
 public abstract class ShokoMetadataControllerBase(
     ISettingsProvider settingsProvider,
     ILogger logger,
     IUserService userService,
     IMetadataService metadataService,
-    IMetadataRefreshService refreshService
+    IMetadataRefreshService refreshService,
+    ISuspensionService suspensionService
 ) : BaseController(settingsProvider)
 {
     #region Constants
@@ -177,28 +180,28 @@ public abstract class ShokoMetadataControllerBase(
 
     /// <summary>
     /// Answers <c>503 Service Unavailable</c> with a <c>Retry-After</c> while
-    /// the source is paused, after queueing the work at the front when the
+    /// the source is suspended, after queueing the work at the front when the
     /// caller did not ask to wait for it, so a caller knows nothing ran yet.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="queue">Queues the work at the front.</param>
     /// <param name="description">What the work is, for the log.</param>
     /// <param name="immediate">Whether the caller wanted to wait for the work.</param>
-    /// <returns>The answer while paused, or <c>null</c> to go ahead.</returns>
+    /// <returns>The answer while suspended, or <c>null</c> to go ahead.</returns>
     protected async Task<ActionResult?> QueueWhenPaused(MetadataSource source, Func<Task> queue, string description, bool immediate)
     {
-        var status = refreshService.GetPauseStatus(source);
-        if (!status.IsPaused)
+        var status = SourceSuspension.For(suspensionService, source);
+        if (!status.IsSuspended)
             return null;
 
         var seconds = MetadataPauseResponses.RetryAfterSeconds(status);
         if (immediate)
         {
-            logger.LogInformation("{Source} is paused. {Work} was asked for at once and was refused; retry in about {Seconds} second(s).", source.Name, description, seconds);
+            logger.LogInformation("{Source} is suspended. {Work} was asked for at once and was refused; retry in about {Seconds} second(s).", source.Name, description, seconds);
         }
         else
         {
-            logger.LogInformation("{Source} is paused. {Work} was queued and starts in about {Seconds} second(s).", source.Name, description, seconds);
+            logger.LogInformation("{Source} is suspended. {Work} was queued and starts in about {Seconds} second(s).", source.Name, description, seconds);
             await queue().ConfigureAwait(false);
         }
 

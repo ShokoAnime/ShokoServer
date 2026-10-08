@@ -15,6 +15,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Connectivity.Services;
+using Shoko.Abstractions.Connectivity.Suspensions;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
@@ -674,7 +676,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             serviceCollection.AddQueueJobsFromAssembly(pluginInfo.PluginType!.Assembly);
         }
 
-        // One job type per metadata provider, so each can be paused and limited alone; the closed
+        // One job type per metadata provider, so each can be held back and limited alone; the closed
         // types are only known once the providers are found.
         var providerTypes = _pluginTypes
             .Where(pluginInfo => pluginInfo.CanLoad)
@@ -943,6 +945,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         if (services.GetRequiredService<IVideoRelocationService>() is VideoRelocationService relocationService)
             relocationService.AddParts(GetExports<IRelocationProvider>());
+
+        if (services.GetRequiredService<ISuspensionService>() is SuspensionService suspensionService)
+            suspensionService.AddParts(GetExports<ISuspensionProvider>());
 
         var actionService = services.GetRequiredService<ActionService>();
         actionService.AddParts(GetTypes<IExecutableAction>()

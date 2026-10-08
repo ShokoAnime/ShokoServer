@@ -23,6 +23,7 @@ internal static class SourceProbe
         ["IMetadataResolver"] = ["metadata-resolver"],
         ["IMetadataImageContributor"] = ["metadata-image-contributor"],
         ["IAiringScheduleProvider"] = ["airing-scheduler"],
+        ["ISuspensionProvider"] = ["suspension-provider"],
         ["IMetadataProvider"] = ["metadata-provider"],
         ["IMetadataSeriesProvider"] = ["metadata-series-provider"],
         ["IMetadataMovieProvider"] = ["metadata-movie-provider"],

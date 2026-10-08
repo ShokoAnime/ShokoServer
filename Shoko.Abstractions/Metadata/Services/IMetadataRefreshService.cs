@@ -284,30 +284,4 @@ public interface IMetadataRefreshService
     Task<int> AutoSearchAll(MetadataSource source, bool force = false, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default);
 
     #endregion
-
-    #region Pausing
-
-    /// <summary>
-    ///   Whether the providers of a source can take work right now, and if not,
-    ///   why and until when.
-    /// </summary>
-    /// <remarks>
-    ///   Read from the enabled providers claiming the source that implement
-    ///   <see cref="IPausableMetadataProvider"/>. While one of them is paused,
-    ///   its jobs wait in the queue.
-    /// </remarks>
-    /// <param name="source">The source.</param>
-    /// <returns>
-    ///   The status of the paused provider that expects to resume last, or
-    ///   <see cref="MetadataProviderPauseStatus.NotPaused"/>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
-    MetadataProviderPauseStatus GetPauseStatus(MetadataSource source);
-
-    /// <summary>
-    ///   Raised whenever a provider reports that it was paused or resumed.
-    /// </summary>
-    event EventHandler? PauseStatusChanged;
-
-    #endregion
 }

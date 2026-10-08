@@ -35,8 +35,6 @@ using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Services;
@@ -150,19 +148,13 @@ public class MetadataProviderJobTests
     }
 
     /// <summary>
-    /// A series provider that can be paused.
+    /// A series provider whose jobs the queue can hold back.
     /// </summary>
-    public sealed class PausableProvider : IMetadataSeriesProvider, IPausableMetadataProvider
+    public sealed class PausableProvider : IMetadataSeriesProvider
     {
         public string Name => "Pausable";
 
         public MetadataSource Source => TestSources.Plugin;
-
-        public MetadataProviderPauseStatus PauseStatus { get; set; } = MetadataProviderPauseStatus.NotPaused;
-
-        public event EventHandler? PauseStatusChanged;
-
-        public void Change() => PauseStatusChanged?.Invoke(this, EventArgs.Empty);
 
         public Task RefreshSeries(MetadataGuid seriesID, MetadataRefreshOptions options, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
@@ -393,48 +385,6 @@ public class MetadataProviderJobTests
         Assert.Equal(2, concurrency.GetConcurrencyLimit(typeof(DownloadMetadataImagesJob<FakeProvider>)));
         Assert.Null(concurrency.GetConcurrencyLimit(typeof(RefreshMetadataJob<SeriesOnlyProvider>)));
         Assert.Null(concurrency.GetConcurrencyLimit(typeof(PurgeMetadataJob)));
-    }
-
-    private sealed class PauseState : IMetadataProviderPauseState
-    {
-        public List<Type> Paused { get; } = [];
-
-        public event EventHandler? PausedProvidersChanged;
-
-        public IReadOnlyList<Type> GetPausedProviderTypes() => Paused;
-
-        public void Change() => PausedProvidersChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    [Fact]
-    public void APausedProviderHoldsBackOnlyItsOwnJobs()
-    {
-        var state = new PauseState();
-        var filter = new MetadataProviderPausedAcquisitionFilter(state, [
-            typeof(RefreshMetadataJob<FakeProvider>),
-            typeof(SearchMetadataJob<FakeProvider>),
-            typeof(DownloadMetadataImagesJob<FakeProvider>),
-            typeof(RefreshMetadataJob<SeriesOnlyProvider>),
-            typeof(PurgeMetadataJob),
-        ]);
-        var changes = 0;
-        filter.StateChanged += (_, _) => changes++;
-        Assert.Empty(filter.GetTypesToExclude());
-
-        state.Paused.Add(typeof(FakeProvider));
-        state.Change();
-
-        Assert.Equal(1, changes);
-        Assert.Equal(
-            [typeof(RefreshMetadataJob<FakeProvider>), typeof(SearchMetadataJob<FakeProvider>), typeof(DownloadMetadataImagesJob<FakeProvider>)],
-            filter.GetTypesToExclude()
-        );
-        Assert.Equal(typeof(MetadataProviderJobAttribute), filter.WatchedAttributeType);
-
-        state.Paused.Clear();
-        state.Change();
-
-        Assert.Empty(filter.GetTypesToExclude());
     }
 
     #endregion
@@ -2452,7 +2402,7 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task AnImmediateRefreshRunsAtOnceUnlessTheProviderIsPaused()
+    public async Task AnImmediateRefreshRunsAtOnceUnlessTheQueueHoldsItBack()
     {
         var harness = new SchedulerHarness();
         var provider = new PausableProvider();
@@ -2470,11 +2420,8 @@ public class MetadataProviderJobTests
             });
 
         Assert.True(await service.RefreshEntry(series, immediate: true, cancellationToken: TestContext.Current.CancellationToken));
-        provider.PauseStatus = new() { IsPaused = true, Reason = "Rate limited." };
-        Assert.False(await service.RefreshEntry(series, immediate: true, cancellationToken: TestContext.Current.CancellationToken));
         harness.Jobs.Setup(j => j.Execute(It.IsAny<Action<RefreshMetadataJob<PausableProvider>>?>()))
             .ThrowsAsync(new JobBlockedException(typeof(RefreshMetadataJob<PausableProvider>)));
-        provider.PauseStatus = MetadataProviderPauseStatus.NotPaused;
         Assert.False(await service.RefreshEntry(series, immediate: true, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(series.ToString(), Assert.Single(ran).EntryID);
@@ -2512,29 +2459,6 @@ public class MetadataProviderJobTests
         Assert.True(await seriesOff.DownloadImages(series, cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal([(typeof(DownloadContributedImagesJob<ImageOnlyContributor>), series.ToString())], contributorJobs);
         Assert.Single(harness.Queued);
-    }
-
-    [Fact]
-    public void ThePauseStatusOfASourceIsTheOneResumingLast()
-    {
-        var harness = new SchedulerHarness();
-        var first = new PausableProvider();
-        var second = new PausableProvider();
-        var infos = new[] { Info(first, entityTypes: [MetadataEntityType.Series]), Info(second, entityTypes: [MetadataEntityType.Series]) };
-        var service = harness.Service(Links(), infos);
-
-        Assert.Same(MetadataProviderPauseStatus.NotPaused, service.GetPauseStatus(Source));
-        Assert.False(service.GetPauseStatus(TestSources.AniList).IsPaused);
-
-        var soon = DateTime.UtcNow.AddMinutes(1);
-        var later = DateTime.UtcNow.AddMinutes(5);
-        first.PauseStatus = new() { IsPaused = true, Reason = "Soon.", ResumesAt = soon };
-        second.PauseStatus = new() { IsPaused = true, Reason = "Later.", ResumesAt = later };
-
-        var status = service.GetPauseStatus(Source);
-        Assert.True(status.IsPaused);
-        Assert.Equal("Later.", status.Reason);
-        Assert.Equal(later, status.ResumesAt);
     }
 
     [Fact]

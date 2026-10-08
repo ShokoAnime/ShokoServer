@@ -1,16 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Connectivity.Services;
+using Shoko.Abstractions.Connectivity.Suspensions;
 using Shoko.Abstractions.Metadata.Airing;
-using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
 using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.Server.Providers.AniDB.Suspensions;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -31,7 +34,7 @@ namespace Shoko.Server.Actions;
 /// <param name="logger">Logs the run.</param>
 /// <param name="settingsProvider">Holds the minimum time between two AniDB updates of an anime.</param>
 /// <param name="airingSettings">Holds the window and whether date-only entries count.</param>
-/// <param name="anidbService">Tells whether AniDB's HTTP API bans us.</param>
+/// <param name="suspensionService">Tells whether AniDB's HTTP API bans us.</param>
 /// <param name="airingScheduleService">Finds the episodes airing soon.</param>
 /// <param name="animeSeries">Tells which anime are in the collection.</param>
 /// <param name="anidbAnimeUpdates">When each anime was last updated from AniDB.</param>
@@ -40,7 +43,7 @@ public sealed class RefreshAnimeAiringSoonAction(
     ILogger<RefreshAnimeAiringSoonAction> logger,
     ISettingsProvider settingsProvider,
     ConfigurationProvider<AiringScheduleServiceSettings> airingSettings,
-    IAnidbService anidbService,
+    ISuspensionService suspensionService,
     IAiringScheduleService airingScheduleService,
     AnimeSeriesRepository animeSeries,
     AniDB_AnimeUpdateRepository anidbAnimeUpdates,
@@ -67,7 +70,7 @@ public sealed class RefreshAnimeAiringSoonAction(
 
     public Task<ActionValidationResult?> Validate(CancellationToken token)
         => Task.FromResult(
-            anidbService.IsAnidbHttpBanned
+            suspensionService.GetAll().Any(status => status.Provider.Provider is AnidbHttpSuspensionProvider && status.Suspensions.Any(suspension => suspension.Kind is SuspensionKind.Banned))
                 ? new ActionValidationResult("AniDB's HTTP API is banning us. Try again once the ban expires.")
                 : null
         );

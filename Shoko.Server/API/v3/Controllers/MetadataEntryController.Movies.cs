@@ -490,7 +490,7 @@ public partial class MetadataEntryController
     /// <param name="id">The source's ID for the movie.</param>
     /// <param name="body">How to refresh it.</param>
     /// <param name="cancellationToken">Cancels a refresh waited on.</param>
-    /// <returns>200 when it was waited on, 204 when it was queued, or 503 with <c>Retry-After</c> while the source is paused.</returns>
+    /// <returns>200 when it was waited on, 204 when it was queued, or 503 with <c>Retry-After</c> while the source is suspended.</returns>
     [Authorize("admin")]
     [HttpPost("Movie/{id}/Action/Refresh")]
     public async Task<ActionResult> RefreshMovie(
@@ -522,7 +522,7 @@ public partial class MetadataEntryController
     /// <param name="id">The source's ID for the movie.</param>
     /// <param name="body">How to download them.</param>
     /// <param name="cancellationToken">Cancels a download waited on.</param>
-    /// <returns>200 when it was waited on, 204 when it was queued, or 503 with <c>Retry-After</c> while the source is paused.</returns>
+    /// <returns>200 when it was waited on, 204 when it was queued, or 503 with <c>Retry-After</c> while the source is suspended.</returns>
     [Authorize("admin")]
     [HttpPost("Movie/{id}/Action/DownloadImages")]
     public async Task<ActionResult> DownloadMovieImages(

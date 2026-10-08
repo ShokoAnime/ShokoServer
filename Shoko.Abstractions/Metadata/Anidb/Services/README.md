@@ -63,21 +63,26 @@ Call the services below when the cache is missing, stale or cannot answer.
 
 ### Ban state
 
-AniDB bans misbehaving clients for hours. The service publishes the state so
-a plugin can get out of the way:
+AniDB bans misbehaving clients for hours. The core reports it through the
+suspension service, as the "AniDB UDP" and "AniDB HTTP" suspension providers:
+a ban is `Banned` (with its end, liftable by an admin), and on UDP an overload
+backoff is `Overloaded`, an invalid session `SessionInvalid` and refused
+credentials `AuthenticationFailed`. Read them through `ISuspensionService`
+([Suspensions](../../../Connectivity/Services/README.md#suspensions)) and
+subscribe to `SuspensionChanged` rather than polling.
+
+The ban members below still work, read from the same state, but are obsolete:
 
 | Member | Meaning |
 |---|---|
 | `IsAnidbHttpBanned` | The HTTP API is currently refusing us. |
 | `IsAnidbUdpBanned` | The UDP API is currently refusing us. |
-| `IsAnidbUdpReachable` | The UDP connection is alive and the network is up. Not a ban check; a ban can be in effect while this is `true`. |
 | `LastHttpBanEventArgs`, `LastUdpBanEventArgs` | The last ban event, whether or not it is still in effect. |
-| `BanOccurred`, `BanExpired` | Events for both transports, so a long-running plugin can pause and resume without polling. |
+| `BanOccurred`, `BanExpired` | Events for both transports. |
 
-```csharp
-anidbService.BanOccurred += (_, e) => _paused = true;
-anidbService.BanExpired  += (_, e) => _paused = false;
-```
+`IsAnidbUdpReachable` is not obsolete: the UDP connection is alive and the
+network is up. It is not a ban check; a ban can be in effect while it is
+`true`.
 
 ### Searching titles is local
 

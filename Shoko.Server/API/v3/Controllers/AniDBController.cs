@@ -41,13 +41,16 @@ public class AniDBController(
     /// where the key is the name of the connection and the value is the current ban status.
     /// </returns>
     [HttpGet("BanStatus")]
+    [Obsolete("Use the suspension service (ISuspensionService, /api/v3/Suspension, the suspension feed).")]
     public Dictionary<string, AnidbBannedStatus> GetBanStatus()
     {
+#pragma warning disable CS0618 // Kept working from the same state until it is removed.
         return new Dictionary<string, AnidbBannedStatus>
         {
             { "UDP", new AnidbBannedStatus(anidbService.LastUdpBanEventArgs) },
             { "HTTP", new AnidbBannedStatus(anidbService.LastHttpBanEventArgs) },
         };
+#pragma warning restore CS0618
     }
 
     /// <summary>

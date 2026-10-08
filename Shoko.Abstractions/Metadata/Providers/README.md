@@ -17,7 +17,6 @@ refresh itself: fetch from your source and write into the stores.
 | `IMetadataAutoLinkingProvider` | Work out what an anime is on your own, for the core to link. |
 | `IMetadataImageProvider` | Offer the images your source has for its entities. |
 | `IMetadataEntityProvider` | Refresh your creators, characters, studios and networks one at a time. |
-| `IPausableMetadataProvider` | Say you cannot take work right now, so your jobs wait. |
 
 A provider implementing none of `IMetadataSeriesProvider`,
 `IMetadataMovieProvider` and `IMetadataAutoLinkingProvider` is dropped at
@@ -153,7 +152,7 @@ admin's decisions are always kept (`IMetadataProviderManager.SetProviderOrder`, 
 `PUT /api/v3/Metadata/Source/{source}/Providers`). When the provider
 answering is turned off, the next enabled one takes over; when it disappears,
 so does the next enabled one, or else the first one still claiming the type.
-The order is not tried at the time of asking: a paused or unconfigured
+The order is not tried at the time of asking: a suspended or unconfigured
 provider holds its work back rather than handing it on.
 
 Being turned on queues nothing: the whole library is searched only when
@@ -164,7 +163,7 @@ Metadata Matches" action or
 Return `false` from `IsConfigured` while you lack what you need, such as an
 API key, with the reason in `NotConfiguredReason`. Auto-linking then skips
 you quietly, and a person's search is answered with `503` naming you and the
-reason. Do not report a missing key as a pause. A call that finds out on its
+reason. Do not report a missing key as a suspension. A call that finds out on its
 own throws `MetadataProviderNotConfiguredException`, answered the same way.
 
 The core does not police writes to `IMetadataCrossReferenceStore`: plugins
@@ -452,12 +451,13 @@ You never sweep your own entries: the core purges daily, for every plugin
 source, what nothing links to and was not refreshed within the admin's
 setting (two weeks unless changed).
 
-### Pausing and concurrency
+### Suspensions and concurrency
 
-- **Pausing.** Implement `IPausableMetadataProvider`, report a
-  `MetadataProviderPauseStatus` (why, and until when if known) and raise
-  `PauseStatusChanged`. Only your jobs wait, and the status shows through
-  `IMetadataRefreshService.GetPauseStatus`.
+- **Suspensions.** Export an `ISuspensionProvider` naming your provider in
+  `HeldProviderTypes`, and report through `ISuspensionReporter<TProvider>`
+  (why, and until when if known). Only the held providers' jobs wait, and the
+  status shows through `ISuspensionService.GetForSource`. See
+  [Suspensions](../../Connectivity/Services/README.md#suspensions).
 - **Concurrency.** `MaxConcurrentJobs` caps each of your job types, in a pool
   of its own, read once at registration.
 
@@ -516,7 +516,7 @@ public class ExampleProvider(ExampleClient client, IMetadataPeopleStore people) 
 - **One job per entry.** Each due entry is queued as a
   `RefreshMetadataEntityJob<TProvider>` keyed by its ID, so an entry many
   series name is fetched once. The job holds the entry's lock, checks again
-  that it is due, and calls `RefreshEntity`. Your pause and `MaxConcurrentJobs`
+  that it is due, and calls `RefreshEntity`. Your suspensions and `MaxConcurrentJobs`
   hold it back like your other jobs.
 - **Not found.** Return `false` when your source does not have the entry. A
   stub still a stub after a refresh is asked for again once
@@ -709,5 +709,5 @@ refreshes and purges them the same way:
   Its `MatchEpisodes` uses `IMetadataMatchingEngine` with
   `DateAndTitleWithinSeasons`, and runs again on every full refresh.
 - Its episode groups are stored as global orderings of its shows.
-- Its rate limiting is its own: it pauses through `IPausableMetadataProvider`,
-  and the core holds its jobs back while it is paused.
+- Its rate limiting is its own: it reports suspensions through its
+  `ISuspensionProvider`, and the core holds its jobs back while suspended.

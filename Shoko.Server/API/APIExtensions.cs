@@ -67,6 +67,7 @@ public static partial class APIExtensions
         services.AddSingleton<IEventEmitter, QueueEventEmitter>();
         services.AddSingleton<IEventEmitter, ReleaseEventEmitter>();
         services.AddSingleton<IEventEmitter, RestartEventEmitter>();
+        services.AddSingleton<IEventEmitter, SuspensionEventEmitter>();
         services.AddSingleton<IEventEmitter, UserDataEventEmitter>();
         services.AddSingleton<IEventEmitter, UserEventEmitter>();
         services.AddSingleton<IEventEmitter, GroupEventEmitter>();
