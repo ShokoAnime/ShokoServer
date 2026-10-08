@@ -5,7 +5,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Server.Models.Airing;
 
-#nullable enable
 namespace Shoko.Server.Services.Airing;
 
 /// <summary>

@@ -4,7 +4,6 @@ using System.Linq;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Server.API.v3.Models.Airing;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 /// <summary>

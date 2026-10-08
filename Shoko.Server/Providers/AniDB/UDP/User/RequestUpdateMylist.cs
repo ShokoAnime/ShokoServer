@@ -7,7 +7,6 @@ using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
 
-#nullable enable
 namespace Shoko.Server.Providers.AniDB.UDP.User;
 
 /// <summary>

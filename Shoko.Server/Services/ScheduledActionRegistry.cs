@@ -14,7 +14,6 @@ using Shoko.Server.Actions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 /// <summary>

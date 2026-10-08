@@ -11,7 +11,6 @@ using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Services.Airing;
 
 /// <summary>

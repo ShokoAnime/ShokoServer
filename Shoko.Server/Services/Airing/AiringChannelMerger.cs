@@ -11,7 +11,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Services.Airing;
 
 /// <summary>

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.ScheduledActions;
 
-#nullable enable
 namespace Shoko.Server.Scheduling;
 
 /// <summary>

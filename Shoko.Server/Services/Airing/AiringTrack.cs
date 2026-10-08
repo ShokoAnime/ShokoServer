@@ -3,7 +3,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 
-#nullable enable
 namespace Shoko.Server.Services.Airing;
 
 /// <summary>

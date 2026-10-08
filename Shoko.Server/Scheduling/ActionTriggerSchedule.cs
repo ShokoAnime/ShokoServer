@@ -5,7 +5,6 @@ using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.ScheduledActions;
 
-#nullable enable
 namespace Shoko.Server.Scheduling;
 
 /// <summary>

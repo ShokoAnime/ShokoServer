@@ -5,7 +5,6 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Airing;
 
 /// <summary>

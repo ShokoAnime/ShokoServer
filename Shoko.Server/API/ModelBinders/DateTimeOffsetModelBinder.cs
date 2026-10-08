@@ -4,7 +4,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-#nullable enable
 namespace Shoko.Server.API.ModelBinders;
 
 /// <summary>

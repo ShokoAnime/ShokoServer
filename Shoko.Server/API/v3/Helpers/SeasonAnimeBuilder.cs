@@ -15,7 +15,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Helpers;
 
 /// <summary>

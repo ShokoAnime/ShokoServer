@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Airing;
 
 /// <summary>

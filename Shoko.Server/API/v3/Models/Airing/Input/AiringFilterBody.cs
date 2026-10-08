@@ -1,6 +1,5 @@
 using FilterBody = Shoko.Server.API.v3.Models.Shoko.Filter.Input.CreateOrUpdateFilterBody;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Airing.Input;
 
 /// <summary>

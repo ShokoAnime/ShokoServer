@@ -17,7 +17,6 @@ using Shoko.Server.Services.Airing;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.Airing;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public partial class AiringScheduleService

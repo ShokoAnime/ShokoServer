@@ -11,7 +11,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Plugin;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 /// <summary>

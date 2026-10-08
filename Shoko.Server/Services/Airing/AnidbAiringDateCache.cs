@@ -4,7 +4,6 @@ using System.Threading;
 using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Services;
 
-#nullable enable
 namespace Shoko.Server.Services.Airing;
 
 /// <summary>

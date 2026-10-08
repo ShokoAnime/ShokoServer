@@ -3,7 +3,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 /// <summary>

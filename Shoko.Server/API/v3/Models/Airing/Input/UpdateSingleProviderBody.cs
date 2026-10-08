@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Airing;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Airing.Input;
 
 /// <summary>

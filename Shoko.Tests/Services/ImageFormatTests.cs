@@ -1,6 +1,5 @@
 using System.Text;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
 using Xunit;
 
 namespace Shoko.Tests.Services;

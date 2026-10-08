@@ -15,7 +15,6 @@ using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

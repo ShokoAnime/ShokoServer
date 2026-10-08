@@ -9,7 +9,6 @@ using Shoko.Server.Models.Airing;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Services.Airing;
 
 /// <summary>

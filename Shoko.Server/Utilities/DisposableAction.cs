@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 
-#nullable enable
 namespace Shoko.Server.Utilities;
 
 /// <summary>

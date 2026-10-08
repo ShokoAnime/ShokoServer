@@ -14,7 +14,6 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Databases;
 
 public partial class DatabaseFixes

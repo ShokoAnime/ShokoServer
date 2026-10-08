@@ -1,6 +1,5 @@
 using System;
 
-#nullable enable
 namespace Shoko.Server.Models.Internal;
 
 /// <summary>

@@ -10,7 +10,6 @@ using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Services.Airing;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public partial class AiringScheduleService

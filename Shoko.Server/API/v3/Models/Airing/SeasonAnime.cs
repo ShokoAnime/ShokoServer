@@ -7,7 +7,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Models.Common;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Airing;
 
 /// <summary>

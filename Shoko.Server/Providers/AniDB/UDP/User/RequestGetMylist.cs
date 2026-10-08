@@ -7,7 +7,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
-#nullable enable
 namespace Shoko.Server.Providers.AniDB.UDP.User;
 
 /// <summary>

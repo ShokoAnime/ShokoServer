@@ -1,7 +1,6 @@
 using System;
 using Shoko.Abstractions.Metadata.Airing;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 /// <summary>

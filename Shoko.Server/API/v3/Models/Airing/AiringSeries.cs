@@ -4,7 +4,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Shoko;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Airing;
 
 /// <summary>

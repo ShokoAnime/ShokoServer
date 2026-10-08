@@ -6,7 +6,6 @@ using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.API.v3.Models.Plugin;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Airing;
 
 /// <summary>

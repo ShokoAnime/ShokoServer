@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 
-#nullable enable
 namespace Shoko.Server.Scheduling;
 
 /// <summary>

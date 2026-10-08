@@ -7,7 +7,6 @@ using Shoko.Abstractions.ScheduledActions;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 
-#nullable enable
 namespace Shoko.Server.Actions;
 
 /// <summary>

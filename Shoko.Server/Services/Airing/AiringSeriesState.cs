@@ -1,7 +1,6 @@
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 
-#nullable enable
 namespace Shoko.Server.Services.Airing;
 
 /// <summary>

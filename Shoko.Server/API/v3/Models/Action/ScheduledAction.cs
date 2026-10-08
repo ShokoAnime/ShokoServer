@@ -5,7 +5,6 @@ using System.Linq;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.ScheduledActions;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Action;
 
 /// <summary>

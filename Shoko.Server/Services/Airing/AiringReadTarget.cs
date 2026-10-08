@@ -1,6 +1,5 @@
 using Shoko.Abstractions.Metadata;
 
-#nullable enable
 namespace Shoko.Server.Services.Airing;
 
 /// <summary>

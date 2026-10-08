@@ -6,7 +6,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.Airing;
 
 /// <summary>

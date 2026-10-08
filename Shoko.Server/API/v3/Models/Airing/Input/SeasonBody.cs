@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Airing.Input;
 
 /// <summary>

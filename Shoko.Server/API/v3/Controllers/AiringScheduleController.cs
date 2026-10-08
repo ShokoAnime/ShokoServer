@@ -37,7 +37,6 @@ using EpisodeAiringDto = Shoko.Server.API.v3.Models.Airing.EpisodeAiring;
 using FilterBody = Shoko.Server.API.v3.Models.Shoko.Filter.Input.CreateOrUpdateFilterBody;
 using SeasonSectionDto = Shoko.Server.API.v3.Models.Airing.SeasonSection;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

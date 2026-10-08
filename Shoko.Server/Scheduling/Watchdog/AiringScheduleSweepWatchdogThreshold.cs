@@ -4,7 +4,6 @@ using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Scheduling.Watchdog;
 
 /// <summary>

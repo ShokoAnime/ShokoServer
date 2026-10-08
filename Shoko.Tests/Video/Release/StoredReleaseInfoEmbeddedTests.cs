@@ -3,7 +3,6 @@ using System.Linq;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Hashing;
-using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Models.Release;
 using Xunit;
 
