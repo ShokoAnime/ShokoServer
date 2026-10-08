@@ -469,13 +469,8 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         if (info.GetAttribute<BadgeAttribute>(false) is { } badgeAttribute && !string.IsNullOrWhiteSpace(badgeAttribute.Name))
             builder.Badge = new UiBadgeBuilder { Name = badgeAttribute.Name, Theme = badgeAttribute.Theme };
 
-        if (info.GetAttribute<OptionsProviderAttribute>(false) is { } optionsProviderAttribute)
-        {
-            // Resolved now so a method that does not fit fails startup, rather
-            // than the first request for its options.
-            UiOptionsProvider.ResolveMethod(info.MemberInfo.ReflectedType!, info.PropertyInfo, optionsProviderAttribute.MethodName);
-            builder.OptionsProvider = optionsProviderAttribute.MethodName;
-        }
+        if (UiOptionsProvider.GetProviders(info.MemberInfo.ReflectedType!).TryGetValue(info.Name, out var optionsProvider))
+            builder.OptionsProvider = optionsProvider.Name;
 
         if (contextualType.Type.IsGenericType && contextualType.Type.GetGenericTypeDefinition() == typeof(SelectComponent<>))
         {
@@ -685,6 +680,10 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 .OrderBy(x => x.Value.Order)
                 .Select(x => new UiMemberOrderEntry(x.Key, x.Value.Type))
         );
+
+        // Checked here as well as per property, so a provider naming nothing
+        // the class has still fails startup.
+        UiOptionsProvider.GetProviders(contextualType.Type);
 
         var actions = contextualType.Methods
             .Where(x => x.GetAttribute<CustomActionAttribute>(false) is not null || x.GetAttribute<ConfigurationActionAttribute>(false) is not null)

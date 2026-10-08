@@ -60,6 +60,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         // Walking the base chain from the derived type substitutes the type arguments, so a
         // 'Base<T> { List<T> Items }' inherited as 'Base<List<string>>' is seen as
         // 'List<List<string>>' here even though the declaration itself is fine.
+        AnalyzeOptionsProviders(context, type, known, reported);
+
         var seenNames = new HashSet<string>(StringComparer.Ordinal);
         for (var current = type; current is not null && current.SpecialType is not SpecialType.System_Object; current = current.BaseType)
         {
@@ -83,7 +85,6 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
                     continue;
 
                 AnalyzeProperty(context, property, type, known, reported);
-                AnalyzeOptionsProvider(context, property, type, known, reported);
             }
         }
     }
@@ -142,12 +143,11 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// Checks the method an <c>[OptionsProvider]</c> names, the way
-    /// <c>UiOptionsProvider.ResolveMethod</c> does at startup.
+    /// Checks every <c>[OptionsProvider]</c> a type declares, the way
+    /// <c>UiOptionsProvider.GetProviders</c> does at startup.
     /// </summary>
-    private static void AnalyzeOptionsProvider(
+    private static void AnalyzeOptionsProviders(
         SymbolAnalysisContext context,
-        IPropertySymbol property,
         INamedTypeSymbol owner,
         KnownSymbols known,
         ConcurrentDictionary<string, byte> reported
@@ -155,49 +155,81 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
     {
         if (known.OptionsProviderAttribute is null)
             return;
-        if (ConfigurationMembers.FindAttribute(property, known.OptionsProviderAttribute) is not { } attribute)
-            return;
-        if (attribute.ConstructorArguments.FirstOrDefault().Value is not string methodName)
-            return;
-        if (GetOptionsProviderFault(property, owner, methodName, known) is not { } fault)
-            return;
 
-        var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
-            ?? GetTypeLocation(property, owner, context.CancellationToken);
-        Report(context, reported, Diagnostic.Create(
-            Diagnostics.UnusableOptionsProvider,
-            location,
-            $"{owner.Name}.{property.Name}",
-            fault));
+        var claimed = new Dictionary<string, IMethodSymbol>(StringComparer.Ordinal);
+        for (var current = owner; current is not null && current.SpecialType is not SpecialType.System_Object; current = current.BaseType)
+        {
+            foreach (var method in current.GetMembers().OfType<IMethodSymbol>())
+            {
+                if (method.MethodKind is not MethodKind.Ordinary || ConfigurationMembers.FindAttribute(method, known.OptionsProviderAttribute) is not { } attribute)
+                    continue;
+                if (GetOptionsProviderFault(method, attribute, owner, claimed, known) is not { } fault)
+                    continue;
+
+                var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
+                    ?? method.Locations.FirstOrDefault()
+                    ?? Location.None;
+                Report(context, reported, Diagnostic.Create(
+                    Diagnostics.UnusableOptionsProvider,
+                    location,
+                    $"{owner.Name}.{method.Name}",
+                    fault));
+            }
+        }
     }
 
-    private static string? GetOptionsProviderFault(IPropertySymbol property, INamedTypeSymbol owner, string methodName, KnownSymbols known)
+    private static string? GetOptionsProviderFault(
+        IMethodSymbol method,
+        AttributeData attribute,
+        INamedTypeSymbol owner,
+        Dictionary<string, IMethodSymbol> claimed,
+        KnownSymbols known
+    )
     {
-        if (GetOptionType(property.Type, known, out var shapeFault) is not { } optionType)
-            return shapeFault;
+        if (method.DeclaredAccessibility is not Accessibility.Public)
+            return "is not public";
+        if (method.IsGenericMethod)
+            return "is generic";
 
-        // An override is the same method as the one it overrides, so it is not
-        // a second overload.
-        var methods = new List<IMethodSymbol>();
-        for (var current = owner; current is not null; current = current.BaseType)
+        // `params string[]` arrives as one array argument, however it was written.
+        var argument = attribute.ConstructorArguments.FirstOrDefault();
+        var members = argument.Kind is TypedConstantKind.Array && !argument.IsNull
+            ? argument.Values.Select(x => x.Value as string).ToList()
+            : [];
+        if (members.Count is 0)
+            return "names no members";
+
+        ITypeSymbol? optionType = null;
+        string? firstMember = null;
+        foreach (var member in members)
         {
-            foreach (var member in current.GetMembers(methodName))
+            if (member is null)
+                return null;
+            if (FindProperty(owner, member) is not { } property)
+                return $"names \"{member}\", which {owner.Name} does not have";
+            if (GetOptionType(property.Type, known, out var shapeFault) is not { } memberOptionType)
+                return shapeFault is null ? null : $"names \"{member}\", which {shapeFault}";
+            if (claimed.TryGetValue(member, out var other))
+                return SymbolEqualityComparer.Default.Equals(other, method)
+                    ? $"names \"{member}\" twice"
+                    : $"names \"{member}\", which {other.Name} already provides for";
+
+            claimed[member] = method;
+            if (optionType is null)
             {
-                if (member is IMethodSymbol { MethodKind: MethodKind.Ordinary, DeclaredAccessibility: Accessibility.Public, IsOverride: false } method)
-                    methods.Add(method);
+                (optionType, firstMember) = (memberOptionType, member);
+            }
+            else if (!SymbolEqualityComparer.Default.Equals(optionType, memberOptionType))
+            {
+                var firstName = optionType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
+                var otherName = memberOptionType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
+                return $"names \"{firstMember}\" and \"{member}\", whose options are {firstName} and {otherName}";
             }
         }
 
-        if (methods.Count is 0)
-            return $"names \"{methodName}\", which is not a public method of {owner.Name}";
-        if (methods.Count > 1)
-            return $"names \"{methodName}\", which has more than one overload";
-        if (methods[0].IsGenericMethod)
-            return $"names \"{methodName}\", which is generic";
-
-        var returnType = methods[0].ReturnType;
+        var returnType = method.ReturnType;
         // A return type that cannot be resolved is left alone rather than guessed at.
-        if (returnType is IErrorTypeSymbol)
+        if (returnType is IErrorTypeSymbol || optionType is null)
             return null;
 
         var returned = GetReturnedOptionType(returnType, known);
@@ -210,7 +242,24 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
 
         var returnName = returnType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
         var optionName = optionType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
-        return $"names \"{methodName}\", which returns {returnName} rather than a collection of {optionName}";
+        return $"returns {returnName} rather than a collection of {optionName}";
+    }
+
+    /// <summary>
+    /// The public instance property of that name, on the type or a base type.
+    /// </summary>
+    private static IPropertySymbol? FindProperty(INamedTypeSymbol owner, string name)
+    {
+        for (var current = owner; current is not null; current = current.BaseType)
+        {
+            foreach (var member in current.GetMembers(name))
+            {
+                if (member is IPropertySymbol { IsStatic: false, IsIndexer: false, DeclaredAccessibility: Accessibility.Public } property)
+                    return property;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

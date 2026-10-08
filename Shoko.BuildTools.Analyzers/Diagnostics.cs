@@ -112,15 +112,15 @@ public static class Diagnostics
         helpLinkUri: HelpLinkPrefix + "shoko0007");
 
     /// <summary>
-    /// A member's options provider is missing, or lists something the member cannot take.
+    /// An options provider names members it cannot list options for, or lists something they cannot take.
     /// </summary>
     public static readonly DiagnosticDescriptor UnusableOptionsProvider = new(
         id: "SHOKO0008",
-        title: "Options provider does not fit its member",
-        messageFormat: "The options provider of '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        title: "Options provider does not fit its members",
+        messageFormat: "The options provider '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "[OptionsProvider] names a public method, without overloads or type parameters, on the class declaring the member. The method returns a collection of the member's value type, or of SelectOption of it to label each option, directly or through a Task or ValueTask. A collection member takes options for its entries and a nullable one for the type it wraps, while a dictionary or a select component cannot take options at all.",
+        description: "An [OptionsProvider] method is public and not generic. Every member it names is a public property of the same class, claimed by no other provider, and every one of them takes the same option type: a collection takes options for its entries and a nullable member for the type it wraps, while a dictionary or a select component takes none. The method returns a collection of that type, or of SelectOption of it to label each option, directly or through a Task or ValueTask.",
         helpLinkUri: HelpLinkPrefix + "shoko0008");
 }

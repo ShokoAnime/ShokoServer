@@ -279,32 +279,40 @@ no event raises, fails when the configuration is described.
 
 ## Options the server lists
 
-`[OptionsProvider(nameof(Method))]` turns a plain member into a choice from
-values the server lists when asked. The member keeps its own type and its own
-element; the element gains an `OptionsRoute`, and a client POSTs the edited
-document to it with the member's path as `path`, the same path a custom action
-is invoked with. What comes back is a list of `{ "Value": …, "Label": … }`.
+`[OptionsProvider(nameof(A), nameof(B))]` on a method turns the members it names
+into choices from values the server lists when asked. Each member keeps its own
+type and its own element; the element gains an `OptionsRoute`, and a client
+POSTs the edited document to it with the member's path as `path`, the same path
+a custom action is invoked with. What comes back is a list of
+`{ "Value": …, "Label": … }`. A scoped action's route holds the entity's
+placeholder, such as `{seriesID}`, for the client to fill in.
 
 ```csharp
-[OptionsProvider(nameof(ListLibraries))]
 public int LibraryId { get; set; }
 
+public List<int> ExtraLibraryIds { get; set; } = [];
+
+[OptionsProvider(nameof(LibraryId), nameof(ExtraLibraryIds))]
 public async Task<IReadOnlyList<SelectOption<int>>> ListLibraries(ILibraryService libraries)
     => (await libraries.GetAll()).Select(x => new SelectOption<int>(x.ID, x.Name)).ToList();
 ```
 
-The method lives on the class declaring the member, is public, static or not,
-and has no overloads. It returns a collection of the member's value type, or of
-`SelectOption<T>` of it when each option wants a label, directly or through a
-`Task` or `ValueTask`. A list takes options for its entries and a nullable member
-for the type it wraps, so an `int?` or a `List<int>` both want `int`s. A
-dictionary or a `SelectComponent<T>` cannot take options. Parameters are filled
-in the way a custom action's are: the configuration being edited, unsaved
-changes included, or the action with the parameters entered so far, the user,
-and any registered service.
+The method is public, static or not, and not generic. Every member it names is
+a property of the same class, and they all take the same option type: a list
+takes options for its entries and a nullable member for the type it wraps, so an
+`int?` and a `List<int>` both want `int`s. A dictionary or a `SelectComponent<T>`
+cannot take options, and a member has one provider at most. The method returns
+a collection of that type, or of `SelectOption<T>` of it when each option wants a
+label, directly or through a `Task` or `ValueTask`.
 
-A method that does not fit fails startup, and the SHOKO0008 analyzer rule says
-so at compile time.
+Parameters are filled in the way a custom action's are: the configuration being
+edited, unsaved changes included, the user and any registered service. On an
+executable action the provider runs on an instance prepared the way invoking it
+prepares one, scoped to its entity, given its caller and populated with the
+parameters entered so far, and may take the entity, the caller and services too.
+
+A provider that does not fit fails startup, and the SHOKO0008 analyzer rule
+says so at compile time.
 
 ## Pattern: a choice only the server can enumerate
 

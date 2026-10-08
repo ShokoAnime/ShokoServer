@@ -34,7 +34,7 @@ public class UiOptionsProviderTests
         var row = Assert.IsType<UiSectionContainerElement>(Assert.IsType<UiListElement>(root.Items["Rows"]).Item);
 
         Assert.All(
-            new[] { root.Items["Port"], root.Items["Mode"], root.Items["Tags"], row.Items["Name"] },
+            new[] { root.Items["Port"], root.Items["Mode"], root.Items["Tags"], root.Items["Tag"], row.Items["Name"] },
             element => Assert.Equal("route", element.OptionsRoute)
         );
         Assert.Null(root.Items["Plain"].OptionsRoute);
@@ -42,16 +42,16 @@ public class UiOptionsProviderTests
     }
 
     [Theory]
-    [InlineData(typeof(MissingMethodConfiguration), "is not a public method of")]
-    [InlineData(typeof(OverloadedMethodConfiguration), "more than one overload")]
+    [InlineData(typeof(MissingMemberConfiguration), "does not have")]
+    [InlineData(typeof(MixedMembersConfiguration), "whose options are Int32 and String")]
+    [InlineData(typeof(ClaimedTwiceConfiguration), "already provides for")]
     [InlineData(typeof(WrongElementConfiguration), "rather than a collection of Int32")]
-    [InlineData(typeof(ScalarReturnConfiguration), "rather than a collection of Int32")]
     [InlineData(typeof(DictionaryMemberConfiguration), "is a dictionary")]
     public void AProviderThatDoesNotFitFailsGeneration(Type type, string fault)
     {
         var exception = Assert.Throws<NotSupportedException>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type));
 
-        Assert.Contains($"{type.Name}.Value", exception.Message, StringComparison.Ordinal);
+        Assert.Contains($"The options provider {type.Name}.", exception.Message, StringComparison.Ordinal);
         Assert.Contains(fault, exception.Message, StringComparison.Ordinal);
     }
 
@@ -75,10 +75,12 @@ public class UiOptionsProviderTests
         Assert.Equal([1, 2], options.Select(x => x.Value!.Value<int>()));
     }
 
-    [Fact]
-    public async Task ALabelledOptionKeepsItsLabel()
+    [Theory]
+    [InlineData("Tags")]
+    [InlineData("Tag")]
+    public async Task ALabelledOptionKeepsItsLabelForEveryMemberItListsFor(string path)
     {
-        var options = await ListAsync(new OptionsConfiguration(), "Tags");
+        var options = await ListAsync(new OptionsConfiguration(), path);
 
         Assert.Equal([("a", "Alpha"), ("b", null)], options.Select(x => (x.Value!.Value<string>(), x.Label)));
     }
@@ -121,16 +123,16 @@ public class UiOptionsProviderTests
     public class OptionsConfiguration
     {
         /// <summary>A scalar, listed from its own value.</summary>
-        [OptionsProvider(nameof(ListPorts))]
         public int Port { get; set; }
 
         /// <summary>A nullable scalar, listed through a task.</summary>
-        [OptionsProvider(nameof(ListModesAsync))]
         public int? Mode { get; set; }
 
-        /// <summary>A list, listed with labels.</summary>
-        [OptionsProvider(nameof(ListTags))]
+        /// <summary>A list sharing its provider with another member.</summary>
         public List<string> Tags { get; set; } = [];
+
+        /// <summary>A scalar sharing its provider with the list.</summary>
+        public string Tag { get; set; } = string.Empty;
 
         /// <summary>A member without options.</summary>
         public string Plain { get; set; } = string.Empty;
@@ -139,14 +141,17 @@ public class UiOptionsProviderTests
         public List<OptionsRow> Rows { get; set; } = [];
 
         /// <summary>Lists ports around the edited one.</summary>
+        [OptionsProvider(nameof(Port))]
         public int[] ListPorts()
             => [Port, Port + 1];
 
         /// <summary>Lists modes.</summary>
+        [OptionsProvider(nameof(Mode))]
         public Task<IReadOnlyList<int>> ListModesAsync()
             => Task.FromResult<IReadOnlyList<int>>([1, 2]);
 
         /// <summary>Lists tags.</summary>
+        [OptionsProvider(nameof(Tags), nameof(Tag))]
         public static SelectOption<string>[] ListTags()
             => [new("a", "Alpha"), new("b")];
     }
@@ -155,74 +160,82 @@ public class UiOptionsProviderTests
     public class OptionsRow
     {
         /// <summary>A name, listed from the prefix.</summary>
-        [OptionsProvider(nameof(ListNames))]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>The prefix.</summary>
         public string Prefix { get; set; } = string.Empty;
 
         /// <summary>Lists names.</summary>
+        [OptionsProvider(nameof(Name))]
         public IEnumerable<string> ListNames()
             => [Prefix + "1"];
     }
 
-    /// <summary>Names a method that is not there.</summary>
-    public class MissingMethodConfiguration
+    /// <summary>Names a member that is not there.</summary>
+    public class MissingMemberConfiguration
     {
-        /// <summary>The member.</summary>
+        /// <summary>A member, named wrong below.</summary>
+        public int Number { get; set; }
+
+        /// <summary>Lists values.</summary>
         [OptionsProvider("Nope")]
-        public int Value { get; set; }
+        public int[] Value()
+            => [];
     }
 
-    /// <summary>Names an overloaded method.</summary>
-    public class OverloadedMethodConfiguration
+    /// <summary>Names two members of different option types.</summary>
+    public class MixedMembersConfiguration
+    {
+        /// <summary>A number.</summary>
+        public int Number { get; set; }
+
+        /// <summary>A text.</summary>
+        public string Text { get; set; } = string.Empty;
+
+        /// <summary>Lists values.</summary>
+        [OptionsProvider(nameof(Number), nameof(Text))]
+        public int[] Value()
+            => [];
+    }
+
+    /// <summary>Claims one member from two providers.</summary>
+    public class ClaimedTwiceConfiguration
     {
         /// <summary>The member.</summary>
-        [OptionsProvider(nameof(List))]
-        public int Value { get; set; }
+        public int Number { get; set; }
 
-        /// <summary>One overload.</summary>
-        public int[] List()
+        /// <summary>Lists values.</summary>
+        [OptionsProvider(nameof(Number))]
+        public int[] Value()
             => [];
 
-        /// <summary>Another overload.</summary>
-        public int[] List(int count)
-            => new int[count];
+        /// <summary>Lists them again.</summary>
+        [OptionsProvider(nameof(Number))]
+        public int[] Again()
+            => [];
     }
 
     /// <summary>Lists values of another type.</summary>
     public class WrongElementConfiguration
     {
         /// <summary>The member.</summary>
-        [OptionsProvider(nameof(List))]
-        public int Value { get; set; }
+        public int Number { get; set; }
 
         /// <summary>Lists longs.</summary>
-        public long[] List()
+        [OptionsProvider(nameof(Number))]
+        public long[] Value()
             => [];
-    }
-
-    /// <summary>Returns one value rather than a collection.</summary>
-    public class ScalarReturnConfiguration
-    {
-        /// <summary>The member.</summary>
-        [OptionsProvider(nameof(List))]
-        public int Value { get; set; }
-
-        /// <summary>Returns one value.</summary>
-        public int List()
-            => 0;
     }
 
     /// <summary>Asks for options on a dictionary.</summary>
     public class DictionaryMemberConfiguration
     {
         /// <summary>The member.</summary>
-        [OptionsProvider(nameof(List))]
-        public Dictionary<string, int> Value { get; set; } = [];
+        public Dictionary<string, int> Weights { get; set; } = [];
 
         /// <summary>Lists values.</summary>
-        public int[] List()
+        [OptionsProvider(nameof(Weights))]
+        public int[] Value()
             => [];
     }
 
