@@ -32,7 +32,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         Diagnostics.MissingPrimaryKey,
         Diagnostics.NotAGenericDictionary,
         Diagnostics.UnusableCondition,
-        Diagnostics.UnusableReactiveHandler);
+        Diagnostics.UnusableReactiveHandler,
+        Diagnostics.UnusableOptionsProvider);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -82,6 +83,7 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
                     continue;
 
                 AnalyzeProperty(context, property, type, known, reported);
+                AnalyzeOptionsProvider(context, property, type, known, reported);
             }
         }
     }
@@ -137,6 +139,128 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
                 $"{owner.Name}.{method.Name}",
                 $"watches a member that {failure}"));
         }
+    }
+
+    /// <summary>
+    /// Checks the method an <c>[OptionsProvider]</c> names, the way
+    /// <c>UiOptionsProvider.ResolveMethod</c> does at startup.
+    /// </summary>
+    private static void AnalyzeOptionsProvider(
+        SymbolAnalysisContext context,
+        IPropertySymbol property,
+        INamedTypeSymbol owner,
+        KnownSymbols known,
+        ConcurrentDictionary<string, byte> reported
+    )
+    {
+        if (known.OptionsProviderAttribute is null)
+            return;
+        if (ConfigurationMembers.FindAttribute(property, known.OptionsProviderAttribute) is not { } attribute)
+            return;
+        if (attribute.ConstructorArguments.FirstOrDefault().Value is not string methodName)
+            return;
+        if (GetOptionsProviderFault(property, owner, methodName, known) is not { } fault)
+            return;
+
+        var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
+            ?? GetTypeLocation(property, owner, context.CancellationToken);
+        Report(context, reported, Diagnostic.Create(
+            Diagnostics.UnusableOptionsProvider,
+            location,
+            $"{owner.Name}.{property.Name}",
+            fault));
+    }
+
+    private static string? GetOptionsProviderFault(IPropertySymbol property, INamedTypeSymbol owner, string methodName, KnownSymbols known)
+    {
+        if (GetOptionType(property.Type, known, out var shapeFault) is not { } optionType)
+            return shapeFault;
+
+        // An override is the same method as the one it overrides, so it is not
+        // a second overload.
+        var methods = new List<IMethodSymbol>();
+        for (var current = owner; current is not null; current = current.BaseType)
+        {
+            foreach (var member in current.GetMembers(methodName))
+            {
+                if (member is IMethodSymbol { MethodKind: MethodKind.Ordinary, DeclaredAccessibility: Accessibility.Public, IsOverride: false } method)
+                    methods.Add(method);
+            }
+        }
+
+        if (methods.Count is 0)
+            return $"names \"{methodName}\", which is not a public method of {owner.Name}";
+        if (methods.Count > 1)
+            return $"names \"{methodName}\", which has more than one overload";
+        if (methods[0].IsGenericMethod)
+            return $"names \"{methodName}\", which is generic";
+
+        var returnType = methods[0].ReturnType;
+        // A return type that cannot be resolved is left alone rather than guessed at.
+        if (returnType is IErrorTypeSymbol)
+            return null;
+
+        var returned = GetReturnedOptionType(returnType, known);
+        if (SymbolEqualityComparer.Default.Equals(returned, optionType))
+            return null;
+        if (returned is INamedTypeSymbol named && known.SelectOption is not null &&
+            SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, known.SelectOption) &&
+            SymbolEqualityComparer.Default.Equals(named.TypeArguments[0], optionType))
+            return null;
+
+        var returnName = returnType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
+        var optionName = optionType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
+        return $"names \"{methodName}\", which returns {returnName} rather than a collection of {optionName}";
+    }
+
+    /// <summary>
+    /// The type of a single option for a member: a collection takes options for its entries, and a
+    /// nullable value for the type it wraps.
+    /// </summary>
+    private static ITypeSymbol? GetOptionType(ITypeSymbol memberType, KnownSymbols known, out string? fault)
+    {
+        fault = null;
+        if (CollectionShape.Unwrap(memberType) is not { } type)
+            return null;
+        if (type is INamedTypeSymbol named && known.SelectComponent is not null &&
+            SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, known.SelectComponent))
+        {
+            fault = "is a select component, which carries its own options";
+            return null;
+        }
+
+        if (type.SpecialType is SpecialType.System_String)
+            return type;
+        if (CollectionShape.IsGenericDictionary(type, known) ||
+            (known.NonGenericDictionary is not null && CollectionShape.Implements(type, known.NonGenericDictionary)))
+        {
+            fault = "is a dictionary, which has no single value to offer options for";
+            return null;
+        }
+
+        if (type is IArrayTypeSymbol array)
+            return CollectionShape.Unwrap(array.ElementType);
+        if (CollectionShape.FindEnumerable(type) is { } enumerable)
+            return CollectionShape.Unwrap(enumerable.TypeArguments[0]);
+
+        return type;
+    }
+
+    /// <summary>
+    /// The type of a single option a method lists, looking through a task.
+    /// </summary>
+    private static ITypeSymbol? GetReturnedOptionType(ITypeSymbol returnType, KnownSymbols known)
+    {
+        if (returnType is INamedTypeSymbol { IsGenericType: true } named &&
+            (SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, known.GenericTask) ||
+                SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, known.GenericValueTask)))
+            returnType = named.TypeArguments[0];
+        if (returnType.SpecialType is SpecialType.System_String)
+            return null;
+        if (returnType is IArrayTypeSymbol array)
+            return array.ElementType;
+
+        return CollectionShape.FindEnumerable(returnType)?.TypeArguments[0];
     }
 
     /// <summary>

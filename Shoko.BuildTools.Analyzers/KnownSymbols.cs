@@ -49,6 +49,31 @@ internal sealed class KnownSymbols
     public INamedTypeSymbol? ConfigurationActionAttribute { get; }
 
     /// <summary>
+    /// <c>Shoko.Abstractions.UI.Attributes.OptionsProviderAttribute</c>, if referenced.
+    /// </summary>
+    public INamedTypeSymbol? OptionsProviderAttribute { get; }
+
+    /// <summary>
+    /// <c>Shoko.Abstractions.UI.Components.SelectComponent&lt;&gt;</c>, if referenced.
+    /// </summary>
+    public INamedTypeSymbol? SelectComponent { get; }
+
+    /// <summary>
+    /// <c>Shoko.Abstractions.UI.Components.SelectOption&lt;&gt;</c>, if referenced.
+    /// </summary>
+    public INamedTypeSymbol? SelectOption { get; }
+
+    /// <summary>
+    /// <c>System.Threading.Tasks.Task&lt;&gt;</c>.
+    /// </summary>
+    public INamedTypeSymbol? GenericTask { get; }
+
+    /// <summary>
+    /// <c>System.Threading.Tasks.ValueTask&lt;&gt;</c>.
+    /// </summary>
+    public INamedTypeSymbol? GenericValueTask { get; }
+
+    /// <summary>
     /// <c>System.Collections.IDictionary</c>, the non-generic one.
     /// </summary>
     public INamedTypeSymbol? NonGenericDictionary { get; }
@@ -103,6 +128,11 @@ internal sealed class KnownSymbols
         VisibilityAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.VisibilityAttribute");
         CustomActionAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.CustomActionAttribute");
         ConfigurationActionAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.Config.Attributes.ConfigurationActionAttribute");
+        OptionsProviderAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.OptionsProviderAttribute");
+        SelectComponent = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Components.SelectComponent`1");
+        SelectOption = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Components.SelectOption`1");
+        GenericTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+        GenericValueTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
         NonGenericDictionary = compilation.GetTypeByMetadataName("System.Collections.IDictionary");
         GenericDictionary = compilation.GetTypeByMetadataName("System.Collections.Generic.IDictionary`2");
         GenericReadOnlyDictionary = compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyDictionary`2");

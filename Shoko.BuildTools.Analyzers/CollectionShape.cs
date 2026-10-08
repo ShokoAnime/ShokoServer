@@ -178,7 +178,12 @@ internal readonly struct CollectionShape(CollectionKind kind, ITypeSymbol? eleme
         return null;
     }
 
-    private static INamedTypeSymbol? FindEnumerable(ITypeSymbol type)
+    /// <summary>
+    /// The <see cref="System.Collections.Generic.IEnumerable{T}"/> a type is or implements.
+    /// </summary>
+    /// <param name="type">The type to search.</param>
+    /// <returns>The constructed interface, or <c>null</c> when the type is not enumerable.</returns>
+    public static INamedTypeSymbol? FindEnumerable(ITypeSymbol type)
     {
         if (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Collections_Generic_IEnumerable_T } named)
             return named;

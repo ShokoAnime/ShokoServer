@@ -110,6 +110,13 @@ public class ConfigurationTypeAnalyzerTests
                 public object?[]? DisableWhenSetToAny { get; set; }
             }
 
+            [System.AttributeUsage(System.AttributeTargets.Property)]
+            public class OptionsProviderAttribute : System.Attribute
+            {
+                public OptionsProviderAttribute(string methodName) { MethodName = methodName; }
+                public string MethodName { get; }
+            }
+
             [System.AttributeUsage(System.AttributeTargets.Method)]
             public class CustomActionAttribute : System.Attribute
             {
@@ -122,6 +129,17 @@ public class ConfigurationTypeAnalyzerTests
                 public object? DisableWhenSetTo { get; set; }
                 public object?[]? DisableWhenSetToAny { get; set; }
             }
+        }
+
+        namespace Shoko.Abstractions.UI.Components
+        {
+            public class SelectOption<TValue> where TValue : System.IEquatable<TValue>
+            {
+                public TValue Value { get; set; } = default!;
+                public string? Label { get; set; }
+            }
+
+            public class SelectComponent<TValue> where TValue : System.IEquatable<TValue> { }
         }
         """;
 
@@ -923,4 +941,91 @@ public class ConfigurationTypeAnalyzerTests
             """);
     }
 
+    [Fact]
+    public async Task OptionsProvidersThatFit_AreNotReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+            using Shoko.Abstractions.UI.Components;
+
+            public class MyConfigBase
+            {
+                public virtual int[] ListPorts() => new int[0];
+            }
+
+            public class MyConfig : MyConfigBase, IConfiguration
+            {
+                [OptionsProvider(nameof(ListPorts))]
+                public int Port { get; set; }
+
+                [OptionsProvider(nameof(ListModes))]
+                public int? Mode { get; set; }
+
+                [OptionsProvider(nameof(ListTags))]
+                public List<string> Tags { get; set; } = new();
+
+                [OptionsProvider(nameof(ListNames))]
+                public string Name { get; set; } = "";
+
+                public override int[] ListPorts() => new int[0];
+                public Task<IReadOnlyList<int>> ListModes() => Task.FromResult<IReadOnlyList<int>>(new int[0]);
+                public static SelectOption<string>[] ListTags() => new SelectOption<string>[0];
+                public ValueTask<List<string>> ListNames() => new(new List<string>());
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task OptionsProvidersThatDoNotFit_AreReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+
+            public class MyConfig : IConfiguration
+            {
+                [{|#0:OptionsProvider("Nope")|}]
+                public int Missing { get; set; }
+
+                [{|#1:OptionsProvider(nameof(ListLongs))|}]
+                public int? Port { get; set; }
+
+                [{|#2:OptionsProvider(nameof(ListOne))|}]
+                public string Name { get; set; } = "";
+
+                [{|#3:OptionsProvider(nameof(ListLongs))|}]
+                public Dictionary<string, long> Weights { get; set; } = new();
+
+                [{|#4:OptionsProvider(nameof(ListTwice))|}]
+                public int Count { get; set; }
+
+                public Task<long[]> ListLongs() => Task.FromResult(new long[0]);
+                public string ListOne() => "";
+                public int[] ListTwice() => new int[0];
+                public int[] ListTwice(int count) => new int[count];
+            }
+            """,
+            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+                .WithLocation(0)
+                .WithArguments("MyConfig.Missing", "names \"Nope\", which is not a public method of MyConfig"),
+            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+                .WithLocation(1)
+                .WithArguments("MyConfig.Port", "names \"ListLongs\", which returns Task<long[]> rather than a collection of int"),
+            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+                .WithLocation(2)
+                .WithArguments("MyConfig.Name", "names \"ListOne\", which returns string rather than a collection of string"),
+            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+                .WithLocation(3)
+                .WithArguments("MyConfig.Weights", "is a dictionary, which has no single value to offer options for"),
+            new DiagnosticResult(Diagnostics.UnusableOptionsProvider)
+                .WithLocation(4)
+                .WithArguments("MyConfig.Count", "names \"ListTwice\", which has more than one overload"));
+    }
 }

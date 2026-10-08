@@ -110,4 +110,17 @@ public static class Diagnostics
         isEnabledByDefault: true,
         description: "A live-edit handler names the members it watches so a client can tell whether an edit is worth sending, and the events it wants so the client knows when to send one. A member the class does not have is watched by nothing, and a name pointing through a list or a dictionary carries no index to say which entry it meant. Only the live-edit hook is raised by an event, so no other hook can narrow what it reacts to.",
         helpLinkUri: HelpLinkPrefix + "shoko0007");
+
+    /// <summary>
+    /// A member's options provider is missing, or lists something the member cannot take.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnusableOptionsProvider = new(
+        id: "SHOKO0008",
+        title: "Options provider does not fit its member",
+        messageFormat: "The options provider of '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "[OptionsProvider] names a public method, without overloads or type parameters, on the class declaring the member. The method returns a collection of the member's value type, or of SelectOption of it to label each option, directly or through a Task or ValueTask. A collection member takes options for its entries and a nullable one for the type it wraps, while a dictionary or a select component cannot take options at all.",
+        helpLinkUri: HelpLinkPrefix + "shoko0008");
 }
