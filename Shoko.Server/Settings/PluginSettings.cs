@@ -64,8 +64,12 @@ public class PluginSettings
         public TimeSpan DefaultRepositoryStaleTime { get; set; } = TimeSpan.FromHours(12);
 
         /// <summary>
-        ///   Time to retain old plugin versions before auto-cleanup. Defaults to
-        ///   30 days.
+        ///   How long an older plugin version stays installed after a newer
+        ///   one was installed, before the "Purge Inactive Plugin Versions"
+        ///   scheduled action marks it for removal. It counts from that
+        ///   install, not from the restart that activated the newer version.
+        ///   A <c>.keep</c> file protects a version. Zero removes it at the
+        ///   next run. Defaults to 30 days.
         /// </summary>
         [DefaultValue("720.00:00.000000")]
         public TimeSpan InactivePluginVersionRetention { get; set; } = TimeSpan.FromDays(30);

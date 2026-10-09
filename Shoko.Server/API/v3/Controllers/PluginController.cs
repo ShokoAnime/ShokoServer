@@ -369,7 +369,7 @@ public class PluginController(
             : NotFound("Plugin not found");
 
     /// <summary>
-    ///   Enable, disable, pin, or unpin a plugin by ID.
+    ///   Enable, disable, pin, unpin, keep or unkeep a plugin by ID.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
@@ -424,6 +424,12 @@ public class PluginController(
                 pluginInfo = pluginManager.PinPlugin(pluginInfo);
             else
                 pluginInfo = pluginManager.UnpinPlugin(pluginInfo);
+
+        if (body.IsKept.HasValue)
+            if (body.IsKept.Value)
+                pluginInfo = pluginManager.KeepPlugin(pluginInfo);
+            else
+                pluginInfo = pluginManager.UnkeepPlugin(pluginInfo);
 
         return new PluginInfo(pluginInfo);
     }
@@ -492,7 +498,7 @@ public class PluginController(
     }
 
     /// <summary>
-    ///   Enable, disable, pin, or unpin a plugin by ID using JSON Patch.
+    ///   Enable, disable, pin, unpin, keep or unkeep a plugin by ID using JSON Patch.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
@@ -653,7 +659,7 @@ public class PluginController(
             : NotFound("Plugin not found");
 
     /// <summary>
-    ///   Enable, disable, pin, or unpin a specific version of a plugin by ID and version.
+    ///   Enable, disable, pin, unpin, keep or unkeep a specific version of a plugin by ID and version.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
@@ -713,11 +719,17 @@ public class PluginController(
             else
                 pluginInfo = pluginManager.UnpinPlugin(pluginInfo);
 
+        if (body.IsKept.HasValue)
+            if (body.IsKept.Value)
+                pluginInfo = pluginManager.KeepPlugin(pluginInfo);
+            else
+                pluginInfo = pluginManager.UnkeepPlugin(pluginInfo);
+
         return new PluginInfo(pluginInfo);
     }
 
     /// <summary>
-    ///   Enable, disable, pin, or unpin a specific version of a plugin by ID and version using JSON Patch.
+    ///   Enable, disable, pin, unpin, keep or unkeep a specific version of a plugin by ID and version using JSON Patch.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.

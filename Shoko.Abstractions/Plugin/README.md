@@ -474,6 +474,7 @@ active version (or the highest, when none is active):
 | `IsEnabled` | Enabled for this session **or the next one**. |
 | `IsActive` | Actually loaded right now. Implies `Plugin` and `PluginType` are non-null. |
 | `IsPinned` | The version is pinned against automatic upgrades. |
+| `IsKept` | A `.keep` file protects the version from `PurgeInactivePluginVersions`. |
 | `CanLoad` | Loadable by this runtime: assemblies present, ABI compatible, dependencies satisfied. When it is not, `CannotLoadReason` says why, if known. |
 | `RestartPending` | A restart would change whether it is loaded: enabled, not loaded and loadable, or disabled but still loaded. An enabled plugin that cannot load is not waiting on a restart. The server-wide view is the single `PluginState` reason in `ISystemService.RestartReasons`, which follows the same rule. |
 | `CanUninstall` | Removable by the user. |
@@ -516,7 +517,8 @@ release archives.
 
 ### Lifecycle management, and what not to call
 
-`EnablePlugin`, `DisablePlugin`, `PinPlugin`, `UnpinPlugin` and
+`EnablePlugin`, `DisablePlugin`, `PinPlugin`, `UnpinPlugin`, `KeepPlugin`,
+`UnkeepPlugin` and
 `UninstallPlugin(pluginInfo, purgeConfiguration, purgeData)` each return the
 updated `LocalPluginInfo`. They are for a management UI, not a plugin managing
 itself:
@@ -581,6 +583,35 @@ including inactive and pinned plugins. `CheckForUpdates` runs the check now,
 upgrade. `IsAutoSyncEnabled`, `IsAutoUpgradeEnabled`,
 `DefaultRepositoryStaleTime` and `InactivePluginVersionRetention` are the
 settings behind the automatic behaviour.
+
+**Cleaning up.** An update leaves the older versions installed beside the new
+one. `PurgeInactivePluginVersions(retention)` marks for removal on the next
+start the inactive versions of each plugin with an active version, keeping the
+plugin's configuration and data. The "Purge Inactive Plugin Versions" scheduled
+action runs it daily with `InactivePluginVersionRetention` (30 days by default).
+Zero removes them at the next run; a negative retention throws.
+
+- An older version goes once the retention has passed since the first newer
+  version was installed. The time counts from that install, not from the
+  restart that activated the newer version, so an old version can go right away
+  when the restart came long after the update.
+- A newer version goes once the retention has passed since its own install, but
+  only while the active version is pinned. Otherwise it is a pending update and
+  stays.
+- Active, pinned and kept versions, and versions that cannot be uninstalled,
+  always stay.
+
+The install time is `InstalledAt`, the last-write time of the version's main
+DLL. The package manager stamps it with the time of the install after
+extracting a package, while a manually copied plugin keeps whatever time the
+copy gave the file. A DLL copied on 2001-09-21 by a tool that keeps its
+2001-03-01 time counts as installed on 2001-03-01.
+
+A `.keep` file in a version's directory, or `<name>.keep` next to a single-DLL
+plugin, protects that version from the purge (`IsKept`). `KeepPlugin` and
+`UnkeepPlugin` write and delete it, and an admin may also create it by hand.
+Unlike pinning, it does not make the version the active one, and the version
+can still be uninstalled, which removes the file with it.
 
 **Events.** `PackageInstallationStarted` / `Completed` / `Failed`, and
 `RepositorySyncStarted` / `Completed` / `Failed`. The two `Started` args carry a

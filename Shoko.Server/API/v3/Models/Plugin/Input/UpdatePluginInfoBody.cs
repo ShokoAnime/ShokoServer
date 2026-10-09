@@ -14,6 +14,12 @@ public class UpdatePluginInfoBody
     public bool? IsPinned { get; set; }
 
     /// <summary>
+    ///   Keep or stop keeping the plugin version, protecting it from or
+    ///   exposing it to the purge of inactive plugin versions.
+    /// </summary>
+    public bool? IsKept { get; set; }
+
+    /// <summary>
     ///   When <c>true</c>, bypass safety checks for the operation. Used to
     ///   force-disable a plugin that other enabled plugins depend on, or
     ///   force-uninstall a plugin with dependents. The dependents show at once

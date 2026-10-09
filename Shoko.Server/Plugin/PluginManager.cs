@@ -55,6 +55,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     private const string Pinned = ".pinned";
 
+    private const string Keep = ".keep";
+
     private readonly List<Type> _exportedTypes = [];
 
     private readonly List<LocalPluginInfo> _pluginTypes = [];
@@ -187,8 +189,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         public required int Priority { get; init; }
 
         /// <summary>
-        /// When the plugin was installed locally, or <c>null</c> if the plugin is
-        /// not installed locally.
+        ///   When the plugin version was installed, the last-write time of its
+        ///   main DLL.
         /// </summary>
         public required DateTime InstalledAt { get; init; }
 
@@ -197,6 +199,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         ///   or reordered based on version.
         /// </summary>
         public required bool IsPinned { get; init; }
+
+        /// <summary>
+        ///   Indicates a <c>.keep</c> file protects the plugin version from
+        ///   the purge of inactive versions.
+        /// </summary>
+        public bool IsKept { get; init; }
 
         /// <summary>
         ///   Indicates the plugin is enabled and should be loaded.
@@ -254,6 +262,18 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         => string.IsNullOrEmpty(directory)
             ? Path.ChangeExtension(dll, Pinned)
             : Path.Join(directory, Pinned);
+
+    /// <summary>
+    ///   Gets the <c>.keep</c> file of a plugin version: <c>.keep</c> in its
+    ///   directory, or <c>&lt;dll&gt;.keep</c> next to a single-DLL plugin.
+    /// </summary>
+    /// <param name="directory">The plugin's directory, if it has one.</param>
+    /// <param name="dll">The plugin's main DLL.</param>
+    /// <returns>The path of the <c>.keep</c> file.</returns>
+    internal static string GetKeepFile(string? directory, string dll)
+        => string.IsNullOrEmpty(directory)
+            ? Path.ChangeExtension(dll, Keep)
+            : Path.Join(directory, Keep);
 
     private static string GetRemovalFile(string? directory, string dll)
         => string.IsNullOrEmpty(directory)
@@ -362,6 +382,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         Tags = internalPluginInfo.Tags,
                         LoadOrder = _pluginTypes.Count,
                         InstalledAt = internalPluginInfo.InstalledAt,
+                        IsKept = internalPluginInfo.IsKept,
                         IsEnabled = false,
                         IsPinned = internalPluginInfo.IsPinned,
                         IsActive = false,
@@ -398,6 +419,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     Tags = internalPluginInfo.Tags,
                     LoadOrder = _pluginTypes.Count,
                     InstalledAt = internalPluginInfo.InstalledAt,
+                    IsKept = internalPluginInfo.IsKept,
                     IsEnabled = true,
                     IsPinned = internalPluginInfo.IsPinned,
                     IsActive = false,
@@ -902,6 +924,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 Tags = localPluginInfo.Tags,
                 LoadOrder = localPluginInfo.LoadOrder,
                 InstalledAt = localPluginInfo.InstalledAt,
+                IsKept = localPluginInfo.IsKept,
                 IsEnabled = true,
                 IsPinned = localPluginInfo.IsPinned,
                 IsActive = true,
@@ -1034,6 +1057,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     {
                         File.Delete(filePath);
                         File.Delete(removeFile);
+                        File.Delete(Path.ChangeExtension(filePath, Keep));
                     }
                     catch (Exception ex)
                     {
@@ -1207,7 +1231,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     if (settings.Plugins.EnabledPlugins.TryAdd(name, true))
                         settingsChanged = true;
 
-                    var createdAt = File.GetCreationTimeUtc(dllPath);
                     if (isLegacyNamespace)
                     {
                         logger.LogWarning("Found plugin using deprecated Shoko.Plugin.Abstractions namespace. This plugin is incompatible and needs to be updated. ({DllName}, {Version})", name, version);
@@ -1228,10 +1251,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             RepositoryUrl = repositoryUrl,
                             HomepageUrl = homepageUrl,
                             Tags = tags,
-                            InstalledAt = createdAt,
+                            InstalledAt = GetInstalledAt(dllPath),
                             IsPinned = string.IsNullOrEmpty(dirPath)
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
+                            IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
                             IsEnabled = false,
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
@@ -1278,10 +1302,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             RepositoryUrl = repositoryUrl,
                             HomepageUrl = homepageUrl,
                             Tags = tags,
-                            InstalledAt = createdAt,
+                            InstalledAt = GetInstalledAt(dllPath),
                             IsPinned = string.IsNullOrEmpty(dirPath)
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
+                            IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
                             IsEnabled = false,
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
@@ -1320,10 +1345,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             RepositoryUrl = repositoryUrl,
                             HomepageUrl = homepageUrl,
                             Tags = tags,
-                            InstalledAt = createdAt,
+                            InstalledAt = GetInstalledAt(dllPath),
                             IsPinned = string.IsNullOrEmpty(dirPath)
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
+                            IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
                             IsEnabled = false,
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
@@ -1359,10 +1385,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             RepositoryUrl = repositoryUrl,
                             HomepageUrl = homepageUrl,
                             Tags = tags,
-                            InstalledAt = createdAt,
+                            InstalledAt = GetInstalledAt(dllPath),
                             IsPinned = string.IsNullOrEmpty(dirPath)
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
+                            IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
                             IsEnabled = false,
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
@@ -1446,10 +1473,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         RepositoryUrl = repositoryUrl,
                         HomepageUrl = homepageUrl,
                         Tags = tags,
-                        InstalledAt = createdAt,
+                        InstalledAt = GetInstalledAt(dllPath),
                         IsPinned = string.IsNullOrEmpty(dirPath)
                             ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                             : File.Exists(Path.Join(dirPath, Pinned)),
+                        IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
                         IsEnabled = settings.Plugins.EnabledPlugins[name],
                         ContainingDirectory = dirPath,
                         Priority = settings.Plugins.Priority.IndexOf(name),
@@ -1789,7 +1817,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     /// <summary>
     ///   Dispatched, synchronously, after a plugin is installed, enabled,
-    ///   disabled, pinned, unpinned or uninstalled, so the restart reasons can
+    ///   disabled, pinned, unpinned, kept, unkept or uninstalled, so the restart reasons can
     ///   catch up with what the next start would load.
     /// </summary>
     internal event EventHandler? StateChanged;
@@ -1889,6 +1917,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     public LocalPluginInfo UnpinPlugin(LocalPluginInfo pluginInfo)
         => WithStateChanged(TogglePluginPin(pluginInfo, false));
+
+    public LocalPluginInfo KeepPlugin(LocalPluginInfo pluginInfo)
+        => WithStateChanged(TogglePluginKeep(pluginInfo, true));
+
+    public LocalPluginInfo UnkeepPlugin(LocalPluginInfo pluginInfo)
+        => WithStateChanged(TogglePluginKeep(pluginInfo, false));
 
     private LocalPluginInfo WithStateChanged(LocalPluginInfo pluginInfo)
     {
@@ -2142,6 +2176,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             Tags = internalPluginInfo.Tags,
             LoadOrder = _pluginTypes.Count,
             InstalledAt = internalPluginInfo.InstalledAt,
+            IsKept = internalPluginInfo.IsKept,
             IsEnabled = internalPluginInfo.IsEnabled,
             IsPinned = internalPluginInfo.IsPinned,
             IsActive = existingPluginInfo?.IsActive ?? false,
@@ -2253,6 +2288,31 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         return pluginInfo;
     }
+
+    private static LocalPluginInfo TogglePluginKeep(LocalPluginInfo pluginInfo, bool kept)
+    {
+        if (!pluginInfo.CanUninstall || !pluginInfo.IsInstalled)
+            return pluginInfo;
+
+        var keepFile = GetKeepFile(pluginInfo.ContainingDirectory, pluginInfo.DLLs[0]);
+        if (kept && !File.Exists(keepFile))
+            File.WriteAllText(keepFile, string.Empty);
+        else if (!kept && File.Exists(keepFile))
+            File.Delete(keepFile);
+
+        pluginInfo.IsKept = kept;
+        return pluginInfo;
+    }
+
+    /// <summary>
+    ///   Gets when a plugin version was installed: the last-write time of its
+    ///   main DLL. A package install sets it to the install time, while a
+    ///   manual copy keeps whatever time the copy gave the file.
+    /// </summary>
+    /// <param name="dllPath">The plugin's main DLL.</param>
+    /// <returns>The install time, in UTC.</returns>
+    internal static DateTime GetInstalledAt(string dllPath)
+        => File.GetLastWriteTimeUtc(dllPath);
 
     #endregion
 

@@ -103,7 +103,9 @@ public partial class PluginPackageManager(
     }
 
     /// <summary>
-    ///   Time to retain old plugin versions before auto-cleanup.
+    ///   How long an older plugin version stays installed after a newer one
+    ///   was installed, not after the restart that activated it, before
+    ///   <see cref="PurgeInactivePluginVersions"/> marks it for removal.
     /// </summary>
     public TimeSpan InactivePluginVersionRetention
     {
@@ -368,6 +370,11 @@ public partial class PluginPackageManager(
                 }
 
                 File.Delete(zipPath);
+
+                // Extraction keeps the archive's file times, so stamp the install time on the DLLs, the main one among them.
+                var installedAt = DateTime.UtcNow;
+                foreach (var dllPath in Directory.EnumerateFiles(extractPath, "*.dll", SearchOption.AllDirectories))
+                    File.SetLastWriteTimeUtc(dllPath, installedAt);
 
                 if (cancellationToken.IsCancellationRequested)
                     throw new OperationCanceledException("Installation cancelled during archive extraction.");
@@ -1235,6 +1242,75 @@ public partial class PluginPackageManager(
     public async Task ScheduleCheckForUpdates(bool? forceSync = null, bool? performUpgrade = null, CancellationToken cancellationToken = default)
     {
         await schedulerFactory.StartJob<CheckPluginUpdatesJob>(c => (c.ForceSync, c.PerformUpgrade) = (forceSync, performUpgrade)).ConfigureAwait(false);
+    }
+
+    #endregion
+
+    #region Cleanup
+
+    /// <inheritdoc/>
+    public IReadOnlyList<LocalPluginInfo> PurgeInactivePluginVersions(TimeSpan? retention = null)
+    {
+        var retentionValue = retention ?? InactivePluginVersionRetention;
+        if (retentionValue < TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(retention), "Retention cannot be lower than zero.");
+
+        var versions = SelectInactivePluginVersions(_pluginManager.GetPluginInfos(), retentionValue, DateTime.UtcNow);
+        var marked = new List<LocalPluginInfo>(versions.Count);
+        foreach (var pluginInfo in versions)
+        {
+            if (_pluginManager.UninstallPlugin(pluginInfo).IsInstalled)
+                continue;
+
+            _logger.LogInformation("Marked inactive version {Version} of plugin {PluginName} for removal on the next start.", pluginInfo.Version.Version, pluginInfo.Name);
+            marked.Add(pluginInfo);
+        }
+
+        _logger.LogInformation("Marked {Count} inactive plugin versions for removal, retaining inactive versions for {Retention}.", marked.Count, retentionValue);
+        return marked;
+    }
+
+    /// <summary>
+    ///   Selects the installed versions that are not active, not pinned, not
+    ///   kept, can be uninstalled and whose plugin has an active version. One
+    ///   older than the active version goes once <paramref name="retention"/>
+    ///   passed since the first newer version was installed; one newer goes
+    ///   once it passed since its own install, but only while the active
+    ///   version is pinned, as it is a pending update otherwise.
+    /// </summary>
+    /// <param name="pluginInfos">Every registered plugin version.</param>
+    /// <param name="retention">How long an inactive version is kept.</param>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <returns>The versions to remove.</returns>
+    internal static IReadOnlyList<LocalPluginInfo> SelectInactivePluginVersions(IEnumerable<LocalPluginInfo> pluginInfos, TimeSpan retention, DateTime now)
+    {
+        var selected = new List<LocalPluginInfo>();
+        foreach (var versions in pluginInfos.Where(p => p.IsInstalled).GroupBy(p => p.ID))
+        {
+            var active = versions.FirstOrDefault(p => p.IsActive);
+            if (active is null)
+                continue;
+
+            foreach (var pluginInfo in versions)
+            {
+                if (pluginInfo.IsActive || pluginInfo.IsPinned || pluginInfo.IsKept || !pluginInfo.CanUninstall)
+                    continue;
+
+                var version = pluginInfo.Version.Version;
+                DateTime since;
+                if (version < active.Version.Version)
+                    since = versions.Where(p => p.Version.Version > version).Min(p => p.InstalledAt);
+                else if (version > active.Version.Version && active.IsPinned)
+                    since = pluginInfo.InstalledAt;
+                else
+                    continue;
+
+                if (retention == TimeSpan.Zero || now - since > retention)
+                    selected.Add(pluginInfo);
+            }
+        }
+
+        return selected;
     }
 
     #endregion

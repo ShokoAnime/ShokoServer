@@ -71,7 +71,10 @@ public sealed class LocalPluginInfo
     public required PackageImageInfo? Icon { get; init; }
 
     /// <summary>
-    /// When the plugin was installed to the local system.
+    ///   When the plugin was installed to the local system: the last-write
+    ///   time of its main DLL, in UTC. A package install sets it to the
+    ///   install time; a manually copied plugin keeps whatever time the copy
+    ///   gave the file.
     /// </summary>
     public required DateTime InstalledAt { get; init; }
 
@@ -97,6 +100,15 @@ public sealed class LocalPluginInfo
     ///   Indicates the current version of the plugin is pinned.
     /// </summary>
     public bool IsPinned { get; internal set; }
+
+    /// <summary>
+    ///   Indicates a <c>.keep</c> file, in the plugin's directory or next to
+    ///   a single-DLL plugin, protects this version from
+    ///   <see cref="IPluginPackageManager.PurgeInactivePluginVersions"/>. It
+    ///   can still be uninstalled, and unlike pinning it does not make the
+    ///   version the active one.
+    /// </summary>
+    public bool IsKept { get; internal set; }
 
     /// <summary>
     ///   Indicates the plugin is currently loaded in the current session.

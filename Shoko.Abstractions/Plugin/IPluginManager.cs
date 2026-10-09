@@ -233,6 +233,33 @@ public interface IPluginManager
     LocalPluginInfo UnpinPlugin(LocalPluginInfo pluginInfo);
 
     /// <summary>
+    ///   Keeps the plugin version, protecting it from
+    ///   <see cref="IPluginPackageManager.PurgeInactivePluginVersions"/> by
+    ///   writing its <c>.keep</c> file. Does nothing for a version that cannot
+    ///   be uninstalled.
+    /// </summary>
+    /// <param name="pluginInfo">
+    ///   The plugin info to keep.
+    /// </param>
+    /// <returns>
+    ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
+    /// </returns>
+    LocalPluginInfo KeepPlugin(LocalPluginInfo pluginInfo);
+
+    /// <summary>
+    ///   Stops keeping the plugin version, deleting its <c>.keep</c> file, so
+    ///   <see cref="IPluginPackageManager.PurgeInactivePluginVersions"/> may
+    ///   remove it again.
+    /// </summary>
+    /// <param name="pluginInfo">
+    ///   The plugin info to stop keeping.
+    /// </param>
+    /// <returns>
+    ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
+    /// </returns>
+    LocalPluginInfo UnkeepPlugin(LocalPluginInfo pluginInfo);
+
+    /// <summary>
     ///   Disables and uninstalls the plugin. The plugin will still be active in
     ///   the current session.
     /// </summary>

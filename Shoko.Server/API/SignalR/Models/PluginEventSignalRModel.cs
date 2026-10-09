@@ -18,11 +18,12 @@ public class PluginEventSignalRModel
         Version = eventArgs.Plugin.Version.Version;
         IsEnabled = eventArgs.Plugin.IsEnabled;
         IsPinned = eventArgs.Plugin.IsPinned;
+        IsKept = eventArgs.Plugin.IsKept;
         OccurredAt = eventArgs.OccurredAt;
     }
 
     /// <summary>
-    ///   Creates a model for a state-change event (enable/disable, pin/unpin).
+    ///   Creates a model for a state-change event (enable/disable, pin/unpin, keep/unkeep).
     /// </summary>
     public PluginEventSignalRModel(LocalPluginInfo plugin, DateTime occurredAt)
     {
@@ -31,6 +32,7 @@ public class PluginEventSignalRModel
         Version = plugin.Version.Version;
         IsEnabled = plugin.IsEnabled;
         IsPinned = plugin.IsPinned;
+        IsKept = plugin.IsKept;
         OccurredAt = occurredAt;
     }
 
@@ -63,6 +65,13 @@ public class PluginEventSignalRModel
     /// </summary>
     [Required]
     public bool IsPinned { get; }
+
+    /// <summary>
+    ///   Whether the plugin version is protected from the purge of inactive
+    ///   versions by a <c>.keep</c> file.
+    /// </summary>
+    [Required]
+    public bool IsKept { get; }
 
     /// <summary>
     ///   When the event occurred.

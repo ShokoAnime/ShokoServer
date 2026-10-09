@@ -33,8 +33,12 @@ public interface IPluginPackageManager
     TimeSpan DefaultRepositoryStaleTime { get; set; }
 
     /// <summary>
-    ///   Time to retain old plugin versions before auto-cleanup. Defaults to
-    ///   30 days.
+    ///   How long an older plugin version stays installed after a newer one
+    ///   was installed, before <see cref="PurgeInactivePluginVersions"/> (the
+    ///   daily "Purge Inactive Plugin Versions" scheduled action) marks it for
+    ///   removal. It counts from that install, not from the restart that
+    ///   activated the newer version. Zero removes it at the next run.
+    ///   Defaults to 30 days.
     /// </summary>
     TimeSpan InactivePluginVersionRetention { get; set; }
 
@@ -338,6 +342,38 @@ public interface IPluginPackageManager
     ///   Task completing when the job is scheduled.
     /// </returns>
     Task ScheduleCheckForUpdates(bool? forceSync = null, bool? performUpgrade = null, CancellationToken cancellationToken = default);
+
+    #endregion
+
+    #region Cleanup
+
+    /// <summary>
+    ///   Marks for removal on the next start the inactive versions of each
+    ///   plugin with an active version, keeping the plugin's configuration
+    ///   and data. Pinned versions, versions with a <c>.keep</c> file (see
+    ///   <see cref="LocalPluginInfo.IsKept"/>) and versions that cannot be
+    ///   uninstalled are never selected.
+    /// </summary>
+    /// <remarks>
+    ///   An older version goes once the retention passed since the first
+    ///   newer version was installed (see
+    ///   <see cref="LocalPluginInfo.InstalledAt"/>), not since the restart
+    ///   that activated it, so it can go at once when that restart came long
+    ///   after the update. A newer version goes once the retention passed
+    ///   since its own install while the active version is pinned; otherwise
+    ///   it is a pending update and stays.
+    /// </remarks>
+    /// <param name="retention">
+    ///   Optional. How long an inactive version is kept, or <c>null</c> to
+    ///   use <see cref="InactivePluginVersionRetention"/>.
+    /// </param>
+    /// <returns>
+    ///   The versions marked for removal.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///   Thrown when <paramref name="retention"/> is lower than zero.
+    /// </exception>
+    IReadOnlyList<LocalPluginInfo> PurgeInactivePluginVersions(TimeSpan? retention = null);
 
     #endregion
 }

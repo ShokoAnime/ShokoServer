@@ -132,6 +132,13 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public bool IsPinned { get; set; } = pluginInfo.IsPinned;
 
     /// <summary>
+    ///   Indicates a <c>.keep</c> file protects this version of the plugin
+    ///   from the purge of inactive plugin versions.
+    /// </summary>
+    [Required]
+    public bool IsKept { get; set; } = pluginInfo.IsKept;
+
+    /// <summary>
     ///   Indicates the plugin is currently loaded in the current session.
     /// </summary>
     [Required]
