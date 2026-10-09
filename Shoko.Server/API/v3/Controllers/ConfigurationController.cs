@@ -243,6 +243,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             var json = configurationService.RestoreMaskedSecrets(configInfo, body.ToString(Formatting.None, new StringEnumConverter()));
             if (configInfo.HasCustomSave)
             {
+                // The schema and the Validate hook judge it before the Save hook is handed it.
                 if (configurationService.Validate(configInfo, json) is { Count: > 0 } errors)
                     return Ok(new ConfigurationActionResult { ValidationErrors = errors });
 
@@ -279,6 +280,10 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
             if (configInfo.HasCustomSave)
             {
+                // The Save hook is only handed a document that passed validation.
+                if (configurationService.Validate(configInfo, config) is { Count: > 0 } errors)
+                    return Ok(new ConfigurationActionResult { ValidationErrors = errors });
+
                 var json = configurationService.SerializeWithMasking(config);
                 var result = configurationService.PerformReactiveAction(configInfo, config, "", ConfigurationActionType.Save, default, User, BaseUri);
                 return Ok(new ConfigurationActionResult(result, configurationService, json));
@@ -391,19 +396,11 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
             return NotFound($"Configuration '{configID}' not found!");
 
+        // The schema, the custom validation and the Validate hook, the same checks a save runs.
         var json = body.ToString(Formatting.None, new StringEnumConverter());
         var errors = configurationService.Validate(configInfo, json);
         if (errors.Count > 0)
             return Ok(new ConfigurationActionResult { ValidationErrors = errors });
-
-        json = configurationService.RestoreMaskedSecrets(configInfo, json);
-        if (configInfo.HasCustomValidation)
-        {
-            var config = configurationService.Deserialize(configInfo, json);
-            var result = configurationService.PerformReactiveAction(configInfo, config, "", ConfigurationActionType.Validate, default, User, BaseUri);
-            if (result.ValidationErrors is { Count: > 0 })
-                return Ok(new ConfigurationActionResult { ValidationErrors = result.ValidationErrors });
-        }
 
         return Ok(new ConfigurationActionResult());
     }

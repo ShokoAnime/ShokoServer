@@ -112,7 +112,8 @@ public interface IConfigurationService
 
     /// <summary>
     ///   Validates a stringified JSON configuration against the specified
-    ///   <see cref="ConfigurationInfo" />'s schema.
+    ///   <see cref="ConfigurationInfo" />'s schema, then its custom validation
+    ///   and Validate hook, the same checks every save runs.
     /// </summary>
     /// <param name="info">
     ///   The <see cref="ConfigurationInfo" />.
@@ -127,7 +128,8 @@ public interface IConfigurationService
 
     /// <summary>
     ///   Validates a stringified JSON configuration against the specified
-    ///   <see cref="ConfigurationInfo" />'s schema.
+    ///   <see cref="ConfigurationInfo" />'s schema, then its custom validation
+    ///   and Validate hook, the same checks every save runs.
     /// </summary>
     /// <param name="info">
     ///   The <see cref="ConfigurationInfo" />.
@@ -141,7 +143,8 @@ public interface IConfigurationService
     IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ConfigurationInfo info, IConfiguration config);
 
     /// <summary>
-    ///   Validates a configuration instance against it's schema.
+    ///   Validates a configuration instance against its schema, then its
+    ///   custom validation and Validate hook, the same checks every save runs.
     /// </summary>
     /// <typeparam name="TConfig">
     ///   The type of the configuration.
