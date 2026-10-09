@@ -83,6 +83,14 @@ public class ConfigurationTypeAnalyzerTests
                 Keys = 1,
             }
 
+            public enum DisplaySectionType
+            {
+                FieldSet = 0,
+                Tab = 1,
+                Minimal = 2,
+                Checkbox = 3,
+            }
+
             public enum DisplayListType
             {
                 Auto = 0,
@@ -126,6 +134,14 @@ public class ConfigurationTypeAnalyzerTests
 
             [System.AttributeUsage(System.AttributeTargets.Parameter)]
             public class OptionsKeyAttribute : System.Attribute { }
+
+            [System.AttributeUsage(System.AttributeTargets.Class)]
+            public class SectionAttribute : System.Attribute
+            {
+                public SectionAttribute(DisplaySectionType sectionType = DisplaySectionType.FieldSet) { SectionType = sectionType; }
+                public DisplaySectionType SectionType { get; }
+                public string? ToggleMember { get; set; }
+            }
 
             [System.AttributeUsage(System.AttributeTargets.Method)]
             public class CustomActionAttribute : System.Attribute
@@ -1213,5 +1229,44 @@ public class ConfigurationTypeAnalyzerTests
             new DiagnosticResult(Diagnostics.OptionTypeMismatch)
                 .WithLocation(3)
                 .WithArguments("MyConfig.ListAccess", "returns int[] rather than a collection of Access"));
+    }
+
+    [Fact]
+    public async Task AnUnfitSectionToggle_IsReported()
+    {
+        await VerifyAsync("""
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+            using Shoko.Abstractions.UI.Enums;
+
+            public class MyConfig : IConfiguration
+            {
+                public Fine Fine { get; set; } = new();
+                public Missing Missing { get; set; } = new();
+                public NotABool NotABool { get; set; } = new();
+                public Stray Stray { get; set; } = new();
+            }
+
+            [Section(DisplaySectionType.Checkbox, ToggleMember = nameof(Enabled))]
+            public class Fine { public bool Enabled { get; set; } public string Value { get; set; } = ""; }
+
+            [{|#0:Section(DisplaySectionType.Checkbox)|}]
+            public class Missing { public bool Enabled { get; set; } }
+
+            [{|#1:Section(DisplaySectionType.Checkbox, ToggleMember = nameof(Value))|}]
+            public class NotABool { public string Value { get; set; } = ""; }
+
+            [{|#2:Section(DisplaySectionType.FieldSet, ToggleMember = nameof(Enabled))|}]
+            public class Stray { public bool Enabled { get; set; } }
+            """,
+            new DiagnosticResult(Diagnostics.UnusableSectionToggle)
+                .WithLocation(0)
+                .WithArguments("Missing", "is drawn as a checkbox but names no ToggleMember, the bool member that turns it on"),
+            new DiagnosticResult(Diagnostics.UnusableSectionToggle)
+                .WithLocation(1)
+                .WithArguments("NotABool", "names the ToggleMember \"Value\", which is not a serialised bool member of it"),
+            new DiagnosticResult(Diagnostics.UnusableSectionToggle)
+                .WithLocation(2)
+                .WithArguments("Stray", "names the ToggleMember \"Enabled\", but only a checkbox section has one"));
     }
 }

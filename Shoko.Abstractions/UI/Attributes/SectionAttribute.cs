@@ -36,4 +36,12 @@ public class SectionAttribute(DisplaySectionType sectionType = DisplaySectionTyp
     /// The type of section to use for the class/group in the UI.
     /// </summary>
     public DisplaySectionType SectionType { get; } = sectionType;
+
+    /// <summary>
+    /// The <see cref="bool"/> member of the class, given with <c>nameof</c>,
+    /// that turns a <see cref="DisplaySectionType.Checkbox"/> section on: the
+    /// checkbox the section is drawn as. A checkbox section has to name one,
+    /// and no other section may.
+    /// </summary>
+    public string? ToggleMember { get; set; }
 }

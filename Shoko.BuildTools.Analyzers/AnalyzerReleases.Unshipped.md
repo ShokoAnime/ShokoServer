@@ -20,3 +20,4 @@ SHOKO0012 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, options tha
 SHOKO0013 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a member part with two options providers makes UI schema generation throw.
 SHOKO0014 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a flags enum without single-bit members makes UI schema generation throw.
 SHOKO0015 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, an options key parameter on a provider that has no key to hand makes UI schema generation throw.
+SHOKO0016 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a checkbox section without a bool switch, or another section naming one, makes UI schema generation throw.

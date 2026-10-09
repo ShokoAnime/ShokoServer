@@ -104,6 +104,20 @@ section it names. A name no member uses leaves nothing behind, and a section no
 so those members are gathered into the default section; give it a name with
 `DefaultSectionName`. In every other layout they simply stay where they are.
 
+A `Checkbox` section is switched on and off by one of its own `bool` members,
+named with `ToggleMember`. The container carries that member's key as
+`ToggleMember`, and a client draws it as the section's checkbox rather than as
+a field:
+
+```csharp
+[Section(DisplaySectionType.Checkbox, ToggleMember = nameof(Enabled))]
+public class ExperimentalSection
+{
+    public bool Enabled { get; set; }
+    public string Value { get; set; } = string.Empty;
+}
+```
+
 ### Buttons
 
 A `[CustomAction]` method becomes a button. Where it lands follows the same

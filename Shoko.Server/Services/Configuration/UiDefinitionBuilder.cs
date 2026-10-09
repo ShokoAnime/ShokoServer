@@ -342,6 +342,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             // action, and there it is on unless the class opted out.
             ShowSaveAction = classBuilder is not null && (classBuilder.ShowSaveAction || (isRoot && !classBuilder.HideSaveAction)),
             PrimaryKey = classBuilder?.PrimaryKey,
+            ToggleMember = classBuilder?.ToggleMember,
             HasLiveEdit = hasLiveEdit,
             HasNestedLiveEdit = uiItems.Values.Any(HasLiveEditAtOrBelow),
             Items = uiItems,
