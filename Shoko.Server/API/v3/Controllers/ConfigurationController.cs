@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,9 @@ using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.UI;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
@@ -240,6 +243,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             var json = configurationService.RestoreMaskedSecrets(configInfo, body.ToString(Formatting.None, new StringEnumConverter()));
             if (configInfo.HasCustomSave)
             {
+                // The schema and the Validate hook judge it before the Save hook is handed it.
                 if (configurationService.Validate(configInfo, json) is { Count: > 0 } errors)
                     return Ok(new ConfigurationActionResult { ValidationErrors = errors });
 
@@ -276,6 +280,10 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
             if (configInfo.HasCustomSave)
             {
+                // The Save hook is only handed a document that passed validation.
+                if (configurationService.Validate(configInfo, config) is { Count: > 0 } errors)
+                    return Ok(new ConfigurationActionResult { ValidationErrors = errors });
+
                 var json = configurationService.SerializeWithMasking(config);
                 var result = configurationService.PerformReactiveAction(configInfo, config, "", ConfigurationActionType.Save, default, User, BaseUri);
                 return Ok(new ConfigurationActionResult(result, configurationService, json));
@@ -317,6 +325,29 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             return NotFound($"Configuration '{configID}' not found!");
 
         return Content(configurationService.GetSchema(configInfo), "application/json");
+    }
+
+    /// <summary>
+    ///   Get a render-ready UI definition for the configuration with the given
+    ///   id.
+    /// </summary>
+    /// <remarks>
+    ///   Unlike <c>/Schema</c>, the returned document is meant to be sufficient
+    ///   on its own: every element carries a concrete element kind, its label,
+    ///   its default and the constraints needed for a cheap client-side
+    ///   pre-check. The schema remains the authority for server-side
+    ///   validation, and still carries the <c>x-uiDefinition</c> bag the
+    ///   configuration validator reads back.
+    /// </remarks>
+    /// <param name="configID">Configuration id</param>
+    /// <returns>The UI definition for the configuration.</returns>
+    [HttpGet("{configID:guid}/UiDefinition")]
+    public ActionResult<UiDefinition> GetConfigurationUiDefinition(Guid configID)
+    {
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
+
+        return configInfo.UiDefinition;
     }
 
     /// <summary>
@@ -365,19 +396,11 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
             return NotFound($"Configuration '{configID}' not found!");
 
+        // The schema, the custom validation and the Validate hook, the same checks a save runs.
         var json = body.ToString(Formatting.None, new StringEnumConverter());
         var errors = configurationService.Validate(configInfo, json);
         if (errors.Count > 0)
             return Ok(new ConfigurationActionResult { ValidationErrors = errors });
-
-        json = configurationService.RestoreMaskedSecrets(configInfo, json);
-        if (configInfo.HasCustomValidation)
-        {
-            var config = configurationService.Deserialize(configInfo, json);
-            var result = configurationService.PerformReactiveAction(configInfo, config, "", ConfigurationActionType.Validate, default, User, BaseUri);
-            if (result.ValidationErrors is { Count: > 0 })
-                return Ok(new ConfigurationActionResult { ValidationErrors = result.ValidationErrors });
-        }
 
         return Ok(new ConfigurationActionResult());
     }
@@ -426,11 +449,61 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     }
 
     /// <summary>
+    ///   List the options the server offers for a member of the configuration
+    ///   with the given id, when the member's <c>HasOptions</c> is set.
+    /// </summary>
+    /// <param name="configID">Configuration id</param>
+    /// <param name="body">
+    ///   Optional. The edited configuration, unsaved changes included. The
+    ///   saved one is used when it is left out.
+    /// </param>
+    /// <param name="path">
+    ///   Path to the member, the same path a custom action is invoked with. A
+    ///   dictionary's own path lists its keys, and the path of one of its
+    ///   entries, such as <c>Weights["key"]</c>, the values for that key.
+    /// </param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [HttpPost("{configID:guid}/Options")]
+    public async Task<ActionResult<IReadOnlyList<UiOption>>> GetConfigurationOptions(
+        Guid configID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body,
+        [FromQuery] string path = ""
+    )
+    {
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
+
+        try
+        {
+            var json = body?.ToString(Formatting.None, new StringEnumConverter()) is { } incomingJson
+                ? configurationService.RestoreMaskedSecrets(configInfo, incomingJson)
+                : configurationService.Serialize(configurationService.Load(configInfo));
+            var config = configurationService.Deserialize(configInfo, json);
+            return Ok(await configurationService.GetOptionsAsync(configInfo, config, path, User, BaseUri));
+        }
+        // The draft failing to load and the provider refusing it are both
+        // validation problems, the provider's keyed as it threw them.
+        catch (GenericValidationException ex)
+        {
+            return ValidationProblem(ex.ValidationErrors);
+        }
+        catch (InvalidConfigurationActionException ex)
+        {
+            return ValidationProblem(ex.Message, ex.ParamName);
+        }
+    }
+
+    /// <summary>
     /// Perform an action on the configuration with the given id.
     /// </summary>
     /// <param name="configID">Configuration id</param>
     /// <param name="body">Optional. Configuration data to perform the action on.</param>
-    /// <param name="reactiveEventType">Reactive event type to perform the action on.</param>
+    /// <param name="reactiveEventType">
+    ///   Reactive event type to perform the action on, by the name it is
+    ///   written as, such as <c>view-changed</c>, or by its C# name.
+    /// </param>
     /// <param name="path">Path to the configuration</param>
     /// <returns></returns>
     [ProducesResponseType(200)]

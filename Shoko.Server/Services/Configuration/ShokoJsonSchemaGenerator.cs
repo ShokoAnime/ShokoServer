@@ -8,21 +8,25 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using Namotion.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using NJsonSchema;
 using NJsonSchema.Generation;
 using NJsonSchema.Generation.TypeMappers;
 using NJsonSchema.NewtonsoftJson.Generation;
+using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Config.Components;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Components;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Plugin;
+using Shoko.Server.Utilities;
 
 using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -40,23 +44,139 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     private readonly JsonSerializerOptions _systemTextJsonSerializerOptions = systemTextJsonSerializerOptions;
 
-    private Type? _currentType = null;
+    /// <summary>
+    ///   Whether the type currently being walked is read and written by
+    ///   Newtonsoft rather than System.Text.Json.
+    /// </summary>
+    private bool _isNewtonsoftJson = false;
 
-    private readonly Dictionary<string, (Dictionary<string, object?> ClassUIDefinition, Dictionary<string, Dictionary<string, object?>> PropertyUIDefinitions)> _schemaCache = [];
+    private Func<object, string?>? _enumValueConverter = null;
+
+    private readonly Dictionary<string, UiClassBuilder> _schemaCache = [];
 
     private readonly Dictionary<JsonSchema, string> _schemaKeys = [];
 
-    private readonly Regex _newlineCollapseRegex = new(@"(\r\n|\r|\n)+", RegexOptions.Compiled);
 
+    /// <summary>
+    ///   Generates the schema for a configuration type, on the serialiser the
+    ///   configuration declared.
+    /// </summary>
+    /// <param name="type">The configuration type.</param>
+    /// <returns>The schema and the typed builders that produced it.</returns>
     public WrappedJsonSchema GetSchemaForType(Type type)
+        => GenerateSchema(type, type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)), contractResolver: null, rootInstance: null);
+
+    /// <summary>
+    ///   Generates the schema for an executable action's invocation parameters.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     An action's parameters are its own settable, serialized properties,
+    ///     since <c>ActionService.PopulateParameters</c> populates the caller's
+    ///     payload straight onto the action instance, so the walk is the same
+    ///     one a configuration gets, and the produced
+    ///     <see cref="Abstractions.UI.UiDefinition"/> is indistinguishable from
+    ///     a configuration's. This entrypoint exists only to apply the two
+    ///     rules that differ, in one place:
+    ///   </para>
+    ///   <list type="bullet">
+    ///     <item>
+    ///       Newtonsoft unconditionally, because that is what populates an
+    ///       action; an action does not implement
+    ///       <see cref="INewtonsoftJsonConfiguration"/> to say so.
+    ///     </item>
+    ///     <item>
+    ///       The action's own metadata surface is not a parameter. See
+    ///       <see cref="ActionMetadataContractResolver"/>.
+    ///     </item>
+    ///   </list>
+    /// </remarks>
+    /// <param name="actionType">
+    ///   The concrete action type, implementing
+    ///   <see cref="IExecutableAction"/>.
+    /// </param>
+    /// <param name="instance">
+    ///   A constructed instance of the action, read for the parameters'
+    ///   defaults, or <c>null</c> to construct one when the type allows it.
+    /// </param>
+    /// <returns>The schema and the typed builders that produced it.</returns>
+    public WrappedJsonSchema GetSchemaForActionParameters(Type actionType, object? instance = null)
+    {
+        ArgumentNullException.ThrowIfNull(actionType);
+        if (!actionType.IsAssignableTo(typeof(IExecutableAction)))
+            throw new ArgumentException($"Type \"{actionType.FullName}\" does not implement {nameof(IExecutableAction)}.", nameof(actionType));
+
+        var wrapped = GenerateSchema(actionType, isNewtonsoftJson: true, new ActionMetadataContractResolver(), instance);
+
+        // There is nothing to save on an invocation form, where the client renders
+        // an invoke button of its own, so the root never offers the built-in save
+        // action a configuration's root does.
+        if (wrapped.UiBuilders.TryGetValue(wrapped.Schema, out var rootBuilder))
+        {
+            rootBuilder.HideSaveAction = true;
+            rootBuilder.ShowSaveAction = false;
+        }
+
+        foreach (var objectSchema in EnumerateObjectSchemas(wrapped.Schema))
+        {
+            // A configuration document is read back leniently, so the generator
+            // leaves objects open. An invocation payload is the opposite case:
+            // `JsonConvert.PopulateObject` ignores a member it cannot map, so a
+            // mistyped parameter name would silently do nothing and the action
+            // would run on its defaults. Closing the object turns that into a
+            // rejection.
+            objectSchema.AllowAdditionalProperties = false;
+
+            // The action instance is already fully constructed with its own
+            // defaults before anything is populated onto it, so an absent
+            // parameter means "leave it alone". Only a member the action marks
+            // required, with [Required] or the required modifier, must be sent.
+            var memberType = wrapped.UiBuilders.TryGetValue(objectSchema, out var classBuilder) ? classBuilder.Type : null;
+            foreach (var (propertyName, property) in objectSchema.Properties)
+                property.IsRequired = memberType is not null && IsExplicitlyRequired(memberType, propertyName);
+        }
+
+        return wrapped;
+    }
+
+    /// <summary>
+    ///   The root and every hoisted definition that is a plain object, skipping
+    ///   enumerations and dictionaries.
+    /// </summary>
+    /// <remarks>
+    ///   A dictionary carries its value schema in <c>additionalProperties</c>,
+    ///   so closing it would throw the value type away and reject every entry.
+    /// </remarks>
+    private static IEnumerable<JsonSchema> EnumerateObjectSchemas(JsonSchema rootSchema)
+        => rootSchema.Definitions.Values
+            .Prepend(rootSchema)
+            .Select(x => x.ActualSchema)
+            .Where(x => !x.IsEnumeration && x.AdditionalPropertiesSchema is null && x.Properties.Count > 0)
+            .Distinct();
+
+    /// <summary>
+    ///   Whether the member a parameter is read into is marked
+    ///   <see cref="RequiredAttribute"/> or declared with the
+    ///   <c>required</c> modifier.
+    /// </summary>
+    /// <param name="type">The type declaring the member.</param>
+    /// <param name="propertyName">The member's name in the payload.</param>
+    /// <returns><c>true</c> when the caller has to send it.</returns>
+    private static bool IsExplicitlyRequired(Type type, string propertyName)
+        => type.ToContextualType().Properties
+            .FirstOrDefault(x => string.Equals(ConfigurationService.GetJsonName(x, isNewtonsoftJson: true), propertyName, StringComparison.Ordinal))
+            is { } property &&
+            (property.GetAttribute<RequiredAttribute>(true) is not null ||
+                property.PropertyInfo.IsDefined(typeof(System.Runtime.CompilerServices.RequiredMemberAttribute), false));
+
+    private WrappedJsonSchema GenerateSchema(Type type, bool isNewtonsoftJson, IContractResolver? contractResolver, object? rootInstance)
     {
         // Process-wide, not per generator: the schema generation reads the XML
         // docs through Namotion.Reflection, see TypeReflectionExtensions.XmlDocsLock.
         lock (TypeReflectionExtensions.XmlDocsLock)
         {
-            var isNewtonsoftJson = type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration));
             var generator = isNewtonsoftJson
-                ? GetNewtonsoftSchemaForType()
+                ? GetNewtonsoftSchemaForType(contractResolver)
                 : GetSystemTextJsonSchemaForType();
             generator.Settings.SchemaProcessors.Add(this);
 
@@ -68,112 +188,185 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             }));
             generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(MetadataSource), s => s.Type = JsonObjectType.String));
             generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(MetadataEntityType), s => s.Type = JsonObjectType.String));
+            foreach (var parsableType in FindParsableValueTypes(type))
+                generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(parsableType, s => s.Type = JsonObjectType.String));
 
             _schemaCache.Clear();
             _schemaKeys.Clear();
-            _currentType = type;
+            _enumValueConverter = null;
+            _isNewtonsoftJson = isNewtonsoftJson;
+            var emitContext = new UiEmitContext
+            {
+                Convert = Convert,
+                ConvertToken = value => Convert(value, isNewtonsoftJson),
+            };
             var schema = generator.Generate(type);
-            var wrappedSchema = new WrappedJsonSchema { Schema = schema };
-            foreach (var enumSchema in schema.Definitions.Values.Where(s => s.IsEnumeration && !string.IsNullOrEmpty(s.Description)))
-                enumSchema.Description = enumSchema.Description!.WriteKeywordsAsCode();
-            var schemaDefinitions = schema.Definitions.Values.Where(s => !s.IsEnumeration).Prepend(schema).ToList();
+            var uiBuilders = new Dictionary<JsonSchema, UiClassBuilder>();
+            var wrappedSchema = new WrappedJsonSchema { Schema = schema, UiBuilders = uiBuilders, EmitContext = emitContext };
+            var schemaDefinitions = schema.Definitions.Values.Prepend(schema).ToList();
             // Post-process the schema; add the UI definitions at the correct locations.
             foreach (var subSchema in schemaDefinitions)
             {
-                subSchema.Description = string.IsNullOrEmpty(subSchema.Description) ? null : subSchema.Description.Replace(_newlineCollapseRegex, "\n").WriteKeywordsAsCode();
+                subSchema.Description = string.IsNullOrEmpty(subSchema.Description) ? null : subSchema.Description.CleanDescription();
+                // An enum carries a description like anything else, but nothing
+                // below this has anything to add to one.
+                if (subSchema.IsEnumeration)
+                    continue;
+
+                // Ahead of the lookups below, which skip every definition the
+                // generator does not describe, such as a select component, and
+                // would leave its descriptions as the raw XML docs.
+                foreach (var (_, schemaValue) in subSchema.Properties)
+                    schemaValue.Description = string.IsNullOrEmpty(schemaValue.Description) ? null : schemaValue.Description.CleanDescription();
+
                 if (!_schemaKeys.TryGetValue(subSchema, out var schemaKey))
                     continue;
 
-                if (!_schemaCache.TryGetValue(schemaKey, out var schemaTuple))
+                if (!_schemaCache.TryGetValue(schemaKey, out var classBuilder))
                     continue;
-                var (classDefinition, propertyDict) = schemaTuple;
-                if (classDefinition.Count > 0)
+
+                var isRootSchema = ReferenceEquals(schema, subSchema);
+                // The defaults are what a freshly constructed instance holds,
+                // initialisers included, the same as /Default starts from.
+                var instance = rootInstance is not null && classBuilder.Type == type ? rootInstance : CreateInstance(classBuilder.Type);
+                if (classBuilder.IsPopulated)
                 {
-                    if (classDefinition.TryGetValue(ElementLabel, out var classLabel))
+                    uiBuilders[subSchema] = classBuilder;
+                    if (classBuilder.Actions.Count > 0)
+                        wrappedSchema.HasCustomActions = true;
+                    foreach (var lifecycleHook in classBuilder.LifecycleHooks)
                     {
-                        classDefinition.Remove(ElementLabel);
-                        subSchema.Title = (string)classLabel!;
-                    }
-                    if (classDefinition[ElementActions] is Dictionary<string, Dictionary<string, object?>> customActionDict)
-                    {
-                        if (customActionDict.Count > 0)
-                            wrappedSchema.HasCustomActions = true;
-                    }
-                    if (classDefinition[ElementReactiveActions] is List<Dictionary<string, object?>> c2)
-                    {
-                        foreach (var reactiveAction in c2)
+                        switch (lifecycleHook.ActionType)
                         {
-                            switch ((string)reactiveAction[ActionType]!)
-                            {
-                                case "new" when ReferenceEquals(schema, subSchema):
-                                    wrappedSchema.HasCustomNewFactory = true;
-                                    break;
-                                case "validate" when ReferenceEquals(schema, subSchema):
-                                    wrappedSchema.HasCustomValidation = true;
-                                    break;
-                                case "save" when ReferenceEquals(schema, subSchema):
-                                    wrappedSchema.HasCustomSave = true;
-                                    break;
-                                case "load" when ReferenceEquals(schema, subSchema):
-                                    wrappedSchema.HasCustomLoad = true;
-                                    break;
-                                case "live-edit":
-                                    wrappedSchema.HasLiveEdit = true;
-                                    break;
-                            }
+                            case ConfigurationActionType.New when isRootSchema:
+                                wrappedSchema.HasCustomNewFactory = true;
+                                break;
+                            case ConfigurationActionType.Validate when isRootSchema:
+                                wrappedSchema.HasCustomValidation = true;
+                                break;
+                            case ConfigurationActionType.Save when isRootSchema:
+                                wrappedSchema.HasCustomSave = true;
+                                break;
+                            case ConfigurationActionType.Load when isRootSchema:
+                                wrappedSchema.HasCustomLoad = true;
+                                break;
+                            case ConfigurationActionType.LiveEdit:
+                                wrappedSchema.HasLiveEdit = true;
+                                break;
                         }
                     }
-                    if (ReferenceEquals(subSchema, schema))
-                    {
-                        classDefinition[ElementShowSaveAction] = classDefinition[ElementShowSaveAction] is true || classDefinition[ElementHideSaveAction] is not true;
-                    }
-                    classDefinition.Remove(ElementReactiveActions);
-                    classDefinition.Remove(ElementHideSaveAction);
-                    subSchema.ExtensionData ??= new Dictionary<string, object?>();
-                    subSchema.ExtensionData.Add(UiDefinition, classDefinition);
+                    if (classBuilder.Label is { } classLabel)
+                        subSchema.Title = classLabel;
                 }
-                foreach (var tuple in subSchema.Properties)
+                foreach (var (propertyName, schemaValue) in subSchema.Properties)
                 {
-                    var (propertyKey, schemaValue) = tuple;
-                    schemaValue.Description = string.IsNullOrEmpty(schemaValue.Description) ? null : schemaValue.Description.Replace(_newlineCollapseRegex, "\n").WriteKeywordsAsCode();
-                    if (schemaValue.Item is not null)
-                        propertyKey += "+List";
-                    if (schemaValue.AdditionalPropertiesSchema is not null)
-                        propertyKey += "+Dict";
-                    if (!propertyDict.TryGetValue(propertyKey, out var propertyDefinition))
+                    if (classBuilder.GetProperty(GetPropertyKey(propertyName, schemaValue)) is not { } propertyBuilder)
                         continue;
 
+                    if (schemaValue.Default is null && instance is not null)
+                        schemaValue.Default = ReadDefault(instance, propertyBuilder.MemberName, schemaValue, emitContext);
+
                     // Handle enum default values.
-                    if (propertyDefinition.TryGetValue(EnumDefinitions, out var d0) && d0 is List<Dictionary<string, string>> d1 &&
+                    if (propertyBuilder.Element is UiEnumElementBuilder { Values: var enumValues } &&
                         schemaValue.Reference?.EnumerationNames?.Count is > 0 &&
                         schemaValue.Default is string defaultValue
                     )
                     {
                         var index = schemaValue.Reference.EnumerationNames.IndexOf(defaultValue);
-                        schemaValue.Default = index >= 0 ? d1[schemaValue.Reference.EnumerationNames.IndexOf(defaultValue)]["value"] : null;
+                        schemaValue.Default = index >= 0 ? enumValues[index].Value : null;
                     }
 
-                    if (propertyDefinition.TryGetValue(ElementLabel, out var propertyLabel))
+                    if (propertyBuilder.Label is { } propertyLabel)
+                        schemaValue.Title = propertyLabel;
+                    if (propertyBuilder.ToExtensionData(emitContext) is { } uiDefinition)
                     {
-                        propertyDefinition.Remove(ElementLabel);
-                        schemaValue.Title = (string)propertyLabel!;
+                        schemaValue.ExtensionData ??= new Dictionary<string, object?>();
+                        schemaValue.ExtensionData.Add(UiDefinition, uiDefinition);
                     }
-                    schemaValue.ExtensionData ??= new Dictionary<string, object?>();
-                    schemaValue.ExtensionData.Add(UiDefinition, propertyDefinition);
                 }
             }
             _schemaCache.Clear();
             _schemaKeys.Clear();
-            _currentType = null;
+            _enumValueConverter = null;
+            _isNewtonsoftJson = false;
             return wrappedSchema;
         }
     }
 
-    private JsonSchemaGenerator GetNewtonsoftSchemaForType()
+    /// <summary>
+    ///   Constructs an instance of a class to read its members' defaults
+    ///   from, when it has a public parameterless constructor.
+    /// </summary>
+    /// <param name="type">The class.</param>
+    /// <returns>The instance, or <c>null</c> when none can be made.</returns>
+    private static object? CreateInstance(Type type)
     {
-        var generator = new JsonSchemaGenerator(new NewtonsoftJsonSchemaGeneratorSettings
+        if (type.IsAbstract || type.IsInterface || type.ContainsGenericParameters || type.GetConstructor(Type.EmptyTypes) is null)
+            return null;
+
+        try
         {
-            SerializerSettings = _newtonsoftJsonSerializerSettings,
+            return Activator.CreateInstance(type);
+        }
+        catch (Exception ex) when (ex is TargetInvocationException or MemberAccessException or NotSupportedException)
+        {
+            // A class that cannot be built without its own context simply declares no defaults.
+            return null;
+        }
+    }
+
+    /// <summary>
+    ///   Reads a member's default off a constructed instance, written the way
+    ///   the schema declares a default.
+    /// </summary>
+    /// <remarks>
+    ///   A secret, a <c>null</c> and a nested class are left out: a nested
+    ///   class's own members carry their defaults.
+    /// </remarks>
+    /// <param name="instance">The constructed instance.</param>
+    /// <param name="memberName">The CLR member name.</param>
+    /// <param name="schemaValue">The member's schema.</param>
+    /// <param name="emitContext">Serialises a value the way its owner would.</param>
+    /// <returns>The default, or <c>null</c> when there is none to declare.</returns>
+    private static object? ReadDefault(object instance, string memberName, JsonSchema schemaValue, UiEmitContext emitContext)
+    {
+        if (instance.GetType().GetProperty(memberName, BindingFlags.Public | BindingFlags.Instance) is not { CanRead: true } property ||
+            property.GetIndexParameters().Length > 0 || IsSecret(property) || ConfigurationSecrets.ContainsSecrets(property.PropertyType))
+            return null;
+
+        object? value;
+        try
+        {
+            value = property.GetValue(instance);
+        }
+        catch (TargetInvocationException)
+        {
+            return null;
+        }
+
+        // An enum is named the way a [DefaultValue] one is, and mapped to its
+        // written value with those below.
+        if (value is Enum && !FlagEnums.IsFlagEnum(value.GetType()))
+            return Enum.GetName(value.GetType(), value);
+
+        var token = emitContext.ConvertToken(value);
+        return token is null or { Type: JTokenType.Null } || (token is JObject && schemaValue.ActualSchema.AdditionalPropertiesSchema is null)
+            ? null
+            : token;
+    }
+
+    private static bool IsSecret(PropertyInfo property)
+        => property.GetCustomAttribute<PasswordPropertyTextAttribute>(true) is not null ||
+            property.GetCustomAttribute<DataTypeAttribute>(true) is { DataType: DataType.Password };
+
+    private JsonSchemaGenerator GetNewtonsoftSchemaForType(IContractResolver? contractResolver)
+    {
+        var serializerSettings = contractResolver is null
+            ? _newtonsoftJsonSerializerSettings
+            : new JsonSerializerSettings(_newtonsoftJsonSerializerSettings) { ContractResolver = contractResolver };
+        var generator = new FlagEnumSchemaGenerator(new NewtonsoftJsonSchemaGeneratorSettings
+        {
+            SerializerSettings = serializerSettings,
             SchemaType = SchemaType.JsonSchema,
             GenerateEnumMappingDescription = true,
             FlattenInheritanceHierarchy = true,
@@ -181,13 +374,13 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             AllowReferencesWithProperties = true,
             SchemaNameGenerator = this,
             XmlDocumentationFormatting = XmlDocsFormattingMode.Markdown,
-        });
+        }, isNewtonsoftJson: true);
         return generator;
     }
 
     private JsonSchemaGenerator GetSystemTextJsonSchemaForType()
     {
-        var generator = new JsonSchemaGenerator(new SystemTextJsonSchemaGeneratorSettings
+        var generator = new FlagEnumSchemaGenerator(new SystemTextJsonSchemaGeneratorSettings
         {
             SerializerOptions = _systemTextJsonSerializerOptions,
             SchemaType = SchemaType.JsonSchema,
@@ -197,39 +390,25 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             AllowReferencesWithProperties = true,
             SchemaNameGenerator = this,
             XmlDocumentationFormatting = XmlDocsFormattingMode.Markdown,
-        });
+        }, isNewtonsoftJson: false);
         return generator;
     }
 
     #region Schema | Constants
 
+    /// <summary>
+    ///   The extension key the UI definition bag is stored under.
+    /// </summary>
+    /// <remarks>
+    ///   The constants in this region are the only strings the generator still
+    ///   has to name: the bag's key, the five entries inside it, the two keys
+    ///   of an enum definition and the separator its aliases are joined with.
+    ///   <see cref="ShokoJsonSchemaValidator{TConfig}"/> reads all of them back
+    ///   off the finished schema.
+    /// </remarks>
     internal const string UiDefinition = "x-uiDefinition";
 
     internal const string ElementType = "elementType";
-
-    private const string ElementSize = "elementSize";
-
-    private const string ElementStructure = "structure";
-
-    private const string ElementLabel = "label";
-
-    private const string ElementGroup = "group";
-
-    private const string ElementHideSaveAction = "hideSaveAction";
-
-    private const string ElementShowSaveAction = "showSaveAction";
-
-    private const string ElementActions = "actions";
-
-    private const string ElementReactiveActions = "reactiveActions";
-
-    private const string ElementVisibility = "visibility";
-
-    private const string ElementBadge = "badge";
-
-    private const string ElementPrimaryKey = "primaryKey";
-
-    private const string ElementDeniedValues = "deniedValues";
 
     internal const string ElementEnvironmentVariable = "envVar";
 
@@ -237,75 +416,13 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     internal const string ElementRequiresRestart = "requiresRestart";
 
-    private const string SectionType = "sectionType";
-
-    private const string ActionIdentity = "id";
-
-    private const string ActionName = "title";
-
-    private const string ActionDescription = "description";
-
-    private const string ActionTheme = "theme";
-
-    private const string ActionPosition = "position";
-
-    private const string ActionType = "type";
-
-    private const string ActionEventType = "eventType";
-
-    private const string ActionSize = "size";
-
-    private const string ActionIcon = "icon";
-
-    private const string ActionVisibilityToggle = "toggle";
-
-    private const string ActionDisableToggle = "disableToggle";
-
-    private const string ActionDisableIfNoChanges = "disableIfNoChanges";
-
-    private const string ActionMemberName = "memberName";
-
-    private const string SectionName = "sectionName";
-
-    private const string SectionAppendFloatingAtEnd = "sectionAppendFloatingAtEnd";
-
-    private const string ListType = "listType";
-
-    private const string ListSortable = "listSortable";
-
-    private const string ListUniqueItems = "listUniqueItems";
-
-    private const string ListHideAddAction = "listHideAddAction";
-
-    private const string ListHideRemoveAction = "listHideRemoveAction";
-
-    private const string ListElementType = "listElementType";
-
-    private const string SelectType = "selectType";
-
-    private const string SelectMultipleItems = "selectMultipleItems";
-
-    private const string SelectElementType = "selectElementType";
-
-    private const string RecordElementType = "recordElementType";
-
-    private const string RecordType = "recordType";
-
-    private const string RecordSortable = "recordSortable";
-
-    private const string RecordHideAddAction = "recordHideAddAction";
-
-    private const string RecordHideRemoveAction = "recordHideRemoveAction";
-
-    private const string CodeBlockLanguage = "codeLanguage";
-
-    private const string CodeBlockAutoFormatOnLoad = "codeAutoFormatOnLoad";
-
     internal const string EnumDefinitions = "enumDefinitions";
 
-    internal const string EnumAliasSeparator = ", ";
+    internal const string EnumValue = "value";
 
-    private const string EnumIsFlag = "enumIsFlag";
+    internal const string EnumAliasValues = "aliasValues";
+
+    internal const string EnumAliasSeparator = ", ";
 
     /// <summary>
     /// Resolves a value to the enumeration member it is an alias of, if any. Aliases are matched case-insensitively,
@@ -315,9 +432,9 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     {
         foreach (var enumDefinition in enumDefinitions)
         {
-            if (enumDefinition["aliasValues"].Split(EnumAliasSeparator, StringSplitOptions.RemoveEmptyEntries).Any(aliasValue => string.Equals(value, aliasValue, StringComparison.OrdinalIgnoreCase)))
+            if (enumDefinition[EnumAliasValues].Split(EnumAliasSeparator, StringSplitOptions.RemoveEmptyEntries).Any(aliasValue => string.Equals(value, aliasValue, StringComparison.OrdinalIgnoreCase)))
             {
-                enumValue = enumDefinition["value"];
+                enumValue = enumDefinition[EnumValue];
                 return true;
             }
         }
@@ -334,480 +451,666 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     {
         var schema = context.Schema.ActualSchema;
         var contextualType = context.ContextualType;
+        _enumValueConverter ??= context.Settings.ReflectionService.GetEnumValueConverter(context.Settings);
         if (contextualType.Context is ContextualPropertyInfo info)
-        {
-            var uiDict = new Dictionary<string, object?>();
-            var schemaKey = info.MemberInfo.ReflectedType!.FullName!;
-            _schemaCache.TryAdd(schemaKey, ([], []));
-            var propertyKey = GetPropertyKey(info);
-            if (schema.Item is not null)
-                propertyKey += "+List";
-            if (schema.AdditionalPropertiesSchema is not null)
-                propertyKey += "+Dict";
-            if (!_schemaCache[schemaKey].PropertyUIDefinitions.TryAdd(propertyKey, uiDict))
-                uiDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey];
-
-            if (uiDict.ContainsKey(ElementLabel))
-                goto ProcessedInheritedProperty;
-
-            if (info.GetAttribute<DisplayAttribute>(false) is { } displayAttribute)
-            {
-                if (!string.IsNullOrWhiteSpace(displayAttribute.Name))
-                    uiDict.TryAdd(ElementLabel, displayAttribute.Name);
-                else
-                    uiDict.TryAdd(ElementLabel, TypeReflectionExtensions.GetDisplayName(info.Name));
-                if (!string.IsNullOrWhiteSpace(displayAttribute.GroupName))
-                    uiDict.Add(ElementGroup, displayAttribute.GroupName);
-            }
-            else
-            {
-                uiDict.TryAdd(ElementLabel, TypeReflectionExtensions.GetDisplayName(info.Name));
-            }
-
-            uiDict.TryAdd(ElementType, Convert(DisplayElementType.Auto));
-            uiDict.TryAdd(ElementSize, Convert(DisplayElementSize.Normal));
-            if (info.GetAttribute<KeyAttribute>(false) is { })
-                uiDict.Add(ElementPrimaryKey, true);
-            if (info.GetAttribute<DeniedValuesAttribute>(false) is { } deniedValuesAttribute)
-                uiDict.Add(ElementDeniedValues, deniedValuesAttribute.Values.Select(Convert).ToList());
-
-            if (info.GetAttribute<SectionNameAttribute>(false) is { } sectionNameAttribute)
-                uiDict.Add(SectionName, sectionNameAttribute.Name);
-
-            if (info.GetAttribute<VisibilityAttribute>(false) is { } visibilityAttribute)
-            {
-                var visibilityDict = new Dictionary<string, object?>()
-                {
-                    { "default", Convert(visibilityAttribute.Visibility) },
-                    { "advanced", visibilityAttribute.Advanced },
-                };
-                if (visibilityAttribute.HasToggleCondition)
-                {
-                    var toggleDict = new Dictionary<string, object?>()
-                    {
-                        { "path", visibilityAttribute.ToggleWhenMemberIsSet },
-                        { "value", Convert(visibilityAttribute.ToggleWhenSetTo, _currentType!) },
-                        { "visibility", Convert(visibilityAttribute.ToggleVisibilityTo) },
-                        { "inverseCondition", visibilityAttribute.InverseToggleCondition },
-                    };
-                    visibilityDict.Add(ActionVisibilityToggle, toggleDict);
-                }
-                else
-                {
-                    visibilityDict.Add(ActionVisibilityToggle, null);
-                }
-                if (visibilityAttribute.HasDisableCondition)
-                {
-                    var disableDict = new Dictionary<string, object?>()
-                    {
-                        { "path", visibilityAttribute.DisableWhenMemberIsSet },
-                        { "value", Convert(visibilityAttribute.DisableWhenSetTo, _currentType!) },
-                        { "inverseCondition", visibilityAttribute.InverseDisableCondition },
-                    };
-                    visibilityDict.Add(ActionDisableToggle, disableDict);
-                }
-                else
-                {
-                    visibilityDict.Add(ActionDisableToggle, null);
-                }
-                uiDict.Add(ElementVisibility, visibilityDict);
-                uiDict[ElementSize] = Convert(visibilityAttribute.Size);
-            }
-
-            if (info.GetAttribute<RequiresRestartAttribute>(false) is { })
-            {
-                uiDict.Add(ElementRequiresRestart, true);
-            }
-            else
-            {
-                uiDict.Add(ElementRequiresRestart, false);
-            }
-
-            if (info.GetAttribute<EnvironmentVariableAttribute>(false) is { } environmentVariableAttribute && !string.IsNullOrWhiteSpace(environmentVariableAttribute.Name))
-            {
-                uiDict.Add(ElementEnvironmentVariable, environmentVariableAttribute.Name);
-                uiDict.Add(ElementEnvironmentVariableOverridable, environmentVariableAttribute.AllowOverride);
-            }
-
-            if (info.GetAttribute<BadgeAttribute>(false) is { } badgeAttribute && !string.IsNullOrWhiteSpace(badgeAttribute.Name))
-            {
-                var badgeDict = new Dictionary<string, object?>
-                {
-                    { "name", badgeAttribute.Name },
-                    { "theme", Convert(badgeAttribute.Theme) },
-                };
-                uiDict.Add(ElementBadge, badgeDict);
-            }
-
-            if (contextualType.Type.IsGenericType && contextualType.Type.GetGenericTypeDefinition() == typeof(SelectComponent<>))
-            {
-                uiDict[ElementType] = Convert(DisplayElementType.Select);
-                uiDict.Add(SelectElementType, Convert(DisplayElementSize.Normal));
-                if (info.GetAttribute<SelectAttribute>(false) is { } selectAttribute)
-                {
-                    uiDict.Add(SelectType, Convert(selectAttribute.SelectType));
-                    uiDict.Add(SelectMultipleItems, selectAttribute.MultipleItems);
-                }
-                else
-                {
-                    uiDict.Add(SelectType, Convert(DisplaySelectType.Auto));
-                    uiDict.Add(SelectMultipleItems, false);
-                }
-            }
-            else if (schema.Item is { } itemSchema)
-            {
-                uiDict[ElementType] = Convert(DisplayElementType.List);
-                uiDict.Add(ListElementType, Convert(DisplayElementSize.Normal));
-                if (info.GetAttribute<ListAttribute>(false) is { } listAttribute)
-                {
-                    uiDict.Add(ListType, Convert(listAttribute.ListType));
-                    uiDict.Add(ListSortable, listAttribute.Sortable);
-                    uiDict.Add(ListUniqueItems, listAttribute.UniqueItems);
-                    uiDict.Add(ListHideAddAction, listAttribute.HideAddAction);
-                    uiDict.Add(ListHideRemoveAction, listAttribute.HideRemoveAction);
-                }
-                else
-                {
-                    uiDict.Add(ListType, Convert(DisplayListType.Auto));
-                    uiDict.Add(ListSortable, true);
-                    uiDict.Add(ListUniqueItems, false);
-                    uiDict.Add(ListHideAddAction, false);
-                    uiDict.Add(ListHideRemoveAction, false);
-                }
-
-                // Only set if the referenced schema is a class definition
-                if (itemSchema.HasReference && _schemaKeys.TryGetValue(itemSchema.ActualSchema, out var referencedSchemaKey))
-                {
-                    var referencedDict = _schemaCache[referencedSchemaKey].ClassUIDefinition;
-                    foreach (var (key, value) in referencedDict)
-                    {
-                        if (key is ElementType && !Equals(value, Convert(DisplayElementType.Auto)))
-                            uiDict[ListElementType] = value;
-                        else if (key is SectionType or ElementPrimaryKey or ElementDeniedValues or ElementGroup)
-                            uiDict.TryAdd(key, value);
-                    }
-                }
-
-                var innerDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey[..^5]];
-                foreach (var (key, value) in innerDict)
-                {
-                    if (key is ElementType && !Equals(value, Convert(DisplayElementType.Auto)))
-                        uiDict[ListElementType] = value;
-                    else if (key is not ElementType)
-                        uiDict.TryAdd(key, value);
-                }
-
-                if (Equals(uiDict[ListType], Convert(DisplayListType.ComplexDropdown)))
-                {
-                    if (!Equals(uiDict[ListElementType], Convert(DisplayElementType.SectionContainer)))
-                        throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
-                    if (!uiDict.ContainsKey(ElementPrimaryKey))
-                        throw new NotSupportedException("Dropdown lists must have a primary key set.");
-                }
-                if (Equals(uiDict[ListType], Convert(DisplayListType.ComplexTab)))
-                {
-                    if (!Equals(uiDict[ListElementType], Convert(DisplayElementType.SectionContainer)))
-                        throw new NotSupportedException("Tab lists are not supported for non-class list items.");
-                    if (!uiDict.ContainsKey(ElementPrimaryKey))
-                        throw new NotSupportedException("Tab lists must have a primary key set.");
-                }
-                if (Equals(uiDict[ListType], Convert(DisplayListType.ComplexInline)))
-                {
-                    if (!Equals(uiDict[ListElementType], Convert(DisplayElementType.SectionContainer)))
-                        throw new NotSupportedException("Inline lists are not supported for non-class list items.");
-                    if (!uiDict.ContainsKey(ElementPrimaryKey))
-                        throw new NotSupportedException("Inline lists must have a primary key set.");
-                }
-                else if (Equals(uiDict[ListType], Convert(DisplayListType.EnumCheckbox)))
-                {
-                    if (!Equals(uiDict[ListElementType], Convert(DisplayElementType.Enum)))
-                        throw new NotSupportedException("Checkbox lists are not supported for non-enum list items.");
-                }
-            }
-            else if (schema.AdditionalPropertiesSchema is { } recordSchema)
-            {
-                var (keyType, valueType) = GetTKeyAndTValue(info.PropertyType.Type);
-                AssertKeyUsable(keyType);
-
-                uiDict[ElementType] = Convert(DisplayElementType.Record);
-                uiDict.Add(RecordElementType, Convert(DisplayElementSize.Normal));
-                if (info.GetAttribute<RecordAttribute>(false) is { } recordAttribute)
-                {
-                    uiDict.Add(RecordType, Convert(recordAttribute.RecordType));
-                    uiDict.Add(RecordSortable, recordAttribute.Sortable);
-                    uiDict.Add(RecordHideAddAction, recordAttribute.HideAddAction);
-                    uiDict.Add(RecordHideRemoveAction, recordAttribute.HideRemoveAction);
-                }
-                else
-                {
-                    uiDict.Add(RecordType, Convert(DisplayRecordType.Auto));
-                    uiDict.Add(RecordSortable, true);
-                    uiDict.Add(RecordHideAddAction, false);
-                    uiDict.Add(RecordHideRemoveAction, false);
-                }
-
-                // Only set if the referenced schema is a class definition
-                if (recordSchema.HasReference && _schemaKeys.TryGetValue(recordSchema.ActualSchema, out var referencedSchemaKey))
-                {
-                    var referencedDict = _schemaCache[referencedSchemaKey].ClassUIDefinition;
-                    foreach (var (key, value) in referencedDict)
-                    {
-                        if (key is ElementType && !Equals(value, Convert(DisplayElementType.Auto)))
-                            uiDict[RecordElementType] = value;
-                        else if (key is SectionType or ElementPrimaryKey or ElementDeniedValues or ElementGroup)
-                            uiDict.TryAdd(key, value);
-                    }
-                }
-
-                var innerDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey[..^5]];
-                foreach (var (key, value) in innerDict)
-                {
-                    if (key is ElementType && !Equals(value, Convert(DisplayElementType.Auto)))
-                        uiDict[RecordElementType] = value;
-                    else if (key is not ElementType and not ElementSize)
-                        uiDict.TryAdd(key, value);
-                }
-            }
-            else if (schema.IsEnumeration)
-            {
-                schema.Enumeration.Clear();
-                schema.EnumerationNames.Clear();
-
-                var enumList = new List<Dictionary<string, string>>();
-                var enumValueConverter = context.Settings.ReflectionService.GetEnumValueConverter(context.Settings);
-                foreach (var enumName in Enum.GetNames(contextualType.Type))
-                {
-                    var field = contextualType.GetField(enumName)!;
-                    var title = TypeReflectionExtensions.GetDisplayName(field);
-                    var description = TypeReflectionExtensions.GetDescription(field);
-
-                    var value = enumValueConverter(Enum.Parse(contextualType.Type, enumName))!;
-                    var newtonsoftValue = field.GetAttribute<EnumMemberAttribute>(false) is { } enumMemberAttribute && !string.IsNullOrEmpty(enumMemberAttribute.Value)
-                        ? enumMemberAttribute.Value : null;
-                    var systemTextJsonValue = field.GetAttribute<JsonStringEnumMemberNameAttribute>(false) is { } jsonStringEnumMemberNameAttribute && !string.IsNullOrEmpty(jsonStringEnumMemberNameAttribute.Name)
-                        ? jsonStringEnumMemberNameAttribute.Name : null;
-                    var overrideValue = IsNewtonsoftJson() ? newtonsoftValue : systemTextJsonValue;
-                    var aliasValue = overrideValue ?? enumName;
-                    if (aliasValue.Equals(value, StringComparison.Ordinal))
-                        aliasValue = string.Empty;
-
-                    if (schema.Enumeration.Contains(value))
-                    {
-                        var enumDict = enumList.First(x => x["value"] == value);
-                        enumDict["alias"] = enumDict["alias"].Split(EnumAliasSeparator, StringSplitOptions.RemoveEmptyEntries).Append(title).Except([enumDict["title"]]).Distinct().Join(EnumAliasSeparator);
-                        enumDict["aliasValues"] = enumDict["aliasValues"].Split(EnumAliasSeparator, StringSplitOptions.RemoveEmptyEntries).Append(aliasValue).Except([enumDict["value"]]).Distinct().Join(EnumAliasSeparator);
-                    }
-                    else
-                    {
-                        schema.Enumeration.Add(value);
-                        schema.EnumerationNames.Add(enumName);
-                        enumList.Add(new()
-                        {
-                            { "title", title },
-                            { "description", description },
-                            { "value", value },
-                            { "alias", string.Empty },
-                            { "aliasValues", aliasValue },
-                        });
-                    }
-                    if (!string.IsNullOrEmpty(aliasValue) && !schema.Enumeration.Contains(aliasValue))
-                    {
-                        schema.Enumeration.Add(aliasValue);
-                        schema.EnumerationNames.Add(enumName);
-                    }
-                }
-                uiDict[ElementType] = Convert(DisplayElementType.Enum);
-                uiDict.Add(EnumDefinitions, enumList);
-                uiDict.Add(EnumIsFlag, schema.IsFlagEnumerable);
-            }
-            else if (info.GetAttribute<CodeEditorAttribute>(false) is { } codeBlockAttribute)
-            {
-                uiDict[ElementType] = Convert(DisplayElementType.CodeBlock);
-                uiDict[CodeBlockLanguage] = Convert(codeBlockAttribute.Language);
-                uiDict[CodeBlockAutoFormatOnLoad] = codeBlockAttribute.AutoFormatOnLoad;
-            }
-            else if (info.GetAttribute<TextAreaAttribute>(false) is not null)
-            {
-                uiDict[ElementType] = Convert(DisplayElementType.TextArea);
-            }
-            else if (info.GetAttribute<PasswordPropertyTextAttribute>(false) is not null || info.GetAttribute<DataTypeAttribute>(false) is { DataType: DataType.Password })
-            {
-                uiDict[ElementType] = Convert(DisplayElementType.Password);
-            }
-        }
-
-        ProcessedInheritedProperty:;
+            ProcessProperty(schema, contextualType, info);
 
         // Add a reference to the class schema and generate the schema if it's not done yet.
         if (
             schema.Properties.Count > 0 &&
             (!contextualType.Type.FullName?.StartsWith("System.") ?? false) &&
-            (!contextualType.Type.FullName?.StartsWith("Shoko.Abstractions.Config.Components.") ?? false)
+            (!contextualType.Type.FullName?.StartsWith("Shoko.Abstractions.UI.Components.") ?? false)
         )
+            ProcessClass(schema, contextualType);
+    }
+
+    private void ProcessProperty(JsonSchema schema, ContextualType contextualType, ContextualPropertyInfo info)
+    {
+        AssertNoNestedCollection(info);
+
+        var classBuilder = GetOrAddClass(info.MemberInfo.ReflectedType!);
+        var propertyName = GetPropertyName(info);
+        var propertyKey = GetPropertyKey(propertyName, schema);
+        var builder = classBuilder.GetOrAddProperty(propertyKey, () => new UiPropertyBuilder
         {
-            var schemaKey = contextualType.Type.FullName!;
-            _schemaKeys.TryAdd(schema, schemaKey);
-            _schemaCache.TryAdd(schemaKey, ([], []));
+            Key = propertyKey,
+            PropertyName = propertyName,
+            MemberName = info.Name,
+            SourceType = contextualType.Type,
+        });
 
-            // Only generate the class schema once per type.
-            if (_schemaCache[schemaKey].ClassUIDefinition is { Count: 0 } uiDict)
+        // The same property is visited once per schema node it produced, and
+        // inherited properties are visited once per sub-class. Only the first
+        // visit gets to describe it.
+        if (builder.IsPopulated)
+            return;
+        builder.IsPopulated = true;
+
+        builder.Label = info.GetAttribute<DisplayAttribute>(false) is { Name: { } displayName } && !string.IsNullOrWhiteSpace(displayName)
+            ? displayName
+            : TypeReflectionExtensions.GetDisplayName(info.Name);
+
+        builder.ElementSize = DisplayElementSize.Normal;
+        if (info.GetAttribute<KeyAttribute>(false) is not null)
+            builder.IsPrimaryKey = true;
+        if (info.GetAttribute<DeniedValuesAttribute>(false) is { } deniedValuesAttribute)
+            builder.DeniedValues = deniedValuesAttribute.Values.ToList();
+
+        if (info.GetAttribute<SectionNameAttribute>(false) is { } sectionNameAttribute)
+            builder.SectionName = sectionNameAttribute.Name;
+
+        if (info.GetAttribute<VisibilityAttribute>(false) is { } visibilityAttribute)
+        {
+            // Checked whenever a member was named, rather than only when the
+            // condition is complete, so an operator that was handed the wrong
+            // sort of value says so instead of quietly not being emitted.
+            var owner = info.MemberInfo.ReflectedType!;
+            if (!string.IsNullOrEmpty(visibilityAttribute.ToggleWhenMemberIsSet))
+                UiConditionValidator.Validate(
+                    owner,
+                    info.Name,
+                    visibilityAttribute.ToggleWhenMemberIsSet,
+                    visibilityAttribute.ToggleOperator,
+                    visibilityAttribute.HasToggleValue,
+                    visibilityAttribute.ToggleWhenSetTo,
+                    visibilityAttribute.ToggleWhenSetToAny
+                );
+            if (!string.IsNullOrEmpty(visibilityAttribute.DisableWhenMemberIsSet))
+                UiConditionValidator.Validate(
+                    owner,
+                    info.Name,
+                    visibilityAttribute.DisableWhenMemberIsSet,
+                    visibilityAttribute.DisableOperator,
+                    visibilityAttribute.HasDisableValue,
+                    visibilityAttribute.DisableWhenSetTo,
+                    visibilityAttribute.DisableWhenSetToAny
+                );
+            builder.Visibility = new UiVisibilityBuilder
             {
-                uiDict.Add(ElementType, Convert(DisplayElementType.SectionContainer));
-                if (contextualType.GetAttribute<DisplayAttribute>(false) is { } displayAttribute && !string.IsNullOrWhiteSpace(displayAttribute.Name))
-                    uiDict.Add(ElementLabel, displayAttribute.Name);
+                Default = visibilityAttribute.Visibility,
+                Advanced = visibilityAttribute.Advanced,
+                Toggle = visibilityAttribute.HasToggleCondition
+                    ? new UiConditionBuilder
+                    {
+                        Path = visibilityAttribute.ToggleWhenMemberIsSet,
+                        Operator = visibilityAttribute.ToggleOperator,
+                        Value = visibilityAttribute.ToggleWhenSetTo,
+                        Values = visibilityAttribute.ToggleWhenSetToAny,
+                        Visibility = visibilityAttribute.ToggleVisibilityTo,
+                    }
+                    : null,
+                Disable = visibilityAttribute.HasDisableCondition
+                    ? new UiConditionBuilder
+                    {
+                        Path = visibilityAttribute.DisableWhenMemberIsSet,
+                        Operator = visibilityAttribute.DisableOperator,
+                        Value = visibilityAttribute.DisableWhenSetTo,
+                        Values = visibilityAttribute.DisableWhenSetToAny,
+                    }
+                    : null,
+            };
+            builder.ElementSize = visibilityAttribute.Size;
+        }
 
-                var hideSaveAction = contextualType.GetAttribute<HideDefaultSaveActionAttribute>(false) is not null;
-                var showSaveAction = false;
-                if (contextualType.GetAttribute<SectionAttribute>(false) is { } sectionTypeAttribute)
+        builder.RequiresRestart = info.GetAttribute<RequiresRestartAttribute>(false) is not null;
+
+        if (info.GetAttribute<EnvironmentVariableAttribute>(false) is { } environmentVariableAttribute && !string.IsNullOrWhiteSpace(environmentVariableAttribute.Name))
+        {
+            builder.EnvironmentVariable = environmentVariableAttribute.Name;
+            builder.EnvironmentVariableOverridable = environmentVariableAttribute.AllowOverride;
+        }
+
+        if (info.GetAttribute<BadgeAttribute>(false) is { } badgeAttribute && !string.IsNullOrWhiteSpace(badgeAttribute.Name))
+            builder.Badge = new UiBadgeBuilder { Name = badgeAttribute.Name, Theme = badgeAttribute.Theme };
+
+        var optionsProviders = UiOptionsProvider.GetProviders(info.MemberInfo.ReflectedType!);
+        builder.HasValueOptions = optionsProviders.ContainsKey((info.Name, OptionsTarget.Values));
+        builder.HasKeyOptions = optionsProviders.ContainsKey((info.Name, OptionsTarget.Keys));
+
+        if (contextualType.Type.IsGenericType && contextualType.Type.GetGenericTypeDefinition() == typeof(SelectComponent<>))
+        {
+            var selectAttribute = info.GetAttribute<SelectAttribute>(false);
+            builder.Element = new UiSelectElementBuilder
+            {
+                SelectType = selectAttribute?.SelectType ?? DisplaySelectType.Auto,
+                MultipleItems = selectAttribute?.MultipleItems ?? false,
+            };
+        }
+        else if (schema.Item is { } itemSchema)
+        {
+            // A flags enum is a set of its members, which has no order of its
+            // own and holds each member once.
+            var isFlagEnum = FlagEnums.IsFlagEnum(contextualType.Type);
+            var listAttribute = info.GetAttribute<ListAttribute>(false);
+            var element = new UiListElementBuilder
+            {
+                ListType = listAttribute?.ListType ?? DisplayListType.Auto,
+                Sortable = !isFlagEnum && (listAttribute?.Sortable ?? true),
+                UniqueItems = isFlagEnum || (listAttribute?.UniqueItems ?? false),
+                HideAddAction = listAttribute?.HideAddAction ?? false,
+                HideRemoveAction = listAttribute?.HideRemoveAction ?? false,
+            };
+            // Only set if the referenced schema is a class definition
+            if (itemSchema.HasReference && _schemaKeys.TryGetValue(itemSchema.ActualSchema, out var referencedSchemaKey))
+                element.ItemClass = _schemaCache[referencedSchemaKey];
+            element.Item = classBuilder.GetProperty(propertyName);
+            element.ItemElementType = ResolveInnerElementType(element.ItemClass, element.Item);
+            builder.Element = element;
+
+            var hasPrimaryKey = builder.IsPrimaryKey || element.ItemClass?.PrimaryKey is not null || element.Item is { IsPrimaryKey: true };
+            switch (element.ListType)
+            {
+                case DisplayListType.ComplexDropdown:
+                    if (element.ItemElementType is not DisplayElementType.SectionContainer)
+                        throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
+                    if (!hasPrimaryKey)
+                        throw new NotSupportedException("Dropdown lists must have a primary key set.");
+                    break;
+                case DisplayListType.ComplexTab:
+                    if (element.ItemElementType is not DisplayElementType.SectionContainer)
+                        throw new NotSupportedException("Tab lists are not supported for non-class list items.");
+                    if (!hasPrimaryKey)
+                        throw new NotSupportedException("Tab lists must have a primary key set.");
+                    break;
+                case DisplayListType.ComplexInline:
+                    if (element.ItemElementType is not DisplayElementType.SectionContainer)
+                        throw new NotSupportedException("Inline lists are not supported for non-class list items.");
+                    if (!hasPrimaryKey)
+                        throw new NotSupportedException("Inline lists must have a primary key set.");
+                    break;
+                case DisplayListType.EnumCheckbox:
+                    if (element.ItemElementType is not DisplayElementType.Enum)
+                        throw new NotSupportedException("Checkbox lists are not supported for non-enum list items.");
+                    break;
+            }
+        }
+        else if (schema.AdditionalPropertiesSchema is not null)
+        {
+            var (keyType, valueType) = GetTKeyAndTValue(info.PropertyType.Type);
+            AssertKeyUsable(keyType);
+
+            var recordAttribute = info.GetAttribute<RecordAttribute>(false);
+            var element = new UiRecordElementBuilder
+            {
+                RecordType = recordAttribute?.RecordType ?? DisplayRecordType.Auto,
+                Sortable = recordAttribute?.Sortable ?? true,
+                HideAddAction = recordAttribute?.HideAddAction ?? false,
+                HideRemoveAction = recordAttribute?.HideRemoveAction ?? false,
+                KeyType = keyType,
+                ValueType = valueType,
+            };
+            if (keyType.IsEnum)
+                element.KeyEnumValues = CollectEnumValues(keyType.ToContextualType()).Values;
+            element.Item = classBuilder.GetProperty(propertyName);
+            builder.Element = element;
+        }
+        else if (schema.IsEnumeration)
+        {
+            schema.Enumeration.Clear();
+            schema.EnumerationNames.Clear();
+
+            // Only ever reached as the entry of a flags enum's list, which
+            // holds one single-bit member and is no flags enum of its own.
+            if (FlagEnums.IsFlagEnum(contextualType.Type))
+            {
+                if (FlagEnums.GetEntries(contextualType.Type).Count is 0)
+                    throw new NotSupportedException(
+                        $"Configuration property \"{GetFriendlyTypeName(info.MemberInfo.DeclaringType!)}.{info.Name}\" holds the flags enum {contextualType.Type.Name}, " +
+                        "which has no member with a single bit set. A flags enum is rendered as a list of its single-bit members, so this one has nothing to offer."
+                    );
+
+                schema.EnumerationDescriptions.Clear();
+                schema.IsFlagEnumerable = false;
+            }
+
+            var (values, enumeration) = CollectEnumValues(contextualType);
+            foreach (var (value, name) in enumeration)
+            {
+                schema.Enumeration.Add(value);
+                schema.EnumerationNames.Add(name);
+            }
+            builder.Element = new UiEnumElementBuilder { Values = values };
+        }
+        else if (info.GetAttribute<CodeEditorAttribute>(false) is { } codeBlockAttribute)
+        {
+            builder.Element = new UiCodeEditorElementBuilder { Language = codeBlockAttribute.Language, AutoFormatOnLoad = codeBlockAttribute.AutoFormatOnLoad };
+        }
+        else if (info.GetAttribute<TextAreaAttribute>(false) is not null)
+        {
+            builder.Element = new UiTextAreaElementBuilder();
+        }
+        else if (info.GetAttribute<PasswordPropertyTextAttribute>(false) is not null ||
+            info.GetAttribute<DataTypeAttribute>(false) is { DataType: DataType.Password })
+        {
+            builder.Element = new UiPasswordElementBuilder();
+        }
+    }
+
+    /// <summary>
+    ///   Works out what a collection's items should be rendered as: the item's
+    ///   class definition first, then whatever the item's own property
+    ///   definition resolved to. <c>null</c> means nothing overrode it.
+    /// </summary>
+    private static DisplayElementType? ResolveInnerElementType(UiClassBuilder? itemClass, UiPropertyBuilder? item)
+    {
+        DisplayElementType? elementType = itemClass is not null ? DisplayElementType.SectionContainer : null;
+        if (item is not null && item.ElementType is not DisplayElementType.Auto)
+            elementType = item.ElementType;
+        return elementType;
+    }
+
+    private void ProcessClass(JsonSchema schema, ContextualType contextualType)
+    {
+        _schemaKeys.TryAdd(schema, contextualType.Type.FullName!);
+        var classBuilder = GetOrAddClass(contextualType.Type);
+
+        // Only generate the class schema once per type.
+        if (classBuilder.IsPopulated)
+            return;
+        classBuilder.IsPopulated = true;
+
+        if (contextualType.GetAttribute<DisplayAttribute>(false) is { } displayAttribute && !string.IsNullOrWhiteSpace(displayAttribute.Name))
+            classBuilder.Label = displayAttribute.Name;
+
+        classBuilder.HideSaveAction = contextualType.GetAttribute<HideDefaultSaveActionAttribute>(false) is not null;
+        if (contextualType.GetAttribute<SectionAttribute>(false) is { } sectionTypeAttribute)
+        {
+            classBuilder.SectionType = sectionTypeAttribute.SectionType;
+            if (!string.IsNullOrWhiteSpace(sectionTypeAttribute.DefaultSectionName))
+                classBuilder.SectionName = sectionTypeAttribute.DefaultSectionName;
+            classBuilder.AppendFloatingSectionsAtEnd = sectionTypeAttribute.AppendFloatingSectionsAtEnd;
+            classBuilder.ShowSaveAction = sectionTypeAttribute.ShowSaveAction;
+        }
+        else
+        {
+            classBuilder.SectionType = DisplaySectionType.FieldSet;
+        }
+
+        // A section a member names but the class never describes is the common
+        // case, and one the class describes but no member names leaves nothing
+        // behind: only the sections that end up with members are emitted.
+        foreach (var floatingSection in contextualType.Type.GetCustomAttributes<FloatingSectionAttribute>(false))
+        {
+            if (string.IsNullOrWhiteSpace(floatingSection.Name) || string.IsNullOrWhiteSpace(floatingSection.Description))
+                continue;
+
+            classBuilder.FloatingSectionDescriptions[floatingSection.Name] = floatingSection.Description.CleanDescription();
+        }
+
+        classBuilder.PrimaryKey = classBuilder.Properties.FirstOrDefault(x => x.IsPrimaryKey)?.Key;
+        // A row says what it calls itself by holding one of these, which beats
+        // reading the names of its other members and hoping.
+        classBuilder.TitleMember = contextualType.Properties
+            .FirstOrDefault(x => x.PropertyType.Type == typeof(TitleComponent))
+            is { } titleProperty ? GetPropertyName(titleProperty) : null;
+        classBuilder.ToggleMember = ResolveToggleMember(contextualType, contextualType.GetAttribute<SectionAttribute>(false));
+
+        var orderCount = 0;
+        var knownGetters = new Dictionary<string, int>();
+        var knownSetters = new Dictionary<string, int>();
+        var knownMethods = new Dictionary<string, int>();
+        var ignoredProperties = new HashSet<string>();
+        // Only instance members are settings: a constant or a static
+        // member is never serialised, so it has no place in the structure.
+        var members = contextualType.Type.GetMembers(BindingFlags.Public | BindingFlags.Instance)
+            .OrderBy(x => x.GetCustomAttribute<DisplayAttribute>(false)?.GetOrder() ?? int.MaxValue)
+            .ToList();
+        foreach (var member in members)
+        {
+            var orderIndex = orderCount++;
+            if (member.MemberType is MemberTypes.Method && (member.Name.StartsWith("get_") || member.Name.StartsWith("set_")))
+            {
+                if (member.Name.StartsWith("get_"))
+                    knownGetters.TryAdd(member.Name[4..], orderIndex);
+                else if (member.Name.StartsWith("set_"))
+                    knownSetters.TryAdd(member.Name[4..], orderIndex);
+                continue;
+            }
+            else if (member.CustomAttributes.Any(x => x.AttributeType == typeof(CustomActionAttribute)))
+            {
+                knownMethods.TryAdd(member.Name, orderIndex);
+            }
+            else if (member.MemberType is MemberTypes.Property or MemberTypes.Field)
+            {
+                knownGetters.TryAdd(member.Name, orderIndex);
+                knownSetters.TryAdd(member.Name, orderIndex);
+                if (IsIgnored(member))
+                    ignoredProperties.Add(member.Name);
+            }
+        }
+        classBuilder.Structure.AddRange(
+            knownGetters
+                .ExceptBy(ignoredProperties, a => a.Key)
+                .IntersectBy(knownSetters.Keys, a => a.Key)
+                .Select(x => KeyValuePair.Create(x.Key, (Order: Math.Min(x.Value, knownSetters[x.Key]), Type: UiMemberKind.Property)))
+                .Union(
+                    knownMethods
+                        .Select(x => KeyValuePair.Create(x.Key, (Order: x.Value, Type: UiMemberKind.Method)))
+                )
+                .OrderBy(x => x.Value.Order)
+                .Select(x => new UiMemberOrderEntry(x.Key, x.Value.Type))
+        );
+
+        // Checked here as well as per property, so a provider naming nothing
+        // the class has still fails startup.
+        UiOptionsProvider.GetProviders(contextualType.Type);
+
+        var actions = contextualType.Methods
+            .Where(x => x.GetAttribute<CustomActionAttribute>(false) is not null || x.GetAttribute<ConfigurationActionAttribute>(false) is not null)
+            .ToArray();
+        foreach (var methodInfo in actions)
+        {
+            var title = TypeReflectionExtensions.GetDisplayName(methodInfo, name => name.TrimEnd(" Action Handler").TrimEnd(" Handler").TrimEnd(" Action"));
+            var description = TypeReflectionExtensions.GetDescription(methodInfo);
+            if (methodInfo.GetAttribute<CustomActionAttribute>(false) is { } action)
+            {
+                if (!string.IsNullOrEmpty(action.ToggleWhenMemberIsSet))
+                    UiConditionValidator.Validate(
+                        contextualType.Type,
+                        methodInfo.Name,
+                        action.ToggleWhenMemberIsSet,
+                        action.ToggleOperator,
+                        action.HasToggleValue,
+                        action.ToggleWhenSetTo,
+                        action.ToggleWhenSetToAny
+                    );
+                if (!string.IsNullOrEmpty(action.DisableWhenMemberIsSet))
+                    UiConditionValidator.Validate(
+                        contextualType.Type,
+                        methodInfo.Name,
+                        action.DisableWhenMemberIsSet,
+                        action.DisableOperator,
+                        action.HasDisableValue,
+                        action.DisableWhenSetTo,
+                        action.DisableWhenSetToAny
+                    );
+
+                classBuilder.Actions.Add(new UiActionBuilder
                 {
-                    uiDict.Add(SectionType, Convert(sectionTypeAttribute.SectionType));
-                    if (!string.IsNullOrWhiteSpace(sectionTypeAttribute.DefaultSectionName))
-                        uiDict.Add(SectionName, sectionTypeAttribute.DefaultSectionName);
-                    uiDict.Add(SectionAppendFloatingAtEnd, sectionTypeAttribute.AppendFloatingSectionsAtEnd);
-                    showSaveAction = sectionTypeAttribute.ShowSaveAction;
-                }
-                else
-                {
-                    uiDict.Add(SectionType, Convert(DisplaySectionType.FieldSet));
-                }
-
-                var propertyDefinitions = _schemaCache[schemaKey].PropertyUIDefinitions;
-                var primaryKey = propertyDefinitions.FirstOrDefault(x => x.Value.ContainsKey(ElementPrimaryKey) && x.Value[ElementPrimaryKey] is true).Key;
-                if (!string.IsNullOrEmpty(primaryKey))
-                    uiDict.Add(ElementPrimaryKey, primaryKey);
-
-                var orderCount = 0;
-                var knownGetters = new Dictionary<string, int>();
-                var knownSetters = new Dictionary<string, int>();
-                var knownMethods = new Dictionary<string, int>();
-                var ignoredProperties = new HashSet<string>();
-                // Only instance members are settings: a constant or a static
-                // member is never serialised, so it has no place in the structure.
-                var members = contextualType.Type.GetMembers(BindingFlags.Public | BindingFlags.Instance)
-                    .OrderBy(x => x.GetCustomAttribute<DisplayAttribute>(false)?.GetOrder() ?? int.MaxValue)
+                    Name = methodInfo.Name,
+                    Title = title,
+                    Description = description,
+                    Theme = action.Theme,
+                    Position = action.Position,
+                    Size = action.Size,
+                    Icon = string.IsNullOrWhiteSpace(action.Icon) ? null : action.Icon.Trim(),
+                    SectionName = string.IsNullOrEmpty(action.SectionName) ? null : action.SectionName,
+                    Toggle = action.HasToggleCondition
+                        ? new UiConditionBuilder
+                        {
+                            Path = action.ToggleWhenMemberIsSet,
+                            Operator = action.ToggleOperator,
+                            Value = action.ToggleWhenSetTo,
+                            Values = action.ToggleWhenSetToAny,
+                        }
+                        : null,
+                    Disable = action.HasDisableCondition
+                        ? new UiConditionBuilder
+                        {
+                            Path = action.DisableWhenMemberIsSet,
+                            Operator = action.DisableOperator,
+                            Value = action.DisableWhenSetTo,
+                            Values = action.DisableWhenSetToAny,
+                        }
+                        : null,
+                    DisableIfNoChanges = action.DisableIfNoChanges,
+                });
+            }
+            else if (methodInfo.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: var actionType } configurationAction)
+            {
+                var watched = configurationAction.ReactiveMembers?
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
                     .ToList();
-                foreach (var member in members)
-                {
-                    var orderIndex = orderCount++;
-                    if (member.MemberType is MemberTypes.Method && (member.Name.StartsWith("get_") || member.Name.StartsWith("set_")))
-                    {
-                        if (member.Name.StartsWith("get_"))
-                            knownGetters.TryAdd(member.Name[4..], orderIndex);
-                        else if (member.Name.StartsWith("set_"))
-                            knownSetters.TryAdd(member.Name[4..], orderIndex);
-                        continue;
-                    }
-                    else if (member.CustomAttributes.Any(x => x.AttributeType == typeof(CustomActionAttribute)))
-                    {
-                        knownMethods.TryAdd(member.Name, orderIndex);
-                    }
-                    else if (member.MemberType is MemberTypes.Property)
-                    {
-                        knownGetters.TryAdd(member.Name, orderIndex);
-                        knownSetters.TryAdd(member.Name, orderIndex);
-                        if (IsIgnored(member))
-                            ignoredProperties.Add(member.Name);
-                    }
-                    else if (member.MemberType is MemberTypes.Field)
-                    {
-                        knownGetters.TryAdd(member.Name, orderIndex);
-                        knownSetters.TryAdd(member.Name, orderIndex);
-                        if (IsIgnored(member))
-                            ignoredProperties.Add(member.Name);
-                    }
-                }
-                var orderDict = knownGetters
-                    .ExceptBy(ignoredProperties, a => a.Key)
-                    .IntersectBy(knownSetters.Keys, a => a.Key)
-                    .Select(x => KeyValuePair.Create(x.Key, (Order: Math.Min(x.Value, knownSetters[x.Key]), Type: "property")))
-                    .Union(
-                        knownMethods
-                            .Select(x => KeyValuePair.Create(x.Key, (Order: x.Value, Type: "method")))
-                    )
-                    .OrderBy(x => x.Value.Order)
-                    .Select((kv) => KeyValuePair.Create(kv.Key, kv.Value.Type))
-                    .ToDictionary();
-                uiDict.Add(ElementStructure, orderDict);
+                var events = configurationAction.Events?.Distinct().ToList() ?? [];
+                if (actionType is not ConfigurationActionType.LiveEdit && (watched is not null || events.Count > 0))
+                    // Only a live edit is raised by an event, so narrowing any
+                    // other hook to events or members says nothing.
+                    throw new NotSupportedException(
+                        $"{contextualType.Type.Name}.{methodInfo.Name} handles {actionType}, which is not raised by an event, so it cannot narrow what it reacts to.");
 
-                var actions = contextualType.Methods
-                    .Where(x => x.GetAttribute<CustomActionAttribute>(false) is not null || x.GetAttribute<ConfigurationActionAttribute>(false) is not null)
-                    .ToArray();
-                var actionList = new List<KeyValuePair<string, Dictionary<string, object?>>>();
-                var reactiveActionList = new List<Dictionary<string, object?>>();
-                foreach (var methodInfo in actions)
+                // A name that resolves to nothing would quietly watch nothing,
+                // and the member it meant would never be posted.
+                foreach (var member in watched ?? [])
                 {
-                    var title = TypeReflectionExtensions.GetDisplayName(methodInfo, name => name.TrimEnd(" Action Handler").TrimEnd(" Handler").TrimEnd(" Action"));
-                    var description = TypeReflectionExtensions.GetDescription(methodInfo);
-                    if (methodInfo.GetAttribute<CustomActionAttribute>(false) is { } action)
-                    {
-                        var actionDict = new Dictionary<string, object?>
-                        {
-                            { ActionName, title },
-                            { ActionDescription, description },
-                            { ActionTheme, Convert(action.Theme) },
-                            { ActionPosition, Convert(action.Position) },
-                            { ActionSize, Convert(action.Size) },
-                        };
-                        if (!string.IsNullOrWhiteSpace(action.Icon))
-                            actionDict.Add(ActionIcon, action.Icon.Trim());
-                        if (!string.IsNullOrEmpty(action.AttachToMember))
-                            actionDict.Add(ActionMemberName, action.AttachToMember);
-                        if (!string.IsNullOrEmpty(action.SectionName))
-                            actionDict.Add(SectionName, action.SectionName);
-                        if (action.HasToggleCondition)
-                        {
-                            actionDict.Add(ActionVisibilityToggle, new Dictionary<string, object?>
-                            {
-                                { "path", action.ToggleWhenMemberIsSet },
-                                { "value", Convert(action.ToggleWhenSetTo, _currentType!) },
-                                { "inverseCondition", action.InverseToggleCondition },
-                            });
-                        }
-                        else
-                        {
-                            actionDict.Add(ActionVisibilityToggle, null);
-                        }
-                        if (action.HasDisableCondition)
-                        {
-                            actionDict.Add(ActionDisableToggle, new Dictionary<string, object?>
-                            {
-                                { "path", action.DisableWhenMemberIsSet },
-                                { "value", Convert(action.DisableWhenSetTo, _currentType!) },
-                                { "inverseCondition", action.InverseDisableCondition },
-                            });
-                        }
-                        else
-                        {
-                            actionDict.Add(ActionDisableToggle, null);
-                        }
-                        actionDict.Add(ActionDisableIfNoChanges, action.DisableIfNoChanges);
-                        actionList.Add(KeyValuePair.Create(methodInfo.Name, actionDict));
-                    }
-                    else if (methodInfo.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: var actionType, ReactiveEventType: var eventType })
-                    {
-                        var actionDict = new Dictionary<string, object?>
-                        {
-                            { ActionIdentity, methodInfo.Name },
-                            { ActionName, title },
-                            { ActionDescription, description },
-                            { ActionType, Convert(actionType) },
-                            { ActionEventType, Convert(eventType) },
-                        };
-                        reactiveActionList.Add(actionDict);
-                    }
+                    if (UiConditionValidator.ResolvePath(contextualType.Type, member, out var failure) is null)
+                        throw new NotSupportedException($"{contextualType.Type.Name}.{methodInfo.Name} watches a member that {failure}.");
                 }
-                uiDict.Add(ElementHideSaveAction, hideSaveAction);
-                uiDict.Add(ElementShowSaveAction, showSaveAction);
-                uiDict.Add(ElementActions, actionList.ToDictionary());
-                uiDict.Add(ElementReactiveActions, reactiveActionList);
+
+                classBuilder.LifecycleHooks.Add(new UiLifecycleHookBuilder
+                {
+                    Name = methodInfo.Name,
+                    ActionType = actionType,
+                    EventTypes = events.Count > 0 ? events : [ReactiveEventType.All],
+                    Members = watched,
+                });
             }
         }
     }
 
-    private bool IsNewtonsoftJson() => _currentType!.IsAssignableTo(typeof(INewtonsoftJsonConfiguration));
+    /// <summary>
+    ///   Reads every member of an enumeration, collapsing members that share an
+    ///   underlying value onto a single entry and recording the aliases. Of a
+    ///   flags enum, only the single-bit members are read, in declaration order.
+    /// </summary>
+    /// <param name="contextualType">The enumeration.</param>
+    /// <returns>
+    ///   The distinct values, and the value/name pairs the schema's own
+    ///   enumeration should list, which includes both the serialised value and
+    ///   the alias each member accepts on input.
+    /// </returns>
+    private (List<UiEnumValueBuilder> Values, List<(string Value, string Name)> Enumeration) CollectEnumValues(ContextualType contextualType)
+    {
+        var values = new List<UiEnumValueBuilder>();
+        var enumeration = new List<(string Value, string Name)>();
+        var known = new HashSet<string>(StringComparer.Ordinal);
+        var enumNames = FlagEnums.IsFlagEnum(contextualType.Type)
+            ? FlagEnums.GetEntries(contextualType.Type).Select(x => x.Name)
+            : Enum.GetNames(contextualType.Type);
+        foreach (var enumName in enumNames)
+        {
+            var field = contextualType.GetField(enumName)!;
+            var title = TypeReflectionExtensions.GetDisplayName(field);
+            var description = TypeReflectionExtensions.GetDescription(field);
+
+            var value = _enumValueConverter!(Enum.Parse(contextualType.Type, enumName))!;
+            var newtonsoftValue = field.GetAttribute<EnumMemberAttribute>(false) is { } enumMemberAttribute && !string.IsNullOrEmpty(enumMemberAttribute.Value)
+                ? enumMemberAttribute.Value : null;
+            var systemTextJsonValue = field.GetAttribute<JsonStringEnumMemberNameAttribute>(false) is { } jsonStringEnumMemberNameAttribute && !string.IsNullOrEmpty(jsonStringEnumMemberNameAttribute.Name)
+                ? jsonStringEnumMemberNameAttribute.Name : null;
+            var overrideValue = _isNewtonsoftJson ? newtonsoftValue : systemTextJsonValue;
+            var aliasValue = overrideValue ?? enumName;
+            if (aliasValue.Equals(value, StringComparison.Ordinal))
+                aliasValue = null;
+
+            if (known.Contains(value))
+            {
+                var entry = values.First(x => x.Value == value);
+                if (title != entry.Title && !entry.Alias.Contains(title))
+                    entry.Alias.Add(title);
+                if (aliasValue is not null && !entry.AliasValues.Contains(aliasValue))
+                    entry.AliasValues.Add(aliasValue);
+            }
+            else
+            {
+                known.Add(value);
+                var entry = new UiEnumValueBuilder { Title = title, Description = description, Value = value };
+                if (aliasValue is not null)
+                    entry.AliasValues.Add(aliasValue);
+                values.Add(entry);
+                enumeration.Add((value, enumName));
+            }
+            if (aliasValue is not null && known.Add(aliasValue))
+                enumeration.Add((aliasValue, enumName));
+        }
+        return (values, enumeration);
+    }
+
+    /// <summary>
+    ///   Rejects a property whose collection holds another collection directly.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     Every schema node a property produces is filed under the property's
+    ///     name plus at most one <c>+List</c> and one <c>+Dict</c> marker, so
+    ///     the two levels of a nested collection are indistinguishable. Today
+    ///     that means a <c>List&lt;List&lt;T&gt;&gt;</c> or a
+    ///     <c>Dictionary&lt;K, Dictionary&lt;K2, V&gt;&gt;</c> silently keeps
+    ///     only the inner level's definition, a
+    ///     <c>Dictionary&lt;K, List&lt;T&gt;&gt;</c> silently drops the inner
+    ///     level's, and a <c>List&lt;Dictionary&lt;K, V&gt;&gt;</c> throws a
+    ///     confusing error from the dictionary key resolver.
+    ///   </para>
+    ///   <para>
+    ///     There is no sensible way to render a collection of collections
+    ///     anyway, so they are all rejected up front with an error a plugin
+    ///     author can act on. Wrapping the inner collection in a class both
+    ///     fixes the ambiguity and gives the inner level somewhere to hang its
+    ///     own label.
+    ///   </para>
+    /// </remarks>
+    /// <param name="info">The property to check.</param>
+    /// <exception cref="NotSupportedException">
+    ///   The property is a collection of collections.
+    /// </exception>
+    private static void AssertNoNestedCollection(ContextualPropertyInfo info)
+    {
+        // A flags enum is a list of itself, and nothing nests in it.
+        if (FlagEnums.IsFlagEnum(info.PropertyType.Type, out _))
+            return;
+        if (GetCollectionElementType(info.PropertyType.Type) is not { } elementType)
+            return;
+        if (GetCollectionElementType(elementType) is null)
+            return;
+
+        // A dictionary of collections is fine: the two levels get distinct keys
+        // ("+Dict" and "+List"), so nothing collides and the schema is usable.
+        // Only same-kind nesting shares a key, and only a dictionary inside a
+        // list makes the key resolver read the outer type and throw.
+        if (IsDictionary(info.PropertyType.Type).isDictionary && !IsDictionary(elementType).isDictionary)
+            return;
+
+        var declaringType = info.MemberInfo.DeclaringType is { } type ? GetFriendlyTypeName(type) : "?";
+        throw new NotSupportedException(
+            $"Configuration property \"{declaringType}.{info.Name}\" is a {GetFriendlyTypeName(info.PropertyType.Type)}. " +
+            "A collection cannot hold another collection directly, because the UI has no way to render one and the schema " +
+            "generator cannot tell the two levels apart. Wrap the inner collection in a class."
+        );
+    }
+
+    /// <summary>
+    ///   Returns what a collection type holds (the value type for a
+    ///   dictionary, the element type otherwise), or <c>null</c> when the type
+    ///   is not a collection. Strings are deliberately not collections here,
+    ///   and a flags enum is a list of its own members.
+    /// </summary>
+    private static Type? GetCollectionElementType(Type type)
+    {
+        if (type == typeof(string))
+            return null;
+        if (FlagEnums.IsFlagEnum(type, out var flagEnumType))
+            return flagEnumType;
+        if (IsDictionary(type).isDictionary)
+            return GetTKeyAndTValue(type).ValueType;
+        if (type.IsArray)
+            return type.GetElementType();
+        if (type.IsGenericType && type.IsInterface && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            return type.GetGenericArguments()[0];
+        return type.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            ?.GetGenericArguments()[0];
+    }
+
+    /// <summary>
+    ///   Finds the member value types, at any depth, that a plugin made
+    ///   parsable from text without a type converter, so they are described as
+    ///   the text they round-trip through rather than as objects.
+    /// </summary>
+    /// <remarks>
+    ///   A type with a converter is already described as text, and the
+    ///   framework's own parsable types are already mapped, so only the rest
+    ///   are collected.
+    /// </remarks>
+    /// <param name="root">The type being described.</param>
+    /// <returns>The parsable types, each once.</returns>
+    private static HashSet<Type> FindParsableValueTypes(Type root)
+    {
+        var found = new HashSet<Type>();
+        var seen = new HashSet<Type>();
+        var pending = new Stack<Type>([root]);
+        while (pending.TryPop(out var type))
+        {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            if (!seen.Add(type) || type.IsPrimitive || type.IsEnum || type == typeof(string))
+                continue;
+            if (type.IsArray)
+            {
+                pending.Push(type.GetElementType()!);
+                continue;
+            }
+
+            if (type.IsGenericType)
+            {
+                foreach (var argument in type.GetGenericArguments())
+                    pending.Push(argument);
+            }
+
+            if (type.Namespace?.StartsWith("System", StringComparison.Ordinal) is true)
+                continue;
+            if (ParsableTypes.IsParsable(type))
+            {
+                found.Add(type);
+                continue;
+            }
+
+            foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                pending.Push(property.PropertyType);
+        }
+
+        return found;
+    }
+
+    /// <summary>
+    ///   Renders a type name the way it was written in source, so an error
+    ///   message reads like the code that caused it.
+    /// </summary>
+    internal static string GetFriendlyTypeName(Type type)
+    {
+        if (type.IsArray)
+            return $"{GetFriendlyTypeName(type.GetElementType()!)}[]";
+        if (!type.IsGenericType)
+            return type.Name;
+
+        var name = type.Name;
+        var index = name.IndexOf('`', StringComparison.Ordinal);
+        if (index >= 0)
+            name = name[..index];
+        return $"{name}<{string.Join(", ", type.GetGenericArguments().Select(GetFriendlyTypeName))}>";
+    }
+
+    /// <summary>
+    ///   Returns the definition for a class, creating it and the chain of
+    ///   definitions for the classes it derives from on first sight.
+    /// </summary>
+    /// <remarks>
+    ///   The base chain is built eagerly so the order the generator happens to
+    ///   visit a hierarchy in cannot matter. A definition that is never
+    ///   populated is never emitted, so linking in an unused base costs
+    ///   nothing but the empty container.
+    /// </remarks>
+    private UiClassBuilder GetOrAddClass(Type type)
+    {
+        var schemaKey = type.FullName!;
+        if (_schemaCache.TryGetValue(schemaKey, out var builder))
+            return builder;
+
+        _schemaCache[schemaKey] = builder = new UiClassBuilder { Type = type };
+        if (type.BaseType is { } baseType && baseType != typeof(object) && baseType != typeof(ValueType) && baseType.FullName is not null)
+            builder.BaseClass = GetOrAddClass(baseType);
+        return builder;
+    }
 
     private bool IsIgnored(MemberInfo memberInfo) =>
-        IsNewtonsoftJson()
+        _isNewtonsoftJson
             ? memberInfo.CustomAttributes.Any(a => a.AttributeType == typeof(JsonIgnoreAttribute))
             : memberInfo.CustomAttributes.Any(a => a.AttributeType == typeof(System.Text.Json.Serialization.JsonIgnoreAttribute));
 
@@ -846,13 +1149,17 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     private void AssertKeyUsable(Type keyType)
     {
+        // A flags enum is written as a list of its members, which no key can be.
+        if (FlagEnums.IsFlagEnum(keyType, out _))
+            throw new ArgumentException($"Type \"{keyType.FullName!}\" is a flags enum, which is a list of its members rather than text, and therefore cannot be used as a key in a dictionary inside a configuration.", nameof(keyType));
+
         if (keyType == typeof(string) || keyType == typeof(MetadataSource) || keyType == typeof(MetadataEntityType) || keyType.GetTypeInfo().IsEnum)
             return;
 
         if (keyType.GetCustomAttribute<SerializableAttribute>() is not null)
             return;
 
-        if (!IsNewtonsoftJson() && keyType.GetCustomAttribute<JsonSerializableAttribute>() is not null)
+        if (!_isNewtonsoftJson && keyType.GetCustomAttribute<JsonSerializableAttribute>() is not null)
             return;
 
         var interfaces = keyType.GetInterfaces();
@@ -862,7 +1169,72 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         throw new ArgumentException($"Type \"{keyType.FullName!}\" is not serializable to text and therefore cannot be used as a key in a dictionary inside a configuration.", nameof(keyType));
     }
 
-    private static string GetPropertyKey(ContextualPropertyInfo info)
+    /// <summary>
+    ///   The suffix on the key of a list property's collection node.
+    /// </summary>
+    private const string ListKeySuffix = "+List";
+
+    /// <summary>
+    ///   The suffix on the key of a dictionary property's collection node.
+    /// </summary>
+    private const string DictionaryKeySuffix = "+Dict";
+
+    /// <summary>
+    ///   Returns the key a property's builder is filed under for one of the
+    ///   schema nodes it produced.
+    /// </summary>
+    /// <remarks>
+    ///   A collection property produces a node for the collection and one for
+    ///   its element. Only the collection node carries a suffix, so the
+    ///   element's builder stays under the bare property name.
+    /// </remarks>
+    /// <param name="propertyName">The JSON property name.</param>
+    /// <param name="schema">The schema node the builder describes.</param>
+    /// <returns>The key.</returns>
+    internal static string GetPropertyKey(string propertyName, JsonSchema schema)
+    {
+        var propertyKey = propertyName;
+        if (schema.Item is not null)
+            propertyKey += ListKeySuffix;
+        if (schema.AdditionalPropertiesSchema is not null)
+            propertyKey += DictionaryKeySuffix;
+        return propertyKey;
+    }
+
+    /// <summary>
+    ///   The JSON name of the boolean a checkbox section names as its switch.
+    /// </summary>
+    /// <param name="contextualType">The section's class.</param>
+    /// <param name="sectionAttribute">The class's section attribute, if any.</param>
+    /// <returns>The member's JSON name, or <c>null</c> for any other section.</returns>
+    /// <exception cref="NotSupportedException">
+    ///   Thrown when a checkbox section names no switch, another section names
+    ///   one, or the name is not a serialised bool member of the class.
+    /// </exception>
+    private string? ResolveToggleMember(ContextualType contextualType, SectionAttribute? sectionAttribute)
+    {
+        var typeName = GetFriendlyTypeName(contextualType.Type);
+        var toggleMember = string.IsNullOrWhiteSpace(sectionAttribute?.ToggleMember) ? null : sectionAttribute.ToggleMember;
+        var isCheckbox = sectionAttribute?.SectionType is DisplaySectionType.Checkbox;
+        if (toggleMember is null)
+        {
+            return isCheckbox
+                ? throw new NotSupportedException($"Section \"{typeName}\" is drawn as a checkbox but names no ToggleMember, the bool member that turns it on.")
+                : null;
+        }
+
+        if (!isCheckbox)
+            throw new NotSupportedException($"Section \"{typeName}\" names the ToggleMember \"{toggleMember}\", but only a checkbox section has one.");
+
+        var property = contextualType.Properties.FirstOrDefault(x => string.Equals(x.Name, toggleMember, StringComparison.Ordinal));
+        if (property is null || property.PropertyType.Type != typeof(bool) || property.PropertyInfo.GetMethod is not { IsPublic: true, IsStatic: false } ||
+            IsIgnored(property.PropertyInfo))
+            throw new NotSupportedException($"Section \"{typeName}\" names the ToggleMember \"{toggleMember}\", which is not a serialised bool member of it.");
+
+        return GetPropertyName(property);
+    }
+
+    private static string GetPropertyName(ContextualPropertyInfo info)
     {
         if (info.GetAttribute<JsonPropertyAttribute>(false) is { } jsonPropertyAttribute)
             return jsonPropertyAttribute.PropertyName ?? info.Name;
@@ -872,8 +1244,8 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     }
 
     // For the values that needs to be converted by the right library in the right way
-    private JToken? Convert(object? value, Type type)
-        => value is null ? null : type is null || type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
+    private JToken? Convert(object? value, bool isNewtonsoftJson)
+        => value is null ? null : isNewtonsoftJson
             ? JToken.Parse(JsonConvert.SerializeObject(value, Formatting.None, _newtonsoftJsonSerializerSettings))
             : JToken.Parse(JsonSerializer.Serialize(value, _systemTextJsonSerializerOptions));
 

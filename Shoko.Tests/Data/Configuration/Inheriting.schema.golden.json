@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Inheriting",
+  "type": "object",
+  "properties": {
+    "Name": {
+      "title": "Inherited Name",
+      "type": "string",
+      "default": "",
+      "x-uiDefinition": {
+        "elementType": "auto",
+        "requiresRestart": true,
+        "envVar": "INHERITED_NAME",
+        "envVarOverridable": false
+      }
+    },
+    "Mode": {
+      "title": "Mode",
+      "default": "balanced",
+      "$ref": "#/definitions/TwinMode",
+      "x-uiDefinition": {
+        "elementType": "enum",
+        "requiresRestart": false,
+        "enumDefinitions": [
+          {
+            "value": "slow-and-steady",
+            "aliasValues": ""
+          },
+          {
+            "value": "balanced",
+            "aliasValues": ""
+          },
+          {
+            "value": "fast",
+            "aliasValues": ""
+          }
+        ]
+      }
+    },
+    "Endpoints": {
+      "title": "Endpoints",
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/definitions/TwinEndpoint"
+      }
+    },
+    "Count": {
+      "title": "Derived Count",
+      "type": "integer",
+      "format": "int32",
+      "default": 1
+    }
+  },
+  "definitions": {
+    "TwinMode": {
+      "type": "string",
+      "x-enumNames": [
+        "Slow",
+        "Balanced",
+        "Fast"
+      ],
+      "x-enum-descriptions": [
+        "Takes its time.",
+        null,
+        null
+      ],
+      "enum": [
+        "slow-and-steady",
+        "balanced",
+        "fast"
+      ]
+    },
+    "TwinEndpoint": {
+      "type": "object",
+      "properties": {
+        "ID": {
+          "title": "ID",
+          "type": "string",
+          "default": ""
+        },
+        "Url": {
+          "title": "Url",
+          "type": "string",
+          "format": "uri",
+          "default": ""
+        },
+        "Mode": {
+          "title": "Mode",
+          "default": "balanced",
+          "$ref": "#/definitions/TwinMode",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "slow-and-steady",
+                "aliasValues": ""
+              },
+              {
+                "value": "balanced",
+                "aliasValues": ""
+              },
+              {
+                "value": "fast",
+                "aliasValues": ""
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -8,14 +8,18 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using NJsonSchema;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Actions.Services;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.UI;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
@@ -35,7 +39,9 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services;
 
@@ -65,6 +71,10 @@ public class ActionService : IActionService
 
     private readonly IServiceProvider _services;
 
+    private readonly ActionUiDefinitionBuilder _actionUiDefinitionBuilder;
+
+    private readonly IConfigurationService _configurationService;
+
     /// <summary>
     ///   Registered action types and their metadata. Populated once during
     ///   <see cref="AddParts"/>. A fresh transient instance is resolved from
@@ -80,9 +90,14 @@ public class ActionService : IActionService
     /// </summary>
     /// <param name="Info">The metadata exposed to plugins.</param>
     /// <param name="ActionType">The concrete action type.</param>
+    /// <param name="ParameterSchema">
+    ///   The schema an invocation payload is checked against, or
+    ///   <c>null</c> when the action declares no parameters.
+    /// </param>
     private sealed record RegisteredAction(
         ExecutableActionInfo Info,
-        Type ActionType
+        Type ActionType,
+        JsonSchema? ParameterSchema
     );
 
     /// <summary>
@@ -127,6 +142,8 @@ public class ActionService : IActionService
         IPluginPackageManager pluginPackageManager,
         IPluginManager pluginManager,
         IServiceProvider services,
+        ActionUiDefinitionBuilder actionUiDefinitionBuilder,
+        IConfigurationService configurationService,
         VideoLocalRepository videoLocals,
         VideoLocal_PlaceRepository videoLocalPlaces,
         StoredReleaseInfoRepository storedReleaseInfos,
@@ -153,6 +170,8 @@ public class ActionService : IActionService
         _pluginPackageManager = pluginPackageManager;
         _pluginManager = pluginManager;
         _services = services;
+        _actionUiDefinitionBuilder = actionUiDefinitionBuilder;
+        _configurationService = configurationService;
         _videoLocals = videoLocals;
         _videoLocalPlaces = videoLocalPlaces;
         _storedReleaseInfos = storedReleaseInfos;
@@ -232,6 +251,11 @@ public class ActionService : IActionService
                 ? _pluginManager.GetPluginInfo(pluginId)?.Name ?? actionType.Assembly.GetName().Name!
                 : probe.Category.ToString();
 
+            // The action's parameters are its own settable, serialized
+            // properties, described the same way a configuration is, with the
+            // defaults the probe was built with. Null when the action declares none.
+            var parameters = _actionUiDefinitionBuilder.Build(id, probe.Name, probe.Description, actionType, listsOptions: true, instance: probe);
+
             var info = new ExecutableActionInfo(
                 id,
                 probe.Name,
@@ -243,9 +267,10 @@ public class ActionService : IActionService
                 probe.Permission,
                 probe.RequiresConfirmation,
                 probe.ConfirmationMessage,
-                pluginId
+                pluginId,
+                parameters?.Definition
             );
-            _actions[id] = _actionsByType[actionType] = new RegisteredAction(info, actionType);
+            _actions[id] = _actionsByType[actionType] = new RegisteredAction(info, actionType, parameters?.Schema);
         }
     }
 
@@ -299,13 +324,198 @@ public class ActionService : IActionService
     ///   <see cref="ActionExecutionJob"/>, so both observe the same
     ///   caller-supplied values.
     /// </summary>
-    internal static void PopulateParameters(IExecutableAction action, IReadOnlyDictionary<string, object?>? parameters)
+    /// <param name="action">The action to populate.</param>
+    /// <param name="parameters">The parameters, or <c>null</c>.</param>
+    /// <param name="onlyPath">
+    ///   When set, a value that cannot be read is skipped unless it belongs to
+    ///   the parameter this path starts with, as for an options request.
+    /// </param>
+    /// <exception cref="GenericValidationException">
+    ///   A value could not be read into its parameter, keyed by the path of
+    ///   that value.
+    /// </exception>
+    internal static void PopulateParameters(IExecutableAction action, IReadOnlyDictionary<string, object?>? parameters, string? onlyPath = null)
     {
         if (parameters is not { Count: > 0 })
             return;
 
-        JsonConvert.PopulateObject(JsonConvert.SerializeObject(parameters), action);
+        var settings = _populateSettings;
+        if (onlyPath is not null)
+        {
+            var parameter = FirstSegment(onlyPath);
+            settings = new JsonSerializerSettings(_populateSettings)
+            {
+                Error = (_, args) =>
+                {
+                    if (!string.Equals(FirstSegment(args.ErrorContext.Path), parameter, StringComparison.Ordinal))
+                        args.ErrorContext.Handled = true;
+                },
+            };
+        }
+
+        // A converter's own exception carries no path, so it is taken from the reader.
+        using var reader = new JsonTextReader(new StringReader(JsonConvert.SerializeObject(parameters, _populateSettings)));
+        try
+        {
+            JsonSerializer.Create(settings).Populate(reader, action);
+        }
+        catch (JsonException ex)
+        {
+            var path = ex is JsonSerializationException { Path.Length: > 0 } serializationException ? serializationException.Path : reader.Path;
+            throw new GenericValidationException(ex.Message, new Dictionary<string, IReadOnlyList<string>> { [path] = [ex.Message] });
+        }
     }
+
+    /// <summary>
+    ///   The parameter a path starts with: the text before its first member
+    ///   or index separator, or the quoted name a bracketed path starts with.
+    /// </summary>
+    private static string FirstSegment(string path)
+    {
+        if (path.StartsWith("['") && path.IndexOf("']", StringComparison.Ordinal) is > 2 and var end)
+            return path[2..end];
+
+        var index = path.IndexOfAny(['.', '[']);
+        return index < 0 ? path : path[..index];
+    }
+
+    /// <summary>
+    ///   The action's own metadata is hidden from population as well as from
+    ///   the schema, so a payload naming <c>Name</c> or <c>Permission</c> cannot
+    ///   write to the instance even if it somehow reaches here unvalidated. A
+    ///   flags enum is read from the list of its members, and a type parsable
+    ///   from text from that text.
+    /// </summary>
+    private static readonly JsonSerializerSettings _populateSettings = new()
+    {
+        ContractResolver = new ActionMetadataContractResolver(),
+        Converters = [FlagEnumNewtonsoftConverter.Instance, ParsableNewtonsoftConverter.Instance],
+    };
+
+    /// <inheritdoc />
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> ValidateParameters(Guid actionId, JObject? parameters)
+    {
+        if (!_actions.TryGetValue(actionId, out var registered))
+            throw new KeyNotFoundException($"No action registered for {actionId}");
+
+        // No body is how every action has always been invoked, and how one that
+        // takes no parameters still is. Only a required parameter is missed.
+        if (parameters is null)
+        {
+            if (registered.ParameterSchema is not { RequiredProperties.Count: > 0 })
+                return new Dictionary<string, IReadOnlyList<string>>();
+
+            parameters = [];
+        }
+
+        if (registered.ParameterSchema is not { } schema)
+        {
+            return parameters.Count is 0
+                ? new Dictionary<string, IReadOnlyList<string>>()
+                : new Dictionary<string, IReadOnlyList<string>>
+                {
+                    [string.Empty] = [$"The action '{registered.Info.Name}' does not take any parameters."],
+                };
+        }
+
+        return _configurationService.Validate(parameters.ToString(Formatting.None), schema);
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    ) => GetParameterOptionsCoreAsync(actionId, null, path, parameters, caller, token);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IShokoGroup group,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    ) => GetParameterOptionsCoreAsync(actionId, group, path, parameters, caller, token);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IShokoSeries series,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    ) => GetParameterOptionsCoreAsync(actionId, series, path, parameters, caller, token);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IShokoEpisode episode,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    ) => GetParameterOptionsCoreAsync(actionId, episode, path, parameters, caller, token);
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IVideo video,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    ) => GetParameterOptionsCoreAsync(actionId, video, path, parameters, caller, token);
+
+    /// <summary>
+    ///   The options entry point, scope-agnostic in the same way as
+    ///   <see cref="InvokeCoreAsync"/>.
+    /// </summary>
+    /// <exception cref="GenericValidationException">
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, or a parameter value
+    ///   cannot be read.
+    /// </exception>
+    private Task<IReadOnlyList<UiOption>> GetParameterOptionsCoreAsync(
+        Guid actionId,
+        object? scopeEntity,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters,
+        IUser? caller,
+        CancellationToken token
+    )
+    {
+        var registered = ResolveAction(actionId);
+        var rejection = CheckApplicable(registered, ScopeOf(scopeEntity), caller);
+        // Only the parameter asked about has to be readable, so options never
+        // wait on the rest of the form being valid.
+        var (probe, hidden) = rejection is null ? PrepareProbe(registered, scopeEntity, parameters, caller, path) : (null, rejection);
+        if (hidden is not null)
+            throw new GenericValidationException(hidden.Reason, new Dictionary<string, IReadOnlyList<string>> { [string.Empty] = [hidden.Reason] });
+
+        var request = UiOptionsProvider.Resolve(probe!, path, isNewtonsoftJson: true);
+
+        // Handed what execution has: the prepared instance, its entity and its
+        // caller, with services for anything else.
+        return UiOptionsProvider.InvokeAsync(
+            request.Method,
+            _pluginManager,
+            request.Owner,
+            [probe, scopeEntity, caller, token],
+            ConvertParameterValue,
+            request.Key
+        );
+    }
+
+    /// <summary>
+    ///   Serialises a parameter value the way the action's own parameter
+    ///   schema was generated.
+    /// </summary>
+    private static JToken? ConvertParameterValue(object? value)
+        => value is null ? null : JToken.FromObject(value, JsonSerializer.Create(ShokoJsonSerializers.CreateNewtonsoftSettings()));
 
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
     public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
@@ -544,25 +754,48 @@ public class ActionService : IActionService
     /// </returns>
     private async Task<ActionValidationResult?> ValidateEntryAsync(RegisteredAction registered, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
     {
+        var (probe, rejection) = PrepareProbe(registered, scopeEntity, parameters, caller);
+        return rejection ?? await probe!.Validate(token);
+    }
+
+    /// <summary>
+    ///   Resolves a throwaway instance and prepares it the way execution will
+    ///   see it: scoped, given its caller and populated with the parameters.
+    /// </summary>
+    /// <param name="registered">The action.</param>
+    /// <param name="scopeEntity">The entity the action is scoped to, or <c>null</c>.</param>
+    /// <param name="parameters">The invocation parameters, or <c>null</c>.</param>
+    /// <param name="caller">The invoking user, or <c>null</c>.</param>
+    /// <param name="onlyPath">The path of an options request, which only its own parameter has to read for.</param>
+    /// <returns>
+    ///   The instance, or the reason the caller may not act on the entity.
+    /// </returns>
+    private (IExecutableAction? Probe, ActionValidationResult? Rejection) PrepareProbe(
+        RegisteredAction registered,
+        object? scopeEntity,
+        IReadOnlyDictionary<string, object?>? parameters,
+        IUser? caller,
+        string? onlyPath = null
+    )
+    {
         var probe = (IExecutableAction)_services.GetRequiredService(registered.ActionType);
         if (CheckVisible(probe, scopeEntity, caller) is { } hidden)
-            return hidden;
+            return (null, hidden);
 
         if (probe is IScopedAction scoped && scopeEntity is not null)
             scoped.SetContext(scopeEntity);
         if (probe is IActionCaller callerAware)
         {
             if (caller is null)
-                return new ActionValidationResult($"The action '{registered.Info.Name}' requires a calling user.");
+                return (null, new ActionValidationResult($"The action '{registered.Info.Name}' requires a calling user."));
 
             callerAware.SetCaller(caller);
         }
 
         // Populate the probe with the caller's parameters too, so Validate
         // observes the same values Execute will, not the compiled-in defaults.
-        PopulateParameters(probe, parameters);
-
-        return await probe.Validate(token);
+        PopulateParameters(probe, parameters, onlyPath);
+        return (probe, null);
     }
 
     /// <summary>

@@ -13,7 +13,6 @@ using Force.DeepCloner;
 using Microsoft.Extensions.Logging;
 using Namotion.Reflection;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using NJsonSchema;
 using NJsonSchema.Validation;
@@ -26,6 +25,9 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
+using Shoko.Abstractions.UI;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Extensions;
@@ -58,7 +60,11 @@ public partial class ConfigurationService : IConfigurationService
 
     private readonly ConcurrentDictionary<Guid, ConfigurationInfo> _configurationTypes = [];
 
+    private readonly UiDefinitionBuilder _uiDefinitionBuilder;
+
     private readonly ConcurrentDictionary<ConfigurationInfo, string> _serializedSchemas = [];
+
+    private readonly ConcurrentDictionary<Guid, WrappedJsonSchema> _wrappedSchemas = [];
 
     private readonly ConcurrentDictionary<Guid, IConfiguration> _loadedConfigurations = [];
 
@@ -101,28 +107,14 @@ public partial class ConfigurationService : IConfigurationService
         _applicationPaths = applicationPaths;
         _pluginManager = pluginManager;
         _secretFingerprintKey = new(LoadOrCreateSecretFingerprintKey);
-        _newtonsoftJsonSerializerSettings = new()
-        {
-            Formatting = Formatting.Indented,
-            ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-            DefaultValueHandling = DefaultValueHandling.Include,
-            ObjectCreationHandling = ObjectCreationHandling.Replace,
-            MissingMemberHandling = MissingMemberHandling.Ignore,
-            Converters = [new StringEnumConverter()]
-        };
-        _systemTextJsonSerializerOptions = new()
-        {
-            AllowTrailingCommas = true,
-            WriteIndented = true,
-            PreferredObjectCreationHandling = JsonObjectCreationHandling.Replace,
-            ReferenceHandler = ReferenceHandler.IgnoreCycles,
-            PropertyNameCaseInsensitive = true,
-        };
-        _systemTextJsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        _newtonsoftJsonSerializerSettings = ShokoJsonSerializers.CreateNewtonsoftSettings();
+        _systemTextJsonSerializerOptions = ShokoJsonSerializers.CreateSystemTextJsonOptions();
         _jsonSchemaGenerator = new(_newtonsoftJsonSerializerSettings, _systemTextJsonSerializerOptions);
+        _uiDefinitionBuilder = new(loggerFactory.CreateLogger<UiDefinitionBuilder>());
 
         var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(typeof(ServerSettings));
         wrappedSchema.Schema.Id = GetID(typeof(ServerSettings)).ToString();
+        _wrappedSchemas[Guid.Empty] = wrappedSchema;
         _configurationTypes[Guid.Empty] = new(this)
         {
             // We first map the server settings to the empty guid because the id
@@ -179,6 +171,8 @@ public partial class ConfigurationService : IConfigurationService
         _configurationTypes.TryRemove(Guid.Empty, out _);
         _serializedSchemas[_configurationTypes[serverSettingsID]] = _serializedSchemas[serverSettingsInfo];
         _serializedSchemas.TryRemove(serverSettingsInfo, out _);
+        _wrappedSchemas[serverSettingsID] = _wrappedSchemas[Guid.Empty];
+        _wrappedSchemas.TryRemove(Guid.Empty, out _);
         _loadedConfigurations[serverSettingsID] = _loadedConfigurations[Guid.Empty];
         _loadedConfigurations.TryRemove(Guid.Empty, out _);
         if (InternalLoadedEnvironmentVariables.TryGetValue(Guid.Empty, out var envVarDict))
@@ -202,6 +196,7 @@ public partial class ConfigurationService : IConfigurationService
             var contextualType = configurationType.ToContextualType();
             var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(configurationType);
             wrappedSchema.Schema.Id = id.ToString();
+            _wrappedSchemas[id] = wrappedSchema;
             var description = TypeReflectionExtensions.GetDescription(contextualType);
             var name = wrappedSchema.Schema.Title!;
             string? path = null;
@@ -406,6 +401,26 @@ public partial class ConfigurationService : IConfigurationService
                 .Invoke(null, [config, this, _pluginManager])!).ToDictionary(a => a.Key, a => a.Value.ToList());
         }
 
+        // The Validate hook judges every document about to be stored, so a
+        // Save hook or a plain save never sees one it would refuse.
+        if (errorDict.Count is 0 && !loadValidation && info.HasCustomValidation && config is not null)
+        {
+            var result = PerformReactiveActionInternal(
+                _loggerFactory,
+                _pluginManager,
+                this,
+                info,
+                config,
+                string.Empty,
+                ConfigurationActionType.Validate,
+                ReactiveEventType.All,
+                null,
+                null
+            );
+            if (result.ValidationErrors is { Count: > 0 } hookErrors)
+                errorDict = hookErrors.ToDictionary(a => a.Key, a => a.Value.ToList());
+        }
+
         if (errorDict.Count > 0)
         {
             _logger.LogTrace("Configuration validation failed for {Type} with {ErrorCount} errors.", info.Name, errorDict.Sum(a => a.Value.Count));
@@ -502,11 +517,82 @@ public partial class ConfigurationService : IConfigurationService
         Uri? uri
     ) where TConfig : class, IConfiguration, new()
     {
-        var (type, schema, target, methodInfo) = GetContextualTypeForConfigurationInfo(info, path, configuration, actionID: actionID);
+        var (type, schema, target, methodInfo, _) = GetContextualTypeForConfigurationInfo(info, path, configuration, actionID: actionID);
         if (target is null || methodInfo is null)
             return new($"Unable to find action with ID \"{actionID}\" for configuration \"{info.Name}\"", DisplayColorTheme.Warning);
 
         return RunAction(loggerFactory, pluginManager, configurationService, info, configuration, path, target, methodInfo, schema, type, ReactiveEventType.All, user, uri);
+    }
+
+    public Task<IReadOnlyList<UiOption>> GetOptionsAsync(
+        ConfigurationInfo info,
+        IConfiguration configuration,
+        string path,
+        IUser? user = null,
+        Uri? uri = null
+    )
+    {
+        try
+        {
+            return (Task<IReadOnlyList<UiOption>>)typeof(ConfigurationService)
+                .GetMethod(nameof(GetOptionsInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
+                .MakeGenericMethod(configuration.GetType())
+                .Invoke(this, [info, configuration, path, user, uri])!;
+        }
+        catch (TargetInvocationException ex)
+        {
+            if (ex.InnerException is null)
+                throw;
+            throw ex.InnerException;
+        }
+    }
+
+    public Task<IReadOnlyList<UiOption>> GetOptionsAsync<TConfig>(
+        TConfig configuration,
+        string path,
+        IUser? user = null,
+        Uri? uri = null
+    ) where TConfig : class, IConfiguration, new()
+        => GetOptionsInternal(GetConfigurationInfo<TConfig>(), configuration, path, user, uri);
+
+    private Task<IReadOnlyList<UiOption>> GetOptionsInternal<TConfig>(
+        ConfigurationInfo info,
+        TConfig configuration,
+        string path,
+        IUser? user,
+        Uri? uri
+    ) where TConfig : class, IConfiguration, new()
+    {
+        var request = UiOptionsProvider.Resolve(configuration, path, info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)));
+
+        // The provider is handed what a custom action is, so one written for
+        // either reads the same.
+        var logger = _loggerFactory.CreateLogger<TConfig>();
+        var context = new ConfigurationActionContext<TConfig>
+        {
+            Logger = logger,
+            Configuration = configuration,
+            Info = info,
+            ConfigurationService = this,
+            PluginManager = _pluginManager,
+            Path = path,
+            ReactiveEventType = ReactiveEventType.All,
+            Schema = info.Schema,
+            Type = request.Owner.GetType().ToContextualType(),
+            User = user,
+            Uri = uri,
+        };
+        Func<object?, JToken?> convert = _wrappedSchemas.TryGetValue(info.ID, out var wrapped) && wrapped.EmitContext is { } emitContext
+            ? emitContext.ConvertToken
+            : value => value is null ? null : JToken.FromObject(value);
+        return UiOptionsProvider.InvokeAsync(
+            request.Method,
+            _pluginManager,
+            request.Owner,
+            [logger, path, info, configuration, context, user, uri],
+            convert,
+            request.Key
+        );
     }
 
     public ConfigurationActionResult PerformReactiveAction(ConfigurationInfo info, IConfiguration configuration, string path, ConfigurationActionType actionType, ReactiveEventType reactiveEventType = ReactiveEventType.All, IUser? user = null, Uri? uri = null)
@@ -542,12 +628,53 @@ public partial class ConfigurationService : IConfigurationService
         Uri? uri
     ) where TConfig : class, IConfiguration, new()
     {
-        var (type, schema, target, methodInfo) = GetContextualTypeForConfigurationInfo(info, path, configuration, actionType: actionType, reactiveEventType: reactiveEventType);
+        List<ReactiveTarget> chain;
+        try
+        {
+            chain = GetContextualTypeForConfigurationInfo(info, path, configuration, actionType: actionType, reactiveEventType: reactiveEventType).Chain;
+        }
+        catch (InvalidConfigurationActionException) when (actionType is ConfigurationActionType.LiveEdit)
+        {
+            // A live edit is raised by the client's draft, which legitimately
+            // runs ahead of the document it posted: a row being composed is not
+            // in it yet. Nothing to react to is not an error, the same as having
+            // no handler at all.
+            return new();
+        }
+
         // In case we're unable to find the reactive action requested, silently return as to not spam the client UI as we do for custom actions.
-        if (target is null || methodInfo is null)
+        if (chain.Count is 0)
             return new();
 
-        return RunAction(loggerFactory, pluginManager, configurationService, info, configuration, path, target, methodInfo, schema, type, reactiveEventType, user, uri);
+        // Innermost first, so the handler nearest the edit computes and the ones
+        // around it see what it decided. They all hold the same configuration
+        // instance, so the document merges itself; only what each one says about
+        // it has to be collected.
+        var results = new List<ConfigurationActionResult>();
+        var result = new ConfigurationActionResult();
+        for (var index = chain.Count - 1; index >= 0; index--)
+        {
+            var handler = chain[index];
+            result = RunAction(
+                loggerFactory,
+                pluginManager,
+                configurationService,
+                info,
+                configuration,
+                path,
+                handler.Value,
+                handler.Method,
+                handler.Schema,
+                handler.Type,
+                reactiveEventType,
+                user,
+                uri,
+                result
+            );
+            results.Add(result);
+        }
+
+        return results.Count is 1 ? results[0] : Combine(results);
     }
 
     #region Actions | Internals
@@ -561,39 +688,158 @@ public partial class ConfigurationService : IConfigurationService
     [GeneratedRegex(@"(?<=\w|\]|^)\[", RegexOptions.Compiled | RegexOptions.ECMAScript)]
     private static partial Regex IndexNotationFixRegex();
 
-    private static (ContextualType, JsonSchema, object?, MethodInfo?) GetContextualTypeForConfigurationInfo(ConfigurationInfo info, string path, object config, ConfigurationActionType? actionType = null, string? actionID = null, ReactiveEventType reactiveEventType = ReactiveEventType.All)
+    /// <summary>
+    ///   Splits a member path into its parts: member names, list indices such
+    ///   as <c>[0]</c> and dictionary keys such as <c>["Key"]</c>.
+    /// </summary>
+    /// <param name="path">The path.</param>
+    /// <returns>The parts, in order.</returns>
+    internal static string[] SplitPath(string path)
+        => path.Replace(IndexNotationFixRegex(), ".[").Split(SplitPathToPartsRegex(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    /// <summary>
+    ///   Finds the handler a class declares for a lifecycle hook.
+    /// </summary>
+    /// <remarks>
+    ///   Only <see cref="ConfigurationActionType.LiveEdit"/> is raised by an
+    ///   event, so it is the only hook an event type narrows.
+    /// </remarks>
+    /// <param name="type">The class to search.</param>
+    /// <param name="actionType">The hook being run.</param>
+    /// <param name="reactiveEventType">The event that raised it.</param>
+    /// <returns>The handler, or <c>null</c> when the class declares none.</returns>
+    internal static MethodInfo? FindHookHandler(ContextualType type, ConfigurationActionType actionType, ReactiveEventType reactiveEventType)
+    {
+        if (actionType is not ConfigurationActionType.LiveEdit)
+            return FindHandler(type, actionType, null);
+
+        // A handler that named the event wins, and one that named none stands
+        // in for it.
+        return FindHandler(type, actionType, reactiveEventType) ??
+            (reactiveEventType is ReactiveEventType.All ? null : FindHandler(type, actionType, ReactiveEventType.All));
+    }
+
+    private static MethodInfo? FindHandler(ContextualType type, ConfigurationActionType actionType, ReactiveEventType? reactiveEventType)
+        => type.Methods
+            .FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { } attribute &&
+                attribute.ActionType == actionType &&
+                (reactiveEventType is not { } eventType || Handles(attribute, eventType)))
+            ?.MethodInfo;
+
+    /// <summary>
+    ///   Whether a handler named the event, where naming none stands for all of
+    ///   them.
+    /// </summary>
+    private static bool Handles(ConfigurationActionAttribute attribute, ReactiveEventType eventType)
+        => attribute.Events is not { Length: > 0 } events
+            ? eventType is ReactiveEventType.All
+            : events.Contains(eventType);
+
+    /// <summary>
+    ///   One handler the edited path passes through, with the instance it is
+    ///   declared on.
+    /// </summary>
+    /// <param name="Value">The instance to invoke it on.</param>
+    /// <param name="Method">The handler.</param>
+    /// <param name="Type">The type it is declared on.</param>
+    /// <param name="Schema">That type's schema node.</param>
+    private sealed record ReactiveTarget(object Value, MethodInfo Method, ContextualType Type, JsonSchema Schema);
+
+    /// <summary>
+    ///   Collects what every handler in the chain said about the edit.
+    /// </summary>
+    /// <remarks>
+    ///   They share the configuration instance, so the document is already
+    ///   whatever they left it as; what needs collecting is everything each one
+    ///   said alongside it. Messages keep the order they were produced in, and
+    ///   a handler that returned a fresh result loses nothing it added.
+    /// </remarks>
+    /// <param name="results">The results, innermost first.</param>
+    /// <returns>The combined result.</returns>
+    private static ConfigurationActionResult Combine(IReadOnlyList<ConfigurationActionResult> results)
+    {
+        var validationErrors = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        foreach (var errors in results.Select(x => x.ValidationErrors).OfType<IReadOnlyDictionary<string, IReadOnlyList<string>>>())
+        {
+            foreach (var (key, messages) in errors)
+                validationErrors[key] = validationErrors.TryGetValue(key, out var existing) ? [.. existing, .. messages] : messages;
+        }
+
+        return new()
+        {
+            Configuration = results.Select(x => x.Configuration).LastOrDefault(x => x is not null),
+            Messages = [.. results.SelectMany(x => x.Messages)],
+            ValidationErrors = validationErrors.Count > 0 ? validationErrors : null,
+            KeepExistingValidationErrors = results.Any(x => x.KeepExistingValidationErrors),
+            Redirect = results.Select(x => x.Redirect).FirstOrDefault(x => x is not null),
+            Refresh = results.Any(x => x.Refresh),
+            ShowSaveMessage = results.Any(x => x.ShowSaveMessage),
+        };
+    }
+
+    /// <summary>
+    ///   Whether a handler declared an interest in the member the path goes on
+    ///   to name.
+    /// </summary>
+    /// <remarks>
+    ///   A handler that named no members watches everything below it, and one
+    ///   whose path ends here is kept: the request stopped at this type without
+    ///   saying which of its members changed, so there is nothing to filter on.
+    /// </remarks>
+    private static bool Watches(ContextualType type, MethodInfo method, string[] remainingParts, bool isNewtonsoftJson)
+    {
+        if (method.GetCustomAttribute<ConfigurationActionAttribute>(false) is not { ReactiveMembers: { Length: > 0 } watched })
+            return true;
+        if (remainingParts.Length is 0)
+            return true;
+
+        return watched.Any(member => Covers(type, member, remainingParts, isNewtonsoftJson));
+    }
+
+    /// <summary>
+    ///   Whether one watched member name, which may descend into a nested
+    ///   class, lines up with the path still to be walked.
+    /// </summary>
+    private static bool Covers(ContextualType type, string member, string[] remainingParts, bool isNewtonsoftJson)
+    {
+        var current = type;
+        var segments = member.Split('.');
+        for (var index = 0; index < segments.Length; index++)
+        {
+            // The path ran out before the name did, so the edit is somewhere
+            // inside what this handler watches.
+            if (index >= remainingParts.Length)
+                return true;
+            if (current.Properties.FirstOrDefault(x => string.Equals(x.Name, segments[index], StringComparison.Ordinal)) is not { } property)
+                return false;
+            if (!string.Equals(GetJsonName(property, isNewtonsoftJson), remainingParts[index], StringComparison.Ordinal))
+                return false;
+
+            current = property.PropertyType;
+        }
+
+        return true;
+    }
+
+    private static (ContextualType Type, JsonSchema Schema, object? Target, MethodInfo? Method, List<ReactiveTarget> Chain) GetContextualTypeForConfigurationInfo(ConfigurationInfo info, string path, object config, ConfigurationActionType? actionType = null, string? actionID = null, ReactiveEventType reactiveEventType = ReactiveEventType.All)
     {
         var schema = info.Schema;
         var type = info.ContextualType;
         var value = config;
         var innovationValue = (object?)null;
         var innovationMethodInfo = (MethodInfo?)null;
+        var chain = new List<ReactiveTarget>();
         var isNewtonsoftJson = info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration));
-        if (actionType.HasValue && reactiveEventType is not ReactiveEventType.NewValue)
+        var parts = SplitPath(path);
+        if (actionType is { } rootActionType && reactiveEventType is not ReactiveEventType.NewValue &&
+            FindHookHandler(type, rootActionType, reactiveEventType) is { } rootMethod &&
+            Watches(type, rootMethod, parts, isNewtonsoftJson))
         {
-            if (reactiveEventType is ReactiveEventType.All)
-            {
-                var method = type.Methods
-                    .FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.All });
-                if (method is not null)
-                {
-                    innovationValue = value;
-                    innovationMethodInfo = method.MethodInfo;
-                }
-            }
-            else
-            {
-                var method = type.Methods.FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: var methodEventType } && methodEventType == reactiveEventType) ??
-                    type.Methods.FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.All });
-                if (method is not null)
-                {
-                    innovationValue = value;
-                    innovationMethodInfo = method.MethodInfo;
-                }
-            }
+            innovationValue = value;
+            innovationMethodInfo = rootMethod;
+            chain.Add(new(value, rootMethod, type, schema));
         }
 
-        var parts = path.Replace(IndexNotationFixRegex(), ".[").Split(SplitPathToPartsRegex(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         while (parts.Length > 0)
         {
             // `part` can be in the format 'Part', '[0]', or '["Part"]', where
@@ -670,28 +916,13 @@ public partial class ConfigurationService : IConfigurationService
                 type = propertyInfo.PropertyType;
             }
 
-            if (actionType is ConfigurationActionType.LiveEdit && reactiveEventType is not ReactiveEventType.NewValue)
+            if (actionType is ConfigurationActionType.LiveEdit && reactiveEventType is not ReactiveEventType.NewValue &&
+                FindHookHandler(type, ConfigurationActionType.LiveEdit, reactiveEventType) is { } nestedMethod &&
+                value is not null && Watches(type, nestedMethod, parts, isNewtonsoftJson))
             {
-                if (reactiveEventType is ReactiveEventType.All)
-                {
-                    var method = type.Methods
-                        .FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.All });
-                    if (method is not null)
-                    {
-                        innovationValue = value;
-                        innovationMethodInfo = method.MethodInfo;
-                    }
-                }
-                else
-                {
-                    var method = type.Methods.FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: var methodEventType } && methodEventType == reactiveEventType) ??
-                        type.Methods.FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.All });
-                    if (method is not null)
-                    {
-                        innovationValue = value;
-                        innovationMethodInfo = method.MethodInfo;
-                    }
-                }
+                innovationValue = value;
+                innovationMethodInfo = nestedMethod;
+                chain.Add(new(value, nestedMethod, type, schema));
             }
         }
 
@@ -710,19 +941,16 @@ public partial class ConfigurationService : IConfigurationService
                 innovationMethodInfo = method.MethodInfo;
             }
         }
-        else if (actionType is ConfigurationActionType.LiveEdit && reactiveEventType is ReactiveEventType.NewValue)
+        else if (actionType is ConfigurationActionType.LiveEdit && reactiveEventType is ReactiveEventType.NewValue &&
+            FindHookHandler(type, ConfigurationActionType.LiveEdit, ReactiveEventType.NewValue) is { } newValueMethod)
         {
-            var method = type.Methods
-                .FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.NewValue }) ??
-                type.Methods.FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.All });
-            if (method is not null)
-            {
-                innovationValue = value;
-                innovationMethodInfo = method.MethodInfo;
-            }
+            innovationValue = value;
+            innovationMethodInfo = newValueMethod;
+            if (value is not null)
+                chain.Add(new(value, newValueMethod, type, schema));
         }
 
-        return (type, schema, innovationValue, innovationMethodInfo);
+        return (type, schema, innovationValue, innovationMethodInfo, chain);
     }
 
     public static string GetJsonName(ContextualPropertyInfo property, bool isNewtonsoftJson)
@@ -754,10 +982,12 @@ public partial class ConfigurationService : IConfigurationService
         ContextualType type,
         ReactiveEventType reactiveEventType,
         IUser? user,
-        Uri? uri
+        Uri? uri,
+        ConfigurationActionResult? previousResult = null
     ) where TConfig : class, IConfiguration, new()
     {
         var logger = loggerFactory.CreateLogger<TConfig>();
+        var result = previousResult ?? new();
         var genericContext = new ConfigurationActionContext<TConfig>
         {
             Logger = logger,
@@ -771,6 +1001,7 @@ public partial class ConfigurationService : IConfigurationService
             Type = type,
             User = user,
             Uri = uri,
+            PreviousResult = result,
         };
         var argumentList = new object?[] {
           logger,
@@ -783,6 +1014,7 @@ public partial class ConfigurationService : IConfigurationService
           type,
           user,
           uri,
+          result,
         };
         return methodInfo.Invoke<ConfigurationActionResult>(pluginManager, target, argumentList) ?? new();
     }
@@ -1075,6 +1307,35 @@ public partial class ConfigurationService : IConfigurationService
         var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(type);
         wrappedSchema.Schema.Id = id.ToString();
         return wrappedSchema.Schema;
+    }
+
+    /// <remarks>
+    ///   A registered configuration is described from the schema generated when
+    ///   it was registered, which is the one it is validated against. Any other
+    ///   type is walked afresh and nothing is kept, so a plugin describing a
+    ///   form model of its own fills no cache.
+    ///   <see cref="ConfigurationInfo.UiDefinition"/> holds the definition of a
+    ///   registered configuration.
+    /// </remarks>
+    public UiDefinition GenerateUiDefinition(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+
+        var id = GetID(type);
+        var isRegistered = _configurationTypes.TryGetValue(id, out var info) && info.Type == type;
+        if (!isRegistered || !_wrappedSchemas.TryGetValue(id, out var wrappedSchema))
+        {
+            wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(type);
+            wrappedSchema.Schema.Id = id.ToString();
+        }
+
+        // Both come off the type the same way `AddParts` derives them for a
+        // configuration, so a registered configuration is described identically
+        // whichever way it is reached.
+        var name = wrappedSchema.Schema.Title ?? type.Name;
+        var description = TypeReflectionExtensions.GetDescription(type.ToContextualType());
+        // Only a registered configuration is served by the options endpoint.
+        return _uiDefinitionBuilder.Build(id, name, description, wrappedSchema, listsOptions: isRegistered);
     }
 
     private void EnsureSchemaExists(ConfigurationInfo info)

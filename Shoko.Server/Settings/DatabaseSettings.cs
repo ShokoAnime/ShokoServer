@@ -5,7 +5,8 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 

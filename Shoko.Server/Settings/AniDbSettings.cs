@@ -4,8 +4,9 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Server;
 
@@ -35,7 +36,7 @@ public class AniDbSettings
 
     [CustomAction(
         Theme = DisplayColorTheme.Primary,
-        Position = DisplayButtonPosition.Top,
+        Position = DisplayButtonPosition.Start,
         SectionName = "Login"
     )]
     public ConfigurationActionResult Test(ConfigurationActionContext<ServerSettings> context)

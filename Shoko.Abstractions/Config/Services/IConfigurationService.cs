@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NJsonSchema;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.UI;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Config.Services;
@@ -110,7 +112,8 @@ public interface IConfigurationService
 
     /// <summary>
     ///   Validates a stringified JSON configuration against the specified
-    ///   <see cref="ConfigurationInfo" />'s schema.
+    ///   <see cref="ConfigurationInfo" />'s schema, then its custom validation
+    ///   and Validate hook, the same checks every save runs.
     /// </summary>
     /// <param name="info">
     ///   The <see cref="ConfigurationInfo" />.
@@ -125,7 +128,8 @@ public interface IConfigurationService
 
     /// <summary>
     ///   Validates a stringified JSON configuration against the specified
-    ///   <see cref="ConfigurationInfo" />'s schema.
+    ///   <see cref="ConfigurationInfo" />'s schema, then its custom validation
+    ///   and Validate hook, the same checks every save runs.
     /// </summary>
     /// <param name="info">
     ///   The <see cref="ConfigurationInfo" />.
@@ -139,7 +143,8 @@ public interface IConfigurationService
     IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ConfigurationInfo info, IConfiguration config);
 
     /// <summary>
-    ///   Validates a configuration instance against it's schema.
+    ///   Validates a configuration instance against its schema, then its
+    ///   custom validation and Validate hook, the same checks every save runs.
     /// </summary>
     /// <typeparam name="TConfig">
     ///   The type of the configuration.
@@ -229,6 +234,77 @@ public interface IConfigurationService
     ///   The result of the action.
     /// </returns>
     ConfigurationActionResult PerformCustomAction<TConfig>(TConfig configuration, string path, string actionID, IUser? user = null, Uri? uri = null) where TConfig : class, IConfiguration, new();
+
+    /// <summary>
+    ///   Lists the options the server offers for a member marked with
+    ///   <see cref="UI.Attributes.OptionsProviderAttribute"/>.
+    /// </summary>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" /> the configuration belongs to.
+    /// </param>
+    /// <param name="configuration">
+    ///   The configuration instance, edits not yet saved included.
+    /// </param>
+    /// <param name="path">
+    ///   The path of the member, the same path a custom action is invoked with.
+    ///   A dictionary's own path lists its keys, and the path of one of its
+    ///   entries, such as <c>Weights["key"]</c>, the values for that key.
+    /// </param>
+    /// <param name="user">
+    ///   The user asking, if applicable.
+    /// </param>
+    /// <param name="uri">
+    ///   The base URI used to access the server by the user, if applicable.
+    /// </param>
+    /// <exception cref="Abstractions.Exceptions.GenericValidationException">
+    ///   Thrown, keyed by the path asked for, when the path does not lead to a
+    ///   member that takes options or names a key its dictionary cannot hold.
+    /// </exception>
+    /// <returns>
+    ///   The options, in the order the provider listed them.
+    /// </returns>
+    Task<IReadOnlyList<UiOption>> GetOptionsAsync(
+        ConfigurationInfo info,
+        IConfiguration configuration,
+        string path,
+        IUser? user = null,
+        Uri? uri = null
+    );
+
+    /// <summary>
+    ///   Lists the options the server offers for a member marked with
+    ///   <see cref="UI.Attributes.OptionsProviderAttribute"/>.
+    /// </summary>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
+    /// <param name="configuration">
+    ///   The configuration instance, edits not yet saved included.
+    /// </param>
+    /// <param name="path">
+    ///   The path of the member, the same path a custom action is invoked with.
+    ///   A dictionary's own path lists its keys, and the path of one of its
+    ///   entries, such as <c>Weights["key"]</c>, the values for that key.
+    /// </param>
+    /// <param name="user">
+    ///   The user asking, if applicable.
+    /// </param>
+    /// <param name="uri">
+    ///   The base URI used to access the server by the user, if applicable.
+    /// </param>
+    /// <exception cref="Abstractions.Exceptions.GenericValidationException">
+    ///   Thrown, keyed by the path asked for, when the path does not lead to a
+    ///   member that takes options or names a key its dictionary cannot hold.
+    /// </exception>
+    /// <returns>
+    ///   The options, in the order the provider listed them.
+    /// </returns>
+    Task<IReadOnlyList<UiOption>> GetOptionsAsync<TConfig>(
+        TConfig configuration,
+        string path,
+        IUser? user = null,
+        Uri? uri = null
+    ) where TConfig : class, IConfiguration, new();
 
     /// <summary>
     ///   Report that a value has changed in the configuration instance for
@@ -492,6 +568,42 @@ public interface IConfigurationService
     ///   The JSON schema.
     /// </returns>
     JsonSchema GenerateSchema(Type type);
+
+    /// <summary>
+    ///   Generates a render-ready UI definition for the specified type using
+    ///   the custom schema generator.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     Unlike <see cref="GenerateSchema(Type)" />, the returned document is
+    ///     meant to be sufficient on its own: every element carries a concrete
+    ///     element kind, its label, its default and the constraints needed for a
+    ///     cheap client-side pre-check. The schema remains the authority for
+    ///     server-side validation.
+    ///   </para>
+    ///   <para>
+    ///     The type does not have to be a registered configuration, or an
+    ///     <see cref="IConfiguration" /> at all: a plugin can describe any
+    ///     shape it wants a form for. <see cref="UiDefinition.ID" /> is derived
+    ///     the same way <see cref="GenerateSchema(Type)" /> derives
+    ///     <c>Schema.Id</c>, so a type belonging to a loaded plugin gets a
+    ///     stable id and anything else gets <see cref="Guid.Empty" />.
+    ///   </para>
+    ///   <para>
+    ///     Nothing is cached here. A registered configuration is described from
+    ///     the schema it is validated against, and any other type is walked
+    ///     afresh on each call. A configuration's own definition is cached by
+    ///     <see cref="ConfigurationInfo.UiDefinition" />, which is what most
+    ///     callers should read instead.
+    ///   </para>
+    /// </remarks>
+    /// <param name="type">
+    ///   The type.
+    /// </param>
+    /// <returns>
+    ///   The UI definition.
+    /// </returns>
+    UiDefinition GenerateUiDefinition(Type type);
 
     /// <summary>
     ///   Serializes the specified configuration to JSON.

@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -19,9 +18,8 @@ public class MetadataSourceSettingsSchemaTests
         settings.Metadata.Sources.Add(new() { Source = TestSources.AniList, EpisodeMatchLookAheadDays = 2 });
 
         var json = JsonConvert.SerializeObject(settings, ServerSettings.SerializationSettings);
-        var read = JsonConvert.DeserializeObject<ServerSettings>(json, new JsonSerializerSettings
+        var read = JsonConvert.DeserializeObject<ServerSettings>(json, new JsonSerializerSettings(ServerSettings.SerializationSettings)
         {
-            Converters = [new StringEnumConverter()],
             ObjectCreationHandling = ObjectCreationHandling.Replace,
         })!;
 
