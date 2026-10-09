@@ -326,26 +326,57 @@ public class ActionService : IActionService
     /// </summary>
     /// <param name="action">The action to populate.</param>
     /// <param name="parameters">The parameters, or <c>null</c>.</param>
+    /// <param name="onlyPath">
+    ///   When set, a value that cannot be read is skipped unless it belongs to
+    ///   the parameter this path starts with, as for an options request.
+    /// </param>
     /// <exception cref="GenericValidationException">
     ///   A value could not be read into its parameter, keyed by the path of
     ///   that value.
     /// </exception>
-    internal static void PopulateParameters(IExecutableAction action, IReadOnlyDictionary<string, object?>? parameters)
+    internal static void PopulateParameters(IExecutableAction action, IReadOnlyDictionary<string, object?>? parameters, string? onlyPath = null)
     {
         if (parameters is not { Count: > 0 })
             return;
+
+        var settings = _populateSettings;
+        if (onlyPath is not null)
+        {
+            var parameter = FirstSegment(onlyPath);
+            settings = new JsonSerializerSettings(_populateSettings)
+            {
+                Error = (_, args) =>
+                {
+                    if (!string.Equals(FirstSegment(args.ErrorContext.Path), parameter, StringComparison.Ordinal))
+                        args.ErrorContext.Handled = true;
+                },
+            };
+        }
 
         // A converter's own exception carries no path, so it is taken from the reader.
         using var reader = new JsonTextReader(new StringReader(JsonConvert.SerializeObject(parameters, _populateSettings)));
         try
         {
-            JsonSerializer.Create(_populateSettings).Populate(reader, action);
+            JsonSerializer.Create(settings).Populate(reader, action);
         }
         catch (JsonException ex)
         {
             var path = ex is JsonSerializationException { Path.Length: > 0 } serializationException ? serializationException.Path : reader.Path;
             throw new GenericValidationException(ex.Message, new Dictionary<string, IReadOnlyList<string>> { [path] = [ex.Message] });
         }
+    }
+
+    /// <summary>
+    ///   The parameter a path starts with: the text before its first member
+    ///   or index separator, or the quoted name a bracketed path starts with.
+    /// </summary>
+    private static string FirstSegment(string path)
+    {
+        if (path.StartsWith("['") && path.IndexOf("']", StringComparison.Ordinal) is > 2 and var end)
+            return path[2..end];
+
+        var index = path.IndexOfAny(['.', '[']);
+        return index < 0 ? path : path[..index];
     }
 
     /// <summary>
@@ -368,9 +399,14 @@ public class ActionService : IActionService
             throw new KeyNotFoundException($"No action registered for {actionId}");
 
         // No body is how every action has always been invoked, and how one that
-        // takes no parameters still is. There is nothing to check.
+        // takes no parameters still is. Only a required parameter is missed.
         if (parameters is null)
-            return new Dictionary<string, IReadOnlyList<string>>();
+        {
+            if (registered.ParameterSchema is not { RequiredProperties.Count: > 0 })
+                return new Dictionary<string, IReadOnlyList<string>>();
+
+            parameters = [];
+        }
 
         if (registered.ParameterSchema is not { } schema)
         {
@@ -454,19 +490,13 @@ public class ActionService : IActionService
     {
         var registered = ResolveAction(actionId);
         var rejection = CheckApplicable(registered, ScopeOf(scopeEntity), caller);
-        var (probe, hidden) = rejection is null ? PrepareProbe(registered, scopeEntity, parameters, caller) : (null, rejection);
+        // Only the parameter asked about has to be readable, so options never
+        // wait on the rest of the form being valid.
+        var (probe, hidden) = rejection is null ? PrepareProbe(registered, scopeEntity, parameters, caller, path) : (null, rejection);
         if (hidden is not null)
             throw new GenericValidationException(hidden.Reason, new Dictionary<string, IReadOnlyList<string>> { [string.Empty] = [hidden.Reason] });
 
-        OptionsRequest request;
-        try
-        {
-            request = UiOptionsProvider.Resolve(probe!, path, isNewtonsoftJson: true);
-        }
-        catch (ArgumentException ex)
-        {
-            throw new GenericValidationException(ex.Message, new Dictionary<string, IReadOnlyList<string>> { [nameof(path)] = [ex.Message] });
-        }
+        var request = UiOptionsProvider.Resolve(probe!, path, isNewtonsoftJson: true);
 
         // Handed what execution has: the prepared instance, its entity and its
         // caller, with services for anything else.
@@ -732,6 +762,11 @@ public class ActionService : IActionService
     ///   Resolves a throwaway instance and prepares it the way execution will
     ///   see it: scoped, given its caller and populated with the parameters.
     /// </summary>
+    /// <param name="registered">The action.</param>
+    /// <param name="scopeEntity">The entity the action is scoped to, or <c>null</c>.</param>
+    /// <param name="parameters">The invocation parameters, or <c>null</c>.</param>
+    /// <param name="caller">The invoking user, or <c>null</c>.</param>
+    /// <param name="onlyPath">The path of an options request, which only its own parameter has to read for.</param>
     /// <returns>
     ///   The instance, or the reason the caller may not act on the entity.
     /// </returns>
@@ -739,7 +774,8 @@ public class ActionService : IActionService
         RegisteredAction registered,
         object? scopeEntity,
         IReadOnlyDictionary<string, object?>? parameters,
-        IUser? caller
+        IUser? caller,
+        string? onlyPath = null
     )
     {
         var probe = (IExecutableAction)_services.GetRequiredService(registered.ActionType);
@@ -758,7 +794,7 @@ public class ActionService : IActionService
 
         // Populate the probe with the caller's parameters too, so Validate
         // observes the same values Execute will, not the compiled-in defaults.
-        PopulateParameters(probe, parameters);
+        PopulateParameters(probe, parameters, onlyPath);
         return (probe, null);
     }
 

@@ -135,8 +135,16 @@ public class UiOptionsProviderTests
     }
 
     [Fact]
-    public void AKeyTheKeyTypeCannotHoldIsRejected()
-        => Assert.ThrowsAny<ArgumentException>(() => UiOptionsProvider.Resolve(new OptionsConfiguration(), "Limits[\"x\"]", isNewtonsoftJson: true));
+    public void AKeyTheKeyTypeCannotHoldIsRejectedAtThePathAskedFor()
+    {
+        var exception = Assert.Throws<GenericValidationException>(
+            () => UiOptionsProvider.Resolve(new OptionsConfiguration(), "Limits[\"x\"]", isNewtonsoftJson: true)
+        );
+
+        var (path, messages) = Assert.Single(exception.ValidationErrors);
+        Assert.Equal("Limits[\"x\"]", path);
+        Assert.Equal(["\"x\" is not a valid Int32 key"], messages);
+    }
 
     [Theory]
     [InlineData(nameof(RefusingConfiguration.Sync))]
@@ -186,7 +194,12 @@ public class UiOptionsProviderTests
     [InlineData("Rows[0]")]
     [InlineData("Tags[\"a\"]")]
     public void APathNotEndingInAProvidedMemberIsRejected(string path)
-        => Assert.ThrowsAny<ArgumentException>(() => UiOptionsProvider.Resolve(new OptionsConfiguration { Rows = [new()] }, path, isNewtonsoftJson: true));
+        => Assert.Equal(
+            [path],
+            Assert.Throws<GenericValidationException>(
+                () => UiOptionsProvider.Resolve(new OptionsConfiguration { Rows = [new()] }, path, isNewtonsoftJson: true)
+            ).ValidationErrors.Keys
+        );
 
     private static async Task<IReadOnlyList<UiOption>> ListAsync(OptionsConfiguration configuration, string path)
     {

@@ -86,9 +86,9 @@ public class ActionParameterValidationTests
     [Fact]
     public void APartialBody_IsAccepted()
     {
-        // Nothing is required of an invocation payload: the instance is already
-        // built with its own defaults, so supplying one parameter must not
-        // oblige the caller to supply the rest.
+        // Nothing unmarked is required of an invocation payload: the instance
+        // is already built with its own defaults, so supplying one parameter
+        // must not oblige the caller to supply the rest.
         Assert.Empty(Validate<ParameterisedGlobalAction>("""{"Query": "hello"}"""));
         Assert.Empty(Validate<ParameterisedGlobalAction>("{}"));
         Assert.Empty(Validate<DeleteGroupAction>("""{"DeleteSeries": true}"""));

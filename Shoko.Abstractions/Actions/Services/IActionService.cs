@@ -77,7 +77,8 @@ public interface IActionService
     /// </remarks>
     /// <param name="actionId">The action being invoked.</param>
     /// <param name="parameters">
-    ///   The payload, or <c>null</c> when the caller sent no body.
+    ///   The payload, or <c>null</c> when the caller sent no body, which only
+    ///   a parameter marked <c>[Required]</c> or <c>required</c> refuses.
     /// </param>
     /// <returns>Errors per property path; empty when the payload is acceptable.</returns>
     /// <exception cref="KeyNotFoundException">
@@ -110,8 +111,8 @@ public interface IActionService
     /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
     ///   The action may not be invoked here or by this caller, the path does
-    ///   not lead to a parameter that takes options, or a parameter value
-    ///   cannot be read, keyed by the path of that value.
+    ///   not lead to a parameter that takes options, keyed by that path, or
+    ///   the value at that path cannot be read, keyed by the path of the value.
     /// </exception>
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
@@ -147,8 +148,8 @@ public interface IActionService
     /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
     ///   The action may not be invoked here or by this caller, the path does
-    ///   not lead to a parameter that takes options, or a parameter value
-    ///   cannot be read, keyed by the path of that value.
+    ///   not lead to a parameter that takes options, keyed by that path, or
+    ///   the value at that path cannot be read, keyed by the path of the value.
     /// </exception>
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
@@ -185,8 +186,8 @@ public interface IActionService
     /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
     ///   The action may not be invoked here or by this caller, the path does
-    ///   not lead to a parameter that takes options, or a parameter value
-    ///   cannot be read, keyed by the path of that value.
+    ///   not lead to a parameter that takes options, keyed by that path, or
+    ///   the value at that path cannot be read, keyed by the path of the value.
     /// </exception>
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
@@ -223,8 +224,8 @@ public interface IActionService
     /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
     ///   The action may not be invoked here or by this caller, the path does
-    ///   not lead to a parameter that takes options, or a parameter value
-    ///   cannot be read, keyed by the path of that value.
+    ///   not lead to a parameter that takes options, keyed by that path, or
+    ///   the value at that path cannot be read, keyed by the path of the value.
     /// </exception>
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
@@ -261,8 +262,8 @@ public interface IActionService
     /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
     ///   The action may not be invoked here or by this caller, the path does
-    ///   not lead to a parameter that takes options, or a parameter value
-    ///   cannot be read, keyed by the path of that value.
+    ///   not lead to a parameter that takes options, keyed by that path, or
+    ///   the value at that path cannot be read, keyed by the path of the value.
     /// </exception>
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,

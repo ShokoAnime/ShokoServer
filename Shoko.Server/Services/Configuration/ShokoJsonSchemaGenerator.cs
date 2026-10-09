@@ -127,13 +127,13 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             // rejection.
             objectSchema.AllowAdditionalProperties = false;
 
-            // Nothing is required of an invocation payload. The action instance
-            // is already fully constructed with its own defaults before anything
-            // is populated onto it, so an absent parameter means "leave it
-            // alone", and a caller supplying one parameter must not be forced
-            // to supply the rest.
-            foreach (var property in objectSchema.Properties.Values)
-                property.IsRequired = false;
+            // The action instance is already fully constructed with its own
+            // defaults before anything is populated onto it, so an absent
+            // parameter means "leave it alone". Only a member the action marks
+            // required, with [Required] or the required modifier, must be sent.
+            var memberType = wrapped.UiBuilders.TryGetValue(objectSchema, out var classBuilder) ? classBuilder.Type : null;
+            foreach (var (propertyName, property) in objectSchema.Properties)
+                property.IsRequired = memberType is not null && IsExplicitlyRequired(memberType, propertyName);
         }
 
         return wrapped;
@@ -153,6 +153,21 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             .Select(x => x.ActualSchema)
             .Where(x => !x.IsEnumeration && x.AdditionalPropertiesSchema is null && x.Properties.Count > 0)
             .Distinct();
+
+    /// <summary>
+    ///   Whether the member a parameter is read into is marked
+    ///   <see cref="RequiredAttribute"/> or declared with the
+    ///   <c>required</c> modifier.
+    /// </summary>
+    /// <param name="type">The type declaring the member.</param>
+    /// <param name="propertyName">The member's name in the payload.</param>
+    /// <returns><c>true</c> when the caller has to send it.</returns>
+    private static bool IsExplicitlyRequired(Type type, string propertyName)
+        => type.ToContextualType().Properties
+            .FirstOrDefault(x => string.Equals(ConfigurationService.GetJsonName(x, isNewtonsoftJson: true), propertyName, StringComparison.Ordinal))
+            is { } property &&
+            (property.GetAttribute<RequiredAttribute>(true) is not null ||
+                property.PropertyInfo.IsDefined(typeof(System.Runtime.CompilerServices.RequiredMemberAttribute), false));
 
     private WrappedJsonSchema GenerateSchema(Type type, bool isNewtonsoftJson, IContractResolver? contractResolver, object? rootInstance)
     {

@@ -563,15 +563,7 @@ public partial class ConfigurationService : IConfigurationService
         Uri? uri
     ) where TConfig : class, IConfiguration, new()
     {
-        OptionsRequest request;
-        try
-        {
-            request = UiOptionsProvider.Resolve(configuration, path, info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)));
-        }
-        catch (ArgumentException ex) when (ex is not InvalidConfigurationActionException)
-        {
-            throw new InvalidConfigurationActionException(ex.Message, nameof(path));
-        }
+        var request = UiOptionsProvider.Resolve(configuration, path, info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)));
 
         // The provider is handed what a custom action is, so one written for
         // either reads the same.
