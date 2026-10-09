@@ -404,7 +404,8 @@ listed, in the same notation a custom action is invoked with:
 - `Member` lists a scalar's values, a list's entries, or a dictionary's keys.
 - `Member["key"]` lists the values of a dictionary's entry, or the entries of
   its list value. The key need not be in the dictionary yet, but it has to be
-  one the key type can hold; a key that is not is a validation problem.
+  one the key type can hold; a key that is not is a validation problem keyed by
+  the path asked for, such as `"x" is not a valid Guid key`.
 - `Rows[2].Member` asks the same of the member of a list entry, with the
   provider running on that entry.
 
@@ -434,6 +435,10 @@ Labels are for more than the picker. A client should also use them to show the
 existing entries whose value a provider lists, such as a dictionary key stored
 as a Guid shown by its name, and fall back to the raw value for an entry the
 provider does not list.
+
+An action's draft is read leniently: only the parameter the path starts with
+has to be valid, so a client may ask before the rest of the form is filled in.
+A value of that parameter that cannot be read still refuses the request.
 
 A provider may refuse the draft by throwing `GenericValidationException`, for
 example when the credentials it needs are wrong. The route then answers with a

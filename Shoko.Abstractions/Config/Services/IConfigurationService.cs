@@ -256,8 +256,9 @@ public interface IConfigurationService
     /// <param name="uri">
     ///   The base URI used to access the server by the user, if applicable.
     /// </param>
-    /// <exception cref="InvalidConfigurationActionException">
-    ///   Thrown when the path does not lead to a member that takes options.
+    /// <exception cref="Abstractions.Exceptions.GenericValidationException">
+    ///   Thrown, keyed by the path asked for, when the path does not lead to a
+    ///   member that takes options or names a key its dictionary cannot hold.
     /// </exception>
     /// <returns>
     ///   The options, in the order the provider listed them.
@@ -291,8 +292,9 @@ public interface IConfigurationService
     /// <param name="uri">
     ///   The base URI used to access the server by the user, if applicable.
     /// </param>
-    /// <exception cref="InvalidConfigurationActionException">
-    ///   Thrown when the path does not lead to a member that takes options.
+    /// <exception cref="Abstractions.Exceptions.GenericValidationException">
+    ///   Thrown, keyed by the path asked for, when the path does not lead to a
+    ///   member that takes options or names a key its dictionary cannot hold.
     /// </exception>
     /// <returns>
     ///   The options, in the order the provider listed them.

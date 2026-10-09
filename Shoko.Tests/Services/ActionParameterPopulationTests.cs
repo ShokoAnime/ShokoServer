@@ -92,6 +92,18 @@ public class ActionParameterPopulationTests
         Assert.Null(await service.ValidateAsync(actionId, parameters, token: TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public void AnOptionsRequest_SkipsWhatItDoesNotAskAbout()
+    {
+        var action = new ConvertedParameterAction();
+        var parameters = new Dictionary<string, object?> { ["Version"] = "not-a-version", ["Access"] = new[] { "Read" } };
+
+        ActionService.PopulateParameters(action, parameters, onlyPath: "Access");
+
+        Assert.Equal(FlagEnumTests.Access.Read, action.Access);
+        Assert.Throws<GenericValidationException>(() => ActionService.PopulateParameters(new ConvertedParameterAction(), parameters, onlyPath: "Version"));
+    }
+
     public class ConvertedParameterAction : IExecutableAction
     {
         public string Name => "Converted Parameters";

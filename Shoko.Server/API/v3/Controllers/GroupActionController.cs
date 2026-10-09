@@ -75,7 +75,10 @@ public class GroupActionController(IActionService actionService, AnimeGroupRepos
     /// </summary>
     /// <param name="groupID">Group ID.</param>
     /// <param name="actionID">Action ID.</param>
-    /// <param name="parameters">Optional. The parameters entered so far.</param>
+    /// <param name="parameters">
+    ///   Optional. The parameters entered so far, read leniently: only the
+    ///   one the path names has to be valid.
+    /// </param>
     /// <param name="path">
     ///   Path to the parameter, the same path a configuration's custom action
     ///   is invoked with. A dictionary's own path lists its keys, and the path
@@ -100,9 +103,7 @@ public class GroupActionController(IActionService actionService, AnimeGroupRepos
         if (groupEntity is null)
             return NotFound("Group not found.");
 
-        if (actionService.ValidateParameters(actionID, parameters) is { Count: > 0 } errors)
-            return ValidationProblem(errors);
-
+        // Not validated as a whole: only the parameter asked about has to be readable.
         try
         {
             return Ok(await actionService.GetParameterOptionsAsync(actionID, groupEntity, path, parameters.ToParameters(), User, token));

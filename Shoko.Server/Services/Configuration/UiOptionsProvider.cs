@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Namotion.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Attributes;
@@ -313,9 +314,9 @@ internal static class UiOptionsProvider
     /// <param name="path">The member's path, as a custom action is invoked with.</param>
     /// <param name="isNewtonsoftJson">Whether the path uses the Newtonsoft member names.</param>
     /// <returns>The instance holding the member, the method and the entry's key, if one was asked for.</returns>
-    /// <exception cref="ArgumentException">
-    ///   Thrown when the path does not lead to a member that takes options, or
-    ///   names a key the dictionary's key type cannot hold.
+    /// <exception cref="GenericValidationException">
+    ///   Thrown, keyed by the path, when the path does not lead to a member
+    ///   that takes options, or names a key the dictionary's key type cannot hold.
     /// </exception>
     public static OptionsRequest Resolve(object root, string path, bool isNewtonsoftJson)
     {
@@ -323,24 +324,24 @@ internal static class UiOptionsProvider
         var keyPart = parts.Length > 1 && parts[^1].StartsWith("[\"") ? parts[^1] : null;
         var memberIndex = keyPart is null ? parts.Length - 1 : parts.Length - 2;
         if (memberIndex < 0 || parts[memberIndex].StartsWith('['))
-            throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
+            throw Refuse(path, $"Invalid path \"{path}\"");
 
         var owner = root;
         foreach (var part in parts[..memberIndex])
         {
-            owner = Step(owner, part) ?? throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
+            owner = Step(owner, part) ?? throw Refuse(path, $"Invalid path \"{path}\"");
         }
 
         if (FindProperty(owner.GetType(), parts[memberIndex], isNewtonsoftJson) is not { } property)
-            throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
+            throw Refuse(path, $"Invalid path \"{path}\"");
 
         var dictionary = GetDictionaryTypes(Unwrap(property.PropertyType));
         if (keyPart is not null && dictionary is null)
-            throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
+            throw Refuse(path, $"Invalid path \"{path}\"");
 
         var target = dictionary is not null && keyPart is null ? OptionsTarget.Keys : OptionsTarget.Values;
         if (!GetProviders(property.ReflectedType!).TryGetValue((property.Name, target), out var method))
-            throw new ArgumentException($"The {Noun(target)} of the member at \"{path}\" take no options", nameof(path));
+            throw Refuse(path, $"The {Noun(target)} of the member at \"{path}\" take no options");
 
         var key = keyPart is null ? null : ParseKey(keyPart, dictionary!.Value.Key, isNewtonsoftJson, path);
         return new(owner, method, key);
@@ -366,17 +367,18 @@ internal static class UiOptionsProvider
     ///   Reads the key of a <c>["key"]</c> path part as the dictionary's key
     ///   type, the way the serializer reads a key of the document.
     /// </summary>
-    /// <exception cref="ArgumentException">
-    ///   Thrown when the part is not a quoted key, or the key type cannot hold it.
+    /// <exception cref="GenericValidationException">
+    ///   Thrown, keyed by the path, when the part is not a quoted key, or the
+    ///   key type cannot hold it.
     /// </exception>
     private static object ParseKey(string part, Type keyType, bool isNewtonsoftJson, string path)
     {
-        var invalid = new ArgumentException($"Invalid key in path \"{path}\"", nameof(path));
         if (part.Length < 4 || !part.EndsWith("\"]"))
-            throw invalid;
+            throw Refuse(path, $"Invalid key in path \"{path}\"");
 
         // The quoted key is a JSON string, with a dot escaped for the path.
         var quoted = part[1..^1].Replace("\\.", ".");
+        var invalid = Refuse(path, $"\"{Unquote(quoted)}\" is not a valid {ShokoJsonSchemaGenerator.GetFriendlyTypeName(keyType)} key");
         var dictionaryType = typeof(Dictionary<,>).MakeGenericType(keyType, typeof(object));
         var json = $"{{{quoted}:null}}";
         try
@@ -390,11 +392,32 @@ internal static class UiOptionsProvider
         catch (Exception ex) when (ex is Newtonsoft.Json.JsonException or System.Text.Json.JsonException or NotSupportedException or FormatException or
             ArgumentException)
         {
-            throw new ArgumentException($"Invalid key in path \"{path}\": {ex.Message}", nameof(path), ex);
+            throw invalid;
         }
 
         throw invalid;
     }
+
+    /// <summary>
+    ///   The text of a quoted key, or the quoted text when it is no JSON string.
+    /// </summary>
+    private static string Unquote(string quoted)
+    {
+        try
+        {
+            return JsonConvert.DeserializeObject<string>(quoted) ?? quoted;
+        }
+        catch (Newtonsoft.Json.JsonException)
+        {
+            return quoted;
+        }
+    }
+
+    /// <summary>
+    ///   A refusal of the options request, keyed by the path it asked for.
+    /// </summary>
+    private static GenericValidationException Refuse(string path, string message)
+        => new(message, new Dictionary<string, IReadOnlyList<string>> { [path] = [message] });
 
     private static readonly JsonSerializerSettings _newtonsoftSettings = ShokoJsonSerializers.CreateNewtonsoftSettings();
 

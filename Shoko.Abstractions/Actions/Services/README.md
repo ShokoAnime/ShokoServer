@@ -299,6 +299,11 @@ name with no matching property is ignored silently, typos included. Both the
 validation probe and the executing instance are populated, so `Validate` sees
 what `Execute` will.
 
+An omitted parameter keeps the value the instance was constructed with, so a
+parameter is optional unless the action marks it `[Required]` or declares it
+`required`. Such a parameter is marked required in the action's UI definition,
+and `ValidateParameters` refuses a body without it, an absent body included.
+
 ### Asking without running
 
 `ValidateAsync` runs everything `InvokeAsync` does before it queues (scope,
