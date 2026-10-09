@@ -329,19 +329,20 @@ public class ActionService : IActionService
         if (parameters is not { Count: > 0 })
             return;
 
-        JsonConvert.PopulateObject(JsonConvert.SerializeObject(parameters), action, _populateSettings);
+        JsonConvert.PopulateObject(JsonConvert.SerializeObject(parameters, _populateSettings), action, _populateSettings);
     }
 
     /// <summary>
     ///   The action's own metadata is hidden from population as well as from
     ///   the schema, so a payload naming <c>Name</c> or <c>Permission</c> cannot
     ///   write to the instance even if it somehow reaches here unvalidated. A
-    ///   flags enum is read from the list of its members.
+    ///   flags enum is read from the list of its members, and a type parsable
+    ///   from text from that text.
     /// </summary>
     private static readonly JsonSerializerSettings _populateSettings = new()
     {
         ContractResolver = new ActionMetadataContractResolver(),
-        Converters = [FlagEnumNewtonsoftConverter.Instance],
+        Converters = [FlagEnumNewtonsoftConverter.Instance, ParsableNewtonsoftConverter.Instance],
     };
 
     /// <inheritdoc />

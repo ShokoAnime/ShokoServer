@@ -17,7 +17,8 @@ namespace Shoko.Server.Services.Configuration;
 /// <remarks>
 ///   Every use of a flags enum is a list, so the shared enum definition only
 ///   ever describes an entry. The other forms the converters accept on read
-///   are never described.
+///   are never described. A default of a type parsable from text is written
+///   as its text, the way the converters write it.
 /// </remarks>
 internal sealed class FlagEnumSchemaGenerator : JsonSchemaGenerator
 {
@@ -100,7 +101,7 @@ internal sealed class FlagEnumSchemaGenerator : JsonSchemaGenerator
 
     /// <inheritdoc />
     public override object? ConvertDefaultValue(ContextualType type, object? defaultValue)
-        => ConvertFlagEnum(defaultValue) ?? base.ConvertDefaultValue(type, defaultValue);
+        => ConvertFlagEnum(defaultValue) ?? ConvertParsable(defaultValue) ?? base.ConvertDefaultValue(type, defaultValue);
 
     /// <inheritdoc />
     public override void ApplyDataAnnotations(JsonSchema schema, JsonTypeDescription typeDescription)
@@ -114,6 +115,8 @@ internal sealed class FlagEnumSchemaGenerator : JsonSchemaGenerator
             schema.Default = ConvertFlagEnum(FlagEnums.FromText(type, text, _isNewtonsoftJson));
         else if (ConvertFlagEnum(schema.Default) is { } names)
             schema.Default = names;
+        else if (ConvertParsable(schema.Default) is { } parsableText)
+            schema.Default = parsableText;
     }
 
     /// <summary>
@@ -123,6 +126,15 @@ internal sealed class FlagEnumSchemaGenerator : JsonSchemaGenerator
     private List<string>? ConvertFlagEnum(object? value)
         => value is Enum && FlagEnums.IsFlagEnum(value.GetType())
             ? FlagEnums.GetNames(value.GetType(), value, _isNewtonsoftJson).ToList()
+            : null;
+
+    /// <summary>
+    ///   The text a default of a type parsable from text is written as, or
+    ///   <c>null</c> for any other value.
+    /// </summary>
+    private string? ConvertParsable(object? value)
+        => value is not null && ParsableTypes.IsConverted(value.GetType(), _isNewtonsoftJson, out _)
+            ? ParsableTypes.ToText(value)
             : null;
 
     #endregion

@@ -30,7 +30,7 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
         Formatting = Formatting.Indented,
         DefaultValueHandling = DefaultValueHandling.Include,
         MissingMemberHandling = MissingMemberHandling.Ignore,
-        Converters = [FlagEnumNewtonsoftConverter.Instance, new StringEnumConverter()]
+        Converters = [FlagEnumNewtonsoftConverter.Instance, ParsableNewtonsoftConverter.Instance, new StringEnumConverter()]
     };
 
     /// <summary>
@@ -42,7 +42,7 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
         if (settings.Contains("\"FirstRun\":")) return settings;
         var deserializerSettings = new JsonSerializerSettings
         {
-            Converters = [FlagEnumNewtonsoftConverter.Instance, new StringEnumConverter()],
+            Converters = [FlagEnumNewtonsoftConverter.Instance, ParsableNewtonsoftConverter.Instance, new StringEnumConverter()],
             Error = (sender, args) => { args.ErrorContext.Handled = true; },
             ObjectCreationHandling = ObjectCreationHandling.Replace,
             MissingMemberHandling = MissingMemberHandling.Ignore,

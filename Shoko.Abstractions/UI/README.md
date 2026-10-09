@@ -376,8 +376,13 @@ An option type is one a client can tell apart and show as text:
   converter that converts it to and from a string or one of the primitives.
 
 A class, record or struct with neither, or a collection, is refused. A member of
-a type parsable from text or converted by a `[TypeConverter]` is described as
-text in the form, so give it a JSON converter that writes it as text too.
+a type parsable from text is described as text in the form. Configurations and
+action parameters write it with its invariant `ToString()` and read it back with
+`TryParse`, so its `ToString()` has to round-trip through `Parse`. A type that
+needs another wire shape declares `[JsonConverter]` or `[TypeConverter]`, and
+that converter is used instead. The form still describes such a type as text, so
+its converter writes text too. Newtonsoft writes a `[TypeConverter]` type through
+that converter; System.Text.Json does not, so give one a JSON converter there.
 
 ### What comes back
 

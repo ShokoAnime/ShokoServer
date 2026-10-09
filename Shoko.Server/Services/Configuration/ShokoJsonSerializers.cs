@@ -24,7 +24,8 @@ internal static class ShokoJsonSerializers
     ///   Creates the Newtonsoft settings. A fresh instance per caller, because
     ///   <see cref="JsonSerializerSettings"/> is mutable and the schema
     ///   generator clones it to swap the contract resolver. A flags enum is
-    ///   written as a list of its members, ahead of the plain enum converter.
+    ///   written as a list of its members, ahead of the plain enum converter,
+    ///   and a type parsable from text as that text.
     /// </summary>
     public static JsonSerializerSettings CreateNewtonsoftSettings()
         => new()
@@ -34,12 +35,13 @@ internal static class ShokoJsonSerializers
             DefaultValueHandling = DefaultValueHandling.Include,
             ObjectCreationHandling = ObjectCreationHandling.Replace,
             MissingMemberHandling = MissingMemberHandling.Ignore,
-            Converters = [FlagEnumNewtonsoftConverter.Instance, new StringEnumConverter()],
+            Converters = [FlagEnumNewtonsoftConverter.Instance, ParsableNewtonsoftConverter.Instance, new StringEnumConverter()],
         };
 
     /// <summary>
     ///   Creates the System.Text.Json options. A flags enum is written as a
-    ///   list of its members, ahead of the plain enum converter.
+    ///   list of its members, ahead of the plain enum converter, and a type
+    ///   parsable from text as that text.
     /// </summary>
     public static JsonSerializerOptions CreateSystemTextJsonOptions()
     {
@@ -52,6 +54,7 @@ internal static class ShokoJsonSerializers
             PropertyNameCaseInsensitive = true,
         };
         options.Converters.Add(new FlagEnumSystemTextJsonConverter());
+        options.Converters.Add(new ParsableSystemTextJsonConverter());
         options.Converters.Add(new JsonStringEnumConverter());
         return options;
     }

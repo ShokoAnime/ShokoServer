@@ -964,8 +964,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
             if (type.Namespace?.StartsWith("System", StringComparison.Ordinal) is true)
                 continue;
-            if (type.GetCustomAttribute<TypeConverterAttribute>(true) is null &&
-                type.GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IParsable<>) && x.GetGenericArguments()[0] == type))
+            if (ParsableTypes.IsParsable(type))
             {
                 found.Add(type);
                 continue;
