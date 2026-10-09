@@ -503,7 +503,10 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// </summary>
     /// <param name="configID">Configuration id</param>
     /// <param name="body">Optional. Configuration data to perform the action on.</param>
-    /// <param name="reactiveEventType">Reactive event type to perform the action on.</param>
+    /// <param name="reactiveEventType">
+    ///   Reactive event type to perform the action on, by the name it is
+    ///   written as, such as <c>view-changed</c>, or by its C# name.
+    /// </param>
     /// <param name="path">Path to the configuration</param>
     /// <returns></returns>
     [ProducesResponseType(200)]
