@@ -214,4 +214,17 @@ public static class Diagnostics
         isEnabledByDefault: true,
         description: "Only a provider of a dictionary's values receives the key of the entry asked for, through one parameter marked [OptionsKey] whose type is the dictionary's key type, exactly.",
         helpLinkUri: HelpLinkPrefix + "shoko0015");
+
+    /// <summary>
+    /// A checkbox section's switch is missing or not a bool, or another section names one.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnusableSectionToggle = new(
+        id: "SHOKO0016",
+        title: "Section toggle does not fit",
+        messageFormat: "Section '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A section drawn as a checkbox names its switch with [Section(DisplaySectionType.Checkbox, ToggleMember = nameof(Enabled))]: a public, serialised bool member of the class itself. No other section type names one.",
+        helpLinkUri: HelpLinkPrefix + "shoko0016");
 }

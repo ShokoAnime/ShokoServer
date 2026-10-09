@@ -51,6 +51,13 @@ public sealed class UiSectionContainerElement : UiElement
     public string? PrimaryKey { get; init; }
 
     /// <summary>
+    /// The key in <see cref="Items"/> of the boolean that turns a
+    /// <see cref="Enums.DisplaySectionType.Checkbox"/> section on, drawn as
+    /// the section's own checkbox, or <c>null</c> for any other section.
+    /// </summary>
+    public string? ToggleMember { get; init; }
+
+    /// <summary>
     /// The elements the user edits, keyed by the property name they are stored
     /// under in the configuration document, the same key
     /// <see cref="UiStructureEntry.Name"/> carries for a

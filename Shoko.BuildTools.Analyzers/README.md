@@ -276,3 +276,22 @@ public Mode[] ListModes([OptionsKey] string plugin) => [];     // fixed
 
 Startup: `The options provider 'MyConfig.ListModes' takes a key of Guid, but
 "ModeByPlugin" is keyed by String.`
+
+## SHOKO0016
+
+**Section toggle does not fit.**
+
+A section drawn as a checkbox names the `bool` that turns it on with
+`ToggleMember`, a public, serialised member of the class itself. The client draws
+that member as the section's own checkbox. No other section type names one.
+
+```csharp
+[Section(DisplaySectionType.Checkbox)]                         // reported
+public class Experimental { public bool Enabled { get; set; } }
+
+[Section(DisplaySectionType.Checkbox, ToggleMember = nameof(Enabled))]
+public class Experimental { public bool Enabled { get; set; } } // fixed
+```
+
+Startup: `Section "Experimental" is drawn as a checkbox but names no
+ToggleMember, the bool member that turns it on.`

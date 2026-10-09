@@ -511,6 +511,12 @@ internal sealed class UiClassBuilder
     /// </summary>
     public string? TitleMember { get; set; }
 
+    /// <summary>
+    ///   The JSON name of the boolean that turns a checkbox section on, if the
+    ///   class is one.
+    /// </summary>
+    public string? ToggleMember { get; set; }
+
     /// <summary>The descriptions the class gave its gathered sections, by name.</summary>
     public Dictionary<string, string> FloatingSectionDescriptions { get; } = new(StringComparer.Ordinal);
 

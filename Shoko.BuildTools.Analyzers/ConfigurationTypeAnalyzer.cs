@@ -40,7 +40,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         Diagnostics.OptionTypeMismatch,
         Diagnostics.OptionsClaimedTwice,
         Diagnostics.FlagEnumWithoutMembers,
-        Diagnostics.UnusableOptionsKey);
+        Diagnostics.UnusableOptionsKey,
+        Diagnostics.UnusableSectionToggle);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -68,6 +69,7 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         // 'Base<T> { List<T> Items }' inherited as 'Base<List<string>>' is seen as
         // 'List<List<string>>' here even though the declaration itself is fine.
         AnalyzeOptionsProviders(context, type, known, reported);
+        AnalyzeSectionToggle(context, type, known, reported);
 
         var seenNames = new HashSet<string>(StringComparer.Ordinal);
         for (var current = type; current is not null && current.SpecialType is not SpecialType.System_Object; current = current.BaseType)
@@ -94,6 +96,43 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
                 AnalyzeProperty(context, property, type, known, reported);
             }
         }
+    }
+
+    /// <summary>
+    /// Checks the switch a section names, the way <c>ShokoJsonSchemaGenerator.ResolveToggleMember</c>
+    /// does at startup: a checkbox section names a serialised bool member, and no other section names one.
+    /// </summary>
+    private static void AnalyzeSectionToggle(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol owner,
+        KnownSymbols known,
+        ConcurrentDictionary<string, byte> reported
+    )
+    {
+        const int checkbox = 3;
+        if (known.SectionAttribute is null)
+            return;
+        // The generator reads the attribute off the class itself, never a base class.
+        var attribute = owner.GetAttributes().FirstOrDefault(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, known.SectionAttribute));
+        if (attribute is null)
+            return;
+
+        var isCheckbox = attribute.ConstructorArguments.FirstOrDefault().Value is checkbox;
+        var toggle = attribute.NamedArguments.FirstOrDefault(x => x.Key is "ToggleMember").Value.Value as string;
+        string? fault = null;
+        if (string.IsNullOrWhiteSpace(toggle))
+            fault = isCheckbox ? "is drawn as a checkbox but names no ToggleMember, the bool member that turns it on" : null;
+        else if (!isCheckbox)
+            fault = $"names the ToggleMember \"{toggle}\", but only a checkbox section has one";
+        else if (FindProperty(owner, toggle!) is not { Type.SpecialType: SpecialType.System_Boolean } property || !ConfigurationMembers.ReachesSchemaGenerator(property, known))
+            fault = $"names the ToggleMember \"{toggle}\", which is not a serialised bool member of it";
+        if (fault is null)
+            return;
+
+        var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
+            ?? owner.Locations.FirstOrDefault()
+            ?? Location.None;
+        Report(context, reported, Diagnostic.Create(Diagnostics.UnusableSectionToggle, location, owner.Name, fault));
     }
 
     /// <summary>

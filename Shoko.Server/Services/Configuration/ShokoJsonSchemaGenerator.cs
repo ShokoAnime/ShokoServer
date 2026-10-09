@@ -743,6 +743,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         classBuilder.TitleMember = contextualType.Properties
             .FirstOrDefault(x => x.PropertyType.Type == typeof(TitleComponent))
             is { } titleProperty ? GetPropertyName(titleProperty) : null;
+        classBuilder.ToggleMember = ResolveToggleMember(contextualType, contextualType.GetAttribute<SectionAttribute>(false));
 
         var orderCount = 0;
         var knownGetters = new Dictionary<string, int>();
@@ -1198,6 +1199,39 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         if (schema.AdditionalPropertiesSchema is not null)
             propertyKey += DictionaryKeySuffix;
         return propertyKey;
+    }
+
+    /// <summary>
+    ///   The JSON name of the boolean a checkbox section names as its switch.
+    /// </summary>
+    /// <param name="contextualType">The section's class.</param>
+    /// <param name="sectionAttribute">The class's section attribute, if any.</param>
+    /// <returns>The member's JSON name, or <c>null</c> for any other section.</returns>
+    /// <exception cref="NotSupportedException">
+    ///   Thrown when a checkbox section names no switch, another section names
+    ///   one, or the name is not a serialised bool member of the class.
+    /// </exception>
+    private string? ResolveToggleMember(ContextualType contextualType, SectionAttribute? sectionAttribute)
+    {
+        var typeName = GetFriendlyTypeName(contextualType.Type);
+        var toggleMember = string.IsNullOrWhiteSpace(sectionAttribute?.ToggleMember) ? null : sectionAttribute.ToggleMember;
+        var isCheckbox = sectionAttribute?.SectionType is DisplaySectionType.Checkbox;
+        if (toggleMember is null)
+        {
+            return isCheckbox
+                ? throw new NotSupportedException($"Section \"{typeName}\" is drawn as a checkbox but names no ToggleMember, the bool member that turns it on.")
+                : null;
+        }
+
+        if (!isCheckbox)
+            throw new NotSupportedException($"Section \"{typeName}\" names the ToggleMember \"{toggleMember}\", but only a checkbox section has one.");
+
+        var property = contextualType.Properties.FirstOrDefault(x => string.Equals(x.Name, toggleMember, StringComparison.Ordinal));
+        if (property is null || property.PropertyType.Type != typeof(bool) || property.PropertyInfo.GetMethod is not { IsPublic: true, IsStatic: false } ||
+            IsIgnored(property.PropertyInfo))
+            throw new NotSupportedException($"Section \"{typeName}\" names the ToggleMember \"{toggleMember}\", which is not a serialised bool member of it.");
+
+        return GetPropertyName(property);
     }
 
     private static string GetPropertyName(ContextualPropertyInfo info)
