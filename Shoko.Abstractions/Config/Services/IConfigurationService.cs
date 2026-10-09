@@ -7,7 +7,6 @@ using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI;
-using Shoko.Abstractions.UI.Enums;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Config.Services;
@@ -245,9 +244,8 @@ public interface IConfigurationService
     /// </param>
     /// <param name="path">
     ///   The path of the member, the same path a custom action is invoked with.
-    /// </param>
-    /// <param name="target">
-    ///   The part of the member the options are for.
+    ///   A dictionary's own path lists its keys, and the path of one of its
+    ///   entries, such as <c>Weights["key"]</c>, the values for that key.
     /// </param>
     /// <param name="user">
     ///   The user asking, if applicable.
@@ -265,7 +263,6 @@ public interface IConfigurationService
         ConfigurationInfo info,
         IConfiguration configuration,
         string path,
-        OptionsTarget target = OptionsTarget.Values,
         IUser? user = null,
         Uri? uri = null
     );
@@ -282,9 +279,8 @@ public interface IConfigurationService
     /// </param>
     /// <param name="path">
     ///   The path of the member, the same path a custom action is invoked with.
-    /// </param>
-    /// <param name="target">
-    ///   The part of the member the options are for.
+    ///   A dictionary's own path lists its keys, and the path of one of its
+    ///   entries, such as <c>Weights["key"]</c>, the values for that key.
     /// </param>
     /// <param name="user">
     ///   The user asking, if applicable.
@@ -301,7 +297,6 @@ public interface IConfigurationService
     Task<IReadOnlyList<UiOption>> GetOptionsAsync<TConfig>(
         TConfig configuration,
         string path,
-        OptionsTarget target = OptionsTarget.Values,
         IUser? user = null,
         Uri? uri = null
     ) where TConfig : class, IConfiguration, new();

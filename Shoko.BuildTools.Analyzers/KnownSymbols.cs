@@ -54,6 +54,11 @@ internal sealed class KnownSymbols
     public INamedTypeSymbol? OptionsProviderAttribute { get; }
 
     /// <summary>
+    /// <c>Shoko.Abstractions.UI.Attributes.OptionsKeyAttribute</c>, if referenced.
+    /// </summary>
+    public INamedTypeSymbol? OptionsKeyAttribute { get; }
+
+    /// <summary>
     /// <c>Shoko.Abstractions.UI.Components.SelectComponent&lt;&gt;</c>, if referenced.
     /// </summary>
     public INamedTypeSymbol? SelectComponent { get; }
@@ -144,6 +149,7 @@ internal sealed class KnownSymbols
         CustomActionAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.CustomActionAttribute");
         ConfigurationActionAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.Config.Attributes.ConfigurationActionAttribute");
         OptionsProviderAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.OptionsProviderAttribute");
+        OptionsKeyAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.OptionsKeyAttribute");
         SelectComponent = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Components.SelectComponent`1");
         SelectOption = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Components.SelectOption`1");
         GenericTask = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");

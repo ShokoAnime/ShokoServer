@@ -201,4 +201,17 @@ public static class Diagnostics
         isEnabledByDefault: true,
         description: "A [Flags] enum is described as a list of its members with a single bit set. Zero and members combining several bits are only accepted on read. An enum with no single-bit member has no entries to list, so give it one per flag, or drop [Flags].",
         helpLinkUri: HelpLinkPrefix + "shoko0014");
+
+    /// <summary>
+    /// A provider's <c>[OptionsKey]</c> parameter has no key to receive.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnusableOptionsKey = new(
+        id: "SHOKO0015",
+        title: "Options key parameter does not fit",
+        messageFormat: "The options provider '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Only a provider of a dictionary's values receives the key of the entry asked for, through one parameter marked [OptionsKey] whose type is the dictionary's key type, exactly.",
+        helpLinkUri: HelpLinkPrefix + "shoko0015");
 }

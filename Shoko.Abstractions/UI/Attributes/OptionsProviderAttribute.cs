@@ -27,8 +27,10 @@ namespace Shoko.Abstractions.UI.Attributes;
 /// </para>
 /// <para>
 /// A provider may refuse the draft by throwing
-/// <see cref="Exceptions.GenericValidationException"/>. A provider that does
-/// not fit fails startup and is reported by SHOKO0008 to SHOKO0013. The UI
+/// <see cref="Exceptions.GenericValidationException"/>. A provider of a
+/// dictionary's values may take the entry's key through a parameter marked
+/// <see cref="OptionsKeyAttribute"/>. A provider that does not fit fails
+/// startup and is reported by SHOKO0008 to SHOKO0013 and SHOKO0015. The UI
 /// README holds the full contract.
 /// </para>
 /// </remarks>

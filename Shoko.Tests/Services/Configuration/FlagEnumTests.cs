@@ -122,7 +122,7 @@ public class FlagEnumTests
         Assert.True(access.UniqueItems);
         Assert.False(access.Sortable);
         Assert.Equal(["Read", "Write", "run"], entry.Values.Select(x => x.Value));
-        Assert.Equal("Options", entry.OptionsRoute);
+        Assert.True(entry.HasOptions);
     }
 
     [Theory]
@@ -180,7 +180,7 @@ public class FlagEnumTests
     public async Task Options_ListTheEntriesTheProviderNarrowedTo()
     {
         var configuration = new FlagConfiguration();
-        var (owner, method) = UiOptionsProvider.Resolve(configuration, "Access", OptionsTarget.Values, isNewtonsoftJson: true);
+        var (owner, method, _) = UiOptionsProvider.Resolve(configuration, "Access", isNewtonsoftJson: true);
         var settings = ShokoJsonSerializers.CreateNewtonsoftSettings();
         var options = await UiOptionsProvider.InvokeAsync(
             method,

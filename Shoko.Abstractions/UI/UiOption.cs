@@ -4,7 +4,7 @@ namespace Shoko.Abstractions.UI;
 
 /// <summary>
 /// One value the server offers for an element whose
-/// <see cref="UiElement.OptionsRoute"/> is set.
+/// <see cref="UiElement.HasOptions"/> is set.
 /// </summary>
 /// <remarks>
 /// Options keep the order the provider listed them in, duplicates included,

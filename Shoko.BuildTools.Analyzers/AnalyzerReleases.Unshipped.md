@@ -19,3 +19,4 @@ SHOKO0011 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, options of 
 SHOKO0012 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, options that do not match their members make UI schema generation throw.
 SHOKO0013 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a member part with two options providers makes UI schema generation throw.
 SHOKO0014 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a flags enum without single-bit members makes UI schema generation throw.
+SHOKO0015 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, an options key parameter on a provider that has no key to hand makes UI schema generation throw.

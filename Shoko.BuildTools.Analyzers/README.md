@@ -257,3 +257,22 @@ public Mode Mode { get; set; }                                 // reported
 
 Startup: `Configuration property "MyConfig.Mode" holds the flags enum Mode,
 which has no member with a single bit set. …`
+
+## SHOKO0015
+
+**Options key parameter does not fit.**
+
+A parameter marked `[OptionsKey]` receives the key of the dictionary entry the
+options are asked for. Only a provider of a dictionary's values has one to
+hand, the parameter's type is the dictionary's key type exactly, and a provider
+takes one key at most.
+
+```csharp
+public Dictionary<string, Mode> ModeByPlugin { get; set; } = [];
+[OptionsProvider(nameof(ModeByPlugin))]
+public Mode[] ListModes([OptionsKey] Guid plugin) => [];       // reported
+public Mode[] ListModes([OptionsKey] string plugin) => [];     // fixed
+```
+
+Startup: `The options provider 'MyConfig.ListModes' takes a key of Guid, but
+"ModeByPlugin" is keyed by String.`

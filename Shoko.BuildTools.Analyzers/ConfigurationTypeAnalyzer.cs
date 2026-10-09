@@ -39,7 +39,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         Diagnostics.UnusableOptionType,
         Diagnostics.OptionTypeMismatch,
         Diagnostics.OptionsClaimedTwice,
-        Diagnostics.FlagEnumWithoutMembers);
+        Diagnostics.FlagEnumWithoutMembers,
+        Diagnostics.UnusableOptionsKey);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -247,6 +248,9 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
             }
         }
 
+        if (GetOptionsKeyFault(method, owner, members, forKeys, known) is { } keyFault)
+            return (Diagnostics.UnusableOptionsKey, keyFault);
+
         var returnType = method.ReturnType;
         // A return type that cannot be resolved is left alone rather than guessed at.
         if (returnType is IErrorTypeSymbol || optionType is null)
@@ -265,6 +269,50 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         return returned is null
             ? (Diagnostics.UnusableOptionsProviderMethod, $"returns {returnName}, which is not a collection of options")
             : (Diagnostics.OptionTypeMismatch, $"returns {returnName} rather than a collection of {optionName}");
+    }
+
+    /// <summary>
+    /// What is wrong with the provider's <c>[OptionsKey]</c> parameter, the way
+    /// <c>UiOptionsProvider.CheckKeyParameter</c> finds it: one at most, only on a
+    /// provider of dictionary values, typed as the dictionary's key exactly.
+    /// </summary>
+    private static string? GetOptionsKeyFault(
+        IMethodSymbol method,
+        INamedTypeSymbol owner,
+        List<string?> members,
+        bool forKeys,
+        KnownSymbols known
+    )
+    {
+        if (known.OptionsKeyAttribute is null)
+            return null;
+
+        var keyParameters = method.Parameters.Where(x => ConfigurationMembers.FindAttribute(x, known.OptionsKeyAttribute) is not null).ToList();
+        if (keyParameters.Count is 0)
+            return null;
+        if (keyParameters.Count > 1)
+            return "takes more than one key";
+        if (forKeys)
+            return "takes a key, but lists keys, which have none";
+
+        var keyType = keyParameters[0].Type;
+        foreach (var member in members)
+        {
+            if (member is null || FindProperty(owner, member) is not { } property || CollectionShape.Unwrap(property.Type) is not { } type)
+                continue;
+
+            var shape = CollectionShape.Classify(type, known);
+            if (shape.Kind is not CollectionKind.Dictionary || shape.Key is null)
+                return $"takes a key, but names \"{member}\", which is not a dictionary";
+            if (!SymbolEqualityComparer.Default.Equals(shape.Key, keyType))
+            {
+                var keyName = keyType.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
+                var dictionaryKeyName = shape.Key.ToDisplayString(SymbolDisplayFormat.CSharpShortErrorMessageFormat);
+                return $"takes a key of {keyName}, but \"{member}\" is keyed by {dictionaryKeyName}";
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

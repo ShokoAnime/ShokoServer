@@ -317,6 +317,10 @@ public async Task<IReadOnlyList<SelectOption<int>>> ListLibraries(ILibraryServic
 [OptionsProvider(nameof(ModeByFolder), Target = OptionsTarget.Keys)]
 public string[] ListFolders(IFolderService folders)
     => folders.GetNames();
+
+[OptionsProvider(nameof(ModeByFolder))]
+public TestMode[] ListModes([OptionsKey] string folder, IFolderService folders)
+    => folders.IsReadOnly(folder) ? [TestMode.Read] : [TestMode.Read, TestMode.Write];
 ```
 
 ### The method
@@ -332,16 +336,23 @@ an executable action the provider runs on an instance prepared the way invoking
 it prepares one, scoped to its entity, given its caller and populated with the
 parameters entered so far, and may take the entity, the caller and services too.
 
+A provider of a dictionary's values may also take the key of the entry asked
+for, through one parameter marked `[OptionsKey]` whose type is the dictionary's
+key type exactly, and narrow the values to that key. The key comes from the
+path, so it need not be in the dictionary yet: a client adding an entry asks for
+the keys, lets the user pick one, then asks for that key's values. A provider
+without the parameter lists the same values for every key.
+
 ### Which part of a member
 
 `Target` picks the part the options are for:
 
 | Member | `OptionsTarget.Values` (default) | `OptionsTarget.Keys` |
 |---|---|---|
-| A scalar, `T` or `T?` | the value itself | refused |
-| A list, `List<T>` or `T[]` | each entry | refused |
-| A `[Flags]` enum `T` | each entry, a single-bit member of `T` | refused |
-| A dictionary, `Dictionary<K, V>` | each value, or each entry of a list value | each key |
+| A scalar, `T` or `T?` | the value itself, at `Member` | refused |
+| A list, `List<T>` or `T[]` | each entry, at `Member` | refused |
+| A `[Flags]` enum `T` | each entry, a single-bit member of `T`, at `Member` | refused |
+| A dictionary, `Dictionary<K, V>` | the value of one key, or each entry of a list value, at `Member["key"]` | each key, at `Member` |
 
 A select component carries its own options and takes none, and so does a
 dictionary of dictionaries. Each part of a member has one provider at most, so
@@ -370,21 +381,26 @@ text in the form, so give it a JSON converter that writes it as text too.
 
 ### What comes back
 
-The element that renders the choice carries an `OptionsRoute`: a scalar member
+The element that renders the choice has `HasOptions` set: a scalar member
 itself, a list's `Item`, a dictionary's `Item` (or the item of a list value) for
-values, and its `KeyItem` for keys. It is relative to the form's own route:
-`Options` for values and `Options/Keys` for keys, appended to the
-configuration's route or to the route the action is invoked on. A scoped
-action's entity therefore comes from the route the client already invokes it
-on, and the definition holds no placeholder. A client POSTs the edited document
-there with the member's path as `path`, the same path a custom action is invoked
-with. The path is always the member's own, so an entry or a key needs no index
-of its own.
+values, and its `KeyItem` for keys. A client POSTs the edited document to the
+form's own route with `/Options` appended, that is the configuration's route or
+the route the action is invoked on, so a scoped action's entity comes from the
+route the client already invokes it on. The `path` query parameter picks what is
+listed, in the same notation a custom action is invoked with:
+
+- `Member` lists a scalar's values, a list's entries, or a dictionary's keys.
+- `Member["key"]` lists the values of a dictionary's entry, or the entries of
+  its list value. The key need not be in the dictionary yet, but it has to be
+  one the key type can hold; a key that is not is a validation problem.
+- `Rows[2].Member` asks the same of the member of a list entry, with the
+  provider running on that entry.
 
 ```
-POST /api/v3/Configuration/{configID}/Options[/Keys]?path=…
-POST /api/v3/Action/{actionID}/Options[/Keys]?path=…
-POST /api/v3/{Group|Series|Episode|File}/{id}/Action/{actionID}/Options[/Keys]?path=…
+POST /api/v3/Configuration/{configID}/Options?path=ModeByFolder
+POST /api/v3/Configuration/{configID}/Options?path=ModeByFolder["Anime"]
+POST /api/v3/Action/{actionID}/Options?path=…
+POST /api/v3/{Group|Series|Episode|File}/{id}/Action/{actionID}/Options?path=…
 ```
 
 The answer is a list of `{ "Value": …, "Label": "…" }`:
@@ -415,7 +431,7 @@ exception is a server error.
 ### Checks
 
 A provider that does not fit fails startup, and the analyzer reports the same
-mistakes at compile time as SHOKO0008 to SHOKO0013; see
+mistakes at compile time as SHOKO0008 to SHOKO0013 and SHOKO0015; see
 [the analyzer rules](../../Shoko.BuildTools.Analyzers/README.md).
 
 ## Pattern: a choice only the server can enumerate

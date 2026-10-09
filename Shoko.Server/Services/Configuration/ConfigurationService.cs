@@ -508,7 +508,6 @@ public partial class ConfigurationService : IConfigurationService
         ConfigurationInfo info,
         IConfiguration configuration,
         string path,
-        OptionsTarget target = OptionsTarget.Values,
         IUser? user = null,
         Uri? uri = null
     )
@@ -518,7 +517,7 @@ public partial class ConfigurationService : IConfigurationService
             return (Task<IReadOnlyList<UiOption>>)typeof(ConfigurationService)
                 .GetMethod(nameof(GetOptionsInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
                 .MakeGenericMethod(configuration.GetType())
-                .Invoke(this, [info, configuration, path, target, user, uri])!;
+                .Invoke(this, [info, configuration, path, user, uri])!;
         }
         catch (TargetInvocationException ex)
         {
@@ -531,26 +530,23 @@ public partial class ConfigurationService : IConfigurationService
     public Task<IReadOnlyList<UiOption>> GetOptionsAsync<TConfig>(
         TConfig configuration,
         string path,
-        OptionsTarget target = OptionsTarget.Values,
         IUser? user = null,
         Uri? uri = null
     ) where TConfig : class, IConfiguration, new()
-        => GetOptionsInternal(GetConfigurationInfo<TConfig>(), configuration, path, target, user, uri);
+        => GetOptionsInternal(GetConfigurationInfo<TConfig>(), configuration, path, user, uri);
 
     private Task<IReadOnlyList<UiOption>> GetOptionsInternal<TConfig>(
         ConfigurationInfo info,
         TConfig configuration,
         string path,
-        OptionsTarget target,
         IUser? user,
         Uri? uri
     ) where TConfig : class, IConfiguration, new()
     {
-        object owner;
-        MethodInfo method;
+        OptionsRequest request;
         try
         {
-            (owner, method) = UiOptionsProvider.Resolve(configuration, path, target, info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)));
+            request = UiOptionsProvider.Resolve(configuration, path, info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)));
         }
         catch (ArgumentException ex) when (ex is not InvalidConfigurationActionException)
         {
@@ -570,7 +566,7 @@ public partial class ConfigurationService : IConfigurationService
             Path = path,
             ReactiveEventType = ReactiveEventType.All,
             Schema = info.Schema,
-            Type = owner.GetType().ToContextualType(),
+            Type = request.Owner.GetType().ToContextualType(),
             User = user,
             Uri = uri,
         };
@@ -578,11 +574,12 @@ public partial class ConfigurationService : IConfigurationService
             ? emitContext.ConvertToken
             : value => value is null ? null : JToken.FromObject(value);
         return UiOptionsProvider.InvokeAsync(
-            method,
+            request.Method,
             _pluginManager,
-            owner,
+            request.Owner,
             [logger, path, info, configuration, context, user, uri],
-            convert
+            convert,
+            request.Key
         );
     }
 
