@@ -51,16 +51,16 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     /// <param name="name">The display name of whatever the schema describes.</param>
     /// <param name="description">An optional description of whatever the schema describes.</param>
     /// <param name="wrapped">The generated schema and its typed builders.</param>
-    /// <param name="optionsRoute">
-    ///   Where the server lists the options of a member that takes them, or
-    ///   <c>null</c> when nothing serves them.
+    /// <param name="listsOptions">
+    ///   Whether the server lists the options of a member that takes them,
+    ///   under the form's own route.
     /// </param>
     /// <returns>A definition that is self-sufficient for rendering.</returns>
-    public UiDefinition Build(Guid id, string name, string? description, WrappedJsonSchema wrapped, string? optionsRoute = null)
+    public UiDefinition Build(Guid id, string name, string? description, WrappedJsonSchema wrapped, bool listsOptions = false)
     {
         ArgumentNullException.ThrowIfNull(wrapped);
 
-        var state = new WalkState(wrapped) { OptionsRoute = optionsRoute };
+        var state = new WalkState(wrapped) { ListsOptions = listsOptions };
         var root = BuildElement(state, wrapped.Schema, null, null, isRoot: true, isRequired: true);
         while (state.PendingDefinitions.Count > 0)
         {
@@ -676,12 +676,12 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     ///   entry of a list, a key or value of a dictionary, or the element itself.
     /// </summary>
     /// <remarks>
-    ///   The path sent with the request is always the member's own, so a key
-    ///   or an entry is listed for without an index of its own.
+    ///   The routes are relative to the form's own route, so a scoped action's
+    ///   entity comes from the route the client invokes it on.
     /// </remarks>
     private static void ApplyOptionsRoutes(WalkState state, UiElement element, UiPropertyBuilder property)
     {
-        if (state.OptionsRoute is not { } route)
+        if (!state.ListsOptions)
             return;
 
         if (property.HasValueOptions)
@@ -693,11 +693,11 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
                 UiRecordElement record => record.Item,
                 _ => element,
             };
-            target.OptionsRoute = route;
+            target.OptionsRoute = "Options";
         }
 
         if (property.HasKeyOptions && element is UiRecordElement keyed)
-            keyed.KeyItem.OptionsRoute = $"{route}/Keys";
+            keyed.KeyItem.OptionsRoute = "Options/Keys";
     }
 
     /// <summary>
@@ -886,7 +886,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         /// </summary>
         public IReadOnlyList<ReactiveEventType> InheritedLiveEditEvents { get; set; } = [];
 
-        public string? OptionsRoute { get; init; }
+        public bool ListsOptions { get; init; }
 
         public Dictionary<string, UiElement> Definitions { get; } = new(StringComparer.Ordinal);
 

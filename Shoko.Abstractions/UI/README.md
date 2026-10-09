@@ -372,11 +372,14 @@ text in the form, so give it a JSON converter that writes it as text too.
 
 The element that renders the choice carries an `OptionsRoute`: a scalar member
 itself, a list's `Item`, a dictionary's `Item` (or the item of a list value) for
-values, and its `KeyItem` for keys, whose route ends in `/Keys`. A client POSTs
-the edited document to it with the member's path as `path`, the same path a
-custom action is invoked with. The path is always the member's own, so an entry
-or a key needs no index of its own. A scoped action's route holds the entity's
-placeholder, such as `{seriesID}`, for the client to fill in.
+values, and its `KeyItem` for keys. It is relative to the form's own route:
+`Options` for values and `Options/Keys` for keys, appended to the
+configuration's route or to the route the action is invoked on. A scoped
+action's entity therefore comes from the route the client already invokes it
+on, and the definition holds no placeholder. A client POSTs the edited document
+there with the member's path as `path`, the same path a custom action is invoked
+with. The path is always the member's own, so an entry or a key needs no index
+of its own.
 
 ```
 POST /api/v3/Configuration/{configID}/Options[/Keys]?path=…

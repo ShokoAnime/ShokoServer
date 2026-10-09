@@ -79,18 +79,18 @@ public abstract class UiElement
     public IReadOnlyList<Config.Enums.ReactiveEventType> ReactsToLiveEdit { get; set; } = [];
 
     /// <summary>
-    /// Where to fetch the values the element may take, or <c>null</c> when the
-    /// server does not list them.
+    /// Where to fetch the values the element may take, relative to the form's
+    /// own route, or <c>null</c> when the server does not list them.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// POST to it with the member's path as the <c>path</c> query parameter,
-    /// the same path a custom action is invoked with, and the edited document
-    /// as the body. The path is always the member's own, so an entry of a list
-    /// or a key or value of a dictionary, which carries the route itself, is
-    /// listed for by its member's path. A key element's route ends in
-    /// <c>/Keys</c>. A scoped action's route holds the entity's placeholder,
-    /// such as <c>{seriesID}</c>, for the client to fill in.
+    /// It is <c>Options</c>, or <c>Options/Keys</c> for a dictionary's keys,
+    /// appended to the configuration's route or the route the action is
+    /// invoked on, such as <c>/api/v3/Series/1234/Action/{actionID}</c>.
+    /// POST to it with the member's path as the <c>path</c> query parameter
+    /// and the edited document as the body. The path is always the member's
+    /// own, so an entry of a list or a key or value of a dictionary is listed
+    /// for by its member's path.
     /// </para>
     /// <para>
     /// The answer is a list of <see cref="UiOption"/> in the provider's order,

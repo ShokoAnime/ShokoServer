@@ -1326,7 +1326,7 @@ public partial class ConfigurationService : IConfigurationService
         var name = wrappedSchema.Schema.Title ?? type.Name;
         var description = TypeReflectionExtensions.GetDescription(type.ToContextualType());
         // Only a registered configuration is served by the options endpoint.
-        return _uiDefinitionBuilder.Build(id, name, description, wrappedSchema, isRegistered ? $"/api/v3/Configuration/{id}/Options" : null);
+        return _uiDefinitionBuilder.Build(id, name, description, wrappedSchema, listsOptions: isRegistered);
     }
 
     private void EnsureSchemaExists(ConfigurationInfo info)
