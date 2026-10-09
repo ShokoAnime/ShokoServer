@@ -61,6 +61,10 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
     /// <param name="description">The action's description.</param>
     /// <param name="actionType">The concrete action type.</param>
     /// <param name="listsOptions">Whether the server lists the action's parameter options.</param>
+    /// <param name="instance">
+    ///   A constructed instance of the action, read for the parameters'
+    ///   defaults, or <c>null</c> to construct one when the type allows it.
+    /// </param>
     /// <returns>
     ///   The description, or <c>null</c> when the action declares no
     ///   parameters.
@@ -80,7 +84,7 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
     /// <exception cref="InvalidOperationException">
     ///   A parameter is laid out as a dictionary without implementing one.
     /// </exception>
-    public ActionParameterDescription? Build(Guid id, string name, string? description, Type actionType, bool listsOptions = false)
+    public ActionParameterDescription? Build(Guid id, string name, string? description, Type actionType, bool listsOptions = false, object? instance = null)
     {
         ArgumentNullException.ThrowIfNull(actionType);
 
@@ -90,7 +94,7 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
         if (!MayHaveParameters(actionType))
             return null;
 
-        var wrapped = _generator.GetSchemaForActionParameters(actionType);
+        var wrapped = _generator.GetSchemaForActionParameters(actionType, instance);
         if (wrapped.Schema.ActualProperties.Count is 0)
             return null;
 

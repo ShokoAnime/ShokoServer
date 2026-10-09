@@ -121,6 +121,12 @@ rules as a field:
 Every element carries `Kind`, a label, a description, its size, its visibility
 and whatever constraints apply to it.
 
+`Default` is what a freshly constructed instance holds, so a property
+initialiser counts the same as `[DefaultValue]`, which wins when both are
+given. An action's parameters take theirs from the instance the server built
+when it registered the action. A nested class carries no default of its own,
+since its members carry theirs, and a password never carries one.
+
 `[DeniedValues]` is filed on the element that can act on it. On a list or a
 dictionary it describes an entry, so it lands on the item rather than on the
 collection, and an element with no value of its own to match, a nested class or a

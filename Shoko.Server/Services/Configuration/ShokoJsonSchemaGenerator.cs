@@ -64,7 +64,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     /// <param name="type">The configuration type.</param>
     /// <returns>The schema and the typed builders that produced it.</returns>
     public WrappedJsonSchema GetSchemaForType(Type type)
-        => GenerateSchema(type, type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)), contractResolver: null);
+        => GenerateSchema(type, type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)), contractResolver: null, rootInstance: null);
 
     /// <summary>
     ///   Generates the schema for an executable action's invocation parameters.
@@ -95,14 +95,18 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     ///   The concrete action type, implementing
     ///   <see cref="IExecutableAction"/>.
     /// </param>
+    /// <param name="instance">
+    ///   A constructed instance of the action, read for the parameters'
+    ///   defaults, or <c>null</c> to construct one when the type allows it.
+    /// </param>
     /// <returns>The schema and the typed builders that produced it.</returns>
-    public WrappedJsonSchema GetSchemaForActionParameters(Type actionType)
+    public WrappedJsonSchema GetSchemaForActionParameters(Type actionType, object? instance = null)
     {
         ArgumentNullException.ThrowIfNull(actionType);
         if (!actionType.IsAssignableTo(typeof(IExecutableAction)))
             throw new ArgumentException($"Type \"{actionType.FullName}\" does not implement {nameof(IExecutableAction)}.", nameof(actionType));
 
-        var wrapped = GenerateSchema(actionType, isNewtonsoftJson: true, new ActionMetadataContractResolver());
+        var wrapped = GenerateSchema(actionType, isNewtonsoftJson: true, new ActionMetadataContractResolver(), instance);
 
         // There is nothing to save on an invocation form, where the client renders
         // an invoke button of its own, so the root never offers the built-in save
@@ -150,7 +154,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             .Where(x => !x.IsEnumeration && x.AdditionalPropertiesSchema is null && x.Properties.Count > 0)
             .Distinct();
 
-    private WrappedJsonSchema GenerateSchema(Type type, bool isNewtonsoftJson, IContractResolver? contractResolver)
+    private WrappedJsonSchema GenerateSchema(Type type, bool isNewtonsoftJson, IContractResolver? contractResolver, object? rootInstance)
     {
         // Process-wide, not per generator: the schema generation reads the XML
         // docs through Namotion.Reflection, see TypeReflectionExtensions.XmlDocsLock.
@@ -207,6 +211,9 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                     continue;
 
                 var isRootSchema = ReferenceEquals(schema, subSchema);
+                // The defaults are what a freshly constructed instance holds,
+                // initialisers included, the same as /Default starts from.
+                var instance = rootInstance is not null && classBuilder.Type == type ? rootInstance : CreateInstance(classBuilder.Type);
                 if (classBuilder.IsPopulated)
                 {
                     uiBuilders[subSchema] = classBuilder;
@@ -241,6 +248,9 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                     if (classBuilder.GetProperty(GetPropertyKey(propertyName, schemaValue)) is not { } propertyBuilder)
                         continue;
 
+                    if (schemaValue.Default is null && instance is not null)
+                        schemaValue.Default = ReadDefault(instance, propertyBuilder.MemberName, schemaValue, emitContext);
+
                     // Handle enum default values.
                     if (propertyBuilder.Element is UiEnumElementBuilder { Values: var enumValues } &&
                         schemaValue.Reference?.EnumerationNames?.Count is > 0 &&
@@ -267,6 +277,72 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             return wrappedSchema;
         }
     }
+
+    /// <summary>
+    ///   Constructs an instance of a class to read its members' defaults
+    ///   from, when it has a public parameterless constructor.
+    /// </summary>
+    /// <param name="type">The class.</param>
+    /// <returns>The instance, or <c>null</c> when none can be made.</returns>
+    private static object? CreateInstance(Type type)
+    {
+        if (type.IsAbstract || type.IsInterface || type.ContainsGenericParameters || type.GetConstructor(Type.EmptyTypes) is null)
+            return null;
+
+        try
+        {
+            return Activator.CreateInstance(type);
+        }
+        catch (Exception ex) when (ex is TargetInvocationException or MemberAccessException or NotSupportedException)
+        {
+            // A class that cannot be built without its own context simply declares no defaults.
+            return null;
+        }
+    }
+
+    /// <summary>
+    ///   Reads a member's default off a constructed instance, written the way
+    ///   the schema declares a default.
+    /// </summary>
+    /// <remarks>
+    ///   A secret, a <c>null</c> and a nested class are left out: a nested
+    ///   class's own members carry their defaults.
+    /// </remarks>
+    /// <param name="instance">The constructed instance.</param>
+    /// <param name="memberName">The CLR member name.</param>
+    /// <param name="schemaValue">The member's schema.</param>
+    /// <param name="emitContext">Serialises a value the way its owner would.</param>
+    /// <returns>The default, or <c>null</c> when there is none to declare.</returns>
+    private static object? ReadDefault(object instance, string memberName, JsonSchema schemaValue, UiEmitContext emitContext)
+    {
+        if (instance.GetType().GetProperty(memberName, BindingFlags.Public | BindingFlags.Instance) is not { CanRead: true } property ||
+            property.GetIndexParameters().Length > 0 || IsSecret(property) || ConfigurationSecrets.ContainsSecrets(property.PropertyType))
+            return null;
+
+        object? value;
+        try
+        {
+            value = property.GetValue(instance);
+        }
+        catch (TargetInvocationException)
+        {
+            return null;
+        }
+
+        // An enum is named the way a [DefaultValue] one is, and mapped to its
+        // written value with those below.
+        if (value is Enum && !FlagEnums.IsFlagEnum(value.GetType()))
+            return Enum.GetName(value.GetType(), value);
+
+        var token = emitContext.ConvertToken(value);
+        return token is null or { Type: JTokenType.Null } || (token is JObject && schemaValue.ActualSchema.AdditionalPropertiesSchema is null)
+            ? null
+            : token;
+    }
+
+    private static bool IsSecret(PropertyInfo property)
+        => property.GetCustomAttribute<PasswordPropertyTextAttribute>(true) is not null ||
+            property.GetCustomAttribute<DataTypeAttribute>(true) is { DataType: DataType.Password };
 
     private JsonSchemaGenerator GetNewtonsoftSchemaForType(IContractResolver? contractResolver)
     {
