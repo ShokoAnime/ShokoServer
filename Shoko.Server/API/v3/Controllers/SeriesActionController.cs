@@ -58,8 +58,15 @@ public class SeriesActionController(IActionService actionService, AnimeSeriesRep
 
         // Parameters are an argument like any other now, and null is what an
         // action taking none has always been invoked with.
-        var validation = await actionService.InvokeAsync(actionID, seriesEntity, parameters.ToParameters(), caller: User, token: token);
-        return validation is null ? Ok() : BadRequest(validation.Reason);
+        try
+        {
+            var validation = await actionService.InvokeAsync(actionID, seriesEntity, parameters.ToParameters(), caller: User, token: token);
+            return validation is null ? Ok() : BadRequest(validation.Reason);
+        }
+        catch (GenericValidationException ex)
+        {
+            return ValidationProblem(ex.ValidationErrors);
+        }
     }
 
     /// <summary>

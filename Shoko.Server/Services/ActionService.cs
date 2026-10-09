@@ -324,12 +324,28 @@ public class ActionService : IActionService
     ///   <see cref="ActionExecutionJob"/>, so both observe the same
     ///   caller-supplied values.
     /// </summary>
+    /// <param name="action">The action to populate.</param>
+    /// <param name="parameters">The parameters, or <c>null</c>.</param>
+    /// <exception cref="GenericValidationException">
+    ///   A value could not be read into its parameter, keyed by the path of
+    ///   that value.
+    /// </exception>
     internal static void PopulateParameters(IExecutableAction action, IReadOnlyDictionary<string, object?>? parameters)
     {
         if (parameters is not { Count: > 0 })
             return;
 
-        JsonConvert.PopulateObject(JsonConvert.SerializeObject(parameters, _populateSettings), action, _populateSettings);
+        // A converter's own exception carries no path, so it is taken from the reader.
+        using var reader = new JsonTextReader(new StringReader(JsonConvert.SerializeObject(parameters, _populateSettings)));
+        try
+        {
+            JsonSerializer.Create(_populateSettings).Populate(reader, action);
+        }
+        catch (JsonException ex)
+        {
+            var path = ex is JsonSerializationException { Path.Length: > 0 } serializationException ? serializationException.Path : reader.Path;
+            throw new GenericValidationException(ex.Message, new Dictionary<string, IReadOnlyList<string>> { [path] = [ex.Message] });
+        }
     }
 
     /// <summary>
@@ -423,8 +439,9 @@ public class ActionService : IActionService
     ///   <see cref="InvokeCoreAsync"/>.
     /// </summary>
     /// <exception cref="GenericValidationException">
-    ///   The action may not be invoked here or by this caller, or the path
-    ///   does not lead to a parameter that takes options.
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, or a parameter value
+    ///   cannot be read.
     /// </exception>
     private Task<IReadOnlyList<UiOption>> GetParameterOptionsCoreAsync(
         Guid actionId,

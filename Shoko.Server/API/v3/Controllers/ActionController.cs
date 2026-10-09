@@ -93,8 +93,15 @@ public class ActionController(
 
         // Parameters are an argument like any other now, and null is what an
         // action taking none has always been invoked with.
-        var validation = await actionService.InvokeAsync(actionID, parameters.ToParameters(), caller: User, token: token);
-        return validation is null ? Ok() : BadRequest(validation.Reason);
+        try
+        {
+            var validation = await actionService.InvokeAsync(actionID, parameters.ToParameters(), caller: User, token: token);
+            return validation is null ? Ok() : BadRequest(validation.Reason);
+        }
+        catch (GenericValidationException ex)
+        {
+            return ValidationProblem(ex.ValidationErrors);
+        }
     }
 
     /// <summary>
