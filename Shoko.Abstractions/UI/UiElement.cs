@@ -100,7 +100,9 @@ public abstract class UiElement
     public bool HasOptions { get; set; }
 
     /// <summary>
-    /// The default value for the element, if the schema declared one.
+    /// The default value for the element: what a freshly constructed instance
+    /// holds, or what <see cref="System.ComponentModel.DefaultValueAttribute"/>
+    /// declares. <c>null</c> for a nested class, a password, or no value.
     /// </summary>
     public JToken? Default { get; set; }
 

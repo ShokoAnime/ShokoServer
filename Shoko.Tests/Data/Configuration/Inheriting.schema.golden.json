@@ -6,6 +6,7 @@
     "Name": {
       "title": "Inherited Name",
       "type": "string",
+      "default": "",
       "x-uiDefinition": {
         "elementType": "auto",
         "requiresRestart": true,
@@ -15,6 +16,7 @@
     },
     "Mode": {
       "title": "Mode",
+      "default": "balanced",
       "$ref": "#/definitions/TwinMode",
       "x-uiDefinition": {
         "elementType": "enum",
@@ -38,6 +40,7 @@
     "Endpoints": {
       "title": "Endpoints",
       "type": "array",
+      "default": [],
       "items": {
         "$ref": "#/definitions/TwinEndpoint"
       }
@@ -45,7 +48,8 @@
     "Count": {
       "title": "Derived Count",
       "type": "integer",
-      "format": "int32"
+      "format": "int32",
+      "default": 1
     }
   },
   "definitions": {
@@ -72,15 +76,18 @@
       "properties": {
         "ID": {
           "title": "ID",
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "Url": {
           "title": "Url",
           "type": "string",
-          "format": "uri"
+          "format": "uri",
+          "default": ""
         },
         "Mode": {
           "title": "Mode",
+          "default": "balanced",
           "$ref": "#/definitions/TwinMode",
           "x-uiDefinition": {
             "elementType": "enum",

@@ -8,7 +8,8 @@
       "title": "Settings Version",
       "type": "integer",
       "description": "Settings version. Will be incremented by the system. DO NOT TOUCH.",
-      "format": "int32"
+      "format": "int32",
+      "default": 29
     },
     "ImagesPath": {
       "title": "Images Path",
@@ -27,12 +28,14 @@
     "Culture": {
       "title": "Culture",
       "type": "string",
-      "description": "The culture to use when formatting strings."
+      "description": "The culture to use when formatting strings.",
+      "default": "en"
     },
     "FirstRun": {
       "title": "First Run",
       "type": "boolean",
       "description": "Indicates this the first time the server has been started.",
+      "default": true,
       "x-uiDefinition": {
         "elementType": "auto",
         "requiresRestart": false,
@@ -43,12 +46,18 @@
     "AutoGroupSeries": {
       "title": "Auto Group Series",
       "type": "boolean",
-      "description": "Auto group series based on the detected relation."
+      "description": "Auto group series based on the detected relation.",
+      "default": false
     },
     "AutoGroupSeriesRelationExclusions": {
       "title": "Auto Group Series Relation Exclusions",
       "type": "array",
       "description": "The list of relation types to exclude from auto grouping.",
+      "default": [
+        "same setting",
+        "character",
+        "other"
+      ],
       "items": {
         "type": "string"
       }
@@ -56,13 +65,15 @@
     "AutoGroupSeriesUseScoreAlgorithm": {
       "title": "Auto Group Series Use Score Algorithm",
       "type": "boolean",
-      "description": "Use the score algorithm for auto grouping."
+      "description": "Use the score algorithm for auto grouping.",
+      "default": false
     },
     "CompletionThresholdPercent": {
       "title": "Completion Threshold (%)",
       "type": "integer",
       "description": "How far into a video, in percent of its runtime, a position counts as finished when playback ends or a user saves it: the video is marked watched and its position cleared. A save can opt out of the rule.",
       "format": "int32",
+      "default": 95,
       "maximum": 100.0,
       "minimum": 50.0
     },
@@ -76,6 +87,7 @@
       "type": "integer",
       "description": "The maximum number of seconds to cache a repository during startup.",
       "format": "int32",
+      "default": 180,
       "maximum": 600.0,
       "minimum": 1.0,
       "x-uiDefinition": {
@@ -90,6 +102,7 @@
       "type": "integer",
       "description": "Minimum number of .NET thread pool worker/I-O completion threads to keep warm. Raising this avoids the runtime's gradual \"hill-climbing\" thread injection delay under bursts of concurrent, blocking, or synchronous work. Set to 0 to leave the runtime's own default untouched. Positive values are used directly. Negative values are treated as a multiplier against the CPU count, offset by one, e.g. -1 means CPU count x 2, -2 means CPU count x 3, up to -9 meaning CPU count x 10.",
       "format": "int32",
+      "default": 0,
       "maximum": 2147483647.0,
       "minimum": -9.0,
       "x-uiDefinition": {
@@ -168,6 +181,7 @@
       "title": "Settings",
       "type": "string",
       "description": "The web UI settings, as a stringified JSON object.",
+      "default": "",
       "x-uiDefinition": {
         "elementType": "code-block",
         "requiresRestart": false,
@@ -191,6 +205,7 @@
       "title": "Sentry Opt-Out",
       "type": "boolean",
       "description": "Disable Sentry error reporting in the server. This will not affect the web UI error reporting.",
+      "default": false,
       "x-uiDefinition": {
         "elementType": "auto",
         "requiresRestart": true,
@@ -207,6 +222,7 @@
           "title": "Image Template Urls",
           "type": "array",
           "description": "List of user-registered image template URLs.",
+          "default": [],
           "items": {
             "$ref": "#/definitions/ImageTemplateUrl"
           }
@@ -214,12 +230,14 @@
         "AutoPurge": {
           "title": "Auto Purge Orphaned Images",
           "type": "boolean",
-          "description": "Automatically purge orphaned images on a periodic schedule (every 24 hours). Orphaned images are no longer referenced by any entity in the database."
+          "description": "Automatically purge orphaned images on a periodic schedule (every 24 hours). Orphaned images are no longer referenced by any entity in the database.",
+          "default": true
         },
         "AutoValidate": {
           "title": "Auto Validate Image Integrity",
           "type": "boolean",
-          "description": "Automatically validate the integrity of all available images on a periodic schedule (every 24 hours). Invalid images will be re-downloaded."
+          "description": "Automatically validate the integrity of all available images on a periodic schedule (every 24 hours). Invalid images will be re-downloaded.",
+          "default": false
         }
       }
     },
@@ -285,12 +303,14 @@
         "CleanUpStructure": {
           "title": "Clean Up Structure on Managed Folder Scan",
           "type": "boolean",
-          "description": "Determines if we should clean up the managed folder structure when doing a scan of the folder by default if it's not overridden on a per job basis."
+          "description": "Determines if we should clean up the managed folder structure when doing a scan of the folder by default if it's not overridden on a per job basis.",
+          "default": false
         },
         "CheckFileSize": {
           "title": "Check File Size on Managed Folder Scan",
           "type": "boolean",
-          "description": "Check the file size when scanning managed folders. This has a higher cost than not checking the file size, as it will check the file size on EVERY file in the folder at the path to scan."
+          "description": "Check the file size when scanning managed folders. This has a higher cost than not checking the file size, as it will check the file size on EVERY file in the folder at the path to scan.",
+          "default": false
         },
         "MaxAutoScanAttemptsPerFile": {
           "title": "Max auto-scan attempts per file",
@@ -304,12 +324,14 @@
         "UseExistingFileWatchedStatus": {
           "title": "Use Existing Watched Status",
           "type": "boolean",
-          "description": "Use the existing episode watched status when importing files. Falls back to the episode-level watched record, so replacing a watched release (e.g. TV with blu-ray) after deleting the watched copy keeps the new file watched."
+          "description": "Use the existing episode watched status when importing files. Falls back to the episode-level watched record, so replacing a watched release (e.g. TV with blu-ray) after deleting the watched copy keeps the new file watched.",
+          "default": true
         },
         "AutomaticallyDeleteDuplicatesOnImport": {
           "title": "Automatically Delete Duplicates on Import",
           "type": "boolean",
-          "description": "Automatically delete duplicate files on import after hashing them."
+          "description": "Automatically delete duplicate files on import after hashing them.",
+          "default": false
         },
         "FileLockChecking": {
           "title": "Use File Lock Checking",
@@ -419,23 +441,27 @@
         "DownloadCharacters": {
           "title": "Download Character Images",
           "type": "boolean",
-          "description": "Download character images from AniDB."
+          "description": "Download character images from AniDB.",
+          "default": true
         },
         "DownloadCreators": {
           "title": "Download Creator Images & Data",
           "type": "boolean",
-          "description": "Download creator images and extra data from AniDB. The extra data is needed for staff to get images and to properly detect studios among other staff, etc.."
+          "description": "Download creator images and extra data from AniDB. The extra data is needed for staff to get images and to properly detect studios among other staff, etc..",
+          "default": true
         },
         "DownloadRelatedAnime": {
           "title": "Always Download Related Anime",
           "type": "boolean",
-          "description": "Always download related anime, regardless of if the auto-group setting is enabled."
+          "description": "Always download related anime, regardless of if the auto-group setting is enabled.",
+          "default": false
         },
         "MaxRelationDepth": {
           "title": "Max Relation Depth",
           "type": "integer",
           "description": "Max relation depth when scheduling anime to be updated/fetched.",
           "format": "int32",
+          "default": 1,
           "maximum": 5.0,
           "minimum": 0.0
         },
@@ -451,12 +477,14 @@
         "AutomaticallyImportSeries": {
           "title": "Automatically Import Series",
           "type": "boolean",
-          "description": "Automatically create a Shoko Series for each AniDB anime."
+          "description": "Automatically create a Shoko Series for each AniDB anime.",
+          "default": false
         },
         "Notification_HandleMovedFiles": {
           "title": "Handle Moved Files",
           "type": "boolean",
-          "description": "Handle 'File has been moved' messages from AniDB."
+          "description": "Handle 'File has been moved' messages from AniDB.",
+          "default": false
         },
         "ImageCdnUrl": {
           "title": "Image CDN URL",
@@ -493,6 +521,7 @@
           "type": "string",
           "description": "HTTP API server to communicate with.",
           "format": "uri",
+          "default": "http://api.anidb.net:9001",
           "minLength": 1,
           "x-uiDefinition": {
             "elementType": "auto",
@@ -510,6 +539,7 @@
           "title": "Server Address",
           "type": "string",
           "description": "UDP server to communicate with.",
+          "default": "api.anidb.net",
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -521,6 +551,7 @@
           "title": "Server Port",
           "type": "integer",
           "description": "UDP server port to communicate with.",
+          "default": 9000,
           "maximum": 65535.0,
           "minimum": 1.0,
           "x-uiDefinition": {
@@ -534,6 +565,7 @@
           "title": "Client Port",
           "type": "integer",
           "description": "UDP client port to communicate with.",
+          "default": 4556,
           "maximum": 65535.0,
           "minimum": 1.0,
           "x-uiDefinition": {
@@ -546,6 +578,7 @@
           "type": "integer",
           "description": "How often to ping the UDP server to keep the session alive.",
           "format": "int32",
+          "default": 60,
           "maximum": 120.0,
           "minimum": 30.0,
           "x-uiDefinition": {
@@ -575,7 +608,8 @@
         "AVDumpClientPort": {
           "title": "Client Port",
           "type": "integer",
-          "description": "The client port to prefer binding to when using AVDump to dump files for AniDB."
+          "description": "The client port to prefer binding to when using AVDump to dump files for AniDB.",
+          "default": 4557
         },
         "AVDump": {
           "title": "Advanced AVDump Settings",
@@ -598,6 +632,7 @@
           "type": "integer",
           "description": "Base rate in seconds for request and the multipliers.",
           "format": "int32",
+          "default": 2,
           "maximum": 60.0,
           "minimum": 2.0
         },
@@ -606,6 +641,7 @@
           "type": "integer",
           "description": "Slow rate multiplier applied to the Base Rate.",
           "format": "int32",
+          "default": 3,
           "maximum": 99.0,
           "minimum": 2.0
         },
@@ -614,6 +650,7 @@
           "type": "integer",
           "description": "Slow rate period multiplier applied to the Base Rate.",
           "format": "int32",
+          "default": 5,
           "maximum": 99.0,
           "minimum": 2.0
         },
@@ -622,6 +659,7 @@
           "type": "integer",
           "description": "Reset period multiplier applied to the Base Rate.",
           "format": "int32",
+          "default": 60,
           "maximum": 99.0,
           "minimum": 2.0
         }
@@ -635,6 +673,7 @@
           "type": "integer",
           "description": "Max concurrent hashing jobs to run in AVDump at the same time.",
           "format": "int32",
+          "default": 1,
           "maximum": 64.0,
           "minimum": 0.0
         },
@@ -643,6 +682,7 @@
           "type": "integer",
           "description": "Sets the timeout for a creq upload before retrying or bailing.",
           "format": "int32",
+          "default": 20,
           "maximum": 300.0,
           "minimum": 20.0
         },
@@ -651,6 +691,7 @@
           "type": "integer",
           "description": "Sets the max retry attempts for a creq upload before bailing.",
           "format": "int32",
+          "default": 3,
           "maximum": 20.0,
           "minimum": 1.0
         }
@@ -662,12 +703,17 @@
       "properties": {
         "AddFiles": {
           "title": "Add Files",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "SyncTargets": {
           "title": "Sync Targets",
           "type": "array",
           "description": "Which tiers of the MyList to reconcile during a sync.",
+          "default": [
+            "Videos",
+            "Episodes"
+          ],
           "uniqueItems": true,
           "items": {
             "$ref": "#/definitions/MylistSyncTargets"
@@ -676,6 +722,7 @@
         "WatchedEpisodeMode": {
           "title": "Watched Episode Mode",
           "description": "How to record a locally watched episode that the MyList covers only by file entries. Defaults to leaving those alone.",
+          "default": "Ignore",
           "$ref": "#/definitions/MylistWatchedEpisodeMode",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -698,22 +745,27 @@
         },
         "ReadWatched": {
           "title": "Read Watched",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "ReadUnwatched": {
           "title": "Read Unwatched",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "SetWatched": {
           "title": "Set Watched",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "SetUnwatched": {
           "title": "Set Unwatched",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "StorageState": {
           "title": "Storage State",
+          "default": "HDD",
           "$ref": "#/definitions/MylistState",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -745,11 +797,13 @@
         "UpdateStates": {
           "title": "Update States",
           "type": "boolean",
-          "description": "Update the desired state of existing MyList entries during a sync. When disabled, only new files are added with the desired state and existing entries are left as-is."
+          "description": "Update the desired state of existing MyList entries during a sync. When disabled, only new files are added with the desired state and existing entries are left as-is.",
+          "default": true
         },
         "WatchedSyncMode": {
           "title": "Watched State Sync",
           "description": "How to resolve watched-state conflicts during a MyList sync when the entry was updated on the same day as the local watch. Older differences are governed by the read/set settings instead.",
+          "default": "TrustRemote",
           "$ref": "#/definitions/MylistWatchedSyncMode",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -772,6 +826,7 @@
         },
         "DeleteType": {
           "title": "Delete Type",
+          "default": "MarkUnknown",
           "$ref": "#/definitions/MylistDeleteType",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -807,13 +862,15 @@
         "UseGenericFileIndex": {
           "title": "Use Generic File Index",
           "type": "boolean",
-          "description": "Consult a third-party index of generic file IDs during a sync. AniDB's MyList export does not mark generic entries, and the file state is only a convention a generic entry may not follow, so without the index the sync can mistake a generic entry for a file it no longer has. Turn this off to keep the sync entirely between this server and AniDB, at the cost of the sync no longer disposing of missing entries at all — it refuses to act on an entry it cannot classify, and without the index it cannot classify any of them."
+          "description": "Consult a third-party index of generic file IDs during a sync. AniDB's MyList export does not mark generic entries, and the file state is only a convention a generic entry may not follow, so without the index the sync can mistake a generic entry for a file it no longer has. Turn this off to keep the sync entirely between this server and AniDB, at the cost of the sync no longer disposing of missing entries at all — it refuses to act on an entry it cannot classify, and without the index it cannot classify any of them.",
+          "default": true
         },
         "RetainedBackupCount": {
           "title": "Retained Backup Count",
           "type": "integer",
           "description": "Number of days to retain backups of the downloaded MyList for the user.",
           "format": "int32",
+          "default": 30,
           "maximum": 99.0,
           "minimum": 0.0
         },
@@ -821,6 +878,11 @@
           "title": "Fetch Mode",
           "type": "array",
           "description": "How to fetch MyList entries from AniDB.",
+          "default": [
+            "Http",
+            "Udp",
+            "Cache"
+          ],
           "uniqueItems": true,
           "items": {
             "$ref": "#/definitions/MylistFetchMode"
@@ -965,6 +1027,7 @@
           "title": "Metadata Sources",
           "type": "array",
           "description": "What the core does with each plugin source, keyed by source, in place of SourceDefaults.",
+          "default": [],
           "items": {
             "$ref": "#/definitions/MetadataSourceOverrides"
           }
@@ -1005,6 +1068,11 @@
           "title": "Image Language Order",
           "type": "array",
           "description": "Image language preference order, in text form for storage. \"main\" is the entry's original language, and \"none\" an image without text.",
+          "default": [
+            "none",
+            "x-main",
+            "en"
+          ],
           "items": {
             "type": "string"
           }
@@ -1012,85 +1080,98 @@
         "AutoDownloadBackdrops": {
           "title": "Auto Download Backdrops",
           "type": "boolean",
-          "description": "Automatically download backdrops, up to MaxAutoBackdrops per entity."
+          "description": "Automatically download backdrops, up to MaxAutoBackdrops per entity.",
+          "default": true
         },
         "MaxAutoBackdrops": {
           "title": "Max Auto Backdrops",
           "type": "integer",
           "description": "The maximum number of backdrops to download for each entity. Set to `0` to disable the limit.",
           "format": "int32",
+          "default": 10,
           "maximum": 30.0,
           "minimum": 0.0
         },
         "AutoDownloadPosters": {
           "title": "Auto Download Posters",
           "type": "boolean",
-          "description": "Automatically download posters, up to MaxAutoPosters per entity."
+          "description": "Automatically download posters, up to MaxAutoPosters per entity.",
+          "default": true
         },
         "MaxAutoPosters": {
           "title": "Max Auto Posters",
           "type": "integer",
           "description": "The maximum number of posters to download for each entity. Set to `0` to disable the limit.",
           "format": "int32",
+          "default": 10,
           "maximum": 30.0,
           "minimum": 0.0
         },
         "AutoDownloadLogos": {
           "title": "Auto Download Logos",
           "type": "boolean",
-          "description": "Automatically download logos, up to MaxAutoLogos per entity."
+          "description": "Automatically download logos, up to MaxAutoLogos per entity.",
+          "default": true
         },
         "MaxAutoLogos": {
           "title": "Max Auto Logos",
           "type": "integer",
           "description": "The maximum number of logos to download for each entity. Set to `0` to disable the limit.",
           "format": "int32",
+          "default": 10,
           "maximum": 30.0,
           "minimum": 0.0
         },
         "AutoDownloadBanners": {
           "title": "Auto Download Banners",
           "type": "boolean",
-          "description": "Automatically download banners, up to MaxAutoBanners per entity."
+          "description": "Automatically download banners, up to MaxAutoBanners per entity.",
+          "default": true
         },
         "MaxAutoBanners": {
           "title": "Max Auto Banners",
           "type": "integer",
           "description": "The maximum number of banners to download for each entity. Set to `0` to disable the limit.",
           "format": "int32",
+          "default": 10,
           "maximum": 30.0,
           "minimum": 0.0
         },
         "AutoDownloadThumbnails": {
           "title": "Auto Download Thumbnails",
           "type": "boolean",
-          "description": "Automatically download episode thumbnails, up to MaxAutoThumbnails per episode."
+          "description": "Automatically download episode thumbnails, up to MaxAutoThumbnails per episode.",
+          "default": true
         },
         "MaxAutoThumbnails": {
           "title": "Max Auto Thumbnails",
           "type": "integer",
           "description": "The maximum number of thumbnails to download for each episode. Set to `0` to disable the limit.",
           "format": "int32",
+          "default": 1,
           "maximum": 30.0,
           "minimum": 0.0
         },
         "AutoDownloadStaffImages": {
           "title": "Auto Download Staff Images",
           "type": "boolean",
-          "description": "Automatically download images of creators and characters, up to MaxAutoStaffImages per person."
+          "description": "Automatically download images of creators and characters, up to MaxAutoStaffImages per person.",
+          "default": true
         },
         "MaxAutoStaffImages": {
           "title": "Max Auto Staff Images",
           "type": "integer",
           "description": "The maximum number of images to download for each creator or character. Set to `0` to disable the limit.",
           "format": "int32",
+          "default": 10,
           "maximum": 30.0,
           "minimum": 0.0
         },
         "AutoDownloadStudioImages": {
           "title": "Auto Download Studio Images",
           "type": "boolean",
-          "description": "Automatically download studio images."
+          "description": "Automatically download studio images.",
+          "default": true
         }
       }
     },
@@ -1105,6 +1186,7 @@
           "title": "Source",
           "type": "string",
           "description": "The source these settings are for.",
+          "default": "user",
           "minLength": 1
         },
         "EpisodeMatchLookAheadDays": {
@@ -1141,6 +1223,7 @@
         "Type": {
           "title": "Database Type",
           "description": "Determines the database backend to use for the main Shoko database.",
+          "default": "SQLite",
           "$ref": "#/definitions/DatabaseType",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -1167,6 +1250,7 @@
           "title": "Filename",
           "type": "string",
           "description": "File name of the SQLite database file.",
+          "default": "Shoko.db3",
           "pattern": ".+\\.(?:db3?|sqlite3?)$",
           "x-uiDefinition": {
             "elementType": "auto",
@@ -1179,6 +1263,7 @@
           "title": "Directory",
           "type": "string",
           "description": "Directory where the SQLite database file is stored.",
+          "default": "SQLite",
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -1190,6 +1275,7 @@
           "title": "Host",
           "type": "string",
           "description": "SQL Server or MySQL/MariaDB host address, optionally with port if it's not the default port for the database type.",
+          "default": "",
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -1201,6 +1287,7 @@
           "title": "Username",
           "type": "string",
           "description": "SQL Server or MySQL/MariaDB username.",
+          "default": "",
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -1223,6 +1310,7 @@
           "title": "Database Name",
           "type": "string",
           "description": "SQL Server or MySQL/MariaDB database name.",
+          "default": "",
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -1234,6 +1322,7 @@
           "title": "Connection String",
           "type": "string",
           "description": "Advanced SQL Server or MySQL/MariaDB connection string.",
+          "default": "",
           "x-uiDefinition": {
             "elementType": "text-area",
             "requiresRestart": true,
@@ -1245,6 +1334,7 @@
           "title": "Backup Directory",
           "type": "string",
           "description": "Directory for where to store the backups during database migrations.",
+          "default": "DatabaseBackup",
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -1256,6 +1346,7 @@
           "title": "Log SQL to Console",
           "type": "boolean",
           "description": "Log SQL statements to standard output. They will not appear in the log file or Web UI live log.",
+          "default": false,
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -1288,6 +1379,7 @@
         "Provider": {
           "title": "Database Type",
           "description": "Determines the database backend to use for the queue.",
+          "default": "SQLite",
           "$ref": "#/definitions/DatabaseProvider",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -1314,6 +1406,7 @@
           "title": "Database File",
           "type": "string",
           "description": "Path to the SQLite queue database file. Relative paths are resolved against the application data directory. Only used when Provider is SQLite.",
+          "default": "SQLite/Queue.db3",
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -1325,6 +1418,7 @@
           "title": "Connection String",
           "type": "string",
           "description": "The connection string for the queue database. For SQLite, this can be used to append additional options to the connection string. For all other providers this is a required field.",
+          "default": "",
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -1337,6 +1431,7 @@
           "type": "integer",
           "description": "Maximum total concurrent workers across all pools. Defaults to CPU count + 4.",
           "format": "int32",
+          "default": 0,
           "maximum": 2147483647.0,
           "minimum": -1.0,
           "x-uiDefinition": {
@@ -1351,6 +1446,7 @@
           "type": "integer",
           "description": "Maximum concurrent workers in the catch-all Default pool, for the jobs without a pool of their own. 0 matches the max total workers, and a higher value is capped to it.",
           "format": "int32",
+          "default": 0,
           "maximum": 2147483647.0,
           "minimum": 0.0,
           "x-uiDefinition": {
@@ -1365,6 +1461,7 @@
           "type": "integer",
           "description": "Milliseconds between coalesced DB flush operations.",
           "format": "int32",
+          "default": 3000,
           "maximum": 30000.0,
           "minimum": 100.0,
           "x-uiDefinition": {
@@ -1379,6 +1476,7 @@
           "type": "integer",
           "description": "Maximum number of jobs to flush in a single DB batch.",
           "format": "int32",
+          "default": 500,
           "maximum": 10000.0,
           "minimum": 1.0,
           "x-uiDefinition": {
@@ -1392,6 +1490,9 @@
           "title": "Limited Concurrency Overrides",
           "type": "object",
           "description": "A map of job type name to the number of allowed concurrent workers of that type. A metadata provider's job is named with the provider's full type name, e.g. `RefreshMetadataJob<My.Plugin.MyProvider>`.",
+          "default": {
+            "HashFileJob": 2
+          },
           "additionalProperties": {
             "type": "integer",
             "format": "int32"
@@ -1503,12 +1604,16 @@
         "UseSynonyms": {
           "title": "Use Synonyms",
           "type": "boolean",
-          "description": "Use synonyms when selecting the preferred language from AniDB."
+          "description": "Use synonyms when selecting the preferred language from AniDB.",
+          "default": false
         },
         "SeriesTitleLanguageOrder": {
           "title": "Series Title Language Order",
           "type": "array",
           "description": "Series / group title language preference order.",
+          "default": [
+            "x-main"
+          ],
           "items": {
             "type": "string"
           },
@@ -1521,6 +1626,10 @@
           "title": "Series Title Source Order",
           "type": "array",
           "description": "Series / group title source preference order.",
+          "default": [
+            "anidb",
+            "tmdb"
+          ],
           "items": {
             "type": "string"
           },
@@ -1533,6 +1642,9 @@
           "title": "Episode Title Language Order",
           "type": "array",
           "description": "Episode / season title language preference order.",
+          "default": [
+            "en"
+          ],
           "items": {
             "type": "string"
           },
@@ -1545,6 +1657,10 @@
           "title": "Episode Title Source Order",
           "type": "array",
           "description": "Episode / season title source preference order.",
+          "default": [
+            "tmdb",
+            "anidb"
+          ],
           "items": {
             "type": "string"
           },
@@ -1557,6 +1673,9 @@
           "title": "Description Language Order",
           "type": "array",
           "description": "Description language preference order.",
+          "default": [
+            "en"
+          ],
           "items": {
             "type": "string"
           },
@@ -1569,6 +1688,10 @@
           "title": "Description Source Order",
           "type": "array",
           "description": "Description source preference order.",
+          "default": [
+            "tmdb",
+            "anidb"
+          ],
           "items": {
             "type": "string"
           },
@@ -1585,6 +1708,7 @@
         "Libraries": {
           "title": "Libraries",
           "type": "array",
+          "default": [],
           "items": {
             "type": "integer",
             "format": "int32"
@@ -1592,7 +1716,8 @@
         },
         "Server": {
           "title": "Server",
-          "type": "string"
+          "type": "string",
+          "default": ""
         }
       }
     },
@@ -1603,6 +1728,7 @@
           "title": "Enabled Plugins",
           "type": "object",
           "description": "A list of all known plugins, with their enabled state.",
+          "default": {},
           "additionalProperties": {
             "type": "boolean"
           },
@@ -1617,6 +1743,7 @@
           "title": "Plugin Load Order",
           "type": "array",
           "description": "Load order of plugins. It will show both enabled and disabled, but disabled plugins will not be loaded.",
+          "default": [],
           "items": {
             "type": "string"
           },
@@ -1645,17 +1772,20 @@
         "RenameOnImport": {
           "title": "Rename On Import",
           "type": "boolean",
-          "description": "Indicates that we should rename a video file on import, and after metadata updates when the metadata related to the file may have changed."
+          "description": "Indicates that we should rename a video file on import, and after metadata updates when the metadata related to the file may have changed.",
+          "default": false
         },
         "MoveOnImport": {
           "title": "Move On Import",
           "type": "boolean",
-          "description": "Indicates that we should move a video file on import, and after metadata updates when the metadata related to the file may have changed."
+          "description": "Indicates that we should move a video file on import, and after metadata updates when the metadata related to the file may have changed.",
+          "default": false
         },
         "AllowRelocationInsideDestinationOnImport": {
           "title": "Allow Relocation Inside Destination On Import",
           "type": "boolean",
-          "description": "Indicates that we should relocate a video file that lives inside a drop destination managed folder that's not also a drop source on import."
+          "description": "Indicates that we should relocate a video file that lives inside a drop destination managed folder that's not also a drop source on import.",
+          "default": true
         }
       }
     },
@@ -1684,7 +1814,7 @@
         "InactivePluginVersionRetention": {
           "title": "Inactive Plugin Version Retention",
           "type": "string",
-          "description": "Time to retain old plugin versions before auto-cleanup. Defaults to 30 days.",
+          "description": "How long an older plugin version stays installed after a newer one was installed, before the \"Purge Inactive Plugin Versions\" scheduled action marks it for removal. It counts from that install, not from the restart that activated the newer version. A `.keep` file protects a version. Zero removes it at the next run. Defaults to 30 days.",
           "format": "duration",
           "default": "720.00:00.000000"
         }
@@ -1697,6 +1827,22 @@
           "title": "Signal Priority",
           "type": "array",
           "description": "Ordered list of quality signals used to rank release candidates. Comparison stops at the first signal where the two candidates differ.",
+          "default": [
+            "Source",
+            "Corrupted",
+            "Resolution",
+            "BitDepth",
+            "VideoCodec",
+            "Chaptered",
+            "AudioStreams",
+            "SubtitleStreams",
+            "AudioLanguage",
+            "SubtitleLanguage",
+            "AudioCodec",
+            "SubGroup",
+            "Version",
+            "Censored"
+          ],
           "items": {
             "$ref": "#/definitions/ReleaseSignalType"
           }
@@ -1705,6 +1851,13 @@
           "title": "Source Order",
           "type": "array",
           "description": "Ordered source preference: first entry is most preferred.",
+          "default": [
+            "BluRay",
+            "DVD",
+            "TV",
+            "Web",
+            "Unknown"
+          ],
           "items": {
             "type": "string"
           }
@@ -1713,6 +1866,13 @@
           "title": "Resolution Order",
           "type": "array",
           "description": "Ordered resolution preference: first entry is most preferred.",
+          "default": [
+            "2160p",
+            "1440p",
+            "1080p",
+            "720p",
+            "480p"
+          ],
           "items": {
             "type": "string"
           }
@@ -1721,6 +1881,14 @@
           "title": "Video Codec Order",
           "type": "array",
           "description": "Ordered video codec preference: first entry is most preferred.",
+          "default": [
+            "HEVC",
+            "H264",
+            "AV1",
+            "MPEG4",
+            "VC1",
+            "MPEG2"
+          ],
           "items": {
             "type": "string"
           }
@@ -1729,6 +1897,13 @@
           "title": "Audio Codec Order",
           "type": "array",
           "description": "Ordered audio codec preference: first entry is most preferred.",
+          "default": [
+            "FLAC",
+            "DCA",
+            "AAC",
+            "AC3",
+            "MP3"
+          ],
           "items": {
             "type": "string"
           }
@@ -1737,6 +1912,7 @@
           "title": "Audio Language Order",
           "type": "array",
           "description": "Ordered audio language preference: first entry is most preferred. Candidates are compared against this list in order — the first preferred language present in one candidate but not the other decides the winner. Empty list means no language preference — audio language comparison is always a tie.",
+          "default": [],
           "items": {
             "type": "string"
           }
@@ -1745,6 +1921,7 @@
           "title": "Subtitle Language Order",
           "type": "array",
           "description": "Ordered subtitle language preference: first entry is most preferred. Candidates are compared against this list in order — the first preferred language present in one candidate but not the other decides the winner. Empty list means no language preference — subtitle language comparison is always a tie.",
+          "default": [],
           "items": {
             "type": "string"
           }
@@ -1753,6 +1930,7 @@
           "title": "Sub Group Order",
           "type": "array",
           "description": "Ordered release-group preference: first entry is most preferred. Empty list means no group preference — subgroup comparison is always a tie.",
+          "default": [],
           "items": {
             "type": "string"
           }
@@ -1760,26 +1938,31 @@
         "PreferHigherBitDepth": {
           "title": "Prefer Higher Bit Depth",
           "type": "boolean",
-          "description": "When true, 10-bit video is preferred over 8-bit; when false, the opposite."
+          "description": "When true, 10-bit video is preferred over 8-bit; when false, the opposite.",
+          "default": true
         },
         "AutoDeleteOnImport": {
           "title": "Auto Delete On Import",
           "type": "boolean",
-          "description": "When true, the auto-management check runs at the end of every import. When false, no redundancy check is triggered on import; the check can still be invoked manually via the API."
+          "description": "When true, the auto-management check runs at the end of every import. When false, no redundancy check is triggered on import; the check can still be invoked manually via the API.",
+          "default": false
         },
         "AllowDeletion": {
           "title": "Allow Deletion",
           "type": "boolean",
-          "description": "When true, redundant release candidates are automatically deleted. When false, the check still runs but only logs what would be removed (preview/display mode). Requires AutoDeleteOnImport to be true for the deletion to trigger automatically on import."
+          "description": "When true, redundant release candidates are automatically deleted. When false, the check still runs but only logs what would be removed (preview/display mode). Requires AutoDeleteOnImport to be true for the deletion to trigger automatically on import.",
+          "default": false
         },
         "PerFileDeletionForAiringSeries": {
           "title": "Per File Deletion For Airing Series",
           "type": "boolean",
-          "description": "When true and a series is still airing, redundancy is evaluated per-file rather than per-candidate. Individual files whose episode coverage is already provided by a higher-ranked candidate are deleted, while the remaining files in that candidate (covering episodes the primary has not yet reached) are retained. When false (or when the series has finished airing), the existing whole-candidate rule applies: a secondary candidate is only deleted if its entire episode coverage is already subsumed by the primary."
+          "description": "When true and a series is still airing, redundancy is evaluated per-file rather than per-candidate. Individual files whose episode coverage is already provided by a higher-ranked candidate are deleted, while the remaining files in that candidate (covering episodes the primary has not yet reached) are retained. When false (or when the series has finished airing), the existing whole-candidate rule applies: a secondary candidate is only deleted if its entire episode coverage is already subsumed by the primary.",
+          "default": true
         },
         "EpisodeTypeScope": {
           "title": "Episode Type Scope",
           "description": "Controls how episode coverage is measured for mixed-type releases (releases that contain both regular episodes and specials).",
+          "default": "KeepTogether",
           "$ref": "#/definitions/EpisodeTypeScope",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -1910,6 +2093,7 @@
           "title": "Enable Trace Logging",
           "type": "boolean",
           "description": "Enable trace logging in the log file and web UI live console.",
+          "default": false,
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": false,
@@ -2099,6 +2283,7 @@
           "title": "Log Level Rules",
           "type": "array",
           "description": "Optional user-defined log level override rules keyed by logger pattern.",
+          "default": [],
           "items": {
             "$ref": "#/definitions/LogLevelRule"
           },
@@ -2231,17 +2416,20 @@
         "UID": {
           "title": "UID",
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "default": -1
         },
         "GID": {
           "title": "GID",
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "default": -1
         },
         "Permission": {
           "title": "Permission",
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "default": 0
         }
       }
     },

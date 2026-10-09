@@ -21,6 +21,7 @@
         "Enabled": {
           "title": "Enabled",
           "type": "boolean",
+          "default": true,
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -32,16 +33,19 @@
           "title": "Count",
           "type": "integer",
           "format": "int32",
+          "default": 4,
           "maximum": 100.0,
           "minimum": 1.0
         },
         "Ratio": {
           "title": "Ratio",
           "type": "number",
-          "format": "double"
+          "format": "double",
+          "default": 0.5
         },
         "Mode": {
           "title": "Mode",
+          "default": "balanced",
           "$ref": "#/definitions/TwinMode",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -65,6 +69,7 @@
         "Modes": {
           "title": "Modes",
           "type": "array",
+          "default": [],
           "items": {
             "$ref": "#/definitions/TwinMode"
           }
@@ -75,15 +80,18 @@
         },
         "Note": {
           "title": "Note",
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "Script": {
           "title": "Script",
-          "type": "string"
+          "type": "string",
+          "default": "{}"
         },
         "Endpoints": {
           "title": "Endpoints",
           "type": "array",
+          "default": [],
           "items": {
             "$ref": "#/definitions/TwinEndpoint"
           }
@@ -91,6 +99,7 @@
         "Weights": {
           "title": "Weights",
           "type": "object",
+          "default": {},
           "x-dictionaryKey": {
             "$ref": "#/definitions/TwinMode"
           },
@@ -102,6 +111,7 @@
         "Toggles": {
           "title": "Toggles",
           "type": "object",
+          "default": {},
           "additionalProperties": {
             "type": "boolean"
           }
@@ -135,15 +145,18 @@
       "properties": {
         "ID": {
           "title": "ID",
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "Url": {
           "title": "Url",
           "type": "string",
-          "format": "uri"
+          "format": "uri",
+          "default": ""
         },
         "Mode": {
           "title": "Mode",
+          "default": "balanced",
           "$ref": "#/definitions/TwinMode",
           "x-uiDefinition": {
             "elementType": "enum",

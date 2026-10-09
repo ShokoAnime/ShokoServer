@@ -252,9 +252,9 @@ public class ActionService : IActionService
                 : probe.Category.ToString();
 
             // The action's parameters are its own settable, serialized
-            // properties, described the same way a configuration is. Null when
-            // the action declares none.
-            var parameters = _actionUiDefinitionBuilder.Build(id, probe.Name, probe.Description, actionType, listsOptions: true);
+            // properties, described the same way a configuration is, with the
+            // defaults the probe was built with. Null when the action declares none.
+            var parameters = _actionUiDefinitionBuilder.Build(id, probe.Name, probe.Description, actionType, listsOptions: true, instance: probe);
 
             var info = new ExecutableActionInfo(
                 id,
