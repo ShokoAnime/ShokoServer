@@ -109,8 +109,9 @@ public interface IActionService
     ///   No action is registered under <paramref name="actionId"/>.
     /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
-    ///   The action may not be invoked here, by this caller, or the path does
-    ///   not lead to a parameter that takes options.
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, or a parameter value
+    ///   cannot be read, keyed by the path of that value.
     /// </exception>
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
@@ -145,8 +146,9 @@ public interface IActionService
     ///   No action is registered under <paramref name="actionId"/>.
     /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
-    ///   The action may not be invoked here, by this caller, or the path does
-    ///   not lead to a parameter that takes options.
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, or a parameter value
+    ///   cannot be read, keyed by the path of that value.
     /// </exception>
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
@@ -182,8 +184,9 @@ public interface IActionService
     ///   No action is registered under <paramref name="actionId"/>.
     /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
-    ///   The action may not be invoked here, by this caller, or the path does
-    ///   not lead to a parameter that takes options.
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, or a parameter value
+    ///   cannot be read, keyed by the path of that value.
     /// </exception>
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
@@ -219,8 +222,9 @@ public interface IActionService
     ///   No action is registered under <paramref name="actionId"/>.
     /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
-    ///   The action may not be invoked here, by this caller, or the path does
-    ///   not lead to a parameter that takes options.
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, or a parameter value
+    ///   cannot be read, keyed by the path of that value.
     /// </exception>
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
@@ -256,8 +260,9 @@ public interface IActionService
     ///   No action is registered under <paramref name="actionId"/>.
     /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
-    ///   The action may not be invoked here, by this caller, or the path does
-    ///   not lead to a parameter that takes options.
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, or a parameter value
+    ///   cannot be read, keyed by the path of that value.
     /// </exception>
     Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
         Guid actionId,
@@ -318,6 +323,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -334,6 +343,10 @@ public interface IActionService
     /// </returns>
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
     /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoGroup group, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
@@ -352,6 +365,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoSeries series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -369,6 +386,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -385,6 +406,10 @@ public interface IActionService
     /// </returns>
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
     /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
@@ -418,6 +443,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -436,6 +465,10 @@ public interface IActionService
     /// </returns>
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
     /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoGroup group, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
@@ -456,6 +489,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoSeries series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -475,6 +512,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -493,6 +534,10 @@ public interface IActionService
     /// </returns>
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
     /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
@@ -555,7 +600,8 @@ public interface IActionService
     ///   was queued. An entry's failure is keyed <c>IDs[i]</c>, where <c>i</c>
     ///   is its position in <paramref name="series"/>, so a caller can map each
     ///   failure back to what it passed; a failure of the action as a whole is
-    ///   keyed by the empty string.
+    ///   keyed by the empty string, and a parameter value that cannot be read
+    ///   is keyed by the path of that value.
     /// </exception>
     Task InvokeBulkAsync(Guid actionId, IReadOnlyList<IShokoSeries> series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
