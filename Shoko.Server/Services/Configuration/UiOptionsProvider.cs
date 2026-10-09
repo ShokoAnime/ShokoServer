@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Namotion.Reflection;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI;
@@ -27,8 +28,8 @@ namespace Shoko.Server.Services.Configuration;
 /// </summary>
 /// <remarks>
 ///   The same shapes are reported at the authoring site by the SHOKO0008 to
-///   SHOKO0013 analyzer rules; the check here is for a plugin built without
-///   them.
+///   SHOKO0013 and SHOKO0015 analyzer rules; the check here is for a plugin
+///   built without them.
 /// </remarks>
 internal static class UiOptionsProvider
 {
@@ -99,6 +100,8 @@ internal static class UiOptionsProvider
                 providers[(member, attribute.Target)] = method;
             }
 
+            CheckKeyParameter(owner, method, attribute, declaredBy);
+
             var returned = GetReturnedOptionType(method.ReturnType);
             if (returned != optionType && returned != typeof(SelectOption<>).TryMakeGenericType(optionType!))
             {
@@ -112,6 +115,36 @@ internal static class UiOptionsProvider
         }
 
         return providers;
+    }
+
+    /// <summary>
+    ///   Checks the parameter marked <see cref="OptionsKeyAttribute"/>, if any:
+    ///   there is one at most, and only on a provider of dictionary values
+    ///   keyed by exactly its type.
+    /// </summary>
+    private static void CheckKeyParameter(Type owner, MethodInfo method, OptionsProviderAttribute attribute, string declaredBy)
+    {
+        var keyParameters = method.GetParameters().Where(x => x.IsDefined(typeof(OptionsKeyAttribute), true)).ToList();
+        if (keyParameters.Count is 0)
+            return;
+        if (keyParameters.Count > 1)
+            throw Invalid(declaredBy, "takes more than one key");
+        if (attribute.Target is OptionsTarget.Keys)
+            throw Invalid(declaredBy, "takes a key, but lists keys, which have none");
+
+        var keyType = keyParameters[0].ParameterType;
+        foreach (var member in attribute.Members)
+        {
+            var property = owner.GetProperty(member, BindingFlags.Public | BindingFlags.Instance)!;
+            if (GetDictionaryTypes(Unwrap(property.PropertyType)) is not { } dictionary)
+                throw Invalid(declaredBy, $"takes a key, but names \"{member}\", which is not a dictionary");
+            if (dictionary.Key != keyType)
+            {
+                var keyName = ShokoJsonSchemaGenerator.GetFriendlyTypeName(keyType);
+                var dictionaryKeyName = ShokoJsonSchemaGenerator.GetFriendlyTypeName(dictionary.Key);
+                throw Invalid(declaredBy, $"takes a key of {keyName}, but \"{member}\" is keyed by {dictionaryKeyName}");
+            }
+        }
     }
 
     /// <summary>
@@ -270,32 +303,47 @@ internal static class UiOptionsProvider
     ///   Walks a path to the member it names, and returns the instance holding
     ///   it along with the method that member takes its options from.
     /// </summary>
+    /// <remarks>
+    ///   A dictionary's own path asks for its keys, and the path of one of its
+    ///   entries, such as <c>Weights["key"]</c>, for the values of that key,
+    ///   whether the dictionary holds the key yet or not. Any other member's
+    ///   path asks for its values.
+    /// </remarks>
     /// <param name="root">The configuration or action instance.</param>
     /// <param name="path">The member's path, as a custom action is invoked with.</param>
-    /// <param name="target">The part of the member the options are for.</param>
     /// <param name="isNewtonsoftJson">Whether the path uses the Newtonsoft member names.</param>
-    /// <returns>The instance holding the member, and the method.</returns>
+    /// <returns>The instance holding the member, the method and the entry's key, if one was asked for.</returns>
     /// <exception cref="ArgumentException">
-    ///   Thrown when the path does not lead to a member that takes options.
+    ///   Thrown when the path does not lead to a member that takes options, or
+    ///   names a key the dictionary's key type cannot hold.
     /// </exception>
-    public static (object Owner, MethodInfo Method) Resolve(object root, string path, OptionsTarget target, bool isNewtonsoftJson)
+    public static OptionsRequest Resolve(object root, string path, bool isNewtonsoftJson)
     {
         var parts = ConfigurationService.SplitPath(path);
-        if (parts.Length is 0 || parts[^1].StartsWith('['))
+        var keyPart = parts.Length > 1 && parts[^1].StartsWith("[\"") ? parts[^1] : null;
+        var memberIndex = keyPart is null ? parts.Length - 1 : parts.Length - 2;
+        if (memberIndex < 0 || parts[memberIndex].StartsWith('['))
             throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
 
         var owner = root;
-        foreach (var part in parts[..^1])
+        foreach (var part in parts[..memberIndex])
         {
             owner = Step(owner, part) ?? throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
         }
 
-        if (FindProperty(owner.GetType(), parts[^1], isNewtonsoftJson) is not { } property)
+        if (FindProperty(owner.GetType(), parts[memberIndex], isNewtonsoftJson) is not { } property)
             throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
+
+        var dictionary = GetDictionaryTypes(Unwrap(property.PropertyType));
+        if (keyPart is not null && dictionary is null)
+            throw new ArgumentException($"Invalid path \"{path}\"", nameof(path));
+
+        var target = dictionary is not null && keyPart is null ? OptionsTarget.Keys : OptionsTarget.Values;
         if (!GetProviders(property.ReflectedType!).TryGetValue((property.Name, target), out var method))
             throw new ArgumentException($"The {Noun(target)} of the member at \"{path}\" take no options", nameof(path));
 
-        return (owner, method);
+        var key = keyPart is null ? null : ParseKey(keyPart, dictionary!.Value.Key, isNewtonsoftJson, path);
+        return new(owner, method, key);
 
         object? Step(object value, string part)
         {
@@ -314,6 +362,44 @@ internal static class UiOptionsProvider
         }
     }
 
+    /// <summary>
+    ///   Reads the key of a <c>["key"]</c> path part as the dictionary's key
+    ///   type, the way the serializer reads a key of the document.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    ///   Thrown when the part is not a quoted key, or the key type cannot hold it.
+    /// </exception>
+    private static object ParseKey(string part, Type keyType, bool isNewtonsoftJson, string path)
+    {
+        var invalid = new ArgumentException($"Invalid key in path \"{path}\"", nameof(path));
+        if (part.Length < 4 || !part.EndsWith("\"]"))
+            throw invalid;
+
+        // The quoted key is a JSON string, with a dot escaped for the path.
+        var quoted = part[1..^1].Replace("\\.", ".");
+        var dictionaryType = typeof(Dictionary<,>).MakeGenericType(keyType, typeof(object));
+        var json = $"{{{quoted}:null}}";
+        try
+        {
+            var parsed = isNewtonsoftJson
+                ? JsonConvert.DeserializeObject(json, dictionaryType, _newtonsoftSettings)
+                : System.Text.Json.JsonSerializer.Deserialize(json, dictionaryType, _systemTextJsonOptions);
+            if (parsed is IDictionary { Count: 1 } entry)
+                return entry.Keys.Cast<object>().Single();
+        }
+        catch (Exception ex) when (ex is Newtonsoft.Json.JsonException or System.Text.Json.JsonException or NotSupportedException or FormatException or
+            ArgumentException)
+        {
+            throw new ArgumentException($"Invalid key in path \"{path}\": {ex.Message}", nameof(path), ex);
+        }
+
+        throw invalid;
+    }
+
+    private static readonly JsonSerializerSettings _newtonsoftSettings = ShokoJsonSerializers.CreateNewtonsoftSettings();
+
+    private static readonly System.Text.Json.JsonSerializerOptions _systemTextJsonOptions = ShokoJsonSerializers.CreateSystemTextJsonOptions();
+
     private static PropertyInfo? FindProperty(Type type, string name, bool isNewtonsoftJson)
         => type.ToContextualType().Properties
             .FirstOrDefault(x => string.Equals(ConfigurationService.GetJsonName(x, isNewtonsoftJson), name, StringComparison.Ordinal))
@@ -331,6 +417,7 @@ internal static class UiOptionsProvider
     /// <param name="owner">The instance declaring the member.</param>
     /// <param name="arguments">The values the method's parameters may take.</param>
     /// <param name="convert">Serialises a value the way its owner would.</param>
+    /// <param name="key">The entry's key, for a parameter marked <see cref="OptionsKeyAttribute"/>.</param>
     /// <returns>
     ///   The options, in the order the method listed them, without those of a
     ///   flags enum that are not one single-bit member.
@@ -340,13 +427,15 @@ internal static class UiOptionsProvider
         IPluginManager pluginManager,
         object owner,
         IEnumerable<object?> arguments,
-        Func<object?, JToken?> convert
+        Func<object?, JToken?> convert,
+        object? key = null
     )
     {
+        var keyIndex = Array.FindIndex(method.GetParameters(), x => x.IsDefined(typeof(OptionsKeyAttribute), true));
         object? result;
         try
         {
-            result = method.Invoke<object>(pluginManager, owner, arguments);
+            result = method.Invoke<object>(pluginManager, owner, arguments, keyIndex < 0 ? null : new Dictionary<int, object?> { [keyIndex] = key });
         }
         catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
@@ -431,3 +520,11 @@ internal static class UiOptionsProvider
 
     #endregion
 }
+
+/// <summary>
+///   What an options request resolved to.
+/// </summary>
+/// <param name="Owner">The instance declaring the member.</param>
+/// <param name="Method">The method listing the options.</param>
+/// <param name="Key">The key of the dictionary entry asked for, or <c>null</c>.</param>
+internal sealed record OptionsRequest(object Owner, MethodInfo Method, object? Key);

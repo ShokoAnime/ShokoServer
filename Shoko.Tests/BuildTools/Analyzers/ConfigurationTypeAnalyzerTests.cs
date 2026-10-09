@@ -124,6 +124,9 @@ public class ConfigurationTypeAnalyzerTests
                 public OptionsTarget Target { get; set; }
             }
 
+            [System.AttributeUsage(System.AttributeTargets.Parameter)]
+            public class OptionsKeyAttribute : System.Attribute { }
+
             [System.AttributeUsage(System.AttributeTargets.Method)]
             public class CustomActionAttribute : System.Attribute
             {
@@ -995,7 +998,7 @@ public class ConfigurationTypeAnalyzerTests
                 public string[] ListWeightKeys() => new string[0];
 
                 [OptionsProvider(nameof(Weights))]
-                public int[] ListWeightValues() => new int[0];
+                public int[] ListWeightValues([OptionsKey] string key) => new int[0];
 
                 [OptionsProvider(nameof(Colour))]
                 public Colour[] ListColours() => new Colour[0];
@@ -1052,6 +1055,9 @@ public class ConfigurationTypeAnalyzerTests
 
                 [{|#9:OptionsProvider|}]
                 public int[] ListNothing() => new int[0];
+
+                [{|#10:OptionsProvider(nameof(Weights))|}]
+                public long[] ListWeightValues([OptionsKey] int key) => new long[0];
             }
             """,
             new DiagnosticResult(Diagnostics.UnknownOptionsMember)
@@ -1083,7 +1089,10 @@ public class ConfigurationTypeAnalyzerTests
                 .WithArguments("MyConfig.ListGeneric", "is generic"),
             new DiagnosticResult(Diagnostics.UnknownOptionsMember)
                 .WithLocation(9)
-                .WithArguments("MyConfig.ListNothing", "names no members"));
+                .WithArguments("MyConfig.ListNothing", "names no members"),
+            new DiagnosticResult(Diagnostics.UnusableOptionsKey)
+                .WithLocation(10)
+                .WithArguments("MyConfig.ListWeightValues", "takes a key of int, but \"Weights\" is keyed by string"));
     }
 
     [Fact]

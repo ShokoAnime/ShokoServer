@@ -11,7 +11,6 @@ using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.UI;
-using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.Repositories.Cached;
@@ -65,23 +64,25 @@ public class EpisodeActionController(IActionService actionService, AnimeEpisodeR
 
     /// <summary>
     ///   List the options the server offers for one of a episode-scoped
-    ///   action's parameters, as the parameter's <c>OptionsRoute</c> says to.
+    ///   action's parameters, when the parameter's <c>HasOptions</c> is set.
     /// </summary>
     /// <param name="episodeID">Episode ID.</param>
     /// <param name="actionID">Action ID.</param>
     /// <param name="parameters">Optional. The parameters entered so far.</param>
-    /// <param name="target">The part of the member to list for: its values by default, or <c>Keys</c> for a dictionary's keys.</param>
-    /// <param name="path">Path to the parameter, the same path a configuration's custom action is invoked with.</param>
+    /// <param name="path">
+    ///   Path to the parameter, the same path a configuration's custom action
+    ///   is invoked with. A dictionary's own path lists its keys, and the path
+    ///   of one of its entries, such as <c>Weights["key"]</c>, the values for
+    ///   that key.
+    /// </param>
     /// <param name="token">Cancellation token.</param>
     /// <returns>The options, in the order the provider listed them.</returns>
     [HttpPost("{actionID:guid}/Options")]
-    [HttpPost("{actionID:guid}/Options/{target}")]
     public async Task<ActionResult<IReadOnlyList<UiOption>>> GetOptions(
         [FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Guid actionID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JObject? parameters,
         [FromQuery] string path = "",
-        [FromRoute] OptionsTarget target = OptionsTarget.Values,
         CancellationToken token = default
     )
     {
@@ -97,7 +98,7 @@ public class EpisodeActionController(IActionService actionService, AnimeEpisodeR
 
         try
         {
-            return Ok(await actionService.GetParameterOptionsAsync(actionID, episodeEntity, path, target, parameters.ToParameters(), User, token));
+            return Ok(await actionService.GetParameterOptionsAsync(actionID, episodeEntity, path, parameters.ToParameters(), User, token));
         }
         catch (GenericValidationException ex)
         {

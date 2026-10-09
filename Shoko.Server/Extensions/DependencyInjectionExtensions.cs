@@ -14,7 +14,8 @@ public static class DependencyInjectionExtensions
         this MethodInfo method,
         IPluginManager pluginManager,
         object target,
-        IEnumerable<object?> manualArgs)
+        IEnumerable<object?> manualArgs,
+        IReadOnlyDictionary<int, object?>? positionalArgs = null)
     {
         var parameters = method.GetParameters();
         var manualList = manualArgs.WhereNotNull().ToList();
@@ -23,6 +24,12 @@ public static class DependencyInjectionExtensions
         for (var i = 0; i < parameters.Length; i++)
         {
             var param = parameters[i];
+            if (positionalArgs is not null && positionalArgs.TryGetValue(i, out var positional))
+            {
+                arguments[i] = positional;
+                continue;
+            }
+
             switch (param)
             {
                 case { ParameterType: var t } when manualList.FirstOrDefault(t.IsInstanceOfType) is { } match:

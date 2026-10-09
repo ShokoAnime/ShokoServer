@@ -53,7 +53,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     /// <param name="wrapped">The generated schema and its typed builders.</param>
     /// <param name="listsOptions">
     ///   Whether the server lists the options of a member that takes them,
-    ///   under the form's own route.
+    ///   which sets <see cref="UiElement.HasOptions"/>.
     /// </param>
     /// <returns>A definition that is self-sufficient for rendering.</returns>
     public UiDefinition Build(Guid id, string name, string? description, WrappedJsonSchema wrapped, bool listsOptions = false)
@@ -663,7 +663,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             ? new UiEnvironmentVariable { Name = envVar, AllowOverride = property!.EnvironmentVariableOverridable }
             : null;
         if (isNamedMember && property is not null)
-            ApplyOptionsRoutes(state, element, property);
+            ApplyHasOptions(state, element, property);
         element.Default = ToToken(declared.Default ?? resolved.Default);
         element.IsRequired = isRequired;
         element.IsNullable = declared.IsNullable(SchemaType.JsonSchema) || resolved.IsNullable(SchemaType.JsonSchema);
@@ -672,14 +672,10 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     }
 
     /// <summary>
-    ///   Files the options routes on the elements that render the choices: an
+    ///   Marks the elements that render the choices as having options: an
     ///   entry of a list, a key or value of a dictionary, or the element itself.
     /// </summary>
-    /// <remarks>
-    ///   The routes are relative to the form's own route, so a scoped action's
-    ///   entity comes from the route the client invokes it on.
-    /// </remarks>
-    private static void ApplyOptionsRoutes(WalkState state, UiElement element, UiPropertyBuilder property)
+    private static void ApplyHasOptions(WalkState state, UiElement element, UiPropertyBuilder property)
     {
         if (!state.ListsOptions)
             return;
@@ -693,11 +689,11 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
                 UiRecordElement record => record.Item,
                 _ => element,
             };
-            target.OptionsRoute = "Options";
+            target.HasOptions = true;
         }
 
         if (property.HasKeyOptions && element is UiRecordElement keyed)
-            keyed.KeyItem.OptionsRoute = "Options/Keys";
+            keyed.KeyItem.HasOptions = true;
     }
 
     /// <summary>

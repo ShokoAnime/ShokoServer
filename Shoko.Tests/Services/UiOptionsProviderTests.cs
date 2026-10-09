@@ -30,7 +30,7 @@ public class UiOptionsProviderTests
     #region Definition
 
     [Fact]
-    public void EveryProvidedMemberPointsAtTheRoute()
+    public void EveryProvidedMemberHasOptions()
     {
         var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(OptionsConfiguration));
         var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Options", null, wrapped, listsOptions: true);
@@ -41,16 +41,16 @@ public class UiOptionsProviderTests
         var weights = Assert.IsType<UiRecordElement>(root.Items["Weights"]);
         var groups = Assert.IsType<UiRecordElement>(root.Items["Groups"]);
 
-        // Each route sits on the element that renders the choice: a list's
+        // The flag sits on the element that renders the choice: a list's
         // entry, a dictionary's key or value, or the member itself.
         Assert.All(
             new[] { root.Items["Port"], root.Items["Mode"], tags.Item, root.Items["Tag"], row.Items["Name"], weights.Item, Assert.IsType<UiListElement>(groups.Item).Item },
-            element => Assert.Equal("Options", element.OptionsRoute)
+            element => Assert.True(element.HasOptions)
         );
-        Assert.Equal("Options/Keys", weights.KeyItem.OptionsRoute);
+        Assert.True(weights.KeyItem.HasOptions);
         Assert.All(
             new[] { root.Items["Plain"], row.Items["Prefix"], tags, rows, weights, groups.KeyItem },
-            element => Assert.Null(element.OptionsRoute)
+            element => Assert.False(element.HasOptions)
         );
     }
 
@@ -73,6 +73,7 @@ public class UiOptionsProviderTests
     [InlineData(typeof(WrongElementConfiguration), "rather than a collection of Int32")]
     [InlineData(typeof(KeysOfAScalarConfiguration), "is not a dictionary, so it has no keys")]
     [InlineData(typeof(WrongKeyTypeConfiguration), "rather than a collection of String")]
+    [InlineData(typeof(WrongOptionsKeyConfiguration), "takes a key of String, but \"Weights\" is keyed by Int32")]
     [InlineData(typeof(ComplexOptionConfiguration), "neither a primitive nor convertible to and from one")]
     [InlineData(typeof(ConvertedForTextConfiguration), "returns TestColour[] rather than a collection of String")]
     [InlineData(typeof(TextForConvertedConfiguration), "returns String[] rather than a collection of TestColour")]
@@ -117,13 +118,25 @@ public class UiOptionsProviderTests
     [Fact]
     public async Task ADictionaryListsItsKeysAndValuesApartWithoutNulls()
     {
-        var keys = await ListAsync(new OptionsConfiguration(), "Weights", OptionsTarget.Keys);
-        var values = await ListAsync(new OptionsConfiguration(), "Weights");
+        var keys = await ListAsync(new OptionsConfiguration(), "Weights");
+        var values = await ListAsync(new OptionsConfiguration(), "Weights[\"a\"]");
 
         // A value without a label is labelled with its own text.
         Assert.Equal([("first", "first"), ("first", "first")], keys.Select(x => (x.Value!.Value<string>(), x.Label)));
         Assert.Equal([("1", "1"), ("2", "2")], values.Select(x => (x.Value!.ToString(), x.Label)));
     }
+
+    [Fact]
+    public async Task AnEntryPathHandsItsKeyToTheValuesProviderEvenWhenNotInTheDraft()
+    {
+        var options = await ListAsync(new OptionsConfiguration(), "Limits[\"3\"]");
+
+        Assert.Equal([3, 30], options.Select(x => x.Value!.Value<int>()));
+    }
+
+    [Fact]
+    public void AKeyTheKeyTypeCannotHoldIsRejected()
+        => Assert.ThrowsAny<ArgumentException>(() => UiOptionsProvider.Resolve(new OptionsConfiguration(), "Limits[\"x\"]", isNewtonsoftJson: true));
 
     [Theory]
     [InlineData(nameof(RefusingConfiguration.Sync))]
@@ -131,7 +144,7 @@ public class UiOptionsProviderTests
     public async Task AProviderRefusalSurfacesAsThrown(string path)
     {
         var configuration = new RefusingConfiguration();
-        var (owner, method) = UiOptionsProvider.Resolve(configuration, path, OptionsTarget.Values, isNewtonsoftJson: true);
+        var (owner, method, _) = UiOptionsProvider.Resolve(configuration, path, isNewtonsoftJson: true);
 
         var exception = await Assert.ThrowsAsync<GenericValidationException>(
             () => UiOptionsProvider.InvokeAsync(method, Mock.Of<IPluginManager>(), owner, [], value => JToken.FromObject(value!))
@@ -171,18 +184,20 @@ public class UiOptionsProviderTests
     [InlineData("Missing")]
     [InlineData("Rows[3].Name")]
     [InlineData("Rows[0]")]
+    [InlineData("Tags[\"a\"]")]
     public void APathNotEndingInAProvidedMemberIsRejected(string path)
-        => Assert.ThrowsAny<ArgumentException>(() => UiOptionsProvider.Resolve(new OptionsConfiguration { Rows = [new()] }, path, OptionsTarget.Values, isNewtonsoftJson: true));
+        => Assert.ThrowsAny<ArgumentException>(() => UiOptionsProvider.Resolve(new OptionsConfiguration { Rows = [new()] }, path, isNewtonsoftJson: true));
 
-    private static async Task<IReadOnlyList<UiOption>> ListAsync(OptionsConfiguration configuration, string path, OptionsTarget target = OptionsTarget.Values)
+    private static async Task<IReadOnlyList<UiOption>> ListAsync(OptionsConfiguration configuration, string path)
     {
-        var (owner, method) = UiOptionsProvider.Resolve(configuration, path, target, isNewtonsoftJson: true);
+        var (owner, method, key) = UiOptionsProvider.Resolve(configuration, path, isNewtonsoftJson: true);
         return await UiOptionsProvider.InvokeAsync(
             method,
             Mock.Of<IPluginManager>(),
             owner,
             [configuration],
-            value => value is null ? null : JToken.FromObject(value)
+            value => value is null ? null : JToken.FromObject(value),
+            key
         );
     }
 
@@ -222,6 +237,14 @@ public class UiOptionsProviderTests
 
         /// <summary>A dictionary of lists, whose entries share the values' provider.</summary>
         public Dictionary<string, List<int>> Groups { get; set; } = [];
+
+        /// <summary>A dictionary whose values are listed per key.</summary>
+        public Dictionary<int, int> Limits { get; set; } = [];
+
+        /// <summary>Lists limits for the slot asked for.</summary>
+        [OptionsProvider(nameof(Limits))]
+        public int[] ListLimits([OptionsKey] int slot)
+            => [slot, slot * 10];
 
         /// <summary>Lists ports around the edited one.</summary>
         [OptionsProvider(nameof(Port))]
@@ -354,6 +377,18 @@ public class UiOptionsProviderTests
         /// <summary>Lists numbers for string keys.</summary>
         [OptionsProvider(nameof(Weights), Target = OptionsTarget.Keys)]
         public int[] Value()
+            => [];
+    }
+
+    /// <summary>Takes a key of another type than the dictionary's.</summary>
+    public class WrongOptionsKeyConfiguration
+    {
+        /// <summary>The member.</summary>
+        public Dictionary<int, int> Weights { get; set; } = [];
+
+        /// <summary>Lists numbers for a text key.</summary>
+        [OptionsProvider(nameof(Weights))]
+        public int[] Value([OptionsKey] string key)
             => [];
     }
 

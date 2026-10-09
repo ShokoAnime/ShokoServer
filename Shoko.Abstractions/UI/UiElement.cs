@@ -79,18 +79,17 @@ public abstract class UiElement
     public IReadOnlyList<Config.Enums.ReactiveEventType> ReactsToLiveEdit { get; set; } = [];
 
     /// <summary>
-    /// Where to fetch the values the element may take, relative to the form's
-    /// own route, or <c>null</c> when the server does not list them.
+    /// Whether the server lists the values the element may take.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// It is <c>Options</c>, or <c>Options/Keys</c> for a dictionary's keys,
-    /// appended to the configuration's route or the route the action is
-    /// invoked on, such as <c>/api/v3/Series/1234/Action/{actionID}</c>.
-    /// POST to it with the member's path as the <c>path</c> query parameter
-    /// and the edited document as the body. The path is always the member's
-    /// own, so an entry of a list or a key or value of a dictionary is listed
-    /// for by its member's path.
+    /// POST to the form's own route with <c>/Options</c> appended, such as
+    /// <c>/api/v3/Configuration/{configID}/Options</c> or
+    /// <c>/api/v3/Series/1234/Action/{actionID}/Options</c>, with the edited
+    /// document as the body and a <c>path</c> query parameter. A list's
+    /// entries and a dictionary's keys are listed at the member's own path,
+    /// and a dictionary's values at the path of the entry, such as
+    /// <c>Weights["key"]</c>, which need not be in the dictionary yet.
     /// </para>
     /// <para>
     /// The answer is a list of <see cref="UiOption"/> in the provider's order,
@@ -98,7 +97,7 @@ public abstract class UiElement
     /// provider refused the draft.
     /// </para>
     /// </remarks>
-    public string? OptionsRoute { get; set; }
+    public bool HasOptions { get; set; }
 
     /// <summary>
     /// The default value for the element, if the schema declared one.

@@ -15,7 +15,6 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI;
-using Shoko.Abstractions.UI.Enums;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
@@ -454,25 +453,26 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
     /// <summary>
     ///   List the options the server offers for a member of the configuration
-    ///   with the given id, as the member's <c>OptionsRoute</c> says to.
+    ///   with the given id, when the member's <c>HasOptions</c> is set.
     /// </summary>
     /// <param name="configID">Configuration id</param>
     /// <param name="body">
     ///   Optional. The edited configuration, unsaved changes included. The
     ///   saved one is used when it is left out.
     /// </param>
-    /// <param name="target">The part of the member to list for: its values by default, or <c>Keys</c> for a dictionary's keys.</param>
-    /// <param name="path">Path to the member, the same path a custom action is invoked with.</param>
+    /// <param name="path">
+    ///   Path to the member, the same path a custom action is invoked with. A
+    ///   dictionary's own path lists its keys, and the path of one of its
+    ///   entries, such as <c>Weights["key"]</c>, the values for that key.
+    /// </param>
     /// <returns>The options, in the order the provider listed them.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [HttpPost("{configID:guid}/Options")]
-    [HttpPost("{configID:guid}/Options/{target}")]
     public async Task<ActionResult<IReadOnlyList<UiOption>>> GetConfigurationOptions(
         Guid configID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body,
-        [FromQuery] string path = "",
-        [FromRoute] OptionsTarget target = OptionsTarget.Values
+        [FromQuery] string path = ""
     )
     {
         if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
@@ -484,7 +484,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
                 ? configurationService.RestoreMaskedSecrets(configInfo, incomingJson)
                 : configurationService.Serialize(configurationService.Load(configInfo));
             var config = configurationService.Deserialize(configInfo, json);
-            return Ok(await configurationService.GetOptionsAsync(configInfo, config, path, target, User, BaseUri));
+            return Ok(await configurationService.GetOptionsAsync(configInfo, config, path, User, BaseUri));
         }
         // The draft failing to load and the provider refusing it are both
         // validation problems, the provider's keyed as it threw them.
