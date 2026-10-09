@@ -256,7 +256,7 @@ public class ActionService : IActionService
             // The action's parameters are its own settable, serialized
             // properties, described the same way a configuration is. Null when
             // the action declares none.
-            var parameters = _actionUiDefinitionBuilder.Build(id, probe.Name, probe.Description, actionType, GetOptionsRoute(id, scope));
+            var parameters = _actionUiDefinitionBuilder.Build(id, probe.Name, probe.Description, actionType, listsOptions: true);
 
             var info = new ExecutableActionInfo(
                 id,
@@ -469,20 +469,6 @@ public class ActionService : IActionService
             ConvertParameterValue
         );
     }
-
-    /// <summary>
-    ///   Where an action's parameter options are listed. A scoped action's
-    ///   route keeps the entity's placeholder for the client to fill in.
-    /// </summary>
-    private static string GetOptionsRoute(Guid id, ActionScope scope)
-        => scope switch
-        {
-            ActionScope.Group => $"/api/v3/Group/{{groupID}}/Action/{id}/Options",
-            ActionScope.Series => $"/api/v3/Series/{{seriesID}}/Action/{id}/Options",
-            ActionScope.Episode => $"/api/v3/Episode/{{episodeID}}/Action/{id}/Options",
-            ActionScope.Video => $"/api/v3/File/{{fileID}}/Action/{id}/Options",
-            _ => $"/api/v3/Action/{id}/Options",
-        };
 
     /// <summary>
     ///   Serialises a parameter value the way the action's own parameter

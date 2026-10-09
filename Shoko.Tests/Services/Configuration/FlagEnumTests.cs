@@ -113,7 +113,7 @@ public class FlagEnumTests
     [Fact]
     public void Definition_IsTheElementOfAListOfTheEnum()
     {
-        var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Flags", null, CreateWrapped(), "route");
+        var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Flags", null, CreateWrapped(), listsOptions: true);
         var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
         var access = Assert.IsType<UiListElement>(root.Items["Access"]);
         var entry = Assert.IsType<UiEnumElement>(access.Item);
@@ -122,7 +122,7 @@ public class FlagEnumTests
         Assert.True(access.UniqueItems);
         Assert.False(access.Sortable);
         Assert.Equal(["Read", "Write", "run"], entry.Values.Select(x => x.Value));
-        Assert.Equal("route", entry.OptionsRoute);
+        Assert.Equal("Options", entry.OptionsRoute);
     }
 
     [Theory]

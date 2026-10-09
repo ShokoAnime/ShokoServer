@@ -33,7 +33,7 @@ public class UiOptionsProviderTests
     public void EveryProvidedMemberPointsAtTheRoute()
     {
         var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(OptionsConfiguration));
-        var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Options", null, wrapped, "route");
+        var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Options", null, wrapped, listsOptions: true);
         var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
         var rows = Assert.IsType<UiListElement>(root.Items["Rows"]);
         var row = Assert.IsType<UiSectionContainerElement>(rows.Item);
@@ -45,9 +45,9 @@ public class UiOptionsProviderTests
         // entry, a dictionary's key or value, or the member itself.
         Assert.All(
             new[] { root.Items["Port"], root.Items["Mode"], tags.Item, root.Items["Tag"], row.Items["Name"], weights.Item, Assert.IsType<UiListElement>(groups.Item).Item },
-            element => Assert.Equal("route", element.OptionsRoute)
+            element => Assert.Equal("Options", element.OptionsRoute)
         );
-        Assert.Equal("route/Keys", weights.KeyItem.OptionsRoute);
+        Assert.Equal("Options/Keys", weights.KeyItem.OptionsRoute);
         Assert.All(
             new[] { root.Items["Plain"], row.Items["Prefix"], tags, rows, weights, groups.KeyItem },
             element => Assert.Null(element.OptionsRoute)
@@ -58,7 +58,7 @@ public class UiOptionsProviderTests
     public void AParsableTypeIsDescribedAsText()
     {
         var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(ParsableConfiguration));
-        var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Parsable", null, wrapped, "route");
+        var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Parsable", null, wrapped, listsOptions: true);
         var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
 
         Assert.IsType<UiStringElement>(root.Items["Version"]);
