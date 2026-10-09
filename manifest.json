@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.504",
+      "tag": "v6.0.0-dev.504",
+      "commit": "6b4bfca9d33684bed0a921b5cf9e24cfcf464764",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.504/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-09T02:01:23Z",
+      "releaseNotes": "\n`feat` (`plugin`): **Purge inactive plugin versions**:\n\n- Added `IPluginPackageManager.PurgeInactivePluginVersions`, marking older versions for removal once a newer one was installed longer ago than `InactivePluginVersionRetention`, and newer ones only behind a pinned active version\n- Added the `.keep` marker, written by `IPluginManager.KeepPlugin`/`UnkeepPlugin` and exposed as `IsKept` beside `IsPinned`, to protect a version from the purge\n- Took `LocalPluginInfo.InstalledAt` from the main DLL's last-write time, stamped on a package install\n- Added the daily \"Purge Inactive Plugin Versions\" scheduled action\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.102**.\n"
+    },
+    {
       "version": "6.0.0.503",
       "tag": "v6.0.0-dev.503",
       "commit": "a33696c1b4b37636e71db13b9cb281556232d3b4",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.475/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-18T12:43:25Z",
       "releaseNotes": "\n`fix` (`plugin`): **Set a plugin up before the database, and record the failure instead of throwing**:\n\n`SetupPlugins` ran from `LateStart`, which is after the database is opened,\nand let the exception reach that handler. Both were wrong. A plugin should\ntake its services while the rest of the server is still ahead of it, and\nthrowing out of the start-up path skips the web host and lets the process\ndie with nothing left running to report why.\n\nThe failure is recorded where it happens and the boot is abandoned once the\nweb host is listening, so the server stays reachable in a state that names\nthe plugin that stopped it.\n\n- Moved the call to right after `InitPlugins`, before any database work\n- Recorded `StartupFailedException` rather than throwing, and returned the\n  host once it is up instead of continuing into setup mode or `LateStart`\n- Corrected the contract, which said `Setup` runs after the server is up\n\n`chore` (`abstractions`): **Bump to `6.0.0-alpha.91`**:\n\n`IPlugin.Setup`'s documentation changed after `alpha.90` was cut, and the XML\ndocs ship in the package, so a plugin author reading it needs a version that\ncarries the corrected text.\n"
-    },
-    {
-      "version": "6.0.0.474",
-      "tag": "v6.0.0-dev.474",
-      "commit": "6bd003e5d188d44fa92b4af1decbf9ca21a916d7",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.474/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-18T11:36:19Z",
-      "releaseNotes": "\n`fix` (`plugin`): **Make a failed `Setup` fatal once the web host can report it**:\n\n`Setup` ran from `InitPlugins`, which happens before the web host starts and\nbefore the hosted services a plugin registered, and a plugin that threw was\nskipped. That skip could not work: services are registered into the container\nbefore initialization and cannot be taken back out of a built one, so a\nskipped plugin's hosted services still started. `Shoko.Plugin.Mcp` proved it\nby taking the whole server down with a `NullReferenceException` inside\n`ConfigurationService.Load`, because the configuration type it reached for\nbelonged to the plugin that had just been dropped from the exported types.\n\nThe fault has to be fatal, then, since it cannot be contained. Running it\nlate makes it a fatal the operator can read: the web host is already\nlistening, so `StartupFailedException` reaches the Web UI and names the\nplugin instead of the process dying with a stack trace pointing at\nconfiguration.\n\n- Moved the call into `PluginManager.SetupPlugins`, invoked from `LateStart`\n  after the session factory is up\n- Let the throw reach `LateStart`'s handler, wrapped with the plugin's name\n- Dropped the skip, and with it the disposal that only made sense while a\n  plugin could be dropped and the server carry on\n- Said in the contract that `Setup` runs after the server is up, that\n  throwing stops startup, and that the hook only binds on recompile\n"
     }
   ]
 }
