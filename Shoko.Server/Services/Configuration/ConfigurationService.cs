@@ -401,6 +401,26 @@ public partial class ConfigurationService : IConfigurationService
                 .Invoke(null, [config, this, _pluginManager])!).ToDictionary(a => a.Key, a => a.Value.ToList());
         }
 
+        // The Validate hook judges every document about to be stored, so a
+        // Save hook or a plain save never sees one it would refuse.
+        if (errorDict.Count is 0 && !loadValidation && info.HasCustomValidation && config is not null)
+        {
+            var result = PerformReactiveActionInternal(
+                _loggerFactory,
+                _pluginManager,
+                this,
+                info,
+                config,
+                string.Empty,
+                ConfigurationActionType.Validate,
+                ReactiveEventType.All,
+                null,
+                null
+            );
+            if (result.ValidationErrors is { Count: > 0 } hookErrors)
+                errorDict = hookErrors.ToDictionary(a => a.Key, a => a.Value.ToList());
+        }
+
         if (errorDict.Count > 0)
         {
             _logger.LogTrace("Configuration validation failed for {Type} with {ErrorCount} errors.", info.Name, errorDict.Sum(a => a.Value.Count));

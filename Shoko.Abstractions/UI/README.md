@@ -238,7 +238,7 @@ Besides `[CustomAction]`, a class can declare lifecycle hooks with
 | `New` | When a fresh instance is created |
 | `Load` | When the configuration is fetched for editing |
 | `Save` | When it is saved |
-| `Validate` | When it is validated |
+| `Validate` | When it is validated, and before every save |
 | `LiveEdit` | While the user is editing, before anything is saved |
 
 A hook is declared on the class it belongs to, so a nested class handles its own
@@ -259,8 +259,9 @@ A hook owns its side of the job, which is the point of declaring one:
 
 - **`Load`** is handed a fresh instance, not the stored document. Build on the
   saved one by loading it yourself and returning what you want the user to edit.
-- **`Save`** is handed what the user submitted, and nothing is written unless it
-  writes it. This is the place to drop anything that should not reach disk.
+- **`Save`** is handed what the user submitted, once the schema and the
+  `Validate` hook have accepted it, and nothing is written unless it writes it.
+  This is the place to drop anything that should not reach disk.
 
 So that a client knows when it is worth posting the document, every container
 says whether it reacts:
