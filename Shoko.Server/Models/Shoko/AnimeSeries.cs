@@ -463,10 +463,10 @@ public class AnimeSeries : IShokoSeries
         => ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeasonCrossReferences(AniDB_ID, null) ?? [];
 
     IReadOnlyList<IMetadataEpisodeCrossReference> ISeries.MetadataEpisodeCrossReferences
-        => ISystemService.StaticServices.GetService<IMetadataService>()?.GetEpisodeCrossReferences(AniDB_ID, null) ?? [];
+        => ISystemService.StaticServices.GetService<IMetadataService>()?.GetEpisodeCrossReferencesForSeries(AniDB_ID, null) ?? [];
 
     IReadOnlyList<IMetadataMovieCrossReference> ISeries.MetadataMovieCrossReferences
-        => ISystemService.StaticServices.GetService<IMetadataService>()?.GetMovieCrossReferences(AniDB_ID, null) ?? [];
+        => ISystemService.StaticServices.GetService<IMetadataService>()?.GetMovieCrossReferencesForSeries(AniDB_ID, null) ?? [];
 
     AnimeType ISeries.Type => AniDB_Anime?.AnimeType ?? AnimeType.Unknown;
 
