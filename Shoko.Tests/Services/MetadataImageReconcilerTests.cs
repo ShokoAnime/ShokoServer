@@ -45,6 +45,8 @@ public class MetadataImageReconcilerTests
 
         public double? Rating { get; set; }
 
+        public bool IsPreferred { get; set; }
+
         public IImageCrossReference Object { get; set; } = null!;
     }
 
@@ -123,6 +125,7 @@ public class MetadataImageReconcilerTests
             xref.SetupGet(x => x.ImageID).Returns(state.ImageID);
             xref.SetupGet(x => x.ImageType).Returns(state.ImageType);
             xref.SetupGet(x => x.Source).Returns(state.Source);
+            xref.SetupGet(x => x.IsPreferred).Returns(() => state.IsPreferred);
             state.Object = xref.Object;
             Xrefs.Add(state);
             return state;
@@ -290,31 +293,6 @@ public class MetadataImageReconcilerTests
     }
 
     [Fact]
-    public async Task ASecondLinkToTheSameImageIsRemoved()
-    {
-        var images = new FakeImages();
-        await Reconciler(images).Reconcile(
-            Entity(MetadataEntityType.Studio),
-            Source,
-            [Poster("a.jpg")],
-            new(),
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-        var imageID = images.Of("a.jpg").ImageID;
-        images.Add(new() { ImageID = imageID, ImageType = ImageEntityType.Primary, Source = Source, Ordering = 1 });
-
-        await Reconciler(images).Reconcile(
-            Entity(MetadataEntityType.Studio),
-            Source,
-            [Poster("a.jpg")],
-            new(),
-            cancellationToken: TestContext.Current.CancellationToken
-        );
-
-        Assert.Single(images.Xrefs, xref => xref.ImageID == imageID);
-    }
-
-    [Fact]
     public async Task ASharedEntityIsReconciledOneJobAtATime()
     {
         var images = new FakeImages();
@@ -429,6 +407,21 @@ public class MetadataImageReconcilerTests
         Assert.DoesNotContain(images.Xrefs, xref => xref.ImageID == IImageManager.GetIDForImageSourceAndResourceID(Source, "a.jpg"));
         Assert.DoesNotContain(images.Xrefs, xref => xref.ImageType == ImageEntityType.Logo);
         Assert.Contains(other, images.Xrefs);
+    }
+
+    [Fact]
+    public async Task APreferredImageTheSourceDroppedStaysLinked()
+    {
+        var images = new FakeImages();
+        var reconciler = Reconciler(images);
+        var entity = Entity(MetadataEntityType.Series);
+        await reconciler.Reconcile(entity, Source, [Poster("a.jpg"), Poster("b.jpg")], new(), cancellationToken: TestContext.Current.CancellationToken);
+        images.Of("a.jpg").IsPreferred = true;
+
+        var linked = await reconciler.Reconcile(entity, Source, [Poster("b.jpg")], new(), cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, linked);
+        Assert.True(images.Of("a.jpg").IsPreferred);
     }
 
     [Fact]

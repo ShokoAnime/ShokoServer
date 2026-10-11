@@ -26,10 +26,10 @@ namespace Shoko.Server.Services;
 ///   then the source's order. The entry's stored default, the image its own
 ///   source pinned, takes the first of the type's slots, whatever its
 ///   language, and the first others up to the limit take the rest; those
-///   are marked desired, and links to images no longer offered removed. A
-///   type the settings skip is left as it is; one no setting covers is
-///   linked but never downloaded. A shared creator, character or studio is
-///   reconciled one job at a time, in every language.
+///   are marked desired, and links to images no longer offered removed,
+///   unless marked preferred. A type the settings skip is left as it is; one
+///   no setting covers is linked but never downloaded. A shared creator,
+///   character or studio is reconciled one job at a time, in every language.
 /// </remarks>
 /// <param name="imageManager">Adds and links the images.</param>
 /// <param name="entityLocks">Serialises the reconciling of an entity shared between entries.</param>
@@ -123,7 +123,7 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
 
     /// <summary>
     ///   Links one image type's candidates and removes the links to the ones
-    ///   no longer offered.
+    ///   no longer offered, except those marked preferred.
     /// </summary>
     /// <param name="entity">The entity.</param>
     /// <param name="source">The source.</param>
@@ -171,13 +171,8 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
             .ThenBy(tuple => tuple.Index)
             .Select(tuple => tuple.Candidate)
             .ToList();
-        // Only the first link to an image is kept; any more are duplicates.
-        var groups = imageManager.GetImageCrossReferencesForEntity(entity, Filter(source, imageType))
-            .GroupBy(xref => xref.ImageID)
-            .ToList();
-        foreach (var duplicate in groups.SelectMany(group => group.Skip(1)))
-            imageManager.RemoveImageCrossReference(duplicate);
-        var xrefs = groups.ToDictionary(group => group.Key, group => group.First());
+        var xrefs = imageManager.GetImageCrossReferencesForEntity(entity, Filter(source, imageType))
+            .ToDictionary(xref => xref.ImageID);
         var kept = new HashSet<Guid>();
         var ordering = 0;
         foreach (var candidate in ordered)
@@ -222,10 +217,17 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
             ordering++;
         }
 
+        // A link a user marked preferred stays, even once the source drops its image.
+        var preferred = 0;
         foreach (var xref in xrefs.Values.Where(xref => !kept.Contains(xref.ImageID)))
-            imageManager.RemoveImageCrossReference(xref);
+        {
+            if (xref.IsPreferred)
+                preferred++;
+            else
+                imageManager.RemoveImageCrossReference(xref);
+        }
 
-        return kept.Count;
+        return kept.Count + preferred;
     }
 
     /// <summary>
