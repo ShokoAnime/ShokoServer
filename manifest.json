@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.510",
+      "tag": "v6.0.0-dev.510",
+      "commit": "8a84375d0425f16e801ccea07555ff66a3f62526",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.510/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-11T21:16:52Z",
+      "releaseNotes": "\n`fix` (`db`): **Skip null streams in `RepairRegionTaggedStreamLanguages`** ([#1457](https://github.com/ShokoAnime/ShokoServer/pull/1457)):\n\n`RepairRegionTaggedStreamLanguage` now returns false for a null stream instead of throwing, which aborted start-up in schema step 193.2.\n"
+    },
+    {
       "version": "6.0.0.509",
       "tag": "v6.0.0-dev.509",
       "commit": "6aeda9ada7574cd4152683004a414be064c91299",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.481/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-20T06:25:28Z",
       "releaseNotes": "\n`feat` (`api`): **Add bulk Anilist episode endpoint**:\n\nAdded `POST /api/v3/Anilist/Episode/Bulk`, mirroring the TMDB\n`Episode/Bulk` endpoint. Returns multiple locally-cached\n`AnilistEpisode` rows for a list of packed AniList episode IDs,\nwith optional `CrossReferences` include details.\n\n- Non-positive and unknown IDs are silently skipped\n- Episodes are grouped by `AnilistAnimeID` so\n  `WaitForAnimeUpdate` runs once per anime and rows re-read\n  after an in-flight refresh completes\n"
-    },
-    {
-      "version": "6.0.0.480",
-      "tag": "v6.0.0-dev.480",
-      "commit": "a08e6ce368ba7c77069eccdf4227c8649e9f9881",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.480/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-19T20:53:27Z",
-      "releaseNotes": "\n`misc`: **Update AsyncKeyedLock package version to 8.1.2**.\n\n`merge`: **Merge branch 'master' into AsyncKeyedLock**.\n\n`merge`: **Merge pull request #1444 from MarkCiliaVincenti/AsyncKeyedLock**:\n\nchore(deps): Update AsyncKeyedLock package version to 8.1.2\n"
     }
   ]
 }
