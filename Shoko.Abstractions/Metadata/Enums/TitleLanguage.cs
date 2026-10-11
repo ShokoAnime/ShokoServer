@@ -747,4 +747,39 @@ public enum TitleLanguage : int
     /// Swati.
     /// </summary>
     Swati,
+
+    /// <summary>
+    /// Low German.
+    /// </summary>
+    LowGerman,
+
+    /// <summary>
+    /// Akan.
+    /// </summary>
+    Akan,
+
+    /// <summary>
+    /// Romansh.
+    /// </summary>
+    Romansh,
+
+    /// <summary>
+    /// Tongan.
+    /// </summary>
+    Tongan,
+
+    /// <summary>
+    /// Newari.
+    /// </summary>
+    Newari,
+
+    /// <summary>
+    /// Yapese.
+    /// </summary>
+    Yapese,
+
+    /// <summary>
+    /// Pali.
+    /// </summary>
+    Pali,
 }

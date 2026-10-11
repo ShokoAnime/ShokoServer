@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Extensions;
@@ -8,7 +10,7 @@ namespace Shoko.Abstractions.Extensions;
 /// <summary>
 /// Extensions for the <see cref="TitleLanguage"/> enum.
 /// </summary>
-public static class LanguageExtensions
+public static partial class LanguageExtensions
 {
     /// <summary>
     /// Invoked the first time per session that a language string is encountered
@@ -18,6 +20,12 @@ public static class LanguageExtensions
     public static Action<string>? OnUnknownLanguage;
 
     private static readonly ConcurrentDictionary<string, byte> _reportedUnknowns = new(StringComparer.OrdinalIgnoreCase);
+
+    [GeneratedRegex(
+        @"^(?<lang>[^()]+?)\s*(?:\((?:[^)]*\b(?:Audio|Subs?|Subtitles?)\b[^)]*|\s*(?:\d+(?:\.\d+)?[\s-]*ch|\d\.\d)\s*)\)|\b(?:Audio|Subs?|Subtitles?)\b.*)$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
+        matchTimeoutMilliseconds: 100)]
+    private static partial Regex StreamTitle();
 
     /// <summary>
     /// Convert a language code and country code to a <see cref="TitleLanguage"/>.
@@ -218,6 +226,13 @@ public static class LanguageExtensions
             "LI" or "LIM" => TitleLanguage.Limburgish,
             "ND" or "NDE" => TitleLanguage.NorthNdebele,
             "SS" or "SSW" => TitleLanguage.Swati,
+            "NDS" => TitleLanguage.LowGerman,
+            "AK" or "AKA" => TitleLanguage.Akan,
+            "RM" or "ROH" => TitleLanguage.Romansh,
+            "TO" or "TON" => TitleLanguage.Tongan,
+            "NEW" => TitleLanguage.Newari,
+            "YAP" => TitleLanguage.Yapese,
+            "PI" or "PLI" => TitleLanguage.Pali,
 
             "X-JAT" => TitleLanguage.Romaji,
             "X-ZHT" => TitleLanguage.Pinyin,
@@ -258,7 +273,11 @@ public static class LanguageExtensions
             // English language names as reported by e.g. AniList for its staff. Most
             // resolve through the enum-name fallback below; these are the ones that don't.
             "TAGALOG" => TitleLanguage.Filipino,
-            "MANDARIN" or "CANTONESE" => TitleLanguage.Chinese,
+            "MANDARIN" or "CANTONESE" or "YUE" => TitleLanguage.Chinese,
+            "LOW GERMAN" => TitleLanguage.LowGerman,
+
+            "JAP" => TitleLanguage.Japanese,
+            "DEUTSCH" => TitleLanguage.German,
             "BRAZILIAN PORTUGUESE" or "PORTUGUESE (BRAZIL)" => TitleLanguage.BrazilianPortuguese,
 
             #endregion
@@ -275,14 +294,31 @@ public static class LanguageExtensions
         // unrecognised "xxx-XX"-shaped tag, e.g. "cmn-CN" — retry on the
         // language part alone before giving up.
         var dashIndex = lang.IndexOf('-');
-        if (result is TitleLanguage.Unknown && dashIndex > 0 && dashIndex < lang.Length - 1)
-        {
-            var stripped = GetTitleLanguage(lang[..dashIndex], reportUnknown: false);
-            if (stripped is not (TitleLanguage.None or TitleLanguage.Unknown))
-                return stripped;
-        }
+        if (result is TitleLanguage.Unknown && dashIndex > 0 && dashIndex < lang.Length - 1 && lang[..dashIndex].TryGetTitleLanguage(out var stripped))
+            return stripped;
+
+        if (result is TitleLanguage.Unknown && TryResolveStreamTitle(lang, out var fromTitle))
+            return fromTitle;
 
         return result is TitleLanguage.Unknown && reportUnknown ? ReportAndReturnUnknown(lang) : result;
+    }
+
+    private static bool TryResolveStreamTitle(string lang, out TitleLanguage language)
+    {
+        language = TitleLanguage.Unknown;
+        try
+        {
+            // Short prefixes are codes ("No Subs" is not Norwegian), and digits or commas would parse as enum values.
+            return StreamTitle().Match(lang) is { Success: true } match
+                && match.Groups["lang"].Value.Trim() is { Length: >= 4 } name
+                && name.All(c => char.IsLetter(c) || c == ' ')
+                && name.TryGetTitleLanguage(out language)
+                && language is not TitleLanguage.Main;
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return false;
+        }
     }
 
     private static TitleLanguage ReportAndReturnUnknown(string lang)
@@ -344,6 +380,13 @@ public static class LanguageExtensions
             TitleLanguage.Limburgish => "Limburgish",
             TitleLanguage.NorthNdebele => "North Ndebele",
             TitleLanguage.Swati => "Swati",
+            TitleLanguage.LowGerman => "Low German",
+            TitleLanguage.Akan => "Akan",
+            TitleLanguage.Romansh => "Romansh",
+            TitleLanguage.Tongan => "Tongan",
+            TitleLanguage.Newari => "Newari",
+            TitleLanguage.Yapese => "Yapese",
+            TitleLanguage.Pali => "Pali",
             _ => lang.ToString(),
         };
 
@@ -503,6 +546,13 @@ public static class LanguageExtensions
             TitleLanguage.Limburgish => "li",
             TitleLanguage.NorthNdebele => "nd",
             TitleLanguage.Swati => "ss",
+            TitleLanguage.LowGerman => "nds",
+            TitleLanguage.Akan => "ak",
+            TitleLanguage.Romansh => "rm",
+            TitleLanguage.Tongan => "to",
+            TitleLanguage.Newari => "new",
+            TitleLanguage.Yapese => "yap",
+            TitleLanguage.Pali => "pi",
             _ => "unk",
         };
 
