@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.507",
+      "tag": "v6.0.0-dev.507",
+      "commit": "c7c3efda56b50ea584ff590f8b52297e2a6cd184",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.507/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-11T17:08:06Z",
+      "releaseNotes": "\n`misc`: **Allow normal users to list the restart reasons**.\n"
+    },
+    {
       "version": "6.0.0.506",
       "tag": "v6.0.0-dev.506",
       "commit": "ddb25b262865ae236fb7764e3b206acacc120efa",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.478/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-19T14:47:31Z",
       "releaseNotes": "\n`chore` (`deps`): **Bump outdated NuGet packages** ([#1441](https://github.com/ShokoAnime/ShokoServer/pull/1441)):\n\n* chore(deps): bump outdated NuGet packages\n\nBumped all patch/minor-version-behind packages across Shoko.Server,\nShoko.TrayService, Shoko.QueueProcessor(.Tests), Shoko.Tests,\nShoko.IntegrationTests, and Shoko.BuildTools(.Targets) to their latest\navailable versions.\n\nHeld back two: `Microsoft.Build`/`Microsoft.Build.Framework`/\n`Microsoft.Build.Utilities.Core` (18.10.1 has no `net10.0`-targeted\nasset yet, falls back to .NET Framework and trips the repo's\nNU1701-as-error policy) and `xunit.v3`/`xunit.runner.visualstudio`\n(4.0 defaults test projects to Microsoft.Testing.Platform, which the\n.NET 10 SDK's `dotnet test` refuses to run without a `global.json`\nopt-in and likely CI changes — out of scope for a plain dependency\nbump).\n\nBuild clean, 3944/3944 tests passing.\n\n* chore(deps): bump Microsoft.Build to 18.9.6\n\n18.9.6 is the last Microsoft.Build release still targeting `net10.0`\nbefore 18.10.x dropped it for `net11.0`. Closer to latest than the\n18.8.2 floor without the NU1701 TFM-fallback break.\n\n* chore(deps): bump Shoko.QueueProcessor and BuildTools package versions\n\nPer revam's PR review request: bump the packages' own versions\nalongside their dependency bumps, not just the dependencies.\n\n- Shoko.QueueProcessor: 6.0.0-alpha.7 -> 6.0.0-alpha.8\n- Shoko.BuildTools: 0.5.0 -> 0.5.1\n- Shoko.BuildTools.Targets: 0.3.0 -> 0.3.1\n"
-    },
-    {
-      "version": "6.0.0.477",
-      "tag": "v6.0.0-dev.477",
-      "commit": "37fbf936b8baa990f5252371f6e0b548fbb9cddf",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.477/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-19T12:24:50Z",
-      "releaseNotes": "\n`docs` (`plugin`): **Document XML summary descriptions, the csproj flag they need, and where `[Required]` is fine**: (_Skip CI_)\n\n- A setting without `[Display(Description)]` falls back to its XML `<summary>`, which needs `GenerateDocumentationFile`; the minimal `.csproj` now sets it\n- Descriptions are re-flowed and XML tags become Markdown, so a multi-line raw string reads well\n- `[Required]` is fine on a pre-populated member or on a list or record item type, just not on an empty root member\n\n`fix` (`api`): **Test an AniDB login against the stored password when none was retyped**:\n\n`GET /api/v3/Settings` masks every secret on the way out, so a client that\nposts back what it was handed, rather than what the user retyped, sends the mask\nto `POST /api/v3/Settings/AniDB/TestLogin`, which used it as the password and\nfailed the login. The WebUI's AniDB tab does exactly that: it reads `Password`\nout of the settings it fetched.\n\nSaving was never affected, since the save path restores a masked secret before\nanything reads it. This is the other kind of endpoint: one that uses a secret\nwithout storing it, where there is no document to pair the mask against.\n\n- Added `ConfigurationSecrets.Resolve`, which reads a mask as \"the stored one\",\n  for any endpoint handed a secret it only uses\n- Tested an AniDB login with the stored password when the caller sent a mask,\n  and rejected the attempt when nothing is stored to test with\n"
     }
   ]
 }
