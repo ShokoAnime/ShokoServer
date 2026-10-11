@@ -58,5 +58,45 @@ public partial class DatabaseFixes
         return true;
     }
 
+    /// <summary>
+    ///   Fills the language code and name of streams whose
+    ///   language carries a region, such as <c>ja-JP</c>.
+    /// </summary>
+    /// <remarks>
+    ///   The lookup used to miss region-tagged languages and left both empty,
+    ///   and the stored media info kept them.
+    /// </remarks>
+    public static void RepairRegionTaggedStreamLanguages()
+    {
+        var repaired = 0;
+        foreach (var video in RepoFactory.VideoLocal.GetAll())
+        {
+            if (video.MediaInfo is not { } mediaInfo || video.MediaVersion < VideoLocal.MEDIA_VERSION)
+                continue;
+
+            var changed = false;
+            foreach (var stream in mediaInfo.media?.track ?? [])
+                changed |= RepairRegionTaggedStreamLanguage(stream);
+
+            if (!changed)
+                continue;
+
+            RepoFactory.VideoLocal.Save(video, false);
+            repaired++;
+        }
+
+        _logger.Info("Repaired the region-tagged stream languages of {Count} videos.", repaired);
+    }
+
+    internal static bool RepairRegionTaggedStreamLanguage(Stream stream)
+    {
+        if (string.IsNullOrEmpty(stream.Language) || !string.IsNullOrEmpty(stream.LanguageCode) || MediaInfoUtility.GetLanguageMapping(stream.Language) is not { } mapping)
+            return false;
+
+        stream.LanguageCode = mapping.Item1;
+        stream.LanguageName = mapping.Item2;
+        return true;
+    }
+
     #endregion
 }
