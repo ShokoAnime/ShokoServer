@@ -54,9 +54,6 @@ public class RestartEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    protected override bool CanConnect(IUser user)
-        => user.IsAdmin;
-
     protected override object[] GetInitialMessages()
         => [new RestartReasonsSignalRModel(_systemService.RestartReasons, _pluginManager)];
 }

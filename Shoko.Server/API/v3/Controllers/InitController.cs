@@ -316,7 +316,7 @@ public class InitController : BaseController
     /// restart, and the reasons plugins raised themselves. Empty when no restart is needed.
     /// </summary>
     /// <returns>The reasons, oldest first.</returns>
-    [Authorize(Roles = "admin,init")]
+    [Authorize]
     [HttpGet("RestartReasons")]
     public ActionResult<List<RestartReason>> GetRestartReasons()
         => _systemService.RestartReasons
