@@ -39,6 +39,12 @@ public class RegionTaggedStreamLanguageRepairTests
         Assert.False(DatabaseFixes.RepairRegionTaggedStreamLanguage(stream));
     }
 
+    [Fact]
+    public void ANullStreamIsLeftAlone()
+    {
+        Assert.False(DatabaseFixes.RepairRegionTaggedStreamLanguage(null));
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
