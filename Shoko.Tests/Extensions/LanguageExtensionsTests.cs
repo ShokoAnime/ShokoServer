@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
@@ -82,6 +84,17 @@ public class LanguageExtensionsTests
     [InlineData("", TitleLanguage.None)]
     public void GetTitleLanguage_ResolvesCodesAndNames(string language, TitleLanguage expected)
         => Assert.Equal(expected, language.GetTitleLanguage());
+
+    // Malayalam's code "ml" still reads as Dutch, as it was stored that way. Obsolete values have no code of their own.
+    public static IEnumerable<object[]> AllLanguages()
+        => Enum.GetValues<TitleLanguage>()
+            .Where(language => language is not TitleLanguage.Malayalam && !typeof(TitleLanguage).GetField(language.ToString())!.IsDefined(typeof(ObsoleteAttribute), false))
+            .Select(language => new object[] { language });
+
+    [Theory]
+    [MemberData(nameof(AllLanguages))]
+    public void EveryLanguage_RoundTripsThroughItsCode(TitleLanguage language)
+        => Assert.Equal(language, language.GetString().GetTitleLanguage());
 
     [Theory]
     [InlineData(TitleLanguage.LowGerman, "nds", "Low German")]
