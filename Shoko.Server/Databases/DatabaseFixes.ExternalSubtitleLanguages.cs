@@ -88,9 +88,9 @@ public partial class DatabaseFixes
         _logger.Info("Repaired the region-tagged stream languages of {Count} videos.", repaired);
     }
 
-    internal static bool RepairRegionTaggedStreamLanguage(Stream stream)
+    internal static bool RepairRegionTaggedStreamLanguage(Stream? stream)
     {
-        if (string.IsNullOrEmpty(stream.Language) || !string.IsNullOrEmpty(stream.LanguageCode) || MediaInfoUtility.GetLanguageMapping(stream.Language) is not { } mapping)
+        if (stream is null || string.IsNullOrEmpty(stream.Language) || !string.IsNullOrEmpty(stream.LanguageCode) || MediaInfoUtility.GetLanguageMapping(stream.Language) is not { } mapping)
             return false;
 
         stream.LanguageCode = mapping.Item1;
