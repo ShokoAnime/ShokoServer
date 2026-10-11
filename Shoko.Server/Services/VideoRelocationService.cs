@@ -1224,7 +1224,10 @@ public class VideoRelocationService(
         return (RelocationResponse.FromResult(request.ManagedFolder, newRelativePath, moved, renamed), false);
     }
 
-    /// <summary>Reuses existing folders that differ only by case, so a case-sensitive file system doesn't get a second, case-variant folder.</summary>
+    /// <summary>
+    /// Reuses existing folders that differ only by case, so a case-sensitive
+    /// file system doesn't get a second, case-variant folder.
+    /// </summary>
     internal string ReuseExistingFolderCase(string rootPath, string relativePath)
     {
         var directory = Path.GetDirectoryName(relativePath);
