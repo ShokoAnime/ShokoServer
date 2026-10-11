@@ -60,7 +60,7 @@ public static class MediaInfoUtility
     };
 
     [SuppressMessage("ReSharper", "StringLiteralTypo")]
-    private static readonly Dictionary<string, Tuple<string, string>> _languageMapping_2_1_Name = new()
+    private static readonly Dictionary<string, Tuple<string, string>> _languageMapping_2_1_Name = new(StringComparer.OrdinalIgnoreCase)
     {
         {"aa", Tuple.Create("aar", "Afar")},
         {"ab", Tuple.Create("abk", "Abkhazian")},
@@ -350,7 +350,10 @@ public static class MediaInfoUtility
     public static Tuple<string, string>? GetLanguageMapping(string language)
     {
         if (_languageMapping_2_1_Name.TryGetValue(language, out var value)) return value;
-        return null;
+
+        // MKV tags may carry a region, e.g. "ja-JP", "es-419" or "pt_BR".
+        var dash = language.IndexOfAny(['-', '_']);
+        return dash > 0 && _languageMapping_2_1_Name.TryGetValue(language[..dash], out value) ? value : null;
     }
 
     public static string? GetStandardResolution(Tuple<int, int> res)
