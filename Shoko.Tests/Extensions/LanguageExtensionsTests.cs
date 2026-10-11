@@ -33,6 +33,40 @@ public class LanguageExtensionsTests
     [InlineData("li", TitleLanguage.Limburgish)]
     [InlineData("nd", TitleLanguage.NorthNdebele)]
     [InlineData("ss", TitleLanguage.Swati)]
+    [InlineData("nds", TitleLanguage.LowGerman)]
+    [InlineData("ak", TitleLanguage.Akan)]
+    [InlineData("rm", TitleLanguage.Romansh)]
+    [InlineData("to", TitleLanguage.Tongan)]
+    [InlineData("new", TitleLanguage.Newari)]
+    [InlineData("yap", TitleLanguage.Yapese)]
+    [InlineData("pi", TitleLanguage.Pali)]
+    [InlineData("pli", TitleLanguage.Pali)]
+    [InlineData("yue", TitleLanguage.Chinese)]
+    [InlineData("jap", TitleLanguage.Japanese)]
+    [InlineData("Deutsch", TitleLanguage.German)]
+    [InlineData("English (English Audio)", TitleLanguage.English)]
+    [InlineData("English (Japanese Audio)", TitleLanguage.English)]
+    [InlineData("Japanese Audio (2 ch)", TitleLanguage.Japanese)]
+    [InlineData("English Audio (2 ch)", TitleLanguage.English)]
+    [InlineData("Japanese Audio (2-ch)", TitleLanguage.Japanese)]
+    [InlineData("Japanese (Dub-Audio)", TitleLanguage.Japanese)]
+    [InlineData("English Audio (5-1)", TitleLanguage.English)]
+    [InlineData("Low German", TitleLanguage.LowGerman)]
+    [InlineData("Japanese (2 ch)", TitleLanguage.Japanese)]
+    [InlineData("JAPANESE AUDIO (2 CH)", TitleLanguage.Japanese)]
+    [InlineData("Commentary Audio", TitleLanguage.Unknown)]
+    [InlineData("Japanese (2-ch)", TitleLanguage.Japanese)]
+    [InlineData("Japanese (5.1 ch)", TitleLanguage.Japanese)]
+    [InlineData("Japanese (5.1)", TitleLanguage.Japanese)]
+    [InlineData("No Subs", TitleLanguage.Unknown)]
+    [InlineData("No Audio", TitleLanguage.Unknown)]
+    [InlineData("No Subtitles", TitleLanguage.Unknown)]
+    [InlineData("Main Audio", TitleLanguage.Unknown)]
+    [InlineData("2 Audio", TitleLanguage.Unknown)]
+    [InlineData("English, Japanese Audio", TitleLanguage.Unknown)]
+    [InlineData("Audio", TitleLanguage.Unknown)]
+    [InlineData("Chinese (Hakka)", TitleLanguage.Unknown)]
+    [InlineData("Spanish (Mexico)", TitleLanguage.Unknown)]
     [InlineData("cmn-CN", TitleLanguage.Chinese)]
     // English names, as AniList reports them for its staff.
     [InlineData("Japanese", TitleLanguage.Japanese)]
@@ -48,6 +82,22 @@ public class LanguageExtensionsTests
     [InlineData("", TitleLanguage.None)]
     public void GetTitleLanguage_ResolvesCodesAndNames(string language, TitleLanguage expected)
         => Assert.Equal(expected, language.GetTitleLanguage());
+
+    [Theory]
+    [InlineData(TitleLanguage.LowGerman, "nds", "Low German")]
+    [InlineData(TitleLanguage.Akan, "ak", "Akan")]
+    [InlineData(TitleLanguage.Romansh, "rm", "Romansh")]
+    [InlineData(TitleLanguage.Tongan, "to", "Tongan")]
+    [InlineData(TitleLanguage.Newari, "new", "Newari")]
+    [InlineData(TitleLanguage.Yapese, "yap", "Yapese")]
+    [InlineData(TitleLanguage.Pali, "pi", "Pali")]
+    public void NewLanguages_RoundTripCodeAndDescription(TitleLanguage language, string code, string description)
+    {
+        Assert.Equal(code, language.GetString());
+        Assert.Equal(language, code.GetTitleLanguage());
+        Assert.Equal(description, language.GetDescription());
+        Assert.Equal(language, description.GetTitleLanguage());
+    }
 
     [Theory]
     [InlineData("English", true, TitleLanguage.English)]
