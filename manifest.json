@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.511",
+      "tag": "v6.0.0-dev.511",
+      "commit": "4a94a09eecbdd8ed37528ff2f0827300abef262a",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.511/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-11T22:51:30Z",
+      "releaseNotes": "\n`fix` (`images`): **Keep preferred links in `MetadataImageReconciler`**:\n\n- Kept a link marked preferred when its source stopped offering the image\n- Dropped the duplicate-link pass, as a link is unique per entity, image, type and source\n\n`feat` (`abstractions`): **Let image contributors serve local sources**:\n\n- Added `GetImageStream` and `CheckIfImageAvailable` to `IMetadataImageContributor`, with defaults\n- Fetched a local source's images through its contributor, leaving them alone while none serves it\n- Served a local contributor's images through the `Remote` image routes\n\n`refactor` (`images`): **Walk image entries by interface and queue contributors for new videos**:\n\n- Added `SkipEvents` to `VideoFileHashedEventArgs`\n- Queued the image contributors for new videos from a `VideoImageContributorListener`\n- Replaced the per-kind branches and `GetReachableKinds` in `MetadataImageEntities.Gather` with an interface walk\n- Added the `DownloadMetadataImagesVideoAction` video action\n\n`fix` (`db`): **Make image cross-references unique**:\n\n- Removed duplicate `ShokoImage_Entity` rows, keeping the preferred one, else the oldest\n- Added a unique index over the entity, image, image type and link source\n\n`fix` (`db`): **Add `UserTags` without a `TEXT` default for MySQL**:\n\nMySQL refuses a default on a `TEXT` column, so the migration stopped at\n159.15 there; MariaDB accepts it. Existing rows still get an empty string.\n"
+    },
+    {
       "version": "6.0.0.510",
       "tag": "v6.0.0-dev.510",
       "commit": "8a84375d0425f16e801ccea07555ff66a3f62526",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.482/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-20T07:45:10Z",
       "releaseNotes": "\n`feat` (`api`): **Add episode number search to anilist anime episodes endpoint**:\n\nAdded an optional `search` query parameter to\n`GET /api/v3/Anilist/Anime/{animeId}/Episode`.\n\n- Digits-only input is substring-matched against episode numbers\n  (\"1\" matches 1, 10, 11, 100, ...)\n- Any input containing non-digit characters matches nothing and\n  returns an empty `ListResult` instead of an error\n- Matches against `Anilist_Episode.EpisodeNumber` only; AniList has\n  no season dimension or specials in Shoko's cache\n"
-    },
-    {
-      "version": "6.0.0.481",
-      "tag": "v6.0.0-dev.481",
-      "commit": "b2b0c8a70746e16ac03a125b84c34fbee3be570f",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.481/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-20T06:25:28Z",
-      "releaseNotes": "\n`feat` (`api`): **Add bulk Anilist episode endpoint**:\n\nAdded `POST /api/v3/Anilist/Episode/Bulk`, mirroring the TMDB\n`Episode/Bulk` endpoint. Returns multiple locally-cached\n`AnilistEpisode` rows for a list of packed AniList episode IDs,\nwith optional `CrossReferences` include details.\n\n- Non-positive and unknown IDs are silently skipped\n- Episodes are grouped by `AnilistAnimeID` so\n  `WaitForAnimeUpdate` runs once per anime and rows re-read\n  after an in-flight refresh completes\n"
     }
   ]
 }
