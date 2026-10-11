@@ -28,7 +28,8 @@ namespace Shoko.Server.API.v3.Controllers;
 ///   Controller for managing images and image cross-references. Exposes
 ///   <see cref="IImageManager"/> capabilities including template URL
 ///   management, image CRUD with upload, download/purge/validate operations,
-///   and full cross-reference management with entity-scoped lookups.
+///   and full cross-reference management with entity-scoped lookups. Admins
+///   only; users get images through the series, episode and group routes.
 /// </summary>
 /// <param name="imageManager">The image manager service.</param>
 /// <param name="contributorManager">Finds the image contributor serving a local source.</param>
@@ -36,7 +37,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/Image/Management"), Tags("Image")]
 [ApiV3]
-[Authorize]
+[Authorize("admin")]
 public class ImageManagementController(
     IImageManager imageManager,
     MetadataImageContributorManager contributorManager,
@@ -72,7 +73,6 @@ public class ImageManagementController(
     /// <param name="source">The metadata source, by value or alias, ignoring case (e.g. anidb, tmdb).</param>
     /// <param name="body">The template URL to set.</param>
     /// <returns>No content.</returns>
-    [Authorize("admin")]
     [HttpPut("Source/{source}")]
     public ActionResult SetTemplateUrlForSource(
         [FromRoute] MetadataSource source,
@@ -88,7 +88,6 @@ public class ImageManagementController(
     /// </summary>
     /// <param name="source">The metadata source, by value or alias, ignoring case (e.g. anidb, tmdb).</param>
     /// <returns>No content.</returns>
-    [Authorize("admin")]
     [HttpDelete("Source/{source}")]
     public ActionResult ResetTemplateUrlForSource([FromRoute] MetadataSource source)
     {
@@ -232,7 +231,6 @@ public class ImageManagementController(
     /// <param name="body">The image data containing source and resource information.</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
-    [Authorize("admin")]
     [HttpPost("Add")]
     public ActionResult<ImageSlim> AddImage(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AddImageBody body,
@@ -261,7 +259,6 @@ public class ImageManagementController(
     /// <param name="userSubmitted">Whether the image was submitted by a user (default true).</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
-    [Authorize("admin")]
     [HttpPost("Upload")]
     [Consumes("multipart/form-data")]
     public ActionResult<ImageSlim> UploadImage(
@@ -291,7 +288,6 @@ public class ImageManagementController(
     /// <param name="userSubmitted">Whether the image was submitted by a user (default true).</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
-    [Authorize("admin")]
     [HttpPost("Upload/Raw")]
     [Consumes(ContentTypeHelper.UnknownMimeType, "image/jpeg", "image/png", "image/bmp", "image/gif", "image/tiff", "image/webp", "image/svg+xml")]
     public async Task<ActionResult<ImageSlim>> UploadImageRaw(
@@ -324,7 +320,6 @@ public class ImageManagementController(
     /// <param name="body">The update data containing properties to modify.</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The updated image.</returns>
-    [Authorize("admin")]
     [HttpPatch("{imageID:guid}")]
     public ActionResult<ImageSlim> UpdateImage(
         [FromRoute] Guid imageID,
@@ -346,7 +341,6 @@ public class ImageManagementController(
     /// <param name="body">The enabled state to set.</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The updated image.</returns>
-    [Authorize("admin")]
     [HttpPost("{imageID:guid}/Enabled")]
     public ActionResult<ImageSlim> EnableOrDisableImage(
         [FromRoute] Guid imageID,
@@ -368,7 +362,6 @@ public class ImageManagementController(
     /// <param name="body">The primary image identifier to set.</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The updated image.</returns>
-    [Authorize("admin")]
     [HttpPut("{imageID:guid}/Primary")]
     public ActionResult<ImageSlim> SetPrimaryImage(
         [FromRoute] Guid imageID,
@@ -396,7 +389,6 @@ public class ImageManagementController(
     /// <param name="body">The batch update request containing image IDs and update data.</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>A list of updated images.</returns>
-    [Authorize("admin")]
     [HttpPost("Batch/Update")]
     public ActionResult<ListResult<ImageSlim>> BatchUpdateImages(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchUpdateImageBody body,
@@ -431,7 +423,6 @@ public class ImageManagementController(
     /// </summary>
     /// <param name="imageID">The unique identifier of the image.</param>
     /// <returns>True if available, false otherwise.</returns>
-    [Authorize("admin")]
     [HttpGet("{imageID:guid}/Available")]
     public async Task<ActionResult<bool>> CheckIfAvailableAtRemote([FromRoute] Guid imageID)
     {
@@ -455,7 +446,6 @@ public class ImageManagementController(
     /// <param name="force">Force re-download even if already cached (default false).</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The downloaded image.</returns>
-    [Authorize("admin")]
     [HttpPost("{imageID:guid}/Download")]
     public async Task<ActionResult<ImageSlim>> DownloadImage(
         [FromRoute] Guid imageID,
@@ -484,7 +474,6 @@ public class ImageManagementController(
     /// <param name="imageID">The unique identifier of the image.</param>
     /// <param name="force">Force re-download even if already cached (default false).</param>
     /// <returns>Success message.</returns>
-    [Authorize("admin")]
     [HttpPost("{imageID:guid}/Download/Schedule")]
     public async Task<ActionResult> ScheduleDownloadOfImage(
         [FromRoute] Guid imageID,
@@ -507,7 +496,6 @@ public class ImageManagementController(
     /// </summary>
     /// <param name="imageID">The unique identifier of the image to purge.</param>
     /// <returns>No content.</returns>
-    [Authorize("admin")]
     [HttpDelete("{imageID:guid}")]
     public async Task<ActionResult> PurgeImage([FromRoute] Guid imageID)
     {
@@ -524,7 +512,6 @@ public class ImageManagementController(
     /// <param name="daysOld">Minimum age in days (default 7).</param>
     /// <param name="imageSource">Filter by image source.</param>
     /// <returns>The number of images purged.</returns>
-    [Authorize("admin")]
     [HttpDelete("Orphaned")]
     public async Task<ActionResult<int>> PurgeOrphanedImages(
         [FromQuery, Range(0, int.MaxValue)] int daysOld = 7,
@@ -539,7 +526,6 @@ public class ImageManagementController(
     ///   Validate all images in the system, checking for corruption and missing files.
     /// </summary>
     /// <returns>The number of images validated.</returns>
-    [Authorize("admin")]
     [HttpPost("Validate")]
     public async Task<ActionResult<int>> ValidateAllImages()
     {
@@ -741,7 +727,6 @@ public class ImageManagementController(
     /// <param name="body">The cross-reference data to add.</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
     /// <returns>The created cross-reference.</returns>
-    [Authorize("admin")]
     [HttpPost("CrossReference/Entity/{entitySource}/{entityType}/{*entityID}")]
     public ActionResult<ImageCrossReference> AddImageCrossReference(
         [FromRoute] MetadataSource entitySource,
@@ -778,7 +763,6 @@ public class ImageManagementController(
     /// <param name="xrefID">The cross-reference ID.</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
     /// <returns>The updated cross-reference.</returns>
-    [Authorize("admin")]
     [HttpPut("CrossReference/{xrefID:int}/Preferred")]
     public ActionResult<ImageCrossReference> SetPreferredImageForEntity(
         [FromRoute, Range(1, int.MaxValue)] int xrefID,
@@ -797,7 +781,6 @@ public class ImageManagementController(
     /// </summary>
     /// <param name="xrefID">The cross-reference ID.</param>
     /// <returns>No content.</returns>
-    [Authorize("admin")]
     [HttpDelete("CrossReference/{xrefID:int}/Preferred")]
     public ActionResult UnsetPreferredImageForEntity([FromRoute, Range(1, int.MaxValue)] int xrefID)
     {
@@ -816,7 +799,6 @@ public class ImageManagementController(
     /// <param name="entityType">The entity type (e.g., Series, Episode).</param>
     /// <param name="entityID">The entity ID (string representation).</param>
     /// <returns>No content.</returns>
-    [Authorize("admin")]
     [HttpDelete("CrossReference/Preferred/Entity/{entitySource}/{entityType}/{*entityID}")]
     public ActionResult UnsetAllPreferredImagesForEntity(
         [FromRoute] MetadataSource entitySource,
@@ -839,7 +821,6 @@ public class ImageManagementController(
     /// <param name="body">The update data containing properties to modify.</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
     /// <returns>The updated cross-reference.</returns>
-    [Authorize("admin")]
     [HttpPatch("CrossReference/{xrefID:int}")]
     public ActionResult<ImageCrossReference> UpdateImageCrossReference(
         [FromRoute, Range(1, int.MaxValue)] int xrefID,
@@ -859,7 +840,6 @@ public class ImageManagementController(
     /// </summary>
     /// <param name="xrefID">The cross-reference ID.</param>
     /// <returns>No content.</returns>
-    [Authorize("admin")]
     [HttpDelete("CrossReference/{xrefID:int}")]
     public ActionResult RemoveImageCrossReference([FromRoute, Range(1, int.MaxValue)] int xrefID)
     {
@@ -877,7 +857,6 @@ public class ImageManagementController(
     /// <param name="body">The batch update request containing cross-reference IDs and update data.</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
     /// <returns>A list of updated cross-references.</returns>
-    [Authorize("admin")]
     [HttpPost("CrossReference/Batch/Update")]
     public ActionResult<ListResult<ImageCrossReference>> BatchUpdateImageCrossReferences(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchUpdateImageCrossReferenceBody body,
