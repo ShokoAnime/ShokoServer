@@ -28,25 +28,17 @@ public class RestartEventEmitterTests
     };
 
     [Fact]
-    public async Task ConnectAsync_SendsTheCurrentReasonsToAnAdmin()
+    public async Task ConnectAsync_SendsTheCurrentReasons()
     {
         var harness = new Harness();
 
-        Assert.True(await harness.Emitter.ConnectAsync("admin-connection", User(isAdmin: true)));
+        Assert.True(await harness.Emitter.ConnectAsync("user-connection", User()));
 
         var (_, args) = Assert.Single(harness.Sent);
         var model = Assert.IsType<RestartReasonsSignalRModel>(Assert.Single(args));
         Assert.True(model.RestartRequired);
         Assert.Equal("sources", Assert.Single(model.Reasons).Key);
-        harness.Groups.Verify(groups => groups.AddToGroupAsync("admin-connection", harness.Emitter.Name, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task ConnectAsync_RefusesAndSendsNothingToAUserWhoIsNotAnAdmin()
-    {
-        var harness = new Harness();
-
-        Assert.False(await harness.Emitter.ConnectAsync("user-connection", User(isAdmin: false)));
+        harness.Groups.Verify(groups => groups.AddToGroupAsync("user-connection", harness.Emitter.Name, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -62,11 +54,10 @@ public class RestartEventEmitterTests
         Assert.Empty(model.Reasons);
     }
 
-    private static IUser User(bool isAdmin)
+    private static IUser User()
     {
         var user = new Mock<IUser>();
-        user.Setup(u => u.IsAdmin).Returns(isAdmin);
-        user.Setup(u => u.LocalID).Returns(isAdmin ? 1 : 2);
+        user.Setup(u => u.LocalID).Returns(2);
         return user.Object;
     }
 

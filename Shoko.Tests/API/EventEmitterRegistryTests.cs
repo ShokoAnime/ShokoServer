@@ -136,7 +136,7 @@ public class EventEmitterRegistryTests
     }
 
     [Fact]
-    public async Task PluginFeed_CanConnect_RefusesAndSendsNothing()
+    public async Task RefusedConnection_IsNeitherJoinedNorSentAnything()
     {
         var harness = new Harness(services => services.AddEventEmitter<AdminFeed>());
         var feed = harness.Registry.Feeds["sample.admin"];
