@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.509",
+      "tag": "v6.0.0-dev.509",
+      "commit": "6aeda9ada7574cd4152683004a414be064c91299",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.509/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-11T19:16:14Z",
+      "releaseNotes": "\n`fix` (`abstractions`): **Map more language codes and stream-title junk** ([#1454](https://github.com/ShokoAnime/ShokoServer/pull/1454)): (_Skip CI_)\n\n- Added `LowGerman`, `Akan`, `Romansh`, `Tongan`, `Newari`, `Yapese` and `Pali` to `TitleLanguage` with their `GetTitleLanguage`, `GetDescription` and `GetString` mappings. `yue` resolves to `Chinese` like the existing `Cantonese` name, and `jap` and `Deutsch` are aliases.\n\n- Added `nds`, `new` and `yap` to the language table, renamed `rm` to `Romansh`, `to` to `Tongan`, `nd` to `North Ndebele`, `cu` to `Church Slavic`, `na` to `Nauruan`, `li` to `Limburgish` and the Norwegian variants to their `TitleLanguage` descriptions. A test checks every language the table and the enum share, with the ISO names kept on purpose listed as exceptions.\n\n- Language fields holding stream titles such as `English (Japanese Audio)` or `Japanese Audio (2 ch)` now resolve from the text before the suffix. Strings that still do not resolve keep logging as an error.\n\n`fix` (`media-info`): **Resolve region-tagged stream languages** ([#1455](https://github.com/ShokoAnime/ShokoServer/pull/1455)): (_Skip CI_)\n\n- MKV tracks tagged `ja-JP`, `en-US` or `es-419` missed the 2-letter lookup, logged a missing language code warning and left `LanguageCode` and `LanguageName` empty. The lookup is now case-insensitive and retries on the part before the first `-` or `_`.\n\n- Added `RepairRegionTaggedStreamLanguages` as its own schema version on SQLite (175), SQL Server (194) and MySQL (196). It fills `LanguageCode` and `LanguageName` on every stored stream whose language carries a region and whose code is empty.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.103**.\n"
+    },
+    {
       "version": "6.0.0.508",
       "tag": "v6.0.0-dev.508",
       "commit": "0d8d42a186e7bfd34c3f7a733fb5cebbf039af16",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.480/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-19T20:53:27Z",
       "releaseNotes": "\n`misc`: **Update AsyncKeyedLock package version to 8.1.2**.\n\n`merge`: **Merge branch 'master' into AsyncKeyedLock**.\n\n`merge`: **Merge pull request #1444 from MarkCiliaVincenti/AsyncKeyedLock**:\n\nchore(deps): Update AsyncKeyedLock package version to 8.1.2\n"
-    },
-    {
-      "version": "6.0.0.479",
-      "tag": "v6.0.0-dev.479",
-      "commit": "0fe4fc582686ca26cc9cca0394760ff1e13a2b8e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.479/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-19T16:23:06Z",
-      "releaseNotes": "\n`docs`: **Document settings migrations**.\n\n`refactor` (`settings`): **Nest AniDb MyList settings under a MyList object**:\n\nGrouped the flat `MyList_*` properties on `AniDbSettings` into a new\n`AniDb.MyList` (`MyListSettings`) object and added a settings migration\nthat renames the persisted keys.\n\n- Added `AniDbSettings.MyListSettings` with the former `MyList_*` members\n- Updated `MylistService`, `UserDataService`, `VideoReleaseService`,\n  `SystemService`, `ModelClients`, and the v1/v3 controllers to the new path\n- Registered `MigrateAniDbMyListToOwnObject` as migration 19\n- Updated doc references to `AniDb.MyList.*`\n"
     }
   ]
 }
