@@ -87,7 +87,8 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(candidates);
         ArgumentNullException.ThrowIfNull(settings);
-        if (imageManager.GetTemplateUrlForSource(source) is null)
+        // A local source's images come from its contributor, not a template.
+        if (!source.IsLocal && imageManager.GetTemplateUrlForSource(source) is null)
         {
             logger.LogWarning("Not linking images for {Entity}: {Source} has no template URL registered.", entity.ID, source);
             return 0;

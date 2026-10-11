@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
@@ -8,6 +9,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -15,7 +17,11 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
-public class ImageController(IImageManager imageManager, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
+public class ImageController(
+    IImageManager imageManager,
+    MetadataImageContributorManager contributorManager,
+    ISettingsProvider settingsProvider
+) : BaseController(settingsProvider)
 {
     private const string ImageNotFound = "The requested image does not exist.";
 
@@ -41,15 +47,33 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
 
     /// <summary>
     /// Returns the image for the given <paramref name="source"/> and <paramref name="resourceID"/>.
+    /// An image of a local source served by an image contributor comes from
+    /// the contributor when it is not stored.
     /// </summary>
     [HttpGet("Remote/{source}/{*resourceID}")]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
-    public ActionResult GetRemoteImage(
+    public async Task<ActionResult> GetRemoteImage(
         [FromRoute] MetadataSource source,
         [FromRoute] string resourceID
     )
-        => source.IsLocal ? NotFound(ImageNotFound) : GetImage(IImageManager.GetIDForImageSourceAndResourceID(source, resourceID));
+    {
+        var imageID = IImageManager.GetIDForImageSourceAndResourceID(source, resourceID);
+        if (!source.IsLocal)
+            return GetImage(imageID);
+
+        if (contributorManager.GetLocalImageContributor(source) is not { } contributor || imageManager.GetImageByID(imageID) is not { } image)
+            return NotFound(ImageNotFound);
+
+        if (image.IsAvailable)
+            return GetImage(imageID);
+
+        if (await contributor.GetImageStream(resourceID, HttpContext.RequestAborted) is not { } stream)
+            return NotFound(ImageNotFound);
+
+        Response.Headers["Cache-Control"] = "public, max-age=3600";
+        return ImageFile(stream, image.ContentType);
+    }
 
     /// <summary>
     /// Returns a random image for the <paramref name="imageType"/>.

@@ -24,6 +24,7 @@ using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Image.Options;
+using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
@@ -51,6 +52,7 @@ public class ImageManager(
     Lazy<IMetadataService> metadataService,
     Lazy<AniDBUDPConnectionHandler> udpConnectionHandler,
     IHttpClientFactory httpClientFactory,
+    Lazy<MetadataImageContributorManager> contributorManager,
     ConfigurationProvider<ServerSettings> configurationProvider,
     ShokoImageRepository imageRepository,
     ShokoImage_EntityRepository xrefRepository
@@ -450,7 +452,7 @@ public class ImageManager(
     /// <inheritdoc/>
     public IImage AddImage(ImageData imageData)
     {
-        if (GetTemplateUrlForSource(imageData.Source) is null)
+        if (GetTemplateUrlForSource(imageData.Source) is null && contributorManager.Value.GetLocalImageContributor(imageData.Source) is null)
             throw new MissingImageSourceTemplateUrlException()
             {
                 ImageSource = imageData.Source,
@@ -784,6 +786,22 @@ public class ImageManager(
     /// <inheritdoc/>
     public async Task<bool> CheckIfAvailableAtRemote(IImage image)
     {
+        if (image.Source.IsLocal)
+        {
+            if (contributorManager.Value.GetLocalImageContributor(image.Source) is not { } contributor)
+                return false;
+
+            try
+            {
+                return await contributor.CheckIfImageAvailable(image.ResourceID).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to check the image {ResourceID} of {Source}.", image.ResourceID, image.Source);
+                return false;
+            }
+        }
+
         var template = GetTemplateUrlForSource(image.Source);
         if (template is null)
             return false;
@@ -809,7 +827,7 @@ public class ImageManager(
     public async Task<bool> DownloadImage(IImage image, bool force = false)
     {
         var template = GetTemplateUrlForSource(image.Source);
-        if (template is null)
+        if (template is null && !image.Source.IsLocal)
         {
             logger.LogWarning("Unable to find template url to use for {Source}. (Image={ImageID})", image.Source, image.ID);
             return false;
@@ -837,13 +855,22 @@ public class ImageManager(
             return true;
         }
 
+        // A local source's images come from its contributor; while none serves it, they stay as they are.
+        var contributor = image.Source.IsLocal ? contributorManager.Value.GetLocalImageContributor(image.Source) : null;
+        if (image.Source.IsLocal && contributor is null)
+        {
+            logger.LogDebug("No image contributor serves {Source} right now. (Image={ImageID})", image.Source, image.ID);
+            return false;
+        }
+
         var downloaded = false;
-        var remoteUrl = string.Format(template, image.ResourceID);
+        var remoteUrl = contributor is null ? string.Format(template!, image.ResourceID) : $"{image.Source.Value}:{image.ResourceID}";
         var originalContentType = shokoImage.ContentType;
         try
         {
-            using var client = httpClientFactory.CreateClient("Default");
-            var byteArray = await _retryPolicy.ExecuteAsync(async () => await client.GetByteArrayAsync(remoteUrl)).ConfigureAwait(false);
+            var byteArray = contributor is null
+                ? await DownloadRemoteImage(remoteUrl).ConfigureAwait(false)
+                : await ReadLocalImage(contributor, image).ConfigureAwait(false);
             if (GetImageMimeType(byteArray) is not { } mimeType)
                 throw new UnsupportedImageTypeException()
                 {
@@ -908,6 +935,37 @@ public class ImageManager(
                 _ = Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = image }));
             }
         }
+    }
+
+    /// <summary>
+    ///   Fetches a remote image through the source's template URL.
+    /// </summary>
+    /// <param name="remoteUrl">The image's URL.</param>
+    /// <returns>The image's contents.</returns>
+    /// <exception cref="HttpRequestException">The request failed.</exception>
+    private async Task<byte[]> DownloadRemoteImage(string remoteUrl)
+    {
+        using var client = httpClientFactory.CreateClient("Default");
+        return await _retryPolicy.ExecuteAsync(async () => await client.GetByteArrayAsync(remoteUrl)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///   Reads a local source's image from the contributor serving it.
+    /// </summary>
+    /// <param name="contributor">The contributor serving the image's source.</param>
+    /// <param name="image">The image.</param>
+    /// <returns>The image's contents.</returns>
+    /// <exception cref="HttpRequestException">
+    ///   The contributor has no such image, reported as not found like a
+    ///   remote image that is gone.
+    /// </exception>
+    private static async Task<byte[]> ReadLocalImage(IMetadataImageContributor contributor, IImage image)
+    {
+        await using var stream = await contributor.GetImageStream(image.ResourceID).ConfigureAwait(false)
+            ?? throw new HttpRequestException($"The image contributor has no image {image.ResourceID} of {image.Source.Value}.", null, HttpStatusCode.NotFound);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory).ConfigureAwait(false);
+        return memory.ToArray();
     }
 
     /// <inheritdoc/>

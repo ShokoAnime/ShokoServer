@@ -18,6 +18,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.API.v3.Models.ImageManagement.Input;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -30,12 +31,17 @@ namespace Shoko.Server.API.v3.Controllers;
 ///   and full cross-reference management with entity-scoped lookups.
 /// </summary>
 /// <param name="imageManager">The image manager service.</param>
+/// <param name="contributorManager">Finds the image contributor serving a local source.</param>
 /// <param name="settingsProvider">The settings provider.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/Image/Management"), Tags("Image")]
 [ApiV3]
 [Authorize]
-public class ImageManagementController(IImageManager imageManager, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
+public class ImageManagementController(
+    IImageManager imageManager,
+    MetadataImageContributorManager contributorManager,
+    ISettingsProvider settingsProvider
+) : BaseController(settingsProvider)
 {
     private const string ImageNotFound = "The requested image does not exist.";
     private const string CrossReferenceNotFound = "The requested image cross-reference does not exist.";
@@ -171,8 +177,8 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
-        if (source.IsLocal)
-            return ValidationProblem("Cannot look up images for local sources.", nameof(source));
+        if (source.IsLocal && contributorManager.GetLocalImageContributor(source) is null)
+            return ValidationProblem("Cannot look up images for local sources no image contributor serves.", nameof(source));
         var image = imageManager.GetImageBySourceAndRemoteResourceID(source, resourceID);
         if (image is null)
             return NotFound(ImageNotFound);

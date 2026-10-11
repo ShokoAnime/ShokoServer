@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Metadata.Image;
@@ -15,8 +16,9 @@ namespace Shoko.Abstractions.Metadata.Providers;
 ///   contributor whose enabled pairs cover the entry or anything under it; the
 ///   job asks you for each such entity's images and links and downloads them
 ///   under your <see cref="Source"/>, by the admin's image settings for it.
-///   Register your source and its template URL
-///   (<see cref="Services.IImageManager.RegisterTemplateUrl"/>) first.
+///   Register your source first. A remote source's images are fetched through
+///   its template URL (<see cref="Services.IImageManager.RegisterTemplateUrl"/>),
+///   and a local source's images through <see cref="GetImageStream"/>.
 /// </remarks>
 public interface IMetadataImageContributor
 {
@@ -40,8 +42,9 @@ public interface IMetadataImageContributor
     /// </summary>
     /// <remarks>
     ///   The instance <see cref="MetadataSource.Register"/> returned, read once
-    ///   at registration. An unregistered source, a core or local one, or one
-    ///   another contributor already uses, is refused.
+    ///   at registration. An unregistered source, a core one, or one another
+    ///   contributor already uses, is refused. A local source serves its
+    ///   images through <see cref="GetImageStream"/>.
     /// </remarks>
     MetadataSource Source { get; }
 
@@ -105,4 +108,32 @@ public interface IMetadataImageContributor
     ///   about the entity, which leaves your linked images alone.
     /// </returns>
     Task<IReadOnlyList<ImageCandidate>?> GetImages(IMetadata entity, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   The contents of one of your images, when your <see cref="Source"/> is
+    ///   local. Never called for a remote source, whose images are fetched
+    ///   through its template URL.
+    /// </summary>
+    /// <param name="resourceID">The image's resource ID, as your candidate gave it.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <returns>
+    ///   A stream the core reads and disposes, or <c>null</c> when the image
+    ///   is gone.
+    /// </returns>
+    Task<Stream?> GetImageStream(string resourceID, CancellationToken cancellationToken = default)
+        => Task.FromResult<Stream?>(null);
+
+    /// <summary>
+    ///   Whether one of your images can still be had, when your
+    ///   <see cref="Source"/> is local. Override it when that is cheaper to
+    ///   tell than producing the image.
+    /// </summary>
+    /// <param name="resourceID">The image's resource ID, as your candidate gave it.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <returns><c>true</c> when <see cref="GetImageStream"/> would return the image.</returns>
+    async Task<bool> CheckIfImageAvailable(string resourceID, CancellationToken cancellationToken = default)
+    {
+        await using var stream = await GetImageStream(resourceID, cancellationToken).ConfigureAwait(false);
+        return stream is not null;
+    }
 }

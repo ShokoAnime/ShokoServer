@@ -53,9 +53,9 @@ public class MetadataImageContributorManager(
 
     /// <summary>
     ///   Takes the image contributors the plugins provide, in plugin load
-    ///   order, refusing the ones that name no source, an unregistered, core
-    ///   or local source or a source another contributor uses, or nothing to
-    ///   add images for.
+    ///   order, refusing the ones that name no source, an unregistered or core
+    ///   source or a source another contributor uses, or nothing to add
+    ///   images for.
     ///   Called once during start-up; later calls have no effect.
     /// </summary>
     /// <param name="contributors">The contributors.</param>
@@ -128,12 +128,6 @@ public class MetadataImageContributorManager(
         if (!source.IsRegistered)
         {
             logger.LogError("Refusing image contributor {Contributor}: no plugin registered {Source}, so none of its images can be linked.", contributor.Name, source.Value);
-            return null;
-        }
-
-        if (source.IsLocal)
-        {
-            logger.LogError("Refusing image contributor {Contributor}: {Source} is a local source, which holds no remote images.", contributor.Name, source.Value);
             return null;
         }
 
@@ -247,6 +241,21 @@ public class MetadataImageContributorManager(
     {
         ArgumentNullException.ThrowIfNull(entityID);
         return [.. ImageContributors.Where(info => info.EnabledScope.Contains(entityID))];
+    }
+
+    /// <summary>
+    ///   The contributor serving the images of a local source.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>
+    ///   The contributor, or <c>null</c> when the source is remote or no
+    ///   contributor serves it right now.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
+    public IMetadataImageContributor? GetLocalImageContributor(MetadataSource source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return source.IsLocal ? ImageContributors.FirstOrDefault(info => info.Source == source)?.Contributor : null;
     }
 
     #endregion

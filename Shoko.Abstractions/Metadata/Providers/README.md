@@ -598,8 +598,8 @@ without one no image of your source is linked.
 
 A plugin with images but no entries of its own, such as an artwork service for
 TMDB's shows and movies, implements `IMetadataImageContributor`. It names the
-source its images are kept under (registered by the plugin as a remote source)
-and the sources and kinds it adds images for, core sources included:
+source its images are kept under (registered by the plugin) and the sources
+and kinds it adds images for, core sources included:
 
 ```csharp
 public class ArtworkContributor(ArtworkClient client) : IMetadataImageContributor
@@ -639,9 +639,16 @@ Each contributor's jobs run in a pool of `MaxConcurrentJobs` (two when
 `IMetadataImageContributorManager` or
 `PUT /api/v3/Metadata/ImageContributor/{contributorID}`, which queues
 `ClearContributedImagesJob` to remove your links there. The core refuses a
-contributor whose source is unregistered, core, local or another
-contributor's, and drops pairs on your own source, which your provider's
-image job serves.
+contributor whose source is unregistered, core or another contributor's, and
+drops pairs on your own source, which your provider's image job serves.
+
+A remote source's images are fetched through its template URL. A local
+source has none, so the core asks the contributor instead: `GetImageStream`
+returns an image's contents (`null` when it is gone), and
+`CheckIfImageAvailable` tells whether it can still be had, by default by asking
+for the stream. Override it when that is cheaper to tell, such as a generator
+checking that its input still exists. While no contributor serves a local
+source, as when its plugin is disabled, its stored images stay as they are.
 
 Name the contributor's icon with `EmbeddedIconResourceName`, SVG preferred,
 PNG accepted. The core extracts it beside your plugin as

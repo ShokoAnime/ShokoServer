@@ -210,7 +210,7 @@ public sealed class MetadataImageContributorTests : IDisposable
     #region Registration
 
     [Fact]
-    public void AContributorIsRefusedForAnUnregisteredCoreLocalOrTakenSource_AndLosesThePairsOnItsOwnSource()
+    public void AContributorIsRefusedForAnUnregisteredCoreOrTakenSource_AndLosesThePairsOnItsOwnSource()
     {
         var art = new ArtContributor();
         var clash = new PosterContributor { Source = TestSources.Plugin };
@@ -222,7 +222,9 @@ public sealed class MetadataImageContributorTests : IDisposable
         var unregistered = new PosterContributor { Source = MetadataSource.GetByValue("unregistered-art") };
         var harness = new Harness(_dataPath, art, new CoreSourceContributor(), clash, local, unregistered, own);
 
-        Assert.Equal([art, own], harness.Manager.ImageContributors.Select(info => info.Contributor).ToList());
+        Assert.Equal([art, local, own], harness.Manager.ImageContributors.Select(info => info.Contributor).ToList());
+        Assert.Same(local, harness.Manager.GetLocalImageContributor(TestSources.LocalPlugin));
+        Assert.Null(harness.Manager.GetLocalImageContributor(art.Source));
         var ownInfo = harness.Manager.GetImageContributorInfo(own);
         Assert.Equal(MetadataEntityScope.Single(MetadataSource.AniDB, MetadataEntityType.Series), ownInfo.AvailableScope);
 
