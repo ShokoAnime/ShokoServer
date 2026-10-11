@@ -2,8 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
+using System.Linq;
 using Shoko.Abstractions.Config.Attributes;
+using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Components;
 using Shoko.Abstractions.UI.Enums;
 
 namespace Shoko.Server.Settings;
@@ -32,6 +36,40 @@ public class PluginSettings
     [EnvironmentVariable("SHOKO_PLUGIN_LOAD_ORDER", AllowOverride = true)]
     [List(UniqueItems = true, Sortable = true, HideAddAction = true, HideRemoveAction = true)]
     public List<string> Priority { get; set; } = [];
+
+    /// <summary>
+    ///   Lists the known plugins as <see cref="EnabledPlugins"/> keys.
+    /// </summary>
+    /// <param name="pluginManager">The plugin manager.</param>
+    /// <returns>One option per known plugin.</returns>
+    [OptionsProvider(nameof(EnabledPlugins), Target = OptionsTarget.Keys)]
+    public IEnumerable<SelectOption<string>> ListEnabledPluginsKeys(IPluginManager pluginManager)
+        => ListPlugins(pluginManager);
+
+    /// <summary>
+    ///   Lists the known plugins as <see cref="Priority"/> entries.
+    /// </summary>
+    /// <param name="pluginManager">The plugin manager.</param>
+    /// <returns>One option per known plugin.</returns>
+    [OptionsProvider(nameof(Priority))]
+    public IEnumerable<SelectOption<string>> ListPriorityEntries(IPluginManager pluginManager)
+        => ListPlugins(pluginManager);
+
+    /// <summary>
+    ///   Lists every plugin by the name of its main DLL, which the settings
+    ///   are keyed by, labelled with its display name. A name the settings
+    ///   still hold for a plugin no longer installed is labelled as itself.
+    /// </summary>
+    private IEnumerable<SelectOption<string>> ListPlugins(IPluginManager pluginManager)
+    {
+        var labels = pluginManager.GetPluginInfos()
+            .GroupBy(info => Path.GetFileNameWithoutExtension(info.DLLs[0]))
+            .ToDictionary(group => group.Key, group => group.OrderByDescending(info => info.IsActive).First().Name);
+        return labels.Keys
+            .Union(Priority)
+            .Union(EnabledPlugins.Keys)
+            .Select(name => new SelectOption<string>(name, labels.GetValueOrDefault(name, name)));
+    }
 
     /// <summary>
     ///   Settings for renamers.
