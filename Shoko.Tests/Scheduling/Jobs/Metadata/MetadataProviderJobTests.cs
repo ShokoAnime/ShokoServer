@@ -899,7 +899,11 @@ public class MetadataProviderJobTests
                 jobs.Add((type, ((IContributedImagesJob)job).EntryID));
                 return Task.CompletedTask;
             });
-        return new(contributors.Object, queue.Object, NullLogger<MetadataImageContributorScheduler>.Instance);
+        // Every entry resolves to itself alone.
+        var metadata = new Mock<IMetadataService>();
+        metadata.Setup(m => m.GetEntry(It.IsAny<MetadataGuid>()))
+            .Returns((MetadataGuid id) => Mock.Of<IWithImages>(entity => entity.ID == id));
+        return new(contributors.Object, metadata.Object, queue.Object, NullLogger<MetadataImageContributorScheduler>.Instance);
     }
 
     /// <summary>
@@ -946,7 +950,7 @@ public class MetadataProviderJobTests
         series.SetupGet(s => s.ID).Returns(seriesID);
         series.SetupGet(s => s.Seasons).Returns([]);
         series.SetupGet(s => s.Episodes).Returns([]);
-        harness.Metadata.Setup(m => m.GetSeries(seriesID)).Returns(series.Object);
+        harness.Metadata.Setup(m => m.GetEntry(seriesID)).Returns(series.Object);
         harness.Contributors.SetupGet(m => m.ImageContributors).Returns([ContributorInfo(new ImageOnlyContributor())]);
 
         await harness.Job(seriesID.ToString()).Execute();
@@ -964,7 +968,7 @@ public class MetadataProviderJobTests
         series.SetupGet(s => s.ID).Returns(seriesID);
         series.SetupGet(s => s.Seasons).Returns([]);
         series.SetupGet(s => s.Episodes).Returns([]);
-        harness.Metadata.Setup(m => m.GetSeries(seriesID)).Returns(series.Object);
+        harness.Metadata.Setup(m => m.GetEntry(seriesID)).Returns(series.Object);
         harness.Contributors.SetupGet(m => m.ImageContributors).Returns([ContributorInfo(new ImageOnlyContributor())]);
         harness.Settings.Metadata.Sources.Add(new() { Source = Source, Images = NoImages() });
 
@@ -1020,7 +1024,7 @@ public class MetadataProviderJobTests
         ]);
         series.SetupGet(s => s.Studios).Returns([Entity<IStudio>(studioID)]);
         series.SetupGet(s => s.Networks).Returns([Entity<INetwork>(networkID), Entity<INetwork>(new(TestSources.AniList, MetadataEntityType.Network, "x"))]);
-        harness.Metadata.Setup(m => m.GetSeries(seriesID)).Returns(series.Object);
+        harness.Metadata.Setup(m => m.GetEntry(seriesID)).Returns(series.Object);
         harness.Provider.Images[seriesID] = [new() { ResourceID = "poster.jpg", ImageType = ImageEntityType.Primary }];
 
         await harness.Job(seriesID.ToString()).Execute();
@@ -1040,7 +1044,7 @@ public class MetadataProviderJobTests
         await harness.Job(movieID.ToString()).Execute();
 
         // On another source.
-        harness.Metadata.Setup(m => m.GetMovie(It.IsAny<MetadataGuid>())).Returns((MetadataGuid id) => Entity<IMovie>(id));
+        harness.Metadata.Setup(m => m.GetEntry(It.IsAny<MetadataGuid>())).Returns((MetadataGuid id) => Entity<IMovie>(id));
         await harness.Job(new MetadataGuid(TestSources.AniList, MetadataEntityType.Movie, "9").ToString()).Execute();
 
         // Disabled.
@@ -1063,8 +1067,8 @@ public class MetadataProviderJobTests
         series.SetupGet(s => s.ID).Returns(seriesID);
         series.SetupGet(s => s.Seasons).Returns([]);
         series.SetupGet(s => s.Episodes).Returns([]);
-        harness.Metadata.Setup(m => m.GetSeries(seriesID)).Returns(series.Object);
-        harness.Metadata.Setup(m => m.GetMovie(movieID)).Returns(Entity<IMovie>(movieID));
+        harness.Metadata.Setup(m => m.GetEntry(seriesID)).Returns(series.Object);
+        harness.Metadata.Setup(m => m.GetEntry(movieID)).Returns(Entity<IMovie>(movieID));
         var moviesOnly = Info(harness.Provider, entityTypes: [MetadataEntityType.Movie]);
 
         await harness.Job(seriesID.ToString(), moviesOnly).Execute();
@@ -1083,7 +1087,7 @@ public class MetadataProviderJobTests
         series.SetupGet(s => s.ID).Returns(seriesID);
         series.SetupGet(s => s.Seasons).Returns([]);
         series.SetupGet(s => s.Episodes).Returns([Entity<IEpisode>(episodeID)]);
-        harness.Metadata.Setup(m => m.GetSeries(seriesID)).Returns(series.Object);
+        harness.Metadata.Setup(m => m.GetEntry(seriesID)).Returns(series.Object);
         harness.Provider.Failing.Add(seriesID);
 
         await Assert.ThrowsAsync<InvalidOperationException>(harness.Job(seriesID.ToString()).Execute);
@@ -1096,7 +1100,7 @@ public class MetadataProviderJobTests
     {
         var harness = new ImagesHarness();
         var movieID = ID(MetadataEntityType.Movie, "9");
-        harness.Metadata.Setup(m => m.GetMovie(movieID)).Returns(Entity<IMovie>(movieID));
+        harness.Metadata.Setup(m => m.GetEntry(movieID)).Returns(Entity<IMovie>(movieID));
 
         Task running;
         using (await harness.Locks.Acquire(movieID, TestContext.Current.CancellationToken))
@@ -1104,7 +1108,7 @@ public class MetadataProviderJobTests
             running = harness.Job(movieID.ToString()).Execute();
 
             // Purged while the job waited.
-            harness.Metadata.Setup(m => m.GetMovie(movieID)).Returns((IMovie?)null);
+            harness.Metadata.Setup(m => m.GetEntry(movieID)).Returns((IMovie?)null);
         }
 
         await running;
@@ -1117,7 +1121,7 @@ public class MetadataProviderJobTests
         var harness = new ImagesHarness();
         var info = Info(harness.Provider, source: MetadataSource.TMDB);
         var movieID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Movie, "9");
-        harness.Metadata.Setup(m => m.GetMovie(movieID)).Returns(Entity<IMovie>(movieID));
+        harness.Metadata.Setup(m => m.GetEntry(movieID)).Returns(Entity<IMovie>(movieID));
 
         // A refresh holds the entry's lock.
         Task running;
@@ -1142,7 +1146,7 @@ public class MetadataProviderJobTests
         movie.SetupGet(m => m.ID).Returns(movieID);
         movie.SetupGet(m => m.OriginalLanguageCode).Returns("ja");
         movie.SetupGet(m => m.Crew).Returns([Mock.Of<ICrew>(crew => crew.CreatorID == creatorID && crew.Creator == creator)]);
-        harness.Metadata.Setup(m => m.GetMovie(movieID)).Returns(movie.Object);
+        harness.Metadata.Setup(m => m.GetEntry(movieID)).Returns(movie.Object);
         harness.Settings.Metadata.Sources.Add(new() { Source = Source, Images = new() { AutoDownloadStaffImages = false } });
 
         await harness.Job(movieID.ToString()).Execute();
@@ -2116,6 +2120,7 @@ public class MetadataProviderJobTests
                 new FakeRefreshState(),
                 contributors ?? new MetadataImageContributorScheduler(
                     Mock.Of<IMetadataImageContributorManager>(m => m.ImageContributors == new List<MetadataImageContributorInfo>()),
+                    Mock.Of<IMetadataService>(),
                     Mock.Of<IQueueScheduler>(),
                     NullLogger<MetadataImageContributorScheduler>.Instance
                 )

@@ -563,6 +563,7 @@ public class VideoHashingService(
                 IsNewFile = isNewFile,
                 IsNewVideo = isNewVideo,
                 UsedExistingHashes = useExistingHashes,
+                SkipEvents = skipEvents,
                 Hashes = hashes,
                 Actor = ActorContext.CurrentActor,
             });

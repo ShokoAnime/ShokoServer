@@ -209,6 +209,7 @@ public class MetadataEntityRefreshTests
             );
             var contributorScheduler = new MetadataImageContributorScheduler(
                 Mock.Of<IMetadataImageContributorManager>(contributors => contributors.ImageContributors == new List<MetadataImageContributorInfo>()),
+                Mock.Of<IMetadataService>(),
                 Queue.Object,
                 NullLogger<MetadataImageContributorScheduler>.Instance
             );

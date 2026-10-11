@@ -30,6 +30,12 @@ public class VideoFileHashedEventArgs(string relativePath, IManagedFolder manage
     public required bool IsNewFile { get; init; }
 
     /// <summary>
+    /// Indicates that the caller asked for no follow-up side effects (such as
+    /// queuing provider work) for this hashing. The event itself still fires.
+    /// </summary>
+    public required bool SkipEvents { get; init; }
+
+    /// <summary>
     /// The hashes that were the result of the operation. May or may not have
     /// been reused depending on the provider(s) enabled and if it was requested
     /// to re-use existing hashes.

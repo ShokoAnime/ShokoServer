@@ -92,7 +92,7 @@ public class DownloadContributedImagesJob<TContributor>(
             return;
         }
 
-        if (!MetadataImageContributorScheduler.GetContributorsCovering(contributorManager, entry).Contains(info))
+        if (!MetadataImageContributorScheduler.GetContributorsCovering(contributorManager, metadataService, entry).Contains(info))
         {
             _logger.LogDebug("Not downloading images for {Entry}: {Contributor} is not enabled for it.", entry, info.Name);
             return;

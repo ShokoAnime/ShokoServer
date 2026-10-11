@@ -173,8 +173,8 @@ public sealed class MetadataImageContributorTests : IDisposable
             Manager.AddParts(contributors);
         }
 
-        public MetadataImageContributorScheduler Scheduler()
-            => new(Manager, Queue.Object, NullLogger<MetadataImageContributorScheduler>.Instance);
+        public MetadataImageContributorScheduler Scheduler(IMetadataService? metadata = null)
+            => new(Manager, metadata ?? Mock.Of<IMetadataService>(), Queue.Object, NullLogger<MetadataImageContributorScheduler>.Instance);
 
         private Task Record(Type type, Action<IQueueJob>? configure, bool prioritize)
         {
@@ -323,7 +323,16 @@ public sealed class MetadataImageContributorTests : IDisposable
         var art = new ArtContributor();
         var posters = new PosterContributor();
         var harness = new Harness(_dataPath, art, posters);
-        var scheduler = harness.Scheduler();
+        var metadata = new Mock<IMetadataService>();
+        var show = new Mock<ISeries>();
+        show.SetupGet(s => s.ID).Returns(ShowID);
+        show.SetupGet(s => s.Seasons).Returns([]);
+        show.SetupGet(s => s.Episodes).Returns([Mock.Of<IEpisode>(e => e.ID == EpisodeID)]);
+        metadata.Setup(m => m.GetEntry(ShowID)).Returns(show.Object);
+        metadata.Setup(m => m.GetEntry(MovieID)).Returns(Mock.Of<IMovie>(m => m.ID == MovieID));
+        metadata.Setup(m => m.GetEntry(It.Is<MetadataGuid>(id => id.Source == MetadataSource.AniDB)))
+            .Returns((MetadataGuid id) => Mock.Of<IWithImages>(e => e.ID == id));
+        var scheduler = harness.Scheduler(metadata.Object);
 
         // A show reaches its episodes, so a contributor left on only for
         // episodes still covers it.
@@ -413,7 +422,7 @@ public sealed class MetadataImageContributorTests : IDisposable
 
         // Queued while nothing stored the show: it is resolved when the job runs.
         var job = jobs.Job(harness.Manager, ShowID);
-        jobs.Metadata.Setup(m => m.GetSeries(ShowID)).Returns(show.Object);
+        jobs.Metadata.Setup(m => m.GetEntry(ShowID)).Returns(show.Object);
         await job.Execute();
 
         // The entity itself is handed over, and only the kinds in its scope.
@@ -438,7 +447,7 @@ public sealed class MetadataImageContributorTests : IDisposable
         await jobs.Job(harness.Manager, MovieID).Execute();
 
         // Turned off.
-        jobs.Metadata.Setup(m => m.GetMovie(MovieID)).Returns(Entity<IMovie>(MovieID));
+        jobs.Metadata.Setup(m => m.GetEntry(MovieID)).Returns(Entity<IMovie>(MovieID));
         harness.Manager.SetImageContributorEnabled(harness.Manager.ImageContributors[0].ID, MetadataEntityScope.Single(MetadataSource.TMDB, MetadataEntityType.Series));
         await jobs.Job(harness.Manager, MovieID).Execute();
 

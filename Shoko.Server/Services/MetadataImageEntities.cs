@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
@@ -14,56 +13,15 @@ namespace Shoko.Server.Services;
 /// </summary>
 public static class MetadataImageEntities
 {
-    #region Kinds
-
-    private static readonly FrozenSet<MetadataEntityType> _seriesKinds = FrozenSet.ToFrozenSet([
-        MetadataEntityType.Series,
-        MetadataEntityType.Season,
-        MetadataEntityType.Episode,
-        MetadataEntityType.Creator,
-        MetadataEntityType.Character,
-        MetadataEntityType.Studio,
-        MetadataEntityType.Network,
-    ]);
-
-    private static readonly FrozenSet<MetadataEntityType> _movieKinds = FrozenSet.ToFrozenSet([
-        MetadataEntityType.Movie,
-        MetadataEntityType.Creator,
-        MetadataEntityType.Character,
-        MetadataEntityType.Studio,
-    ]);
-
-    private static readonly FrozenSet<MetadataEntityType> _collectionKinds = FrozenSet.ToFrozenSet([MetadataEntityType.Collection]);
-
-    private static readonly FrozenDictionary<MetadataEntityType, FrozenSet<MetadataEntityType>> _entityKinds = MetadataEntityRefreshScheduler.EntityKinds
-        .ToFrozenDictionary(kind => kind, kind => FrozenSet.ToFrozenSet([kind]));
-
-    /// <summary>
-    ///   The kinds of entities the walk of an entry of a kind can reach.
-    /// </summary>
-    /// <param name="entryKind">The kind of entry: series, movie, collection, creator, character, studio or network.</param>
-    /// <returns>The kinds, or none for any other kind of entry.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryKind"/> is <c>null</c>.</exception>
-    public static IReadOnlySet<MetadataEntityType> GetReachableKinds(MetadataEntityType entryKind)
-    {
-        ArgumentNullException.ThrowIfNull(entryKind);
-        return entryKind == MetadataEntityType.Series ? _seriesKinds
-            : entryKind == MetadataEntityType.Movie ? _movieKinds
-            : entryKind == MetadataEntityType.Collection ? _collectionKinds
-            : _entityKinds.GetValueOrDefault(entryKind) ?? FrozenSet<MetadataEntityType>.Empty;
-    }
-
-    #endregion
-
     #region Walk
 
     /// <summary>
     ///   The entities under an entry, on its source, with the people and
-    ///   studios credited on them, and the entry's original language. A
-    ///   creator, character, studio or network is walked alone.
+    ///   studios credited on them, and the entry's original language. Any
+    ///   other kind of entry, a collection among them, is walked alone.
     /// </summary>
     /// <param name="metadataService">Resolves the entry.</param>
-    /// <param name="entry">The series, film, collection, creator, character, studio or network.</param>
+    /// <param name="entry">The entry of any kind.</param>
     /// <returns>The entities, each once, or none when the entry is not stored.</returns>
     /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     public static (List<IWithImages> Entities, string? OriginalLanguage) Gather(IMetadataService metadataService, MetadataGuid entry)
@@ -72,25 +30,18 @@ public static class MetadataImageEntities
         ArgumentNullException.ThrowIfNull(entry);
         var entities = new List<IWithImages>();
         string? originalLanguage = null;
-        if (entry.EntityType == MetadataEntityType.Series && metadataService.GetSeries(entry) is { } series)
+        var root = metadataService.GetEntry(entry);
+        if (root is IWithImages rootImages)
+            entities.Add(rootImages);
+        if (root is ISeries series)
         {
             originalLanguage = series.OriginalLanguageCode;
-            entities.Add(series);
             entities.AddRange(series.Seasons);
             entities.AddRange(series.Episodes);
         }
-        else if (entry.EntityType == MetadataEntityType.Movie && metadataService.GetMovie(entry) is { } movie)
+        else if (root is IMovie movie)
         {
             originalLanguage = movie.OriginalLanguageCode;
-            entities.Add(movie);
-        }
-        else if (entry.EntityType == MetadataEntityType.Collection && metadataService.GetCollection(entry) is { } collection)
-        {
-            entities.Add(collection);
-        }
-        else if (MetadataEntityRefreshScheduler.EntityKinds.Contains(entry.EntityType))
-        {
-            return (metadataService.GetEntry(entry) is IWithImages entity && entity.ID.Source == entry.Source ? [entity] : [], null);
         }
 
         // Each person, studio or network is resolved once, however often it

@@ -34,6 +34,7 @@ public class FileEventEmitterTests
             UsedExistingHashes = false,
             IsNewVideo = true,
             IsNewFile = true,
+            SkipEvents = false,
             Hashes = [],
         });
 

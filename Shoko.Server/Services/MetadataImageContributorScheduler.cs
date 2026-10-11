@@ -18,10 +18,12 @@ namespace Shoko.Server.Services;
 ///   refreshes.
 /// </summary>
 /// <param name="contributorManager">The registered contributors.</param>
+/// <param name="metadataService">Resolves the entries the image walk reaches.</param>
 /// <param name="scheduler">The queue.</param>
 /// <param name="logger">Where failures to queue are reported.</param>
 public class MetadataImageContributorScheduler(
     IMetadataImageContributorManager contributorManager,
+    IMetadataService metadataService,
     IQueueScheduler scheduler,
     ILogger<MetadataImageContributorScheduler> logger
 )
@@ -32,7 +34,7 @@ public class MetadataImageContributorScheduler(
     ///   Queue one image job for each contributor enabled for an entry or
     ///   anything the image walk reaches under it.
     /// </summary>
-    /// <param name="entryID">The series, film or collection.</param>
+    /// <param name="entryID">The entry.</param>
     /// <param name="force">Whether to download the desired images again even when they are there.</param>
     /// <param name="prioritize">Whether to queue them ahead of the rest even though they are not forced.</param>
     /// <param name="isNew">Whether this is the entry's first image run, after it was just linked or created.</param>
@@ -49,7 +51,7 @@ public class MetadataImageContributorScheduler(
     {
         ArgumentNullException.ThrowIfNull(entryID);
         var queued = 0;
-        foreach (var info in GetContributorsCovering(contributorManager, entryID))
+        foreach (var info in GetContributorsCovering(contributorManager, metadataService, entryID))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (MetadataImageContributorJobs.GetJobType(info.Contributor.GetType()) is not { } jobType)
@@ -85,15 +87,21 @@ public class MetadataImageContributorScheduler(
     ///   reaches under it on its source.
     /// </summary>
     /// <param name="contributorManager">The registered contributors.</param>
-    /// <param name="entryID">The series, film or collection.</param>
+    /// <param name="metadataService">Resolves the entry and what the walk reaches.</param>
+    /// <param name="entryID">The entry.</param>
     /// <returns>The contributors, in plugin load order.</returns>
     /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
-    public static IReadOnlyList<MetadataImageContributorInfo> GetContributorsCovering(IMetadataImageContributorManager contributorManager, MetadataGuid entryID)
+    public static IReadOnlyList<MetadataImageContributorInfo> GetContributorsCovering(
+        IMetadataImageContributorManager contributorManager,
+        IMetadataService metadataService,
+        MetadataGuid entryID
+    )
     {
         ArgumentNullException.ThrowIfNull(contributorManager);
+        ArgumentNullException.ThrowIfNull(metadataService);
         ArgumentNullException.ThrowIfNull(entryID);
-        var kinds = MetadataImageEntities.GetReachableKinds(entryID.EntityType);
-        return [.. contributorManager.ImageContributors.Where(info => kinds.Any(kind => info.EnabledScope.Contains(entryID.Source, kind)))];
+        var (entities, _) = MetadataImageEntities.Gather(metadataService, entryID);
+        return [.. contributorManager.ImageContributors.Where(info => entities.Any(entity => info.EnabledScope.Contains(entity.ID)))];
     }
 
     #endregion

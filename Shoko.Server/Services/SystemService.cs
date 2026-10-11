@@ -500,6 +500,7 @@ public class SystemService : ISystemService
             services.AddSingleton<MetadataImageContributorManager>();
             services.AddSingleton<IMetadataImageContributorManager>(sp => sp.GetRequiredService<MetadataImageContributorManager>());
             services.AddSingleton<MetadataImageContributorScheduler>();
+            services.AddHostedService<VideoImageContributorListener>();
             services.AddSingleton<IMetadataRefreshService, MetadataRefreshService>();
             services.AddSingleton<MetadataPurgeService>();
             services.AddSingleton<IMetadataPurgeService>(provider => provider.GetRequiredService<MetadataPurgeService>());
