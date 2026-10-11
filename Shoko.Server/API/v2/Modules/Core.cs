@@ -151,17 +151,8 @@ public class Core : BaseController
     /// </summary>
     /// <returns>Server settings</returns>
     [HttpGet("config/export")]
-    public ActionResult<IServerSettings> ExportConfig()
-    {
-        try
-        {
-            return new ActionResult<IServerSettings>(_settings);
-        }
-        catch
-        {
-            return APIStatus.InternalError("Error while reading settings.");
-        }
-    }
+    public ActionResult ExportConfig()
+        => APIStatus.BadRequest("Disabled. Use APIv3 to get the settings instead.");
 
     /// <summary>
     /// Import config file that was sent to in API body - this act as import from backup
