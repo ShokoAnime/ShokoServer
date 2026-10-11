@@ -1705,6 +1705,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 312, DatabaseFixes.AssignEpisodeAiringSequenceNumbers),
         new(195,   1, DatabaseFixes.RepairExternalSubtitleLanguages),
         new(195,   2, DatabaseFixes.RepairRegionTaggedStreamLanguages),
+        new(196,   1, "DELETE FROM `ShokoImage_Entity` WHERE `ID` IN (SELECT `ID` FROM (SELECT `ID`, ROW_NUMBER() OVER (PARTITION BY `EntitySource`, `EntityType`, `EntityID`, `ImageID`, `ImageType`, `Source` ORDER BY `IsPreferred` DESC, `ID`) AS `RowNumber` FROM `ShokoImage_Entity`) AS `Ranked` WHERE `RowNumber` > 1);"),
+        new(196,   2, "CREATE UNIQUE INDEX `UIX_ShokoImage_Entity_Entity_Image` ON `ShokoImage_Entity`(`EntitySource`, `EntityType`, `EntityID`, `ImageID`, `ImageType`, `Source`);"),
     ];
 
     #endregion

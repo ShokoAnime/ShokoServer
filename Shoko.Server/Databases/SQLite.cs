@@ -1414,6 +1414,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(173, 310, DatabaseFixes.AssignEpisodeAiringSequenceNumbers),
         new(174,   1, DatabaseFixes.RepairExternalSubtitleLanguages),
         new(174,   2, DatabaseFixes.RepairRegionTaggedStreamLanguages),
+        new(175,   1, "DELETE FROM ShokoImage_Entity WHERE ID IN (SELECT ID FROM (SELECT ID, ROW_NUMBER() OVER (PARTITION BY EntitySource, EntityType, EntityID, ImageID, ImageType, Source ORDER BY IsPreferred DESC, ID) AS RowNumber FROM ShokoImage_Entity) WHERE RowNumber > 1);"),
+        new(175,   2, "CREATE UNIQUE INDEX UIX_ShokoImage_Entity_Entity_Image ON ShokoImage_Entity(EntitySource, EntityType, EntityID, ImageID, ImageType, Source);"),
     ];
 
     #endregion
