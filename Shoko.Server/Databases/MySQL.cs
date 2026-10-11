@@ -1704,7 +1704,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 311, "CREATE INDEX `IX_EpisodeAiring_AiringScheduleID_SequenceNumber` ON `EpisodeAiring`(`AiringScheduleID`, `SequenceNumber`);"),
         new(194, 312, DatabaseFixes.AssignEpisodeAiringSequenceNumbers),
         new(195,   1, DatabaseFixes.RepairExternalSubtitleLanguages),
-        new(196,   1, DatabaseFixes.RepairRegionTaggedStreamLanguages),
+        new(195,   2, DatabaseFixes.RepairRegionTaggedStreamLanguages),
     ];
 
     #endregion

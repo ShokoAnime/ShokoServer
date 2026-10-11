@@ -1413,7 +1413,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(173, 309, "CREATE INDEX IX_EpisodeAiring_AiringScheduleID_SequenceNumber ON EpisodeAiring(AiringScheduleID, SequenceNumber);"),
         new(173, 310, DatabaseFixes.AssignEpisodeAiringSequenceNumbers),
         new(174,   1, DatabaseFixes.RepairExternalSubtitleLanguages),
-        new(175,   1, DatabaseFixes.RepairRegionTaggedStreamLanguages),
+        new(174,   2, DatabaseFixes.RepairRegionTaggedStreamLanguages),
     ];
 
     #endregion
