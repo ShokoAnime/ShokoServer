@@ -16,7 +16,6 @@ public class InitUser : JMMUser, IIdentity
         Password = "";
         IsAdmin = 1;
         HideCategories = "";
-        CanEditServerSettings = 1;
     }
 
     [NotMapped] string IIdentity.AuthenticationType => "API";

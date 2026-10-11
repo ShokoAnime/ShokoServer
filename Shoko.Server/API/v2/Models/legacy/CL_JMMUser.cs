@@ -10,7 +10,6 @@ public class CL_JMMUser
     public int IsAniDBUser { get; set; }
     public int IsTraktUser { get; set; }
     public string HideCategories { get; set; }
-    public int? CanEditServerSettings { get; set; }
     public string PlexUsers { get; set; }
     public string PlexToken { get; set; }
 }

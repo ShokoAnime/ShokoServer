@@ -173,7 +173,7 @@ public class OrderingTextRoundTripTests(DatabaseMigrationFixture fixture)
             services.GetRequiredService<AnimeEpisodeRepository>().Save(episode);
             return episode.AnimeEpisodeID;
         }).ToList();
-        var admin = new JMMUser { Username = "ordering-text-admin", IsAdmin = 1, HideCategories = string.Empty, CanEditServerSettings = 1 };
+        var admin = new JMMUser { Username = "ordering-text-admin", IsAdmin = 1, HideCategories = string.Empty };
         services.GetRequiredService<JMMUserRepository>().Save(admin);
         var controller = ActivatorUtilities.CreateInstance<SeriesOrderingController>(services);
         controller.ControllerContext = new()

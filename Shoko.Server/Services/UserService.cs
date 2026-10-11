@@ -181,12 +181,11 @@ public class UserService(
             user.Username = updateData.Username;
         }
 
-        if (updateData.IsAdmin.HasValue && (user.IsAdminUser() != updateData.IsAdmin.Value || user.CanEditServerSettings == 1 != updateData.IsAdmin.Value))
+        if (updateData.IsAdmin.HasValue && user.IsAdminUser() != updateData.IsAdmin.Value)
         {
             shouldSave = true;
             reason |= UserSaveReason.IsAdmin;
             user.IsAdmin = updateData.IsAdmin.Value ? 1 : 0;
-            user.CanEditServerSettings = updateData.IsAdmin.Value ? 1 : 0;
         }
 
         if (updateData.IsAnidbUser.HasValue)

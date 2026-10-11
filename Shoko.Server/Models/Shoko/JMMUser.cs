@@ -39,8 +39,6 @@ public class JMMUser : IIdentity, IUser
         set { _hideCategories = value; _hideCategoriesCache = null; _forbiddenAnimeCache = null; }
     }
 
-    public int? CanEditServerSettings { get; set; }
-
     public string? PlexUsers { get; set; }
 
     public string? PlexToken { get; set; }

@@ -17,7 +17,6 @@ public class JMMUserMap : ClassMap<JMMUser>
         Map(x => x.IsAdmin).Not.Nullable();
         Map(x => x.Password);
         Map(x => x.Username);
-        Map(x => x.CanEditServerSettings);
         Map(x => x.PlexUsers);
         Map(x => x.PlexToken);
     }

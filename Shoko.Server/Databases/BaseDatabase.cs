@@ -315,7 +315,6 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
             : Digest.Hash(settings.Database.DefaultUserPassword);
         var defaultUser = new JMMUser
         {
-            CanEditServerSettings = 1,
             HideCategories = string.Empty,
             IsAdmin = 1,
             IsAniDBUser = 1,
