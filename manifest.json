@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.508",
+      "tag": "v6.0.0-dev.508",
+      "commit": "0d8d42a186e7bfd34c3f7a733fb5cebbf039af16",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.508/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-11T18:46:51Z",
+      "releaseNotes": "\n`chore`: **Drop tests pinning authorization levels**:\n\n- Removed `AdminAuthorizationTests` and the non-admin refusal test in `RestartEventEmitterTests`\n- Renamed the registry's `CanConnect` test after what it checks\n- Stopped singling out emitters in `CLAUDE.md`\n"
+    },
+    {
       "version": "6.0.0.507",
       "tag": "v6.0.0-dev.507",
       "commit": "c7c3efda56b50ea584ff590f8b52297e2a6cd184",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.479/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-19T16:23:06Z",
       "releaseNotes": "\n`docs`: **Document settings migrations**.\n\n`refactor` (`settings`): **Nest AniDb MyList settings under a MyList object**:\n\nGrouped the flat `MyList_*` properties on `AniDbSettings` into a new\n`AniDb.MyList` (`MyListSettings`) object and added a settings migration\nthat renames the persisted keys.\n\n- Added `AniDbSettings.MyListSettings` with the former `MyList_*` members\n- Updated `MylistService`, `UserDataService`, `VideoReleaseService`,\n  `SystemService`, `ModelClients`, and the v1/v3 controllers to the new path\n- Registered `MigrateAniDbMyListToOwnObject` as migration 19\n- Updated doc references to `AniDb.MyList.*`\n"
-    },
-    {
-      "version": "6.0.0.478",
-      "tag": "v6.0.0-dev.478",
-      "commit": "3d4e467ba1a0f57347d42cef9a45323f7fa41cc0",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.478/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-19T14:47:31Z",
-      "releaseNotes": "\n`chore` (`deps`): **Bump outdated NuGet packages** ([#1441](https://github.com/ShokoAnime/ShokoServer/pull/1441)):\n\n* chore(deps): bump outdated NuGet packages\n\nBumped all patch/minor-version-behind packages across Shoko.Server,\nShoko.TrayService, Shoko.QueueProcessor(.Tests), Shoko.Tests,\nShoko.IntegrationTests, and Shoko.BuildTools(.Targets) to their latest\navailable versions.\n\nHeld back two: `Microsoft.Build`/`Microsoft.Build.Framework`/\n`Microsoft.Build.Utilities.Core` (18.10.1 has no `net10.0`-targeted\nasset yet, falls back to .NET Framework and trips the repo's\nNU1701-as-error policy) and `xunit.v3`/`xunit.runner.visualstudio`\n(4.0 defaults test projects to Microsoft.Testing.Platform, which the\n.NET 10 SDK's `dotnet test` refuses to run without a `global.json`\nopt-in and likely CI changes — out of scope for a plain dependency\nbump).\n\nBuild clean, 3944/3944 tests passing.\n\n* chore(deps): bump Microsoft.Build to 18.9.6\n\n18.9.6 is the last Microsoft.Build release still targeting `net10.0`\nbefore 18.10.x dropped it for `net11.0`. Closer to latest than the\n18.8.2 floor without the NU1701 TFM-fallback break.\n\n* chore(deps): bump Shoko.QueueProcessor and BuildTools package versions\n\nPer revam's PR review request: bump the packages' own versions\nalongside their dependency bumps, not just the dependencies.\n\n- Shoko.QueueProcessor: 6.0.0-alpha.7 -> 6.0.0-alpha.8\n- Shoko.BuildTools: 0.5.0 -> 0.5.1\n- Shoko.BuildTools.Targets: 0.3.0 -> 0.3.1\n"
     }
   ]
 }
