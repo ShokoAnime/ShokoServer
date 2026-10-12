@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Events;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.User;
 using Shoko.Server.API.SignalR.Models;
 
 namespace Shoko.Server.API.SignalR.Aggregate;

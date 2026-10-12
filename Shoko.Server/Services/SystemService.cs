@@ -58,7 +58,6 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Watchdog;
-using Shoko.Server.Server;
 using Shoko.Server.Services.Airing;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Services.Connectivity;

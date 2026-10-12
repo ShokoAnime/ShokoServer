@@ -23,7 +23,6 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 
 #pragma warning disable CS0618

@@ -16,7 +16,6 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Video;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Interfaces;

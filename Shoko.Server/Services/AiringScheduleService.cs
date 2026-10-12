@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
-using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;

@@ -6,7 +6,6 @@ using NHibernate;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Services;

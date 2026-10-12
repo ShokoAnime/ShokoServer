@@ -43,7 +43,6 @@ using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
