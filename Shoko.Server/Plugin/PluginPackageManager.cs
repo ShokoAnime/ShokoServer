@@ -874,7 +874,9 @@ public partial class PluginPackageManager(
 
     private async Task<IReadOnlyList<(RemotePackageManifestInfo Manifest, DateTime fetchedAt)>> GetRemoteManifestAsync(HttpClient httpClient, string manifestUrl, bool allowArray, CancellationToken cancellationToken)
     {
-        var (document, lastFetchedAt) = await FetchManifestAsync(httpClient, manifestUrl, cancellationToken).ConfigureAwait(false);
+        // Only a referenced manifest falls back on its cached copy: when the
+        // repository's own manifest fails, the last synced state stays as is.
+        var (document, lastFetchedAt) = await FetchManifestAsync(httpClient, manifestUrl, allowStaleCache: !allowArray, cancellationToken).ConfigureAwait(false);
         var manifests = new List<(RemotePackageManifestInfo Manifest, DateTime fetchedAt)>();
         // Keyed by package *and* source, not by package alone. One package
         // legitimately appears more than once in a repository - a stable
@@ -894,9 +896,10 @@ public partial class PluginPackageManager(
 
                 foreach (var element in rootElement.EnumerateArray())
                 {
+                    RemotePackageManifestInfo? manifest = null;
                     try
                     {
-                        var manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
+                        manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
                         if (manifest is { IsReference: true })
                         {
                             var subManifests = await GetRemoteManifestAsync(httpClient, manifest.ManifestUrl, allowArray: false, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -906,9 +909,12 @@ public partial class PluginPackageManager(
                         else if (manifest is not null)
                             AddUnlessSeen(manifest, lastFetchedAt, manifestUrl);
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                     {
-                        _logger.LogWarning(ex, "Failed to parse package manifest from repository.");
+                        if (manifest is { IsReference: true })
+                            _logger.LogWarning(ex, "Skipped the manifest at {ManifestUrl}, which could not be fetched and is not cached.", manifest.ManifestUrl);
+                        else
+                            _logger.LogWarning(ex, "Failed to parse package manifest from repository.");
                     }
                 }
             }
@@ -945,39 +951,86 @@ public partial class PluginPackageManager(
         }
     }
 
-    private async Task<(JsonDocument Document, DateTime LastFetchedAt)> FetchManifestAsync(HttpClient httpClient, string manifestUrl, CancellationToken cancellationToken)
+    /// <summary>
+    ///   Fetch a manifest, keeping a copy of every good answer. A manifest the
+    ///   server says is unchanged is read from that copy.
+    /// </summary>
+    /// <param name="httpClient">The client to fetch with.</param>
+    /// <param name="manifestUrl">The manifest's address.</param>
+    /// <param name="allowStaleCache">
+    ///   Whether to answer with the kept copy when the fetch fails.
+    /// </param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    ///   The manifest and when it was last fetched.
+    /// </returns>
+    /// <exception cref="HttpRequestException">
+    ///   Thrown if the fetch failed and no kept copy could be used.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown if the answer is not JSON and no kept copy could be used.
+    /// </exception>
+    private async Task<(JsonDocument Document, DateTime LastFetchedAt)> FetchManifestAsync(HttpClient httpClient, string manifestUrl, bool allowStaleCache, CancellationToken cancellationToken)
     {
-        var lastFetchedAt = DateTime.UtcNow;
-        var request = new HttpRequestMessage(HttpMethod.Get, manifestUrl);
         var manifestId = UuidUtility.GetV5(manifestUrl);
         var jsonPath = Path.Join(_applicationPaths.PluginsPath, Repositories, "cache", manifestId + ".json");
         var etagPath = Path.ChangeExtension(jsonPath, ".etag");
         var cacheExists = File.Exists(jsonPath);
-        if (cacheExists)
+        try
         {
-            lastFetchedAt = File.GetLastWriteTimeUtc(jsonPath);
-            request.Headers.IfModifiedSince = lastFetchedAt;
-            if (File.Exists(etagPath) && File.ReadAllText(etagPath, Encoding.UTF8) is { Length: > 0 } cachedEtag)
-                request.Headers.IfNoneMatch.ParseAdd(cachedEtag);
-        }
+            using var request = new HttpRequestMessage(HttpMethod.Get, manifestUrl);
+            if (cacheExists)
+            {
+                request.Headers.IfModifiedSince = File.GetLastWriteTimeUtc(jsonPath);
+                if (File.Exists(etagPath) && File.ReadAllText(etagPath, Encoding.UTF8) is { Length: > 0 } cachedEtag)
+                    request.Headers.IfNoneMatch.ParseAdd(cachedEtag);
+            }
 
-        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-        if (cacheExists && response.StatusCode is HttpStatusCode.NotModified)
+            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            if (cacheExists && response.StatusCode is HttpStatusCode.NotModified)
+                return ReadCachedManifest(jsonPath);
+
+            response.EnsureSuccessStatusCode();
+            var contentType = response.Content.Headers.ContentType?.MediaType;
+            if (contentType is not ("application/json" or "text/plain" or "text/json"))
+                throw new InvalidOperationException($"Invalid content type: \"{contentType}\". Expected \"application/json\", \"text/plain\" or \"text/json\".");
+
+            var content = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+            JsonDocument jsonDoc;
+            try
+            {
+                jsonDoc = JsonDocument.Parse(content);
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                throw new InvalidOperationException("The manifest is not valid JSON.", ex);
+            }
+
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(jsonPath)!);
+                File.WriteAllBytes(jsonPath, content);
+                if (response.Headers.ETag?.ToString() is { Length: > 0 } etag)
+                    File.WriteAllText(etagPath, etag, Encoding.UTF8);
+                else
+                    File.Delete(etagPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _logger.LogWarning(ex, "Failed to cache the manifest at {ManifestUrl}.", manifestUrl);
+            }
+
+            return (jsonDoc, DateTime.UtcNow);
+        }
+        catch (Exception ex) when (allowStaleCache && cacheExists && !cancellationToken.IsCancellationRequested && ex is HttpRequestException or InvalidOperationException or OperationCanceledException)
         {
-            var jsonCachedDoc = await JsonDocument.ParseAsync(File.OpenRead(jsonPath), default, cancellationToken).ConfigureAwait(false);
-            return (jsonCachedDoc, lastFetchedAt);
+            _logger.LogWarning(ex, "Failed to fetch the manifest at {ManifestUrl}, using the cached copy instead.", manifestUrl);
+            return ReadCachedManifest(jsonPath);
         }
-
-        response.EnsureSuccessStatusCode();
-        var contentType = response.Content.Headers.ContentType?.MediaType;
-        if (contentType is not ("application/json" or "text/plain"))
-            throw new InvalidOperationException($"Invalid content type: \"{contentType}\". Expected \"application/json.\" or \"text/plain\" or \"text/json\"");
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var jsonDoc = await JsonDocument.ParseAsync(response.Content.ReadAsStream(cancellationToken), default, cancellationToken).ConfigureAwait(false);
-        return (jsonDoc, lastFetchedAt);
     }
+
+    private static (JsonDocument Document, DateTime LastFetchedAt) ReadCachedManifest(string jsonPath)
+        => (JsonDocument.Parse(File.ReadAllBytes(jsonPath)), File.GetLastWriteTimeUtc(jsonPath));
 
     private async Task<PackageManifestInfo?> ConvertRemoteToLocalAsync(RemotePackageManifestInfo manifestInfo, Guid repositoryId, DateTime lastFetchedAt, CancellationToken cancellationToken)
     {
