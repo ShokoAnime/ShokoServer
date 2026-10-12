@@ -1,5 +1,6 @@
 
 using System;
+using Shoko.Abstractions.Plugin.Enums;
 
 namespace Shoko.Abstractions.Plugin.Models;
 
@@ -29,6 +30,11 @@ public sealed class LocalPluginPage
     ///   false to force the page to open in a new window.
     /// </summary>
     public bool CanEmbed { get; set; } = true;
+
+    /// <summary>
+    ///   Who the page is offered to.
+    /// </summary>
+    public required PluginPageVisibility Visibility { get; set; }
 
     /// <summary>
     ///   Information about the plugin the page belongs to.

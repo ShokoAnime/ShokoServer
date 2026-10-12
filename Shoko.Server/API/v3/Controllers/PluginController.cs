@@ -67,10 +67,26 @@ public class PluginController(
     };
 
     /// <summary>
-    ///   Gets all plugin pages across all active plugins.
+    ///   Gets the pages offered by the plugins.
     /// </summary>
+    /// <remarks>
+    ///   Administrators get every page, of any plugin the filters let through,
+    ///   along with the plugin info. Other users only get the pages of active
+    ///   plugins that are offered to users, and the filters are ignored.
+    /// </remarks>
+    /// <param name="query">An optional search to narrow the plugins by.</param>
+    /// <param name="active">Whether to include active plugins.</param>
+    /// <param name="installed">Whether to include installed plugins.</param>
+    /// <param name="enabled">Whether to include enabled plugins.</param>
+    /// <param name="restartPending">Whether to include plugins waiting on a restart.</param>
+    /// <param name="allVersions">Whether to include every version of each plugin.</param>
+    /// <returns>
+    ///   The pages visible to the caller.
+    /// </returns>
+    [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("Pages")]
-    public List<PluginPage> GetPluginPages(
+    public ActionResult<List<PluginPage>> GetPluginPages(
         [FromQuery] string? query = null,
         [FromQuery] IncludeOnlyFilter active = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter installed = IncludeOnlyFilter.True,
@@ -79,7 +95,39 @@ public class PluginController(
         [FromQuery] bool allVersions = false
     )
     {
-        var pages = new List<PluginPage>();
+        var user = User;
+        if (user is null)
+            return Unauthorized();
+
+        return user.IsAdmin == 1
+            ? GetPluginPages(PluginPageVisibility.Admin, query, active, installed, enabled, restartPending, allVersions)
+            : GetPluginPages(PluginPageVisibility.Authenticated, query);
+    }
+
+    /// <summary>
+    ///   Gets the pages offered to a caller of the given level.
+    /// </summary>
+    /// <param name="visibility">The highest level the caller may see.</param>
+    /// <param name="query">An optional search to narrow the plugins by.</param>
+    /// <param name="active">Whether to include active plugins.</param>
+    /// <param name="installed">Whether to include installed plugins.</param>
+    /// <param name="enabled">Whether to include enabled plugins.</param>
+    /// <param name="restartPending">Whether to include plugins waiting on a restart.</param>
+    /// <param name="allVersions">Whether to include every version of each plugin.</param>
+    /// <returns>
+    ///   The pages visible at that level.
+    /// </returns>
+    internal List<PluginPage> GetPluginPages(
+        PluginPageVisibility visibility,
+        string? query = null,
+        IncludeOnlyFilter active = IncludeOnlyFilter.True,
+        IncludeOnlyFilter installed = IncludeOnlyFilter.True,
+        IncludeOnlyFilter enabled = IncludeOnlyFilter.True,
+        IncludeOnlyFilter restartPending = IncludeOnlyFilter.True,
+        bool allVersions = false
+    )
+    {
+        var includePluginInfo = visibility is PluginPageVisibility.Admin;
         var enumerable = (IEnumerable<AbstractPluginInfo>)pluginManager.GetPluginInfos();
         if (!allVersions)
             enumerable = enumerable.DistinctBy(pluginInfo => pluginInfo.ID);
@@ -95,6 +143,8 @@ public class PluginController(
         return enumerable
             .Where(pluginInfo =>
             {
+                if (!includePluginInfo && !pluginInfo.IsActive)
+                    return false;
                 if (active is not IncludeOnlyFilter.True)
                 {
                     var shouldHideActive = active is IncludeOnlyFilter.False;
@@ -122,7 +172,8 @@ public class PluginController(
                 return true;
             })
             .SelectMany(pluginInfo => pluginInfo.GetPages())
-            .Select(page => new PluginPage(page, true))
+            .Where(page => page.Visibility <= visibility)
+            .Select(page => new PluginPage(page, includePluginInfo))
             .ToList();
     }
 

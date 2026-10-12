@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Enums;
 using Shoko.Abstractions.Plugin.Models;
 
 namespace Shoko.Tests.Infrastructure;
@@ -57,9 +58,24 @@ public static class PluginTestDoubles
     /// <param name="name">The plugin name.</param>
     /// <param name="description">The plugin description.</param>
     /// <param name="pageName">The name of the page it shows.</param>
+    /// <param name="visibility">Who the page is offered to.</param>
     /// <returns>The plugin entry.</returns>
-    public static LocalPluginInfo PagedPluginInfo(Guid id, string name, string description, string pageName)
-        => LocalPlugin(typeof(PagedPlugin), id, "SomePlugin.dll", canUninstall: true, name, plugin: new PagedPlugin(pageName), description: description);
+    public static LocalPluginInfo PagedPluginInfo(
+        Guid id,
+        string name,
+        string description,
+        string pageName,
+        PluginPageVisibility visibility = PluginPageVisibility.Admin
+    )
+        => LocalPlugin(
+            typeof(PagedPlugin),
+            id,
+            "SomePlugin.dll",
+            canUninstall: true,
+            name,
+            plugin: new PagedPlugin(pageName, visibility),
+            description: description
+        );
 
     /// <summary>
     ///   A copy of a plugin entry that is installed but not loaded, so it has
@@ -136,13 +152,14 @@ public static class PluginTestDoubles
     ///   A plugin showing one page.
     /// </summary>
     /// <param name="pageName">The name of the page.</param>
-    public sealed class PagedPlugin(string pageName) : IPlugin
+    /// <param name="visibility">Who the page is offered to.</param>
+    public sealed class PagedPlugin(string pageName, PluginPageVisibility visibility) : IPlugin
     {
         public Guid ID { get; } = Guid.NewGuid();
 
         public string Name => "Paged Plugin";
 
         public IReadOnlyList<PluginPage> GetPages()
-            => [new() { Name = pageName, Url = $"/{pageName}" }];
+            => [new() { Name = pageName, Url = $"/{pageName}", Visibility = visibility }];
     }
 }

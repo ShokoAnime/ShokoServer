@@ -1,6 +1,8 @@
 
 using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Plugin.Enums;
 using Shoko.Abstractions.Plugin.Models;
 
 namespace Shoko.Server.API.v3.Models.Plugin;
@@ -28,12 +30,23 @@ public class PluginPage
     /// <summary>
     ///   Indicates that the page can be embedded within the Web UI. Set to
     ///   false to force the page to open in a new window.
-    /// /// </summary>
+    /// </summary>
     public bool CanEmbed { get; init; }
 
     /// <summary>
-    ///   The plugin this page belongs to. Will be <c>null</c> if the page is
-    ///   exposed as part of the plugin info.
+    ///   Who the page is offered to.
+    /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
+    public PluginPageVisibility Visibility { get; init; }
+
+    /// <summary>
+    ///   The ID of the plugin the page belongs to.
+    /// </summary>
+    public Guid PluginID { get; init; }
+
+    /// <summary>
+    ///   The plugin this page belongs to. Only included for administrators,
+    ///   and left out when the page is exposed as part of the plugin info.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public PluginInfo? PluginInfo { get; init; }
@@ -49,6 +62,8 @@ public class PluginPage
                 ? page.Url
                 : "/" + page.Url;
         CanEmbed = page.CanEmbed;
+        Visibility = page.Visibility;
+        PluginID = page.PluginInfo.ID;
         if (includePluginInfo)
             PluginInfo = new(page.PluginInfo);
     }

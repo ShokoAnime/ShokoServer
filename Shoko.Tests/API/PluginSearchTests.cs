@@ -8,6 +8,7 @@ using NJsonSchema;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Enums;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Server.API.v3.Controllers;
 using Shoko.Server.Settings;
@@ -126,9 +127,24 @@ public class PluginSearchTests
         var byName = PluginTestDoubles.PagedPluginInfo(Guid.NewGuid(), "Calendar", string.Empty, "calendar-page");
         var controller = CreateController([byDescription, byName]);
 
-        var results = controller.GetPluginPages(query: "calendar");
+        var results = controller.GetPluginPages(PluginPageVisibility.Admin, query: "calendar");
 
         Assert.Equal(["calendar-page", "alpha-page"], results.Select(page => page.Name));
+    }
+
+    [Fact]
+    public void GetPluginPages_OffersUsersOnlyThePagesMeantForThem()
+    {
+        var adminOnly = PluginTestDoubles.PagedPluginInfo(Guid.NewGuid(), "Alpha", string.Empty, "admin-page");
+        var forUsers = PluginTestDoubles.PagedPluginInfo(Guid.NewGuid(), "Beta", string.Empty, "user-page", PluginPageVisibility.Authenticated);
+        var controller = CreateController([adminOnly, forUsers]);
+
+        var results = controller.GetPluginPages(PluginPageVisibility.Authenticated);
+
+        var page = Assert.Single(results);
+        Assert.Equal("user-page", page.Name);
+        Assert.Null(page.PluginInfo);
+        Assert.Equal(["admin-page", "user-page"], controller.GetPluginPages(PluginPageVisibility.Admin).Select(result => result.Name));
     }
 
     #endregion

@@ -68,6 +68,11 @@ absolute `Url`, and `CanEmbed` (default `true`) which decides whether the page
 is shown in an iframe or opened in a new window. Set it to `false` for anything
 that sets frame-busting headers or needs its own top-level origin.
 
+`Visibility` (a `PluginPageVisibility`, default `Admin`) says who the link is
+offered to: `Admin` for administrators only, `Authenticated` for every user. It
+only decides who is shown the link, so the page and the routes behind it must
+still check the caller themselves.
+
 The list is de-duplicated by `Name` and then by `Url`, first one wins, so two
 pages sharing either lose one of them. Each surviving page becomes a
 `LocalPluginPage` whose `ID` is a deterministic UUIDv5 of the URL within your

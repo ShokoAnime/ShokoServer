@@ -207,6 +207,7 @@ public sealed class LocalPluginInfo
                 Name = x.Name,
                 Url = x.Url,
                 CanEmbed = x.CanEmbed,
+                Visibility = x.Visibility,
                 PluginInfo = this,
             })
             .DistinctBy(x => x.Name)

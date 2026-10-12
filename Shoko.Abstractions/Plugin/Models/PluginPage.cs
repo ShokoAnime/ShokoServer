@@ -1,4 +1,6 @@
 
+using Shoko.Abstractions.Plugin.Enums;
+
 namespace Shoko.Abstractions.Plugin.Models;
 
 /// <summary>
@@ -21,4 +23,11 @@ public sealed class PluginPage
     ///   false to force the page to open in a new window.
     /// </summary>
     public bool CanEmbed { get; set; } = true;
+
+    /// <summary>
+    ///   Who the page is offered to. This only decides who is shown the link,
+    ///   so the page and its routes still guard themselves. Defaults to
+    ///   <see cref="PluginPageVisibility.Admin"/>.
+    /// </summary>
+    public PluginPageVisibility Visibility { get; set; } = PluginPageVisibility.Admin;
 }
