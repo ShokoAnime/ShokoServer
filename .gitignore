@@ -187,3 +187,6 @@ __pycache__
 
 # OpenCode
 opencode.json
+
+# Build downloads (MediaInfo.targets)
+.cache/

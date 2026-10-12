@@ -1,0 +1,261 @@
+<Project>
+  <!--
+    Downloads the latest MediaInfo CLI for Windows builds and copies it to
+    `MediaInfo/` in the build and publish output, where the server looks for
+    `MediaInfo.exe`. Other platforms use the system's `mediainfo`. Imported by
+    the projects that assemble a runnable server (`Shoko.CLI` and
+    `Shoko.TrayService`).
+
+    MediaArea publishes no checksums, so the version and the archive's SHA-256
+    come from Scoop's manifest for MediaInfo, read at most once a day. On
+    Windows, `MediaInfo.exe` must also carry a valid MediaArea signature.
+    Accepted archives are kept in `.cache/mediainfo/` with their SHA-256, and
+    one that no longer matches is downloaded again.
+
+    Set `ShokoIncludeMediaInfo` to `false` to leave MediaInfo out of a Windows
+    build.
+  -->
+
+  <PropertyGroup>
+    <_ShokoMediaInfoCacheRoot>$(MSBuildThisFileDirectory).cache\mediainfo\</_ShokoMediaInfoCacheRoot>
+  </PropertyGroup>
+
+  <UsingTask TaskName="_ShokoFetchMediaInfoArchive"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <CacheRoot ParameterType="System.String" Required="true" />
+      <Version ParameterType="System.String" Output="true" />
+      <Archive ParameterType="System.String" Output="true" />
+      <Downloaded ParameterType="System.Boolean" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Class" Language="cs"><![CDATA[
+using System;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+public class _ShokoFetchMediaInfoArchive : Task
+{
+    private const string ManifestUrl = "https://raw.githubusercontent.com/ScoopInstaller/Main/master/bucket/mediainfo.json";
+
+    private static readonly HttpClient Client = CreateClient();
+
+    [Required]
+    public string CacheRoot { get; set; }
+
+    [Output]
+    public string Version { get; set; }
+
+    [Output]
+    public string Archive { get; set; }
+
+    [Output]
+    public bool Downloaded { get; set; }
+
+    public override bool Execute()
+    {
+        Directory.CreateDirectory(CacheRoot);
+        var manifest = ReadManifest();
+        if (manifest != null && (TryUseCached(manifest.Item1, manifest.Item3) || TryDownload(manifest.Item1, manifest.Item2, manifest.Item3)))
+            return true;
+
+        // Offline or mid-release: use the newest archive accepted before.
+        var fallback = Directory.GetDirectories(CacheRoot)
+            .Select(Path.GetFileName)
+            .Where(name => System.Version.TryParse(name, out _) && name != manifest?.Item1)
+            .OrderByDescending(System.Version.Parse)
+            .FirstOrDefault(name => TryUseCached(name, null));
+        if (fallback == null)
+        {
+            Log.LogError("Could not get MediaInfo, and no earlier version is cached.");
+            return false;
+        }
+
+        Log.LogWarning("Could not get the latest MediaInfo; using the cached {0}.", fallback);
+        return true;
+    }
+
+    private static HttpClient CreateClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("ShokoServer-Build (+https://github.com/ShokoAnime/ShokoServer)");
+        return client;
+    }
+
+    // Version, URL and SHA-256 of the x64 archive.
+    private Tuple<string, string, string> ReadManifest()
+    {
+        var cachedPath = Path.Combine(CacheRoot, "manifest.json");
+        string text = null;
+        if (File.Exists(cachedPath) && DateTime.UtcNow - File.GetLastWriteTimeUtc(cachedPath) < TimeSpan.FromDays(1))
+            text = File.ReadAllText(cachedPath);
+
+        if (text == null)
+        {
+            try
+            {
+                text = Client.GetStringAsync(ManifestUrl).GetAwaiter().GetResult();
+                try { File.WriteAllText(cachedPath, text); } catch (IOException) { }
+            }
+            catch (Exception ex)
+            {
+                Log.LogWarning("Could not read the MediaInfo manifest: {0}", ex.Message);
+                if (!File.Exists(cachedPath))
+                    return null;
+                text = File.ReadAllText(cachedPath);
+            }
+        }
+
+        var version = Regex.Match(text, "\"version\"\\s*:\\s*\"(\\d+(?:\\.\\d+)+)\"");
+        var block = Regex.Match(text, "\"64bit\"\\s*:\\s*\\{([^}]*)\\}");
+        var url = Regex.Match(block.Groups[1].Value, "\"url\"\\s*:\\s*\"(https://mediaarea\\.net/[^\"]+)\"");
+        var hash = Regex.Match(block.Groups[1].Value, "\"hash\"\\s*:\\s*\"([0-9a-fA-F]{64})\"");
+        if (version.Success && url.Success && hash.Success)
+            return Tuple.Create(version.Groups[1].Value, url.Groups[1].Value, hash.Groups[1].Value);
+
+        Log.LogWarning("The MediaInfo manifest has an unexpected shape.");
+        return null;
+    }
+
+    private string ArchiveFor(string version) =>
+        Path.Combine(CacheRoot, version, "MediaInfo_CLI_" + version + "_Windows_x64.zip");
+
+    private static string HashOf(string path)
+    {
+        using (var stream = File.OpenRead(path))
+        using (var sha = SHA256.Create())
+            return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "");
+    }
+
+    private bool TryUseCached(string version, string expectedHash)
+    {
+        var archive = ArchiveFor(version);
+        if (!File.Exists(archive))
+            return false;
+
+        var sidecar = archive + ".sha256";
+        var hash = HashOf(archive);
+        var accepted = File.Exists(sidecar) && string.Equals(hash, File.ReadAllText(sidecar).Trim(), StringComparison.OrdinalIgnoreCase);
+        if (accepted || string.Equals(hash, expectedHash, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!accepted)
+                File.WriteAllText(sidecar, hash);
+
+            Version = version;
+            Archive = archive;
+            Downloaded = false;
+            return true;
+        }
+
+        Log.LogMessage(MessageImportance.High, "Dropping the cached MediaInfo {0}, which was never accepted or has changed.", version);
+        Directory.Delete(Path.GetDirectoryName(archive), true);
+        return false;
+    }
+
+    private bool TryDownload(string version, string url, string expectedHash)
+    {
+        var archive = ArchiveFor(version);
+        Log.LogMessage(MessageImportance.High, "Downloading MediaInfo {0} from {1}", version, url);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(archive));
+            var partial = archive + ".part";
+            using (var response = Client.GetAsync(url).GetAwaiter().GetResult())
+            {
+                response.EnsureSuccessStatusCode();
+                using (var file = File.Create(partial))
+                    response.Content.CopyToAsync(file).GetAwaiter().GetResult();
+            }
+
+            var hash = HashOf(partial);
+            if (!string.Equals(hash, expectedHash, StringComparison.OrdinalIgnoreCase))
+            {
+                Directory.Delete(Path.GetDirectoryName(archive), true);
+                Log.LogWarning("MediaInfo {0} has SHA-256 {1}, but the manifest says {2}.", version, hash, expectedHash);
+                return false;
+            }
+
+            File.Move(partial, archive);
+        }
+        catch (Exception ex)
+        {
+            try { Directory.Delete(Path.GetDirectoryName(archive), true); } catch (IOException) { }
+            Log.LogWarning("Downloading MediaInfo {0} failed: {1}", version, ex.Message);
+            return false;
+        }
+
+        Version = version;
+        Archive = archive;
+        Downloaded = true;
+        return true;
+    }
+}
+]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+    A Windows build is one for a Windows runtime, or one without a runtime on
+    a Windows machine. Only the x64 build of MediaInfo is fetched, as the
+    server only ships for x64 on Windows.
+  -->
+  <Target Name="_ShokoFetchMediaInfo"
+          BeforeTargets="AssignTargetPaths"
+          Condition="'$(ShokoIncludeMediaInfo)' != 'false' and ($(RuntimeIdentifier.StartsWith('win')) or ('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))))">
+    <_ShokoFetchMediaInfoArchive CacheRoot="$(_ShokoMediaInfoCacheRoot)">
+      <Output TaskParameter="Version" PropertyName="_ShokoMediaInfoVersion" />
+      <Output TaskParameter="Archive" PropertyName="_ShokoMediaInfoArchive" />
+      <Output TaskParameter="Downloaded" PropertyName="_ShokoMediaInfoDownloaded" />
+    </_ShokoFetchMediaInfoArchive>
+
+    <PropertyGroup>
+      <_ShokoMediaInfoDirectory>$(_ShokoMediaInfoCacheRoot)$(_ShokoMediaInfoVersion)\x64\</_ShokoMediaInfoDirectory>
+      <_ShokoMediaInfoCheckSignature Condition="'$(_ShokoMediaInfoDownloaded)' == 'true' and $([MSBuild]::IsOSPlatform('Windows'))">true</_ShokoMediaInfoCheckSignature>
+    </PropertyGroup>
+
+    <Unzip SourceFiles="$(_ShokoMediaInfoArchive)"
+           DestinationFolder="$(_ShokoMediaInfoDirectory)"
+           OverwriteReadOnlyFiles="true"
+           Condition="'$(_ShokoMediaInfoDownloaded)' == 'true' or !Exists('$(_ShokoMediaInfoDirectory)MediaInfo.exe')" />
+
+    <Exec Condition="'$(_ShokoMediaInfoCheckSignature)' == 'true'"
+          Command="powershell -NoProfile -NonInteractive -Command &quot;$s = Get-AuthenticodeSignature -FilePath '$(_ShokoMediaInfoDirectory)MediaInfo.exe'; if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch '(^|, )O=MEDIAAREA\.NET(,|$)') { Write-Output ('Status: ' + $s.Status + '; signer: ' + $s.SignerCertificate.Subject); exit 1 }&quot;"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="_ShokoMediaInfoSignatureExitCode" />
+    </Exec>
+    <RemoveDir Directories="$(_ShokoMediaInfoCacheRoot)$(_ShokoMediaInfoVersion)"
+               Condition="'$(_ShokoMediaInfoSignatureExitCode)' != '' and '$(_ShokoMediaInfoSignatureExitCode)' != '0'" />
+    <Error Text="MediaInfo $(_ShokoMediaInfoVersion) does not carry a valid MediaArea signature, so it was dropped."
+           Condition="'$(_ShokoMediaInfoSignatureExitCode)' != '' and '$(_ShokoMediaInfoSignatureExitCode)' != '0'" />
+
+    <!-- Accept the archive, and drop the versions it replaces. -->
+    <GetFileHash Files="$(_ShokoMediaInfoArchive)" Algorithm="SHA256" Condition="'$(_ShokoMediaInfoDownloaded)' == 'true'">
+      <Output TaskParameter="Hash" PropertyName="_ShokoMediaInfoArchiveSha256" />
+    </GetFileHash>
+    <WriteLinesToFile File="$(_ShokoMediaInfoArchive).sha256"
+                      Lines="$(_ShokoMediaInfoArchiveSha256)"
+                      Overwrite="true"
+                      Condition="'$(_ShokoMediaInfoDownloaded)' == 'true'" />
+    <ItemGroup Condition="'$(_ShokoMediaInfoDownloaded)' == 'true'">
+      <_ShokoMediaInfoStaleVersion Include="$([System.IO.Directory]::GetDirectories('$(_ShokoMediaInfoCacheRoot)'))"
+                                   Exclude="$(_ShokoMediaInfoCacheRoot)$(_ShokoMediaInfoVersion)" />
+    </ItemGroup>
+    <RemoveDir Directories="@(_ShokoMediaInfoStaleVersion)" />
+
+    <ItemGroup>
+      <_ShokoMediaInfoFile Include="$(_ShokoMediaInfoDirectory)**\*" />
+      <None Include="@(_ShokoMediaInfoFile)"
+            Link="MediaInfo\%(_ShokoMediaInfoFile.RecursiveDir)%(_ShokoMediaInfoFile.Filename)%(_ShokoMediaInfoFile.Extension)"
+            CopyToOutputDirectory="PreserveNewest"
+            CopyToPublishDirectory="PreserveNewest"
+            ExcludeFromSingleFile="true"
+            Visible="false" />
+    </ItemGroup>
+  </Target>
+</Project>

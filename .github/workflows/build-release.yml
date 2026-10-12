@@ -447,6 +447,13 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
+      - name: Cache MediaInfo
+        uses: actions/cache@v6
+        with:
+          path: .cache/mediainfo
+          key: mediainfo-${{ github.run_id }}
+          restore-keys: mediainfo-
+
       - run: dotnet publish -c Release -r win-x64 --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - name: Archive Release
@@ -505,6 +512,13 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Cache MediaInfo
+        uses: actions/cache@v6
+        with:
+          path: .cache/mediainfo
+          key: mediainfo-${{ github.run_id }}
+          restore-keys: mediainfo-
 
       - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 

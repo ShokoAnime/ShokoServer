@@ -37,4 +37,5 @@
     </Resource>
   </ItemGroup>
   <Import Project="..\BundledPlugins.targets" />
+  <Import Project="..\MediaInfo.targets" />
 </Project>
