@@ -224,8 +224,15 @@ public class _ShokoFetchMediaInfoArchive : Task
            OverwriteReadOnlyFiles="true"
            Condition="'$(_ShokoMediaInfoDownloaded)' == 'true' or !Exists('$(_ShokoMediaInfoDirectory)MediaInfo.exe')" />
 
+    <!--
+      Prefer PowerShell 7: Windows PowerShell started from it inherits its
+      module path and cannot load `Get-AuthenticodeSignature`.
+    -->
+    <PropertyGroup>
+      <_ShokoMediaInfoSignatureScript>$s = Get-AuthenticodeSignature -FilePath '$(_ShokoMediaInfoDirectory)MediaInfo.exe'; if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch '(^|, )O=MEDIAAREA\.NET(,|$)') { Write-Output ('Status: ' + $s.Status + '; signer: ' + $s.SignerCertificate.Subject); exit 1 }</_ShokoMediaInfoSignatureScript>
+    </PropertyGroup>
     <Exec Condition="'$(_ShokoMediaInfoCheckSignature)' == 'true'"
-          Command="powershell -NoProfile -NonInteractive -Command &quot;$s = Get-AuthenticodeSignature -FilePath '$(_ShokoMediaInfoDirectory)MediaInfo.exe'; if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch '(^|, )O=MEDIAAREA\.NET(,|$)') { Write-Output ('Status: ' + $s.Status + '; signer: ' + $s.SignerCertificate.Subject); exit 1 }&quot;"
+          Command="where pwsh &gt;nul 2&gt;nul &amp;&amp; (set _ShokoPowerShell=pwsh) || (set _ShokoPowerShell=powershell)&#xD;&#xA;%25_ShokoPowerShell%25 -NoProfile -NonInteractive -Command &quot;$(_ShokoMediaInfoSignatureScript)&quot;"
           IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="_ShokoMediaInfoSignatureExitCode" />
     </Exec>
