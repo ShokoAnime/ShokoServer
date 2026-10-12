@@ -62,11 +62,13 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// </param>
     /// <param name="hidden">
     ///   Whether to include all hidden configurations, include only hidden
-    ///   configurations, or exclude all hidden configurations.
+    ///   configurations, or exclude all hidden configurations. Defaults to
+    ///   excluding them, as they are kept out of every UI.
     /// </param>
     /// <param name="isBase">
     ///   Whether to include all base configurations, include only base
-    ///   configurations, or exclude all base configurations.
+    ///   configurations, or exclude all base configurations. Defaults to
+    ///   excluding them, as they are never loaded or saved on their own.
     /// </param>
     /// <param name="customNewFactory">
     ///   Whether to include all configurations with a custom new factory,
@@ -106,8 +108,8 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     public ActionResult<List<ConfigurationInfo>> GetConfigurations(
         [FromQuery] string? query = null,
         [FromQuery] Guid? pluginID = null,
-        [FromQuery] IncludeOnlyFilter hidden = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter isBase = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter hidden = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter isBase = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter customNewFactory = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter customValidation = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter customActions = IncludeOnlyFilter.True,
