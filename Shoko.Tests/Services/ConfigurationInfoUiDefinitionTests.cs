@@ -13,7 +13,6 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Server.Services.Configuration;
-using Shoko.Server.Settings;
 using Xunit;
 
 namespace Shoko.Tests.Services;
@@ -60,16 +59,16 @@ public class ConfigurationInfoUiDefinitionTests
     {
         var service = new Mock<IConfigurationService>();
         service.Setup(x => x.GenerateUiDefinition(It.IsAny<Type>())).Returns(new UiDefinition());
-        var info = CreateInfo(service.Object, typeof(ServerSettings));
+        var info = CreateInfo(service.Object, typeof(NewtonsoftTwinConfiguration));
 
-        // Constructing the info must not materialise the tree; `ServerSettings`
-        // alone runs to ~120 KB and every `GetConfigurationInfo` call would pay
-        // for it.
+        // Constructing the info must not materialise the tree; a large
+        // configuration's runs to ~120 KB and every `GetConfigurationInfo` call
+        // would pay for it.
         service.Verify(x => x.GenerateUiDefinition(It.IsAny<Type>()), Times.Never);
 
         _ = info.UiDefinition;
 
-        service.Verify(x => x.GenerateUiDefinition(typeof(ServerSettings)), Times.Once);
+        service.Verify(x => x.GenerateUiDefinition(typeof(NewtonsoftTwinConfiguration)), Times.Once);
     }
 
     [Fact]
@@ -77,7 +76,7 @@ public class ConfigurationInfoUiDefinitionTests
     {
         var service = new Mock<IConfigurationService>();
         service.Setup(x => x.GenerateUiDefinition(It.IsAny<Type>())).Returns(() => new UiDefinition());
-        var info = CreateInfo(service.Object, typeof(ServerSettings));
+        var info = CreateInfo(service.Object, typeof(NewtonsoftTwinConfiguration));
 
         var first = info.UiDefinition;
         var second = info.UiDefinition;
@@ -120,23 +119,23 @@ public class ConfigurationInfoUiDefinitionTests
     public void ARegisteredConfiguration_IsNamedTheWayItsInfoIs()
     {
         var service = CreateService();
-        var definition = service.GenerateUiDefinition(typeof(ServerSettings));
+        var definition = service.GenerateUiDefinition(typeof(NewtonsoftTwinConfiguration));
 
         // `AddParts` sets `ConfigurationInfo.Name` from the schema title, so the
         // type-general generator has to land on the same string or a
         // configuration would be labelled differently depending on how it was
         // reached.
-        Assert.Equal(service.GenerateSchema(typeof(ServerSettings)).Title, definition.Name);
+        Assert.Equal(service.GenerateSchema(typeof(NewtonsoftTwinConfiguration)).Title, definition.Name);
     }
 
     [Fact]
     public void TheDefinitionReachedThroughTheInfo_MatchesTheGeneratorsOutput()
     {
         var service = CreateService();
-        var info = CreateInfo(service, typeof(ServerSettings));
+        var info = CreateInfo(service, typeof(NewtonsoftTwinConfiguration));
 
         var throughInfo = info.UiDefinition;
-        var direct = service.GenerateUiDefinition(typeof(ServerSettings));
+        var direct = service.GenerateUiDefinition(typeof(NewtonsoftTwinConfiguration));
 
         Assert.Equal(direct.ID, throughInfo.ID);
         Assert.Equal(direct.Name, throughInfo.Name);

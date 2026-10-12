@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Server.Services.Configuration;
-using Shoko.Server.Settings;
 using Xunit;
 
 namespace Shoko.Tests.Services;
@@ -37,7 +36,6 @@ public class ShokoJsonSchemaGeneratorGoldenTests
         => new(ShokoJsonSerializers.CreateNewtonsoftSettings(), ShokoJsonSerializers.CreateSystemTextJsonOptions());
 
     [Theory]
-    [InlineData(typeof(ServerSettings), "ServerSettings")]
     [InlineData(typeof(NewtonsoftTwinConfiguration), "NewtonsoftTwin")]
     [InlineData(typeof(SystemTextJsonTwinConfiguration), "SystemTextJsonTwin")]
     [InlineData(typeof(InheritingConfiguration), "Inheriting")]

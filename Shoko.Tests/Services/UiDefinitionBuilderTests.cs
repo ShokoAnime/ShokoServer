@@ -14,7 +14,6 @@ using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Services.Configuration;
-using Shoko.Server.Settings;
 using Xunit;
 
 namespace Shoko.Tests.Services;
@@ -33,12 +32,8 @@ public class UiDefinitionBuilderTests
         return builder.Build(Guid.Empty, name, null, wrapped);
     }
 
-    private static UiDefinition BuildForServerSettings()
-    {
-        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(ServerSettings));
-        var builder = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance);
-        return builder.Build(Guid.Empty, wrapped.Schema.Title ?? "Core Settings", null, wrapped);
-    }
+    private static UiDefinition BuildForSettings()
+        => BuildFor(typeof(UiSettingsFixture), "Settings");
 
     /// <summary>
     ///   Every element reachable by key, paired with the key its container
@@ -87,9 +82,9 @@ public class UiDefinitionBuilderTests
     }
 
     [Fact]
-    public void ServerSettings_ProducesATreeWithoutUnknownOrAutoElements()
+    public void Settings_ProduceATreeWithoutUnknownOrAutoElements()
     {
-        var definition = BuildForServerSettings();
+        var definition = BuildForSettings();
         var elements = Flatten(definition.Root).ToList();
 
         Assert.IsType<UiSectionContainerElement>(definition.Root);
@@ -105,16 +100,15 @@ public class UiDefinitionBuilderTests
     }
 
     [Fact]
-    public void ServerSettings_CarriesLabelsAndConstraints()
+    public void Settings_CarryLabelsAndConstraints()
     {
-        var definition = BuildForServerSettings();
-        var elements = Flatten(definition.Root).ToList();
+        var definition = BuildForSettings();
 
-        // The code editor on `ServerSettings.WebUI_Settings` has to survive as a
-        // concrete element, not as a generic string with a hint attached.
-        Assert.Contains(elements, x => x is UiCodeEditorElement);
-        // `PluginSettings.EnabledPlugins` is a `Dictionary<string, bool>`.
-        var record = Find<UiRecordElement>(definition.Root, "EnabledPlugins");
+        // A code editor has to survive as a concrete element, not as a generic
+        // string with a hint attached.
+        Find<UiCodeEditorElement>(BuildFor(typeof(NewtonsoftTwinConfiguration), "Twin").Root, "Script");
+        // `UiSettingsExtensions.Enabled` is a `Dictionary<string, bool>`.
+        var record = Find<UiRecordElement>(definition.Root, "Enabled");
         Assert.IsType<UiBooleanElement>(record.Item);
         Assert.IsType<UiStringElement>(record.KeyItem);
         // Every leaf has a non-empty label; the client should never fall back to
@@ -187,51 +181,49 @@ public class UiDefinitionBuilderTests
     [Fact]
     public void SectionContainer_WithoutADefaultSectionName_KeepsLooseMembersInPlace()
     {
-        var definition = BuildForServerSettings();
-        var plugins = Find<UiSectionContainerElement>(definition.Root, "Plugins");
-        var web = Find<UiSectionContainerElement>(definition.Root, "Web");
+        var definition = BuildForSettings();
+        var extensions = Find<UiSectionContainerElement>(definition.Root, "Extensions");
+        var updates = Find<UiSectionContainerElement>(definition.Root, "Updates");
 
-        // `PluginSettings` names no default section and is not laid out as tabs,
-        // so nothing is gathered: its loose members and its two nested
+        // `UiSettingsExtensions` names no default section and is not laid out as
+        // tabs, so nothing is gathered: its loose members and its two nested
         // containers all render where they stand.
-        Assert.Empty(plugins.FloatingSections);
-        Assert.Equal(["EnabledPlugins", "Priority", "Renamer", "Updates"], plugins.Structure.Select(x => x.Name));
-        Assert.All(plugins.Structure, x => Assert.Equal(UiStructureMemberKind.Item, x.Kind));
+        Assert.Empty(extensions.FloatingSections);
+        Assert.Equal(["Enabled", "Order", "Renaming", "Updates"], extensions.Structure.Select(x => x.Name));
+        Assert.All(extensions.Structure, x => Assert.Equal(UiStructureMemberKind.Item, x.Kind));
 
-        // `WebSettings` is nothing but loose members, and gets no section either.
-        Assert.Empty(web.FloatingSections);
-        Assert.Equal(web.Items.Keys, web.Structure.Select(x => x.Name));
+        // `UiSettingsUpdates` is nothing but loose members, and gets no section either.
+        Assert.Empty(updates.FloatingSections);
+        Assert.Equal(updates.Items.Keys, updates.Structure.Select(x => x.Name));
     }
 
     [Fact]
-    public void ServerSettings_StructureFollowsTheAuthoredTabs()
+    public void Settings_StructureFollowsTheAuthoredTabs()
     {
-        var definition = BuildForServerSettings();
+        var definition = BuildForSettings();
         var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
 
         // Every nested settings object stays an item and labels its own tab,
-        // with the gathered sections appended after them.
+        // with the loose members gathered into the default section after them.
         Assert.Equal(
-            ["Image", "Import", "AniDb", "Metadata", "Database", "Queue", "Connectivity", "Language", "Plex", "Plugins", "ReleaseComparisonPreferences", "Logging", "Linux", "Web", "Misc.", "Web UI"],
-            root.Structure.Select(x => x.Name)
+            [("Account", UiStructureMemberKind.Item), ("Extensions", UiStructureMemberKind.Item), ("Misc.", UiStructureMemberKind.FloatingSection)],
+            root.Structure.Select(x => (x.Name, x.Kind))
         );
-        Assert.Equal(["Misc.", "Web UI"], root.Structure.TakeLast(2).Select(x => x.Name));
-        Assert.All(root.Structure.TakeLast(2), x => Assert.Equal(UiStructureMemberKind.FloatingSection, x.Kind));
-        Assert.All(root.Structure.SkipLast(2), x => Assert.IsType<UiSectionContainerElement>(root.Items[x.Name]));
-        Assert.Equal(["WebUI_Settings"], root.FloatingSections["Web UI"].Structure.Select(x => x.Name));
+        Assert.All(root.Structure.SkipLast(1), x => Assert.IsType<UiSectionContainerElement>(root.Items[x.Name]));
+        Assert.Equal(["Verbose", "Timeout"], root.FloatingSections["Misc."].Structure.Select(x => x.Name));
 
-        // `AniDbSettings` gives its own members a section name each, so those are
-        // gathered sections, and `Test` pins to the top of `Login`. `MyList` is a
-        // class of its own, so it stays an item and labels its own tab.
-        var anidb = Find<UiSectionContainerElement>(definition.Root, "AniDb");
-        Assert.Equal(["Login", "Download", "Update", "URLs", "HTTP", "UDP", "AVDump", "MyList"], anidb.Structure.Select(x => x.Name));
-        Assert.All(anidb.Structure.SkipLast(1), x => Assert.Equal(UiStructureMemberKind.FloatingSection, x.Kind));
-        Assert.Equal(UiStructureMemberKind.Item, anidb.Structure[^1].Kind);
-        Assert.IsType<UiSectionContainerElement>(anidb.Items["MyList"]);
-        Assert.Equal(["Username", "Password"], anidb.FloatingSections["Login"].Structure.Select(x => x.Name));
-        Assert.Equal(["Test"], anidb.FloatingSections["Login"].StartActions);
+        // `UiSettingsAccount` gives its own members a section name each, so those
+        // are gathered sections, and `Test` pins to the top of `Login`. `Lists`
+        // is a class of its own, so it stays an item and labels its own tab.
+        var account = Find<UiSectionContainerElement>(definition.Root, "Account");
+        Assert.Equal(["Login", "Server", "Lists"], account.Structure.Select(x => x.Name));
+        Assert.All(account.Structure.SkipLast(1), x => Assert.Equal(UiStructureMemberKind.FloatingSection, x.Kind));
+        Assert.Equal(UiStructureMemberKind.Item, account.Structure[^1].Kind);
+        Assert.IsType<UiSectionContainerElement>(account.Items["Lists"]);
+        Assert.Equal(["Username", "Password"], account.FloatingSections["Login"].Structure.Select(x => x.Name));
+        Assert.Equal(["Test"], account.FloatingSections["Login"].StartActions);
         // A nested container filed under a section name is an item in it.
-        Assert.Contains(anidb.FloatingSections["AVDump"].Structure, x => x.Name is "AVDump" && x.Kind is UiStructureMemberKind.Item);
+        Assert.Contains(account.FloatingSections["Server"].Structure, x => x.Name is "Dump" && x.Kind is UiStructureMemberKind.Item);
     }
 
     [Fact]
@@ -266,10 +258,11 @@ public class UiDefinitionBuilderTests
     [Fact]
     public void Descriptions_CarryNoXmlDocWhitespace()
     {
-        var definition = BuildForServerSettings();
+        var definition = BuildForSettings();
 
         // An XML doc summary is indented and wrapped for the reader of the
-        // source, and both used to reach the client verbatim: a trailing newline
+        // source (the fixture writes its descriptions the same way), and both
+        // used to reach the client verbatim: a trailing newline
         // and indent on every summary, and a hard break at whatever column the
         // author happened to wrap at. A blank line between paragraphs survives
         // as a single newline; nothing else does.
