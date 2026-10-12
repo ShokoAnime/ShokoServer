@@ -912,7 +912,13 @@ public partial class PluginPackageManager(
                     catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
                     {
                         if (manifest is { IsReference: true })
-                            _logger.LogWarning(ex, "Skipped the manifest at {ManifestUrl}, which could not be fetched and is not cached.", manifest.ManifestUrl);
+                            _logger.LogWarning(
+                                IsExpectedFetchFailure(ex) ? null : ex,
+                                "Could not fetch the linked manifest at {ManifestUrl}: {Reason}. Its packages are left out, since no earlier copy is cached. " +
+                                "The rest of the repository is not affected.",
+                                manifest.ManifestUrl,
+                                DescribeFetchFailure(ex)
+                            );
                         else
                             _logger.LogWarning(ex, "Failed to parse package manifest from repository.");
                     }
@@ -1024,13 +1030,49 @@ public partial class PluginPackageManager(
         }
         catch (Exception ex) when (allowStaleCache && cacheExists && !cancellationToken.IsCancellationRequested && ex is HttpRequestException or InvalidOperationException or OperationCanceledException)
         {
-            _logger.LogWarning(ex, "Failed to fetch the manifest at {ManifestUrl}, using the cached copy instead.", manifestUrl);
-            return ReadCachedManifest(jsonPath);
+            var cached = ReadCachedManifest(jsonPath);
+            _logger.LogWarning(
+                IsExpectedFetchFailure(ex) ? null : ex,
+                "Could not fetch the linked manifest at {ManifestUrl}: {Reason}. Kept its packages from the copy cached at {CachedAt}.",
+                manifestUrl,
+                DescribeFetchFailure(ex),
+                cached.LastFetchedAt
+            );
+            return cached;
         }
     }
 
     private static (JsonDocument Document, DateTime LastFetchedAt) ReadCachedManifest(string jsonPath)
         => (JsonDocument.Parse(File.ReadAllBytes(jsonPath)), File.GetLastWriteTimeUtc(jsonPath));
+
+    /// <summary>
+    ///   Whether a failed manifest fetch is the server answering with an error
+    ///   status, so the log line says enough without a stack trace.
+    /// </summary>
+    /// <param name="exception">The exception the fetch failed with.</param>
+    /// <returns>
+    ///   <c>true</c> when the exception carries an HTTP status code.
+    /// </returns>
+    private static bool IsExpectedFetchFailure(Exception exception)
+        => exception is HttpRequestException { StatusCode: not null };
+
+    /// <summary>
+    ///   Say in plain words why a manifest fetch failed.
+    /// </summary>
+    /// <param name="exception">The exception the fetch failed with.</param>
+    /// <returns>
+    ///   The reason, without a trailing period.
+    /// </returns>
+    private static string DescribeFetchFailure(Exception exception)
+        => exception switch
+        {
+            HttpRequestException { StatusCode: HttpStatusCode.NotFound } =>
+                "the server answered 404 (Not Found), so the address is wrong or the manifest is private or gone",
+            HttpRequestException { StatusCode: { } statusCode } => $"the server answered {(int)statusCode} ({statusCode})",
+            HttpRequestException => $"the server could not be reached ({exception.Message.TrimEnd('.')})",
+            OperationCanceledException => "the request timed out",
+            _ => exception.Message.TrimEnd('.'),
+        };
 
     private async Task<PackageManifestInfo?> ConvertRemoteToLocalAsync(RemotePackageManifestInfo manifestInfo, Guid repositoryId, DateTime lastFetchedAt, CancellationToken cancellationToken)
     {
