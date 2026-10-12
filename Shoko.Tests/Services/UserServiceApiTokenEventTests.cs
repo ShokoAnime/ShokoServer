@@ -9,6 +9,7 @@ using Shoko.Server.Models.Internal;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -144,6 +145,7 @@ public class UserServiceApiTokenEventTests
                 Writable<AnimeSeries_UserRepository, AnimeSeries_User>(u => u.AnimeSeries_UserID).Object,
                 Writable<AnimeEpisode_UserRepository, AnimeEpisode_User>(u => u.AnimeEpisode_UserID).Object,
                 Writable<VideoLocal_UserRepository, VideoLocal_User>(u => u.VideoLocal_UserID).Object,
+                new Mock<UserConfigurationRepository>(new object[] { null! }).Object,
                 null!
             );
             Service.ApiTokenGenerated += (_, e) => Generated.Add(e);

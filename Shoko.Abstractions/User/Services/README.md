@@ -7,6 +7,8 @@ ratings, user tags), `IUserService` (accounts, authentication, API tokens),
 implements them as singletons; a plugin **consumes** them through constructor
 injection and implements nothing here. `IUser` and the `I…UserData` interfaces
 are read models, and the `…Update` classes in `User/Update/` are the write side.
+Configurations kept per user are covered in the
+[configuration README](../../Config/Services/README.md#configurations-per-user).
 
 ---
 

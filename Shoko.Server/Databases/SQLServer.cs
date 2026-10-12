@@ -1593,6 +1593,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(194,   1, "WITH Ranked AS (SELECT ROW_NUMBER() OVER (PARTITION BY EntitySource, EntityType, EntityID, ImageID, ImageType, Source ORDER BY IsPreferred DESC, ID) AS RowNumber FROM ShokoImage_Entity) DELETE FROM Ranked WHERE RowNumber > 1;"),
         new(194,   2, "CREATE UNIQUE INDEX UIX_ShokoImage_Entity_Entity_Image ON ShokoImage_Entity(EntitySource, EntityType, EntityID, ImageID, ImageType, Source);"),
         new(195,   1, "ALTER TABLE JMMUser DROP COLUMN CanEditServerSettings;"),
+        new(195,   2, "CREATE TABLE UserConfiguration ( UserConfigurationID INT IDENTITY(1,1) NOT NULL, JMMUserID INT NOT NULL, ConfigurationID NVARCHAR(64) NOT NULL, PluginID NVARCHAR(40) NOT NULL, Configuration NVARCHAR(MAX) NOT NULL, UpdatedAt DATETIME NOT NULL, CONSTRAINT PK_UserSettings PRIMARY KEY CLUSTERED (UserConfigurationID) );"),
+        new(195,   3, "CREATE UNIQUE INDEX UIX_UserConfiguration_JMMUserID_ConfigurationID ON UserConfiguration(JMMUserID, ConfigurationID);"),
     ];
 
     #endregion

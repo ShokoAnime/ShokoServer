@@ -39,6 +39,14 @@ public interface IHiddenConfiguration : IConfiguration { }
 public interface IHashProviderConfiguration : IHiddenConfiguration { }
 
 /// <summary>
+/// Interface for signaling that the configuration is a user configuration,
+/// stored per user by <see cref="Services.IUserConfigurationService"/> rather
+/// than in a file of its own. Add <see cref="IHiddenConfiguration"/> to keep it
+/// out of every UI.
+/// </summary>
+public interface IUserConfiguration : IBaseConfiguration { }
+
+/// <summary>
 /// Interface for signaling that the configuration is tied to a release info
 /// provider.
 /// </summary>

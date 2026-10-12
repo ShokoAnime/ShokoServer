@@ -251,6 +251,8 @@ Plugins can also implement `IPluginApplicationRegistration` to register custom m
 
 Plugin controllers are registered via `AddPluginControllers` during API setup. Plugins add SignalR feeds with `services.AddEventEmitter<TFeed>()`.
 
+User configurations are kept per user through `IUserConfigurationService` (`Shoko.Abstractions.Config`): a plugin registers each by a kebab-case ID with `services.AddUserConfiguration<TPlugin>(configurationID)` (optionally a display name and description, and a schema from a file relative to `DataPath` or JSON text) or `AddUserConfiguration<TPlugin, TConfig>` for an `IUserConfiguration` type (a base configuration, so the configuration system serves its schema and UI), the core registers `webui` ("Web UI"), and an ID registered twice stops start-up. They live in the `UserConfiguration` table and are served under `/api/v3/User/{Current|userID}/Configuration/{configurationID}`, and `/api/v3/User/Configuration` lists the registrations.
+
 A plugin says a service it talks to cannot take work by exporting an `ISuspensionProvider` (one per status, collected like every other provider) and reporting through `ISuspensionReporter<TProvider>`, an open-generic singleton like `PluginPaths<TPlugin>`. `SuspensionService` keeps one suspension per `SuspensionKind`, clears them when `ResumesAt` passes, and lifts liftable ones for an admin.
 
 ### Configuration System

@@ -1708,6 +1708,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(196,   1, "DELETE FROM `ShokoImage_Entity` WHERE `ID` IN (SELECT `ID` FROM (SELECT `ID`, ROW_NUMBER() OVER (PARTITION BY `EntitySource`, `EntityType`, `EntityID`, `ImageID`, `ImageType`, `Source` ORDER BY `IsPreferred` DESC, `ID`) AS `RowNumber` FROM `ShokoImage_Entity`) AS `Ranked` WHERE `RowNumber` > 1);"),
         new(196,   2, "CREATE UNIQUE INDEX `UIX_ShokoImage_Entity_Entity_Image` ON `ShokoImage_Entity`(`EntitySource`, `EntityType`, `EntityID`, `ImageID`, `ImageType`, `Source`);"),
         new(197,   1, "ALTER TABLE `JMMUser` DROP COLUMN `CanEditServerSettings`;"),
+        new(197,   2, "CREATE TABLE `UserConfiguration` ( `UserConfigurationID` INT NOT NULL AUTO_INCREMENT, `JMMUserID` INT NOT NULL, `ConfigurationID` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `PluginID` VARCHAR(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Configuration` MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `UpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`UserConfigurationID`) );"),
+        new(197,   3, "CREATE UNIQUE INDEX `UIX_UserConfiguration_JMMUserID_ConfigurationID` ON `UserConfiguration`(`JMMUserID`, `ConfigurationID`);"),
     ];
 
     #endregion

@@ -650,6 +650,11 @@ public class SystemService : ISystemService
             services.AddSingleton<SupplementaryMetadataScheduler>();
             services.AddSingleton<AnimeMetadataOrchestrator>();
 
+            services.AddUserConfiguration<CorePlugin>("webui", options => options.Name = "Web UI");
+            services.AddSingleton<UserConfigurationService>();
+            services.AddSingleton<IUserConfigurationService>(provider => provider.GetRequiredService<UserConfigurationService>());
+            services.AddHostedService(provider => provider.GetRequiredService<UserConfigurationService>());
+
             // Registering the plugins' services is a host step and not on the interface, so it is
             // reached through the implementation that does it.
             if (pluginManager is PluginManager manager)

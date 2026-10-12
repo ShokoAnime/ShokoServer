@@ -22,6 +22,7 @@ public static class RepositoryStartup
         services.AddDirectRepository<AniDB_Anime_RelationRepository>();
         services.AddDirectRepository<AniDB_Anime_StaffRepository>();
         services.AddDirectRepository<FileNameHashRepository>();
+        services.AddDirectRepository<UserConfigurationRepository>();
         services.AddDirectRepository<Metadata_CastRepository>();
         services.AddDirectRepository<Metadata_CrewRepository>();
         services.AddDirectRepository<ScheduledUpdateRepository>();

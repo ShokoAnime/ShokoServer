@@ -21,6 +21,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
 namespace Shoko.Server.Services;
@@ -36,6 +37,7 @@ public class UserService(
     AnimeSeries_UserRepository _seriesUserRepository,
     AnimeEpisode_UserRepository _episodeUserRepository,
     VideoLocal_UserRepository _videoUserRepository,
+    UserConfigurationRepository _userConfigurationRepository,
     AuthenticationThrottleService _authenticationThrottleService
 ) : IUserService
 {
@@ -303,6 +305,7 @@ public class UserService(
         _seriesUserRepository.Delete(_seriesUserRepository.GetByUserID(user.LocalID));
         _episodeUserRepository.Delete(_episodeUserRepository.GetByUserID(user.LocalID));
         _videoUserRepository.Delete(_videoUserRepository.GetByUserID(user.LocalID));
+        _userConfigurationRepository.DeleteByUserID(user.LocalID);
 
         return Task.CompletedTask;
     }

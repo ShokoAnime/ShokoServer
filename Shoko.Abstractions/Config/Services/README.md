@@ -153,6 +153,9 @@ The interfaces that tie a configuration to an extension point all imply
 `IHashProviderConfiguration`, `IReleaseInfoProviderConfiguration`,
 `IRelocationProviderConfiguration` (also a base configuration),
 `IVideoStreamTransformConfiguration` and `IAiringScheduleProviderConfiguration`.
+`IUserConfiguration` is a base configuration but not hidden: it describes a
+configuration kept per user, below, and adds `IHiddenConfiguration` only if
+it should stay out of every UI.
 A provider names its configuration type through the generic form of its own
 contract, such as `IReleaseInfoProvider<TConfiguration>`.
 
@@ -315,6 +318,56 @@ could send a request somewhere unexpected.
 
 A `ConfigurationActionResult` can also carry a redirect or a message; see
 `ConfigurationActionRedirect` and `ConfigurationActionMessage`.
+
+---
+
+## Configurations per user
+
+A web interface, an app or a plugin keeps its own preferences as a user
+configuration: one JSON object per user, stored by
+`IUserConfigurationService`. When a user has none stored, a typed
+configuration loads its defaults and a client uses its own. Register each one
+in `RegisterServices`:
+
+```csharp
+services.AddUserConfiguration<MyPlugin>("my-viewer", o => o.Name = "My Viewer");          // no schema
+services.AddUserConfiguration<MyPlugin, ViewerConfiguration>("my-viewer");               // a configuration type
+services.AddUserConfiguration<MyPlugin>("my-viewer", o => o.SchemaPath = "my-viewer/configuration.schema.json");
+services.AddUserConfiguration<MyPlugin>("my-viewer", o => o.SchemaJson = """{ "type": "object" }""");
+```
+
+- **The ID** is lowercase kebab-case, at most 64 characters, like a metadata
+  source's value. Two registrations of one ID stop start-up; the core holds
+  `webui`. Routes and lookups take it in any case.
+- **`Name` and `Description`** are for display only. The name defaults to the
+  ID; both show in `GetAllInfos`, `GetInfoForUser` and errors, next to the owning plugin.
+- **A configuration type** implements `IUserConfiguration`, a base
+  configuration: it gets a `ConfigurationInfo`, so its schema, custom
+  validation, secrets and generated UI work as for any other configuration,
+  but it is never loaded from or saved to a file. `Load<TConfig>` returns a
+  new instance when nothing is stored, and `Save<TConfig>` goes through
+  `Serialize`.
+- **Untyped configurations** are JSON text, as `Save(info, json)` takes it.
+  Only registered ones can be saved; any can be read or deleted, so a
+  disabled plugin's leftovers can still be cleared.
+- **A schema** is optional. A schema path is absolute, or relative to the data
+  folder, and may not have a `..` segment. When the file is missing or broken,
+  saves are refused, unless `Strict` is `false`, which saves them unvalidated
+  instead. The file is read again when it changes.
+- **`Saved` and `Deleted`** tell a plugin when a configuration changed, from
+  its generated UI, a client or another plugin, with the user, the actor and,
+  for a save, the JSON paths that changed.
+- **They go with their owner.** Deleting a user deletes theirs, and
+  uninstalling a plugin with its data deletes its configurations for every
+  user, without raising `Deleted`.
+
+A typed configuration's secrets are masked by `LoadMasked`, which every
+outward-facing surface should hand out, and restored by `Save`. Over APIv3 a
+user reads and writes their own under
+`/api/v3/User/Current/Configuration/{configurationID}`, only admins reach
+another user's, and `/api/v3/User/Configuration` lists the registrations. A
+typed configuration's schema and UI definition are served under
+`/api/v3/Configuration/{id}`, by the `ConfigurationTypeID` the listing gives.
 
 ---
 

@@ -687,6 +687,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         // The databases plugins asked for become contexts on the provider the core picks.
         PluginDatabaseRegistrar.AddPluginDatabases(serviceCollection);
 
+        // The settings clients the core and the plugins registered, refusing a name registered twice.
+        UserConfigurationRegistry.AddUserConfigurationRegistry(serviceCollection);
+
         // Scan every loaded plugin assembly for IQueueJob implementations.
         // Plugins don't need to call AddQueueJobsFromAssembly themselves.
         foreach (var pluginInfo in _pluginTypes.Where(a => a is { CanLoad: true, PluginType: not null }))
@@ -1930,6 +1933,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         return pluginInfo;
     }
 
+    /// <summary>
+    ///   Raised with a plugin's ID when it is uninstalled with its data, once
+    ///   no other installed version uses that data, so the core's own records
+    ///   of the plugin can go with it.
+    /// </summary>
+    internal event EventHandler<Guid>? PluginDataPurged;
+
     public LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = false, bool purgeData = false)
         => WithStateChanged(UninstallPluginInternal(pluginInfo, purgeConfiguration || purgeData, purgeData));
 
@@ -1983,7 +1993,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 if (_pluginTypes.Any(other => other != pluginInfo && other.ID == pluginInfo.ID && other.IsInstalled))
                     logger.LogInformation("Keeping the data of plugin \"{Name}\", as another installed version still uses it.", pluginInfo.Name);
                 else
+                {
                     MarkPluginDataForRemoval(pluginInfo.ID);
+                    PluginDataPurged?.Invoke(this, pluginInfo.ID);
+                }
             }
 
             // Purge configuration if requested.
