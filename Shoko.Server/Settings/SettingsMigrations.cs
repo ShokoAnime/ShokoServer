@@ -95,6 +95,7 @@ public static partial class SettingsMigrations
         { 27, (settings, paths) => MigrateStartupSettingsToTriggers(settings, paths.DataPath) },
         { 28, MigrateTmdbDownloadSwitchesToKinds },
         { 29, (settings, _) => MigrateImageSourceSettingsToMetadata(settings) },
+        { 30, (settings, paths) => MigrateWebUISettingsToUserConfiguration(settings, paths.DataPath) },
     };
 
     /// <summary>
@@ -716,6 +717,65 @@ public static partial class SettingsMigrations
             if (property.Value.Type is JTokenType.Boolean && property.Value.Value<bool>())
                 taken.Add(key);
         }
+    }
+
+    #endregion
+
+    #region Web UI Settings
+
+    /// <summary>
+    ///   The file migration 30 carries the web UI's settings over in.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>The carry-over file's path.</returns>
+    internal static string WebUISettingsCarryOverPath(string dataPath)
+        => Path.Combine(dataPath, "SettingsBackup", "webui-settings.v29.json");
+
+    /// <summary>
+    ///   Takes the web UI's settings out of the server settings, as migration
+    ///   30, carrying them over for the first admin's own <c>webui</c>
+    ///   configuration once the database is up.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>The settings JSON without the web UI's settings.</returns>
+    private static string MigrateWebUISettingsToUserConfiguration(string settings, string dataPath)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings.Property("WebUI_Settings") is not { } property)
+            return settings;
+
+        property.Remove();
+        if (property.Value.Type is JTokenType.String && property.Value.Value<string>() is { } webUISettings && !string.IsNullOrWhiteSpace(webUISettings))
+        {
+            var path = WebUISettingsCarryOverPath(dataPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, webUISettings);
+        }
+
+        return currentSettings.ToString();
+    }
+
+    /// <summary>
+    ///   Reads the web UI's settings migration 30 carried over.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>The settings as JSON text, or <c>null</c> when there are none to apply.</returns>
+    internal static string? ReadWebUISettingsCarryOver(string dataPath)
+    {
+        var path = WebUISettingsCarryOverPath(dataPath);
+        return File.Exists(path) ? File.ReadAllText(path) : null;
+    }
+
+    /// <summary>
+    ///   Removes the web UI settings carry-over once it has been applied.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    internal static void ClearWebUISettingsCarryOver(string dataPath)
+    {
+        var path = WebUISettingsCarryOverPath(dataPath);
+        if (File.Exists(path))
+            File.Delete(path);
     }
 
     #endregion

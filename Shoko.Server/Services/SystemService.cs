@@ -650,7 +650,7 @@ public class SystemService : ISystemService
             services.AddSingleton<SupplementaryMetadataScheduler>();
             services.AddSingleton<AnimeMetadataOrchestrator>();
 
-            services.AddUserConfiguration<CorePlugin>("webui", options => options.Name = "Web UI");
+            services.AddUserConfiguration<CorePlugin>(UserConfigurationService.WebUIConfigurationID, options => options.Name = "Web UI");
             services.AddSingleton<UserConfigurationService>();
             services.AddSingleton<IUserConfigurationService>(provider => provider.GetRequiredService<UserConfigurationService>());
             services.AddHostedService(provider => provider.GetRequiredService<UserConfigurationService>());
@@ -732,6 +732,27 @@ public class SystemService : ISystemService
     #region Startup | Late Start
 
     /// <summary>
+    ///   Gives the web UI settings that settings migration 30 took out of the
+    ///   server settings to the first admin, as their own <c>webui</c>
+    ///   configuration. Kept for a later start while there is no admin yet.
+    /// </summary>
+    private void ApplyWebUISettingsCarryOver()
+    {
+        var dataPath = _webHost!.Services.GetRequiredService<IApplicationPaths>().DataPath;
+        if (SettingsMigrations.ReadWebUISettingsCarryOver(dataPath) is not { } webUISettings)
+            return;
+
+        var firstAdmin = _webHost.Services.GetRequiredService<IUserService>().GetUsers()
+            .Where(user => user.IsAdmin)
+            .MinBy(user => user.LocalID);
+        if (firstAdmin is null)
+            return;
+
+        _webHost.Services.GetRequiredService<UserConfigurationService>().ImportIfMissing(firstAdmin, UserConfigurationService.WebUIConfigurationID, webUISettings);
+        SettingsMigrations.ClearWebUISettingsCarryOver(dataPath);
+    }
+
+    /// <summary>
     ///   Responsible for the late start of the application after the initial
     ///   setup is complete.
     /// </summary>
@@ -773,6 +794,8 @@ public class SystemService : ISystemService
 
             if (ProcessPasswordResetFile())
                 return;
+
+            ApplyWebUISettingsCarryOver();
 
             StartupMessage = "Migrating failed relocation presets...";
             _webHost!.Services.GetRequiredService<RelocationPresetMigrationService>().MigrateFailedPresets();

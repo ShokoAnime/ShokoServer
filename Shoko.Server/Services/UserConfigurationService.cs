@@ -45,6 +45,11 @@ public class UserConfigurationService(
     #region Constants
 
     /// <summary>
+    ///   The ID of the user configuration the core registers for the web UI.
+    /// </summary>
+    public const string WebUIConfigurationID = "webui";
+
+    /// <summary>
     ///   The largest configuration kept, in characters of JSON text.
     /// </summary>
     public const int MaxDocumentLength = 1024 * 1024;
@@ -313,6 +318,43 @@ public class UserConfigurationService(
             Actor = ActorContext.CurrentActor,
         };
         Task.Run(() => Deleted?.Invoke(this, deletedEventArgs));
+        return true;
+    }
+
+    #endregion
+
+    #region Imports
+
+    /// <summary>
+    ///   Copies a configuration kept elsewhere before into a registered user
+    ///   configuration, when none is stored for that user yet.
+    /// </summary>
+    /// <param name="user">The user.</param>
+    /// <param name="configurationID">The configuration's ID, in any case.</param>
+    /// <param name="json">The configuration as JSON text; blank text is skipped.</param>
+    /// <returns>
+    ///   <c>true</c> when the configuration was copied or is not worth keeping,
+    ///   <c>false</c> when one was already stored.
+    /// </returns>
+    public bool ImportIfMissing(IUser user, string configurationID, string? json)
+    {
+        ArgumentNullException.ThrowIfNull(configurationID);
+        if (string.IsNullOrWhiteSpace(json))
+            return true;
+        if (Load(user, configurationID) is not null)
+            return false;
+
+        try
+        {
+            Save(user, configurationID, json);
+        }
+        catch (GenericValidationException ex)
+        {
+            logger.LogWarning(ex, "The old configuration {ConfigurationID} was refused; it was not copied.", configurationID);
+            return true;
+        }
+
+        logger.LogInformation("Copied the old configuration {ConfigurationID} for user {UserID}.", configurationID, GetUserID(user));
         return true;
     }
 

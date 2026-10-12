@@ -273,6 +273,21 @@ public class UserConfigurationServiceTests : IDisposable
 
     #endregion
 
+    #region Imports
+
+    [Fact]
+    public void OldSettingsAreCopiedForAUser_OnlyWhileNoneIsStored()
+    {
+        var service = Service(Registration("webui"));
+
+        Assert.True(service.ImportIfMissing(User, "webui", """{ "theme": "dark" }"""));
+        Assert.False(service.ImportIfMissing(User, "webui", """{ "theme": "light" }"""));
+        Assert.True(service.ImportIfMissing(User, "other", "not json"));
+        Assert.Equal("dark", Theme(service.Load(User, "webui")));
+    }
+
+    #endregion
+
     #region Schemas
 
     [Fact]

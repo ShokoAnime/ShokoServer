@@ -130,11 +130,6 @@ public interface IServerSettings
     WebSettings Web { get; set; }
 
     /// <summary>
-    /// The web UI settings, as a stringified JSON object.
-    /// </summary>
-    string WebUI_Settings { get; set; }
-
-    /// <summary>
     /// Dump the settings to the log file on startup.
     /// </summary>
     /// <remarks>

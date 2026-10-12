@@ -188,13 +188,6 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     /// <inheritdoc />
     public WebSettings Web { get; set; } = new();
 
-    /// <inheritdoc />
-    [SectionName("Web UI")]
-    [Display(Name = "Settings")]
-    [EnvironmentVariable("SHOKO_WEBUI_SETTINGS", AllowOverride = true)]
-    [CodeEditor(CodeEditorLanguage.Json, AutoFormatOnLoad = true)]
-    public string WebUI_Settings { get; set; } = "";
-
     /// <summary>
     /// Dump the settings to the log file on startup.
     /// </summary>
