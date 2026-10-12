@@ -7,10 +7,11 @@
     `Shoko.TrayService`).
 
     MediaArea publishes no checksums, so the version and the archive's SHA-256
-    come from Scoop's manifest for MediaInfo, read at most once a day. On
-    Windows, `MediaInfo.exe` must also carry a valid MediaArea signature.
-    Accepted archives are kept in `.cache/mediainfo/` with their SHA-256, and
-    one that no longer matches is downloaded again.
+    come from Scoop's manifest for MediaInfo, read at most once a day. Every
+    Windows build also checks that `MediaInfo.exe` carries a valid MediaArea
+    signature, wherever the archive came from. Accepted archives are kept in
+    `.cache/mediainfo/` with their SHA-256, and one that no longer matches is
+    downloaded again.
 
     Set `ShokoIncludeMediaInfo` to `false` to leave MediaInfo out of a Windows
     build.
@@ -216,7 +217,7 @@ public class _ShokoFetchMediaInfoArchive : Task
 
     <PropertyGroup>
       <_ShokoMediaInfoDirectory>$(_ShokoMediaInfoCacheRoot)$(_ShokoMediaInfoVersion)\x64\</_ShokoMediaInfoDirectory>
-      <_ShokoMediaInfoCheckSignature Condition="'$(_ShokoMediaInfoDownloaded)' == 'true' and $([MSBuild]::IsOSPlatform('Windows'))">true</_ShokoMediaInfoCheckSignature>
+      <_ShokoMediaInfoCheckSignature Condition="$([MSBuild]::IsOSPlatform('Windows'))">true</_ShokoMediaInfoCheckSignature>
     </PropertyGroup>
 
     <Unzip SourceFiles="$(_ShokoMediaInfoArchive)"

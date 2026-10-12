@@ -224,6 +224,40 @@ jobs:
           path: webui/
           retention-days: 1
 
+  mediainfo:
+    runs-on: ubuntu-latest
+
+    name: Download MediaInfo
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@v7
+        with:
+          ref: "${{ github.sha }}"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.x'
+
+      - name: Cache MediaInfo
+        uses: actions/cache@v6
+        with:
+          path: .cache/mediainfo
+          key: mediainfo-${{ github.run_id }}
+          restore-keys: mediainfo-
+
+      - name: Download and Verify MediaInfo
+        run: dotnet msbuild MediaInfo.targets -t:_ShokoFetchMediaInfo -p:RuntimeIdentifier=win-x64
+
+      - name: Upload MediaInfo Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: mediainfo
+          path: .cache/mediainfo/
+          include-hidden-files: true
+          retention-days: 1
+
   offline-importer:
     runs-on: ubuntu-latest
 
@@ -410,6 +444,7 @@ jobs:
       - plugin-nuget
       - webui
       - offline-importer
+      - mediainfo
 
     strategy:
       matrix:
@@ -447,12 +482,11 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - name: Cache MediaInfo
-        uses: actions/cache@v6
+      - name: Download MediaInfo
+        uses: actions/download-artifact@v8
         with:
+          name: mediainfo
           path: .cache/mediainfo
-          key: mediainfo-${{ github.run_id }}
-          restore-keys: mediainfo-
 
       - run: dotnet publish -c Release -r win-x64 --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
@@ -476,6 +510,7 @@ jobs:
       - plugin-nuget
       - webui
       - offline-importer
+      - mediainfo
 
     strategy:
       matrix:
@@ -513,12 +548,11 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - name: Cache MediaInfo
-        uses: actions/cache@v6
+      - name: Download MediaInfo
+        uses: actions/download-artifact@v8
         with:
+          name: mediainfo
           path: .cache/mediainfo
-          key: mediainfo-${{ github.run_id }}
-          restore-keys: mediainfo-
 
       - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
@@ -794,3 +828,9 @@ jobs:
         uses: geekyeggo/delete-artifact@v6
         with:
           name: offline-importer
+
+      - name: Remove MediaInfo Artifact
+        uses: geekyeggo/delete-artifact@v6
+        with:
+          name: mediainfo
+

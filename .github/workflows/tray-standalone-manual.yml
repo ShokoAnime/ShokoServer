@@ -49,11 +49,46 @@ jobs:
           path: webui/
           retention-days: 1
 
+  mediainfo:
+    runs-on: ubuntu-latest
+
+    name: Download MediaInfo
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@v7
+        with:
+          ref: "${{ github.sha }}"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.x'
+
+      - name: Cache MediaInfo
+        uses: actions/cache@v6
+        with:
+          path: .cache/mediainfo
+          key: mediainfo-${{ github.run_id }}
+          restore-keys: mediainfo-
+
+      - name: Download and Verify MediaInfo
+        run: dotnet msbuild MediaInfo.targets -t:_ShokoFetchMediaInfo -p:RuntimeIdentifier=win-x64
+
+      - name: Upload MediaInfo Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: mediainfo
+          path: .cache/mediainfo/
+          include-hidden-files: true
+          retention-days: 1
+
   tray-service-standalone-manual:
     runs-on: windows-latest
 
     needs:
       - webui
+      - mediainfo
 
     strategy:
       matrix:
@@ -95,12 +130,11 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - name: Cache MediaInfo
-        uses: actions/cache@v6
+      - name: Download MediaInfo
+        uses: actions/download-artifact@v8
         with:
+          name: mediainfo
           path: .cache/mediainfo
-          key: mediainfo-${{ github.run_id }}
-          restore-keys: mediainfo-
 
       - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
