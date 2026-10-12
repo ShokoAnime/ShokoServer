@@ -32,7 +32,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]"), Tags("Configuration")]
 [ApiV3]
-[Authorize(Roles = "admin,init")]
+[Authorize]
 [DatabaseBlockedExempt]
 [InitFriendly]
 public class SettingsController(
@@ -74,7 +74,7 @@ public class SettingsController(
     // TODO some way of distinguishing what a normal user vs an admin can set.
 
     /// <summary>
-    /// Get all settings
+    /// Get all settings, read-only for anyone signed in; only admins change them.
     /// </summary>
     /// <remarks>
     /// The settings are serialized here rather than handed to the formatter as
@@ -82,7 +82,7 @@ public class SettingsController(
     /// works on the serialized document. The serializer is the one MVC would
     /// have used, so the shape of the response is unchanged. <c>WebUI_Settings</c>
     /// is the caller's own <c>webui</c> configuration, stringified, for web UIs that
-    /// still read them here.
+    /// still read it here.
     /// </remarks>
     /// <returns></returns>
     [Produces("application/json")]
@@ -100,7 +100,8 @@ public class SettingsController(
     }
 
     /// <summary>
-    /// JsonPatch the settings
+    /// JsonPatch the settings. Only administrators change the server settings;
+    /// any user may patch <c>WebUI_Settings</c>, their own web UI settings.
     /// </summary>
     /// <param name="settings">JsonPatch operations</param>
     /// <returns></returns>
@@ -109,18 +110,27 @@ public class SettingsController(
     {
         try
         {
-            var existingSettings = (ServerSettings)SettingsProvider.GetSettings(copy: true);
-            if (!TryTakeWebUISettings(settings, ModelState, out var webUIChanged, out var webUISettings))
-                return ValidationProblem(ModelState);
+            // Only admins change the server settings; anyone may change their own web UI settings.
+            if (User.IsAdmin is not 1 && settings.Operations.Any(operation => !IsWebUISettingsOperation(operation)))
+                return Forbid("Only administrators can change the server settings; other users can only change WebUI_Settings.");
 
-            ApplyPatch(settings, existingSettings, ModelState);
+            TryTakeWebUISettings(settings, ModelState, out var webUIChanged, out var webUISettings);
+            ServerSettings? existingSettings = null;
+            if (settings.Operations.Count > 0)
+            {
+                existingSettings = (ServerSettings)SettingsProvider.GetSettings(copy: true);
+                ApplyPatch(settings, existingSettings, ModelState);
+            }
+
             if (!ModelState.IsValid)
             {
                 _logger.LogDebug("Failed to apply settings patch: {ModelState}", JsonConvert.SerializeObject(ModelState));
                 return ValidationProblem(ModelState);
             }
 
-            SettingsProvider.SaveSettings(existingSettings);
+            if (existingSettings is not null)
+                SettingsProvider.SaveSettings(existingSettings);
+
             if (webUIChanged && !IsSetupUser)
             {
                 if (webUISettings is null)
@@ -149,6 +159,14 @@ public class SettingsController(
         => User.JMMUserID is 0;
 
     /// <summary>
+    /// Whether a settings patch operation is on <c>WebUI_Settings</c>.
+    /// </summary>
+    /// <param name="operation">The operation.</param>
+    /// <returns><c>true</c> for an operation on the web UI settings.</returns>
+    private static bool IsWebUISettingsOperation(Operation<ServerSettings> operation)
+        => string.Equals(operation.path?.Trim('/'), WebUISettingsName, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Takes the operations on <c>WebUI_Settings</c> out of a settings patch,
     /// as the server settings no longer hold them, and works out what the
     /// caller's <c>webui</c> configuration becomes.
@@ -167,9 +185,7 @@ public class SettingsController(
     {
         changed = false;
         webUISettings = null;
-        var operations = patch.Operations
-            .Where(operation => string.Equals(operation.path?.Trim('/'), WebUISettingsName, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var operations = patch.Operations.Where(IsWebUISettingsOperation).ToList();
         if (operations.Count is 0)
             return true;
 
@@ -213,6 +229,7 @@ public class SettingsController(
     /// </summary>
     /// <param name="credentials">POST the body as a <see cref="Credentials"/> object</param>
     /// <returns></returns>
+    [Authorize(Roles = "admin,init")]
     [HttpPost("AniDB/TestLogin")]
     public async Task<ActionResult> TestAniDB([FromBody] Credentials credentials)
     {
