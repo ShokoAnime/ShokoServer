@@ -105,6 +105,13 @@ public class PluginSearchTests
         );
     }
 
+    private static PluginPageController CreatePageController(IReadOnlyList<LocalPluginInfo> plugins)
+    {
+        var pluginManager = new Mock<IPluginManager>();
+        pluginManager.Setup(m => m.GetPluginInfos()).Returns(plugins);
+        return new PluginPageController(Mock.Of<ISettingsProvider>(), pluginManager.Object);
+    }
+
     [Fact]
     public void GetPlugins_FindsDescriptionTagsAndAuthors_NameHitFirst()
     {
@@ -125,7 +132,7 @@ public class PluginSearchTests
     {
         var byDescription = PluginTestDoubles.PagedPluginInfo(Guid.NewGuid(), "Alpha", "Adds a calendar page.", "alpha-page");
         var byName = PluginTestDoubles.PagedPluginInfo(Guid.NewGuid(), "Calendar", string.Empty, "calendar-page");
-        var controller = CreateController([byDescription, byName]);
+        var controller = CreatePageController([byDescription, byName]);
 
         var results = controller.GetPluginPages(PluginPageVisibility.Admin, query: "calendar");
 
@@ -137,7 +144,7 @@ public class PluginSearchTests
     {
         var adminOnly = PluginTestDoubles.PagedPluginInfo(Guid.NewGuid(), "Alpha", string.Empty, "admin-page");
         var forUsers = PluginTestDoubles.PagedPluginInfo(Guid.NewGuid(), "Beta", string.Empty, "user-page", PluginPageVisibility.Authenticated);
-        var controller = CreateController([adminOnly, forUsers]);
+        var controller = CreatePageController([adminOnly, forUsers]);
 
         var results = controller.GetPluginPages(PluginPageVisibility.Authenticated);
 
