@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.521",
+      "tag": "v6.0.0-dev.521",
+      "commit": "1574ad5cba3b1a86aee63fbf81327bee9439d46c",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.521/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-13T21:35:58Z",
+      "releaseNotes": "\n`fix` (`abstractions`): **Migrate stored select values written before the UI namespace move** ([#1460](https://github.com/ShokoAnime/ShokoServer/pull/1460)):\n\nAdded `LegacySelectComponentMigration`, run from `ConfigurationService` on load ahead of schema validation, which renames the old lowercase `SelectComponent` keys (`options`, `groupId`, `selected`, ...) to their current names and saves the result back.\n"
+    },
+    {
       "version": "6.0.0.520",
       "tag": "v6.0.0-dev.520",
       "commit": "90d390d1bde275ecf4f15e2ee65a20ae4068faa5",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.492/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-30T22:25:36Z",
       "releaseNotes": "\n`feat` (`abstractions`): **Give `ScopeExpression` an optional label**:\n\n- `Parameter` holds the group's label or comment; it does not change what the filter matches\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.97**.\n"
-    },
-    {
-      "version": "6.0.0.491",
-      "tag": "v6.0.0-dev.491",
-      "commit": "bfd4d8a2c436a6a834eb2af0521d646d189d3b6c",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.491/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-30T22:06:11Z",
-      "releaseNotes": "\n`feat` (`abstractions`): **Add `ScopeExpression`, a filter's parentheses**:\n\n- Answered as its left expression, so a filter language can keep the grouping it was written with\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.96**.\n\n`feat` (`api`): **List the sources series and movies can be linked to**:\n\n- Added `GET /api/v3/Metadata/Source`: one row per source, with the kinds its providers link, which are on, and its status\n\n`refactor` (`abstractions`): **Make the series of episodes, seasons and orderings non-nullable**:\n\n- `IEpisode`, `ISeason`, `IOrdering`, `IEpisodeOrderingInformation` and their AniDB, Shoko and TMDB forms answer a series, and throw when it is missing\n"
     }
   ]
 }
