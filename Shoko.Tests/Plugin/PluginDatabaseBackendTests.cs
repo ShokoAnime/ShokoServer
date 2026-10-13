@@ -155,6 +155,21 @@ public sealed class PluginDatabaseBackendTests : IDisposable
     }
 
     [Fact]
+    public void ThePluginDatabasesStayOnSqliteUnlessTheSettingsPlaceThemInTheMainDatabase()
+    {
+        var settings = new ServerSettings();
+        settings.Database.Type = Constants.DatabaseType.SQLServer;
+        settings.Database.Host = "127.0.0.1,1";
+        settings.Database.Schema = "shoko";
+
+        Assert.Equal(Constants.DatabaseType.SQLite, new PluginDatabaseServer(new StubSettingsProvider(settings)).Type);
+
+        settings.Database.UseMainDatabaseForPlugins = true;
+
+        Assert.Equal(Constants.DatabaseType.SQLServer, new PluginDatabaseServer(new StubSettingsProvider(settings)).Type);
+    }
+
+    [Fact]
     public void TheBackendIsReadFromTheSettingsWhenTheDatabasesAreMigrated()
     {
         // Registered while the first-run setup still has the core on SQLite.
@@ -164,6 +179,7 @@ public sealed class PluginDatabaseBackendTests : IDisposable
         var database = Assert.Single(provider.GetServices<IPluginDatabase>());
 
         // The setup then picks SQL Server, before the late start migrates anything.
+        settings.Database.UseMainDatabaseForPlugins = true;
         settings.Database.Type = Constants.DatabaseType.SQLServer;
         settings.Database.Host = "127.0.0.1,1";
         settings.Database.Schema = "shoko";

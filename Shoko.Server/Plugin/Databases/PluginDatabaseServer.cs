@@ -30,7 +30,7 @@ internal class PluginDatabaseServer
     /// </summary>
     /// <param name="settingsProvider">The settings.</param>
     public PluginDatabaseServer(ISettingsProvider settingsProvider)
-        => _server = new(() => FromSettings(settingsProvider.GetSettings().Database));
+        => _server = new(() => ForPluginDatabases(settingsProvider.GetSettings().Database));
 
     /// <summary>
     /// Creates a server with a known backend.
@@ -41,7 +41,8 @@ internal class PluginDatabaseServer
         => _server = new((type, connectionString));
 
     /// <summary>
-    /// The backend the core runs on.
+    /// The backend the plugin databases are on: SQLite, or the core's own
+    /// when the settings place them there.
     /// </summary>
     public Constants.DatabaseType Type => _server.Value.Type;
 
@@ -241,6 +242,15 @@ internal class PluginDatabaseServer
             Constants.DatabaseType.SQLServer => (Constants.DatabaseType.SQLServer, SQLServer.GetConnectionString(settings)),
             _ => (Constants.DatabaseType.SQLite, string.Empty),
         };
+
+    /// <summary>
+    /// The backend and connection string the plugin databases use: SQLite,
+    /// unless the settings place them in the core's database.
+    /// </summary>
+    /// <param name="settings">The database settings.</param>
+    /// <returns>The backend, and the connection string, empty for SQLite.</returns>
+    internal static (Constants.DatabaseType Type, string ConnectionString) ForPluginDatabases(DatabaseSettings settings)
+        => settings.UseMainDatabaseForPlugins ? FromSettings(settings) : (Constants.DatabaseType.SQLite, string.Empty);
 
     /// <summary>
     /// A backend's name, for messages.

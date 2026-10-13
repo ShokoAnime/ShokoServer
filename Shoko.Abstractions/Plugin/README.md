@@ -261,9 +261,12 @@ as above, or its own `DbContextOptions<MySqlNotesContext>` handed to a
 `protected NotesContext(DbContextOptions options)` constructor. `NotesContext`
 keeps the SQLite migrations. Name only the servers you have migrations for.
 
-While the server runs on MySQL (MariaDB included) or SQL Server and you named a
-context for it, the database lives in the server's own database, through its
-connection. Every table, constraint and sequence, the migrations history
+By default every plugin database is a SQLite file, whatever the server itself
+runs on. An admin can turn on `Database.UseMainDatabaseForPlugins`
+(`DB_PLUGINS_IN_MAIN_DATABASE`), an advanced and experimental option, to place
+them in the server's database instead. With it on, while the server runs on
+MySQL (MariaDB included) or SQL Server and you named a context for it, the
+database lives in the server's own database, through its connection. Every table, constraint and sequence, the migrations history
 included, gets a prefix of the plugin and the database, `p<8 hex>_<6 hex>_`
 (`p1a2b3c4d_9f8e7d_Notes`); index names stay as they are. Your code sees none
 of it: the server renames the tables in the model and in each migration, and
@@ -272,7 +275,8 @@ context. Without a context for that server, the database stays in its SQLite
 file, and the log says so.
 
 Data is never moved between them: a database that follows the server onto MySQL
-starts empty there, and a SQLite file left from before is only reported.
+starts empty there, and a SQLite file left from before is only reported. The
+same goes the other way, when the option is turned off again.
 
 For the migrations of a server context:
 

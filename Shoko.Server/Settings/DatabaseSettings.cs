@@ -202,6 +202,24 @@ public class DatabaseSettings
     }
 
     /// <summary>
+    /// Place the plugin databases in the main MySQL/MariaDB or SQL Server
+    /// database, for the plugins that support it. Experimental. When off,
+    /// every plugin database is a SQLite file of its own.
+    /// </summary>
+    [Badge("Experimental", Theme = DisplayColorTheme.Warning)]
+    [Display(Name = "Place Plugin Databases in the Main Database")]
+    [Visibility(
+        Advanced = true,
+        ToggleWhenMemberIsSet = nameof(Type),
+        ToggleWhenSetTo = Constants.DatabaseType.SQLite,
+        ToggleVisibilityTo = DisplayVisibility.Hidden
+    )]
+    [RequiresRestart]
+    [EnvironmentVariable("DB_PLUGINS_IN_MAIN_DATABASE")]
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+    public bool UseMainDatabaseForPlugins { get; set; } = false;
+
+    /// <summary>
     /// Directory for where to store the backups during database migrations.
     /// </summary>
     [Display(Name = "Backup Directory")]

@@ -83,6 +83,8 @@ public sealed class DatabaseMigrationFixture : IDisposable
         settings.AniDb.Username = "integration-test";
         settings.AniDb.Password = "integration-test";
         settings.Web.Port = FindFreePort();
+        // The tests cover the plugin databases in the main database too, which is off by default.
+        settings.Database.UseMainDatabaseForPlugins = true;
         ISettingsProvider.Instance.SaveSettings(settings);
 
         var started = new ManualResetEventSlim(false);
