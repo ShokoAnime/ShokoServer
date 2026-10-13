@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.519",
+      "tag": "v6.0.0-dev.519",
+      "commit": "40199e58423b9ad495dd4ffff7a375560dc02595",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.519/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-13T19:54:30Z",
+      "releaseNotes": "\n`chore` (`plugin`): **Recolour the WebAOM thumbnail and icon**.\n"
+    },
+    {
       "version": "6.0.0.518",
       "tag": "v6.0.0-dev.518",
       "commit": "e7c8d271e3412c9a55a8b873d5cfd95f329af374",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.490/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-30T21:21:23Z",
       "releaseNotes": "\n`fix` (`db`): **Report progress from the long startup migrations**:\n\n- Reported the AniDB and TMDB text copies per page through `StartupProgress`\n- Reported saving the image availability flags, not only checking them\n- Reported `CheckStoredMetadataNumbers` per column read\n"
-    },
-    {
-      "version": "6.0.0.489",
-      "tag": "v6.0.0-dev.489",
-      "commit": "bbddb18f05501ab13a3c90473bb177c06c4c5e0b",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.489/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-30T20:32:49Z",
-      "releaseNotes": "\n`refactor` (`tmdb`): **Store transcribed alternative titles and read every title by one rule**:\n\n- Requested TMDB's alternative titles with each show and movie refresh, and stored the romaji, pinyin and Korean transcriptions among them as synonyms\n- Chose the transcription language from the type word, or from the entry's original language and country for generic words, and kept one Latin-script title per language\n- Read every source's titles by one rule: a main, official or untyped title answers for its language, any other type only with synonyms on\n- Removed `OwnTitleRule`, so a user's untyped title answers for its language and AniDB's generic episode titles rank after real ones\n\nCloses #1449\n"
     }
   ]
 }
