@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
@@ -138,6 +140,9 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
 
     private static readonly DateTime _updated = new(2024, 2, 1, 10, 0, 0);
 
+    private static string Sha256(string text)
+        => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+
     private static string Kind(MetadataEntityType entityType)
         => MetadataNumberRegistry.GetNumber(entityType).ToString();
 
@@ -147,7 +152,7 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
     internal static void Seed(IDbConnection connection)
     {
         Insert(connection, "TMDB_Show", ("TmdbShowID", ShowID), ("EnglishTitle", "A Show"), ("EnglishOverview", "About it."), ("OriginalTitle", "番組"), ("OriginalLanguageCode", "ja"),
-            ("IsRestricted", false), ("Genres", "Animation|||Sci-Fi"), ("Keywords", "school|||magic"), ("ContentRatings", "US,TV-14|BR,12|BR,14"),
+            ("IsRestricted", false), ("Genres", "Animation|||Sci-Fi"), ("Keywords", "school|||magic|||shonen|||Shonen|||shōnen"), ("ContentRatings", "US,TV-14|BR,12|BR,14"),
             ("ProductionCountries", "JP,Japan|KR,Korea, Republic of"), ("EpisodeCount", 2), ("SeasonCount", 1), ("AlternateOrderingCount", 1), ("UserRating", 8), ("UserVotes", 10),
             ("FirstAiredAt", new DateTime(2020, 1, 2)), ("LastAiredAt", new DateTime(2020, 6, 30)), ("CreatedAt", _created), ("LastUpdatedAt", _updated), ("TvdbShowID", 555),
             ("PosterPath", "/p2.jpg"), ("BackdropPath", "/b1.jpg"), ("PreferredOrderingID", $"tmdb://ordering/{ShowID}"));
@@ -344,6 +349,10 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
                     $"{Kind(MetadataEntityType.Series)}|{ShowID}|genre/Sci-Fi|Sci-Fi|1|1",
                     $"{Kind(MetadataEntityType.Series)}|{ShowID}|keyword/school|school|2|2",
                     $"{Kind(MetadataEntityType.Series)}|{ShowID}|keyword/magic|magic|2|3",
+                    // MySQL and SQL Server would take these three for one ID, so only the first keeps its name as it.
+                    $"{Kind(MetadataEntityType.Series)}|{ShowID}|keyword/shonen|shonen|2|4",
+                    $"{Kind(MetadataEntityType.Series)}|{ShowID}|keyword/#{Sha256("Shonen")}|Shonen|2|5",
+                    $"{Kind(MetadataEntityType.Series)}|{ShowID}|keyword/#{Sha256("shōnen")}|shōnen|2|6",
                 ],
                 Read(connection, $"SELECT e.EntityType, e.EntityID, t.ProviderID, t.Name, t.Kind, e.Ordering FROM Metadata_Tag_Entry e INNER JOIN Metadata_Tag t ON t.Metadata_TagID = e.TagID " +
                     $"WHERE e.Source = {tmdb} ORDER BY e.EntityType DESC, e.Ordering"));

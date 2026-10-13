@@ -371,6 +371,7 @@ public partial class DatabaseFixes
             Execute(transaction, $"DELETE FROM Metadata_Tag_Entry WHERE Source = {TmdbNumber}");
             Execute(transaction, $"DELETE FROM Metadata_Tag WHERE Source = {TmdbNumber}");
             var tags = new Dictionary<string, (string Name, TagKind Kind)>(StringComparer.Ordinal);
+            var plainIDs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var links = new List<(int EntityType, int ID, List<string> Tags)>();
             foreach (var (table, idColumn, entityType) in (ReadOnlySpan<(string, string, MetadataEntityType)>)[("TMDB_Show", "TmdbShowID", MetadataEntityType.Series), ("TMDB_Movie", "TmdbMovieID", MetadataEntityType.Movie)])
             {
@@ -386,7 +387,7 @@ public partial class DatabaseFixes
                     {
                         foreach (var name in (row[column] as string ?? string.Empty).Split("|||", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                         {
-                            var tagID = ProvisionalTmdbTagID(name, kind);
+                            var tagID = ProvisionalTmdbTagID(name, kind, plainIDs);
                             tags.TryAdd(tagID, (name, kind));
                             if (!entryTags.Contains(tagID))
                                 entryTags.Add(tagID);
@@ -1739,19 +1740,32 @@ public partial class DatabaseFixes
     }
 
     /// <summary>
-    ///   A provisional tag ID for a TMDB genre or keyword known only by name,
-    ///   with a long name hashed to fit.
+    ///   A provisional tag ID for a TMDB genre or keyword known only by name.
+    ///   The name is hashed when it is too long, not plain ASCII, or differs
+    ///   only in case from one already given a plain ID.
     /// </summary>
+    /// <remarks>
+    ///   MySQL and SQL Server compare IDs ignoring case, and MySQL accents
+    ///   too, so <c>shonen</c>, <c>Shonen</c> and <c>shōnen</c> are one ID to
+    ///   their unique index.
+    /// </remarks>
     /// <param name="name">The name.</param>
     /// <param name="kind">Whether it is a genre or a keyword.</param>
+    /// <param name="plainIDs">The plain IDs given out so far, by the name each stands for.</param>
     /// <returns>The ID.</returns>
-    private static string ProvisionalTmdbTagID(string name, TagKind kind)
+    private static string ProvisionalTmdbTagID(string name, TagKind kind, Dictionary<string, string> plainIDs)
     {
         var prefix = kind is TagKind.Genre ? TmdbGenrePrefix : TmdbKeywordPrefix;
         var id = prefix + name;
-        return id.Length <= MetadataGuid.MaxIDLength
-            ? id
-            : prefix + "#" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(name)));
+        if (id.Length <= MetadataGuid.MaxIDLength && Ascii.IsValid(name))
+        {
+            if (!plainIDs.TryGetValue(id, out var owner))
+                plainIDs[id] = owner = name;
+            if (string.Equals(owner, name, StringComparison.Ordinal))
+                return id;
+        }
+
+        return prefix + "#" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(name)));
     }
 
     /// <summary>
