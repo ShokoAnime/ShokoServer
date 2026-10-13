@@ -1116,6 +1116,13 @@ public partial class ConfigurationService : IConfigurationService
                     json = migratedJson;
             }
 
+            var selectsMigratedJson = LegacySelectComponentMigration.Apply(json);
+            if (!string.Equals(json, selectsMigratedJson, StringComparison.Ordinal))
+            {
+                hasMigrated = true;
+                json = selectsMigratedJson;
+            }
+
             EnsureSchemaExists(info);
 
             var (token, errors) = ValidateInternal<TConfig>(info, json, null, loadValidation: true);
