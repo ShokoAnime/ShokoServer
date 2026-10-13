@@ -3,7 +3,6 @@ using System.Data;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;

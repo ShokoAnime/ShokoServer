@@ -5,7 +5,6 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Services.Configuration;
-using Shoko.Tests.Services;
 using Xunit;
 
 namespace Shoko.Tests.Services.Configuration;

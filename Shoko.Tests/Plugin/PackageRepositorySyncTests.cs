@@ -13,7 +13,6 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Plugin;
-using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
