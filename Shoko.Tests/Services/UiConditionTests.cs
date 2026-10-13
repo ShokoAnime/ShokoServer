@@ -19,7 +19,7 @@ public class UiConditionTests
 {
     private static UiSectionContainerElement RootOf(Type type)
     {
-        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type);
+        var wrapped = TestSchemaGenerator.Create().GetSchemaForType(type);
         var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Conditions", null, wrapped);
         return Assert.IsType<UiSectionContainerElement>(definition.Root);
     }
@@ -69,7 +69,7 @@ public class UiConditionTests
     {
         // Silently emitting one leaves the element in whichever state the author
         // did not intend, with nothing saying why.
-        var exception = Assert.ThrowsAny<Exception>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type));
+        var exception = Assert.ThrowsAny<Exception>(() => TestSchemaGenerator.Create().GetSchemaForType(type));
 
         Assert.Contains(because, Flatten(exception), StringComparison.Ordinal);
     }

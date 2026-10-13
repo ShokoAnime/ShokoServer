@@ -23,7 +23,7 @@ public class UiDefaultsTests
     [Fact]
     public void Configuration_TakesItsDefaultsFromTheInitialisers()
     {
-        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(InitialisedConfiguration));
+        var wrapped = TestSchemaGenerator.Create().GetSchemaForType(typeof(InitialisedConfiguration));
         var root = RootOf(new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Fixture", null, wrapped));
 
         Assert.Equal(JToken.FromObject("Hello"), root.Items[nameof(InitialisedConfiguration.Greeting)].Default);

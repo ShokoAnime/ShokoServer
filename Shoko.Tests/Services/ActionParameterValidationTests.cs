@@ -39,7 +39,7 @@ public class ActionParameterValidationTests
     }
 
     private static JsonSchema SchemaFor<TAction>() where TAction : IExecutableAction
-        => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForActionParameters(typeof(TAction)).Schema;
+        => TestSchemaGenerator.Create().GetSchemaForActionParameters(typeof(TAction)).Schema;
 
     private static IReadOnlyDictionary<string, IReadOnlyList<string>> Validate<TAction>(string json) where TAction : IExecutableAction
         => CreateConfigurationService().Validate(json, SchemaFor<TAction>());

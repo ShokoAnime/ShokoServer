@@ -208,7 +208,7 @@ public class ActionUiDefinitionBuilderTests
         var action = Serialize(BuildFor(typeof(ParameterisedGlobalAction)));
         var configuration = Serialize(
             new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance)
-                .Build(Guid.Empty, "Twin", null, ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(NewtonsoftTwinConfiguration)))
+                .Build(Guid.Empty, "Twin", null, TestSchemaGenerator.Create().GetSchemaForType(typeof(NewtonsoftTwinConfiguration)))
         );
 
         Assert.Equal(TopLevelKeys(configuration), TopLevelKeys(action));

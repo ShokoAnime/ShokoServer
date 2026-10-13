@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Abstractions.UI;
@@ -9,51 +8,6 @@ using Shoko.Server.Services.Configuration;
 using Xunit;
 
 namespace Shoko.Tests.Services;
-
-/// <summary>
-///   Pins the serialised schema, <c>x-uiDefinition</c> and all, against a
-///   committed golden file.
-/// </summary>
-/// <remarks>
-///   <para>
-///     <see cref="ShokoJsonSchemaValidator{TConfig}"/> reads the
-///     <c>x-uiDefinition</c> bag back for environment-variable splicing,
-///     env-lock enforcement, enum alias resolution and restart-pending
-///     detection, so its shape is load-bearing and may not drift. The bag
-///     carries nothing beyond those four jobs, since presentation lives in
-///     <see cref="UiDefinition"/>, so any entry appearing here that the
-///     validator does not read is a regression.
-///   </para>
-///   <para>
-///     Set <c>SHOKO_UPDATE_GOLDEN=1</c> to rewrite the goldens after an
-///     intentional change.
-///   </para>
-/// </remarks>
-[Collection(ConfigurationSchemaCollection.Name)]
-public class ShokoJsonSchemaGeneratorGoldenTests
-{
-    internal static ShokoJsonSchemaGenerator CreateGenerator()
-        => new(ShokoJsonSerializers.CreateNewtonsoftSettings(), ShokoJsonSerializers.CreateSystemTextJsonOptions());
-
-    [Theory]
-    [InlineData(typeof(NewtonsoftTwinConfiguration), "NewtonsoftTwin")]
-    [InlineData(typeof(SystemTextJsonTwinConfiguration), "SystemTextJsonTwin")]
-    [InlineData(typeof(InheritingConfiguration), "Inheriting")]
-    public void Schema_MatchesTheGolden(Type type, string goldenName)
-    {
-        var actual = CreateGenerator().GetSchemaForType(type).Schema.ToJson().ReplaceLineEndings("\n");
-        var goldenPath = Path.Combine(TestPaths.DataDirectory, "Configuration", $"{goldenName}.schema.golden.json");
-        if (Environment.GetEnvironmentVariable("SHOKO_UPDATE_GOLDEN") is "1")
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(goldenPath)!);
-            File.WriteAllText(goldenPath, actual);
-            return;
-        }
-
-        Assert.True(File.Exists(goldenPath), $"Missing golden file '{goldenPath}'. Run the suite with SHOKO_UPDATE_GOLDEN=1 to create it.");
-        Assert.Equal(File.ReadAllText(goldenPath).ReplaceLineEndings("\n"), actual);
-    }
-}
 
 /// <summary>
 ///   A collection cannot hold another collection: every schema node a property
@@ -70,7 +24,7 @@ public class NestedCollectionTests
     [InlineData(typeof(NestedArrayOfArrayConfiguration), "String[][]")]
     public void NestedCollection_IsRejectedWithAnActionableError(Type type, string expectedTypeName)
     {
-        var generator = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator();
+        var generator = TestSchemaGenerator.Create();
         var exception = Assert.Throws<NotSupportedException>(() => generator.GetSchemaForType(type));
 
         Assert.Contains($"\"{type.Name}.Values\"", exception.Message, StringComparison.Ordinal);
@@ -115,7 +69,7 @@ public class NestedCollectionTests
     /// <param name="key">The property key to look for.</param>
     private static void AssertDescribes(Type type, string key)
     {
-        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type);
+        var wrapped = TestSchemaGenerator.Create().GetSchemaForType(type);
         var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, type.Name, null, wrapped);
         var element = Flatten(definition.Root)
             .OfType<UiSectionContainerElement>()
@@ -144,46 +98,5 @@ public class NestedCollectionTests
                     yield return item;
                 break;
         }
-    }
-}
-
-/// <summary>
-///   Groups every test that drives <see cref="ShokoJsonSchemaGenerator"/> into
-///   one xUnit collection.
-/// </summary>
-/// <remarks>
-///   Generating two schemas at once races inside NJsonSchema's and
-///   Namotion.Reflection's shared XML-documentation caches and intermittently
-///   drops descriptions. The server generates schemas serially under a lock, so
-///   this only ever bites the test host.
-/// </remarks>
-[CollectionDefinition(Name, DisableParallelization = true)]
-public class ConfigurationSchemaCollection
-{
-    /// <summary>The collection's name.</summary>
-    public const string Name = "ConfigurationSchema";
-}
-
-/// <summary>
-///   Locates the repository directories the tests read from and write to.
-/// </summary>
-internal static class TestPaths
-{
-    /// <summary>
-    ///   The repository root, found by walking up from the test assembly.
-    /// </summary>
-    public static string RepositoryRoot { get; } = FindRepositoryRoot();
-
-    /// <summary>
-    ///   Where the committed golden files live.
-    /// </summary>
-    public static string DataDirectory { get; } = Path.Combine(RepositoryRoot, "Shoko.Tests", "Data");
-
-    private static string FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Shoko.Server.sln")))
-            directory = directory.Parent;
-        return directory?.FullName ?? AppContext.BaseDirectory;
     }
 }

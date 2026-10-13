@@ -19,7 +19,7 @@ public class UiRowTitleTests
 {
     private static UiSectionContainerElement RootOf(Type type)
     {
-        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type);
+        var wrapped = TestSchemaGenerator.Create().GetSchemaForType(type);
         var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Rows", null, wrapped);
         return Assert.IsType<UiSectionContainerElement>(definition.Root);
     }

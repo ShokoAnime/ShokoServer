@@ -64,7 +64,11 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     /// <param name="type">The configuration type.</param>
     /// <returns>The schema and the typed builders that produced it.</returns>
     public WrappedJsonSchema GetSchemaForType(Type type)
-        => GenerateSchema(type, type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)), contractResolver: null, rootInstance: null);
+    {
+        var wrapped = GenerateSchema(type, type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)), contractResolver: null, rootInstance: null);
+        LegacySchemaUiCompat.Apply(wrapped);
+        return wrapped;
+    }
 
     /// <summary>
     ///   Generates the schema for an executable action's invocation parameters.

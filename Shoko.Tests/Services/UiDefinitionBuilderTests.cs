@@ -27,7 +27,7 @@ public class UiDefinitionBuilderTests
 {
     private static UiDefinition BuildFor(Type type, string name)
     {
-        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type);
+        var wrapped = TestSchemaGenerator.Create().GetSchemaForType(type);
         var builder = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance);
         return builder.Build(Guid.Empty, name, null, wrapped);
     }
@@ -374,7 +374,7 @@ public class UiDefinitionBuilderTests
     [InlineData(typeof(WatchesFromTheWrongHook), "not raised by an event")]
     public void AHandlerThatCannotWatchWhatItNames_Fails(Type type, string because)
     {
-        var exception = Assert.ThrowsAny<Exception>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type));
+        var exception = Assert.ThrowsAny<Exception>(() => TestSchemaGenerator.Create().GetSchemaForType(type));
 
         Assert.Contains(because, exception.InnerException?.Message ?? exception.Message, StringComparison.Ordinal);
     }

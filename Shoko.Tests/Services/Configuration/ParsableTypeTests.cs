@@ -91,7 +91,7 @@ public class ParsableTypeTests
     [Fact]
     public void Schema_WritesATypedDefaultAsItsText()
     {
-        var schema = JObject.Parse(ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(NewtonsoftParsableConfiguration)).Schema.ToJson());
+        var schema = JObject.Parse(TestSchemaGenerator.Create().GetSchemaForType(typeof(NewtonsoftParsableConfiguration)).Schema.ToJson());
 
         Assert.Equal("string", schema["properties"]!["Version"]!["type"]!.Value<string>());
         Assert.Equal("1.2", schema["properties"]!["Version"]!["default"]!.Value<string>());
@@ -120,7 +120,7 @@ public class ParsableTypeTests
             HasLiveEdit = false,
             Type = type,
             ContextualType = type.ToContextualType(),
-            Schema = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type).Schema,
+            Schema = TestSchemaGenerator.Create().GetSchemaForType(type).Schema,
             PluginInfo = null!,
         };
 

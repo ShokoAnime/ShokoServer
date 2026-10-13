@@ -19,7 +19,7 @@ public class SectionToggleTests
     [Fact]
     public void ACheckboxSection_CarriesItsToggleMember()
     {
-        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(ToggledConfiguration));
+        var wrapped = TestSchemaGenerator.Create().GetSchemaForType(typeof(ToggledConfiguration));
         var root = Assert.IsType<UiSectionContainerElement>(new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Fixture", null, wrapped).Root);
 
         var section = Assert.IsType<UiSectionContainerElement>(root.Items[nameof(ToggledConfiguration.Experimental)]);
@@ -32,7 +32,7 @@ public class SectionToggleTests
     [InlineData(typeof(TextToggleConfiguration))]
     [InlineData(typeof(StrayToggleConfiguration))]
     public void AnUnfitToggle_FailsGeneration(Type type)
-        => Assert.Throws<NotSupportedException>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type));
+        => Assert.Throws<NotSupportedException>(() => TestSchemaGenerator.Create().GetSchemaForType(type));
 
     public class ToggledConfiguration : IConfiguration
     {

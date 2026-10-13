@@ -130,7 +130,7 @@ public class FlagEnumTests
     [InlineData(typeof(EmptyFlagsConfiguration), "has no member with a single bit set")]
     public void Generation_RefusesAShapeItCannotRender(Type type, string fault)
     {
-        var exception = Assert.Throws<NotSupportedException>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type));
+        var exception = Assert.Throws<NotSupportedException>(() => TestSchemaGenerator.Create().GetSchemaForType(type));
 
         Assert.Contains(fault, exception.Message, StringComparison.Ordinal);
     }
@@ -138,7 +138,7 @@ public class FlagEnumTests
     [Fact]
     public void Generation_RefusesAFlagsEnumAsADictionaryKey()
     {
-        var exception = Assert.Throws<ArgumentException>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(FlagKeyConfiguration)));
+        var exception = Assert.Throws<ArgumentException>(() => TestSchemaGenerator.Create().GetSchemaForType(typeof(FlagKeyConfiguration)));
 
         Assert.Contains("is a flags enum", exception.Message, StringComparison.Ordinal);
     }
@@ -196,7 +196,7 @@ public class FlagEnumTests
     [Fact]
     public void Options_OfAnotherTypeAreRefused()
     {
-        var exception = Assert.Throws<NotSupportedException>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(MismatchedOptionsConfiguration)));
+        var exception = Assert.Throws<NotSupportedException>(() => TestSchemaGenerator.Create().GetSchemaForType(typeof(MismatchedOptionsConfiguration)));
 
         Assert.Contains("rather than a collection of Access", exception.Message, StringComparison.Ordinal);
     }
@@ -206,7 +206,7 @@ public class FlagEnumTests
     #region Helpers
 
     private static WrappedJsonSchema CreateWrapped()
-        => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(FlagConfiguration));
+        => TestSchemaGenerator.Create().GetSchemaForType(typeof(FlagConfiguration));
 
     private static (JToken Token, ICollection<NJsonSchema.Validation.ValidationError> Errors) Validate(string json)
         => new ShokoJsonSchemaValidator<FlagConfiguration>(NullLogger.Instance, null!, null!, null, saveValidation: false, loadValidation: true)

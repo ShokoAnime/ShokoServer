@@ -45,7 +45,7 @@ public class AllConfigurationTypesTests
     [MemberData(nameof(ConfigurationTypes))]
     public void EveryConfiguration_ProducesASchemaAndADefinition(Type type)
     {
-        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type);
+        var wrapped = TestSchemaGenerator.Create().GetSchemaForType(type);
         var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance)
             .Build(Guid.Empty, wrapped.Schema.Title ?? type.Name, null, wrapped);
 

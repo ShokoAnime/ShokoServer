@@ -32,7 +32,7 @@ public class UiOptionsProviderTests
     [Fact]
     public void EveryProvidedMemberHasOptions()
     {
-        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(OptionsConfiguration));
+        var wrapped = TestSchemaGenerator.Create().GetSchemaForType(typeof(OptionsConfiguration));
         var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Options", null, wrapped, listsOptions: true);
         var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
         var rows = Assert.IsType<UiListElement>(root.Items["Rows"]);
@@ -57,7 +57,7 @@ public class UiOptionsProviderTests
     [Fact]
     public void AParsableTypeIsDescribedAsText()
     {
-        var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(ParsableConfiguration));
+        var wrapped = TestSchemaGenerator.Create().GetSchemaForType(typeof(ParsableConfiguration));
         var definition = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance).Build(Guid.Empty, "Parsable", null, wrapped, listsOptions: true);
         var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
 
@@ -79,7 +79,7 @@ public class UiOptionsProviderTests
     [InlineData(typeof(TextForConvertedConfiguration), "returns String[] rather than a collection of TestColour")]
     public void AProviderThatDoesNotFitFailsGeneration(Type type, string fault)
     {
-        var exception = Assert.Throws<NotSupportedException>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type));
+        var exception = Assert.Throws<NotSupportedException>(() => TestSchemaGenerator.Create().GetSchemaForType(type));
 
         Assert.Contains($"The options provider '{type.Name}.", exception.Message, StringComparison.Ordinal);
         Assert.Contains(fault, exception.Message, StringComparison.Ordinal);
