@@ -40,6 +40,7 @@ using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.Swagger;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.Plugin;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -694,11 +695,20 @@ public static partial class APIExtensions
         });
 
         var registeredPlugins = false;
-        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsActive && p.ApplicationRegistrationType is not null))
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p is { IsActive: true, HasFailed: false, ApplicationRegistrationType: not null }))
         {
-            pluginInfo.ApplicationRegistrationType!
-                .GetMethod(nameof(IPluginApplicationRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static, [typeof(IApplicationBuilder), typeof(IApplicationPaths)])!
-                .Invoke(null, [app, ApplicationPaths.Instance]);
+            try
+            {
+                pluginInfo.ApplicationRegistrationType!
+                    .GetMethod(nameof(IPluginApplicationRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static, [typeof(IApplicationBuilder), typeof(IApplicationPaths)])!
+                    .Invoke(null, [app, ApplicationPaths.Instance]);
+            }
+            // Recorded, not thrown: throwing here would keep the web host from starting at all.
+            catch (Exception ex) when (pluginManager is PluginManager manager)
+            {
+                manager.MarkFailed(pluginInfo, "registering its middleware", ex);
+            }
+
             registeredPlugins = true;
         }
 

@@ -151,6 +151,11 @@ public class PluginController(
     ///   plugins that require a restart, or exclude all plugins that require a
     ///   restart. An enabled plugin that cannot load never requires one.
     /// </param>
+    /// <param name="failed">
+    ///   Whether to include all plugins that failed while the server was
+    ///   starting, include only plugins that failed, or exclude all plugins
+    ///   that failed.
+    /// </param>
     /// <param name="showCorePlugin">
     ///   Whether to include the core plugin in the results.
     /// </param>
@@ -169,6 +174,7 @@ public class PluginController(
         [FromQuery] IncludeOnlyFilter installed = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter enabled = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter restartPending = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter failed = IncludeOnlyFilter.True,
         [FromQuery] bool showCorePlugin = false,
         [FromQuery] bool allVersions = false
     )
@@ -208,6 +214,12 @@ public class PluginController(
                 {
                     var shouldHideRequiresRestart = restartPending is IncludeOnlyFilter.False;
                     if (shouldHideRequiresRestart == pluginInfo.RestartPending)
+                        return false;
+                }
+                if (failed is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideFailed = failed is IncludeOnlyFilter.False;
+                    if (shouldHideFailed == pluginInfo.HasFailed)
                         return false;
                 }
                 return true;

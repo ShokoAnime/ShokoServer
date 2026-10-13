@@ -139,7 +139,13 @@ public partial class ConfigurationService : IConfigurationService
 
     #region Configuration Info
 
-    public void AddParts(IEnumerable<Type> configurationTypes)
+    /// <summary>
+    ///   Takes the configuration types of every loaded plugin. A plugin's
+    ///   type that cannot be registered is left out and reported.
+    /// </summary>
+    /// <param name="configurationTypes">The configuration types.</param>
+    /// <param name="onFailure">Told the plugin and the error for each type left out.</param>
+    public void AddParts(IEnumerable<Type> configurationTypes, Action<LocalPluginInfo, Exception> onFailure)
     {
         if (_loaded) return;
         _loaded = true;
@@ -192,36 +198,47 @@ public partial class ConfigurationService : IConfigurationService
                 continue;
 
             var pluginInfo = _pluginManager.GetPluginInfo(configurationType.Assembly)!;
-            var id = GetID(configurationType, pluginInfo);
-            var contextualType = configurationType.ToContextualType();
-            var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(configurationType);
-            wrappedSchema.Schema.Id = id.ToString();
-            _wrappedSchemas[id] = wrappedSchema;
-            var description = TypeReflectionExtensions.GetDescription(contextualType);
-            var name = wrappedSchema.Schema.Title!;
-            string? path = null;
-            // If it's a base config then it should not have a path as it cannot be loaded or saved.
-            if (!configurationType.IsAssignableTo(typeof(IBaseConfiguration)))
+            try
             {
-                if (contextualType.GetAttribute<StorageLocationAttribute>(false) is { } storageLocationAttribute)
+                var id = GetID(configurationType, pluginInfo);
+                var contextualType = configurationType.ToContextualType();
+                var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(configurationType);
+                wrappedSchema.Schema.Id = id.ToString();
+                _wrappedSchemas[id] = wrappedSchema;
+                var description = TypeReflectionExtensions.GetDescription(contextualType);
+                var name = wrappedSchema.Schema.Title!;
+                string? path = null;
+                // If it's a base config then it should not have a path as it cannot be loaded or saved.
+                if (!configurationType.IsAssignableTo(typeof(IBaseConfiguration)))
                 {
-                    if (storageLocationAttribute.InMemoryOnly)
+                    if (contextualType.GetAttribute<StorageLocationAttribute>(false) is { } storageLocationAttribute)
                     {
-                        path = null;
-                    }
-                    else if (!string.IsNullOrWhiteSpace(storageLocationAttribute.RelativePath))
-                    {
-                        var relativePath = storageLocationAttribute.RelativePath;
-                        if (!relativePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                            relativePath += ".json";
-                        path = Path.Join(_applicationPaths.DataPath, relativePath);
-                    }
-                    else if (!string.IsNullOrWhiteSpace(storageLocationAttribute.FileName))
-                    {
-                        var fileName = storageLocationAttribute.FileName;
-                        if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                            fileName += ".json";
-                        path = Path.Join(PluginPathRules.GetConfigurationsPath(_applicationPaths, pluginInfo.ID), fileName);
+                        if (storageLocationAttribute.InMemoryOnly)
+                        {
+                            path = null;
+                        }
+                        else if (!string.IsNullOrWhiteSpace(storageLocationAttribute.RelativePath))
+                        {
+                            var relativePath = storageLocationAttribute.RelativePath;
+                            if (!relativePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                                relativePath += ".json";
+                            path = Path.Join(_applicationPaths.DataPath, relativePath);
+                        }
+                        else if (!string.IsNullOrWhiteSpace(storageLocationAttribute.FileName))
+                        {
+                            var fileName = storageLocationAttribute.FileName;
+                            if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                                fileName += ".json";
+                            path = Path.Join(PluginPathRules.GetConfigurationsPath(_applicationPaths, pluginInfo.ID), fileName);
+                        }
+                        else
+                        {
+                            var fileName = name
+                                .RemoveInvalidPathCharacters()
+                                .Replace(' ', '-')
+                                .ToLower();
+                            path = Path.Join(PluginPathRules.GetConfigurationsPath(_applicationPaths, pluginInfo.ID), fileName + ".json");
+                        }
                     }
                     else
                     {
@@ -232,33 +249,30 @@ public partial class ConfigurationService : IConfigurationService
                         path = Path.Join(PluginPathRules.GetConfigurationsPath(_applicationPaths, pluginInfo.ID), fileName + ".json");
                     }
                 }
-                else
-                {
-                    var fileName = name
-                        .RemoveInvalidPathCharacters()
-                        .Replace(' ', '-')
-                        .ToLower();
-                    path = Path.Join(PluginPathRules.GetConfigurationsPath(_applicationPaths, pluginInfo.ID), fileName + ".json");
-                }
-            }
 
-            _configurationTypes[id] = new(this)
+                _configurationTypes[id] = new(this)
+                {
+                    ID = id,
+                    Path = path,
+                    Name = name,
+                    Description = description,
+                    Type = configurationType,
+                    ContextualType = contextualType,
+                    HasCustomNewFactory = wrappedSchema.HasCustomNewFactory,
+                    HasCustomValidation = wrappedSchema.HasCustomValidation,
+                    HasCustomActions = wrappedSchema.HasCustomActions,
+                    HasCustomLoad = wrappedSchema.HasCustomLoad,
+                    HasCustomSave = wrappedSchema.HasCustomSave,
+                    HasLiveEdit = wrappedSchema.HasLiveEdit,
+                    Schema = wrappedSchema.Schema,
+                    PluginInfo = pluginInfo,
+                };
+            }
+            // The core's own types failing is not a plugin's failure to isolate.
+            catch (Exception ex) when (pluginInfo.PluginType != typeof(CorePlugin))
             {
-                ID = id,
-                Path = path,
-                Name = name,
-                Description = description,
-                Type = configurationType,
-                ContextualType = contextualType,
-                HasCustomNewFactory = wrappedSchema.HasCustomNewFactory,
-                HasCustomValidation = wrappedSchema.HasCustomValidation,
-                HasCustomActions = wrappedSchema.HasCustomActions,
-                HasCustomLoad = wrappedSchema.HasCustomLoad,
-                HasCustomSave = wrappedSchema.HasCustomSave,
-                HasLiveEdit = wrappedSchema.HasLiveEdit,
-                Schema = wrappedSchema.Schema,
-                PluginInfo = pluginInfo,
-            };
+                onFailure(pluginInfo, ex);
+            }
         }
 
         _logger.LogTrace("Loaded {ConfigurationCount} configurations.", _configurationTypes.Count);

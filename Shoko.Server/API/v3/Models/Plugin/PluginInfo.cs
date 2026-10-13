@@ -172,6 +172,22 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public string? CannotLoadReason { get; init; } = pluginInfo.CannotLoadReason;
 
     /// <summary>
+    ///   Indicates the plugin failed while the server was starting: while it
+    ///   was loaded, registered, initialized, set up or made ready. The
+    ///   server does not finish starting until the plugin is disabled,
+    ///   replaced or uninstalled and the server restarted.
+    /// </summary>
+    [Required]
+    public bool HasFailed { get; init; } = pluginInfo.HasFailed;
+
+    /// <summary>
+    ///   What the plugin was doing when it failed and the error it failed
+    ///   with, when <see cref="HasFailed"/> is <c>true</c>. Otherwise
+    ///   <c>null</c>.
+    /// </summary>
+    public string? FailureReason { get; init; } = pluginInfo.FailureReason;
+
+    /// <summary>
     ///   Indicates if the plugin can be uninstalled by the user.
     /// </summary>
     [Required]

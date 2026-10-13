@@ -142,6 +142,22 @@ public sealed class LocalPluginInfo
     public string? CannotLoadReason { get; internal set; }
 
     /// <summary>
+    ///   Indicates the plugin failed while the server was starting: while it
+    ///   was loaded, registered, initialized, set up or made ready. The
+    ///   server does not finish starting until the plugin is disabled,
+    ///   replaced or uninstalled and the server restarted.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(FailureReason))]
+    public bool HasFailed => FailureReason is not null;
+
+    /// <summary>
+    ///   What the plugin was doing when it failed and the error it failed
+    ///   with, when <see cref="HasFailed"/> is <c>true</c>. Otherwise
+    ///   <c>null</c>.
+    /// </summary>
+    public string? FailureReason { get; internal set; }
+
+    /// <summary>
     ///   Indicates if the plugin can be uninstalled by the user.
     /// </summary>
     public required bool CanUninstall { get; init; }

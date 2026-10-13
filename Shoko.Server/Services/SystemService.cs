@@ -302,23 +302,44 @@ public class SystemService : ISystemService
 
             StartupMessage = "Initializing Plugins.";
 
-            // Init. plugins before starting the IHostedService services.
-            _pluginManager.InitPlugins();
-
-            // Only now is a plugin active, so only now can a plugin's state differ from what loads next.
-            _restartReasons.StartTrackingPluginState();
-
-            StartupMessage = "Plugins initialized.";
-
-            // Before the database, so plugins set up first. A failure is recorded, not thrown: throwing would skip
-            // the web host and restart-loop a container silently, where the Web UI can say which plugin failed.
+            // Init. plugins before starting the IHostedService services. A failure here or in the steps
+            // below is recorded, not thrown: throwing would skip the web host and restart-loop a container
+            // silently, where the Web UI can say which plugin failed and disable, replace or uninstall it.
             try
             {
-                _pluginManager.StartPlugins(_webHost.Services, message => StartupMessage = message);
+                _pluginManager.InitPlugins();
             }
             catch (Exception ex)
             {
                 (StartupMessage, StartupFailedException) = DescribePluginStartupFailure(ex);
+                _logger.LogError(ex, "The plugins failed to initialize; the server will not continue starting");
+            }
+
+            // Only now is a plugin active, so only now can a plugin's state differ from what loads next.
+            _restartReasons.StartTrackingPluginState();
+
+            // The plugins that failed while being loaded, registered or initialized.
+            RecordFailedPlugins();
+
+            if (StartupFailedException is null)
+                StartupMessage = "Plugins initialized.";
+
+            // Before the database, so plugins set up first. The plugins that did not fail are still set
+            // up, as their hosted services and middleware start with the web host either way.
+            try
+            {
+                _pluginManager.StartPlugins(_webHost.Services, message =>
+                {
+                    if (StartupFailedException is null)
+                        StartupMessage = message;
+                });
+            }
+            catch (Exception ex)
+            {
+                if (StartupFailedException is null)
+                    (StartupMessage, StartupFailedException) = _pluginManager.GetFailedPlugins() is { Count: > 0 } failedPlugins
+                        ? DescribeFailedPlugins(failedPlugins)
+                        : DescribePluginStartupFailure(ex);
                 _logger.LogError(ex, "The plugins failed to start; the server will not continue starting");
             }
 
@@ -328,6 +349,9 @@ public class SystemService : ISystemService
 
             // Start the web server and all IHostedService services.
             await _webHost.StartAsync();
+
+            // The plugins that failed while the web host took their middleware.
+            RecordFailedPlugins();
 
             if (StartupFailedException is null)
                 StartupMessage = "Web Host started.";
@@ -408,6 +432,33 @@ public class SystemService : ISystemService
         }
 
         return result;
+    }
+
+    /// <summary>
+    ///   Fails the start for the plugins that failed so far, unless it already failed.
+    /// </summary>
+    private void RecordFailedPlugins()
+    {
+        if (StartupFailedException is not null || _pluginManager.GetFailedPlugins() is not { Count: > 0 } failedPlugins)
+            return;
+
+        (StartupMessage, StartupFailedException) = DescribeFailedPlugins(failedPlugins);
+    }
+
+    /// <summary>
+    ///   Words a failed start for the plugins that failed, naming each. The
+    ///   reasons are left to the log and to each plugin's own
+    ///   <see cref="LocalPluginInfo.FailureReason"/>.
+    /// </summary>
+    /// <param name="failedPlugins">The plugins that failed. At least one.</param>
+    /// <returns>The start-up message and the exception to fail the start with.</returns>
+    internal static (string Message, StartupFailedException Exception) DescribeFailedPlugins(IReadOnlyList<LocalPluginInfo> failedPlugins)
+    {
+        var names = string.Join(", ", failedPlugins.Select(pluginInfo => $"\"{pluginInfo.Name}\" ({pluginInfo.Version.Version})"));
+        var message = failedPlugins.Count is 1
+            ? $"Failed to start because plugin {names} failed. See the plugin for the reason."
+            : $"Failed to start because {failedPlugins.Count} plugins failed: {names}. See each plugin for the reason.";
+        return (message, new(message));
     }
 
     /// <summary>

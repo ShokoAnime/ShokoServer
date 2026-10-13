@@ -36,6 +36,7 @@ using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Video.Streaming;
 using Shoko.QueueProcessor;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.API.Swagger;
 using Shoko.Server.Plugin.Databases;
@@ -405,8 +406,38 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
                 enabled = false;
                 var mainDllPath = internalPluginInfo.DLLs[0];
-                var assembly = mainDllPath is null ? Assembly.GetCallingAssembly() : Assembly.LoadFrom(mainDllPath);
-                var types = assembly.GetExportedTypes();
+                var isCore = internalPluginInfo.ID == CorePlugin.StaticID;
+                Type[] types = [];
+                Type? pluginType = null;
+                Type? serviceRegistrationType = null;
+                Type? applicationRegistrationType = null;
+
+                // Read before the assembly loads, so a plugin built for another contract never runs.
+                var failureReason = !isCore && internalPluginInfo.CanLoad ? FindContractMismatch(internalPluginInfo.DLLs) : null;
+                if (failureReason is not null)
+                    logger.LogError("Not loading plugin \"{Name}\". {Reason} ({Version})", internalPluginInfo.Name, failureReason, internalPluginInfo.Version);
+                else
+                {
+                    try
+                    {
+                        var assembly = mainDllPath is null ? Assembly.GetCallingAssembly() : Assembly.LoadFrom(mainDllPath);
+                        types = assembly.GetExportedTypes();
+                        pluginType = types.First(a => a.GetInterfaces().Contains(typeof(IPlugin)));
+                        serviceRegistrationType = types.FirstOrDefault(a => a.GetInterfaces().Contains(typeof(IPluginServiceRegistration)));
+                        applicationRegistrationType = types.FirstOrDefault(a => a.GetInterfaces().Contains(typeof(IPluginApplicationRegistration)));
+                    }
+                    // The core failing to load is not a plugin's failure to isolate.
+                    catch (Exception ex) when (!isCore)
+                    {
+                        logger.LogError(ex, "Plugin \"{Name}\" failed while being loaded. ({Version})", internalPluginInfo.Name, internalPluginInfo.Version);
+                        failureReason = DescribeFailure("being loaded", ex);
+                        types = [];
+                        pluginType = null;
+                        serviceRegistrationType = null;
+                        applicationRegistrationType = null;
+                    }
+                }
+
                 _pluginTypes.Add(new()
                 {
                     ID = internalPluginInfo.ID,
@@ -423,13 +454,14 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     IsEnabled = true,
                     IsPinned = internalPluginInfo.IsPinned,
                     IsActive = false,
-                    CanLoad = internalPluginInfo.CanLoad,
-                    CannotLoadReason = internalPluginInfo.CannotLoadReason,
+                    CanLoad = failureReason is null && internalPluginInfo.CanLoad,
+                    CannotLoadReason = failureReason ?? internalPluginInfo.CannotLoadReason,
+                    FailureReason = failureReason,
                     CanUninstall = internalPluginInfo.CanUninstall,
                     Plugin = null,
-                    PluginType = types.First(a => a.GetInterfaces().Contains(typeof(IPlugin))),
-                    ServiceRegistrationType = types.FirstOrDefault(a => a.GetInterfaces().Contains(typeof(IPluginServiceRegistration))),
-                    ApplicationRegistrationType = types.FirstOrDefault(a => a.GetInterfaces().Contains(typeof(IPluginApplicationRegistration))),
+                    PluginType = pluginType,
+                    ServiceRegistrationType = serviceRegistrationType,
+                    ApplicationRegistrationType = applicationRegistrationType,
                     ContainingDirectory = internalPluginInfo.ContainingDirectory,
                     DLLs = internalPluginInfo.DLLs,
                     Types = types,
@@ -679,9 +711,21 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         foreach (var pluginInfo in registrationPlugins)
         {
             logger.LogTrace("Registering plugin services. ({DllName}, {Version})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]), pluginInfo.Version);
-            pluginInfo.ServiceRegistrationType!
-                .GetMethod(nameof(IPluginServiceRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static, [typeof(IServiceCollection), typeof(IApplicationPaths)])!
-                .Invoke(null, [serviceCollection, applicationPaths]);
+            var before = serviceCollection.ToArray();
+            try
+            {
+                pluginInfo.ServiceRegistrationType!
+                    .GetMethod(nameof(IPluginServiceRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static, [typeof(IServiceCollection), typeof(IApplicationPaths)])!
+                    .Invoke(null, [serviceCollection, applicationPaths]);
+            }
+            catch (Exception ex) when (pluginInfo.ID != CorePlugin.StaticID)
+            {
+                // Put back as it was, so half a plugin's services are not left in the container.
+                serviceCollection.Clear();
+                foreach (var descriptor in before)
+                    serviceCollection.Add(descriptor);
+                MarkFailed(pluginInfo, "registering its services", ex);
+            }
         }
 
         // The databases plugins asked for become contexts on the provider the core picks.
@@ -699,7 +743,14 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 continue; //Skip the current assembly, as this is registered implicitly.
 
             logger.LogTrace("Scanning plugin assembly for queue jobs. ({DllName})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]));
-            serviceCollection.AddQueueJobsFromAssembly(pluginInfo.PluginType!.Assembly);
+            try
+            {
+                serviceCollection.AddQueueJobsFromAssembly(pluginInfo.PluginType!.Assembly);
+            }
+            catch (Exception ex)
+            {
+                MarkFailed(pluginInfo, "registering its queue jobs", ex);
+            }
         }
 
         // One job type per metadata provider, so each can be held back and limited alone; the closed
@@ -867,7 +918,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var failures = new List<(string Name, Exception Error)>();
         foreach (var localPluginInfo in _pluginTypes.ToArray())
         {
-            if (!localPluginInfo.IsActive)
+            // A plugin that failed an earlier step is not taken through the later ones.
+            if (!localPluginInfo.IsActive || localPluginInfo.HasFailed)
                 continue;
 
             try
@@ -876,7 +928,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Plugin \"{Name}\" threw while {Doing}. ({Version})", localPluginInfo.Name, doing, localPluginInfo.Version);
+                MarkFailed(localPluginInfo, doing, ex);
                 failures.Add((localPluginInfo.Name, ex));
             }
         }
@@ -914,7 +966,17 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             }
 
             var pluginType = localPluginInfo.PluginType!;
-            var pluginInstance = (IPlugin)ActivatorUtilities.CreateInstance(ISystemService.StaticServices, pluginType);
+            IPlugin pluginInstance;
+            try
+            {
+                pluginInstance = (IPlugin)ActivatorUtilities.CreateInstance(ISystemService.StaticServices, pluginType);
+            }
+            catch (Exception ex) when (localPluginInfo.ID != CorePlugin.StaticID)
+            {
+                MarkFailed(localPluginInfo, "being created", ex);
+                continue;
+            }
+
             _pluginTypes[localPluginInfo.LoadOrder] = new()
             {
                 ID = pluginInstance.ID,
@@ -954,49 +1016,207 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         // plugin can reach. Each service is resolved through its interface and only fed its parts
         // when it is the implementation that takes them.
         var services = ISystemService.StaticServices;
+        var unattributed = new List<Exception>();
 
-        if (services.GetRequiredService<IConfigurationService>() is ConfigurationService configurationService)
-            configurationService.AddParts(GetTypes<IConfiguration>());
+        // One service failing on a plugin's part does not keep the others from theirs.
+        void AddParts(string doing, Action addParts)
+        {
+            try
+            {
+                addParts();
+            }
+            catch (Exception ex)
+            {
+                if (FindPluginBehind(ex) is { } pluginInfo)
+                {
+                    MarkFailed(pluginInfo, doing, ex);
+                    return;
+                }
 
-        if (services.GetRequiredService<IMetadataService>() is MetadataService metadataService)
-            metadataService.AddParts(GetExports<IResourceResolver>(), GetExports<IMetadataResolver>());
+                logger.LogError(ex, "Failed while {Doing}, and no plugin could be named for it.", doing);
+                unattributed.Add(ex);
+            }
+        }
 
-        services.GetRequiredService<MetadataProviderManager>().AddParts(GetExports<IMetadataProvider>());
+        AddParts("registering its configurations", () =>
+        {
+            if (services.GetRequiredService<IConfigurationService>() is ConfigurationService configurationService)
+                configurationService.AddParts(GetTypes<IConfiguration>(), (pluginInfo, ex) => MarkFailed(pluginInfo, "registering its configurations", ex));
+        });
 
-        services.GetRequiredService<MetadataImageContributorManager>().AddParts(GetExports<IMetadataImageContributor>());
+        AddParts("registering its metadata resolvers", () =>
+        {
+            if (services.GetRequiredService<IMetadataService>() is MetadataService metadataService)
+                metadataService.AddParts(GetExports<IResourceResolver>(), GetExports<IMetadataResolver>());
+        });
 
-        if (services.GetRequiredService<IVideoService>() is VideoService videoService)
-            videoService.AddParts(GetExports<IManagedFolderIgnoreRule>());
+        AddParts("registering its metadata providers", () =>
+            services.GetRequiredService<MetadataProviderManager>().AddParts(GetExports<IMetadataProvider>()));
+
+        AddParts("registering its image contributors", () =>
+            services.GetRequiredService<MetadataImageContributorManager>().AddParts(GetExports<IMetadataImageContributor>()));
+
+        AddParts("registering its ignore rules", () =>
+        {
+            if (services.GetRequiredService<IVideoService>() is VideoService videoService)
+                videoService.AddParts(GetExports<IManagedFolderIgnoreRule>());
+        });
 
         // Used to store the updated priorities for the providers in the settings file.
-        if (services.GetRequiredService<IVideoReleaseService>() is VideoReleaseService videoReleaseService)
-            videoReleaseService.AddParts(GetExports<IReleaseInfoProvider>());
-
-        if (services.GetRequiredService<IVideoHashingService>() is VideoHashingService videoHashingService)
-            videoHashingService.AddParts(GetExports<IHashProvider>());
-
-        if (services.GetRequiredService<IAiringScheduleService>() is AiringScheduleService airingScheduleService)
-            airingScheduleService.AddParts(GetExports<IAiringScheduleProvider>());
-
-        if (services.GetRequiredService<IVideoRelocationService>() is VideoRelocationService relocationService)
-            relocationService.AddParts(GetExports<IRelocationProvider>());
-
-        if (services.GetRequiredService<ISuspensionService>() is SuspensionService suspensionService)
-            suspensionService.AddParts(GetExports<ISuspensionProvider>());
-
-        var actionService = services.GetRequiredService<ActionService>();
-        actionService.AddParts(GetTypes<IExecutableAction>()
-            .Select(type => (GetPluginInfo(type.Assembly)!.ID, type)));
-
-        services.GetRequiredService<ScheduledActionRegistry>().AddParts(GetTypes<IScheduledAction>()
-            .Select(type => (GetPluginInfo(type.Assembly)!.ID, type)));
-
-        if (services.GetRequiredService<IVideoStreamPipelineService>() is VideoStreamPipelineService videoStreamPipelineService)
+        AddParts("registering its release providers", () =>
         {
-            videoStreamPipelineService.AddTransformParts(GetExports<IVideoStreamTransform>());
-            videoStreamPipelineService.AddObserverParts(GetExports<IPlaybackObserver>());
-        }
+            if (services.GetRequiredService<IVideoReleaseService>() is VideoReleaseService videoReleaseService)
+                videoReleaseService.AddParts(GetExports<IReleaseInfoProvider>());
+        });
+
+        AddParts("registering its hash providers", () =>
+        {
+            if (services.GetRequiredService<IVideoHashingService>() is VideoHashingService videoHashingService)
+                videoHashingService.AddParts(GetExports<IHashProvider>());
+        });
+
+        AddParts("registering its airing schedule providers", () =>
+        {
+            if (services.GetRequiredService<IAiringScheduleService>() is AiringScheduleService airingScheduleService)
+                airingScheduleService.AddParts(GetExports<IAiringScheduleProvider>());
+        });
+
+        AddParts("registering its relocation providers", () =>
+        {
+            if (services.GetRequiredService<IVideoRelocationService>() is VideoRelocationService relocationService)
+                relocationService.AddParts(GetExports<IRelocationProvider>());
+        });
+
+        AddParts("registering its suspension providers", () =>
+        {
+            if (services.GetRequiredService<ISuspensionService>() is SuspensionService suspensionService)
+                suspensionService.AddParts(GetExports<ISuspensionProvider>());
+        });
+
+        AddParts("registering its actions", () =>
+            services.GetRequiredService<ActionService>().AddParts(GetTypes<IExecutableAction>()
+                .Select(type => (GetPluginInfo(type.Assembly)!.ID, type))));
+
+        AddParts("registering its scheduled actions", () =>
+            services.GetRequiredService<ScheduledActionRegistry>().AddParts(GetTypes<IScheduledAction>()
+                .Select(type => (GetPluginInfo(type.Assembly)!.ID, type))));
+
+        AddParts("registering its stream transforms and playback observers", () =>
+        {
+            if (services.GetRequiredService<IVideoStreamPipelineService>() is VideoStreamPipelineService videoStreamPipelineService)
+            {
+                videoStreamPipelineService.AddTransformParts(GetExports<IVideoStreamTransform>());
+                videoStreamPipelineService.AddObserverParts(GetExports<IPlaybackObserver>());
+            }
+        });
+
+        if (unattributed.Count > 0)
+            throw new AggregateException("Failed to hand the services their parts from the plugins.", unattributed);
     }
+
+    #region Failures
+
+    /// <summary>
+    ///   The plugins that failed while the server was starting.
+    /// </summary>
+    /// <returns>Every plugin with a <see cref="LocalPluginInfo.FailureReason"/>, in load order.</returns>
+    internal IReadOnlyList<LocalPluginInfo> GetFailedPlugins()
+        => _pluginTypes.Where(pluginInfo => pluginInfo.HasFailed).ToList();
+
+    /// <summary>
+    ///   Records that a plugin failed a start-up step. A plugin that is not
+    ///   loaded yet is also kept from loading, so the steps after this one
+    ///   leave it out.
+    /// </summary>
+    /// <param name="pluginInfo">The plugin that failed.</param>
+    /// <param name="doing">What the plugin was doing, for the log and the reason.</param>
+    /// <param name="exception">The error it failed with.</param>
+    internal void MarkFailed(LocalPluginInfo pluginInfo, string doing, Exception exception)
+    {
+        logger.LogError(exception, "Plugin \"{Name}\" failed while {Doing}. ({Version})", pluginInfo.Name, doing, pluginInfo.Version);
+
+        // The first failure is the one to show; what follows is usually its fallout.
+        pluginInfo.FailureReason ??= DescribeFailure(doing, exception);
+        if (pluginInfo.IsActive)
+            return;
+
+        pluginInfo.CanLoad = false;
+        pluginInfo.CannotLoadReason ??= pluginInfo.FailureReason;
+    }
+
+    /// <summary>
+    ///   Finds the plugin whose code an error was thrown from, going by the
+    ///   stack traces of the error and of those inside it.
+    /// </summary>
+    /// <param name="exception">The error.</param>
+    /// <returns>The first plugin other than the core found in a stack trace, or <c>null</c>.</returns>
+    internal LocalPluginInfo? FindPluginBehind(Exception exception)
+    {
+        var pending = new Queue<Exception>([exception]);
+        while (pending.TryDequeue(out var current))
+        {
+            foreach (var frame in new StackTrace(current, fNeedFileInfo: false).GetFrames())
+                if (frame.GetMethod()?.DeclaringType?.Assembly is { } assembly &&
+                    GetPluginInfo(assembly) is { } pluginInfo && pluginInfo.ID != CorePlugin.StaticID)
+                    return pluginInfo;
+
+            if (current is AggregateException aggregate)
+                foreach (var inner in aggregate.InnerExceptions)
+                    pending.Enqueue(inner);
+            else if (current.InnerException is { } inner)
+                pending.Enqueue(inner);
+        }
+
+        return null;
+    }
+
+    private static string DescribeFailure(string doing, Exception exception)
+    {
+        // Reflection wraps what the plugin threw, and the wrapper says nothing.
+        while (exception is TargetInvocationException { InnerException: { } inner })
+            exception = inner;
+
+        return $"The plugin failed while {doing}: {exception.GetType().Name}: {exception.Message}";
+    }
+
+    /// <summary>
+    ///   Checks the plugin's DLLs for references to types and members of the
+    ///   server's assemblies that this server does not have.
+    /// </summary>
+    /// <param name="dlls">The plugin's DLLs.</param>
+    /// <returns>Why the plugin does not fit this server, or <c>null</c> when nothing is missing.</returns>
+    private string? FindContractMismatch(IReadOnlyList<string> dlls)
+    {
+        var hostAssemblies = new[] { typeof(IPlugin).Assembly, typeof(IQueueScheduler).Assembly, typeof(PluginManager).Assembly }
+            .ToDictionary(assembly => assembly.GetName().Name!, StringComparer.OrdinalIgnoreCase);
+        var missing = new List<string>();
+        foreach (var dll in dlls)
+        {
+            if (hostAssemblies.ContainsKey(Path.GetFileNameWithoutExtension(dll)))
+                continue;
+
+            try
+            {
+                missing.AddRange(PluginReferenceChecker.FindMissingReferences(dll, hostAssemblies));
+            }
+            // Native libraries and unreadable files are not this check's to judge.
+            catch (Exception ex) when (ex is BadImageFormatException or IOException or UnauthorizedAccessException or InvalidOperationException)
+            {
+                logger.LogTrace(ex, "Skipping the contract check of a DLL that could not be read; {DllPath}", dll);
+            }
+        }
+
+        if (missing.Count is 0)
+            return null;
+
+        const int Shown = 5;
+        var distinct = missing.Distinct().ToList();
+        var listed = string.Join(", ", distinct.Take(Shown));
+        var rest = distinct.Count > Shown ? $" and {distinct.Count - Shown} more" : string.Empty;
+        return $"The plugin was built for a different version of the server and refers to what this server does not have: {listed}{rest}. Update the plugin, or disable or uninstall it.";
+    }
+
+    #endregion
 
     private IEnumerable<(string?, string[], bool)> GetPluginDirectories()
     {
