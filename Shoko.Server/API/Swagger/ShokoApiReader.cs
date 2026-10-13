@@ -9,7 +9,7 @@ public class ShokoApiReader(bool enableV2) : IApiVersionReader
 {
     private static readonly PathString[] _v2 =
     [
-        "/api/webui", "/api/version", "/plex", "/api/init", "/api/dev", "/api/modules", "/api/core",
+        "/api/webui", "/api/version", "/api/init", "/api/dev", "/api/modules", "/api/core",
         "/api/links", "/api/cast", "/api/group", "/api/filter", "/api/cloud", "/api/serie", "/api/ep",
         "/api/file", "/api/queue", "/api/myid", "/api/news", "/api/search", "/api/remove_missing_files",
         "/api/stats_update", "/api/medainfo_update", "/api/hash", "/api/rescan", "/api/rescanunlinked",

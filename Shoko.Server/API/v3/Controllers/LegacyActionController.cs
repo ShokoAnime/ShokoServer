@@ -23,7 +23,6 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
@@ -52,7 +51,6 @@ public class LegacyActionController : BaseController
     private readonly IMylistService _mylistService;
     private readonly IImageManager _imageManager;
     private readonly VideoLocalRepository _videoLocals;
-    private readonly JMMUserRepository _jmmUsers;
 
     public LegacyActionController(
         ILogger<ActionController> logger,
@@ -66,7 +64,6 @@ public class LegacyActionController : BaseController
         IShokoGroupManager groupService,
         IImageManager imageManager,
         VideoLocalRepository videoLocals,
-        JMMUserRepository jmmUsers,
         MetadataSourceActions sourceActions,
         IMetadataProviderManager providerManager,
         IMetadataOrderingService orderingService,
@@ -83,7 +80,6 @@ public class LegacyActionController : BaseController
         _groupService = groupService;
         _imageManager = imageManager;
         _videoLocals = videoLocals;
-        _jmmUsers = jmmUsers;
         _sourceActions = sourceActions;
         _providerManager = providerManager;
         _orderingService = orderingService;
@@ -514,21 +510,6 @@ public class LegacyActionController : BaseController
     public async Task<ActionResult> CreateMissingSeries()
     {
         await _actionService.CreateMissingSeries();
-        return Ok();
-    }
-
-    /// <summary>
-    /// Sync watch states with plex.
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("PlexSyncAll")]
-    public async Task<ActionResult> PlexSyncAll()
-    {
-        foreach (var user in _jmmUsers.GetAll())
-        {
-            if (string.IsNullOrEmpty(user.PlexToken)) continue;
-            await _scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
-        }
         return Ok();
     }
 

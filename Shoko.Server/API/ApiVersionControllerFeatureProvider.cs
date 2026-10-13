@@ -33,8 +33,6 @@ public class ApiVersionControllerFeatureProvider(WebSettings webSettings) : Cont
             return false;
         if (typeInfo == typeof(IndexRedirectController) && !webSettings.EnableIndexRedirect)
             return false;
-        if (typeInfo == typeof(PlexWebhook) && !webSettings.EnableLegacyPlexAPI)
-            return false;
         return true;
     }
 }

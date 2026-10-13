@@ -142,18 +142,6 @@ public class WebSettings
     public bool EnableAPIv3 { get; set; } = true;
 
     /// <summary>
-    ///   Enable the built-in legacy Plex API available at <c>/plex</c>, once
-    ///   part of APIv2, but separated so that it can be toggled separately.
-    /// </summary>
-    [Badge("Deprecated", Theme = DisplayColorTheme.Warning)]
-    [Visibility(Advanced = true)]
-    [Display(Name = "Enable Legacy Plex API")]
-    [RequiresRestart]
-    [EnvironmentVariable("SHOKO_API_PLEX_LEGACY_ENABLED")]
-    [DefaultValue(true)]
-    public bool EnableLegacyPlexAPI { get; set; } = true;
-
-    /// <summary>
     /// Allow anonymous file streaming in API v3.
     /// </summary>
     [Visibility(Advanced = true)]

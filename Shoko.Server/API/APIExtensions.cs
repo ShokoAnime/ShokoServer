@@ -358,10 +358,6 @@ public static partial class APIExtensions
                 .Replace("DataModels.", "")
                 .Replace("Enums.", "");
 
-        // APIv0 (API independent plex webhook) schemas
-        else if (fullName.StartsWith("Shoko.Server.Plex."))
-            title = fullName.Replace("Shoko.Server.Plex.", "APIv0.Plex.");
-
         // APIv0 (API independent settings) schemas
         else if (fullName.StartsWith("Shoko.Server.Settings."))
             title = fullName

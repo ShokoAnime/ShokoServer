@@ -28,13 +28,15 @@ Discord, and we'll be more than happy to provide guidance and assistance.
 **At this time, the Shoko team itself has no plans to integrate Shoko with any other media players.**
 
 # Bundled Plugins
-The server ships with two first-party plugins. They load as system plugins, are enabled by default and cannot be
+The server ships with three first-party plugins. They load as system plugins, are enabled by default and cannot be
 uninstalled:
 
 - **TMDB** (`Shoko.Plugin.Tmdb`) supplies The Movie Database metadata for the `tmdb` source: shows, seasons, episodes,
   movies, collections, people, studios and networks, their titles, overviews and images, and alternate orderings. It is
   configured from its plugin settings (`tmdb.json` in the plugin's configuration folder), not from the server settings.
 - **WebAOM** (`Shoko.Plugin.WebAOM`) holds the WebAOM renamer, the default relocation provider.
+- **Legacy Plex Sync Support** (`Shoko.Plugin.LegacyPlex`) holds the legacy Plex support: the `/plex` webhook and
+  routes, the Plex account linking and the watched state sync. Disabling the plugin turns all of it off.
 
 Other plugins are installed into the `plugins` folder under `SHOKO_HOME`.
 

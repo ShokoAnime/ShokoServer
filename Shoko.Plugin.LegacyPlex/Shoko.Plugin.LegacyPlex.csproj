@@ -1,0 +1,59 @@
+<Project TreatAsLocalProperty="Version;InformationalVersion;TargetFramework" Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>Library</OutputType>
+        <LangVersion>latest</LangVersion>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <Title>Shoko Legacy Plex Sync Support</Title>
+        <Authors>Shoko Team</Authors>
+        <Version>1.0.0</Version>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>AnyCPU;x64</Platforms>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+        <Nullable>enable</Nullable>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+        <!-- The models under `Models/` mirror Plex's own payloads, field for
+             field, and carry no documentation of their own. -->
+        <NoWarn>$(NoWarn);1591</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Shoko.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The server supplies the abstractions and the queue at runtime, and
+             a plugin that ships its own copy resolves `IPlugin` against that
+             copy and is then skipped without an error, so the dlls and the
+             packages they bring stay out of the output. -->
+        <ProjectReference Include="..\Shoko.Abstractions\Shoko.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+        <ProjectReference Include="..\Shoko.QueueProcessor\Shoko.QueueProcessor.csproj" Private="false" ExcludeAssets="runtime;native" />
+        <!-- The Plex data stays in the core: the token and Plex users on the
+             user table, the picked server and libraries in the server
+             settings. This plugin is legacy glue around them, so unlike other
+             plugins it compiles against the server itself, which is already
+             loaded when the plugin is. -->
+        <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" Private="false" ExcludeAssets="runtime;native;contentFiles" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Both are the server's, referenced for compiling only, so the
+             plugin ships no second copy. -->
+        <PackageReference Include="Asp.Versioning.Mvc" Version="10.2.1" ExcludeAssets="runtime" PrivateAssets="All" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.4" ExcludeAssets="runtime" PrivateAssets="All" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The plugin's thumbnail and icon, read by the server through the
+             plugin. -->
+        <EmbeddedResource Include="Assets\thumbnail.svg" LogicalName="Shoko.Plugin.LegacyPlex.Assets.thumbnail.svg" />
+        <EmbeddedResource Include="Assets\icon.svg" LogicalName="Shoko.Plugin.LegacyPlex.Assets.icon.svg" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Injects the embedded plugin identity metadata the server reads during
+             discovery. With no `manifest.json` beside this file, the ID, name and
+             description are read from the literals in `Plugin.cs`. -->
+        <PackageReference Include="Shoko.BuildTools.Targets" Version="0.3.2" PrivateAssets="All" ExcludeAssets="runtime" />
+    </ItemGroup>
+</Project>

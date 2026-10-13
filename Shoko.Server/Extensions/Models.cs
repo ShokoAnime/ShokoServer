@@ -105,13 +105,6 @@ public static class Models
 
     public static int GetAniDBTotalVotes(this AniDB_Anime anime) => anime.TempVoteCount + anime.VoteCount;
 
-    public static HashSet<string> GetPlexUsers(this JMMUser user)
-    {
-        if (string.IsNullOrEmpty(user.PlexUsers)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-        return new HashSet<string>(user.PlexUsers.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-            StringComparer.InvariantCultureIgnoreCase);
-    }
-
     /// <summary>
     /// looking at the episode range determine if the group has released a file
     /// for the specified episode number
