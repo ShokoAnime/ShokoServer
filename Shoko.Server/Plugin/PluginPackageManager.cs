@@ -1360,8 +1360,9 @@ public partial class PluginPackageManager(
             {
                 Directory.CreateDirectory(imagesDir);
                 var imagePath = Path.Join(imagesDir, $"{imageId}{extension}");
-                await using var fileStream = File.Create(imagePath);
-                await response.Content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
+                // Closed before it is read back: a file still open for writing reads as empty.
+                await using (var fileStream = File.Create(imagePath))
+                    await response.Content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
 
                 var imageInfo = new MagickImageInfo(imagePath);
                 var mime = PackageImageLoader.GetMimeFromFormat(imageInfo);
