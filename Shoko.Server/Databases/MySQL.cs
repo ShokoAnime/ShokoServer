@@ -1744,6 +1744,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(198,  32, "ALTER TABLE `ShokoImage` MODIFY COLUMN `ResourceID` VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
         new(198,  33, "ALTER TABLE `ShokoImage_Entity` MODIFY COLUMN `EntityID` VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
         new(198,  34, "ALTER TABLE `UserConfiguration` MODIFY COLUMN `ConfigurationID` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(199,   1, DatabaseFixes.RepairRegionTaggedStreamLanguages),
     ];
 
     #endregion

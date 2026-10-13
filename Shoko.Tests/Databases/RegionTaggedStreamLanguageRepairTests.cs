@@ -10,6 +10,8 @@ public class RegionTaggedStreamLanguageRepairTests
     [InlineData("ja-JP", "jpn", "Japanese")]
     [InlineData("es-419", "spa", "Spanish")]
     [InlineData("pt_BR", "por", "Portuguese")]
+    [InlineData("ace", "ace", "Acehnese")]
+    [InlineData("rom", "rom", "Romany")]
     public void ARegionTaggedLanguageWithoutACodeGetsOne(string language, string code, string name)
     {
         var stream = new AudioStream { Language = language };

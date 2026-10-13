@@ -782,4 +782,174 @@ public enum TitleLanguage : int
     /// Pali.
     /// </summary>
     Pali,
+
+    /// <summary>
+    /// Afar.
+    /// </summary>
+    Afar,
+
+    /// <summary>
+    /// Abkhazian.
+    /// </summary>
+    Abkhazian,
+
+    /// <summary>
+    /// Sanskrit.
+    /// </summary>
+    Sanskrit,
+
+    /// <summary>
+    /// Avaric.
+    /// </summary>
+    Avaric,
+
+    /// <summary>
+    /// Sango.
+    /// </summary>
+    Sango,
+
+    /// <summary>
+    /// South Ndebele.
+    /// </summary>
+    SouthNdebele,
+
+    /// <summary>
+    /// Navajo.
+    /// </summary>
+    Navajo,
+
+    /// <summary>
+    /// Ojibwa.
+    /// </summary>
+    Ojibwa,
+
+    /// <summary>
+    /// Volapuk.
+    /// </summary>
+    Volapuk,
+
+    /// <summary>
+    /// Tigrinya.
+    /// </summary>
+    Tigrinya,
+
+    /// <summary>
+    /// Oromo.
+    /// </summary>
+    Oromo,
+
+    /// <summary>
+    /// Komi.
+    /// </summary>
+    Komi,
+
+    /// <summary>
+    /// Occitan.
+    /// </summary>
+    Occitan,
+
+    /// <summary>
+    /// Sundanese.
+    /// </summary>
+    Sundanese,
+
+    /// <summary>
+    /// Kuanyama.
+    /// </summary>
+    Kuanyama,
+
+    /// <summary>
+    /// Wolof.
+    /// </summary>
+    Wolof,
+
+    /// <summary>
+    /// Kinyarwanda.
+    /// </summary>
+    Kinyarwanda,
+
+    /// <summary>
+    /// Venda.
+    /// </summary>
+    Venda,
+
+    /// <summary>
+    /// Manx.
+    /// </summary>
+    Manx,
+
+    /// <summary>
+    /// Bislama.
+    /// </summary>
+    Bislama,
+
+    /// <summary>
+    /// Cree.
+    /// </summary>
+    Cree,
+
+    /// <summary>
+    /// Frisian.
+    /// </summary>
+    Frisian,
+
+    /// <summary>
+    /// Hiri Motu.
+    /// </summary>
+    HiriMotu,
+
+    /// <summary>
+    /// Inuktitut.
+    /// </summary>
+    Inuktitut,
+
+    /// <summary>
+    /// Marshallese.
+    /// </summary>
+    Marshallese,
+
+    /// <summary>
+    /// Zhuang.
+    /// </summary>
+    Zhuang,
+
+    /// <summary>
+    /// Kashmiri.
+    /// </summary>
+    Kashmiri,
+
+    /// <summary>
+    /// Tsonga.
+    /// </summary>
+    Tsonga,
+
+    /// <summary>
+    /// Dzongkha.
+    /// </summary>
+    Dzongkha,
+
+    /// <summary>
+    /// Sichuan Yi.
+    /// </summary>
+    SichuanYi,
+
+    /// <summary>
+    /// East Frisian.
+    /// </summary>
+    EastFrisian,
+
+    /// <summary>
+    /// Kara-Kalpak.
+    /// </summary>
+    KaraKalpak,
+
+    /// <summary>
+    /// Romany.
+    /// </summary>
+    Romany,
+
+    /// <summary>
+    /// Acehnese.
+    /// </summary>
+    Acehnese,
 }

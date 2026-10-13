@@ -1725,6 +1725,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(196, 128, "DROP INDEX IF EXISTS UIX_UserConfiguration_JMMUserID_ConfigurationID ON UserConfiguration;"),
         new(196, 129, "ALTER TABLE UserConfiguration ALTER COLUMN ConfigurationID NVARCHAR(64) COLLATE Latin1_General_100_BIN2 NOT NULL;"),
         new(196, 130, "CREATE UNIQUE INDEX UIX_UserConfiguration_JMMUserID_ConfigurationID ON UserConfiguration(JMMUserID, ConfigurationID);"),
+        new(197,   1, DatabaseFixes.RepairRegionTaggedStreamLanguages),
     ];
 
     #endregion
