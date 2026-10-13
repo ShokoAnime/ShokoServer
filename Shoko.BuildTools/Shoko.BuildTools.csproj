@@ -12,9 +12,22 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>shoko-build</ToolCommandName>
     <PackageDescription>Build tool for Shoko plugins. Wraps MSBuild with assembly metadata injection and manifest management.</PackageDescription>
+    <Authors>Shoko Team</Authors>
+    <PackageProjectUrl>https://shokoanime.com</PackageProjectUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
+    <PackageTags>plugins, shoko, anime, msbuild, build</PackageTags>
     <EnableDynamicLoading>false</EnableDynamicLoading>
     <DisableMSBuildAssemblyCopyCheck>true</DisableMSBuildAssemblyCopyCheck>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="NUGET.md" Pack="true" PackagePath="/README.md" />
+    <None Include="../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../icon.png" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="PluginAssemblyInfo.targets" />

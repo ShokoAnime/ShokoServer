@@ -6,13 +6,14 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Title>Shoko's Queue Processor, for use in Plugins or standalone</Title>
+    <Description>A lightweight, persistent, attribute-driven background job queue for .NET, the scheduler Shoko Server runs on.</Description>
     <Authors>Shoko Team</Authors>
     <PackageProjectUrl>https://shokoanime.com</PackageProjectUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
     <PackageTags>queuing, workers, background processing, shoko, anime, plugins</PackageTags>
-    <PackageReleaseNotes>Improve Job Chaining</PackageReleaseNotes>
     <Version>6.0.0-alpha.11</Version>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
@@ -55,6 +56,7 @@
       <PackagePath>/</PackagePath>
       <Link>icon.png</Link>
     </None>
+    <None Include="NUGET.md" Pack="true" PackagePath="/README.md" />
     <None Include="..\LICENSE">
       <Pack>true</Pack>
       <PackagePath>/</PackagePath>

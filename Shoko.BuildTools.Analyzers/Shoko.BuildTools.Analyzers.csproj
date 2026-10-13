@@ -16,6 +16,13 @@
     <RootNamespace>Shoko.BuildTools.Analyzers</RootNamespace>
     <PackageId>Shoko.BuildTools.Analyzers</PackageId>
     <Description>Roslyn analyzers for Shoko plugin authors. Reports configuration shapes the configuration UI schema generator cannot render.</Description>
+    <Authors>Shoko Team</Authors>
+    <PackageProjectUrl>https://shokoanime.com</PackageProjectUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
+    <PackageTags>plugins, shoko, anime, analyzers, roslyn</PackageTags>
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -26,6 +33,12 @@
     <NoPackageAnalysis>true</NoPackageAnalysis>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_ShokoPackAnalyzer</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="NUGET.md" Pack="true" PackagePath="/README.md" />
+    <None Include="../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../icon.png" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Pinned to the oldest Roslyn the analyzer has to run on. An analyzer built against a newer

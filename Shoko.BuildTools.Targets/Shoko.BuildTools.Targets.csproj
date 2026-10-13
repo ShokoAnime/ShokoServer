@@ -10,10 +10,23 @@
     <RootNamespace>Shoko.BuildTools.Tasks</RootNamespace>
     <PackageId>Shoko.BuildTools.Targets</PackageId>
     <Description>MSBuild targets and tasks for Shoko plugin builds. Stamps assembly metadata: the plugin's identity from its manifest.json or its source, the runtime identifier, the release channel, and the git revision, tag and date it was built from.</Description>
+    <Authors>Shoko Team</Authors>
+    <PackageProjectUrl>https://shokoanime.com</PackageProjectUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
+    <PackageTags>plugins, shoko, anime, msbuild, build</PackageTags>
     <IncludeBuildOutput>true</IncludeBuildOutput>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="NUGET.md" Pack="true" PackagePath="/README.md" />
+    <None Include="../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../icon.png" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="build\Shoko.BuildTools.Targets.targets" Pack="true" PackagePath="build\" />
