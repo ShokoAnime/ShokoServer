@@ -311,6 +311,7 @@ Supported backends: SQLite (default), MySQL/MariaDB, SQL Server, selected via `D
 - Append new steps; never modify existing ones.
 - One SQL statement per step. Two drops are two revisions, never `"…; …"` in one string.
 - One schema version per release: add revisions to the version the release already opened rather than bumping it again.
+- A string column holding an identifier (`ProviderID`, `EntityID` and the like) is compared exactly on every backend, as the code does in memory: give it `CHARACTER SET utf8mb4 COLLATE utf8mb4_bin` on MySQL and `COLLATE Latin1_General_100_BIN2` on SQL Server in its `CREATE TABLE`. SQL Server refuses to compare a column pinned this way with one that is not, so pin both sides of any join. Names, titles and other prose keep the default collation.
 - A schema change done in code is a `private static Tuple<bool, string?> Step(object connection)` step, which runs in order with the other schema steps. A `void` (`Action`) step is a post-database fix: it only runs after every schema step, with the new NHibernate mappings already in use, so keep those for data fixups.
 - Upgrades are only supported from v5. A pre-v5 data fixup may be retired by turning its step into a bare `new(version, revision)` (a no-op that keeps the slot), but a step that drops tables is never retired.
 

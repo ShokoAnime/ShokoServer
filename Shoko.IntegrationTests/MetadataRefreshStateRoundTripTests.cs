@@ -129,6 +129,11 @@ public class MetadataRefreshStateRoundTripTests(DatabaseMigrationFixture fixture
         {
             // The table as the release before had it, with an entry of each kind and one stored nowhere.
             Execute(connection, SchemaSteps.GetSql(fixture, 88));
+
+            // An upgrade runs these steps before the IDs are pinned. Here the entries' already are,
+            // and SQL Server only compares like with like.
+            if (services.GetRequiredService<DatabaseFactory>().Instance is SQLServer)
+                Execute(connection, "ALTER TABLE Metadata_Refresh ALTER COLUMN ProviderID NVARCHAR(128) COLLATE Latin1_General_100_BIN2 NOT NULL");
             Execute(connection, SchemaSteps.GetSql(fixture, 89));
             var source = Scalar(connection, $"SELECT Source FROM Metadata_Series WHERE ProviderID = '{series.ID}'");
             foreach (var (entityType, id, at) in new[] { (2, series.ID, "12:30:15"), (5, movie.ID, "13:30:15"), (9, creator.ID, "14:30:15"), (2, "refresh-copy-gone", "15:30:15") })
