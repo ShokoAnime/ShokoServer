@@ -1853,6 +1853,19 @@ public partial class DatabaseFixes
                 entitySource = MetadataSource.Shoko;
             }
 
+            // Two old rows can name the same image, and an earlier run may have stopped half way.
+            var preferredEntityID = entityID.ToString();
+            var hasPreferredXref = RepoFactory.ShokoImage_Entity.GetByImageID(guid)
+                .Any(x =>
+                    x.EntitySource == entitySource &&
+                    x.EntityType == entityType &&
+                    x.EntityID == preferredEntityID &&
+                    x.ImageType == old.ImageType &&
+                    x.Source == MetadataSource.User
+                );
+            if (hasPreferredXref)
+                continue;
+
             var xref = new ShokoImage_Entity
             {
                 ImageID = guid,
@@ -1862,7 +1875,7 @@ public partial class DatabaseFixes
                 ImageSource = old.ImageSource is 0 ? MetadataSource.AniDB : MetadataSource.TMDB,
                 EntitySource = entitySource,
                 EntityType = entityType,
-                EntityID = entityID.ToString(),
+                EntityID = preferredEntityID,
                 IsPreferred = true,
                 IsEnabled = true,
                 IsDesired = true,
@@ -1930,7 +1943,19 @@ public partial class DatabaseFixes
             Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
             File.WriteAllBytes(newPath, old.AvatarImageBlob);
 
-            // Create ShokoImage_Entity xref
+            // Create ShokoImage_Entity xref, unless an earlier run that stopped half way already did.
+            var avatarEntityID = old.JMMUserID.ToString();
+            var hasAvatarXref = RepoFactory.ShokoImage_Entity.GetByImageID(guid)
+                .Any(x =>
+                    x.EntitySource == MetadataSource.Shoko &&
+                    x.EntityType == MetadataEntityType.User &&
+                    x.EntityID == avatarEntityID &&
+                    x.ImageType == ImageEntityType.Primary &&
+                    x.Source == MetadataSource.Shoko
+                );
+            if (hasAvatarXref)
+                continue;
+
             var xref = new ShokoImage_Entity
             {
                 ImageID = guid,
@@ -1939,7 +1964,7 @@ public partial class DatabaseFixes
                 ImageSource = MetadataSource.User,
                 EntitySource = MetadataSource.Shoko,
                 EntityType = MetadataEntityType.User,
-                EntityID = old.JMMUserID.ToString(),
+                EntityID = avatarEntityID,
                 IsPreferred = true,
                 IsEnabled = true,
                 IsDesired = true,
