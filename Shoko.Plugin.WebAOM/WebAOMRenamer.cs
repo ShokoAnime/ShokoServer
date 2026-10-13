@@ -33,6 +33,10 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
     public string Description => """
       The legacy renamer, based on WebAOM's renamer. You can find information
       for it at https://wiki.anidb.net/WebAOM#Scripting
+
+      It covers basic file names and gets no new features. For a folder
+      structure of your own or several managed folders, use the Lua renamer
+      or a custom relocation provider.
     """;
 
     /// <inheritdoc/>

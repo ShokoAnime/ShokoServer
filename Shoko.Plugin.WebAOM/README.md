@@ -28,6 +28,17 @@ settings below.
 
 The renamer needs the file's episodes: an unrecognized file is not renamed.
 
+## When to use something else
+
+The renamer is feature-frozen. It follows the WebAOM scripting language, which
+is not ours to extend, so it gets fixes but no new features. It is the right
+choice for basic file names and the two folder layouts above.
+
+For anything more, such as a folder structure of your own or files spread
+over several managed folders, start with the
+[Lua renamer](https://github.com/Mik1ll/LuaRenamer) plugin, or write a custom
+relocation provider in C# (`IRelocationProvider`).
+
 ## Presets
 
 Each relocation preset of the renamer holds its own `WebAOMSettings`,

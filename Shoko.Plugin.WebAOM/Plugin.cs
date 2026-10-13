@@ -31,6 +31,9 @@ public class Plugin : IPlugin
     /// <inheritdoc/>
     public string Description { get; private init; } = """
         The legacy renamer, based on WebAOM's renamer. Bundled with the server.
+        It covers basic file names and gets no new features. For a folder
+        structure of your own or several managed folders, use the Lua renamer
+        or a custom relocation provider.
         """;
 
     /// <inheritdoc/>

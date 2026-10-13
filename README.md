@@ -34,7 +34,9 @@ uninstalled:
 - **TMDB** (`Shoko.Plugin.Tmdb`) supplies The Movie Database metadata for the `tmdb` source: shows, seasons, episodes,
   movies, collections, people, studios and networks, their titles, overviews and images, and alternate orderings. It is
   configured from its plugin settings (`tmdb.json` in the plugin's configuration folder), not from the server settings.
-- **WebAOM** (`Shoko.Plugin.WebAOM`) holds the WebAOM renamer, the default relocation provider.
+- **WebAOM** (`Shoko.Plugin.WebAOM`) holds the WebAOM renamer, the default relocation provider. It covers basic file
+  names and is feature-frozen; for a folder structure of your own or several managed folders, use the
+  [Lua renamer](https://github.com/Mik1ll/LuaRenamer) or a custom relocation provider.
 - **Legacy Plex Sync Support** (`Shoko.Plugin.LegacyPlex`) holds the legacy Plex support: the `/plex` webhook and
   routes, the Plex account linking and the watched state sync. Disabling the plugin turns all of it off.
 
