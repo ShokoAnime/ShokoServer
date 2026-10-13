@@ -208,6 +208,42 @@ public interface IPluginPackageManager
     Task<PackageRepositoryInfo> AddPackageRepository(PackageRepositoryData data, CancellationToken cancellationToken = default);
 
     /// <summary>
+    ///   Enables a repository and syncs it, so its packages are offered.
+    /// </summary>
+    /// <param name="repositoryInfo">
+    ///   The repository to enable.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   Optional. Cancellation token.
+    /// </param>
+    /// <returns>
+    ///   The repository as it is now.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    ///   The repository does not exist.
+    /// </exception>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown if the sync was cancelled by the
+    ///   <paramref name="cancellationToken"/>.
+    /// </exception>
+    Task<PackageRepositoryInfo> EnablePackageRepository(PackageRepositoryInfo repositoryInfo, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Disables a repository. It is kept, with what it last synced, but it
+    ///   is no longer synced and its packages are no longer offered.
+    /// </summary>
+    /// <param name="repositoryInfo">
+    ///   The repository to disable.
+    /// </param>
+    /// <returns>
+    ///   The repository as it is now.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    ///   The repository does not exist.
+    /// </exception>
+    PackageRepositoryInfo DisablePackageRepository(PackageRepositoryInfo repositoryInfo);
+
+    /// <summary>
     ///   Removes a repository.
     /// </summary>
     /// <param name="repositoryInfo">
@@ -225,6 +261,23 @@ public interface IPluginPackageManager
     ///   <paramref name="cancellationToken"/>.
     /// </exception>
     Task<bool> RemovePackageRepository(PackageRepositoryInfo repositoryInfo, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Adds back the repositories shipped with the server that are missing,
+    ///   such as one an admin removed, and syncs each one added. The server
+    ///   adds them by itself only once.
+    /// </summary>
+    /// <param name="cancellationToken">
+    ///   Optional. Cancellation token.
+    /// </param>
+    /// <returns>
+    ///   The repositories added. Empty when none was missing.
+    /// </returns>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown if the restore was cancelled by the
+    ///   <paramref name="cancellationToken"/>.
+    /// </exception>
+    Task<IReadOnlyList<PackageRepositoryInfo>> RestoreDefaultPackageRepositories(CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Syncs a specific repository, fetching the latest package list if the

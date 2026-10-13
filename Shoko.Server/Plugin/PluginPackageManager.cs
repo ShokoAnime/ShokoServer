@@ -576,7 +576,7 @@ public partial class PluginPackageManager(
     {
         var now = DateTime.UtcNow;
         var manifestInfoDict = new Dictionary<Guid, List<PackageManifestInfo>>();
-        foreach (var repositoryInfo in ListPackageRepositories())
+        foreach (var repositoryInfo in ListPackageRepositories().Where(repositoryInfo => repositoryInfo.IsEnabled))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (allowSync && (forceSyncNow || now - repositoryInfo.LastFetchedAt > (repositoryInfo.StaleTime ?? DefaultRepositoryStaleTime)))
@@ -748,9 +748,11 @@ public partial class PluginPackageManager(
         {
             ID = UuidUtility.GetV5(url),
             Name = name,
+            Description = string.IsNullOrWhiteSpace(data.Description) ? null : data.Description.Trim(),
             Url = url,
             StaleTime = data.StaleTime ?? DefaultRepositoryStaleTime,
             LastFetchedAt = null,
+            IsEnabled = data.IsEnabled,
         };
 
         lock (_logger)
@@ -759,17 +761,190 @@ public partial class PluginPackageManager(
                 throw new ArgumentException("An existing repository with the given name already exists.", nameof(data.Name));
             if (existingRepositories.Any(r => string.Equals(r.Url, url)))
                 throw new ArgumentException("An existing repository with the given URL already exists.", nameof(data.Url));
-            var repoPath = Path.Join(_applicationPaths.PluginsPath, Repositories, repositoryInfo.ID.ToString(), RepoInfoFile);
-            var repoJson = JsonConvert.SerializeObject(repositoryInfo);
-
-            Directory.CreateDirectory(Path.GetDirectoryName(repoPath)!);
-            File.WriteAllText(repoPath, repoJson);
+            WriteRepository(repositoryInfo);
 
             _logger.LogInformation($"Repository '{name}' created.");
         }
 
         return await SyncPackageRepository(repositoryInfo, forceSync: true, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <inheritdoc/>
+    public async Task<PackageRepositoryInfo> EnablePackageRepository(PackageRepositoryInfo repositoryInfo, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var current = SetRepositoryEnabled(repositoryInfo, true);
+        try
+        {
+            return await SyncPackageRepository(current, forceSync: true, cancellationToken).ConfigureAwait(false);
+        }
+        // Enabled either way; it syncs again when it can be reached.
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Enabled repository {RepositoryName} but could not sync it.", current.Name);
+            return current;
+        }
+    }
+
+    /// <inheritdoc/>
+    public PackageRepositoryInfo DisablePackageRepository(PackageRepositoryInfo repositoryInfo)
+        => SetRepositoryEnabled(repositoryInfo, false);
+
+    private PackageRepositoryInfo SetRepositoryEnabled(PackageRepositoryInfo repositoryInfo, bool isEnabled)
+    {
+        lock (_logger)
+        {
+            // Read again, so a sync that finished in the meantime is not written over.
+            var current = ListPackageRepositories().FirstOrDefault(existing => existing.ID == repositoryInfo.ID)
+                ?? throw new ArgumentException("The repository does not exist.", nameof(repositoryInfo));
+            if (current.IsEnabled == isEnabled)
+                return current;
+
+            current.IsEnabled = isEnabled;
+            WriteRepository(current);
+            _logger.LogInformation("{Action} repository {RepositoryName} (Id={RepositoryId})", isEnabled ? "Enabled" : "Disabled", current.Name, current.ID);
+            return current;
+        }
+    }
+
+    private void WriteRepository(PackageRepositoryInfo repositoryInfo)
+    {
+        var repoPath = Path.Join(_applicationPaths.PluginsPath, Repositories, repositoryInfo.ID.ToString(), RepoInfoFile);
+        var repoJson = JsonConvert.SerializeObject(repositoryInfo);
+
+        Directory.CreateDirectory(Path.GetDirectoryName(repoPath)!);
+        File.WriteAllText(repoPath, repoJson);
+    }
+
+    #region Default Repositories
+
+    /// <summary>
+    ///   A repository shipped with the server.
+    /// </summary>
+    /// <param name="Key">
+    ///   What the repository is remembered by once added. It outlives a
+    ///   change of URL, so a moved feed is not taken for a new one.
+    /// </param>
+    /// <param name="Name">The name to add it under.</param>
+    /// <param name="Description">What it holds and who stands behind it.</param>
+    /// <param name="Url">The URL of its manifest.</param>
+    /// <param name="IsEnabled">Whether it is added enabled, or left for an admin to enable.</param>
+    internal sealed record DefaultPackageRepository(string Key, string Name, string Description, string Url, bool IsEnabled = true);
+
+    /// <summary>
+    ///   The repositories shipped with the server.
+    /// </summary>
+    internal static readonly IReadOnlyList<DefaultPackageRepository> DefaultRepositories =
+    [
+        new(
+            "core",
+            "Shoko Core Repository",
+            "Plugins that are part of the official Shoko organization.",
+            "https://shokoanime.com/core-plugin-manifest.json"
+        ),
+        new(
+            "community",
+            "Shoko Community Repository",
+            "Plugins owned by their own authors, curated by the Shoko team.",
+            "https://shokoanime.com/community-plugin-manifest.json",
+            IsEnabled: false
+        ),
+    ];
+
+    /// <summary>
+    ///   Adds the repositories shipped with the server that were never added
+    ///   before, without syncing them, and remembers them so they are not
+    ///   added again, not even after an admin removed one.
+    /// </summary>
+    internal void SeedDefaultPackageRepositories()
+    {
+        var seeded = configurationProvider.Load().Plugins.Updates.SeededRepositories;
+        var pending = SelectUnseededRepositories(DefaultRepositories, seeded);
+        if (pending.Count is 0)
+            return;
+
+        foreach (var defaultRepository in pending)
+            AddDefaultRepository(defaultRepository);
+
+        var config = configurationProvider.Load(copy: true);
+        config.Plugins.Updates.SeededRepositories = [.. config.Plugins.Updates.SeededRepositories, .. pending.Select(defaultRepository => defaultRepository.Key)];
+        configurationProvider.Save(config);
+    }
+
+    /// <summary>
+    ///   Picks the default repositories that were never added before.
+    /// </summary>
+    /// <param name="defaults">The repositories shipped with the server.</param>
+    /// <param name="seededKeys">The keys of those added before.</param>
+    /// <returns>The repositories still to add, in the order given.</returns>
+    internal static IReadOnlyList<DefaultPackageRepository> SelectUnseededRepositories(IReadOnlyList<DefaultPackageRepository> defaults, IReadOnlyCollection<string> seededKeys)
+        => defaults
+            .Where(defaultRepository => !seededKeys.Contains(defaultRepository.Key, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<PackageRepositoryInfo>> RestoreDefaultPackageRepositories(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var added = DefaultRepositories
+            .Select(AddDefaultRepository)
+            .WhereNotNull()
+            .ToList();
+        var restored = new List<PackageRepositoryInfo>();
+        foreach (var repositoryInfo in added)
+        {
+            try
+            {
+                restored.Add(await SyncPackageRepository(repositoryInfo, forceSync: true, cancellationToken).ConfigureAwait(false));
+            }
+            // The repository is back either way; it syncs again when it can be reached.
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Restored repository {RepositoryName} but could not sync it.", repositoryInfo.Name);
+                restored.Add(repositoryInfo);
+            }
+        }
+
+        return restored;
+    }
+
+    /// <summary>
+    ///   Adds a default repository unless one with its URL exists, under its
+    ///   own name or, when that is taken, a numbered one.
+    /// </summary>
+    /// <param name="defaultRepository">The repository to add.</param>
+    /// <returns>The repository added, or <c>null</c> when its URL was there already.</returns>
+    private PackageRepositoryInfo? AddDefaultRepository(DefaultPackageRepository defaultRepository)
+    {
+        var url = new Uri(defaultRepository.Url).ToString();
+        lock (_logger)
+        {
+            var existingRepositories = ListPackageRepositories();
+            if (existingRepositories.Any(repositoryInfo => string.Equals(repositoryInfo.Url, url)))
+                return null;
+
+            var name = defaultRepository.Name;
+            for (var number = 2; existingRepositories.Any(repositoryInfo => string.Equals(repositoryInfo.Name, name, StringComparison.InvariantCultureIgnoreCase)); number++)
+                name = $"{defaultRepository.Name} ({number})";
+
+            var repositoryInfo = new PackageRepositoryInfo()
+            {
+                ID = UuidUtility.GetV5(url),
+                Name = name,
+                Description = defaultRepository.Description,
+                Url = url,
+                StaleTime = null,
+                LastFetchedAt = null,
+                IsEnabled = defaultRepository.IsEnabled,
+            };
+            WriteRepository(repositoryInfo);
+
+            _logger.LogInformation("Added the default repository {RepositoryName}. ({RepositoryUrl})", name, url);
+            return repositoryInfo;
+        }
+    }
+
+    #endregion
 
     /// <inheritdoc/>
     public Task<bool> RemovePackageRepository(PackageRepositoryInfo repositoryInfo, CancellationToken cancellationToken = default)
@@ -791,6 +966,10 @@ public partial class PluginPackageManager(
     /// <inheritdoc/>
     public async Task<PackageRepositoryInfo> SyncPackageRepository(PackageRepositoryInfo repositoryInfo, bool forceSync = false, CancellationToken cancellationToken = default)
     {
+        // A disabled repository is never fetched, not even when forced.
+        if (!repositoryInfo.IsEnabled)
+            return repositoryInfo;
+
         var eventArgs = new RepositorySyncStartedEventArgs()
         {
             Repository = repositoryInfo,

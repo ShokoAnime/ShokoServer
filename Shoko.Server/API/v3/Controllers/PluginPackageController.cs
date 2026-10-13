@@ -532,8 +532,10 @@ public class PluginPackageController(
                 new()
                 {
                     Name = body.Name,
+                    Description = body.Description,
                     Url = body.Url,
                     StaleTime = body.StaleTime,
+                    IsEnabled = body.IsEnabled,
                 }
             ).ConfigureAwait(false);
 
@@ -544,6 +546,52 @@ public class PluginPackageController(
             return BadRequest(ex.Message);
         }
     }
+
+    /// <summary>
+    ///   Updates a package repository. Enabling one also syncs it.
+    /// </summary>
+    /// <param name="repositoryID">
+    ///   The repository ID.
+    /// </param>
+    /// <param name="body">
+    ///   The body containing the fields to update.
+    /// </param>
+    /// <returns>
+    ///   The updated <see cref="PackageRepositoryInfo"/> if found.
+    /// </returns>
+    [HttpPut("Repository/{repositoryID}")]
+    public async Task<ActionResult<PackageRepositoryInfo>> UpdateRepository(
+        [FromRoute] Guid repositoryID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdatePackageRepositoryBody body
+    )
+    {
+        var repository = packageManager.ListPackageRepositories()
+            .FirstOrDefault(r => r.ID == repositoryID);
+        if (repository is null)
+            return NotFound("Repository not found");
+
+        if (body.IsEnabled.HasValue)
+            repository = body.IsEnabled.Value
+                ? await packageManager.EnablePackageRepository(repository, HttpContext.RequestAborted).ConfigureAwait(false)
+                : packageManager.DisablePackageRepository(repository);
+
+        return new PackageRepositoryInfo(repository);
+    }
+
+    /// <summary>
+    ///   Adds back the repositories shipped with the server that are missing,
+    ///   such as one that was removed, and syncs each one added. The server
+    ///   adds them by itself only once.
+    /// </summary>
+    /// <returns>
+    ///   The <see cref="PackageRepositoryInfo"/> of each repository added.
+    ///   Empty when none was missing.
+    /// </returns>
+    [HttpPost("Repository/RestoreDefaults")]
+    public async Task<ActionResult<List<PackageRepositoryInfo>>> RestoreDefaultRepositories()
+        => (await packageManager.RestoreDefaultPackageRepositories(HttpContext.RequestAborted).ConfigureAwait(false))
+            .Select(repository => new PackageRepositoryInfo(repository))
+            .ToList();
 
     /// <summary>
     ///   Removes a package repository.

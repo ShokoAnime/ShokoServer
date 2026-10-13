@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace Shoko.Server.API.v3.Models.Plugin.Input;
@@ -16,6 +17,12 @@ public class AddPackageRepositoryBody
     public required string Name { get; set; }
 
     /// <summary>
+    ///   Optional. What the repository holds and who stands behind it. It
+    ///   cannot be changed once the repository is added.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
     ///   Repository API endpoint URL. Must be an absolute URL using http:// or https://.
     /// </summary>
     [Required]
@@ -27,4 +34,11 @@ public class AddPackageRepositoryBody
     ///   If not set, the default stale time will be used.
     /// </summary>
     public TimeSpan? StaleTime { get; set; }
+
+    /// <summary>
+    ///   Whether the repository is added enabled. A disabled one is added
+    ///   without being synced.
+    /// </summary>
+    [DefaultValue(true)]
+    public bool IsEnabled { get; set; } = true;
 }

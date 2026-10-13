@@ -24,6 +24,15 @@ public sealed class PackageRepositoryInfo
     public required string Name { get; init; }
 
     /// <summary>
+    ///   What the repository holds and who stands behind it, as given when
+    ///   it was added. It cannot be changed afterwards. <c>null</c> when none
+    ///   was given.
+    /// </summary>
+    [JsonPropertyName("description")]
+    [JsonProperty("description")]
+    public string? Description { get; init; }
+
+    /// <summary>
     ///   Repository manifest location. Must be an absolute <c>http://</c>,
     ///   <c>https://</c> or <c>ftp://</c> resource location.
     /// </summary>
@@ -45,4 +54,12 @@ public sealed class PackageRepositoryInfo
     [JsonPropertyName("last_fetched_at")]
     [JsonProperty("last_fetched_at")]
     public required DateTime? LastFetchedAt { get; set; }
+
+    /// <summary>
+    ///   Whether the repository is in use. A disabled repository is kept but
+    ///   not synced, and its packages are not offered.
+    /// </summary>
+    [JsonPropertyName("enabled")]
+    [JsonProperty("enabled")]
+    public bool IsEnabled { get; set; } = true;
 }

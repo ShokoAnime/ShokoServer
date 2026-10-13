@@ -573,8 +573,13 @@ PackageInfo  = repository + manifest + release + archive (+ the local plugin, if
 **Repositories.** `ListPackageRepositories()`,
 `AddPackageRepository(PackageRepositoryData)`,
 `RemovePackageRepository(PackageRepositoryInfo)`,
+`EnablePackageRepository(repository)`, `DisablePackageRepository(repository)`,
 `SyncPackageRepository(repository, forceSync)` and
-`SyncAllPackageRepositories(forceSync)`. A sync is skipped when the cached copy
+`SyncAllPackageRepositories(forceSync)`. The server adds the repositories it
+ships with once, so one an admin removed stays removed;
+`RestoreDefaultPackageRepositories()` adds the missing ones back. A disabled
+repository (`IsEnabled`) is kept with what it last synced, but it is not synced
+and its packages are not offered. A sync is skipped when the cached copy
 is younger than the repository's `StaleTime` (falling back to
 `DefaultRepositoryStaleTime`), which is what `forceSync` overrides.
 

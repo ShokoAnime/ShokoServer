@@ -321,6 +321,17 @@ public class SystemService : ISystemService
             // The plugins that failed while being loaded, registered or initialized.
             RecordFailedPlugins();
 
+            // Only ever adds what was never added before, and never reaches for the network.
+            try
+            {
+                if (_webHost.Services.GetRequiredService<IPluginPackageManager>() is PluginPackageManager packageManager)
+                    packageManager.SeedDefaultPackageRepositories();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to add the default plugin repositories");
+            }
+
             if (StartupFailedException is null)
                 StartupMessage = "Plugins initialized.";
 

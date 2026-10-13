@@ -103,6 +103,14 @@ public class PluginSettings
         public TimeSpan DefaultRepositoryStaleTime { get; set; } = TimeSpan.FromHours(12);
 
         /// <summary>
+        ///   The keys of the repositories shipped with the server that were
+        ///   added once already. One listed here is not added again, so it
+        ///   stays removed once an admin removed it.
+        /// </summary>
+        [Visibility(DisplayVisibility.Hidden)]
+        public List<string> SeededRepositories { get; set; } = [];
+
+        /// <summary>
         ///   How long an older plugin version stays installed after a newer
         ///   one was installed, before the "Purge Inactive Plugin Versions"
         ///   scheduled action marks it for removal. It counts from that
