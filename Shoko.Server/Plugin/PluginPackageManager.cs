@@ -22,11 +22,8 @@ using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
-using Shoko.Server.Models.Internal;
 using Shoko.Server.Plugin.Models;
-using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -579,7 +576,8 @@ public partial class PluginPackageManager(
         foreach (var repositoryInfo in ListPackageRepositories().Where(repositoryInfo => repositoryInfo.IsEnabled))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (allowSync && (forceSyncNow || now - repositoryInfo.LastFetchedAt > (repositoryInfo.StaleTime ?? DefaultRepositoryStaleTime)))
+            // A repository that never synced, such as one the server just added, is as stale as it gets.
+            if (allowSync && (forceSyncNow || repositoryInfo.LastFetchedAt is null || now - repositoryInfo.LastFetchedAt > (repositoryInfo.StaleTime ?? DefaultRepositoryStaleTime)))
                 await SyncPackageRepository(repositoryInfo, forceSyncNow, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             foreach (var localManifest in GetLocalManifestsForRepository(repositoryInfo))
@@ -1458,12 +1456,6 @@ public partial class PluginPackageManager(
 
         // How often this runs on its own is up to the triggers of the action
         // that queues it, and each repository is only synced once it is stale.
-
-        // Update schedule tracking
-        var scheduleRecord = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.PluginUpdates)
-            ?? new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.PluginUpdates, UpdateDetails = string.Empty };
-        scheduleRecord.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(scheduleRecord);
 
         _logger.LogInformation("Checking for plugin updates...");
 
