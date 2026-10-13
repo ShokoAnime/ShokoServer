@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.522",
+      "tag": "v6.0.0-dev.522",
+      "commit": "32dfa24297e49c43a2ca761e8b1d6b27455571cb",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.522/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-13T23:06:37Z",
+      "releaseNotes": "\n`fix` (`plugin`): **Close the remaining ways a plugin can take the start down unnoticed**:\n\n- Checked a plugin's references against the assemblies only a plugin it depends on ships, reading metadata on both sides in `PluginReferenceChecker`\n- Failed a plugin whose export cannot be created for a start-up step, or whose constructor throws while it is scanned, where both were skipped with a warning\n- Wrote a plugin traced to a failure that leaves no web server to `plugins/failed-starts.json`, so the next start leaves it out and says why\n\n`fix` (`plugin`): **Read a downloaded package image only once it is written**:\n\n`DownloadAndCacheImageAsync` checked the image while the file was still open\nfor writing, so the first download of every image failed with an empty file\nand only the next sync found it.\n"
+    },
+    {
       "version": "6.0.0.521",
       "tag": "v6.0.0-dev.521",
       "commit": "1574ad5cba3b1a86aee63fbf81327bee9439d46c",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.493/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-01T20:10:55Z",
       "releaseNotes": "\n`feat` (`core`): **Log the HTTP clients whose expired handlers stay referenced**:\n\n- Added `ExpiredHttpHandlerMonitor`, which reads the client factory's expired handlers every 2 minutes and warns per client name once one survives 10 minutes and a full GC\n- Names the plugin when a typed client's type is found in one; stands down at Debug if the factory's internals are not as expected\n"
-    },
-    {
-      "version": "6.0.0.492",
-      "tag": "v6.0.0-dev.492",
-      "commit": "86a47d904dc449cf6a4fc84a298f226bfa2802cc",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.492/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-30T22:25:36Z",
-      "releaseNotes": "\n`feat` (`abstractions`): **Give `ScopeExpression` an optional label**:\n\n- `Parameter` holds the group's label or comment; it does not change what the filter matches\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.97**.\n"
     }
   ]
 }
