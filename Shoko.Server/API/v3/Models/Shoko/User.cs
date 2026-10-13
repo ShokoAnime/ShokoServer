@@ -149,21 +149,14 @@ public class User
 
                     // Extra handling for things not exposed to the plugin API
                     // and probably never will.
-                    var saved = false;
                     if (PlexUsernames is not null)
                     {
-                        var oldPlexUsernames = user.PlexUsers;
                         var newPlexUsernames = string.IsNullOrWhiteSpace(PlexUsernames) ? null : PlexUsernames;
-                        if (oldPlexUsernames != newPlexUsernames)
+                        if (user.PlexUsers != newPlexUsernames)
                         {
-                            saved = true;
-                            user.PlexUsers = string.IsNullOrWhiteSpace(PlexUsernames) ? null : PlexUsernames;
+                            user.PlexUsers = newPlexUsernames;
+                            RepoFactory.JMMUser.Save(user);
                         }
-                    }
-
-                    if (!saved)
-                    {
-                        RepoFactory.JMMUser.Save(user);
                     }
 
                     return new User(user);
@@ -271,21 +264,14 @@ public class User
 
                     // Extra handling for things not exposed to the plugin API
                     // and probably never will.
-                    var saved = false;
                     if (PlexUsernames is not null)
                     {
-                        var oldPlexUsernames = user.PlexUsers;
                         var newPlexUsernames = string.IsNullOrWhiteSpace(PlexUsernames) ? null : PlexUsernames;
-                        if (oldPlexUsernames != newPlexUsernames)
+                        if (user.PlexUsers != newPlexUsernames)
                         {
-                            saved = true;
-                            user.PlexUsers = string.IsNullOrWhiteSpace(PlexUsernames) ? null : PlexUsernames;
+                            user.PlexUsers = newPlexUsernames;
+                            RepoFactory.JMMUser.Save(user);
                         }
-                    }
-
-                    if (!saved)
-                    {
-                        RepoFactory.JMMUser.Save(user);
                     }
 
                     return new User(user);
