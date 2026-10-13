@@ -258,40 +258,6 @@ jobs:
           include-hidden-files: true
           retention-days: 1
 
-  offline-importer:
-    runs-on: ubuntu-latest
-
-    name: Download Offline Importer Plugin
-
-    steps:
-      - name: Get Latest Stable Offline Importer Release
-        id: plugin_release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # `--fail` keeps an error body out of `jq`; unchecked, this once resolved to the literal string "null" and curled that.
-          download_url=$(curl --fail --silent --show-error -H "Authorization: Bearer ${GH_TOKEN}" https://api.github.com/repos/revam/dotnet-shoko-plugin-offline-importer/releases/latest | jq -r '.assets[0].browser_download_url')
-          if [ -z "${download_url}" ] || [ "${download_url}" = "null" ]; then
-            echo "could not resolve the offline importer download url" >&2
-            exit 1
-          fi
-          echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
-
-      - name: Download and Extract Offline Importer
-        run: |
-          mkdir -p plugins
-          curl --fail --location "${{ steps.plugin_release.outputs.download_url }}" -o plugins/latest.zip
-          cd plugins
-          unzip -o latest.zip
-          rm latest.zip
-
-      - name: Upload Offline Importer Artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: offline-importer
-          path: plugins/
-          retention-days: 1
-
   cli-release:
     runs-on: ubuntu-latest
 
@@ -299,7 +265,6 @@ jobs:
       - current_info
       - plugin-nuget
       - webui
-      - offline-importer
 
     strategy:
       matrix:
@@ -331,12 +296,6 @@ jobs:
         with:
           name: webui
           path: Shoko.Server/webui
-
-      - name: Download Offline Importer
-        uses: actions/download-artifact@v8
-        with:
-          name: offline-importer
-          path: Shoko.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -377,7 +336,6 @@ jobs:
       - current_info
       - plugin-nuget
       - webui
-      - offline-importer
 
     strategy:
       matrix:
@@ -397,12 +355,6 @@ jobs:
         with:
           name: webui
           path: Shoko.Server/webui
-
-      - name: Download Offline Importer
-        uses: actions/download-artifact@v8
-        with:
-          name: offline-importer
-          path: Shoko.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -443,7 +395,6 @@ jobs:
       - current_info
       - plugin-nuget
       - webui
-      - offline-importer
       - mediainfo
 
     strategy:
@@ -463,12 +414,6 @@ jobs:
         with:
           name: webui
           path: Shoko.Server/webui
-
-      - name: Download Offline Importer
-        uses: actions/download-artifact@v8
-        with:
-          name: offline-importer
-          path: Shoko.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -509,7 +454,6 @@ jobs:
       - current_info
       - plugin-nuget
       - webui
-      - offline-importer
       - mediainfo
 
     strategy:
@@ -529,12 +473,6 @@ jobs:
         with:
           name: webui
           path: Shoko.Server/webui
-
-      - name: Download Offline Importer
-        uses: actions/download-artifact@v8
-        with:
-          name: offline-importer
-          path: Shoko.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -606,7 +544,6 @@ jobs:
       - current_info
       - plugin-nuget
       - webui
-      - offline-importer
 
     strategy:
       fail-fast: false
@@ -631,12 +568,6 @@ jobs:
         with:
           name: webui
           path: Shoko.Server/webui
-
-      - name: Download Offline Importer
-        uses: actions/download-artifact@v8
-        with:
-          name: offline-importer
-          path: Shoko.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -823,11 +754,6 @@ jobs:
         uses: geekyeggo/delete-artifact@v6
         with:
           name: webui
-
-      - name: Remove Offline Importer Artifact
-        uses: geekyeggo/delete-artifact@v6
-        with:
-          name: offline-importer
 
       - name: Remove MediaInfo Artifact
         uses: geekyeggo/delete-artifact@v6
