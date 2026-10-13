@@ -400,6 +400,11 @@ public class SystemService : ISystemService
         }
         catch (Exception ex)
         {
+            // No web server is left to say which plugin did this, so a plugin it can be traced to
+            // is written down: the next start leaves it out and comes up saying why.
+            if (_pluginManager.FindPluginBehind(ex) is { } pluginInfo)
+                _pluginManager.RememberFailureForNextStart(pluginInfo, "starting the web host", ex);
+
             StartupMessage = "Failed to start. Check your logs for more information.";
             StartupFailedException = new(innerException: ex);
             return null;
