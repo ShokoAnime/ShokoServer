@@ -125,8 +125,6 @@ public class ActionService : IActionService
 
     private readonly AnimeEpisodeRepository _animeEpisodes;
 
-    private readonly ScheduledUpdateRepository _scheduledUpdates;
-
     private readonly AniDB_Anime_RelationRepository _anidbAnimeRelations;
 
     public ActionService(
@@ -154,7 +152,6 @@ public class ActionService : IActionService
         CrossRef_File_EpisodeRepository crossRefFileEpisodes,
         AnimeSeriesRepository animeSeries,
         AnimeEpisodeRepository animeEpisodes,
-        ScheduledUpdateRepository scheduledUpdates,
         AniDB_Anime_RelationRepository anidbAnimeRelations
     )
     {
@@ -182,7 +179,6 @@ public class ActionService : IActionService
         _crossRefFileEpisodes = crossRefFileEpisodes;
         _animeSeries = animeSeries;
         _animeEpisodes = animeEpisodes;
-        _scheduledUpdates = scheduledUpdates;
         _anidbAnimeRelations = anidbAnimeRelations;
     }
 

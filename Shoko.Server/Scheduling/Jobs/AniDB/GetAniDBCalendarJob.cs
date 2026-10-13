@@ -18,7 +18,6 @@ using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
@@ -35,7 +34,6 @@ public class GetAniDBCalendarJob(
     AniDB_AnimeRepository anidbAnime,
     AniDB_AnimeUpdateRepository anidbAnimeUpdates,
     AnimeSeriesRepository animeSeries,
-    ScheduledUpdateRepository scheduledUpdates,
     IJobCancellationAccessor cancellation,
     IJobProgressAccessor progress
 ) : BaseJob
@@ -52,16 +50,8 @@ public class GetAniDBCalendarJob(
         // we will always assume that an anime was downloaded via http first
 
         // How often this runs is up to the triggers of the action that queues it.
-        var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar) ?? new()
-        {
-            UpdateType = (int)ScheduledUpdateType.AniDBCalendar,
-            UpdateDetails = string.Empty,
-        };
-        schedule.LastUpdate = DateTime.Now;
-
         var request = requestFactory.Create<RequestCalendar>();
         var response = await request.SendAsync(cancellation.Token);
-        scheduledUpdates.Save(schedule);
 
         var entries = (response.Response?.Next25Anime ?? [])
             .Concat(response.Response?.Previous25Anime ?? [])

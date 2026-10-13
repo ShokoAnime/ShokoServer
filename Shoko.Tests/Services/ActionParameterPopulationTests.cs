@@ -53,7 +53,6 @@ public class ActionParameterPopulationTests
             null!,
             null!,
             null!,
-            null!,
             null!
         );
         service.AddParts([(_pluginId, typeof(ConvertedParameterAction))]);

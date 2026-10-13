@@ -51,7 +51,6 @@ public class ActionRequiredParameterTests
             null!,
             null!,
             null!,
-            null!,
             null!
         );
         service.AddParts([(Guid.NewGuid(), typeof(RequiringAction))]);

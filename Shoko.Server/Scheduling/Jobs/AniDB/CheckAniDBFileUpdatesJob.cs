@@ -9,10 +9,8 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
@@ -30,7 +28,6 @@ public class CheckAniDBFileUpdatesJob(
     IVideoReleaseService videoReleaseService,
     VideoLocalRepository videoLocals,
     StoredReleaseInfo_MatchAttemptRepository storedReleaseInfoMatchAttempts,
-    ScheduledUpdateRepository scheduledUpdates,
     ActionService actionService,
     IJobCancellationAccessor cancellation,
     IJobProgressAccessor progress
@@ -46,7 +43,6 @@ public class CheckAniDBFileUpdatesJob(
 
         // How often this runs is up to the triggers of the action that queues it.
         var settings = settingsProvider.GetSettings();
-        var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
 
         // Queuing the release searches, then fixing the files' anime.
         var stages = new StagedProgress(progress.Progress, 1, 1);
@@ -69,13 +65,5 @@ public class CheckAniDBFileUpdatesJob(
         stages.NextStage();
         await actionService.ScheduleMissingAnidbAnimeForFiles(stages, cancellation.Token);
         stages.Complete();
-
-        schedule ??= new()
-        {
-            UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates,
-            UpdateDetails = string.Empty,
-        };
-        schedule.LastUpdate = DateTime.Now;
-        scheduledUpdates.Save(schedule);
     }
 }

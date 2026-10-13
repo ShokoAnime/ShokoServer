@@ -476,7 +476,7 @@ Several models exist solely to avoid redundant I/O or external API calls. Jobs c
 
 **`AniDB_NotifyQueue`** + **`AniDB_Message`** — `AniDB_NotifyQueue` (`Models/AniDB/`) is a staging table for raw AniDB notification IDs (type + ID) written by `GetAniDBNotifyJob`. `AniDB_Message` stores the fully fetched message body (sender, title, body, `FileMoved`/`FileMoveHandled` flags). `AcknowledgeAniDBNotifyJob` and `ProcessFileMovedMessageJob` drain these two tables in sequence.
 
-**`ScheduledUpdate`** (`Models/Internal/ScheduledUpdate.cs`) — tracks `LastUpdate` timestamps for periodic background tasks (one row per `UpdateType`). Written after each scheduled job completes. Read at job start to determine whether enough time has elapsed to run again.
+**`ScheduledUpdate`** (`Models/Internal/ScheduledUpdate.cs`) — one row per `ScheduledUpdateType`, holding what a few background tasks must remember between runs: where `GetUpdatedAniDBAnimeJob` left off in AniDB's update feed (`UpdateDetails`), the minute `EpisodeAiringNotificationService` dispatched through, and when `CheckAniDBNotificationsJob` last sent NOTIFY (AniDB's 30-minute floor). When a job runs is up to its scheduled action, which keeps its own last run; the rows of the other types are only read once, by `ScheduledActionService`, to carry a pre-6.0 last run over to the action.
 
 ### Unrecognized Files
 
