@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.UI;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
 
@@ -55,6 +57,224 @@ public interface IActionService
     ExecutableActionInfo? GetActionInfo(Guid actionId);
 
     /// <summary>
+    ///   Checks an invocation payload against the action's parameter schema.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     For a caller holding a document it parsed rather than values it built
+    ///     in code: an endpoint, core's own or a plugin's, that took a body and
+    ///     wants to answer with errors the sender can attach to fields. An
+    ///     in-process caller reaches for
+    ///     <see cref="InvokeAsync(Guid, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    ///     instead, since it passes a typed dictionary and the failure it wants
+    ///     is a compiler error rather than a dictionary of paths.
+    ///   </para>
+    ///   <para>
+    ///     The errors come back keyed by property path, which is the shape the
+    ///     configuration endpoints already return for a rejected body, so the
+    ///     two are surfaced the same way.
+    ///   </para>
+    /// </remarks>
+    /// <param name="actionId">The action being invoked.</param>
+    /// <param name="parameters">
+    ///   The payload, or <c>null</c> when the caller sent no body, which only
+    ///   a parameter marked <c>[Required]</c> or <c>required</c> refuses.
+    /// </param>
+    /// <returns>Errors per property path; empty when the payload is acceptable.</returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered under <paramref name="actionId"/>.
+    /// </exception>
+    IReadOnlyDictionary<string, IReadOnlyList<string>> ValidateParameters(Guid actionId, JObject? parameters);
+
+    /// <summary>
+    ///   Lists the options the server offers for one of a global action's
+    ///   parameters, from its <see cref="UI.Attributes.OptionsProviderAttribute"/>.
+    /// </summary>
+    /// <remarks>
+    ///   The provider runs on an action instance prepared the way invoking it
+    ///   prepares one: scoped, given its caller and populated with
+    ///   <paramref name="parameters"/>.
+    /// </remarks>
+    /// <param name="actionId">The action.</param>
+    /// <param name="path">
+    ///   The path of the parameter, the same path a configuration's custom
+    ///   action is invoked with. A dictionary's own path lists its keys, and
+    ///   the path of one of its entries, such as <c>Weights["key"]</c>, the
+    ///   values for that key.
+    /// </param>
+    /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
+    /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered under <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, keyed by that path, or
+    ///   the value at that path cannot be read, keyed by the path of the value.
+    /// </exception>
+    Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    );
+
+    /// <summary>
+    ///   Lists the options the server offers for one of a group-scoped action's
+    ///   parameters, from its <see cref="UI.Attributes.OptionsProviderAttribute"/>.
+    /// </summary>
+    /// <remarks>
+    ///   The provider runs on an action instance prepared the way invoking it
+    ///   prepares one: scoped, given its caller and populated with
+    ///   <paramref name="parameters"/>.
+    /// </remarks>
+    /// <param name="actionId">The action.</param>
+    /// <param name="group">The group the action is scoped to.</param>
+    /// <param name="path">
+    ///   The path of the parameter, the same path a configuration's custom
+    ///   action is invoked with. A dictionary's own path lists its keys, and
+    ///   the path of one of its entries, such as <c>Weights["key"]</c>, the
+    ///   values for that key.
+    /// </param>
+    /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
+    /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered under <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, keyed by that path, or
+    ///   the value at that path cannot be read, keyed by the path of the value.
+    /// </exception>
+    Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IShokoGroup group,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    );
+
+    /// <summary>
+    ///   Lists the options the server offers for one of a series-scoped action's
+    ///   parameters, from its <see cref="UI.Attributes.OptionsProviderAttribute"/>.
+    /// </summary>
+    /// <remarks>
+    ///   The provider runs on an action instance prepared the way invoking it
+    ///   prepares one: scoped, given its caller and populated with
+    ///   <paramref name="parameters"/>.
+    /// </remarks>
+    /// <param name="actionId">The action.</param>
+    /// <param name="series">The series the action is scoped to.</param>
+    /// <param name="path">
+    ///   The path of the parameter, the same path a configuration's custom
+    ///   action is invoked with. A dictionary's own path lists its keys, and
+    ///   the path of one of its entries, such as <c>Weights["key"]</c>, the
+    ///   values for that key.
+    /// </param>
+    /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
+    /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered under <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, keyed by that path, or
+    ///   the value at that path cannot be read, keyed by the path of the value.
+    /// </exception>
+    Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IShokoSeries series,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    );
+
+    /// <summary>
+    ///   Lists the options the server offers for one of an episode-scoped action's
+    ///   parameters, from its <see cref="UI.Attributes.OptionsProviderAttribute"/>.
+    /// </summary>
+    /// <remarks>
+    ///   The provider runs on an action instance prepared the way invoking it
+    ///   prepares one: scoped, given its caller and populated with
+    ///   <paramref name="parameters"/>.
+    /// </remarks>
+    /// <param name="actionId">The action.</param>
+    /// <param name="episode">The episode the action is scoped to.</param>
+    /// <param name="path">
+    ///   The path of the parameter, the same path a configuration's custom
+    ///   action is invoked with. A dictionary's own path lists its keys, and
+    ///   the path of one of its entries, such as <c>Weights["key"]</c>, the
+    ///   values for that key.
+    /// </param>
+    /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
+    /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered under <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, keyed by that path, or
+    ///   the value at that path cannot be read, keyed by the path of the value.
+    /// </exception>
+    Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IShokoEpisode episode,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    );
+
+    /// <summary>
+    ///   Lists the options the server offers for one of a video-scoped action's
+    ///   parameters, from its <see cref="UI.Attributes.OptionsProviderAttribute"/>.
+    /// </summary>
+    /// <remarks>
+    ///   The provider runs on an action instance prepared the way invoking it
+    ///   prepares one: scoped, given its caller and populated with
+    ///   <paramref name="parameters"/>.
+    /// </remarks>
+    /// <param name="actionId">The action.</param>
+    /// <param name="video">The video the action is scoped to.</param>
+    /// <param name="path">
+    ///   The path of the parameter, the same path a configuration's custom
+    ///   action is invoked with. A dictionary's own path lists its keys, and
+    ///   the path of one of its entries, such as <c>Weights["key"]</c>, the
+    ///   values for that key.
+    /// </param>
+    /// <param name="parameters">The parameters entered so far, or <c>null</c>.</param>
+    /// <param name="caller">The user asking, or <c>null</c> for a trusted call.</param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered under <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   The action may not be invoked here or by this caller, the path does
+    ///   not lead to a parameter that takes options, keyed by that path, or
+    ///   the value at that path cannot be read, keyed by the path of the value.
+    /// </exception>
+    Task<IReadOnlyList<UiOption>> GetParameterOptionsAsync(
+        Guid actionId,
+        IVideo video,
+        string path,
+        IReadOnlyDictionary<string, object?>? parameters = null,
+        IUser? caller = null,
+        CancellationToken token = default
+    );
+
+    /// <summary>
     ///   Gets the metadata for a registered action by its type, so a plugin
     ///   can find the ID of one of its own actions without deriving it.
     /// </summary>
@@ -104,6 +324,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -120,6 +344,10 @@ public interface IActionService
     /// </returns>
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
     /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoGroup group, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
@@ -138,6 +366,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoSeries series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -155,6 +387,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -171,6 +407,10 @@ public interface IActionService
     /// </returns>
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
     /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
@@ -204,6 +444,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -222,6 +466,10 @@ public interface IActionService
     /// </returns>
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
     /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoGroup group, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
@@ -242,6 +490,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoSeries series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -261,6 +513,10 @@ public interface IActionService
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
     /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -279,6 +535,10 @@ public interface IActionService
     /// </returns>
     /// <exception cref="KeyNotFoundException">
     ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   A parameter value cannot be read into its parameter, keyed by the
+    ///   path of that value.
     /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
@@ -341,7 +601,8 @@ public interface IActionService
     ///   was queued. An entry's failure is keyed <c>IDs[i]</c>, where <c>i</c>
     ///   is its position in <paramref name="series"/>, so a caller can map each
     ///   failure back to what it passed; a failure of the action as a whole is
-    ///   keyed by the empty string.
+    ///   keyed by the empty string, and a parameter value that cannot be read
+    ///   is keyed by the path of that value.
     /// </exception>
     Task InvokeBulkAsync(Guid actionId, IReadOnlyList<IShokoSeries> series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 

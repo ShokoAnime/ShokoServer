@@ -7,7 +7,8 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using NLog;
 using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
 
 namespace Shoko.Server.Settings;
 

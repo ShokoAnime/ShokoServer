@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Services;
 

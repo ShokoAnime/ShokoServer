@@ -6,9 +6,11 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Settings;
 
@@ -28,7 +30,7 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
         Formatting = Formatting.Indented,
         DefaultValueHandling = DefaultValueHandling.Include,
         MissingMemberHandling = MissingMemberHandling.Ignore,
-        Converters = [new StringEnumConverter()]
+        Converters = [FlagEnumNewtonsoftConverter.Instance, ParsableNewtonsoftConverter.Instance, new StringEnumConverter()]
     };
 
     /// <summary>
@@ -40,7 +42,7 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
         if (settings.Contains("\"FirstRun\":")) return settings;
         var deserializerSettings = new JsonSerializerSettings
         {
-            Converters = [new StringEnumConverter()],
+            Converters = [FlagEnumNewtonsoftConverter.Instance, ParsableNewtonsoftConverter.Instance, new StringEnumConverter()],
             Error = (sender, args) => { args.ErrorContext.Handled = true; },
             ObjectCreationHandling = ObjectCreationHandling.Replace,
             MissingMemberHandling = MissingMemberHandling.Ignore,

@@ -8,9 +8,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Exceptions;
+using Shoko.Abstractions.UI;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.Repositories.Cached;
@@ -42,20 +44,103 @@ public class ActionController(
             .Select(ActionInfo.FromExecutableActionInfo));
 
     /// <summary>
+    ///   Get a render-ready UI definition for the parameters of the action with
+    ///   the given ID, in the same shape a configuration editor is described by.
+    /// </summary>
+    /// <remarks>
+    ///   One endpoint covers every scope: an action's parameters come off the
+    ///   action type, which does not vary by the entity it is invoked against,
+    ///   so a series-scoped action is described here the same as a global one.
+    ///   Ask only when the listing said <see cref="ActionInfo.HasParameters"/>.
+    /// </remarks>
+    /// <param name="actionID">Action ID.</param>
+    /// <returns>The UI definition for the action's parameters.</returns>
+    [HttpGet("{actionID:guid}/UiDefinition")]
+    public ActionResult<UiDefinition> GetActionUiDefinition([FromRoute] Guid actionID)
+    {
+        if (actionService.GetActionInfo(actionID) is not { } info)
+            return NotFound("Action not found.");
+
+        if (info.ParameterDefinition is not { } parameters)
+            return NotFound("Action does not take any parameters.");
+
+        return parameters;
+    }
+
+    /// <summary>
     ///   Invoke a global action by its ID. Returns 200 (accepted), or 400 with
     ///   a reason when the action's validation (or the caller's permission)
     ///   rejects the invocation.
     /// </summary>
     /// <param name="actionID">Action ID.</param>
+    /// <param name="parameters">
+    ///   Optional. The action's invocation parameters. Omit the body entirely
+    ///   for an action that takes none.
+    /// </param>
     /// <param name="token">Cancellation token.</param>
     [HttpPost("{actionID:guid}")]
-    public async Task<ActionResult> Invoke([FromRoute] Guid actionID, CancellationToken token)
+    public async Task<ActionResult> Invoke(
+        [FromRoute] Guid actionID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JObject? parameters,
+        CancellationToken token
+    )
     {
         if (actionService.GetActionInfo(actionID) is null)
             return NotFound("Action not found.");
 
-        var validation = await actionService.InvokeAsync(actionID, caller: User, token: token);
-        return validation is null ? Ok() : BadRequest(validation.Reason);
+        if (actionService.ValidateParameters(actionID, parameters) is { Count: > 0 } errors)
+            return ValidationProblem(errors);
+
+        // Parameters are an argument like any other now, and null is what an
+        // action taking none has always been invoked with.
+        try
+        {
+            var validation = await actionService.InvokeAsync(actionID, parameters.ToParameters(), caller: User, token: token);
+            return validation is null ? Ok() : BadRequest(validation.Reason);
+        }
+        catch (GenericValidationException ex)
+        {
+            return ValidationProblem(ex.ValidationErrors);
+        }
+    }
+
+    /// <summary>
+    ///   List the options the server offers for one of the action's
+    ///   parameters, when the parameter's <c>HasOptions</c> is set.
+    /// </summary>
+    /// <param name="actionID">Action ID.</param>
+    /// <param name="parameters">
+    ///   Optional. The parameters entered so far, read leniently: only the
+    ///   one the path names has to be valid.
+    /// </param>
+    /// <param name="path">
+    ///   Path to the parameter, the same path a configuration's custom action
+    ///   is invoked with. A dictionary's own path lists its keys, and the path
+    ///   of one of its entries, such as <c>Weights["key"]</c>, the values for
+    ///   that key.
+    /// </param>
+    /// <param name="token">Cancellation token.</param>
+    /// <returns>The options, in the order the provider listed them.</returns>
+    [HttpPost("{actionID:guid}/Options")]
+    public async Task<ActionResult<IReadOnlyList<UiOption>>> GetActionParameterOptions(
+        [FromRoute] Guid actionID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JObject? parameters,
+        [FromQuery] string path = "",
+        CancellationToken token = default
+    )
+    {
+        if (actionService.GetActionInfo(actionID) is null)
+            return NotFound("Action not found.");
+
+        // Not validated as a whole: only the parameter asked about has to be readable.
+        try
+        {
+            return Ok(await actionService.GetParameterOptionsAsync(actionID, path, parameters.ToParameters(), User, token));
+        }
+        catch (GenericValidationException ex)
+        {
+            return ValidationProblem(ex.ValidationErrors);
+        }
     }
 
     #region Bulk

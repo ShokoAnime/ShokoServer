@@ -237,6 +237,7 @@ public static partial class APIExtensions
                 // Before the simple type binder, which would read any valid value through the type converter.
                 options.ModelBinderProviders.Insert(0, new MetadataSourceModelBinderProvider());
                 options.ModelBinderProviders.Insert(0, new MetadataEntityTypeModelBinderProvider());
+                options.ModelBinderProviders.Insert(0, new EnumMemberModelBinderProvider());
 
                 EmitEmptyEnumerableInsteadOfNullAttribute.MvcOptions = options;
             })
