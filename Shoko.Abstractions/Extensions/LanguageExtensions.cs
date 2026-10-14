@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -20,6 +21,12 @@ public static partial class LanguageExtensions
     public static Action<string>? OnUnknownLanguage;
 
     private static readonly ConcurrentDictionary<string, byte> _reportedUnknowns = new(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly HashSet<string> _knownUnknowns = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "unk", "x-unk", "x-other", "und", "zxx", "mul", "mis", "map", "unknown", "sh", "hbs",
+        "undefined", "undefined / undefined", "keine angabe", "instrumental",
+    };
 
     [GeneratedRegex(
         @"^(?<lang>[^()]+?)\s*(?:\((?:[^)]*\b(?:Audio|Subs?|Subtitles?)\b[^)]*|\s*(?:\d+(?:\.\d+)?[\s-]*ch|\d\.\d)\s*)\)|\b(?:Audio|Subs?|Subtitles?)\b.*)$",
@@ -122,7 +129,7 @@ public static partial class LanguageExtensions
             "NN" or "NNO" => TitleLanguage.NorwegianNynorsk,
             "PL" or "POL" => TitleLanguage.Polish,
             "PT" or "POR" => TitleLanguage.Portuguese,
-            "RO" or "RON" or "RUM" => TitleLanguage.Romanian,
+            "RO" or "RON" or "RUM" or "MO" or "MOL" => TitleLanguage.Romanian,
             "RU" or "RUS" => TitleLanguage.Russian,
             "SK" or "SLK" or "SLO" => TitleLanguage.Slovak,
             "SL" or "SLV" => TitleLanguage.Slovenian,
@@ -233,6 +240,40 @@ public static partial class LanguageExtensions
             "NEW" => TitleLanguage.Newari,
             "YAP" => TitleLanguage.Yapese,
             "PI" or "PLI" => TitleLanguage.Pali,
+            "AA" or "AAR" => TitleLanguage.Afar,
+            "AB" or "ABK" => TitleLanguage.Abkhazian,
+            "SA" or "SAN" => TitleLanguage.Sanskrit,
+            "AV" or "AVA" => TitleLanguage.Avaric,
+            "SG" or "SAG" => TitleLanguage.Sango,
+            "NR" or "NBL" => TitleLanguage.SouthNdebele,
+            "NV" or "NAV" => TitleLanguage.Navajo,
+            "OJ" or "OJI" => TitleLanguage.Ojibwa,
+            "VO" or "VOL" => TitleLanguage.Volapuk,
+            "TI" or "TIR" => TitleLanguage.Tigrinya,
+            "OM" or "ORM" => TitleLanguage.Oromo,
+            "KV" or "KOM" => TitleLanguage.Komi,
+            "OC" or "OCI" => TitleLanguage.Occitan,
+            "SU" or "SUN" => TitleLanguage.Sundanese,
+            "KJ" or "KUA" => TitleLanguage.Kuanyama,
+            "WO" or "WOL" => TitleLanguage.Wolof,
+            "RW" or "KIN" => TitleLanguage.Kinyarwanda,
+            "VE" or "VEN" => TitleLanguage.Venda,
+            "GV" or "GLV" => TitleLanguage.Manx,
+            "BI" or "BIS" => TitleLanguage.Bislama,
+            "CR" or "CRE" => TitleLanguage.Cree,
+            "FY" or "FRY" => TitleLanguage.Frisian,
+            "HO" or "HMO" => TitleLanguage.HiriMotu,
+            "IU" or "IKU" => TitleLanguage.Inuktitut,
+            "MH" or "MAH" => TitleLanguage.Marshallese,
+            "ZA" or "ZHA" => TitleLanguage.Zhuang,
+            "KS" or "KAS" => TitleLanguage.Kashmiri,
+            "TS" or "TSO" => TitleLanguage.Tsonga,
+            "DZ" or "DZO" => TitleLanguage.Dzongkha,
+            "II" or "III" => TitleLanguage.SichuanYi,
+            "FRS" => TitleLanguage.EastFrisian,
+            "KAA" => TitleLanguage.KaraKalpak,
+            "ROM" => TitleLanguage.Romany,
+            "ACE" => TitleLanguage.Acehnese,
 
             "X-JAT" => TitleLanguage.Romaji,
             "X-ZHT" => TitleLanguage.Pinyin,
@@ -261,6 +302,9 @@ public static partial class LanguageExtensions
             "CHINESE (TRANSCRIPTION)" => TitleLanguage.Pinyin,
             "JAPANESE (TRANSCRIPTION)" => TitleLanguage.Romaji,
             "CATALAN" or "SPANISH (LATIN AMERICAN)" => TitleLanguage.Spanish,
+            "SPANISH (CATALAN)" => TitleLanguage.Catalan,
+            "SPANISH (GALICIAN)" => TitleLanguage.Galician,
+            "SPANISH (BASQUE)" => TitleLanguage.Basque,
             "KOREAN (TRANSCRIPTION)" => TitleLanguage.KoreanTranscription,
             "FILIPINO (TAGALOG)" => TitleLanguage.Filipino,
             "NORWEGIAN (BOKMAL)" => TitleLanguage.NorwegianBokmal,
@@ -275,6 +319,11 @@ public static partial class LanguageExtensions
             "TAGALOG" => TitleLanguage.Filipino,
             "MANDARIN" or "CANTONESE" or "YUE" => TitleLanguage.Chinese,
             "LOW GERMAN" => TitleLanguage.LowGerman,
+            "SOUTH NDEBELE" => TitleLanguage.SouthNdebele,
+            "HIRI MOTU" => TitleLanguage.HiriMotu,
+            "SICHUAN YI" => TitleLanguage.SichuanYi,
+            "EAST FRISIAN" => TitleLanguage.EastFrisian,
+            "KARA-KALPAK" => TitleLanguage.KaraKalpak,
 
             "JAP" => TitleLanguage.Japanese,
             "DEUTSCH" => TitleLanguage.German,
@@ -323,9 +372,9 @@ public static partial class LanguageExtensions
 
     private static TitleLanguage ReportAndReturnUnknown(string lang)
     {
-        // "unk", "x-unk" and "x-other" are known to mean an unknown language, and so are the ISO 639-2 special codes
-        // "und", "zxx", "mul" and "mis", so they are not reported.
-        if (!string.IsNullOrWhiteSpace(lang) && lang.ToUpperInvariant() is not ("UNK" or "X-UNK" or "X-OTHER" or "UND" or "ZXX" or "MUL" or "MIS") && _reportedUnknowns.TryAdd(lang, 0))
+        // These are known to mean an unknown language: the ISO 639-2 special codes ("und", "zxx", "mul", "mis", "map"),
+        // "unk", "x-unk" and "x-other", and the labels some tools write for "not specified" or "no vocals".
+        if (!string.IsNullOrWhiteSpace(lang) && !_knownUnknowns.Contains(lang) && _reportedUnknowns.TryAdd(lang, 0))
             OnUnknownLanguage?.Invoke(lang);
         return TitleLanguage.Unknown;
     }
@@ -358,35 +407,15 @@ public static partial class LanguageExtensions
             TitleLanguage.ThaiTranscription => "Thai (Transcription)",
             TitleLanguage.NorwegianBokmal => "Norwegian (Bokmal)",
             TitleLanguage.NorwegianNynorsk => "Norwegian (Nynorsk)",
-            TitleLanguage.Faroese => "Faroese",
-            TitleLanguage.Twi => "Twi",
-            TitleLanguage.Chamorro => "Chamorro",
-            TitleLanguage.Nauruan => "Nauruan",
-            TitleLanguage.Ossetian => "Ossetian",
-            TitleLanguage.Interlingua => "Interlingua",
-            TitleLanguage.Herero => "Herero",
-            TitleLanguage.Ewe => "Ewe",
-            TitleLanguage.Interlingue => "Interlingue",
-            TitleLanguage.Kanuri => "Kanuri",
-            TitleLanguage.Ndonga => "Ndonga",
             TitleLanguage.MiddleEnglish => "Middle English",
             TitleLanguage.ChurchSlavic => "Church Slavic",
-            TitleLanguage.Ganda => "Ganda",
-            TitleLanguage.Chuvash => "Chuvash",
-            TitleLanguage.Aragonese => "Aragonese",
-            TitleLanguage.Tibetan => "Tibetan",
-            TitleLanguage.Ido => "Ido",
-            TitleLanguage.Kalaallisut => "Kalaallisut",
-            TitleLanguage.Limburgish => "Limburgish",
             TitleLanguage.NorthNdebele => "North Ndebele",
-            TitleLanguage.Swati => "Swati",
             TitleLanguage.LowGerman => "Low German",
-            TitleLanguage.Akan => "Akan",
-            TitleLanguage.Romansh => "Romansh",
-            TitleLanguage.Tongan => "Tongan",
-            TitleLanguage.Newari => "Newari",
-            TitleLanguage.Yapese => "Yapese",
-            TitleLanguage.Pali => "Pali",
+            TitleLanguage.SouthNdebele => "South Ndebele",
+            TitleLanguage.HiriMotu => "Hiri Motu",
+            TitleLanguage.SichuanYi => "Sichuan Yi",
+            TitleLanguage.EastFrisian => "East Frisian",
+            TitleLanguage.KaraKalpak => "Kara-Kalpak",
             _ => lang.ToString(),
         };
 
@@ -553,6 +582,40 @@ public static partial class LanguageExtensions
             TitleLanguage.Newari => "new",
             TitleLanguage.Yapese => "yap",
             TitleLanguage.Pali => "pi",
+            TitleLanguage.Afar => "aa",
+            TitleLanguage.Abkhazian => "ab",
+            TitleLanguage.Sanskrit => "sa",
+            TitleLanguage.Avaric => "av",
+            TitleLanguage.Sango => "sg",
+            TitleLanguage.SouthNdebele => "nr",
+            TitleLanguage.Navajo => "nv",
+            TitleLanguage.Ojibwa => "oj",
+            TitleLanguage.Volapuk => "vo",
+            TitleLanguage.Tigrinya => "ti",
+            TitleLanguage.Oromo => "om",
+            TitleLanguage.Komi => "kv",
+            TitleLanguage.Occitan => "oc",
+            TitleLanguage.Sundanese => "su",
+            TitleLanguage.Kuanyama => "kj",
+            TitleLanguage.Wolof => "wo",
+            TitleLanguage.Kinyarwanda => "rw",
+            TitleLanguage.Venda => "ve",
+            TitleLanguage.Manx => "gv",
+            TitleLanguage.Bislama => "bi",
+            TitleLanguage.Cree => "cr",
+            TitleLanguage.Frisian => "fy",
+            TitleLanguage.HiriMotu => "ho",
+            TitleLanguage.Inuktitut => "iu",
+            TitleLanguage.Marshallese => "mh",
+            TitleLanguage.Zhuang => "za",
+            TitleLanguage.Kashmiri => "ks",
+            TitleLanguage.Tsonga => "ts",
+            TitleLanguage.Dzongkha => "dz",
+            TitleLanguage.SichuanYi => "ii",
+            TitleLanguage.EastFrisian => "frs",
+            TitleLanguage.KaraKalpak => "kaa",
+            TitleLanguage.Romany => "rom",
+            TitleLanguage.Acehnese => "ace",
             _ => "unk",
         };
 

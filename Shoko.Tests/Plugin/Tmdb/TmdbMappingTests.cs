@@ -110,7 +110,7 @@ public sealed class TmdbMappingTests
     [Theory]
     [InlineData("xx", null, TitleLanguage.None)]
     [InlineData("cn", null, TitleLanguage.Chinese)]
-    [InlineData("ab", null, TitleLanguage.Unknown)]
+    [InlineData("zz", null, TitleLanguage.Unknown)]
     [InlineData("en", "US", TitleLanguage.EnglishAmerican)]
     [InlineData("pt", "BR", TitleLanguage.BrazilianPortuguese)]
     public void TmdbsOwnLanguageCodesAreRead(string code, string? country, TitleLanguage expected)
