@@ -271,7 +271,7 @@ jobs:
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\${{matrix.rid}}\\publish .\\Shoko.CLI_${{ matrix.build_type }}_${{ matrix.display_id }}.zip
 
       - name: Upload Release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./Shoko.CLI*.zip
@@ -337,7 +337,7 @@ jobs:
         run: Compress-Archive ./Shoko.Server/bin/Release/net10.0/${{ matrix.rid }}/publish ./Shoko.TrayService_Framework_${{ matrix.rid }}.zip
 
       - name: Upload Release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./Shoko.TrayService*.zip
@@ -403,7 +403,7 @@ jobs:
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\Shoko.TrayService_Framework_win-x64.zip
 
       - name: Upload Release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./Shoko.TrayService*.zip
@@ -469,7 +469,7 @@ jobs:
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\Shoko.TrayService_Standalone_win-x64.zip
 
       - name: Upload Release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./Shoko.TrayService*.zip
@@ -480,7 +480,7 @@ jobs:
         run: iscc /O".\\" ".\\Installer\\ShokoServer.iss"
 
       - name: Upload Installer to GitHub
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # 2.11.5
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./Shoko.Setup.exe
@@ -488,7 +488,7 @@ jobs:
           file_glob: true
 
       - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2.8.1
+        uses: shimataro/ssh-key-action@87a8f067114a8ce263df83e9ed5c849953548bc3 # v2.8.1
         if: ${{ env.SSH_USERNAME != '' && env.SSH_SERVER != '' }}
         env:
           SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
@@ -687,7 +687,7 @@ jobs:
             "$(pwd)/metadata-branch/manifest.json" \
             "$(cat /tmp/entry.json)" \
             Stable
-      - uses: stefanzweifel/git-auto-commit-action@v7
+      - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         with:
           commit_message: "repo(manifest): update stable manifest [skip ci]"
           branch: metadata
@@ -718,7 +718,7 @@ jobs:
           # SENTRY_URL: https://sentry.io/
         with:
           environment: 'stable'
-          version: ${{ needs.current_info.outputs.version }}
+          release: ${{ needs.current_info.outputs.version }}
 
   cleanup-artifacts:
     runs-on: ubuntu-latest
@@ -730,17 +730,17 @@ jobs:
 
     steps:
       - name: Remove Web UI Artifact
-        uses: geekyeggo/delete-artifact@v6
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
           name: webui
 
       - name: Remove Released Plugin Artifacts
-        uses: geekyeggo/delete-artifact@v6
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
           name: Shoko.Plugin.*
 
       - name: Remove MediaInfo Artifact
-        uses: geekyeggo/delete-artifact@v6
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
           name: mediainfo
 

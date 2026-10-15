@@ -156,9 +156,11 @@ jobs:
           NEXT_COMMIT: ${{ github.sha }}
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "CHANGELOG<<$EOF" >> "$GITHUB_OUTPUT"
-          node .github/workflows/git-log-json.mjs $PREVIOUS_COMMIT..$NEXT_COMMIT | jq -r -f .github/workflows/changelog.jq >> "$GITHUB_OUTPUT"
-          echo -e "\n$EOF" >> "$GITHUB_OUTPUT"
+          {
+            echo "CHANGELOG<<$EOF"
+            node .github/workflows/git-log-json.mjs "$PREVIOUS_COMMIT..$NEXT_COMMIT" | jq -r -f .github/workflows/changelog.jq
+            echo -e "\n$EOF"
+          } >> "$GITHUB_OUTPUT"
 
   webui:
     runs-on: ubuntu-latest
@@ -755,7 +757,7 @@ jobs:
           ref: "${{ github.sha }}"
 
       - name: Push pre-release tag
-        uses: rickstaa/action-create-tag@v1
+        uses: rickstaa/action-create-tag@a1c7777fcb2fee4f19b0f283ba888afa11678b72 # v1.7.2
         with:
           force_push_tag: true
           tag: ${{ needs.current_info.outputs.tag }}
@@ -797,7 +799,7 @@ jobs:
             "$(pwd)/metadata-branch/manifest.json" \
             "$(cat /tmp/entry.json)" \
             Dev
-      - uses: stefanzweifel/git-auto-commit-action@v7
+      - uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
         with:
           commit_message: "repo(manifest): update dev manifest [skip ci]"
           branch: metadata
@@ -829,7 +831,7 @@ jobs:
           # SENTRY_URL: https://sentry.io/
         with:
           environment: 'dev'
-          version: ${{ needs.current_info.outputs.version_semver }}
+          release: ${{ needs.current_info.outputs.version_semver }}
 
   upload-site:
     runs-on: windows-latest
@@ -853,7 +855,7 @@ jobs:
           path: ShokoServer
 
       - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2.8.1
+        uses: shimataro/ssh-key-action@87a8f067114a8ce263df83e9ed5c849953548bc3 # v2.8.1
         with:
           key: ${{ secrets.FILES_SSH_KEY }}
           name: files_id_rsa
@@ -877,7 +879,7 @@ jobs:
 
     steps:
       - name: Notify Discord Users
-        uses: tsickert/discord-webhook@v7.0.0
+        uses: tsickert/discord-webhook@b217a69502f52803de774ded2b1ab7c282e99645 # v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           embed-color: 5809492
@@ -903,17 +905,17 @@ jobs:
 
     steps:
       - name: Remove Web UI Artifact
-        uses: geekyeggo/delete-artifact@v6
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
           name: webui
 
       - name: Remove Released Plugin Artifacts
-        uses: geekyeggo/delete-artifact@v6
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
           name: Shoko.Plugin.*
 
       - name: Remove MediaInfo Artifact
-        uses: geekyeggo/delete-artifact@v6
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
           name: mediainfo
 

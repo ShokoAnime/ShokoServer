@@ -147,7 +147,7 @@ jobs:
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\ShokoServer.zip
 
       - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2.8.1
+        uses: shimataro/ssh-key-action@87a8f067114a8ce263df83e9ed5c849953548bc3 # v2.8.1
         with:
           key: ${{ secrets.FILES_SSH_KEY }}
           name: files_id_rsa

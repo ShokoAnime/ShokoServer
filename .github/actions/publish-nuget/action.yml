@@ -43,7 +43,7 @@ runs:
       run: rm -rf ./nupkg
 
     - name: Tag release
-      uses: rickstaa/action-create-tag@v1
+      uses: rickstaa/action-create-tag@a1c7777fcb2fee4f19b0f283ba888afa11678b72 # v1.7.2
       with:
         tag: ${{ steps.version.outputs.tag }}
         message: "${{ inputs.project-file-path }} v${{ steps.version.outputs.version }}"
