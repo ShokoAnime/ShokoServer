@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.526",
+      "tag": "v6.0.0-dev.526",
+      "commit": "c20b2fa344bb1d6b7061b68ec2d1e6fc25900615",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.526/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-15T06:06:53Z",
+      "releaseNotes": "\n`feat` (`abstractions`): **Let a plugin declare its main configuration**:\n\n- Added `IPluginConfiguration` and `IPlugin<TConfiguration>`\n- `AddParts` attaches it as `LocalPluginInfo.ConfigurationInfo`\n- `/api/v3/Plugin` returns it as `Configuration`\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.106**.\n"
+    },
+    {
       "version": "6.0.0.525",
       "tag": "v6.0.0-dev.525",
       "commit": "bb39db58d52d24bceeb7dac657b5a0bfac5765a8",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.497/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-05T12:29:27Z",
       "releaseNotes": "\n`fix` (`tmdb`): **Accept ja, zh, cn and ko original_language for restricted auto-match** ([#1450](https://github.com/ShokoAnime/ShokoServer/pull/1450)):\n\nTMDb's genre tags are sparse for adult titles, so restricted anime without the Animation genre were dropped from auto-match candidates.\n"
-    },
-    {
-      "version": "6.0.0.496",
-      "tag": "v6.0.0-dev.496",
-      "commit": "cf3d46ef64d31e19caaba159225a0177922134c0",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.496/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-05T03:02:43Z",
-      "releaseNotes": "\n`fix`: **Stop a shared entry's image job from waiting on its own lock**:\n\n- Let `MetadataImageReconciler.Reconcile` skip the shared entity's lock when the image job already holds it, and wait on it with the job's token\n- An image job for a creator, character, studio or network of a plugin source (TMDb included since it became a plugin) waited on its own entry lock forever, filling the provider's pool\n"
     }
   ]
 }
