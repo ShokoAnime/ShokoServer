@@ -20,4 +20,4 @@ A plugin runs on the server whose abstractions it was built for. While 6.0 is in
 
 - [Writing a Shoko plugin](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.Abstractions/README.md), with a page per contract and service
 - [Sample plugins](https://github.com/ShokoAnime/SamplePlugins)
-- [Issues](https://github.com/ShokoAnime/ShokoServer/issues) and [Discord](https://discord.gg/vpeHDsg)
+- [Issues](https://github.com/ShokoAnime/ShokoServer/issues) and [Discord](https://discord.gg/shokoanime)

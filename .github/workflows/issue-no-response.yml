@@ -22,7 +22,7 @@ jobs:
             information that is currently in the issue, we don't have enough information
             to take action. Please reach out if you have or find the answers we need so
             that we can investigate further. You can also reach out to us on Discord:
-            https://discord.gg/vpeHDsg
+            https://discord.gg/shokoanime
           daysUntilClose: 30
           responseRequiredLabel: More Information Required
           responseRequiredColor: 844B5A

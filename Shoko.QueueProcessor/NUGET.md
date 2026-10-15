@@ -24,4 +24,4 @@ Define a job by implementing `IQueueJob`, register the assembly's jobs, and queu
 ## Documentation
 
 - [Full guide](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.QueueProcessor/README.md): setup, job chains, concurrency and acquisition filters, retries
-- [Issues](https://github.com/ShokoAnime/ShokoServer/issues) and [Discord](https://discord.gg/vpeHDsg)
+- [Issues](https://github.com/ShokoAnime/ShokoServer/issues) and [Discord](https://discord.gg/shokoanime)

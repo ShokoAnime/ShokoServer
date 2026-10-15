@@ -2,7 +2,7 @@
 
 Please create GitHub issues only for bugs and feature requests. If you need help with using Shoko or have a question, join us on Discord.
 
-https://discord.gg/vpeHDsg
+https://discord.gg/shokoanime
 
 ===== Guidelines ====
 

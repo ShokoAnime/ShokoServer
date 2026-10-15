@@ -14,4 +14,4 @@ Nothing else is needed; the targets run as part of `dotnet build`. To also pack 
 
 - [Build tools guide](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md)
 - [Writing a Shoko plugin](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.Abstractions/README.md)
-- [Issues](https://github.com/ShokoAnime/ShokoServer/issues) and [Discord](https://discord.gg/vpeHDsg)
+- [Issues](https://github.com/ShokoAnime/ShokoServer/issues) and [Discord](https://discord.gg/shokoanime)

@@ -15,4 +15,4 @@ For the metadata alone, on every ordinary `dotnet build`, reference [Shoko.Build
 
 - [Full guide](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md): options, plugin metadata, the manifest format
 - [Plugin template](https://github.com/ShokoAnime/Plugin-Template), with a release workflow using this tool
-- [Issues](https://github.com/ShokoAnime/ShokoServer/issues) and [Discord](https://discord.gg/vpeHDsg)
+- [Issues](https://github.com/ShokoAnime/ShokoServer/issues) and [Discord](https://discord.gg/shokoanime)

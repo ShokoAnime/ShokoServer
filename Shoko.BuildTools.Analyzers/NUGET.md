@@ -14,4 +14,4 @@ Every rule is an error in the `Shoko.Configuration` category.
 
 - [Rules](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools.Analyzers/README.md), each with the message the server gives for the same mistake
 - [Writing a Shoko plugin](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.Abstractions/README.md)
-- [Issues](https://github.com/ShokoAnime/ShokoServer/issues) and [Discord](https://discord.gg/vpeHDsg)
+- [Issues](https://github.com/ShokoAnime/ShokoServer/issues) and [Discord](https://discord.gg/shokoanime)
