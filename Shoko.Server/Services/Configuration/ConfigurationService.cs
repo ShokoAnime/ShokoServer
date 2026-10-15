@@ -175,12 +175,12 @@ public partial class ConfigurationService : IConfigurationService
             PluginInfo = _pluginManager.GetPluginInfo<CorePlugin>()!,
         };
         _configurationTypes.TryRemove(Guid.Empty, out _);
-        if (_serializedSchemas.TryRemove(serverSettingsInfo, out var serializedSchema))
-            _serializedSchemas[_configurationTypes[serverSettingsID]] = serializedSchema;
+        _serializedSchemas[_configurationTypes[serverSettingsID]] = _serializedSchemas[serverSettingsInfo];
+        _serializedSchemas.TryRemove(serverSettingsInfo, out _);
         _wrappedSchemas[serverSettingsID] = _wrappedSchemas[Guid.Empty];
         _wrappedSchemas.TryRemove(Guid.Empty, out _);
-        if (_loadedConfigurations.TryRemove(Guid.Empty, out var serverSettings))
-            _loadedConfigurations[serverSettingsID] = serverSettings;
+        _loadedConfigurations[serverSettingsID] = _loadedConfigurations[Guid.Empty];
+        _loadedConfigurations.TryRemove(Guid.Empty, out _);
         if (InternalLoadedEnvironmentVariables.TryGetValue(Guid.Empty, out var envVarDict))
         {
             InternalLoadedEnvironmentVariables[serverSettingsID] = envVarDict;
