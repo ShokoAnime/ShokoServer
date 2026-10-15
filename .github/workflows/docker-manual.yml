@@ -129,6 +129,7 @@ jobs:
             ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }}
           platforms: linux/${{ matrix.arch }}
           build-args: |
+            bundle_plugins=true
             version=${{ github.event.inputs.version }}
             channel=${{ github.event.inputs.release }}
             commit=${{ github.sha }}

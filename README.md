@@ -18,9 +18,12 @@ your favorite anime.
 # Supported Media Players
 Shoko currently supports the following media players.
 
+- Plex via **Shoko Relay** (server plugin) [Download](https://github.com/natyusha/ShokoRelay/releases/) | [Github Repo](https://github.com/natyusha/ShokoRelay)
+- Plex via **Shoko Relay** (Plex bundle) [Download](https://github.com/natyusha/ShokoRelay.bundle/releases/) | [Github Repo](https://github.com/natyusha/ShokoRelay.bundle)
 - Plex via **ShokoMetadata** [Download](https://github.com/Cazzar/ShokoMetadata.bundle/releases/) | [Github Repo](https://github.com/Cazzar/ShokoMetadata.bundle)
 - Jellyfin via **Shokofin** [Download](https://github.com/ShokoAnime/Shokofin/releases/) | [Github Repo](https://github.com/ShokoAnime/Shokofin)
 - Kodi via **Nakamori** [Download](https://shokunin.monogatari.pl/projects/nakamori/nakamori-installation/) | [Github Repo](https://github.com/bigretromike/nakamori/)
+- Kodi via **Shokodi** [Download](https://github.com/ShokoAnime/Shokodi/releases/) | [Github Repo](https://github.com/ShokoAnime/Shokodi)
 
 Don't see your media player above? If you're a developer who wants to integrate Shoko with a new media player, join our
 Discord, and we'll be more than happy to provide guidance and assistance.
@@ -28,8 +31,8 @@ Discord, and we'll be more than happy to provide guidance and assistance.
 **At this time, the Shoko team itself has no plans to integrate Shoko with any other media players.**
 
 # Bundled Plugins
-The server ships with three first-party plugins. They load as system plugins, are enabled by default and cannot be
-uninstalled:
+Official builds ship with these first-party plugins. The copies shipped with the server load as system plugins, are
+enabled by default and cannot be uninstalled; an update installed over one into the user data `plugins` folder can be:
 
 - **TMDB** ([`Shoko.Plugin.Tmdb`](https://github.com/ShokoAnime/Shoko.Plugin.Tmdb), developed in its own repository and
   bundled from its latest release) supplies The Movie Database metadata for the `tmdb` source: shows, seasons, episodes,
@@ -39,10 +42,19 @@ uninstalled:
   and bundled from its latest release) holds the WebAOM renamer, the default relocation provider. It covers basic file
   names and is feature-frozen; for a folder structure of your own or several managed folders, use the
   [Lua renamer](https://github.com/Mik1ll/LuaRenamer) or a custom relocation provider.
+- **Offline Importer** ([`Shoko.Plugin.OfflineImporter`](https://github.com/ShokoAnime/Shoko.Plugin.OfflineImporter),
+  developed in its own repository and bundled from its latest release) imports releases from file names.
 - **Legacy Plex Sync Support** (`Shoko.Plugin.LegacyPlex`) holds the legacy Plex support: the `/plex` webhook and
-  routes, the Plex account linking and the watched state sync. Disabling the plugin turns all of it off.
+  routes, the Plex account linking and the watched state sync. Disabling the plugin turns all of it off. For Plex,
+  [Shoko Relay](https://github.com/natyusha/ShokoRelay) takes over from it.
 
 Other plugins are installed into the `plugins` folder under `SHOKO_HOME`.
+
+Legacy Plex Sync Support is built with the server. The others are released from their own repositories, and a build
+from source leaves them out unless asked: pass `-p:ShokoBundleReleasedPlugins=true` to bundle their latest stable
+releases, each checked against the SHA-256 its published manifest gives. Without it, install them from the Shoko Core
+Repository in the Web UI. A build without network, such as a packaging sandbox, can fill `.cache/plugins/` itself and
+add `-p:ShokoReleasedPluginsOffline=true`; `ReleasedPlugins.targets` describes the layout.
 
 # Docker
 

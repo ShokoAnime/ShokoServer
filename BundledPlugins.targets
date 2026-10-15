@@ -5,8 +5,12 @@
     where the server loads the system plugins from. Imported by the projects
     that assemble a runnable server (`Shoko.CLI` and `Shoko.TrayService`).
 
-    To bundle another plugin, add one `ShokoBundledPlugin` item below.
+    To bundle another plugin, add one `ShokoBundledPlugin` item below. The
+    first-party plugins that live in repositories of their own are bundled by
+    `ReleasedPlugins.targets`, imported here.
   -->
+
+  <Import Project="ReleasedPlugins.targets" />
 
   <ItemGroup>
     <ShokoBundledPlugin Include="$(MSBuildThisFileDirectory)Shoko.Plugin.LegacyPlex\Shoko.Plugin.LegacyPlex.csproj" />

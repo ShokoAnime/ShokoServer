@@ -5,6 +5,10 @@ ARG channel
 ARG commit
 ARG tag
 ARG date
+# Bundle the plugins released from their own repositories; `plugins_offline` reads
+# them from `.cache/plugins` in the build context instead of the network.
+ARG bundle_plugins=false
+ARG plugins_offline=false
 
 #MAINTAINER Cayde Dixon <me@cazzar.net>
 
@@ -12,7 +16,7 @@ RUN mkdir -p /usr/src/app/source /usr/src/app/build
 COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
 
-RUN dotnet build -c=Release -r linux-x64 -f net10.0 -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
+RUN dotnet build -c=Release -r linux-x64 -f net10.0 -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\"" /p:ShokoBundleReleasedPlugins=${bundle_plugins} /p:ShokoReleasedPluginsOffline=${plugins_offline}
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 ENV PUID=1000 \

@@ -192,6 +192,46 @@ jobs:
           path: webui/
           retention-days: 1
 
+  plugins:
+    runs-on: ubuntu-latest
+
+    name: Fetch ${{ matrix.plugin }}
+
+    strategy:
+      matrix:
+        plugin: [ Shoko.Plugin.OfflineImporter, Shoko.Plugin.Tmdb, Shoko.Plugin.WebAOM ]
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@v7
+        with:
+          ref: "${{ github.sha }}"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.x'
+
+      # One cache entry per plugin, carried across runs: a release is downloaded
+      # once, and a run that cannot reach it falls back to the one before.
+      - name: Cache ${{ matrix.plugin }}
+        uses: actions/cache@v6
+        with:
+          path: .cache/plugins/${{ matrix.plugin }}
+          key: plugin-${{ matrix.plugin }}-${{ github.run_id }}
+          restore-keys: plugin-${{ matrix.plugin }}-
+
+      - name: Fetch and Verify ${{ matrix.plugin }}
+        run: dotnet msbuild ReleasedPlugins.targets -t:ShokoFetchReleasedPlugins -p:ShokoReleasedPluginName=${{ matrix.plugin }}
+
+      - name: Upload ${{ matrix.plugin }} Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.plugin }}
+          path: .cache/plugins/${{ matrix.plugin }}/
+          include-hidden-files: true
+          retention-days: 1
+
   mediainfo:
     runs-on: ubuntu-latest
 
@@ -373,6 +413,7 @@ jobs:
       - current_info
       - plugin-nuget
       - webui
+      - plugins
 
     strategy:
       matrix:
@@ -404,6 +445,13 @@ jobs:
           name: webui
           path: Shoko.Server/webui
 
+      # The released plugins the plugins job fetched, read offline by the build.
+      - name: Download Released Plugins
+        uses: actions/download-artifact@v8
+        with:
+          pattern: Shoko.Plugin.*
+          path: .cache/plugins
+
       - name: Replace Sentry DSN
         if: ${{ env.SENTRY_DSN != '' }}
         shell: pwsh
@@ -429,7 +477,7 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Run dotnet publish
-        run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
+        run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\"" -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -444,6 +492,7 @@ jobs:
       - current_info
       - plugin-nuget
       - webui
+      - plugins
 
     strategy:
       matrix:
@@ -468,6 +517,13 @@ jobs:
           name: webui
           path: Shoko.Server/webui
 
+      # The released plugins the plugins job fetched, read offline by the build.
+      - name: Download Released Plugins
+        uses: actions/download-artifact@v8
+        with:
+          pattern: Shoko.Plugin.*
+          path: .cache/plugins
+
       - name: Replace Sentry DSN
         if: ${{ env.SENTRY_DSN != '' }}
         shell: pwsh
@@ -493,7 +549,7 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Run dotnet publish
-        run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
+        run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\"" -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -508,6 +564,7 @@ jobs:
       - current_info
       - plugin-nuget
       - webui
+      - plugins
       - mediainfo
 
     strategy:
@@ -538,6 +595,13 @@ jobs:
           name: webui
           path: Shoko.Server/webui
 
+      # The released plugins the plugins job fetched, read offline by the build.
+      - name: Download Released Plugins
+        uses: actions/download-artifact@v8
+        with:
+          pattern: Shoko.Plugin.*
+          path: .cache/plugins
+
       - name: Replace Sentry DSN
         if: ${{ env.SENTRY_DSN != '' }}
         shell: pwsh
@@ -563,7 +627,7 @@ jobs:
           path: .cache/mediainfo
 
       - name: Run dotnet publish
-        run: dotnet publish -c Release -r win-x64 -f net10.0 ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+        run: dotnet publish -c Release -r win-x64 -f net10.0 ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -578,6 +642,7 @@ jobs:
       - current_info
       - plugin-nuget
       - webui
+      - plugins
       - mediainfo
 
     strategy:
@@ -602,6 +667,13 @@ jobs:
           name: webui
           path: Shoko.Server/webui
 
+      # The released plugins the plugins job fetched, read offline by the build.
+      - name: Download Released Plugins
+        uses: actions/download-artifact@v8
+        with:
+          pattern: Shoko.Plugin.*
+          path: .cache/plugins
+
       - name: Replace Sentry DSN
         if: ${{ env.SENTRY_DSN != '' }}
         shell: pwsh
@@ -627,7 +699,7 @@ jobs:
           path: .cache/mediainfo
 
       - name: Run dotnet publish
-        run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+        run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true
 
       - name: Build Installer
         run: iscc /O".\\" ".\\Installer\\ShokoServer.iss"
@@ -645,6 +717,7 @@ jobs:
       - current_info
       - plugin-nuget
       - webui
+      - plugins
 
     strategy:
       fail-fast: false
@@ -669,6 +742,13 @@ jobs:
         with:
           name: webui
           path: Shoko.Server/webui
+
+      # The released plugins the plugins job fetched, read offline by the build.
+      - name: Download Released Plugins
+        uses: actions/download-artifact@v8
+        with:
+          pattern: Shoko.Plugin.*
+          path: .cache/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -712,6 +792,8 @@ jobs:
             ${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }}
           platforms: linux/${{ matrix.arch }}
           build-args: |
+            bundle_plugins=true
+            plugins_offline=true
             version=${{ needs.current_info.outputs.version }}
             channel=dev
             commit=${{ needs.current_info.outputs.sha }}
@@ -922,6 +1004,11 @@ jobs:
         uses: geekyeggo/delete-artifact@v6
         with:
           name: webui
+
+      - name: Remove Released Plugin Artifacts
+        uses: geekyeggo/delete-artifact@v6
+        with:
+          name: Shoko.Plugin.*
 
       - name: Remove MediaInfo Artifact
         uses: geekyeggo/delete-artifact@v6

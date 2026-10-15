@@ -1,0 +1,345 @@
+<Project>
+  <!--
+    Bundles the latest stable release of the first-party plugins that live in
+    repositories of their own, copying each to `plugins/<name>/` in the build
+    and publish output, beside the plugins built in this repository. Imported
+    by `BundledPlugins.targets`.
+
+    Off by default, so a build from source never reaches for the network. Set
+    `ShokoBundleReleasedPlugins` to `true` to bundle them, as official builds
+    do.
+
+    Each plugin's published manifest names its newest release and the SHA-256
+    of the archive. Accepted archives are kept in `.cache/plugins/<name>/`
+    with their SHA-256, and the manifest is read again at most once a day. A
+    build that cannot reach the network uses the newest archive accepted
+    before, or one that the cached manifest vouches for.
+
+    For a build without network, such as a packaging sandbox, fill the cache
+    yourself and set `ShokoReleasedPluginsOffline` to `true`:
+
+      <ShokoReleasedPluginsCache>/<name>/manifest.json
+      <ShokoReleasedPluginsCache>/<name>/<version>/<archive file name>
+
+    where the manifest is the plugin's published one (the `ManifestUrl` below)
+    and the archive is the release's archive it lists. The archive is checked
+    against the SHA-256 the manifest gives for it.
+
+    To bundle another plugin, add one `ShokoReleasedPlugin` item below.
+  -->
+  <PropertyGroup>
+    <ShokoBundleReleasedPlugins Condition="'$(ShokoBundleReleasedPlugins)' == ''">false</ShokoBundleReleasedPlugins>
+    <ShokoReleasedPluginsOffline Condition="'$(ShokoReleasedPluginsOffline)' == ''">false</ShokoReleasedPluginsOffline>
+    <ShokoReleasedPluginsCache Condition="'$(ShokoReleasedPluginsCache)' == ''">$(MSBuildThisFileDirectory).cache\plugins\</ShokoReleasedPluginsCache>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ShokoReleasedPlugin Include="Shoko.Plugin.OfflineImporter" ManifestUrl="https://raw.githubusercontent.com/ShokoAnime/Shoko.Plugin.OfflineImporter/metadata/manifest.json" />
+    <ShokoReleasedPlugin Include="Shoko.Plugin.Tmdb" ManifestUrl="https://raw.githubusercontent.com/ShokoAnime/Shoko.Plugin.Tmdb/metadata/manifest.json" />
+    <ShokoReleasedPlugin Include="Shoko.Plugin.WebAOM" ManifestUrl="https://raw.githubusercontent.com/ShokoAnime/Shoko.Plugin.WebAOM/metadata/manifest.json" />
+  </ItemGroup>
+
+  <UsingTask TaskName="_ShokoFetchReleasedPlugin"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <CacheRoot ParameterType="System.String" Required="true" />
+      <Name ParameterType="System.String" Required="true" />
+      <ManifestUrl ParameterType="System.String" Required="true" />
+      <Offline ParameterType="System.Boolean" />
+      <Version ParameterType="System.String" Output="true" />
+      <Archive ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Class" Language="cs"><![CDATA[
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+public class _ShokoFetchReleasedPlugin : Task
+{
+    private static readonly HttpClient Client = CreateClient();
+
+    [Required]
+    public string CacheRoot { get; set; }
+
+    [Required]
+    public string Name { get; set; }
+
+    [Required]
+    public string ManifestUrl { get; set; }
+
+    public bool Offline { get; set; }
+
+    [Output]
+    public string Version { get; set; }
+
+    [Output]
+    public string Archive { get; set; }
+
+    private string PluginRoot => Path.Combine(CacheRoot, Name);
+
+    public override bool Execute()
+    {
+        Directory.CreateDirectory(PluginRoot);
+        var releases = ReadReleases();
+        var latest = releases.FirstOrDefault();
+        if (latest != null && (TryUseCached(latest) || (!Offline && TryDownload(latest))))
+            return true;
+
+        // Offline, or the release is not reachable: the newest archive accepted before, or one
+        // the cached manifest vouches for.
+        var found = releases.Skip(latest == null ? 0 : 1).Any(TryUseCached)
+            || Directory.GetDirectories(PluginRoot)
+                .Select(Path.GetFileName)
+                .Where(name => releases.All(release => release.Version != name))
+                .OrderByDescending(SortKey)
+                .Any(TryUseAccepted);
+        if (!found)
+        {
+            Log.LogError("Could not get the {0} plugin, and no earlier release of it is cached.", Name);
+            return false;
+        }
+
+        Log.LogWarning("Could not get the latest {0} plugin; using the cached {1}.", Name, Version);
+        return true;
+    }
+
+    private sealed class Release
+    {
+        public Release(string version, string url, string hash)
+        {
+            Version = version;
+            Url = url;
+            Hash = hash;
+        }
+
+        public string Version { get; }
+
+        public string Url { get; }
+
+        public string Hash { get; }
+
+        public string FileName => Url == null ? null : Path.GetFileName(new Uri(Url).AbsolutePath);
+    }
+
+    private static HttpClient CreateClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("ShokoServer-Build (+https://github.com/ShokoAnime/ShokoServer)");
+        return client;
+    }
+
+    // The stable releases with an archive for any runtime, newest first, as the manifest lists them.
+    private List<Release> ReadReleases()
+    {
+        var cachedPath = Path.Combine(PluginRoot, "manifest.json");
+        string text = null;
+        if (File.Exists(cachedPath) && (Offline || DateTime.UtcNow - File.GetLastWriteTimeUtc(cachedPath) < TimeSpan.FromDays(1)))
+            text = File.ReadAllText(cachedPath);
+
+        if (text == null && !Offline)
+        {
+            try
+            {
+                text = Client.GetStringAsync(ManifestUrl).GetAwaiter().GetResult();
+                try { File.WriteAllText(cachedPath, text); } catch (IOException) { }
+            }
+            catch (Exception ex)
+            {
+                Log.LogWarning("Could not read the {0} manifest: {1}", Name, ex.Message);
+            }
+        }
+
+        if (text == null && File.Exists(cachedPath))
+            text = File.ReadAllText(cachedPath);
+
+        var releases = new List<Release>();
+        if (text == null)
+            return releases;
+
+        // Each release object, cut at the next release's version; a release's archives sit
+        // between its own version and the next one's.
+        var versions = Regex.Matches(text, "\"version\"\\s*:\\s*\"([^\"]+)\"");
+        for (var i = 0; i < versions.Count; i++)
+        {
+            var start = versions[i].Index;
+            var end = i + 1 < versions.Count ? versions[i + 1].Index : text.Length;
+            var block = text.Substring(start, end - start);
+            if (!Regex.IsMatch(block, "\"channel\"\\s*:\\s*\"Stable\""))
+                continue;
+
+            foreach (Match archive in Regex.Matches(block, "\\{[^{}]*\"runtime\"\\s*:\\s*\"any\"[^{}]*\\}"))
+            {
+                var url = Regex.Match(archive.Value, "\"url\"\\s*:\\s*\"(https://[^\"]+)\"");
+                var hash = Regex.Match(archive.Value, "\"checksum\"\\s*:\\s*\"sha256:([0-9a-fA-F]{64})\"");
+                if (url.Success && hash.Success)
+                {
+                    releases.Add(new Release(versions[i].Groups[1].Value, url.Groups[1].Value, hash.Groups[1].Value));
+                    break;
+                }
+            }
+        }
+
+        if (releases.Count == 0)
+            Log.LogWarning("The {0} manifest lists no stable release for any runtime.", Name);
+        return releases;
+    }
+
+    // Plain numeric versions in order, anything else after them.
+    private static System.Version SortKey(string name)
+        => System.Version.TryParse(name.Split('-')[0], out var version) ? version : new System.Version(0, 0);
+
+    private static string HashOf(string path)
+    {
+        using (var stream = File.OpenRead(path))
+        using (var sha = SHA256.Create())
+            return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "");
+    }
+
+    private string ArchiveIn(string version)
+    {
+        var folder = Path.Combine(PluginRoot, version);
+        return Directory.Exists(folder)
+            ? Directory.GetFiles(folder, "*.zip").FirstOrDefault()
+            : null;
+    }
+
+    // An archive of the given release, checked against the release's SHA-256 or one accepted before.
+    private bool TryUseCached(Release release)
+    {
+        var archive = Path.Combine(PluginRoot, release.Version, release.FileName);
+        if (!File.Exists(archive))
+            return false;
+
+        var hash = HashOf(archive);
+        if (!string.Equals(hash, release.Hash, StringComparison.OrdinalIgnoreCase))
+        {
+            Log.LogMessage(MessageImportance.High, "Dropping the cached {0} {1}, which does not match its manifest.", Name, release.Version);
+            Directory.Delete(Path.GetDirectoryName(archive), true);
+            return false;
+        }
+
+        File.WriteAllText(archive + ".sha256", hash);
+        Version = release.Version;
+        Archive = archive;
+        return true;
+    }
+
+    // An archive the manifest no longer lists, used only when it was accepted before.
+    private bool TryUseAccepted(string version)
+    {
+        var archive = ArchiveIn(version);
+        if (archive == null || !File.Exists(archive + ".sha256"))
+            return false;
+
+        if (!string.Equals(HashOf(archive), File.ReadAllText(archive + ".sha256").Trim(), StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        Version = version;
+        Archive = archive;
+        return true;
+    }
+
+    private bool TryDownload(Release release)
+    {
+        var folder = Path.Combine(PluginRoot, release.Version);
+        var archive = Path.Combine(folder, release.FileName);
+        Log.LogMessage(MessageImportance.High, "Downloading the {0} plugin {1} from {2}", Name, release.Version, release.Url);
+        try
+        {
+            Directory.CreateDirectory(folder);
+            var partial = archive + ".part";
+            using (var response = Client.GetAsync(release.Url).GetAwaiter().GetResult())
+            {
+                response.EnsureSuccessStatusCode();
+                using (var file = File.Create(partial))
+                    response.Content.CopyToAsync(file).GetAwaiter().GetResult();
+            }
+
+            var hash = HashOf(partial);
+            if (!string.Equals(hash, release.Hash, StringComparison.OrdinalIgnoreCase))
+            {
+                Directory.Delete(folder, true);
+                Log.LogWarning("The {0} plugin {1} has SHA-256 {2}, but its manifest says {3}.", Name, release.Version, hash, release.Hash);
+                return false;
+            }
+
+            File.Move(partial, archive);
+            File.WriteAllText(archive + ".sha256", hash);
+        }
+        catch (Exception ex)
+        {
+            try { Directory.Delete(folder, true); } catch (IOException) { }
+            Log.LogWarning("Downloading the {0} plugin {1} failed: {2}", Name, release.Version, ex.Message);
+            return false;
+        }
+
+        Version = release.Version;
+        Archive = archive;
+        return true;
+    }
+}
+]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+    Fetches the released plugins named by `ShokoReleasedPluginName`, or all of
+    them when it is empty, into the cache. The CI runs it on its own, one
+    plugin per job, to fill the cache the builds then read offline.
+  -->
+  <Target Name="ShokoFetchReleasedPlugins">
+    <ItemGroup>
+      <_ShokoReleasedPluginToFetch Include="@(ShokoReleasedPlugin)" Condition="'$(ShokoReleasedPluginName)' == '' or '%(ShokoReleasedPlugin.Identity)' == '$(ShokoReleasedPluginName)'" />
+    </ItemGroup>
+
+    <Error Text="No released plugin is named &quot;$(ShokoReleasedPluginName)&quot;." Condition="'@(_ShokoReleasedPluginToFetch)' == ''" />
+
+    <_ShokoFetchReleasedPlugin CacheRoot="$(ShokoReleasedPluginsCache)"
+                               Name="%(_ShokoReleasedPluginToFetch.Identity)"
+                               ManifestUrl="%(_ShokoReleasedPluginToFetch.ManifestUrl)"
+                               Offline="$(ShokoReleasedPluginsOffline)">
+      <Output TaskParameter="Archive" ItemName="_ShokoReleasedPluginArchive" />
+    </_ShokoFetchReleasedPlugin>
+  </Target>
+
+  <!--
+    Unpacks every released plugin from the cache and adds its files to the
+    output under `plugins/<name>/`.
+  -->
+  <Target Name="_ShokoBundleReleasedPlugins"
+          BeforeTargets="AssignTargetPaths"
+          DependsOnTargets="ShokoFetchReleasedPlugins"
+          Condition="'$(ShokoBundleReleasedPlugins)' == 'true' and '@(ShokoReleasedPlugin)' != ''">
+    <ItemGroup>
+      <_ShokoReleasedPluginArchive>
+        <PluginName>$([System.IO.Path]::GetFileName($([System.IO.Path]::GetDirectoryName($([System.IO.Path]::GetDirectoryName('%(FullPath)'))))))</PluginName>
+        <Unpacked>%(RootDir)%(Directory)unpacked\</Unpacked>
+      </_ShokoReleasedPluginArchive>
+    </ItemGroup>
+
+    <Unzip SourceFiles="@(_ShokoReleasedPluginArchive)"
+           DestinationFolder="%(_ShokoReleasedPluginArchive.Unpacked)"
+           OverwriteReadOnlyFiles="true"
+           Condition="!Exists('%(_ShokoReleasedPluginArchive.Unpacked)')" />
+
+    <ItemGroup>
+      <_ShokoReleasedPluginFile Include="%(_ShokoReleasedPluginArchive.Unpacked)**\*">
+        <PluginName>%(_ShokoReleasedPluginArchive.PluginName)</PluginName>
+      </_ShokoReleasedPluginFile>
+      <None Include="@(_ShokoReleasedPluginFile)"
+            Link="plugins\%(_ShokoReleasedPluginFile.PluginName)\%(_ShokoReleasedPluginFile.RecursiveDir)%(_ShokoReleasedPluginFile.Filename)%(_ShokoReleasedPluginFile.Extension)"
+            CopyToOutputDirectory="PreserveNewest"
+            CopyToPublishDirectory="PreserveNewest"
+            ExcludeFromSingleFile="true"
+            Visible="false" />
+    </ItemGroup>
+  </Target>
+</Project>
