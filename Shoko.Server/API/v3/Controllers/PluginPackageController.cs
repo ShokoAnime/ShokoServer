@@ -57,16 +57,20 @@ public class PluginPackageController(
     /// </returns>
     [HttpGet("Settings")]
     public ActionResult<PluginPackageSettings> GetPluginPackageSettings()
-        => new PluginPackageSettings
+    {
+        var updates = ((ServerSettings)SettingsProvider.GetSettings()).Plugins.Updates;
+        return new PluginPackageSettings
         {
-            IsAutoSyncEnabled = packageManager.IsAutoSyncEnabled,
-            IsAutoUpgradeEnabled = packageManager.IsAutoUpgradeEnabled,
-            DefaultRepositoryStaleTime = packageManager.DefaultRepositoryStaleTime,
-            InactivePluginVersionRetention = packageManager.InactivePluginVersionRetention,
+            IsAutoUpgradeEnabled = updates.IsAutoUpgradeEnabled,
+            IsUpgradeOnStartEnabled = updates.IsUpgradeOnStartEnabled,
+            DefaultRepositoryStaleTime = updates.DefaultRepositoryStaleTime,
+            RepositoryStaleTimeOnStart = updates.RepositoryStaleTimeOnStart,
+            InactivePluginVersionRetention = updates.InactivePluginVersionRetention,
         };
+    }
 
     /// <summary>
-    ///   Updates the plugin package manager settings.
+    ///   Updates the plugin package manager settings, all in one save.
     /// </summary>
     /// <param name="body">
     ///   The settings to update.
@@ -77,15 +81,30 @@ public class PluginPackageController(
     [HttpPost("Settings")]
     public ActionResult UpdatePluginPackageSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdatePluginPackageSettingsBody body)
     {
-        if (body.IsAutoSyncEnabled.HasValue)
-            packageManager.IsAutoSyncEnabled = body.IsAutoSyncEnabled.Value;
-        if (body.IsAutoUpgradeEnabled.HasValue)
-            packageManager.IsAutoUpgradeEnabled = body.IsAutoUpgradeEnabled.Value;
-        if (body.DefaultRepositoryStaleTime.HasValue)
-            packageManager.DefaultRepositoryStaleTime = body.DefaultRepositoryStaleTime.Value;
-        if (body.InactivePluginVersionRetention.HasValue)
-            packageManager.InactivePluginVersionRetention = body.InactivePluginVersionRetention.Value;
+        if (body.DefaultRepositoryStaleTime < TimeSpan.Zero)
+            ModelState.AddModelError(nameof(body.DefaultRepositoryStaleTime), "Stale time cannot be lower than zero.");
+        if (body.RepositoryStaleTimeOnStart < TimeSpan.Zero)
+            ModelState.AddModelError(nameof(body.RepositoryStaleTimeOnStart), "Stale time cannot be lower than zero.");
+        if (body.InactivePluginVersionRetention < TimeSpan.Zero)
+            ModelState.AddModelError(nameof(body.InactivePluginVersionRetention), "Retention cannot be lower than zero.");
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
+        // Straight to the settings, so all the changes are saved, and announced, once.
+        var settings = (ServerSettings)SettingsProvider.GetSettings(copy: true);
+        var updates = settings.Plugins.Updates;
+        if (body.IsAutoUpgradeEnabled.HasValue)
+            updates.IsAutoUpgradeEnabled = body.IsAutoUpgradeEnabled.Value;
+        if (body.IsUpgradeOnStartEnabled.HasValue)
+            updates.IsUpgradeOnStartEnabled = body.IsUpgradeOnStartEnabled.Value;
+        if (body.DefaultRepositoryStaleTime.HasValue)
+            updates.DefaultRepositoryStaleTime = body.DefaultRepositoryStaleTime.Value;
+        if (body.RepositoryStaleTimeOnStart.HasValue)
+            updates.RepositoryStaleTimeOnStart = body.RepositoryStaleTimeOnStart.Value;
+        if (body.InactivePluginVersionRetention.HasValue)
+            updates.InactivePluginVersionRetention = body.InactivePluginVersionRetention.Value;
+
+        SettingsProvider.SaveSettings(settings);
         return Ok();
     }
 

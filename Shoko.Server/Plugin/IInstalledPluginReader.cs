@@ -1,0 +1,35 @@
+using System;
+using System.Collections.Generic;
+
+namespace Shoko.Server.Plugin;
+
+/// <summary>
+///   Reads the installed plugins the way the plugin scan does, without
+///   registering any of them, so the package manager can look at them before
+///   the scan runs.
+/// </summary>
+public interface IInstalledPluginReader
+{
+    /// <summary>
+    ///   Reads every installed plugin, system and user ones alike.
+    /// </summary>
+    /// <returns>The installed plugins, one entry per installed version.</returns>
+    IReadOnlyList<InstalledPlugin> ReadInstalledPlugins();
+
+    /// <summary>
+    ///   Reads the plugin in one directory.
+    /// </summary>
+    /// <param name="directoryPath">The directory holding the plugin.</param>
+    /// <returns>The plugin, or <c>null</c> when the directory holds none.</returns>
+    InstalledPlugin? ReadPlugin(string directoryPath);
+}
+
+/// <summary>
+///   An installed version of a plugin, as the plugin scan reads it.
+/// </summary>
+/// <param name="ID">The plugin's ID.</param>
+/// <param name="Name">The plugin's name.</param>
+/// <param name="Version">The installed version.</param>
+/// <param name="IsEnabled">Whether the plugin is enabled.</param>
+/// <param name="IsPinned">Whether this version is pinned.</param>
+public sealed record InstalledPlugin(Guid ID, string Name, Version Version, bool IsEnabled, bool IsPinned);

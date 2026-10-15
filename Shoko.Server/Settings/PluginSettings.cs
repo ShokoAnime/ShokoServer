@@ -84,16 +84,21 @@ public class PluginSettings
     public class PluginUpdatesSettings
     {
         /// <summary>
-        ///   Whether automatic repository syncing is enabled.
-        /// </summary>
-        [DefaultValue(false)]
-        public bool IsAutoSyncEnabled { get; set; } = false;
-
-        /// <summary>
         ///   Whether automatic plugin upgrades are enabled.
         /// </summary>
         [DefaultValue(false)]
+        [EnvironmentVariable("SHOKO_PLUGIN_AUTO_UPGRADE_ENABLED")]
         public bool IsAutoUpgradeEnabled { get; set; } = false;
+
+        /// <summary>
+        ///   Whether the server installs the newest compatible release of each
+        ///   installed plugin while it starts, before the plugins load. Pinned
+        ///   plugins are left alone. Independent of
+        ///   <see cref="IsAutoUpgradeEnabled"/>.
+        /// </summary>
+        [DefaultValue(true)]
+        [EnvironmentVariable("SHOKO_PLUGIN_UPGRADE_ON_START_ENABLED")]
+        public bool IsUpgradeOnStartEnabled { get; set; } = true;
 
         /// <summary>
         ///   Default time before a repository's packages are considered stale.
@@ -101,6 +106,15 @@ public class PluginSettings
         /// </summary>
         [DefaultValue("12:00:00.000000")]
         public TimeSpan DefaultRepositoryStaleTime { get; set; } = TimeSpan.FromHours(12);
+
+        /// <summary>
+        ///   How old a repository's packages may be when the server starts
+        ///   before the upgrades on start fetch them again; the repository's
+        ///   own stale time applies when shorter. Defaults to 5 minutes, so a
+        ///   start soon after another does not fetch them again.
+        /// </summary>
+        [DefaultValue("00:05:00.000000")]
+        public TimeSpan RepositoryStaleTimeOnStart { get; set; } = TimeSpan.FromMinutes(5);
 
         /// <summary>
         ///   The keys of the repositories shipped with the server that were
@@ -118,7 +132,7 @@ public class PluginSettings
         ///   A <c>.keep</c> file protects a version. Zero removes it at the
         ///   next run. Defaults to 30 days.
         /// </summary>
-        [DefaultValue("720.00:00.000000")]
+        [DefaultValue("30.00:00:00.000000")]
         public TimeSpan InactivePluginVersionRetention { get; set; } = TimeSpan.FromDays(30);
     }
 }

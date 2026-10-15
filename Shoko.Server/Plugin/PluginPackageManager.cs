@@ -31,14 +31,24 @@ namespace Shoko.Server.Plugin;
 
 /// <summary>
 ///   Responsible for package installation, upgrades, and repository management.
+///   Built before the web host, so it can install upgrades before the plugin
+///   scan.
 /// </summary>
+/// <param name="configurationProvider">The server settings.</param>
+/// <param name="logger">The logger.</param>
+/// <param name="httpClientFactory">Hands out the core's <c>"Default"</c> client.</param>
+/// <param name="pluginManager">The plugin manager.</param>
+/// <param name="applicationPaths">The server's folders.</param>
+/// <param name="queueSchedulerAccessor">
+///   Gets the queue scheduler, which only exists once the web host is built.
+/// </param>
 public partial class PluginPackageManager(
     ConfigurationProvider<ServerSettings> configurationProvider,
     ILogger<PluginPackageManager> logger,
     IHttpClientFactory httpClientFactory,
     IPluginManager pluginManager,
     IApplicationPaths applicationPaths,
-    IQueueScheduler schedulerFactory
+    Func<IQueueScheduler> queueSchedulerAccessor
 ) : IPluginPackageManager
 {
     internal const string Repositories = "repositories";
@@ -51,23 +61,18 @@ public partial class PluginPackageManager(
 
     private readonly IPluginManager _pluginManager = pluginManager;
 
+    /// <summary>
+    ///   The plugin manager's reader for installed plugins, used before the
+    ///   plugin scan.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The plugin manager cannot read installed plugins.</exception>
+    private IInstalledPluginReader InstalledPluginReader
+        => _pluginManager as IInstalledPluginReader
+            ?? throw new InvalidOperationException("The plugin manager cannot read the installed plugins.");
+
     private readonly IApplicationPaths _applicationPaths = applicationPaths;
 
     #region Settings
-
-    /// <summary>
-    ///   Whether automatic repository syncing is enabled.
-    /// </summary>
-    public bool IsAutoSyncEnabled
-    {
-        get => configurationProvider.Load().Plugins.Updates.IsAutoSyncEnabled;
-        set
-        {
-            var config = configurationProvider.Load(copy: true);
-            config.Plugins.Updates.IsAutoSyncEnabled = value;
-            configurationProvider.Save(config);
-        }
-    }
 
     /// <summary>
     ///   Whether automatic plugin upgrades are enabled.
@@ -84,6 +89,21 @@ public partial class PluginPackageManager(
     }
 
     /// <summary>
+    ///   Whether the newest compatible release of each installed plugin is
+    ///   installed while the server starts, before the plugins load.
+    /// </summary>
+    public bool IsUpgradeOnStartEnabled
+    {
+        get => configurationProvider.Load().Plugins.Updates.IsUpgradeOnStartEnabled;
+        set
+        {
+            var config = configurationProvider.Load(copy: true);
+            config.Plugins.Updates.IsUpgradeOnStartEnabled = value;
+            configurationProvider.Save(config);
+        }
+    }
+
+    /// <summary>
     ///   Default time before a repository is considered stale (default: 12 hours).
     /// </summary>
     public TimeSpan DefaultRepositoryStaleTime
@@ -92,7 +112,7 @@ public partial class PluginPackageManager(
         set
         {
             if (value < TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(InactivePluginVersionRetention), "Stale time cannot be lower than zero.");
+                throw new ArgumentOutOfRangeException(nameof(DefaultRepositoryStaleTime), "Stale time cannot be lower than zero.");
             var config = configurationProvider.Load(copy: true);
             config.Plugins.Updates.DefaultRepositoryStaleTime = value;
             configurationProvider.Save(config);
@@ -333,49 +353,11 @@ public partial class PluginPackageManager(
             throw ex;
         }
 
-        var extractPath = Path.Join(_applicationPaths.PluginsPath, $"{packageInfo.Manifest.Name.ReplaceInvalidPathCharacters()}-{packageInfo.Release.Version}-{packageInfo.Archive.RuntimeIdentifier}");
+        var extractPath = GetExtractPath(packageInfo);
         var zipPath = extractPath + ".zip";
         try
         {
-            // Cleanup old files before starting.
-            if (File.Exists(zipPath))
-                File.Delete(zipPath);
-            if (!Directory.Exists(extractPath) || !Directory.EnumerateFileSystemEntries(extractPath).Any())
-            {
-                if (Directory.Exists(extractPath))
-                    Directory.Delete(extractPath, true);
-                await DownloadAndVerifyArchiveAsync(packageInfo.Archive.ArchiveUrl, zipPath, packageInfo.Archive.ArchiveChecksum, cancellationToken).ConfigureAwait(false);
-                if (cancellationToken.IsCancellationRequested)
-                    throw new OperationCanceledException("Installation cancelled during download or verification.");
-
-                _logger.LogInformation($"Extracting plugin to {extractPath}");
-
-                ZipFile.ExtractToDirectory(zipPath, extractPath);
-                if (Directory.GetFileSystemEntries(extractPath) is { Length: 1 } entries && Directory.Exists(entries[0]))
-                {
-                    _logger.LogDebug("Found inner directory, moving contents to root.");
-                    var innerPath = entries[0];
-                    foreach (var entryPath in Directory.GetFileSystemEntries(innerPath))
-                    {
-                        var destinationPath = Path.Join(extractPath, Path.GetFileName(entryPath));
-                        if (Directory.Exists(entryPath))
-                            Directory.Move(entryPath, destinationPath);
-                        else
-                            File.Move(entryPath, destinationPath, overwrite: true);
-                    }
-                    Directory.Delete(innerPath, true);
-                }
-
-                File.Delete(zipPath);
-
-                // Extraction keeps the archive's file times, so stamp the install time on the DLLs, the main one among them.
-                var installedAt = DateTime.UtcNow;
-                foreach (var dllPath in Directory.EnumerateFiles(extractPath, "*.dll", SearchOption.AllDirectories))
-                    File.SetLastWriteTimeUtc(dllPath, installedAt);
-
-                if (cancellationToken.IsCancellationRequested)
-                    throw new OperationCanceledException("Installation cancelled during archive extraction.");
-            }
+            await DownloadAndExtractPackage(packageInfo, cancellationToken).ConfigureAwait(false);
 
             var pluginInfo = _pluginManager.LoadFromPath(extractPath);
             if (pluginInfo is null)
@@ -456,6 +438,74 @@ public partial class PluginPackageManager(
             }));
             throw;
         }
+    }
+
+    /// <summary>
+    ///   Gets the directory a package is extracted to.
+    /// </summary>
+    /// <param name="packageInfo">The package.</param>
+    /// <returns>The directory, in the user plugins folder.</returns>
+    private string GetExtractPath(PackageInfo packageInfo)
+        => Path.Join(_applicationPaths.PluginsPath, $"{packageInfo.Manifest.Name.ReplaceInvalidPathCharacters()}-{packageInfo.Release.Version}-{packageInfo.Archive.RuntimeIdentifier}");
+
+    /// <summary>
+    ///   Downloads, verifies and extracts a package to its directory, unless
+    ///   the directory already holds it.
+    /// </summary>
+    /// <param name="packageInfo">The package.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The directory the package is in.</returns>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown if the <paramref name="cancellationToken"/> cancelled it.
+    /// </exception>
+    /// <exception cref="InvalidChecksumException">
+    ///   Thrown when the archive does not match its checksum.
+    /// </exception>
+    private async Task<string> DownloadAndExtractPackage(PackageInfo packageInfo, CancellationToken cancellationToken)
+    {
+        var extractPath = GetExtractPath(packageInfo);
+        var zipPath = extractPath + ".zip";
+        // Cleanup old files before starting.
+        if (File.Exists(zipPath))
+            File.Delete(zipPath);
+        if (!Directory.Exists(extractPath) || !Directory.EnumerateFileSystemEntries(extractPath).Any())
+        {
+            if (Directory.Exists(extractPath))
+                Directory.Delete(extractPath, true);
+            await DownloadAndVerifyArchiveAsync(packageInfo.Archive.ArchiveUrl, zipPath, packageInfo.Archive.ArchiveChecksum, cancellationToken).ConfigureAwait(false);
+            if (cancellationToken.IsCancellationRequested)
+                throw new OperationCanceledException("Installation cancelled during download or verification.");
+
+            _logger.LogInformation($"Extracting plugin to {extractPath}");
+
+            ZipFile.ExtractToDirectory(zipPath, extractPath);
+            if (Directory.GetFileSystemEntries(extractPath) is { Length: 1 } entries && Directory.Exists(entries[0]))
+            {
+                _logger.LogDebug("Found inner directory, moving contents to root.");
+                var innerPath = entries[0];
+                foreach (var entryPath in Directory.GetFileSystemEntries(innerPath))
+                {
+                    var destinationPath = Path.Join(extractPath, Path.GetFileName(entryPath));
+                    if (Directory.Exists(entryPath))
+                        Directory.Move(entryPath, destinationPath);
+                    else
+                        File.Move(entryPath, destinationPath, overwrite: true);
+                }
+                Directory.Delete(innerPath, true);
+            }
+
+            File.Delete(zipPath);
+
+            // Extraction keeps the archive's file times, so stamp the install time on the DLLs, the main one among them.
+            var installedAt = DateTime.UtcNow;
+            foreach (var dllPath in Directory.EnumerateFiles(extractPath, "*.dll", SearchOption.AllDirectories))
+                File.SetLastWriteTimeUtc(dllPath, installedAt);
+
+            if (cancellationToken.IsCancellationRequested)
+                throw new OperationCanceledException("Installation cancelled during archive extraction.");
+        }
+
+        return extractPath;
     }
 
     private async Task DownloadAndVerifyArchiveAsync(string downloadUrl, string destinationPath, string checksum, CancellationToken cancellationToken)
@@ -633,8 +683,9 @@ public partial class PluginPackageManager(
     ///   The package manifests to filter.
     /// </param>
     /// <param name="onlyCompatible">
-    ///   Optional. Whether to return only ABI- and runtime-compatible packages.
-    ///   Defaults to <c>true</c>.
+    ///   Optional. Whether to return only packages for this server's runtime.
+    ///   Releases built for a newer server are kept, so they can be installed
+    ///   ahead of a server upgrade. Defaults to <c>true</c>.
     /// </param>
     /// <param name="onlyLatest">
     ///   Optional. Whether to return only the latest version of each package.
@@ -1451,10 +1502,6 @@ public partial class PluginPackageManager(
         var settings = configurationProvider.Load();
         var shouldForceSync = forceSync ?? false;
 
-        // Check if auto-sync is enabled (must be enabled unless forcing)
-        if (!settings.Plugins.Updates.IsAutoSyncEnabled && !shouldForceSync)
-            return;
-
         // How often this runs on its own is up to the triggers of the action
         // that queues it, and each repository is only synced once it is stale.
 
@@ -1476,31 +1523,29 @@ public partial class PluginPackageManager(
         if (!shouldUpgrade)
             return;
 
-        // Auto-upgrade logic. Include pinned plugins so we can log that they
-        // were skipped; active+enabled filtering is handled by the default.
-        var updates = await GetAvailableUpdates(allowSync: false, includePinned: true, cancellationToken: cancellationToken).ConfigureAwait(false);
-        foreach (var update in updates)
+        // The same choice as the upgrades on start, from the plugins already scanned.
+        var installed = _pluginManager.GetPluginInfos()
+            .Where(pluginInfo => pluginInfo.IsEnabled && pluginInfo.IsInstalled)
+            .Select(pluginInfo => new InstalledPlugin(pluginInfo.ID, pluginInfo.Name, pluginInfo.Version.Version, pluginInfo.IsEnabled, pluginInfo.IsPinned));
+        var manifests = await GetAvailablePackageManifests(allowSync: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var upgrades = SelectUpgrades(
+            installed,
+            manifests,
+            ListPackageRepositories(),
+            _pluginManager.IsAbiAndRuntimeCompatible,
+            _pluginManager.RuntimeIdentifier
+        );
+        foreach (var package in upgrades)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            if (update.Current.Plugin is { IsPinned: true })
-            {
-                _logger.LogInformation("Skipping auto-upgrade for pinned plugin {PluginName} at version {Version}", update.Name, update.Current.Release.Version);
-                continue;
-            }
-
-            _logger.LogInformation("Auto-upgrading plugin {PluginName} from {OldVersion} to {NewVersion}",
-                update.Name,
-                update.Current.Release.Version,
-                update.Latest.Release.Version);
-
+            _logger.LogInformation("Auto-upgrading plugin {PluginName} to {NewVersion}", package.Manifest.Name, package.Release.Version);
             try
             {
-                await InstallPackage(update.Latest, cancellationToken).ConfigureAwait(false);
+                await InstallPackage(package, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to auto-upgrade plugin {PluginName}", update.Name);
+                _logger.LogError(ex, "Failed to auto-upgrade plugin {PluginName}", package.Manifest.Name);
             }
         }
     }
@@ -1508,7 +1553,275 @@ public partial class PluginPackageManager(
     /// <inheritdoc/>
     public async Task ScheduleCheckForUpdates(bool? forceSync = null, bool? performUpgrade = null, CancellationToken cancellationToken = default)
     {
-        await schedulerFactory.StartJob<CheckPluginUpdatesJob>(c => (c.ForceSync, c.PerformUpgrade) = (forceSync, performUpgrade)).ConfigureAwait(false);
+        await queueSchedulerAccessor().StartJob<CheckPluginUpdatesJob>(c => (c.ForceSync, c.PerformUpgrade) = (forceSync, performUpgrade)).ConfigureAwait(false);
+    }
+
+    #endregion
+
+    #region Start-up Upgrades
+
+    /// <summary>
+    ///   How long the upgrades before the plugin scan may take, all together.
+    /// </summary>
+    internal static readonly TimeSpan StartupUpgradeBudget = TimeSpan.FromSeconds(90);
+
+    /// <summary>
+    ///   Installs the newest compatible release of each enabled, unpinned
+    ///   plugin on disk, before the plugin scan, within a time budget. A
+    ///   timeout or error is logged and leaves the plugins as they are, so
+    ///   the start goes on either way.
+    /// </summary>
+    /// <param name="reportProgress">Told what is being done, for the start-up message.</param>
+    /// <param name="budget">How long it may take, all together.</param>
+    /// <returns>The packages installed.</returns>
+    internal async Task<IReadOnlyList<PackageInfo>> UpgradePluginsBeforeStart(Action<string> reportProgress, TimeSpan budget)
+    {
+        using var cancellationSource = new CancellationTokenSource(budget);
+        try
+        {
+            var installed = await InstallStartupUpgrades(reportProgress, cancellationSource.Token).ConfigureAwait(false);
+            if (installed.Count > 0)
+                _logger.LogInformation("Upgraded {Count} plugins before loading them.", installed.Count);
+            return installed;
+        }
+        catch (OperationCanceledException) when (cancellationSource.IsCancellationRequested)
+        {
+            _logger.LogWarning("Upgrading plugins on start took longer than {Budget}; starting with the plugins installed.", budget);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to upgrade plugins on start; starting with the plugins installed.");
+        }
+
+        return [];
+    }
+
+    /// <summary>
+    ///   Installs the newest compatible release of each enabled, unpinned
+    ///   plugin on disk, after syncing the repositories fetched longer than
+    ///   <see cref="PluginSettings.PluginUpdatesSettings.RepositoryStaleTimeOnStart"/>
+    ///   ago. Reads the
+    ///   plugins from their metadata, so nothing is loaded. Does nothing when
+    ///   <see cref="IsUpgradeOnStartEnabled"/> is off, the plugins folder is
+    ///   read-only or a repository is unreachable.
+    /// </summary>
+    /// <param name="reportProgress">Told what is being done, for the start-up message.</param>
+    /// <param name="cancellationToken">Cancellation token, cancelled once the budget is spent.</param>
+    /// <returns>The packages installed.</returns>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown if the <paramref name="cancellationToken"/> cancelled it.
+    /// </exception>
+    private async Task<IReadOnlyList<PackageInfo>> InstallStartupUpgrades(Action<string> reportProgress, CancellationToken cancellationToken)
+    {
+        if (!IsUpgradeOnStartEnabled)
+        {
+            _logger.LogDebug("Upgrading plugins on start is turned off.");
+            return [];
+        }
+
+        if (!CanWriteToPluginsFolder())
+        {
+            _logger.LogInformation("Not upgrading plugins on start, as the plugins folder cannot be written to. ({PluginsPath})", _applicationPaths.PluginsPath);
+            return [];
+        }
+
+        var installed = InstalledPluginReader.ReadInstalledPlugins()
+            .Where(plugin => plugin.IsEnabled)
+            .ToList();
+        if (installed.Count is 0)
+            return [];
+
+        reportProgress("Checking for plugin updates...");
+        var staleTimeOnStart = configurationProvider.Load().Plugins.Updates.RepositoryStaleTimeOnStart;
+        foreach (var repositoryInfo in ListPackageRepositories().Where(repositoryInfo => repositoryInfo.IsEnabled))
+        {
+            var lastFetchedAt = repositoryInfo.LastFetchedAt;
+            var staleTime = repositoryInfo.StaleTime ?? DefaultRepositoryStaleTime;
+            if (staleTimeOnStart < staleTime)
+                staleTime = staleTimeOnStart;
+            if (lastFetchedAt.HasValue && DateTime.UtcNow - lastFetchedAt.Value <= staleTime)
+                continue;
+
+            // Forced, as the repository's own stale time may not have passed. A failed sync keeps the
+            // last fetch time; that is how an unreachable repository shows.
+            await SyncPackageRepository(repositoryInfo, forceSync: true, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (repositoryInfo.LastFetchedAt == lastFetchedAt)
+            {
+                _logger.LogWarning("Not upgrading plugins on start, as repository {RepositoryName} could not be reached.", repositoryInfo.Name);
+                return [];
+            }
+        }
+
+        var manifests = await GetAvailablePackageManifests(allowSync: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var upgrades = SelectUpgrades(
+            installed,
+            manifests,
+            ListPackageRepositories(),
+            _pluginManager.IsAbiAndRuntimeCompatible,
+            _pluginManager.RuntimeIdentifier
+        );
+        if (upgrades.Count is 0)
+        {
+            _logger.LogInformation("All plugins are up to date.");
+            return [];
+        }
+
+        reportProgress("Installing plugin updates...");
+        var done = new List<PackageInfo>();
+        foreach (var packageInfo in upgrades)
+        {
+            try
+            {
+                await InstallPackageBeforeStart(packageInfo, cancellationToken).ConfigureAwait(false);
+                done.Add(packageInfo);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Failed to upgrade plugin {PluginName} to version {Version} on start.", packageInfo.Manifest.Name, packageInfo.Release.Version);
+            }
+        }
+
+        return done;
+    }
+
+    /// <summary>
+    ///   Picks the release to install for each installed plugin: the newest
+    ///   one above its newest installed version, with an archive
+    ///   <paramref name="isCompatible"/> accepts. A plugin with a pinned
+    ///   version is left alone.
+    /// </summary>
+    /// <param name="installed">The enabled plugin versions on disk.</param>
+    /// <param name="manifests">The package manifests.</param>
+    /// <param name="repositories">The repositories, to attach to each package.</param>
+    /// <param name="isCompatible">Whether an archive's ABI version and runtime can load here.</param>
+    /// <param name="runtimeIdentifier">This server's runtime, preferred over a universal archive.</param>
+    /// <returns>The packages to install, one per plugin at most.</returns>
+    internal static IReadOnlyList<PackageInfo> SelectUpgrades(
+        IEnumerable<InstalledPlugin> installed,
+        IEnumerable<PackageManifestInfo> manifests,
+        IReadOnlyList<PackageRepositoryInfo> repositories,
+        Func<Version, string, bool> isCompatible,
+        string runtimeIdentifier
+    )
+    {
+        var comparer = new SemverVersionComparer();
+        var manifestsByID = manifests.ToDictionary(manifest => manifest.PackageID);
+        var upgrades = new List<PackageInfo>();
+        foreach (var versions in installed.GroupBy(version => version.ID))
+        {
+            if (versions.Any(version => version.IsPinned) || !manifestsByID.TryGetValue(versions.Key, out var manifest))
+                continue;
+
+            var current = versions.Select(version => version.Version).Max(comparer)!;
+            foreach (var release in manifest.Releases.OrderByDescending(release => release.Version, comparer))
+            {
+                if (comparer.Compare(NormalizeVersion(release.Version), current) <= 0)
+                    break;
+
+                var archive = release.Archives
+                    .Where(archive => isCompatible(archive.AbstractionVersion, archive.RuntimeIdentifier))
+                    .OrderByDescending(archive => archive.RuntimeIdentifier == runtimeIdentifier)
+                    .ThenByDescending(archive => archive.AbstractionVersion, comparer)
+                    .FirstOrDefault();
+                if (archive is null)
+                    continue;
+
+                upgrades.Add(new()
+                {
+                    Manifest = manifest,
+                    Repository = repositories.FirstOrDefault(repository => repository.ID == release.RepositoryID),
+                    Archive = archive,
+                    Plugin = null,
+                    Release = release,
+                });
+                break;
+            }
+        }
+
+        return upgrades;
+    }
+
+    /// <summary>
+    ///   Drops a revision of zero or less and fills in a missing build, the
+    ///   way the version of a plugin assembly is read.
+    /// </summary>
+    /// <param name="version">The version.</param>
+    /// <returns>The normalized version.</returns>
+    private static Version NormalizeVersion(Version version)
+        => version.Revision > 0
+            ? new(version.Major, version.Minor, Math.Max(version.Build, 0), version.Revision)
+            : new(version.Major, version.Minor, Math.Max(version.Build, 0));
+
+    /// <summary>
+    ///   Installs a package before the plugin scan, reading the result from
+    ///   its metadata instead of loading it, which would leave it locked and
+    ///   already loaded when the scan comes to it.
+    /// </summary>
+    /// <param name="packageInfo">The package to install.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown if the <paramref name="cancellationToken"/> cancelled it.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when the package holds a different plugin than its manifest says.
+    /// </exception>
+    private async Task InstallPackageBeforeStart(PackageInfo packageInfo, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation(
+            "Upgrading plugin {PackageName} to version {PackageVersion} before it loads. (Id={PackageId}, RuntimeId={PackageRuntimeId})",
+            packageInfo.Manifest.Name,
+            packageInfo.Release.Version,
+            packageInfo.Manifest.PackageID,
+            packageInfo.Archive.RuntimeIdentifier
+        );
+
+        var extractPath = GetExtractPath(packageInfo);
+        var existed = Directory.Exists(extractPath) && Directory.EnumerateFileSystemEntries(extractPath).Any();
+        try
+        {
+            await DownloadAndExtractPackage(packageInfo, cancellationToken).ConfigureAwait(false);
+            if (InstalledPluginReader.ReadPlugin(extractPath) is not { } installed)
+                throw new InvalidOperationException("The package holds no plugin.");
+            if (installed.ID != packageInfo.Manifest.PackageID)
+                throw new InvalidOperationException($"The package holds plugin {installed.ID}, not {packageInfo.Manifest.PackageID}.");
+        }
+        catch when (!existed)
+        {
+            try
+            {
+                File.Delete(extractPath + ".zip");
+                if (Directory.Exists(extractPath))
+                    Directory.Delete(extractPath, true);
+            }
+            catch (Exception cleanupEx) when (cleanupEx is IOException or UnauthorizedAccessException)
+            {
+                _logger.LogWarning(cleanupEx, "Failed to clean up the files of a failed plugin upgrade. ({ExtractPath})", extractPath);
+            }
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    ///   Whether files can be written to the user plugins folder, which is
+    ///   not the case on a read-only mount.
+    /// </summary>
+    /// <returns><c>true</c> when a file could be written and deleted there.</returns>
+    private bool CanWriteToPluginsFolder()
+    {
+        try
+        {
+            Directory.CreateDirectory(_applicationPaths.PluginsPath);
+            var probePath = Path.Join(_applicationPaths.PluginsPath, $".write-test-{Guid.NewGuid():N}");
+            File.WriteAllText(probePath, string.Empty);
+            File.Delete(probePath);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     #endregion

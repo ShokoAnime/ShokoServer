@@ -58,7 +58,7 @@ public class PackageRepositorySyncTests : IDisposable
             AniDBTestDoubles.HttpClientFactory(_host),
             Mock.Of<IPluginManager>(),
             Mock.Of<IApplicationPaths>(paths => paths.PluginsPath == _root),
-            Mock.Of<IQueueScheduler>()
+            Mock.Of<IQueueScheduler>
         );
         _host.Json[RepositoryUrl] = $$"""
             [

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -53,7 +54,7 @@ using Shoko.Server.Settings;
 #pragma warning disable CS0618
 namespace Shoko.Server.Plugin;
 
-public partial class PluginManager(ILogger<PluginManager> logger, ISystemService systemService, IApplicationPaths applicationPaths) : IPluginManager
+public partial class PluginManager(ILogger<PluginManager> logger, ISystemService systemService, IApplicationPaths applicationPaths) : IPluginManager, IInstalledPluginReader
 {
     private const string Remove = ".remove";
 
@@ -139,7 +140,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     ///   Basic information about a plugin, used during initial loading before
     ///   the full <see cref="LocalPluginInfo"/> is available.
     /// </summary>
-    private sealed class InternalPluginInfo
+    internal sealed class InternalPluginInfo
     {
         /// <summary>
         ///   The unique identifier for the plugin.
@@ -268,6 +269,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         public IReadOnlyList<PluginDependency> Dependencies { get; init; } = [];
     }
 
+    /// <summary>
+    ///   Gets the <c>.pinned</c> file of a plugin version, named the way
+    ///   <see cref="GetKeepFile"/> names the <c>.keep</c> file.
+    /// </summary>
+    /// <param name="directory">The plugin's directory, if it has one.</param>
+    /// <param name="dll">The plugin's main DLL.</param>
+    /// <returns>The path of the <c>.pinned</c> file.</returns>
     private static string GetPinnedFile(string? directory, string dll)
         => string.IsNullOrEmpty(directory)
             ? Path.ChangeExtension(dll, Pinned)
@@ -285,6 +293,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             ? Path.ChangeExtension(dll, Keep)
             : Path.Join(directory, Keep);
 
+    /// <summary>
+    ///   Gets the <c>.remove</c> file marking a plugin version for removal
+    ///   on the next start, named the way <see cref="GetKeepFile"/> is.
+    /// </summary>
+    /// <param name="directory">The plugin's directory, if it has one.</param>
+    /// <param name="dll">The plugin's main DLL.</param>
+    /// <returns>The path of the <c>.remove</c> file.</returns>
     private static string GetRemovalFile(string? directory, string dll)
         => string.IsNullOrEmpty(directory)
             ? Path.ChangeExtension(dll, Remove)
@@ -378,11 +393,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 .ThenBy(a => a.ContainingDirectory)
                 .ThenBy(a => a.DLLs[0])
                 .ToList();
-            var enabled = true;
+            var (toLoad, failureReason, passedOver) = PickVersionToLoad(orderedInfo, rememberedFailures);
             foreach (var internalPluginInfo in orderedInfo)
             {
-                if (!internalPluginInfo.IsEnabled || !enabled)
+                if (internalPluginInfo != toLoad)
                 {
+                    var passedOverReason = passedOver.GetValueOrDefault(internalPluginInfo);
                     _pluginTypes.Add(new()
                     {
                         ID = internalPluginInfo.ID,
@@ -399,8 +415,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         IsEnabled = false,
                         IsPinned = internalPluginInfo.IsPinned,
                         IsActive = false,
-                        CanLoad = internalPluginInfo.CanLoad,
-                        CannotLoadReason = internalPluginInfo.CannotLoadReason,
+                        CanLoad = passedOverReason is null && internalPluginInfo.CanLoad,
+                        CannotLoadReason = passedOverReason ?? internalPluginInfo.CannotLoadReason,
                         CanUninstall = internalPluginInfo.CanUninstall,
                         Plugin = null,
                         PluginType = null,
@@ -416,20 +432,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     continue;
                 }
 
-                enabled = false;
                 var mainDllPath = internalPluginInfo.DLLs[0];
                 var isCore = internalPluginInfo.ID == CorePlugin.StaticID;
                 Type[] types = [];
                 Type? pluginType = null;
                 Type? serviceRegistrationType = null;
                 Type? applicationRegistrationType = null;
-
-                // Read before the assembly loads, so a plugin built for another contract never runs.
-                var failureReason = isCore || !internalPluginInfo.CanLoad
-                    ? null
-                    : internalPluginInfo.FailureReason
-                        ?? rememberedFailures.GetValueOrDefault(GetRememberedFailureKey(internalPluginInfo.ID, internalPluginInfo.Version.Version))
-                        ?? FindContractMismatch(internalPluginInfo.DLLs, GetHostSurfaces(), HostMismatchMessage);
                 if (failureReason is not null)
                     logger.LogError("Not loading plugin \"{Name}\". {Reason} ({Version})", internalPluginInfo.Name, failureReason, internalPluginInfo.Version);
                 else
@@ -1450,6 +1458,56 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     #endregion
 
+    #region Failures | Version Choice
+
+    /// <summary>
+    ///   Picks the version of a plugin to load: the first enabled one. When
+    ///   that one cannot load yet, such as one built for a newer server, and
+    ///   is not pinned, the newest older version that can load waits in its
+    ///   place. A version that fails is never passed over; the admin decides.
+    /// </summary>
+    /// <param name="orderedInfo">The plugin's versions, in the order they are picked.</param>
+    /// <param name="rememberedFailures">The versions that took the last start down.</param>
+    /// <returns>
+    ///   The version to load, if any, why it fails before loading, if it does,
+    ///   and why each version passed over was.
+    /// </returns>
+    internal (InternalPluginInfo? ToLoad, string? FailureReason, Dictionary<InternalPluginInfo, string> PassedOver) PickVersionToLoad(
+        IReadOnlyList<InternalPluginInfo> orderedInfo,
+        IReadOnlyDictionary<string, string> rememberedFailures
+    )
+    {
+        var passedOver = new Dictionary<InternalPluginInfo, string>();
+        var candidates = orderedInfo.Where(info => info.IsEnabled).ToList();
+        if (candidates.Count is 0)
+            return (null, null, passedOver);
+
+        // Read before the assembly loads, so a plugin built for another contract never runs.
+        string? GetFailureReason(InternalPluginInfo info)
+            => info.ID == CorePlugin.StaticID || !info.CanLoad
+                ? null
+                : info.FailureReason
+                    ?? rememberedFailures.GetValueOrDefault(GetRememberedFailureKey(info.ID, info.Version.Version))
+                    ?? FindContractMismatch(info.DLLs, GetHostSurfaces(), HostMismatchMessage);
+
+        var first = candidates[0];
+        if (first.CanLoad || first.IsPinned || first.ID == CorePlugin.StaticID || candidates.Skip(1).FirstOrDefault(info => info.CanLoad) is not { } older)
+            return (first, GetFailureReason(first), passedOver);
+
+        var reason = first.CannotLoadReason ?? "It cannot load on this server yet.";
+        logger.LogInformation(
+            "Not loading version {Version} of plugin \"{Name}\" yet and loading version {OlderVersion} in its place. {Reason}",
+            first.Version.Version,
+            first.Name,
+            older.Version.Version,
+            reason
+        );
+        passedOver[first] = reason;
+        return (older, GetFailureReason(older), passedOver);
+    }
+
+    #endregion
+
     private IEnumerable<(string?, string[], bool)> GetPluginDirectories()
     {
         // Load plugins from the system directory.
@@ -1548,6 +1606,36 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 yield return (directoryPath, Directory.GetFiles(directoryPath, "*.dll", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }), false);
             }
         }
+    }
+
+    /// <inheritdoc/>
+    IReadOnlyList<InstalledPlugin> IInstalledPluginReader.ReadInstalledPlugins()
+    {
+        // A copy, so plugins seen for the first time are not written to the settings before the scan.
+        var settings = ISettingsProvider.Instance.GetSettings(copy: true);
+        var settingsChanged = false;
+        var plugins = new List<InstalledPlugin>();
+        foreach (var (directoryPath, dlls, isSystem) in GetPluginDirectories())
+        {
+            if (LoadInternalPluginInfo(directoryPath, dlls, isSystem, settings, ref settingsChanged) is { } info)
+                plugins.Add(new(info.ID, info.Name, info.Version.Version, info.IsEnabled, info.IsPinned));
+        }
+
+        return plugins;
+    }
+
+    /// <inheritdoc/>
+    InstalledPlugin? IInstalledPluginReader.ReadPlugin(string directoryPath)
+    {
+        if (!Directory.Exists(directoryPath))
+            return null;
+
+        var settings = ISettingsProvider.Instance.GetSettings(copy: true);
+        var settingsChanged = false;
+        var dlls = Directory.GetFiles(directoryPath, "*.dll", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System });
+        return LoadInternalPluginInfo(directoryPath, dlls, false, settings, ref settingsChanged) is { } info
+            ? new(info.ID, info.Name, info.Version.Version, info.IsEnabled, info.IsPinned)
+            : null;
     }
 
     private InternalPluginInfo? LoadInternalPluginInfo(string? containingDirectory, string[] dlls)

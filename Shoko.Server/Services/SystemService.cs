@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
@@ -77,6 +76,8 @@ public class SystemService : ISystemService
 
     private readonly PluginManager _pluginManager;
 
+    private readonly PluginPackageManager _packageManager;
+
     private readonly LogService _logService;
 
     private readonly ConfigurationService _configurationService;
@@ -110,6 +111,15 @@ public class SystemService : ISystemService
         _pluginManager = new(loggerFactory.CreateLogger<PluginManager>(), this, ApplicationPaths.Instance);
         _configurationService = new(loggerFactory, ApplicationPaths.Instance, _pluginManager);
         _settingsProvider = new(loggerFactory.CreateLogger<SettingsProvider>(), this, _configurationService.CreateProvider<ServerSettings>());
+        _packageManager = new(
+            _configurationService.CreateProvider<ServerSettings>(),
+            loggerFactory.CreateLogger<PluginPackageManager>(),
+            CoreHttpClientFactory.Instance,
+            _pluginManager,
+            ApplicationPaths.Instance,
+            () => _webHost?.Services.GetRequiredService<IQueueScheduler>()
+                ?? throw new InvalidOperationException("The queue scheduler is not available before the web host is built.")
+        );
         _restartReasons = new(loggerFactory.CreateLogger<RestartReasonTracker>(), _configurationService, _pluginManager) { Sender = this };
         _pluginManager.StateChanged += (_, _) => _restartReasons.RefreshPluginState();
         _logService = new(loggerFactory.CreateLogger<LogService>(), ApplicationPaths.Instance, _settingsProvider);
@@ -283,6 +293,19 @@ public class SystemService : ISystemService
 
             StartupMessage = "Log Service initialized.";
 
+            // Upgrade the plugins before the scan, so the upgrades load in this start. Seeding only adds
+            // the default repositories never added before, and never reaches for the network.
+            try
+            {
+                _packageManager.SeedDefaultPackageRepositories();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to add the default plugin repositories");
+            }
+
+            await _packageManager.UpgradePluginsBeforeStart(message => StartupMessage = message, PluginPackageManager.StartupUpgradeBudget);
+
             StartupMessage = "Scanning for Plugins...";
 
             _pluginManager.ScanForPlugins();
@@ -319,17 +342,6 @@ public class SystemService : ISystemService
 
             // The plugins that failed while being loaded, registered or initialized.
             RecordFailedPlugins();
-
-            // Only ever adds what was never added before, and never reaches for the network.
-            try
-            {
-                if (_webHost.Services.GetRequiredService<IPluginPackageManager>() is PluginPackageManager packageManager)
-                    packageManager.SeedDefaultPackageRepositories();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to add the default plugin repositories");
-            }
 
             if (StartupFailedException is null)
                 StartupMessage = "Plugins initialized.";
@@ -454,7 +466,10 @@ public class SystemService : ISystemService
     /// </summary>
     private void RecordFailedPlugins()
     {
-        if (StartupFailedException is not null || _pluginManager.GetFailedPlugins() is not { Count: > 0 } failedPlugins)
+        if (_pluginManager.GetFailedPlugins() is not { Count: > 0 } failedPlugins)
+            return;
+
+        if (StartupFailedException is not null)
             return;
 
         (StartupMessage, StartupFailedException) = DescribeFailedPlugins(failedPlugins);
@@ -497,7 +512,7 @@ public class SystemService : ISystemService
                     .UseKestrel(options => options.ListenAnyIP(settings.Web.Port))
                     .ConfigureApp()
                     .ConfigureServiceProvider()
-                    .UseStartup(_ => new Startup(this, _logService, _configurationService, _settingsProvider, _pluginManager))
+                    .UseStartup(_ => new Startup(this, _logService, _configurationService, _settingsProvider, _pluginManager, _packageManager))
                     .ConfigureLogging(logging =>
                     {
                         logging.ClearProviders();
@@ -513,7 +528,14 @@ public class SystemService : ISystemService
             )
             .Build();
 
-    private class Startup(SystemService systemService, ILogService logService, IConfigurationService configurationService, ISettingsProvider settingsProvider, IPluginManager pluginManager)
+    private class Startup(
+        SystemService systemService,
+        ILogService logService,
+        IConfigurationService configurationService,
+        ISettingsProvider settingsProvider,
+        IPluginManager pluginManager,
+        PluginPackageManager packageManager
+    )
     {
         public void ConfigureServices(IServiceCollection services)
         {
@@ -533,7 +555,8 @@ public class SystemService : ISystemService
             services.AddSingleton<PluginDatabaseGate>();
             services.AddSingleton<PluginDatabaseMigrator>();
 
-            services.AddSingleton<IPluginPackageManager, PluginPackageManager>();
+            services.AddSingleton(packageManager);
+            services.AddSingleton<IPluginPackageManager>(packageManager);
             services.AddSingleton<IPluginDependencyResolver, PluginDependencyResolver>();
             services.AddSingleton<FileSystemHelpers>();
             services.AddSingleton<IFileSystemHelpers>(sp => sp.GetRequiredService<FileSystemHelpers>());
@@ -684,21 +707,9 @@ public class SystemService : ISystemService
 
             // Names the clients whose expired handlers are still referenced and so never disposed.
             services.AddHostedService<ExpiredHttpHandlerMonitor>();
-            services.AddHttpClient("Default", client =>
-                {
-                    client.DefaultRequestHeaders.Add("Accept", "application/json, text/plain");
-                    client.DefaultRequestHeaders.Add("User-Agent", $"ShokoServer/{systemService.Version.Version.ToSemanticVersioningString()}");
-                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip");
-                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("deflate");
-                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("br");
-                })
+            services.AddHttpClient(CoreHttpClientFactory.DefaultClientName, CoreHttpClientFactory.ConfigureDefaultClient)
                 .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
-                .UseSocketsHttpHandler((handler, _) =>
-                {
-                    handler.AllowAutoRedirect = true;
-                    handler.AutomaticDecompression = DecompressionMethods.All;
-                    handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
-                });
+                .UseSocketsHttpHandler((handler, _) => CoreHttpClientFactory.ConfigureDefaultHandler(handler));
             services.AddAniDB();
             services.AddSingleton<AnidbService>();
             services.AddSingleton<AnidbAnimeCatalog>();

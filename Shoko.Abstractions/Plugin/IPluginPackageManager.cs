@@ -17,14 +17,17 @@ public interface IPluginPackageManager
     #region Settings
 
     /// <summary>
-    ///   Whether automatic repository syncing is enabled.
-    /// </summary>
-    bool IsAutoSyncEnabled { get; set; }
-
-    /// <summary>
     ///   Whether automatic plugin upgrades are enabled.
     /// </summary>
     bool IsAutoUpgradeEnabled { get; set; }
+
+    /// <summary>
+    ///   Whether the newest compatible release of each installed plugin is
+    ///   installed while the server starts, before the plugins load. Pinned
+    ///   plugins are left alone. Independent of <see cref="IsAutoUpgradeEnabled"/>.
+    ///   Defaults to <c>true</c>.
+    /// </summary>
+    bool IsUpgradeOnStartEnabled { get; set; }
 
     /// <summary>
     ///   Default time before a repository's packages are considered stale.
@@ -143,8 +146,9 @@ public interface IPluginPackageManager
     ///   The package manifests to filter.
     /// </param>
     /// <param name="onlyCompatible">
-    ///   Optional. Whether to return only ABI- and runtime-compatible packages.
-    ///   Defaults to <c>true</c>.
+    ///   Optional. Whether to return only packages for this server's runtime.
+    ///   Releases built for a newer server are kept, so they can be installed
+    ///   ahead of a server upgrade. Defaults to <c>true</c>.
     /// </param>
     /// <param name="onlyLatest">
     ///   Optional. Whether to return only the latest version of each package.

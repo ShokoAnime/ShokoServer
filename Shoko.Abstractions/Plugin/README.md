@@ -594,9 +594,26 @@ server could not load and keeping only the newest per package.
 `PackageUpdateInfo` entries pairing `Current` with `Latest`, optionally
 including inactive and pinned plugins. `CheckForUpdates` runs the check now,
 `ScheduleCheckForUpdates` queues it, and both can force a sync and perform the
-upgrade. `IsAutoSyncEnabled`, `IsAutoUpgradeEnabled`,
-`DefaultRepositoryStaleTime` and `InactivePluginVersionRetention` are the
-settings behind the automatic behaviour.
+upgrade. `IsAutoUpgradeEnabled`, `DefaultRepositoryStaleTime` and
+`InactivePluginVersionRetention` are the settings behind the automatic
+behaviour; when the check runs on its own is up to the triggers of the "Check
+Plugin Updates" scheduled action.
+
+`IsUpgradeOnStartEnabled` (on by default, independent of
+`IsAutoUpgradeEnabled`) has the server install upgrades while it starts, before
+any plugin loads, so they apply without a restart. Each enabled plugin gets the
+newest release above its installed version that has an archive built for this
+server's ABI and runtime, which also repairs a plugin left behind by a contract
+change in the server. Plugins with a pinned version are left alone, and the
+step is skipped when the plugins folder is read-only, a stale repository cannot
+be reached, or it takes longer than 90 seconds. The older version stays
+installed. A new version that fails at start fails like any plugin, so the
+admin can see why and decide; nothing falls back on its own.
+
+A version built for a newer server is not a mismatch, only one this server
+cannot load yet: the older version keeps loading in its place, and the newer
+one loads once the server is upgraded. Only installing by hand picks such a
+release; automatic upgrades, on start or while running, never do.
 
 **Cleaning up.** An update leaves the older versions installed beside the new
 one. `PurgeInactivePluginVersions(retention)` marks for removal on the next
