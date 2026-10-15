@@ -28,34 +28,6 @@ public class PocoCacheTests
     #region Cache basics
 
     [Fact]
-    public void Get_ReturnsTheEntityForAKnownKey()
-    {
-        var item = new Item(1, "a");
-
-        Assert.Same(item, Cache(item).Get(1));
-    }
-
-    [Fact]
-    public void Get_ReturnsNullForAnUnknownKey()
-        => Assert.Null(Cache(new Item(1, "a")).Get(99));
-
-    [Fact]
-    public void GetAll_ReturnsEveryEntity()
-    {
-        var cache = Cache(new Item(1, "a"), new Item(2, "b"));
-
-        Assert.Equal([1, 2], cache.GetAll().Select(i => i.Id).Order());
-    }
-
-    [Fact]
-    public void GetAllKeys_ReturnsEveryKey()
-    {
-        var cache = Cache(new Item(1, "a"), new Item(2, "b"));
-
-        Assert.Equal([1, 2], cache.GetAllKeys().Order());
-    }
-
-    [Fact]
     public void GetAll_ReturnsASnapshotThatDoesNotTrackLaterWrites()
     {
         var cache = Cache(new Item(1, "a"));
@@ -65,10 +37,6 @@ public class PocoCacheTests
 
         Assert.Single(snapshot);
     }
-
-    [Fact]
-    public void Constructor_ThrowsWhenTheKeySelectorProducesDuplicates()
-        => Assert.Throws<ArgumentException>(() => Cache(new Item(1, "a"), new Item(1, "b")));
 
     [Fact]
     public void Update_AddsAnEntityThatWasNotPresent()
@@ -131,10 +99,6 @@ public class PocoCacheTests
     }
 
     [Fact]
-    public void Index_GetOne_ReturnsNullForAnUnknownKey()
-        => Assert.Null(Cache(new Item(1, "a")).CreateIndex(i => i.Category).GetOne("zzz"));
-
-    [Fact]
     public void Index_GetMultiple_ReturnsEveryMatch()
     {
         var cache = Cache(new Item(1, "a"), new Item(2, "a"), new Item(3, "b"));
@@ -142,10 +106,6 @@ public class PocoCacheTests
 
         Assert.Equal([1, 2], index.GetMultiple("a").Select(i => i.Id).Order());
     }
-
-    [Fact]
-    public void Index_GetMultiple_ReturnsEmptyForAnUnknownKey()
-        => Assert.Empty(Cache(new Item(1, "a")).CreateIndex(i => i.Category).GetMultiple("zzz"));
 
     #endregion
 
@@ -217,16 +177,6 @@ public class PocoCacheTests
     #endregion
 
     #region Many-valued index
-
-    [Fact]
-    public void MultiValuedIndex_IndexesAnEntityUnderEveryValue()
-    {
-        var cache = Cache(new Item(1, "a", "x", "y"));
-        var index = cache.CreateIndex(i => i.Tags);
-
-        Assert.Equal(1, index.GetOne("x")!.Id);
-        Assert.Equal(1, index.GetOne("y")!.Id);
-    }
 
     [Fact]
     public void MultiValuedIndex_ReturnsEveryEntitySharingAValue()

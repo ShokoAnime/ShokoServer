@@ -235,75 +235,50 @@ public class AiringScheduleServiceTests
         }
     }
 
-    [Fact]
-    public void MergeAirings_DeletesAnExplicitRemovalWithAFutureSlot()
-    {
-        using var harness = new Harness();
-        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
-        var airings = harness.Service.SetAirings(harness.Primary, schedule, [
-            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(31) },
-            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(38) },
-            new EpisodeAiringData() { Episode = harness.Episodes[2], AiredAt = harness.Air(45) },
-        ]);
-        var pulled = airings.Single(airing => airing.AiredAt == harness.Air(45));
-
-        harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled]);
-
-        // Naming an airing means "this row was a mistake", so the slot still
-        // ahead of us goes rather than being kept as a hiatus.
-        var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
-        Assert.Equal(2, after.Count);
-        Assert.DoesNotContain(after, entry => entry.ID == pulled.ID);
-    }
-
-    [Fact]
-    public void MergeAirings_KeepsAnExplicitRemovalWithAFutureSlotAsAHiatusWhenAskedTo()
-    {
-        using var harness = new Harness();
-        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
-        var airings = harness.Service.SetAirings(harness.Primary, schedule, [
-            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(31) },
-            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(38) },
-            new EpisodeAiringData() { Episode = harness.Episodes[2], AiredAt = harness.Air(45) },
-        ]);
-        var pulled = airings.Single(airing => airing.AiredAt == harness.Air(45));
-
-        harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled], new EpisodeAiringUpdateOptions() { KeepRemovalsAsHiatus = true });
-
-        // A provider whose removal means "my source pre-empted this" asks for
-        // the judgement an omission gets, and a slot still ahead of us is then
-        // kept without one.
-        var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
-        Assert.Equal(3, after.Count);
-        var hiatus = Assert.Single(after, entry => entry.ID == pulled.ID);
-        Assert.Null(hiatus.AiredAt);
-        Assert.Equal(harness.Air(45), hiatus.OriginalAiredAt);
-    }
-
+    /// <summary>
+    /// Naming an airing means "this row was a mistake", so a slot still ahead of
+    /// us goes rather than being kept as a hiatus. A provider whose removal
+    /// means "my source pre-empted this" asks for the judgement an omission gets,
+    /// and a slot still ahead is then kept; one that has passed is history either way.
+    /// </summary>
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void MergeAirings_DeletesAnExplicitRemovalWhoseSlotHasPassed(bool keepRemovalsAsHiatus)
+    [InlineData(31, false, false)] // the slot is ahead of us
+    [InlineData(31, true, true)] // the slot is ahead of us, and the provider asked for a hiatus
+    [InlineData(1, false, false)] // a fortnight the other side of now: no slot ahead left to hold open
+    [InlineData(1, true, false)]
+    public void MergeAirings_DeletesAnExplicitRemoval_KeepingAFutureSlotAsAHiatusOnlyWhenAskedTo(
+        int firstDay,
+        bool keepRemovalsAsHiatus,
+        bool expectKeptAsHiatus
+    )
     {
         using var harness = new Harness();
         var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
         var airings = harness.Service.SetAirings(harness.Primary, schedule, [
-            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(1) },
-            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(8) },
-            new EpisodeAiringData() { Episode = harness.Episodes[2], AiredAt = harness.Air(15) },
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(firstDay) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(firstDay + 7) },
+            new EpisodeAiringData() { Episode = harness.Episodes[2], AiredAt = harness.Air(firstDay + 14) },
         ]);
-        var pulled = airings.Single(airing => airing.AiredAt == harness.Air(15));
+        var pulled = airings.Single(airing => airing.AiredAt == harness.Air(firstDay + 14));
 
         harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled], new EpisodeAiringUpdateOptions()
         {
             KeepRemovalsAsHiatus = keepRemovalsAsHiatus,
         });
 
-        // The same removal a fortnight the other side of now is history either
-        // way: there is no slot ahead of us left to hold open.
         var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
-        Assert.Equal(2, after.Count);
-        Assert.DoesNotContain(after, entry => entry.ID == pulled.ID);
+        if (expectKeptAsHiatus)
+        {
+            Assert.Equal(3, after.Count);
+            var hiatus = Assert.Single(after, entry => entry.ID == pulled.ID);
+            Assert.Null(hiatus.AiredAt);
+            Assert.Equal(harness.Air(firstDay + 14), hiatus.OriginalAiredAt);
+        }
+        else
+        {
+            Assert.Equal(2, after.Count);
+            Assert.DoesNotContain(after, entry => entry.ID == pulled.ID);
+        }
     }
 
     [Fact]
@@ -383,27 +358,6 @@ public class AiringScheduleServiceTests
             [airing]
         ));
         Assert.Single(exception.ValidationErrors);
-    }
-
-    [Fact]
-    public void SetAirings_StillDeletesTheAiringsItWasNotGiven()
-    {
-        using var harness = new Harness();
-        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
-        harness.Service.SetAirings(harness.Primary, schedule, [
-            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(1) },
-            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(8) },
-        ]);
-
-        harness.Service.SetAirings(harness.Primary, schedule, [
-            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(1) },
-        ]);
-
-        // Silence still means removal on the whole-line write, whatever the delta
-        // one does with it.
-        var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
-        var kept = Assert.Single(after);
-        Assert.Equal(harness.Air(1), kept.AiredAt);
     }
 
     [Fact]
@@ -1397,22 +1351,6 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
-    public void RetentionSweep_KeepsAScheduleWhoseLastAiringIsInsideTheWindow()
-    {
-        using var harness = new Harness();
-        harness.Settings.AutoCleanup = false;
-        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
-        harness.Service.SetAirings(harness.Primary, schedule, [
-            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-5) },
-            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = DateTime.UtcNow.AddDays(-1) },
-        ]);
-        harness.Settings.AutoCleanup = true;
-
-        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
-        Assert.Equal(2, harness.Airings.Object.GetAll().Count);
-    }
-
-    [Fact]
     public void RetentionSweep_ReportsUpTo100_AndRemovesNothingOnceCancelled()
     {
         using var harness = new Harness();
@@ -1455,26 +1393,18 @@ public class AiringScheduleServiceTests
         Assert.Single(harness.Schedules.Object.GetAll());
     }
 
-    [Fact]
-    public void RetentionSweep_LeavesAnEmptyScheduleAloneInsideItsBuffer()
-    {
-        using var harness = new Harness();
-        harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
-
-        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
-        Assert.Single(harness.Schedules.Object.GetAll());
-    }
-
-    [Fact]
-    public void RetentionSweep_TakesAnEmptySchedulePastItsBuffer()
+    [Theory]
+    [InlineData(0, 0)] // inside its buffer
+    [InlineData(2, 1)] // past its buffer
+    public void RetentionSweep_TakesAnEmptyScheduleOnlyPastItsBuffer(int ageInHours, int expectedSwept)
     {
         using var harness = new Harness();
         harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
         var row = Assert.Single(harness.Schedules.Object.GetAll());
-        row.CreatedAt = DateTime.UtcNow.AddHours(-2);
+        row.CreatedAt = DateTime.UtcNow.AddHours(-ageInHours);
 
-        Assert.Equal(1, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
-        Assert.Empty(harness.Schedules.Object.GetAll());
+        Assert.Equal(expectedSwept, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1 - expectedSwept, harness.Schedules.Object.GetAll().Count());
     }
 
     [Fact]

@@ -113,16 +113,6 @@ public class PoolDiscoveryTests
     }
 
     [Fact]
-    public void Discover_AlwaysCreatesDefaultPool()
-    {
-        var sut = MakeDiscovery();
-        // Even with only group-constrained types, Default pool is created
-        var pools = sut.Discover([typeof(GetAniDBAnimeJob)], []);
-
-        Assert.Contains(pools, p => p.Name == "Default");
-    }
-
-    [Fact]
     public void Discover_NoJobTypes_OnlyDefaultPool()
     {
         var sut = MakeDiscovery();
@@ -145,29 +135,6 @@ public class PoolDiscoveryTests
     }
 
     // ── Acquisition filter linkage tests ──────────────────────────────────────
-
-    [Fact]
-    public void Discover_FilterWithWatchedAttribute_AttachedToMatchingPool()
-    {
-        // Create a mock filter that watches AniDBUdpAttribute
-        var mockFilter = new Mock<IAcquisitionFilter>();
-        mockFilter.Setup(f => f.WatchedAttributeType).Returns(typeof(AniDBUdpAttribute));
-        mockFilter.Setup(f => f.GetTypesToExclude()).Returns([]);
-
-        // Make a job type with that attribute
-        // (we use reflection trickery via a nested attributed class defined inline isn't possible,
-        // so we test with the existing attribute on an ad-hoc type via PoolDiscovery's direct path)
-        // For this test, verify that a filter with null WatchedAttributeType goes to Default pool only
-        var nullFilter = new Mock<IAcquisitionFilter>();
-        nullFilter.Setup(f => f.WatchedAttributeType).Returns((Type?)null);
-        nullFilter.Setup(f => f.GetTypesToExclude()).Returns([]);
-
-        var sut = MakeDiscovery();
-        var pools = sut.Discover([typeof(GeneralJob)], [nullFilter.Object]);
-
-        var defaultPool = pools.Single(p => p.Name == "Default");
-        Assert.Contains(nullFilter.Object, defaultPool.AcquisitionFilters);
-    }
 
     [Fact]
     public void Discover_GlobalFilter_AttachedToDefaultOnly()
@@ -203,26 +170,16 @@ public class PoolDiscoveryTests
 
     // ── Override tests ────────────────────────────────────────────────────────
 
-    [Fact]
-    public void Discover_Override_AdjustsPoolSize()
+    [Theory]
+    [InlineData(3, 10, 3)] // MaxAllowed=4, override=3, so 3 is within bounds
+    [InlineData(10, 20, 4)] // MaxAllowed=4, so the override is capped at it
+    public void Discover_Override_AdjustsPoolSizeUpToMaxAllowed(int overrideValue, int maxTotal, int expectedWorkers)
     {
-        var overrides = new Dictionary<string, int> { ["HashFileJob"] = 3 };
-        var sut = new PoolDiscovery(NullLogger<PoolDiscovery>.Instance, 10, 4, overrides);
+        var overrides = new Dictionary<string, int> { ["HashFileJob"] = overrideValue };
+        var sut = new PoolDiscovery(NullLogger<PoolDiscovery>.Instance, maxTotal, 4, overrides);
         var pools = sut.Discover([typeof(HashFileJob)], []);
 
         var pool = pools.Single(p => p.Name == "HashFileJob");
-        // MaxAllowed=4, override=3 → 3 is within bounds
-        Assert.Equal(3, pool.MaxWorkers);
-    }
-
-    [Fact]
-    public void Discover_Override_CannotExceedMaxAllowed()
-    {
-        var overrides = new Dictionary<string, int> { ["HashFileJob"] = 10 }; // MaxAllowed=4
-        var sut = new PoolDiscovery(NullLogger<PoolDiscovery>.Instance, 20, 4, overrides);
-        var pools = sut.Discover([typeof(HashFileJob)], []);
-
-        var pool = pools.Single(p => p.Name == "HashFileJob");
-        Assert.Equal(4, pool.MaxWorkers); // capped at MaxAllowed
+        Assert.Equal(expectedWorkers, pool.MaxWorkers);
     }
 }

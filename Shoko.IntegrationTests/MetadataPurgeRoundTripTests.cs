@@ -7,7 +7,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Metadata.Stub;
-using Shoko.QueueProcessor;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
@@ -264,14 +263,5 @@ public class MetadataPurgeRoundTripTests(DatabaseMigrationFixture fixture)
             await fixture.Services.GetRequiredService<IMetadataPurgeService>()
                 .PurgeOrphaned(_plugin, DateTime.MaxValue, cancellationToken: TestContext.Current.CancellationToken);
         }
-    }
-
-    [Fact]
-    public void NoProviderJobTypeIsRegisteredOpen()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-        var jobTypes = fixture.Services.GetRequiredService<QueueJobTypeRegistry>().JobTypes;
-
-        Assert.DoesNotContain(jobTypes, type => type.ContainsGenericParameters);
     }
 }

@@ -265,25 +265,18 @@ public class MetadataTextManagerTests
         => (entries.Entry?.ID, entries.Show?.ID, entries.ShowAtOnce);
 
     [Theory]
-    [InlineData(AnimeType.Movie)]
-    [InlineData(AnimeType.Web)]
-    [InlineData(AnimeType.TVSpecial)]
-    public void AMovieWithBothSides_ReadsItsFilm(AnimeType animeType)
+    [InlineData(AnimeType.Movie, true)]
+    [InlineData(AnimeType.Web, true)]
+    [InlineData(AnimeType.TVSpecial, true)]
+    [InlineData(AnimeType.OVA, false)]
+    [InlineData(AnimeType.TV, false)]
+    [InlineData(AnimeType.Other, false)]
+    public void ATitleWithBothSides_ReadsItsFilmOrItsSeries_ByAnimeType(AnimeType animeType, bool expectsFilm)
     {
         var manager = Manager([FilmLink(1, _film)], seriesLinks: [ShowLink(Season(1))], seasonLinks: [SeasonLink(1)]);
+        var expected = expectsFilm ? _film : _show;
 
-        Assert.Equal((_film, _film), SeriesEntries(manager, animeType));
-    }
-
-    [Theory]
-    [InlineData(AnimeType.OVA)]
-    [InlineData(AnimeType.TV)]
-    [InlineData(AnimeType.Other)]
-    public void AnOvaWithBothSides_ReadsItsSeries(AnimeType animeType)
-    {
-        var manager = Manager([FilmLink(1, _film)], seriesLinks: [ShowLink(Season(1))], seasonLinks: [SeasonLink(1)]);
-
-        Assert.Equal((_show, _show), SeriesEntries(manager, animeType));
+        Assert.Equal((expected, expected), SeriesEntries(manager, animeType));
     }
 
     [Fact]

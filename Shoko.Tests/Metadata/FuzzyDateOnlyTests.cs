@@ -127,19 +127,16 @@ public class FuzzyDateOnlyTests
         Assert.Equal(0, bytesWritten);
     }
 
-    [Fact]
-    public void ALongerTextIsReadAsADateAndTime()
-        => Assert.Equal(new FuzzyDateOnly(1990, 4, 1), FuzzyDateOnly.Parse("1990-04-01 12:34:56"));
-
+    [Theory]
+    [InlineData("1990-04-01 12:34:56", 1990, 4, 1)]
     // The two ends of the offset range: no local time zone can take both
     // to the same day without moving one of them.
-    [Theory]
-    [InlineData("1990-05-01T00:00:00+14:00")]
-    [InlineData("1990-05-01T23:59:59-12:00")]
-    [InlineData("1990-05-01T00:00:00Z")]
-    [InlineData("1990-05-01T23:59:59Z")]
-    public void ALongerTextKeepsTheDateAsWrittenWhateverItsOffset(string text)
-        => Assert.Equal(new FuzzyDateOnly(1990, 5, 1), FuzzyDateOnly.Parse(text));
+    [InlineData("1990-05-01T00:00:00+14:00", 1990, 5, 1)]
+    [InlineData("1990-05-01T23:59:59-12:00", 1990, 5, 1)]
+    [InlineData("1990-05-01T00:00:00Z", 1990, 5, 1)]
+    [InlineData("1990-05-01T23:59:59Z", 1990, 5, 1)]
+    public void ALongerTextIsReadAsTheDateAsWrittenWhateverItsOffset(string text, int year, int month, int day)
+        => Assert.Equal(new FuzzyDateOnly(year, month, day), FuzzyDateOnly.Parse(text));
 
     [Theory]
     [InlineData("")]

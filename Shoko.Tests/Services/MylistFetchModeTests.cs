@@ -55,37 +55,29 @@ public class MylistFetchModeTests
         Assert.Equal(MylistFetchMode.Http | MylistFetchMode.Cache, service.ResolveFetchMode(MylistFetchMode.Auto));
     }
 
-    [Fact]
-    public void ResolveFetchMode_ModifierOnlyKeepsTheConfiguredTransports()
+    [Theory]
+    [InlineData(MylistFetchMode.Default, true, true, true)]
+    [InlineData(MylistFetchMode.Cache, false, false, true)] // does not widen beyond the configured transports
+    public void ResolveFetchMode_ModifierOnlyKeepsTheConfiguredTransports(MylistFetchMode configured, bool http, bool udp, bool cache)
     {
-        var service = CreateService(MylistFetchMode.Default);
+        var service = CreateService(configured);
 
         var resolved = service.ResolveFetchMode(MylistFetchMode.IgnoreTimeCheck);
 
         Assert.True(resolved.HasFlag(MylistFetchMode.IgnoreTimeCheck));
-        Assert.True(resolved.HasFlag(MylistFetchMode.Http));
-        Assert.True(resolved.HasFlag(MylistFetchMode.Udp));
-        Assert.True(resolved.HasFlag(MylistFetchMode.Cache));
+        Assert.Equal(http, resolved.HasFlag(MylistFetchMode.Http));
+        Assert.Equal(udp, resolved.HasFlag(MylistFetchMode.Udp));
+        Assert.Equal(cache, resolved.HasFlag(MylistFetchMode.Cache));
     }
 
-    [Fact]
-    public void ResolveFetchMode_ModifierOnlyDoesNotWidenBeyondTheConfiguredTransports()
-    {
-        var service = CreateService(MylistFetchMode.Cache);
-
-        var resolved = service.ResolveFetchMode(MylistFetchMode.IgnoreTimeCheck);
-
-        Assert.True(resolved.HasFlag(MylistFetchMode.Cache));
-        Assert.False(resolved.HasFlag(MylistFetchMode.Http));
-        Assert.False(resolved.HasFlag(MylistFetchMode.Udp));
-    }
-
-    [Fact]
-    public void ResolveFetchMode_AnExplicitTransportIsLeftAlone()
+    [Theory]
+    [InlineData(MylistFetchMode.Cache)]
+    [InlineData(MylistFetchMode.None)]
+    public void ResolveFetchMode_AnExplicitModeIsLeftAlone(MylistFetchMode requested)
     {
         var service = CreateService(MylistFetchMode.Default);
 
-        Assert.Equal(MylistFetchMode.Cache, service.ResolveFetchMode(MylistFetchMode.Cache));
+        Assert.Equal(requested, service.ResolveFetchMode(requested));
     }
 
     [Fact]
@@ -150,13 +142,5 @@ public class MylistFetchModeTests
 
         // an empty set short-circuits before touching this fixture's null deps
         Assert.NotNull(service.ScheduleSync(Array.Empty<IShokoEpisode>(), new MylistSyncOptions { PlanOnly = false }));
-    }
-
-    [Fact]
-    public void ResolveFetchMode_NoneStaysNone()
-    {
-        var service = CreateService(MylistFetchMode.Default);
-
-        Assert.Equal(MylistFetchMode.None, service.ResolveFetchMode(MylistFetchMode.None));
     }
 }

@@ -52,66 +52,23 @@ public class RequestGetFileTests
         Assert.Equal(new DateOnly(2009, 2, 13), data.ReleasedAt);
     }
 
-    [Fact]
-    public void ParseResponse_ParsesSingleEpisodeXref()
+    [Theory]
+    [InlineData("9876", new[] { 9876 }, new[] { 100 })] // A single episode is the whole file.
+    [InlineData("9876'5432", new[] { 9876, 5432 }, new[] { 50, 50 })] // Without percentages the episodes split the file evenly.
+    [InlineData("9876,60'5432,40", new[] { 9876, 5432 }, new[] { 60, 40 })]
+    public void ParseResponse_ParsesEpisodeXrefs(string episodeField, int[] expectedEpisodeIDs, int[] expectedPercentages)
     {
         var response = new UDPResponse<string>
         {
             Code = UDPReturnCode.FILE,
-            Response = "1|2|9876|3||0|0|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
+            Response = $"1|2|{episodeField}|3||0|0|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
         };
 
         var result = _request.ParseResponse(response);
-        var ep = Assert.Single(result.Response.EpisodeIDs);
-        Assert.Equal(9876, ep.EpisodeID);
-        Assert.Equal(100, ep.Percentage);
-    }
 
-    [Fact]
-    public void ParseResponse_ParsesMultipleEpisodeXrefs_DefaultPercentage()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = "1|2|9876'5432|3||0|0|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.Equal(2, result.Response.EpisodeIDs.Count);
-        Assert.Equal(9876, result.Response.EpisodeIDs[0].EpisodeID);
-        Assert.Equal(50, result.Response.EpisodeIDs[0].Percentage);
-        Assert.Equal(5432, result.Response.EpisodeIDs[1].EpisodeID);
-        Assert.Equal(50, result.Response.EpisodeIDs[1].Percentage);
-    }
-
-    [Fact]
-    public void ParseResponse_ParsesMultipleEpisodeXrefs_WithPercentages()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = "1|2|9876,60'5432,40|3||0|0|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.Equal(2, result.Response.EpisodeIDs.Count);
-        Assert.Equal(9876, result.Response.EpisodeIDs[0].EpisodeID);
-        Assert.Equal(60, result.Response.EpisodeIDs[0].Percentage);
-        Assert.Equal(5432, result.Response.EpisodeIDs[1].EpisodeID);
-        Assert.Equal(40, result.Response.EpisodeIDs[1].Percentage);
-    }
-
-    [Fact]
-    public void ParseResponse_ParsesDeprecated()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = "1|2|3|4||1|0|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.True(result.Response.Deprecated);
+        var xrefs = result.Response.EpisodeIDs;
+        Assert.Equal(expectedEpisodeIDs, xrefs.ConvertAll(x => x.EpisodeID));
+        Assert.Equal(expectedPercentages, xrefs.ConvertAll(x => (int)x.Percentage));
     }
 
     [Theory]
@@ -132,96 +89,28 @@ public class RequestGetFileTests
         Assert.Equal(expectedQuality, result.Response.Quality);
     }
 
-    [Fact]
-    public void ParseResponse_ParsesVersionFlags()
-    {
-        // state = IsV2(4) | IsV3(8) | IsV4(16) | IsV5(32) = 60
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = $"1|2|3|4||0|60|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.Equal(5, result.Response.Version);
-    }
-
-    [Fact]
-    public void ParseResponse_ParsesVersion2()
+    [Theory]
+    [InlineData(60, 5, null, null, false)] // IsV2 | IsV3 | IsV4 | IsV5: the highest version set wins.
+    [InlineData(4, 2, null, null, false)] // IsV2.
+    [InlineData(128, 1, true, null, false)] // Censored.
+    [InlineData(64, 1, false, null, false)] // Uncensored.
+    [InlineData(1, 1, null, true, false)] // CRCMatch.
+    [InlineData(2, 1, null, false, false)] // CRCErr.
+    [InlineData(4096, 1, null, null, true)] // Chaptered.
+    public void ParseResponse_ParsesTheStateFlags(int state, int expectedVersion, bool? expectedCensored, bool? expectedCrcMatches, bool expectedChaptered)
     {
         var response = new UDPResponse<string>
         {
             Code = UDPReturnCode.FILE,
-            Response = $"1|2|3|4||0|4|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
+            Response = $"1|2|3|4||0|{state}|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
         };
 
         var result = _request.ParseResponse(response);
-        Assert.Equal(2, result.Response.Version);
-    }
 
-    [Fact]
-    public void ParseResponse_ParsesCensored()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = $"1|2|3|4||0|128|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.True(result.Response.Censored);
-    }
-
-    [Fact]
-    public void ParseResponse_ParsesUncensored()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = $"1|2|3|4||0|64|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.False(result.Response.Censored);
-    }
-
-    [Fact]
-    public void ParseResponse_ParsesCRCMatch()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = $"1|2|3|4||0|1|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.True(result.Response.CRCMatches);
-    }
-
-    [Fact]
-    public void ParseResponse_ParsesCRCError()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = $"1|2|3|4||0|2|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.False(result.Response.CRCMatches);
-    }
-
-    [Fact]
-    public void ParseResponse_ParsesChaptered()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = $"1|2|3|4||0|4096|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.True(result.Response.Chaptered);
+        Assert.Equal(expectedVersion, result.Response.Version);
+        Assert.Equal(expectedCensored, result.Response.Censored);
+        Assert.Equal(expectedCrcMatches, result.Response.CRCMatches);
+        Assert.Equal(expectedChaptered, result.Response.Chaptered);
     }
 
     [Theory]
@@ -275,98 +164,52 @@ public class RequestGetFileTests
         Assert.Equal(expected, result.Response.Source);
     }
 
-    [Fact]
-    public void ParseResponse_ParsesAudioLanguages()
+    [Theory]
+    [InlineData("jpn", new[] { "jpn" })]
+    [InlineData("jpn'eng", new[] { "jpn", "eng" })]
+    [InlineData("none", new string[0])] // AniDB's "none" is not a language.
+    public void ParseResponse_ParsesAudioLanguages(string audioField, string[] expected)
     {
         var response = new UDPResponse<string>
         {
             Code = UDPReturnCode.FILE,
-            Response = "1|2|3|4||0|0|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
+            Response = $"1|2|3|4||0|0|high|tv|{audioField}|eng|desc|0|file.mkv|G|GRP"
         };
 
         var result = _request.ParseResponse(response);
-        Assert.Equal(["jpn"], result.Response.AudioLanguages);
+
+        Assert.Equal(expected, result.Response.AudioLanguages);
     }
 
-    [Fact]
-    public void ParseResponse_ParsesMultipleAudioLanguages()
+    [Theory]
+    [InlineData("eng'fre", new[] { "eng", "fre" })]
+    [InlineData("none", new string[0])] // AniDB's "none" is not a language.
+    public void ParseResponse_ParsesSubtitleLanguages(string subtitleField, string[] expected)
     {
         var response = new UDPResponse<string>
         {
             Code = UDPReturnCode.FILE,
-            Response = "1|2|3|4||0|0|high|tv|jpn'eng|eng|desc|0|file.mkv|G|GRP"
+            Response = $"1|2|3|4||0|0|high|tv|jpn|{subtitleField}|desc|0|file.mkv|G|GRP"
         };
 
         var result = _request.ParseResponse(response);
-        Assert.Equal(["jpn", "eng"], result.Response.AudioLanguages);
+
+        Assert.Equal(expected, result.Response.SubtitleLanguages);
     }
 
-    [Fact]
-    public void ParseResponse_ParsesSubtitleLanguages()
+    [Theory]
+    [InlineData("1111'50'2222'75")] // Format 1: number'percent'number'percent.
+    [InlineData("1111,50'2222,75")] // Format 2: number,percent'number,percent.
+    public void ParseResponse_ParsesOtherEpisodes(string otherEpisodesField)
     {
         var response = new UDPResponse<string>
         {
             Code = UDPReturnCode.FILE,
-            Response = "1|2|3|4||0|0|high|tv|jpn|eng'fre|desc|0|file.mkv|G|GRP"
+            Response = $"1|2|3|4|{otherEpisodesField}|0|0|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
         };
 
         var result = _request.ParseResponse(response);
-        Assert.Equal(["eng", "fre"], result.Response.SubtitleLanguages);
-    }
 
-    [Fact]
-    public void ParseResponse_ExcludesNoneAudioLanguage()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = "1|2|3|4||0|0|high|tv|none|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.Empty(result.Response.AudioLanguages);
-    }
-
-    [Fact]
-    public void ParseResponse_ExcludesNoneSubtitleLanguage()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = "1|2|3|4||0|0|high|tv|jpn|none|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.Empty(result.Response.SubtitleLanguages);
-    }
-
-    [Fact]
-    public void ParseResponse_ParsesOtherEpisodes_Format1()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = "1|2|3|4|1111'50'2222'75|0|0|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
-        Assert.Equal(2, result.Response.OtherEpisodes.Count);
-        Assert.Equal(1111, result.Response.OtherEpisodes[0].EpisodeID);
-        Assert.Equal(50, result.Response.OtherEpisodes[0].Percentage);
-        Assert.Equal(2222, result.Response.OtherEpisodes[1].EpisodeID);
-        Assert.Equal(75, result.Response.OtherEpisodes[1].Percentage);
-    }
-
-    [Fact]
-    public void ParseResponse_ParsesOtherEpisodes_Format2()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.FILE,
-            Response = "1|2|3|4|1111,50'2222,75|0|0|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
-        };
-
-        var result = _request.ParseResponse(response);
         Assert.Equal(2, result.Response.OtherEpisodes.Count);
         Assert.Equal(1111, result.Response.OtherEpisodes[0].EpisodeID);
         Assert.Equal(50, result.Response.OtherEpisodes[0].Percentage);

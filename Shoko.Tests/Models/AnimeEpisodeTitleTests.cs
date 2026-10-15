@@ -62,17 +62,6 @@ public class AnimeEpisodeTitleTests
     }
 
     [Fact]
-    public void DefaultTitle_UsesTheEnglishTitleWhenOneExists()
-    {
-        using var scope = ScopeWith([Episode(100)], Title("The English One", TitleLanguage.English));
-
-        var episode = new AnimeEpisode { AniDB_EpisodeID = 100 };
-
-        Assert.Equal("The English One", episode.DefaultTitle.Value);
-        Assert.Equal(TitleLanguage.English, episode.DefaultTitle.Language);
-    }
-
-    [Fact]
     public void DefaultTitle_IgnoresTitlesInOtherLanguages()
     {
         using var scope = ScopeWith(

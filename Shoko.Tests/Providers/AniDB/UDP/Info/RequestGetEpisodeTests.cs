@@ -36,37 +36,16 @@ public class RequestGetEpisodeTests
         Assert.Equal(43210, result.Response.AnimeID);
     }
 
-    [Fact]
-    public void ParseResponse_ThrowsOnLessThanTwoParts()
+    [Theory]
+    [InlineData("98765")] // Fewer than two fields.
+    [InlineData("abc|43210|1200|750|50|1|Title|Romaji|Kanji|1234567890|1")] // The episode ID is not an int.
+    [InlineData("98765|abc|1200|750|50|1|Title|Romaji|Kanji|1234567890|1")] // The anime ID is not an int.
+    public void ParseResponse_ThrowsOnMalformedPayload(string payload)
     {
         var response = new UDPResponse<string>
         {
             Code = UDPReturnCode.EPISODE,
-            Response = "98765"
-        };
-
-        Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
-    }
-
-    [Fact]
-    public void ParseResponse_ThrowsOnNonIntEpisodeID()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.EPISODE,
-            Response = "abc|43210|1200|750|50|1|Title|Romaji|Kanji|1234567890|1"
-        };
-
-        Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
-    }
-
-    [Fact]
-    public void ParseResponse_ThrowsOnNonIntAnimeID()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.EPISODE,
-            Response = "98765|abc|1200|750|50|1|Title|Romaji|Kanji|1234567890|1"
+            Response = payload
         };
 
         Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));

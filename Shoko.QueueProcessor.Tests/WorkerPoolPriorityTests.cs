@@ -128,63 +128,30 @@ public class WorkerPoolPriorityTests
         Assert.True(MayAcquireAny(pool));
     }
 
-    [Fact]
-    public void LowPriorityPool_HighPriorityHasNoRunnableJobs_Proceeds()
+    [Theory]
+    [InlineData(10, 1, 0, true)] // High pool is empty: reserved = 0, available = 10
+    [InlineData(10, 1, 1, true)] // maxWorkers=10, high pool reserves 1: reserved = 1, available = 10, so 10 > 1
+    [InlineData(2, 2, 2, false)] // High pool has 2 runnable jobs: reserved = 2, available = 2, so 2 > 2 is false
+    [InlineData(3, 1, 5, true)] // 5 runnable jobs on a pool of 1 worker: reserved = min(5, 1) = 1, available = 3
+    public void LowPriorityPool_Proceeds_OnlyWhenAvailableSlotsExceedTheReservedOnes(
+        int maxWorkers,
+        int highPoolWorkers,
+        int highJobCount,
+        bool expectedProceeds
+    )
     {
-        var orchestrator = MakeOrchestrator(10);
-        var highPool = MakePool("High", 1, priority: 1, typeof(HighPriorityJob));
-        var lowPool = MakePool("Low", 10, priority: AcquisitionAttribute.LowestPriority, typeof(LowPriorityJob));
+        var orchestrator = MakeOrchestrator(maxWorkers);
+        var highPool = MakePool("High", highPoolWorkers, priority: 1, typeof(HighPriorityJob));
+        var lowPool = MakePool("Low", maxWorkers, priority: AcquisitionAttribute.LowestPriority, typeof(LowPriorityJob));
         orchestrator.Initialize([], [highPool, lowPool]);
 
-        // High pool is empty → reserved = 0, available = 10 → low pool proceeds
-        Assert.True(MayAcquireAny(lowPool));
-    }
-
-    [Fact]
-    public void LowPriorityPool_ReservedSlotsLessThanAvailable_Proceeds()
-    {
-        // maxWorkers=10, high pool reserves 1 → 9 remain for low pool
-        var orchestrator = MakeOrchestrator(10);
-        var highPool = MakePool("High", 1, priority: 1, typeof(HighPriorityJob));
-        var lowPool = MakePool("Low", 10, priority: AcquisitionAttribute.LowestPriority, typeof(LowPriorityJob));
-        orchestrator.Initialize([], [highPool, lowPool]);
-
-        highPool.AddToQueue(MakeJob(typeof(HighPriorityJob)));
-
-        // reserved = 1, available = 10 → 10 > 1 → low pool proceeds
-        Assert.True(MayAcquireAny(lowPool));
-    }
-
-    [Fact]
-    public void LowPriorityPool_ReservedSlotsEqualAvailable_Blocked()
-    {
-        // maxWorkers=2, high pool has 2 runnable jobs → reserved = 2, available = 2 → blocked
-        var orchestrator = MakeOrchestrator(2);
-        var highPool = MakePool("High", 2, priority: 1, typeof(HighPriorityJob));
-        var lowPool = MakePool("Low", 2, priority: AcquisitionAttribute.LowestPriority, typeof(LowPriorityJob));
-        orchestrator.Initialize([], [highPool, lowPool]);
-
-        highPool.AddToQueue(MakeJob(typeof(HighPriorityJob)));
-        highPool.AddToQueue(MakeJob(typeof(HighPriorityJob)));
-
-        // reserved = 2, available = 2 → 2 > 2 is false → low pool blocked
-        Assert.True(StaysIdle(lowPool));
-    }
-
-    [Fact]
-    public void LowPriorityPool_RunnableCountCappedAtPoolMaxWorkers()
-    {
-        // High pool maxWorkers=1 but has 5 runnable jobs → reserved = 1 (capped)
-        var orchestrator = MakeOrchestrator(3);
-        var highPool = MakePool("High", 1, priority: 1, typeof(HighPriorityJob));
-        var lowPool = MakePool("Low", 3, priority: AcquisitionAttribute.LowestPriority, typeof(LowPriorityJob));
-        orchestrator.Initialize([], [highPool, lowPool]);
-
-        for (var i = 0; i < 5; i++)
+        for (var i = 0; i < highJobCount; i++)
             highPool.AddToQueue(MakeJob(typeof(HighPriorityJob)));
 
-        // reserved = min(5, 1) = 1, available = 3 → 3 > 1 → low pool proceeds
-        Assert.True(MayAcquireAny(lowPool));
+        if (expectedProceeds)
+            Assert.True(MayAcquireAny(lowPool));
+        else
+            Assert.True(StaysIdle(lowPool));
     }
 
     [Fact]

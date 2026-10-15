@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Shoko.Server;
 using Xunit;
 
@@ -61,254 +60,114 @@ namespace Shoko.Tests
                 "first girl wins",
             };
 
-        [Fact(DisplayName = "Full Test")]
-        public void TestFullList()
+        public static TheoryData<TagFilter.Filter, string[], string[]> FullListCases() => new()
         {
-            var actual = TagFilter.String.ProcessTags(TagFilter.Filter.Genre, Input);
-            var expected = new List<string>
+            // Full Test
             {
-                "large breasts",
-                "japan",
-                "source material",
-                "manga",
-                "Earth",
-                "Asia",
-                "noitamina",
-                "cgi",
-                "3DCG",
-                "long episodes",
-                "first girl wins",
-                "alternative past",
-                "past",
-            };
+                TagFilter.Filter.Genre,
+                [.. Input],
+                [
+                    "large breasts", "japan", "source material", "manga", "Earth", "Asia", "noitamina", "cgi", "3DCG", "long episodes",
+                    "first girl wins", "alternative past", "past",
+                ]
+            },
+            // Full Test w/ 'original work'
+            {
+                TagFilter.Filter.Genre,
+                [.. Input, "original work"],
+                [
+                    "large breasts", "japan", "source material", "manga", "Earth", "Asia", "noitamina", "cgi", "3DCG", "long episodes",
+                    "first girl wins", "alternative past", "past",
+                ]
+            },
+            // Full Test w/o Source
+            {
+                TagFilter.Filter.Genre,
+                [.. InputNoSource],
+                ["large breasts", "japan", "Earth", "Asia", "noitamina", "cgi", "3DCG", "long episodes", "first girl wins", "original work"]
+            },
+            // Full Test Inverted
+            {
+                TagFilter.Filter.Invert | TagFilter.Filter.Source | TagFilter.Filter.Genre | TagFilter.Filter.Setting,
+                [.. Input],
+                ["comedy", "horror", "18 restricted", "japan", "violence", "manga", "fantasy", "shounen", "alternative past", "past"]
+            },
+            // Source Exclusion with Full List
+            {
+                TagFilter.Filter.Source,
+                [.. Input],
+                [
+                    "comedy", "horror", "18 restricted", "large breasts", "japan", "violence", "source material", "fantasy", "shounen", "Earth",
+                    "Asia", "noitamina", "cgi", "3DCG", "long episodes", "first girl wins", "alternative past", "past",
+                ]
+            },
+            // Source Exclusion with Full List w/o Source
+            {
+                TagFilter.Filter.Source,
+                [.. InputNoSource],
+                [
+                    "horror", "18 restricted", "large breasts", "japan", "violence", "fantasy", "shounen", "Earth", "Asia", "noitamina",
+                    "cgi", "3DCG", "long episodes", "first girl wins",
+                ]
+            },
+        };
 
+        [Theory]
+        [MemberData(nameof(FullListCases))]
+        public void TestFullLists(TagFilter.Filter filter, string[] input, string[] expected)
+        {
+            var actual = TagFilter.String.ProcessTags(filter, input);
+
+            _console.WriteLine("Filter: {0}", filter);
             _console.WriteLine("Expected: [{0}]", string.Join(", ", expected));
             _console.WriteLine("Actual: [{0}]", string.Join(", ", actual));
             Assert.Equal(expected, actual);
         }
 
-        [Fact(DisplayName = "Full Test w/ 'original work'")]
-        public void TestFullListWithNew()
-        {
-            var actual = TagFilter.String.ProcessTags(TagFilter.Filter.Genre, Input.Concat(new[] { "original work" }));
-            var expected = new List<string>
+        [Theory]
+        // Source Exclusion
+        [InlineData(TagFilter.Filter.Source, new[] { "original work" }, new string[] { })]
+        // Source Exclusion with No Source
+        [InlineData(TagFilter.Filter.Genre, new string[] { }, new[] { "original work" })]
+        // Source Inclusion with Source and Original Work
+        [InlineData(TagFilter.Filter.Source | TagFilter.Filter.Invert, new[] { "manga", "original work" }, new[] { "manga" })]
+        // Source Inclusion w/o Source
+        [InlineData(TagFilter.Filter.Source | TagFilter.Filter.Invert, new[] { "action" }, new[] { "original work" })]
+        // Inverted w/o Source
+        [InlineData(TagFilter.Filter.Genre | TagFilter.Filter.Invert, new[] { "action" }, new[] { "action" })]
+        // AniDB Internal with Replacement Source
+        [InlineData(TagFilter.Filter.AnidbInternal, new[] { "source material", "original work" }, new[] { "original work" })]
+        // AniDB Internal with Source
+        [InlineData(
+            TagFilter.Filter.AnidbInternal | TagFilter.Filter.Source,
+            new[] { "source material", "original work" },
+            new string[] { }
+        )]
+        // AniDB Internal with Overlapping Source
+        [InlineData(TagFilter.Filter.AnidbInternal, new[] { "action", "manga", "original work" }, new[] { "action", "manga" })]
+        // Art Style Exclusion
+        [InlineData(TagFilter.Filter.ArtStyle | TagFilter.Filter.Source, new[] { "censored", "cgi" }, new string[] { })]
+        // Plot Exclusion
+        [InlineData(TagFilter.Filter.Plot | TagFilter.Filter.Source, new[] { "everybody dies", "first girl wins" }, new string[] { })]
+        // Settings Exclusion
+        [InlineData(
+            TagFilter.Filter.Setting | TagFilter.Filter.Source,
+            new[] { "meiji period", "meiji era", "japan", "high school" },
+            new string[] { }
+        )]
+        // Misc Exclusion
+        [InlineData(TagFilter.Filter.Misc | TagFilter.Filter.Source, new[] { "previews suck" }, new string[] { })]
+        // AniDB Internal Exclusion
+        [InlineData(
+            TagFilter.Filter.AnidbInternal | TagFilter.Filter.Source,
+            new[]
             {
-                "large breasts",
-                "japan",
-                "source material",
-                "manga",
-                "Earth",
-                "Asia",
-                "noitamina",
-                "cgi",
-                "3DCG",
-                "long episodes",
-                "first girl wins",
-                "alternative past",
-                "past",
-            };
-
-            _console.WriteLine("Expected: [{0}]", string.Join(", ", expected));
-            _console.WriteLine("Actual: [{0}]", string.Join(", ", actual));
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact(DisplayName = "Full Test w/o Source")]
-        public void TestFullListNoSource()
-        {
-            var actual = TagFilter.String.ProcessTags(TagFilter.Filter.Genre, InputNoSource);
-            var expected = new List<string>
-            {
-                "large breasts",
-                "japan",
-                "Earth",
-                "Asia",
-                "noitamina",
-                "cgi",
-                "3DCG",
-                "long episodes",
-                "first girl wins",
-                "original work",
-            };
-
-            _console.WriteLine("Expected: [{0}]", string.Join(", ", expected));
-            _console.WriteLine("Actual: [{0}]", string.Join(", ", actual));
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact(DisplayName = "Full Test Inverted")]
-        public void TestFullListInverted()
-        {
-            var filter = TagFilter.Filter.Invert | TagFilter.Filter.Source | TagFilter.Filter.Genre | TagFilter.Filter.Setting;
-            var actual = TagFilter.String.ProcessTags(filter, Input);
-            var expected = new List<string>
-            {
-                "comedy",
-                "horror",
-                "18 restricted",
-                "japan",
-                "violence",
-                "manga",
-                "fantasy",
-                "shounen",
-                "alternative past",
-                "past",
-            };
-
-            _console.WriteLine(
-                "AniDB Internal: {0}, Art Style: {1}, Genre: {2}, Inverted: {3}, Misc: {4}, Plot: {5}, Programming: {6}, Setting: {7}, Source: {8}", filter.HasFlag(TagFilter.Filter.AnidbInternal), filter.HasFlag(TagFilter.Filter.ArtStyle),
-                filter.HasFlag(TagFilter.Filter.Genre), filter.HasFlag(TagFilter.Filter.Invert), filter.HasFlag(TagFilter.Filter.Misc), filter.HasFlag(TagFilter.Filter.Plot), filter.HasFlag(TagFilter.Filter.Programming),
-                filter.HasFlag(TagFilter.Filter.Setting), filter.HasFlag(TagFilter.Filter.Source)
-            );
-            _console.WriteLine("Expected: [{0}]", string.Join(", ", expected));
-            _console.WriteLine("Actual: [{0}]", string.Join(", ", actual));
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact(DisplayName = "Source Exclusion with Full List")]
-        public void TestSourceFullList()
-        {
-            var actual = TagFilter.String.ProcessTags(TagFilter.Filter.Source, Input);
-            var expected = new List<string>
-            {
-                "comedy",
-                "horror",
-                "18 restricted",
-                "large breasts",
-                "japan",
-                "violence",
-                "source material",
-                "fantasy",
-                "shounen",
-                "Earth",
-                "Asia",
-                "noitamina",
-                "cgi",
-                "3DCG",
-                "long episodes",
-                "first girl wins",
-                "alternative past",
-                "past",
-            };
-
-            _console.WriteLine("Expected: [{0}]", string.Join(", ", expected));
-            _console.WriteLine("Actual: [{0}]", string.Join(", ", actual));
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact(DisplayName = "Source Exclusion with Full List w/o Source")]
-        public void TestSourceFullListNoSource()
-        {
-            var actual = TagFilter.String.ProcessTags(TagFilter.Filter.Source, InputNoSource);
-            var expected = new List<string>
-            {
-                "horror",
-                "18 restricted",
-                "large breasts",
-                "japan",
-                "violence",
-                "fantasy",
-                "shounen",
-                "Earth",
-                "Asia",
-                "noitamina",
-                "cgi",
-                "3DCG",
-                "long episodes",
-                "first girl wins",
-            };
-
-            _console.WriteLine("Expected: [{0}]", string.Join(", ", expected));
-            _console.WriteLine("Actual: [{0}]", string.Join(", ", actual));
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact(DisplayName = "Source Exclusion")]
-        public void TestSource()
-        {
-            Assert.Equal(new List<string>(), TagFilter.String.ProcessTags(TagFilter.Filter.Source, new[] { "original work" }));
-        }
-
-        [Fact(DisplayName = "Source Exclusion with No Source")]
-        public void TestSourceNoSource()
-        {
-            Assert.Equal(new List<string> { "original work" }, TagFilter.String.ProcessTags(TagFilter.Filter.Genre, new List<string>()));
-        }
-
-        [Fact(DisplayName = "Source Inclusion with Source and Original Work")]
-        public void TestSourceInvertedDupeSource()
-        {
-            Assert.Equal(new List<string> { "manga" }, TagFilter.String.ProcessTags(TagFilter.Filter.Source | TagFilter.Filter.Invert, new[] { "manga", "original work" }));
-        }
-
-        [Fact(DisplayName = "Source Inclusion w/o Source")]
-        public void TestSourceInvertedNoSource()
-        {
-            Assert.Equal(new List<string> { "original work" }, TagFilter.String.ProcessTags(TagFilter.Filter.Source | TagFilter.Filter.Invert, new[] { "action" }));
-        }
-
-        [Fact(DisplayName = "Inverted w/o Source")]
-        public void TestInvertedNoSource()
-        {
-            Assert.Equal(new List<string> { "action" }, TagFilter.String.ProcessTags(TagFilter.Filter.Genre | TagFilter.Filter.Invert, new[] { "action" }));
-        }
-
-        [Fact(DisplayName = "AniDB Internal with Replacement Source")]
-        public void TestAniDBInternalWithSource()
-        {
-            Assert.Equal(new List<string> { "original work" }, TagFilter.String.ProcessTags(TagFilter.Filter.AnidbInternal, new[] { "source material", "original work" }));
-        }
-
-        [Fact(DisplayName = "AniDB Internal with Source")]
-        public void TestAniDBInternalWithTag()
-        {
-            Assert.Equal(new List<string>(), TagFilter.String.ProcessTags(TagFilter.Filter.AnidbInternal | TagFilter.Filter.Source, new[] { "source material", "original work" }));
-        }
-
-        [Fact(DisplayName = "AniDB Internal with Overlapping Source")]
-        public void TestAniDBInternalAndSourceWithOverlap()
-        {
-            Assert.Equal(new List<string> { "action", "manga" }, TagFilter.String.ProcessTags(TagFilter.Filter.AnidbInternal, new[] { "action", "manga", "original work" }));
-        }
-
-        [Fact(DisplayName = "Art Style Exclusion")]
-        public void TestArtStyle()
-        {
-            Assert.Equal(new List<string>(), TagFilter.String.ProcessTags(TagFilter.Filter.ArtStyle | TagFilter.Filter.Source, new[] { "censored", "cgi" }));
-        }
-
-        [Fact(DisplayName = "Plot Exclusion")]
-        public void TestPlot()
-        {
-            Assert.Equal(new List<string>(), TagFilter.String.ProcessTags(TagFilter.Filter.Plot | TagFilter.Filter.Source, new[] { "everybody dies", "first girl wins" }));
-        }
-
-        [Fact(DisplayName = "Settings Exclusion")]
-        public void TestSettings()
-        {
-            Assert.Equal(new List<string>(), TagFilter.String.ProcessTags(TagFilter.Filter.Setting | TagFilter.Filter.Source, new[] { "meiji period", "meiji era", "japan", "high school" }));
-        }
-
-        [Fact(DisplayName = "Misc Exclusion")]
-        public void TestMisc()
-        {
-            Assert.Equal(new List<string>(), TagFilter.String.ProcessTags(TagFilter.Filter.Misc | TagFilter.Filter.Source, new[] { "previews suck" }));
-        }
-
-        [Fact(DisplayName = "AniDB Internal Exclusion")]
-        public void TestAniDBInternal()
-        {
-            Assert.Equal(
-                new List<string>(),
-                TagFilter.String.ProcessTags(
-                    TagFilter.Filter.AnidbInternal | TagFilter.Filter.Source,
-                    new[]
-                    {
-                        "old animetags", "missing frogs", "predominantly gay", "adapted into live action", "weekly monster", "needs removed", "to be merged", "to be improved", "to be split and deleted",
-                        "to be moved", "to be split"
-                    }
-                )
-            );
-        }
+                "old animetags", "missing frogs", "predominantly gay", "adapted into live action", "weekly monster", "needs removed", "to be merged",
+                "to be improved", "to be split and deleted", "to be moved", "to be split"
+            },
+            new string[] { }
+        )]
+        public void TestShortLists(TagFilter.Filter filter, string[] input, string[] expected)
+            => Assert.Equal(expected, TagFilter.String.ProcessTags(filter, input));
     }
 }

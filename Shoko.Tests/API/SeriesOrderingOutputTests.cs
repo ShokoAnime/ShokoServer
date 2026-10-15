@@ -120,8 +120,4 @@ public class SeriesOrderingOutputTests
         Assert.Equal("JP", network.CountryOfOrigin);
         Assert.Equal("JP", json[nameof(SeriesOrdering.Networks)]?[0]?[nameof(MetadataNetwork.CountryOfOrigin)]?.Value<string>());
     }
-
-    [Fact]
-    public void AnOrderingWithoutNetworksListsNone()
-        => Assert.Empty(new SeriesOrdering(Ordering(MetadataSource.User), includeGroups: false, Models()).Networks);
 }

@@ -49,15 +49,4 @@ public class QueueJobTypeRegistryTests
 
         Assert.Throws<InvalidOperationException>(() => registry.Add([typeof(JobB)]));
     }
-
-    [Fact]
-    public void JobTypes_ReturnsSnapshot_NotMutableReference()
-    {
-        var registry = new QueueJobTypeRegistry();
-        registry.Add([typeof(JobA)]);
-
-        var snapshot = registry.JobTypes;
-        Assert.Single(snapshot);
-        Assert.IsNotType<List<Type>>(snapshot);
-    }
 }

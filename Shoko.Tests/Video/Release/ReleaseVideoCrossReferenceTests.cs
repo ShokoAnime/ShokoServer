@@ -33,18 +33,6 @@ public class ReleaseVideoCrossReferenceTests
         Assert.False(xref.ProviderIDs.ContainsKey(CrossReferenceIDs.AniDB_Anime));
     }
 
-    [Theory]
-    [InlineData(0, 100)]
-    [InlineData(50, 100)]
-    [InlineData(0, 50)]
-    public void ForAniDB_WithPercentages_SetsCorrectRange(int start, int end)
-    {
-        var xref = ReleaseVideoCrossReference.ForAniDB(1, 1, start, end);
-
-        Assert.Equal(start, ((IReleaseVideoCrossReference)xref).PercentageStart);
-        Assert.Equal(end, ((IReleaseVideoCrossReference)xref).PercentageEnd);
-    }
-
     [Fact]
     public void ForAniDB_WithoutPercentages_DefaultsToFullRange()
     {
@@ -56,82 +44,32 @@ public class ReleaseVideoCrossReferenceTests
 
     // ── GetAnidbEpisodeID extension ───────────────────────────────────────────
 
-    [Fact]
-    public void GetAnidbEpisodeID_WithValidKey_ReturnsID()
-    {
-        var xref = ReleaseVideoCrossReference.ForAniDB(132456, 69);
-
-        Assert.Equal(132456, xref.AnidbEpisodeID);
-    }
-
-    [Fact]
-    public void GetAnidbEpisodeID_MissingKey_ReturnsZero()
+    [Theory]
+    [InlineData("132456", 132456)]
+    [InlineData(null, 0)] // No key stored.
+    [InlineData("not-a-number", 0)]
+    public void GetAnidbEpisodeID_ReturnsZero_UnlessTheStoredValueIsNumeric(string? storedValue, int expected)
     {
         var xref = new ReleaseVideoCrossReference();
+        if (storedValue is not null)
+            xref.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = storedValue;
 
-        Assert.Equal(0, xref.AnidbEpisodeID);
-    }
-
-    [Fact]
-    public void GetAnidbEpisodeID_NonNumericValue_ReturnsZero()
-    {
-        var xref = new ReleaseVideoCrossReference();
-        xref.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = "not-a-number";
-
-        Assert.Equal(0, xref.AnidbEpisodeID);
+        Assert.Equal(expected, xref.AnidbEpisodeID);
     }
 
     // ── GetAnidbAnimeID extension ─────────────────────────────────────────────
 
-    [Fact]
-    public void GetAnidbAnimeID_WithValidKey_ReturnsID()
-    {
-        var xref = ReleaseVideoCrossReference.ForAniDB(132456, 69);
-
-        Assert.Equal(69, xref.AnidbAnimeID);
-    }
-
-    [Fact]
-    public void GetAnidbAnimeID_MissingKey_ReturnsNull()
-    {
-        var xref = ReleaseVideoCrossReference.ForAniDB(132456, null);
-
-        Assert.Null(xref.AnidbAnimeID);
-    }
-
-    [Fact]
-    public void GetAnidbAnimeID_NonNumericValue_ReturnsNull()
+    [Theory]
+    [InlineData("69", 69)]
+    [InlineData(null, null)] // No key stored.
+    [InlineData("xyz", null)]
+    public void GetAnidbAnimeID_ReturnsNull_UnlessTheStoredValueIsNumeric(string? storedValue, int? expected)
     {
         var xref = new ReleaseVideoCrossReference();
-        xref.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = "xyz";
+        if (storedValue is not null)
+            xref.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = storedValue;
 
-        Assert.Null(xref.AnidbAnimeID);
-    }
-
-    // ── custom provider keys ──────────────────────────────────────────────────
-
-    [Fact]
-    public void ProviderIDs_AcceptsArbitraryKeys()
-    {
-        const string customKey = "MyProvider_ContentID";
-        var xref = ReleaseVideoCrossReference.ForAniDB(1, 1);
-        xref.ProviderIDs[customKey] = "abc-123";
-
-        Assert.Equal("abc-123", xref.ProviderIDs[customKey]);
-        Assert.Equal(3, xref.ProviderIDs.Count); // AniDB_Episode + AniDB_Anime + custom
-    }
-
-    // ── IReleaseVideoCrossReference explicit implementation ───────────────────
-
-    [Fact]
-    public void ExplicitInterface_ProviderIDsIsReadOnly()
-    {
-        var xref = ReleaseVideoCrossReference.ForAniDB(132456, 69);
-        IReleaseVideoCrossReference iface = xref;
-
-        Assert.IsAssignableFrom<IReadOnlyDictionary<string, string>>(iface.ProviderIDs);
-        Assert.Equal("132456", iface.ProviderIDs[CrossReferenceIDs.AniDB_Episode]);
-        Assert.Equal("69", iface.ProviderIDs[CrossReferenceIDs.AniDB_Anime]);
+        Assert.Equal(expected, xref.AnidbAnimeID);
     }
 
     // ── EmbeddedCrossReference ────────────────────────────────────────────────

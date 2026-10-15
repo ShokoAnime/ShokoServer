@@ -101,52 +101,23 @@ public class RequestGetCreatorTests
         TestType(3, CreatorType.Collaboration);
     }
 
-    [Fact]
-    public void ParseResponse_ThrowsOnLessThan10Parts()
+    [Theory]
+    [InlineData("1|Name|Name|1|||||", "There were the wrong number of data columns")] // Nine fields, one short of ten.
+    [InlineData("abc|Name|Name|1||||||0", "Creator ID was not an int")]
+    [InlineData("1|Name|Name|abc||||||0", "Creator type was not an int")]
+    [InlineData("1|Name|Name|1||||||abc", "Last updated date was not an int")]
+    public void ParseResponse_ThrowsOnMalformedPayload(string payload, string expectedMessage)
     {
         var response = new UDPResponse<string>
         {
             Code = UDPReturnCode.CREATOR,
-            Response = "1|Name|Name|1|||||"
+            Response = payload
         };
 
-        Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
-    }
+        var exception = Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
 
-    [Fact]
-    public void ParseResponse_ThrowsOnNonIntCreatorID()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.CREATOR,
-            Response = "abc|Name|Name|1||||||0"
-        };
-
-        Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
-    }
-
-    [Fact]
-    public void ParseResponse_ThrowsOnNonIntCreatorType()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.CREATOR,
-            Response = "1|Name|Name|abc|||||0"
-        };
-
-        Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
-    }
-
-    [Fact]
-    public void ParseResponse_ThrowsOnNonIntLastUpdated()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.CREATOR,
-            Response = "1|Name|Name|1|||||abc"
-        };
-
-        Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
+        // Each payload has to reach the check it is named for, not stop at the field count.
+        Assert.Equal(expectedMessage, exception.Message);
     }
 
     [Fact]

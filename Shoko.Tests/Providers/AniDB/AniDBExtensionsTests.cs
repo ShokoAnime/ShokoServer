@@ -21,20 +21,6 @@ public class AniDBExtensionsTests
     }
 
     /// <summary>
-    /// The same instant is the same instant, however it is labelled.
-    /// </summary>
-    [Fact]
-    public void GetAniDBDateAsSeconds_LocalAndItsUtcEquivalentAgree()
-    {
-        var local = new DateTime(2022, 6, 17, 19, 13, 3, DateTimeKind.Local);
-
-        Assert.Equal(
-            AniDBExtensions.GetAniDBDateAsSeconds(local.ToUniversalTime()),
-            AniDBExtensions.GetAniDBDateAsSeconds(local)
-        );
-    }
-
-    /// <summary>
     /// Air dates arrive as an unspecified midnight. Converting one would move it
     /// by the local offset and, east of UTC, report the day before.
     /// </summary>

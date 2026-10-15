@@ -38,24 +38,16 @@ public class EpisodeListTests
         Assert.All(list, group => Assert.Equal(string.Empty, group.Single().Match));
     }
 
-    [Fact]
-    public void NonOvaTypes_AreAvailableWhenTheFileIsPresent()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void NonOvaTypes_AreAvailableOnlyWhenTheFileIsPresent(bool available)
     {
         var list = List(AnimeType.TV);
 
-        list.Add(Episode(), "Episode 1", available: true);
+        list.Add(Episode(), "Episode 1", available);
 
-        Assert.True(list.Single().Available);
-    }
-
-    [Fact]
-    public void NonOvaTypes_AreNotAvailableWhenTheFileIsMissing()
-    {
-        var list = List(AnimeType.TV);
-
-        list.Add(Episode(), "Episode 1", available: false);
-
-        Assert.False(list.Single().Available);
+        Assert.Equal(available, list.Single().Available);
     }
 
     #endregion
@@ -166,26 +158,17 @@ public class EpisodeListTests
 
     #region Availability
 
-    [Fact]
-    public void AllPartsPresent_MakesTheEpisodeAvailable()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TheEpisodeIsAvailableOnlyWhenEveryPartIsPresent(bool secondPartAvailable)
     {
         var list = List(AnimeType.OVA);
 
         list.Add(Episode(), "Some Movie part 1 of 2", available: true);
-        list.Add(Episode(), "Some Movie part 2 of 2", available: true);
+        list.Add(Episode(), "Some Movie part 2 of 2", secondPartAvailable);
 
-        Assert.True(list.Single().Available);
-    }
-
-    [Fact]
-    public void AMissingPart_LeavesTheEpisodeUnavailable()
-    {
-        var list = List(AnimeType.OVA);
-
-        list.Add(Episode(), "Some Movie part 1 of 2", available: true);
-        list.Add(Episode(), "Some Movie part 2 of 2", available: false);
-
-        Assert.False(list.Single().Available);
+        Assert.Equal(secondPartAvailable, list.Single().Available);
     }
 
     [Fact]
@@ -280,25 +263,17 @@ public class EpisodeListTests
 
     #region Hidden
 
-    [Fact]
-    public void AGroupIsHiddenWhenAnyOfItsEpisodesIsHidden()
+    [Theory]
+    [InlineData(false, true, true)]
+    [InlineData(false, false, false)]
+    public void AGroupIsHiddenOnlyWhenAnyOfItsEpisodesIsHidden(bool firstHidden, bool secondHidden, bool expected)
     {
         var list = List(AnimeType.OVA);
 
-        list.Add(Episode(hidden: false), "Some Movie part 1 of 2", available: true);
-        list.Add(Episode(hidden: true), "Some Movie part 2 of 2", available: true);
+        list.Add(Episode(firstHidden), "Some Movie part 1 of 2", available: true);
+        list.Add(Episode(secondHidden), "Some Movie part 2 of 2", available: true);
 
-        Assert.True(list.Single().Hidden);
-    }
-
-    [Fact]
-    public void AGroupIsNotHiddenWhenNoEpisodeIsHidden()
-    {
-        var list = List(AnimeType.OVA);
-
-        list.Add(Episode(), "Some Movie", available: true);
-
-        Assert.False(list.Single().Hidden);
+        Assert.Equal(expected, list.Single().Hidden);
     }
 
     #endregion

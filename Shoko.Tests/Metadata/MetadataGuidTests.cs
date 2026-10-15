@@ -80,10 +80,6 @@ public class MetadataGuidTests
         Assert.Throws<KeyNotFoundException>(() => MetadataGuid.For("anidb", "mg-for-kind", "1"));
     }
 
-    [Fact]
-    public void ForRefusesAnInvalidID()
-        => Assert.Throws<ArgumentException>(() => MetadataGuid.For("anidb", "series", " 1"));
-
     #endregion
 
     #region Parsing

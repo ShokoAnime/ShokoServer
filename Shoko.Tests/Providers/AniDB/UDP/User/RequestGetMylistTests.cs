@@ -96,33 +96,20 @@ public class RequestGetMylistTests
         Assert.Null(result.Response.ViewedAt);
     }
 
-    [Fact]
-    public void ParseResponse_ReturnsNullOnNoSuchEntry()
+    [Theory]
+    [InlineData(UDPReturnCode.NO_SUCH_ENTRY)]
+    [InlineData(UDPReturnCode.NO_SUCH_FILE)]
+    public void ParseResponse_ReturnsNullOnNoSuchEntryOrFile(UDPReturnCode code)
     {
         var response = new UDPResponse<string>
         {
-            Code = UDPReturnCode.NO_SUCH_ENTRY,
+            Code = code,
             Response = string.Empty
         };
 
         var result = _request.ParseResponse(response);
 
-        Assert.Equal(UDPReturnCode.NO_SUCH_ENTRY, result.Code);
-        Assert.Null(result.Response);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsNullOnNoSuchFile()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_SUCH_FILE,
-            Response = string.Empty
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(UDPReturnCode.NO_SUCH_FILE, result.Code);
+        Assert.Equal(code, result.Code);
         Assert.Null(result.Response);
     }
 

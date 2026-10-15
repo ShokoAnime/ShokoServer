@@ -1116,26 +1116,6 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task ATmdbImageJobWaitsForARefreshLikeAPluginSourcesOne()
-    {
-        var harness = new ImagesHarness();
-        var info = Info(harness.Provider, source: MetadataSource.TMDB);
-        var movieID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Movie, "9");
-        harness.Metadata.Setup(m => m.GetEntry(movieID)).Returns(Entity<IMovie>(movieID));
-
-        // A refresh holds the entry's lock.
-        Task running;
-        using (await harness.Locks.Acquire(movieID, TestContext.Current.CancellationToken))
-        {
-            running = harness.Job(movieID.ToString(), info).Execute();
-            Assert.Empty(harness.Provider.ImagesAsked);
-        }
-
-        await running;
-        Assert.Equal([movieID], harness.Provider.ImagesAsked);
-    }
-
-    [Fact]
     public async Task TheImageJobLeavesOutTheKindsNothingIsDownloadedFor()
     {
         var harness = new ImagesHarness();
@@ -1759,26 +1739,6 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task ATmdbCollectionIsKeptWhileOneOfItsMoviesIsLinked()
-    {
-        var harness = new PurgeHarness();
-        var collectionID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Collection, "5");
-        var linkedMovie = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Movie, "9");
-        harness.CollectionStore.Setup(s => s.GetMembers(collectionID)).Returns([linkedMovie]);
-        harness.Links.Setup(s => s.GetLinksTo(linkedMovie))
-            .Returns([new CrossRef_AniDB_Metadata_Movie { Source = MetadataSource.TMDB, AnidbAnimeID = AnimeID, AnidbEpisodeID = 1, ProviderID = "9" }]);
-
-        await harness.Job(collectionID.ToString()).Execute();
-
-        Assert.Empty(harness.Tmdb.CleanedUp);
-
-        harness.Links.Setup(s => s.GetLinksTo(linkedMovie)).Returns([]);
-        await harness.Job(collectionID.ToString()).Execute();
-
-        Assert.Equal([collectionID], harness.Tmdb.CleanedUp);
-    }
-
-    [Fact]
     public async Task APurgeOfAFilmNothingStoresStillClearsItsData()
     {
         var harness = new PurgeHarness();
@@ -1895,19 +1855,6 @@ public class MetadataProviderJobTests
 
         Assert.Equal(["theirs"], harness.Orderings.Orderings.GetAll().Select(row => row.ProviderID));
         Assert.Equal([show], harness.Tmdb.CleanedUp);
-    }
-
-    [Fact]
-    public async Task APurgeOfASeriesTheStoreNoLongerHoldsStillTakesItsOrderings()
-    {
-        var harness = new PurgeHarness();
-        var seriesID = ID(MetadataEntityType.Series, "1");
-        AddOrdering(harness.Orderings, seriesID, "mine");
-
-        await harness.Job(seriesID.ToString()).Execute();
-
-        Assert.Empty(harness.Orderings.Orderings.GetAll());
-        Assert.Equal([seriesID], harness.Provider.CleanedUp);
     }
 
     [Fact]

@@ -23,7 +23,7 @@ public class MetadataNumberColumnTests(DatabaseMigrationFixture fixture)
     /// <summary>
     /// Every mapped column whose property is stored through the given user type.
     /// </summary>
-    private HashSet<(string Table, string Column)> MappedColumns<TUserType>()
+    private HashSet<(string Table, string Column)> MappedColumns(Type userType)
     {
         var factory = fixture.Services.GetRequiredService<DatabaseFactory>().SessionFactory;
         var columns = new HashSet<(string Table, string Column)>();
@@ -32,7 +32,7 @@ public class MetadataNumberColumnTests(DatabaseMigrationFixture fixture)
             var persister = (AbstractEntityPersister)metadata;
             foreach (var property in metadata.PropertyNames)
             {
-                if (metadata.GetPropertyType(property) is not CustomType { UserType: TUserType })
+                if (metadata.GetPropertyType(property) is not CustomType { UserType: { } mappedType } || !userType.IsInstanceOfType(mappedType))
                     continue;
 
                 foreach (var column in persister.GetPropertyColumnNames(property))
@@ -47,26 +47,23 @@ public class MetadataNumberColumnTests(DatabaseMigrationFixture fixture)
 
     #region Coverage
 
-    [Fact]
-    public void EverySourceColumnIsChecked()
+    /// <summary>Each user type with the columns the startup check reads for it.</summary>
+    public static TheoryData<Type, IReadOnlyList<(string Table, string Column)>> CheckedColumns => new()
+    {
+        { typeof(MetadataSourceType), DatabaseFixes.MetadataSourceColumns },
+        { typeof(MetadataEntityTypeType), DatabaseFixes.MetadataEntityTypeColumns },
+    };
+
+    [Theory]
+    [MemberData(nameof(CheckedColumns))]
+    public void EveryMappedColumnIsChecked(Type userType, IReadOnlyList<(string Table, string Column)> checkedColumns)
     {
         Assert.True(fixture.Success, fixture.FailureMessage);
 
-        var mapped = MappedColumns<MetadataSourceType>();
+        var mapped = MappedColumns(userType);
 
         Assert.NotEmpty(mapped);
-        Assert.Equal(mapped.OrderBy(c => c).ToList(), DatabaseFixes.MetadataSourceColumns.Distinct().OrderBy(c => c).ToList());
-    }
-
-    [Fact]
-    public void EveryEntityTypeColumnIsChecked()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-
-        var mapped = MappedColumns<MetadataEntityTypeType>();
-
-        Assert.NotEmpty(mapped);
-        Assert.Equal(mapped.OrderBy(c => c).ToList(), DatabaseFixes.MetadataEntityTypeColumns.Distinct().OrderBy(c => c).ToList());
+        Assert.Equal(mapped.OrderBy(c => c).ToList(), checkedColumns.Distinct().OrderBy(c => c).ToList());
     }
 
     [Fact]

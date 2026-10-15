@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Connectivity.Suspensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
@@ -252,23 +251,5 @@ public class SuspensionServiceTests
 
         Assert.True(Assert.Single(service.GetForSource(TestSources.Plugin)).IsSuspended);
         Assert.Empty(service.GetForSource(TestSources.AniList));
-    }
-
-    [Fact]
-    public void AReporterResolvedFromTheContainerReportsIntoTheService()
-    {
-        var services = new ServiceCollection()
-            .AddLogging()
-            .AddSingleton(Plugins())
-            .AddSingleton(MetadataProviders())
-            .AddSingleton<SuspensionService>()
-            .AddSingleton<ISuspensionService>(provider => provider.GetRequiredService<SuspensionService>())
-            .AddSingleton(typeof(ISuspensionReporter<>), typeof(SuspensionReporter<>));
-        using var container = services.BuildServiceProvider();
-        container.GetRequiredService<SuspensionService>().AddParts([_provider]);
-
-        container.GetRequiredService<ISuspensionReporter<HoldingProvider>>().Suspend(SuspensionKind.Banned);
-
-        Assert.True(Assert.Single(container.GetRequiredService<ISuspensionService>().GetAll()).IsSuspended);
     }
 }

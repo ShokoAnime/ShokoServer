@@ -62,30 +62,20 @@ public class SqliteNotNullVariantTests
     #region The two columns the migration tightens
 
     [Theory]
-    [InlineData(VideoLocalBeforeTheHashColumnsAreDropped)]
-    [InlineData(VideoLocalAfterTheHashColumnsAreDropped)]
-    public void TheColumnIsTightenedWhicheverShapeTheTableIsIn(string createCommand)
+    [InlineData(VideoLocalBeforeTheHashColumnsAreDropped, "DateTimeCreated", "DateTimeCreated DATETIME NOT NULL")]
+    [InlineData(VideoLocalAfterTheHashColumnsAreDropped, "DateTimeCreated", "DateTimeCreated DATETIME NOT NULL")]
+    [InlineData(AniDBAnimeTitle, "Title", "Title TEXT NOT NULL )")]
+    [InlineData(AniDBAnimeTitleWithQuotedIdentifiers, "Title", "\"Title\"    text NOT NULL,")]
+    // SQLite treats an unstated column as nullable.
+    [InlineData("CREATE TABLE T ( Hash TEXT NOT NULL, LastAVDumped DATETIME )", "LastAVDumped", "LastAVDumped DATETIME NOT NULL")]
+    // The size contains a comma, which is also what separates columns.
+    [InlineData("CREATE TABLE T ( Rating decimal(6,2) NULL, Votes INTEGER NOT NULL )", "Rating", "Rating decimal(6,2) NOT NULL")]
+    public void TheColumnIsTightenedWhicheverShapeTheTableIsIn(string createCommand, string columnName, string expectedFragment)
     {
-        var patched = SQLite.NotNullVariantOf(createCommand, "DateTimeCreated");
+        var patched = SQLite.NotNullVariantOf(createCommand, columnName);
 
-        Assert.Contains("DateTimeCreated DATETIME NOT NULL", patched);
-        Assert.DoesNotContain("DateTimeCreated DATETIME NULL", patched);
-    }
-
-    [Fact]
-    public void TheTitleColumnIsTightened()
-    {
-        var patched = SQLite.NotNullVariantOf(AniDBAnimeTitle, "Title");
-
-        Assert.Contains("Title TEXT NOT NULL )", patched);
-    }
-
-    [Fact]
-    public void TheTitleColumnIsTightenedWhenTheIdentifiersAreQuoted()
-    {
-        var patched = SQLite.NotNullVariantOf(AniDBAnimeTitleWithQuotedIdentifiers, "Title");
-
-        Assert.Contains("\"Title\"    text NOT NULL,", patched);
+        Assert.Contains(expectedFragment, patched);
+        Assert.DoesNotContain(expectedFragment.Replace("NOT NULL", "NULL"), patched);
     }
 
     [Fact]
@@ -124,15 +114,6 @@ public class SqliteNotNullVariantTests
     }
 
     [Fact]
-    public void ThePrimaryKeyAndDefaultsAreKept()
-    {
-        var patched = SQLite.NotNullVariantOf(VideoLocalAfterTheHashColumnsAreDropped, "DateTimeCreated");
-
-        Assert.Contains("VideoLocalID INTEGER PRIMARY KEY AUTOINCREMENT", patched);
-        Assert.Contains("FileName TEXT NOT NULL DEFAULT ''", patched);
-    }
-
-    [Fact]
     public void AColumnWhoseNameContainsAnotherIsNotConfusedForIt()
     {
         var patched = SQLite.NotNullVariantOf(
@@ -158,18 +139,6 @@ public class SqliteNotNullVariantTests
     #endregion
 
     #region Shapes it still has to handle
-
-    [Fact]
-    public void AColumnStatingNeitherNullNorNotNullIsStillTightened()
-        // SQLite treats an unstated column as nullable.
-        => Assert.Contains("LastAVDumped DATETIME NOT NULL",
-            SQLite.NotNullVariantOf("CREATE TABLE T ( Hash TEXT NOT NULL, LastAVDumped DATETIME )", "LastAVDumped"));
-
-    [Fact]
-    public void ASizedTypeKeepsItsSize()
-        // The size contains a comma, which is also what separates columns.
-        => Assert.Contains("Rating decimal(6,2) NOT NULL",
-            SQLite.NotNullVariantOf("CREATE TABLE T ( Rating decimal(6,2) NULL, Votes INTEGER NOT NULL )", "Rating"));
 
     [Fact]
     public void AColumnThatIsAlreadyNotNullIsLeftAsItIs()

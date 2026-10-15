@@ -32,28 +32,20 @@ public class NestedCollectionTests
         Assert.Contains("Wrap the inner collection in a class", exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void ADictionaryOfCollections_IsAccepted()
-    {
-        // The two levels get distinct keys ("+Dict" and "+List"), so nothing
-        // collides and the generator produces a usable schema. A dictionary of
-        // scalar arrays is an ordinary shape and must keep working.
-        AssertDescribes(typeof(NestedRecordOfListConfiguration), "Values");
-    }
-
-    [Fact]
-    public void WrappingTheInnerCollectionInAClass_IsAccepted()
-    {
-        AssertDescribes(typeof(WrappedNestedCollectionConfiguration), "Rows");
-    }
-
-    [Fact]
-    public void AStringIsNotACollectionOfCharacters()
-    {
-        // `string` implements `IEnumerable<char>`, so a naive check would
-        // reject every `List<string>` in the tree.
-        AssertDescribes(typeof(NestedCollectionRow), "Values");
-    }
+    /// <summary>
+    ///   Shapes that look like a nested collection but are not one: the
+    ///   generator must still produce a usable schema for each.
+    /// </summary>
+    /// <param name="configurationType">The configuration type to generate.</param>
+    /// <param name="key">The property key that must be described.</param>
+    [Theory]
+    // The two levels get distinct keys ("+Dict" and "+List"), so nothing collides; a dictionary of scalar arrays is an ordinary shape.
+    [InlineData(typeof(NestedRecordOfListConfiguration), "Values")]
+    [InlineData(typeof(WrappedNestedCollectionConfiguration), "Rows")]
+    // `string` implements `IEnumerable<char>`, so a naive check would reject every `List<string>` in the tree.
+    [InlineData(typeof(NestedCollectionRow), "Values")]
+    public void AShapeThatIsNotANestedCollection_IsAccepted(Type configurationType, string key)
+        => AssertDescribes(configurationType, key);
 
     /// <summary>
     ///   Asserts the generator got far enough through <paramref name="type"/>

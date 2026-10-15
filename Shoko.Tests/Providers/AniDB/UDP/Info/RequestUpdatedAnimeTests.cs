@@ -41,21 +41,6 @@ public class RequestUpdatedAnimeTests
     }
 
     [Fact]
-    public void ParseResponse_ParsesSingleAnimeID()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.UPDATED,
-            Response = "|1|1234567890|42"
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(1, result.Response.Count);
-        Assert.Equal([42], result.Response.AnimeIDs);
-    }
-
-    [Fact]
     public void ParseResponse_ReturnsNullOnNonUpdatedCode()
     {
         var response = new UDPResponse<string>

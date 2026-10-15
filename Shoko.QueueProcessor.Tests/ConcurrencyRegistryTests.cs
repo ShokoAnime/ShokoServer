@@ -29,25 +29,14 @@ public class ConcurrencyRegistryTests
 
     // ── Build tests ────────────────────────────────────────────────────────────
 
-    [Fact]
-    public void Build_TypeLimit_FromAttribute()
+    [Theory]
+    [InlineData(typeof(HashFileJob), 3)] // LimitConcurrency
+    [InlineData(typeof(SingletonJob), 1)] // DisallowConcurrentExecution
+    [InlineData(typeof(UnlimitedJob), int.MaxValue)] // No attribute
+    public void Build_TypeLimit_FollowsTheTypesAttributes(Type jobType, int expectedLimit)
     {
-        var registry = ConcurrencyRegistry.Build([typeof(HashFileJob)]);
-        Assert.Equal(3, registry.GetTypeLimit(typeof(HashFileJob)));
-    }
-
-    [Fact]
-    public void Build_DisallowConcurrentExecution_LimitIsOne()
-    {
-        var registry = ConcurrencyRegistry.Build([typeof(SingletonJob)]);
-        Assert.Equal(1, registry.GetTypeLimit(typeof(SingletonJob)));
-    }
-
-    [Fact]
-    public void Build_UnlimitedType_ReturnsMaxValue()
-    {
-        var registry = ConcurrencyRegistry.Build([typeof(UnlimitedJob)]);
-        Assert.Equal(int.MaxValue, registry.GetTypeLimit(typeof(UnlimitedJob)));
+        var registry = ConcurrencyRegistry.Build([jobType]);
+        Assert.Equal(expectedLimit, registry.GetTypeLimit(jobType));
     }
 
     [Fact]
@@ -57,119 +46,54 @@ public class ConcurrencyRegistryTests
         Assert.Equal(2, registry.GetGroupLimit("AniDB_UDP"));
     }
 
-    [Fact]
-    public void Build_GroupAssignment()
+    [Theory]
+    [InlineData(typeof(AniDBUdpJobA), "AniDB_UDP")]
+    [InlineData(typeof(HashFileJob), null)] // No group attribute
+    public void Build_Group_FollowsTheTypesAttributes(Type jobType, string? expectedGroup)
     {
-        var registry = ConcurrencyRegistry.Build([typeof(AniDBUdpJobA)]);
-        Assert.Equal("AniDB_UDP", registry.GetGroup(typeof(AniDBUdpJobA)));
-    }
-
-    [Fact]
-    public void Build_NoGroup_ReturnsNull()
-    {
-        var registry = ConcurrencyRegistry.Build([typeof(HashFileJob)]);
-        Assert.Null(registry.GetGroup(typeof(HashFileJob)));
+        var registry = ConcurrencyRegistry.Build([jobType]);
+        Assert.Equal(expectedGroup, registry.GetGroup(jobType));
     }
 
     // ── Override tests ────────────────────────────────────────────────────────
 
-    [Fact]
-    public void Build_Override_LowersLimit()
+    [Theory]
+    [InlineData(typeof(HashFileJob), 1, 1)] // Lowers the limit
+    [InlineData(typeof(AniDBUdpJobA), 10, 4)] // MaxAllowed=4, override requests 10, capped at 4
+    [InlineData(typeof(SingletonJob), 5, 1)] // DisallowConcurrentExecution sets MaxAllowed=1, so 5 is capped to 1
+    public void Build_Override_AdjustsTheLimitUpToMaxAllowed(Type jobType, int overrideValue, int expectedLimit)
     {
-        var overrides = new Dictionary<string, int> { ["HashFileJob"] = 1 };
-        var registry = ConcurrencyRegistry.Build([typeof(HashFileJob)], overrides);
-        Assert.Equal(1, registry.GetTypeLimit(typeof(HashFileJob)));
-    }
-
-    [Fact]
-    public void Build_Override_CannotExceedMaxAllowed()
-    {
-        // MaxAllowed=4, override requests 10 → capped at 4
-        var overrides = new Dictionary<string, int> { ["AniDBUdpJobA"] = 10 };
-        var registry = ConcurrencyRegistry.Build([typeof(AniDBUdpJobA)], overrides);
-        Assert.Equal(4, registry.GetTypeLimit(typeof(AniDBUdpJobA)));
-    }
-
-    [Fact]
-    public void Build_Override_CannotOverrideSingletonJob()
-    {
-        // DisallowConcurrentExecution = limit of 1; override should not lower below 1
-        // (and also: we check that singleton is not overrideable by design)
-        var overrides = new Dictionary<string, int> { ["SingletonJob"] = 5 };
-        var registry = ConcurrencyRegistry.Build([typeof(SingletonJob)], overrides);
-        // MaxAllowedConcurrentJobs = 1 (from DisallowConcurrentExecution), so override of 5 is capped to 1
-        Assert.Equal(1, registry.GetTypeLimit(typeof(SingletonJob)));
+        var overrides = new Dictionary<string, int> { [jobType.Name] = overrideValue };
+        var registry = ConcurrencyRegistry.Build([jobType], overrides);
+        Assert.Equal(expectedLimit, registry.GetTypeLimit(jobType));
     }
 
     // ── CanRun tests ──────────────────────────────────────────────────────────
 
-    [Fact]
-    public void CanRun_BelowTypeLimit_ReturnsTrue()
+    [Theory]
+    [InlineData(typeof(HashFileJob), 2, true)]
+    [InlineData(typeof(HashFileJob), 3, false)] // At the limit
+    [InlineData(typeof(UnlimitedJob), 999, true)]
+    [InlineData(typeof(SingletonJob), 1, false)]
+    [InlineData(typeof(SingletonJob), 0, true)]
+    public void CanRun_ComparesTheRunningCountToTheTypeLimit(Type jobType, int runningCount, bool expected)
     {
-        var registry = ConcurrencyRegistry.Build([typeof(HashFileJob)]);
-        var typeCounts = new Dictionary<Type, int> { [typeof(HashFileJob)] = 2 };
+        var registry = ConcurrencyRegistry.Build([jobType]);
+        var typeCounts = new Dictionary<Type, int> { [jobType] = runningCount };
         var groupCounts = new Dictionary<string, int>();
 
-        Assert.True(registry.CanRun(typeof(HashFileJob), typeCounts, groupCounts));
+        Assert.Equal(expected, registry.CanRun(jobType, typeCounts, groupCounts));
     }
 
-    [Fact]
-    public void CanRun_AtTypeLimit_ReturnsFalse()
-    {
-        var registry = ConcurrencyRegistry.Build([typeof(HashFileJob)]);
-        var typeCounts = new Dictionary<Type, int> { [typeof(HashFileJob)] = 3 }; // at limit
-        var groupCounts = new Dictionary<string, int>();
-
-        Assert.False(registry.CanRun(typeof(HashFileJob), typeCounts, groupCounts));
-    }
-
-    [Fact]
-    public void CanRun_BelowGroupLimit_ReturnsTrue()
+    [Theory]
+    [InlineData(1, 1, true)]
+    [InlineData(0, 2, false)] // Group at limit
+    public void CanRun_ComparesTheRunningCountToTheGroupLimit(int siblingRunning, int groupRunning, bool expected)
     {
         var registry = ConcurrencyRegistry.Build([typeof(AniDBUdpJobA), typeof(AniDBUdpJobB)]);
-        var typeCounts = new Dictionary<Type, int> { [typeof(AniDBUdpJobA)] = 1 };
-        var groupCounts = new Dictionary<string, int> { ["AniDB_UDP"] = 1 };
+        var typeCounts = new Dictionary<Type, int> { [typeof(AniDBUdpJobA)] = siblingRunning };
+        var groupCounts = new Dictionary<string, int> { ["AniDB_UDP"] = groupRunning };
 
-        Assert.True(registry.CanRun(typeof(AniDBUdpJobB), typeCounts, groupCounts));
-    }
-
-    [Fact]
-    public void CanRun_AtGroupLimit_ReturnsFalse()
-    {
-        var registry = ConcurrencyRegistry.Build([typeof(AniDBUdpJobA), typeof(AniDBUdpJobB)]);
-        var typeCounts = new Dictionary<Type, int>();
-        var groupCounts = new Dictionary<string, int> { ["AniDB_UDP"] = 2 }; // group at limit
-
-        Assert.False(registry.CanRun(typeof(AniDBUdpJobB), typeCounts, groupCounts));
-    }
-
-    [Fact]
-    public void CanRun_UnlimitedType_AlwaysTrue()
-    {
-        var registry = ConcurrencyRegistry.Build([typeof(UnlimitedJob)]);
-        var typeCounts = new Dictionary<Type, int> { [typeof(UnlimitedJob)] = 999 };
-        var groupCounts = new Dictionary<string, int>();
-
-        Assert.True(registry.CanRun(typeof(UnlimitedJob), typeCounts, groupCounts));
-    }
-
-    [Fact]
-    public void CanRun_SingletonRunning_ReturnsFalse()
-    {
-        var registry = ConcurrencyRegistry.Build([typeof(SingletonJob)]);
-        var typeCounts = new Dictionary<Type, int> { [typeof(SingletonJob)] = 1 };
-        var groupCounts = new Dictionary<string, int>();
-
-        Assert.False(registry.CanRun(typeof(SingletonJob), typeCounts, groupCounts));
-    }
-
-    [Fact]
-    public void CanRun_SingletonNotRunning_ReturnsTrue()
-    {
-        var registry = ConcurrencyRegistry.Build([typeof(SingletonJob)]);
-        var typeCounts = new Dictionary<Type, int>();
-        var groupCounts = new Dictionary<string, int>();
-
-        Assert.True(registry.CanRun(typeof(SingletonJob), typeCounts, groupCounts));
+        Assert.Equal(expected, registry.CanRun(typeof(AniDBUdpJobB), typeCounts, groupCounts));
     }
 }

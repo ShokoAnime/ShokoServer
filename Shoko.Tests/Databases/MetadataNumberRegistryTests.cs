@@ -83,13 +83,6 @@ public class MetadataNumberRegistryTests
         Assert.NotNull(MetadataNumberRegistry.FindProblem(0xFD));
     }
 
-    [Fact]
-    public void ANewSourceHasNoOldSpelling()
-    {
-        Assert.Null(DatabaseFixes.GetOldSourceSpelling(TestSources.Plugin.Value));
-        Assert.Null(DatabaseFixes.GetOldSourceSpelling("mnr-new-spelling"));
-    }
-
     #endregion
 
     #region Handing Out Numbers

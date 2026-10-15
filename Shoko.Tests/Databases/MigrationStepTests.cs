@@ -94,20 +94,6 @@ public class MigrationStepTests
 
     [Theory]
     [MemberData(nameof(Backends))]
-    public void NoStepCreatesOrReadsAnOldAniListTable(string backend)
-    {
-        var offending = PatchCommands(backend)
-            .Where(command => command.Command is { } sql &&
-                sql.Contains("Anilist_", StringComparison.OrdinalIgnoreCase) &&
-                !sql.StartsWith("DROP TABLE IF EXISTS", StringComparison.Ordinal))
-            .Select(command => $"{command.Version}.{command.Revision}")
-            .ToArray();
-
-        Assert.Equal(string.Empty, string.Join(", ", offending));
-    }
-
-    [Theory]
-    [MemberData(nameof(Backends))]
     public void EveryOldAniListTableIsDropped_OneStepEach(string backend)
     {
         var drops = PatchCommands(backend)

@@ -88,17 +88,6 @@ public class PlaylistParsingTests
 
     #region Rejected entries
 
-    [Fact]
-    public void AnUnknownGroupIsRejected()
-    {
-        using var harness = new Harness();
-
-        var (valid, errors, _, _) = harness.Parse("g999");
-
-        Assert.False(valid);
-        Assert.Contains("Unknown group ID", errors);
-    }
-
     [Theory]
     [InlineData("gabc")]
     [InlineData("g0")]
@@ -126,26 +115,21 @@ public class PlaylistParsingTests
         Assert.Contains("Invalid release group ID", errors);
     }
 
-    [Fact]
-    public void AGroupEntryWithMoreThanAReleaseGroupIsRejected()
+    [Theory]
+    [InlineData("a123+bogus")]
+    [InlineData("a123+onlyUnwatched-bogus")]
+    [InlineData("a123+recursive")]
+    [InlineData("s456 includeAllSeries")]
+    [InlineData("g5 r7 e9")] // more than a release group after the group
+    [InlineData("g5 nonsense")] // a trailing word after the group
+    public void AMalformedEntryIsRejectedAsAnInvalidItem(string item)
     {
         using var harness = new Harness();
 
-        var (valid, errors, _, _) = harness.Parse($"g{GroupID} r7 e9");
+        var (valid, errors, _, _) = harness.Parse(item);
 
         Assert.False(valid);
-        Assert.Contains("Invalid item", errors);
-    }
-
-    [Fact]
-    public void AGroupEntryWithATrailingWordIsRejected()
-    {
-        using var harness = new Harness();
-
-        var (valid, errors, _, _) = harness.Parse($"g{GroupID} nonsense");
-
-        Assert.False(valid);
-        Assert.Contains("Invalid item", errors);
+        Assert.Equal($"Invalid item \"{item}\".", errors);
     }
 
     #endregion
@@ -176,6 +160,13 @@ public class PlaylistParsingTests
     [InlineData("42", "Unknown file ID \"42\".")]
     [InlineData(Hash, "Unknown hash \"" + Hash + "\" at index 0 at offset 0")]
     [InlineData(Hash + "-123456", "Unknown hash/size pair \"" + Hash + "-123456\" at index 0 at offset 0")]
+    // An unencoded + in a query string arrives as a space.
+    [InlineData("a123 onlyUnwatched", "Unknown series ID \"a123 onlyUnwatched\".")]
+    [InlineData("s1505 onlyUnwatched", "Unknown series ID \"s1505 onlyUnwatched\".")]
+    [InlineData("s456 includeSpecials-includeOthers", "Unknown series ID \"s456 includeSpecials-includeOthers\".")]
+    [InlineData("g123 recursive", "Unknown group ID \"g123 recursive\".")]
+    [InlineData("g123 includeAllSeries-onlyUnwatched", "Unknown group ID \"g123 includeAllSeries-onlyUnwatched\".")]
+    [InlineData("a123 onlyUnwatched r789", "Unknown series ID \"a123 onlyUnwatched r789\".")]
     public void EveryDocumentedExampleParses(string item, string error)
     {
         using var harness = new Harness();
@@ -207,26 +198,6 @@ public class PlaylistParsingTests
         Assert.Equal(0, entries);
     }
 
-    /// <summary>
-    /// An unencoded <c>+</c> in a query string arrives as a space.
-    /// </summary>
-    [Theory]
-    [InlineData("a123 onlyUnwatched", "Unknown series ID \"a123 onlyUnwatched\".")]
-    [InlineData("s1505 onlyUnwatched", "Unknown series ID \"s1505 onlyUnwatched\".")]
-    [InlineData("s456 includeSpecials-includeOthers", "Unknown series ID \"s456 includeSpecials-includeOthers\".")]
-    [InlineData("g123 recursive", "Unknown group ID \"g123 recursive\".")]
-    [InlineData("g123 includeAllSeries-onlyUnwatched", "Unknown group ID \"g123 includeAllSeries-onlyUnwatched\".")]
-    [InlineData("a123 onlyUnwatched r789", "Unknown series ID \"a123 onlyUnwatched r789\".")]
-    public void ExtrasAfterASpaceParseLikeExtrasAfterAPlus(string item, string error)
-    {
-        using var harness = new Harness();
-
-        var (valid, errors, _, _) = harness.Parse(item);
-
-        Assert.False(valid);
-        Assert.Equal(error, errors);
-    }
-
     [Fact]
     public void ExtrasStayWithTheirSeriesOrGroup()
     {
@@ -241,21 +212,6 @@ public class PlaylistParsingTests
     #endregion
 
     #region Malformed extras
-
-    [Theory]
-    [InlineData("a123+bogus")]
-    [InlineData("a123+onlyUnwatched-bogus")]
-    [InlineData("a123+recursive")]
-    [InlineData("s456 includeAllSeries")]
-    public void AnExtraTheEntryDoesNotTakeIsRejected(string item)
-    {
-        using var harness = new Harness();
-
-        var (valid, errors, _, _) = harness.Parse(item);
-
-        Assert.False(valid);
-        Assert.Equal($"Invalid item \"{item}\".", errors);
-    }
 
     [Fact]
     public void ASeriesIdThatIsNotANumberIsRejected()

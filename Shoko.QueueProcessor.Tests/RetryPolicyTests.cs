@@ -38,31 +38,15 @@ public class RetryPolicyTests
         Assert.Equal(expectedSeconds, delay.TotalSeconds, precision: 0);
     }
 
-    [Fact]
-    public void ShouldDiscard_BelowMax_ReturnsFalse()
+    [Theory]
+    [InlineData(8, 7, false)] // Below the max
+    [InlineData(8, 8, true)] // At the max
+    [InlineData(8, 100, true)] // Above the max
+    [InlineData(0, 0, true)] // Zero max retries discards immediately
+    public void ShouldDiscard_IsTrueOnceTheRetryCountReachesTheMax(int maxRetries, int retryCount, bool expected)
     {
-        Assert.False(_global.ShouldDiscard(7));
-    }
-
-    [Fact]
-    public void ShouldDiscard_AtMax_ReturnsTrue()
-    {
-        Assert.True(_global.ShouldDiscard(8));
-    }
-
-    [Fact]
-    public void ShouldDiscard_AboveMax_ReturnsTrue()
-    {
-        Assert.True(_global.ShouldDiscard(100));
-    }
-
-    // ── Zero-retry policy ─────────────────────────────────────────────────────
-
-    [Fact]
-    public void ShouldDiscard_ZeroMaxRetries_ImmediatelyDiscards()
-    {
-        var noRetry = new RetryPolicy { MaxRetries = 0 };
-        Assert.True(noRetry.ShouldDiscard(0));
+        var policy = new RetryPolicy { MaxRetries = maxRetries };
+        Assert.Equal(expected, policy.ShouldDiscard(retryCount));
     }
 
     // ── RetryPolicyResolver ───────────────────────────────────────────────────

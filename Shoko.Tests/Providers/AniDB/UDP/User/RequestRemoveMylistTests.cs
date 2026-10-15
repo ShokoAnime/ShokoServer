@@ -20,74 +20,23 @@ public class RequestRemoveMylistTests
         _request = new RequestRemoveMylist(loggerFactory, handler);
     }
 
-    [Fact]
-    public void ParseResponse_ReturnsVoid_OnEntryDeleted()
+    [Theory]
+    [InlineData(UDPReturnCode.MYLIST_ENTRY_DELETED)]
+    [InlineData(UDPReturnCode.NO_SUCH_MYLIST_ENTRY)]
+    [InlineData(UDPReturnCode.NO_SUCH_FILE)]
+    [InlineData(UDPReturnCode.NO_SUCH_ANIME)]
+    [InlineData(UDPReturnCode.NO_SUCH_EPISODE)]
+    public void ParseResponse_ReturnsVoid_OnAcceptedReturnCode(UDPReturnCode code)
     {
         var response = new UDPResponse<string>
         {
-            Code = UDPReturnCode.MYLIST_ENTRY_DELETED,
+            Code = code,
             Response = string.Empty
         };
 
         var result = _request.ParseResponse(response);
 
-        Assert.Equal(UDPReturnCode.MYLIST_ENTRY_DELETED, result.Code);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsVoid_OnNoSuchMylistEntry()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_SUCH_MYLIST_ENTRY,
-            Response = string.Empty
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(UDPReturnCode.NO_SUCH_MYLIST_ENTRY, result.Code);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsVoid_OnNoSuchFile()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_SUCH_FILE,
-            Response = string.Empty
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(UDPReturnCode.NO_SUCH_FILE, result.Code);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsVoid_OnNoSuchAnime()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_SUCH_ANIME,
-            Response = string.Empty
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(UDPReturnCode.NO_SUCH_ANIME, result.Code);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsVoid_OnNoSuchEpisode()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_SUCH_EPISODE,
-            Response = string.Empty
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(UDPReturnCode.NO_SUCH_EPISODE, result.Code);
+        Assert.Equal(code, result.Code);
     }
 
     [Fact]

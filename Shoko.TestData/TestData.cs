@@ -1,7 +1,6 @@
 using System.Reflection;
 using Newtonsoft.Json;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.CrossReference;
 
 namespace Shoko.TestData;
 
@@ -35,14 +34,5 @@ public static class TestData
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
         using var reader = new StreamReader(stream!);
         return reader.ReadToEnd();
-    });
-
-    public static Lazy<IEnumerable<CrossRef_File_Episode>> CrossRef_File_Episode { get; } = new(() =>
-    {
-        const string ResourceName = "Shoko.TestData.CrossRef_File_Episode.json";
-        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
-        using var reader = new StreamReader(stream!);
-        var jsonString = reader.ReadToEnd();
-        return JsonConvert.DeserializeObject<CrossRef_File_Episode[]>(jsonString)!;
     });
 }

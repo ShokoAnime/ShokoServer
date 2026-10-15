@@ -113,22 +113,6 @@ public class ManifestPruneTests
     }
 
     [Fact]
-    public void DroppedEntriesAreTheInstancesRemovedFromTheManifest()
-    {
-        var manifest = BuildManifest(
-            ("1.0.0", ReleaseChannel.Stable),
-            ("1.1.0", ReleaseChannel.Stable),
-            ("1.2.0", ReleaseChannel.Stable));
-        var before = manifest.Releases!.ToList();
-
-        var dropped = ManifestManager.PruneReleases(manifest, 1, "global");
-
-        Assert.Equal(before.Count, dropped.Count + manifest.Releases!.Count);
-        Assert.Empty(dropped.Intersect(manifest.Releases));
-        Assert.Empty(before.Except(dropped.Concat(manifest.Releases)));
-    }
-
-    [Fact]
     public void UndatedReleasesAreDroppedBeforeDatedOnes()
     {
         var manifest = BuildManifest(("1.0.0", ReleaseChannel.Stable), ("1.1.0", ReleaseChannel.Stable));

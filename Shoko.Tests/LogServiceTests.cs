@@ -36,86 +36,40 @@ public class LogServiceTests : IDisposable
         LogManager.Configuration = config;
     }
 
-    [Fact]
-    public void ReadLogFile_ShouldApplyOffsetAndLimit_ForUncompressedJsonl()
+    [Theory]
+    [InlineData(false, new[] { "a", "b", "c" }, "b")]
+    [InlineData(true, new[] { "one", "two" }, "two")]
+    public void ReadLogFile_ShouldApplyOffsetAndLimit(bool compressed, string[] messages, string expectedMessage)
     {
-        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
-        File.WriteAllLines(path,
-        [
-            MakeLine("a", DateTime.UtcNow.AddMinutes(-3)),
-            MakeLine("b", DateTime.UtcNow.AddMinutes(-2)),
-            MakeLine("c", DateTime.UtcNow.AddMinutes(-1)),
-        ]);
+        var lines = messages
+            .Select((message, index) => MakeLine(message, DateTime.UtcNow.AddMinutes(index - messages.Length)))
+            .ToArray();
+        var path = WriteLogFile(compressed, lines);
 
         var service = CreateService();
         var file = GetFileByPath(service, path);
         var result = service.ReadLogFile(file, new() { Offset = 1, Limit = 1 });
 
         Assert.Single(result.Entries);
-        Assert.Equal("b", result.Entries[0].Message);
+        Assert.Equal(expectedMessage, result.Entries[0].Message);
         Assert.Equal<uint?>(2, result.NextOffset);
     }
 
-    [Fact]
-    public void ReadLogFile_ShouldApplyOffsetAndLimit_ForCompressedJsonl()
+    [Theory]
+    [InlineData(false, new[] { "a", "b", "c" })]
+    [InlineData(true, new[] { "one", "two", "three" })]
+    public void ReadLogFile_ShouldReturnDescending(bool compressed, string[] messages)
     {
-        var gzipPath = Path.Combine(_tempDirectory, "2020-01-01.jsonl.gz");
-        using (var stream = File.Open(gzipPath, FileMode.Create))
-        using (var gzip = new GZipStream(stream, CompressionLevel.Optimal))
-        using (var writer = new StreamWriter(gzip))
-        {
-            writer.WriteLine(MakeLine("one", DateTime.UtcNow.AddMinutes(-2)));
-            writer.WriteLine(MakeLine("two", DateTime.UtcNow.AddMinutes(-1)));
-        }
-
-        var service = CreateService();
-        var file = GetFileByPath(service, gzipPath);
-        var result = service.ReadLogFile(file, new() { Offset = 1, Limit = 1 });
-
-        Assert.Single(result.Entries);
-        Assert.Equal("two", result.Entries[0].Message);
-        Assert.Equal<uint?>(2, result.NextOffset);
-    }
-
-    [Fact]
-    public void ReadLogFile_ShouldReturnDescending_ForUncompressedJsonl()
-    {
-        var t1 = DateTime.UtcNow.AddMinutes(-3);
-        var t2 = DateTime.UtcNow.AddMinutes(-2);
-        var t3 = DateTime.UtcNow.AddMinutes(-1);
-        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
-        File.WriteAllLines(path,
-        [
-            MakeLine("a", t1),
-            MakeLine("b", t2),
-            MakeLine("c", t3),
-        ]);
+        var lines = messages
+            .Select((message, index) => MakeLine(message, DateTime.UtcNow.AddMinutes(index - messages.Length)))
+            .ToArray();
+        var path = WriteLogFile(compressed, lines);
 
         var service = CreateService();
         var file = GetFileByPath(service, path);
         var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 0, Descending = true });
 
-        Assert.Equal(new[] { "c", "b", "a" }, result.Entries.Select(entry => entry.Message).ToArray());
-    }
-
-    [Fact]
-    public void ReadLogFile_ShouldReturnDescending_ForCompressedJsonl()
-    {
-        var gzipPath = Path.Combine(_tempDirectory, "2020-01-01.jsonl.gz");
-        using (var stream = File.Open(gzipPath, FileMode.Create))
-        using (var gzip = new GZipStream(stream, CompressionLevel.Optimal))
-        using (var writer = new StreamWriter(gzip))
-        {
-            writer.WriteLine(MakeLine("one", DateTime.UtcNow.AddMinutes(-3)));
-            writer.WriteLine(MakeLine("two", DateTime.UtcNow.AddMinutes(-2)));
-            writer.WriteLine(MakeLine("three", DateTime.UtcNow.AddMinutes(-1)));
-        }
-
-        var service = CreateService();
-        var file = GetFileByPath(service, gzipPath);
-        var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 0, Descending = true });
-
-        Assert.Equal(new[] { "three", "two", "one" }, result.Entries.Select(entry => entry.Message).ToArray());
+        Assert.Equal(Enumerable.Reverse(messages).ToArray(), result.Entries.Select(entry => entry.Message).ToArray());
     }
 
     [Fact]
@@ -135,8 +89,10 @@ public class LogServiceTests : IDisposable
         Assert.Equal(new[] { "third", "second", "first" }, result.Entries.Select(entry => entry.Message).ToArray());
     }
 
-    [Fact]
-    public void ReadRange_ShouldReturnNewestFirst_ByDefault()
+    [Theory]
+    [InlineData(true, "new middle old")]
+    [InlineData(false, "old middle new")]
+    public void ReadRange_ShouldOrderEntriesByDescending(bool descending, string expectedOrder)
     {
         var t1 = DateTime.UtcNow.AddHours(-3);
         var t2 = DateTime.UtcNow.AddHours(-2);
@@ -166,10 +122,10 @@ public class LogServiceTests : IDisposable
             To = t3.AddMinutes(1),
             Offset = 0,
             Limit = 0,
-            Descending = true,
+            Descending = descending,
         });
 
-        Assert.Equal(new[] { "new", "middle", "old" }, result.Entries.Select(entry => entry.Message).ToArray());
+        Assert.Equal(expectedOrder, string.Join(' ', result.Entries.Select(entry => entry.Message)));
     }
 
     [Fact]
@@ -251,42 +207,21 @@ public class LogServiceTests : IDisposable
         Assert.Equal("a", result.Entries[0].Message);
     }
 
-    [Fact]
-    public void ReadLogFile_ShouldFilter_MessageNegatedContains()
+    [Theory]
+    [InlineData(new[] { "alpha", "alphabravo" }, "c!:bravo", new[] { "alpha" })] // negated contains
+    [InlineData(new[] { "keep-a", "drop", "keep-b" }, "=!:drop", new[] { "keep-a", "keep-b" })] // not equals
+    [InlineData(new[] { "unrelated", "network timeout contacting upstream" }, "~:timeout", new[] { "network timeout contacting upstream" })] // fuzzy mode
+    [InlineData(new[] { "quiet", "ERR loud" }, "*:/err/i", new[] { "ERR loud" })] // regex with the ignore-case flag
+    [InlineData(new[] { "x", "a   b" }, "   ", new[] { "a   b" })] // a whitespace-only DSL is a contains literal
+    public void ReadLogFile_ShouldFilter_ByMessageDsl(string[] messages, string messageDsl, string[] expectedMessages)
     {
-        var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
-        File.WriteAllLines(path,
-        [
-            MakeLine("alpha", t),
-            MakeLine("alphabravo", t),
-        ]);
+        var path = WriteLogFile(false, messages.Select(message => MakeLine(message, DateTime.UtcNow)).ToArray());
 
         var service = CreateService();
         var file = GetFileByPath(service, path);
-        var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 10, Message = "c!:bravo" });
+        var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 10, Message = messageDsl });
 
-        Assert.Single(result.Entries);
-        Assert.Equal("alpha", result.Entries[0].Message);
-    }
-
-    [Fact]
-    public void ReadLogFile_ShouldFilter_MessageNotEquals()
-    {
-        var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
-        File.WriteAllLines(path,
-        [
-            MakeLine("keep-a", t),
-            MakeLine("drop", t),
-            MakeLine("keep-b", t),
-        ]);
-
-        var service = CreateService();
-        var file = GetFileByPath(service, path);
-        var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 10, Message = "=!:drop" });
-
-        Assert.Equal(new[] { "keep-a", "keep-b" }, result.Entries.Select(e => e.Message).ToArray());
+        Assert.Equal(expectedMessages, result.Entries.Select(e => e.Message).ToArray());
     }
 
     [Fact]
@@ -328,46 +263,10 @@ public class LogServiceTests : IDisposable
         Assert.Equal(new[] { "ok" }, b.Entries.Select(e => e.Message).ToArray());
     }
 
-    [Fact]
-    public void ReadLogFile_ShouldFilter_MessageFuzzyMode()
-    {
-        var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
-        File.WriteAllLines(path,
-        [
-            MakeLine("unrelated", t),
-            MakeLine("network timeout contacting upstream", t),
-        ]);
-
-        var service = CreateService();
-        var file = GetFileByPath(service, path);
-        var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 10, Message = "~:timeout" });
-
-        Assert.Single(result.Entries);
-        Assert.Equal("network timeout contacting upstream", result.Entries[0].Message);
-    }
-
-    [Fact]
-    public void ReadLogFile_ShouldFilter_MessageRegexWithIgnoreCaseFlag()
-    {
-        var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
-        File.WriteAllLines(path,
-        [
-            MakeLine("quiet", t),
-            MakeLine("ERR loud", t),
-        ]);
-
-        var service = CreateService();
-        var file = GetFileByPath(service, path);
-        var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 10, Message = "*:/err/i" });
-
-        Assert.Single(result.Entries);
-        Assert.Equal("ERR loud", result.Entries[0].Message);
-    }
-
-    [Fact]
-    public void ReadLogFile_ShouldFilter_ExceptionEqualsEmpty_MatchesNullAndEmptyProperty()
+    [Theory]
+    [InlineData("=:", new[] { "no-prop", "empty-prop" })] // equals empty matches a missing and an empty property
+    [InlineData("=!:", new[] { "has-text" })] // not equals empty matches when exception text is present
+    public void ReadLogFile_ShouldFilter_ByExceptionDsl(string exceptionDsl, string[] expectedMessages)
     {
         var t = DateTime.UtcNow;
         var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
@@ -380,48 +279,9 @@ public class LogServiceTests : IDisposable
 
         var service = CreateService();
         var file = GetFileByPath(service, path);
-        var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 10, Exception = "=:" });
+        var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 10, Exception = exceptionDsl });
 
-        Assert.Equal(new[] { "no-prop", "empty-prop" }, result.Entries.Select(e => e.Message).ToArray());
-    }
-
-    [Fact]
-    public void ReadLogFile_ShouldFilter_ExceptionNotEqualsEmpty_MatchesWhenExceptionTextPresent()
-    {
-        var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
-        File.WriteAllLines(path,
-        [
-            MakeLine("no-prop", t),
-            MakeLine("empty-prop", t, includeException: true, exceptionValue: string.Empty),
-            MakeLine("has-text", t, includeException: true, exceptionValue: "boom"),
-        ]);
-
-        var service = CreateService();
-        var file = GetFileByPath(service, path);
-        var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 10, Exception = "=!:" });
-
-        Assert.Single(result.Entries);
-        Assert.Equal("has-text", result.Entries[0].Message);
-    }
-
-    [Fact]
-    public void ReadLogFile_ShouldFilter_WhitespaceOnlyMessageDsl_AsContainsLiteral()
-    {
-        var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
-        File.WriteAllLines(path,
-        [
-            MakeLine("x", t),
-            MakeLine("a   b", t),
-        ]);
-
-        var service = CreateService();
-        var file = GetFileByPath(service, path);
-        var result = service.ReadLogFile(file, new() { Offset = 0, Limit = 10, Message = "   " });
-
-        Assert.Single(result.Entries);
-        Assert.Equal("a   b", result.Entries[0].Message);
+        Assert.Equal(expectedMessages, result.Entries.Select(e => e.Message).ToArray());
     }
 
     [Fact]
@@ -439,43 +299,6 @@ public class LogServiceTests : IDisposable
             Limit = 10,
             Message = "*:[(",
         }));
-    }
-
-    [Fact]
-    public void ReadRange_ShouldReturnOldestFirst_WhenDescendingIsFalse()
-    {
-        var t1 = DateTime.UtcNow.AddHours(-3);
-        var t2 = DateTime.UtcNow.AddHours(-2);
-        var t3 = DateTime.UtcNow.AddHours(-1);
-
-        var plainPath = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
-        File.WriteAllLines(plainPath,
-        [
-            MakeLine("old", t1),
-            MakeLine("middle", t2),
-        ]);
-        File.SetLastWriteTimeUtc(plainPath, t2);
-
-        var compressedPath = Path.Combine(_tempDirectory, "2020-01-02.jsonl.gz");
-        using (var stream = File.Open(compressedPath, FileMode.Create))
-        using (var gzip = new GZipStream(stream, CompressionLevel.Optimal))
-        using (var writer = new StreamWriter(gzip))
-        {
-            writer.WriteLine(MakeLine("new", t3));
-        }
-        File.SetLastWriteTimeUtc(compressedPath, t3);
-
-        var service = CreateService();
-        var result = service.ReadRange(new()
-        {
-            From = t1.AddMinutes(-1),
-            To = t3.AddMinutes(1),
-            Offset = 0,
-            Limit = 0,
-            Descending = false,
-        });
-
-        Assert.Equal(new[] { "old", "middle", "new" }, result.Entries.Select(entry => entry.Message).ToArray());
     }
 
     public void Dispose()
@@ -498,6 +321,24 @@ public class LogServiceTests : IDisposable
         appPaths.SetupGet(paths => paths.LogsPath).Returns(_tempDirectory);
 
         return new LogService(NullLogger<LogService>.Instance, appPaths.Object, settingsProvider.Object);
+    }
+
+    private string WriteLogFile(bool compressed, string[] lines)
+    {
+        if (!compressed)
+        {
+            var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
+            File.WriteAllLines(path, lines);
+            return path;
+        }
+
+        var gzipPath = Path.Combine(_tempDirectory, "2020-01-01.jsonl.gz");
+        using var stream = File.Open(gzipPath, FileMode.Create);
+        using var gzip = new GZipStream(stream, CompressionLevel.Optimal);
+        using var writer = new StreamWriter(gzip);
+        foreach (var line in lines)
+            writer.WriteLine(line);
+        return gzipPath;
     }
 
     private static string JsonEscape(string s)

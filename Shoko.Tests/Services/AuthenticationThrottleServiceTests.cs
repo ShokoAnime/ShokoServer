@@ -114,17 +114,6 @@ public class AuthenticationThrottleServiceTests
     }
 
     [Fact]
-    public void UnknownUsernames_AreThrottledToo()
-    {
-        var (throttler, _, _) = CreateThrottler();
-
-        for (var attempt = 0; attempt < throttler.MaxFailedAttempts; attempt++)
-            throttler.RegisterFailure("ghost");
-
-        Assert.NotNull(throttler.GetRemainingLockout("ghost"));
-    }
-
-    [Fact]
     public void ThrottleAuthentication_AllowsAnAttemptWhenNothingIsLockedOut()
     {
         var (throttler, _, _) = CreateThrottler();

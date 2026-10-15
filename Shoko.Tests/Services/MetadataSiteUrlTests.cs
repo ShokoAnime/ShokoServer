@@ -75,24 +75,16 @@ public class MetadataSiteUrlTests
 
     #region Routing
 
-    [Fact]
-    public void AResolverAnswersBeforeTheProvider()
+    [Theory]
+    [InlineData("https://example.com/resolver", "https://example.com/resolver")]
+    [InlineData(null, "https://example.com/provider")] // a resolver without a page leaves it to the provider
+    public void AResolverAnswersBeforeTheProvider_UnlessItHasNoPage(string? resolverUrl, string expectedUrl)
     {
         var tables = new MetadataLookupTables();
         tables.Providers.Add(Info(new PageProvider("https://example.com/provider")));
-        tables.Service.AddParts([], [Resolver("https://example.com/resolver").Object]);
+        tables.Service.AddParts([], [Resolver(resolverUrl).Object]);
 
-        Assert.Equal("https://example.com/resolver", tables.Service.GetSiteUrl(Entry(PluginSeries)));
-    }
-
-    [Fact]
-    public void AResolverWithoutAPageLeavesItToTheProvider()
-    {
-        var tables = new MetadataLookupTables();
-        tables.Providers.Add(Info(new PageProvider("https://example.com/provider")));
-        tables.Service.AddParts([], [Resolver(null).Object]);
-
-        Assert.Equal("https://example.com/provider", tables.Service.GetSiteUrl(Entry(PluginSeries)));
+        Assert.Equal(expectedUrl, tables.Service.GetSiteUrl(Entry(PluginSeries)));
     }
 
     [Fact]

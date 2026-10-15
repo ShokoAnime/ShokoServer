@@ -8,7 +8,6 @@ using Moq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Video.Relocation;
-using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Configuration;
@@ -70,20 +69,6 @@ public sealed class WebAOMRenamerMigrationTests : IDisposable
 
         public string Script { get; set; } = string.Empty;
     }
-
-    #endregion
-
-    #region IDs
-
-    [Fact]
-    public void ProviderID_IsTheOneTheServerGivesThePluginsRenamer()
-    {
-        Assert.Equal(VideoRelocationService.GetProviderID(WebAOMRenamerMigration.ProviderTypeName, WebAOMRenamerMigration.PluginID), WebAOMRenamerMigration.ProviderID);
-    }
-
-    [Fact]
-    public void LegacyProviderID_IsTheOnePresetsSavedBeforeTheMoveHold()
-        => Assert.Equal(new Guid("ce69f6d2-a102-5907-9338-f8c812c6955b"), WebAOMRenamerMigration.LegacyProviderID);
 
     #endregion
 

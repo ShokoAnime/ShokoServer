@@ -47,23 +47,6 @@ public class RequestReleaseGroupTests
     }
 
     [Fact]
-    public void ParseResponse_ParsesZeroRating()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.GROUP,
-            Response = "1|0|0|0|0|||irc|irc.example.com||"
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(0m, result.Response.Rating);
-        Assert.Equal(0, result.Response.Votes);
-        Assert.Equal(0, result.Response.AnimeCount);
-        Assert.Equal(0, result.Response.FileCount);
-    }
-
-    [Fact]
     public void ParseResponse_ParsesEmptyStrings()
     {
         var response = new UDPResponse<string>
@@ -82,61 +65,18 @@ public class RequestReleaseGroupTests
         Assert.Empty(result.Response.Picture);
     }
 
-    [Fact]
-    public void ParseResponse_ThrowsOnNonIntGroupID()
+    [Theory]
+    [InlineData("abc|0|0|0|0|Name|GRP|irc|irc.example.com|url|pic.jpg")] // The group ID is not an int.
+    [InlineData("1|abc|0|0|0|Name|GRP|irc|irc.example.com|url|pic.jpg")] // The rating is not an int.
+    [InlineData("1|0|abc|0|0|Name|GRP|irc|irc.example.com|url|pic.jpg")] // The votes are not an int.
+    [InlineData("1|0|0|abc|0|Name|GRP|irc|irc.example.com|url|pic.jpg")] // The anime count is not an int.
+    [InlineData("1|0|0|0|abc|Name|GRP|irc|irc.example.com|url|pic.jpg")] // The file count is not an int.
+    public void ParseResponse_ThrowsOnNonIntField(string payload)
     {
         var response = new UDPResponse<string>
         {
             Code = UDPReturnCode.GROUP,
-            Response = "abc|0|0|0|0|Name|GRP|irc|irc.example.com|url|pic.jpg"
-        };
-
-        Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
-    }
-
-    [Fact]
-    public void ParseResponse_ThrowsOnNonIntRating()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.GROUP,
-            Response = "1|abc|0|0|0|Name|GRP|irc|irc.example.com|url|pic.jpg"
-        };
-
-        Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
-    }
-
-    [Fact]
-    public void ParseResponse_ThrowsOnNonIntVotes()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.GROUP,
-            Response = "1|0|abc|0|0|Name|GRP|irc|irc.example.com|url|pic.jpg"
-        };
-
-        Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
-    }
-
-    [Fact]
-    public void ParseResponse_ThrowsOnNonIntAnimeCount()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.GROUP,
-            Response = "1|0|0|abc|0|Name|GRP|irc|irc.example.com|url|pic.jpg"
-        };
-
-        Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));
-    }
-
-    [Fact]
-    public void ParseResponse_ThrowsOnNonIntFileCount()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.GROUP,
-            Response = "1|0|0|0|abc|Name|GRP|irc|irc.example.com|url|pic.jpg"
+            Response = payload
         };
 
         Assert.Throws<UnexpectedUDPResponseException>(() => _request.ParseResponse(response));

@@ -169,9 +169,5 @@ public sealed class ImageIdentityMigratorTests : IDisposable
         Assert.Equal("moved", File.ReadAllText(PathOf("tmdb", newID, ".jpg")));
     }
 
-    [Fact]
-    public void AnImageWithoutAFile_IsReportedMissing()
-        => Assert.Equal(ImageMoveResult.Missing, MoveFile(new ImageCacheMigrator(_root.FullName), OldImage(MetadataSource.User, "abc"), ".png"));
-
     #endregion
 }

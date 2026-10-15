@@ -16,10 +16,12 @@ namespace Shoko.Tests.API.Swagger;
 
 public class AuthorizeOperationFilterTests
 {
-    [Fact]
-    public async Task OptionalAuthentication_AdvertisesAnonymousAndApiKeyAccess()
+    [Theory]
+    [InlineData(typeof(Endpoints), nameof(Endpoints.Optional))]
+    [InlineData(typeof(UnattributedEndpoints), nameof(UnattributedEndpoints.Optional))] // without authorization attributes
+    public async Task OptionalAuthentication_AdvertisesAnonymousAndApiKeyAccess(Type endpointsType, string methodName)
     {
-        var security = await GetSecurity(nameof(Endpoints.Optional));
+        var security = await GetSecurity(endpointsType, methodName);
 
         Assert.NotNull(security);
         Assert.Equal(3, security.Count);
@@ -28,10 +30,12 @@ public class AuthorizeOperationFilterTests
         Assert.NotNull(security[2][AuthorizeOperationFilter.ApiKeyQueryScheme]);
     }
 
-    [Fact]
-    public async Task Authorized_RequiresTheApiKey()
+    [Theory]
+    [InlineData(nameof(Endpoints.Authorized))]
+    [InlineData(nameof(Endpoints.AuthorizedWithOptionalAuthentication))] // optional authentication on an endpoint requiring authorization
+    public async Task Authorized_RequiresTheApiKey(string methodName)
     {
-        var security = await GetSecurity(nameof(Endpoints.Authorized));
+        var security = await GetSecurity(methodName);
 
         Assert.NotNull(security);
         Assert.Equal(2, security.Count);
@@ -39,36 +43,11 @@ public class AuthorizeOperationFilterTests
         Assert.NotNull(security[1][AuthorizeOperationFilter.ApiKeyQueryScheme]);
     }
 
-    [Fact]
-    public async Task OptionalAuthentication_WithoutAuthorizationAttributes_AdvertisesAnonymousAndApiKeyAccess()
-    {
-        var security = await GetSecurity(typeof(UnattributedEndpoints), nameof(UnattributedEndpoints.Optional));
-
-        Assert.NotNull(security);
-        Assert.Equal(3, security.Count);
-        Assert.Empty((JObject)security[0]);
-        Assert.NotNull(security[1][AuthorizeOperationFilter.ApiKeyHeaderScheme]);
-        Assert.NotNull(security[2][AuthorizeOperationFilter.ApiKeyQueryScheme]);
-    }
-
-    [Fact]
-    public async Task OptionalAuthentication_OnAnEndpointRequiringAuthorization_StillRequiresTheApiKey()
-    {
-        var security = await GetSecurity(nameof(Endpoints.AuthorizedWithOptionalAuthentication));
-
-        Assert.NotNull(security);
-        Assert.Equal(2, security.Count);
-        Assert.NotNull(security[0][AuthorizeOperationFilter.ApiKeyHeaderScheme]);
-        Assert.NotNull(security[1][AuthorizeOperationFilter.ApiKeyQueryScheme]);
-    }
-
-    [Fact]
-    public async Task Anonymous_HasNoSecurity()
-        => Assert.Null(await GetSecurity(nameof(Endpoints.Anonymous)));
-
-    [Fact]
-    public async Task Unattributed_HasNoSecurity()
-        => Assert.Null(await GetSecurity(typeof(UnattributedEndpoints), nameof(UnattributedEndpoints.Plain)));
+    [Theory]
+    [InlineData(typeof(Endpoints), nameof(Endpoints.Anonymous))]
+    [InlineData(typeof(UnattributedEndpoints), nameof(UnattributedEndpoints.Plain))] // unattributed
+    public async Task Anonymous_HasNoSecurity(Type endpointsType, string methodName)
+        => Assert.Null(await GetSecurity(endpointsType, methodName));
 
     private static Task<JArray?> GetSecurity(string methodName)
         => GetSecurity(typeof(Endpoints), methodName);

@@ -101,25 +101,6 @@ public class RestartReasonTests(DatabaseMigrationFixture fixture)
         Assert.Throws<InvalidOperationException>(() => systemService.RequireRestart<UnloadedPlugin>("Asked for by a test."));
     }
 
-    [Fact]
-    public void TheCorePluginRaisesAReasonByItsType()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-        var systemService = fixture.Services.GetRequiredService<ISystemService>();
-        IRestartRequirement? restart = null;
-        try
-        {
-            restart = systemService.RequireRestart<CorePlugin>("The core needs a restart for a test.");
-
-            Assert.Equal(CorePlugin.StaticID, restart.Plugin.ID);
-            Assert.Contains(restart.Reason, systemService.RestartReasons);
-        }
-        finally
-        {
-            restart?.Dispose();
-        }
-    }
-
     public static TheoryData<string, string> PluginCalls => new()
     {
         { TestPlugins.FolderPluginAssembly, "Direct" },

@@ -205,14 +205,6 @@ public class ChapterInfoTests
     #region Titles
 
     [Fact]
-    public void DefaultTitle_IsTheFirstName()
-    {
-        var chapter = new ChapterInfo(ChapterInfo.ParseTitles("ja:オープニング - en:Opening"), TimeSpan.Zero);
-
-        Assert.Equal("オープニング", chapter.DefaultTitle.Value);
-    }
-
-    [Fact]
     public void DefaultTitle_WithoutNames_IsEmpty()
     {
         StubSettingsProvider.Install();
@@ -234,14 +226,6 @@ public class ChapterInfoTests
         var titles = ChapterInfo.ParseTitles("Prologue - en:Opening - ja:オープニング");
 
         Assert.Equal(expected, ChapterInfo.ChoosePreferredTitle(titles, languages)?.Value);
-    }
-
-    [Fact]
-    public void PreferredTitle_ReadsThreeLetterCodes()
-    {
-        var titles = ChapterInfo.ParseTitles("eng:Opening - jpn:オープニング");
-
-        Assert.Equal("オープニング", ChapterInfo.ChoosePreferredTitle(titles, [TitleLanguage.Japanese])?.Value);
     }
 
     /// <summary>

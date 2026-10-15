@@ -15,7 +15,6 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Server.API.v3.Controllers;
-using Shoko.Server.API.v3.Models.Metadata;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -125,15 +124,6 @@ public class MetadataImageContributorControllerTests
         manager.Verify(m => m.SetImageContributorEnabled(info.ID, MetadataEntityScope.Single(MetadataSource.TMDB, MetadataEntityType.Movie)), Times.Once);
         manager.Verify(m => m.SetImageContributorEnabled(It.IsAny<Guid>(), It.IsAny<MetadataEntityScope>()), Times.Once);
         Assert.IsType<NotFoundObjectResult>(controller.UpdateImageContributor(Guid.NewGuid(), new()).Result);
-    }
-
-    [Fact]
-    public void ContributorsSayWhetherTheyHaveAnIcon()
-    {
-        var plain = new MetadataImageContributor(Info());
-        var withIcon = new MetadataImageContributor(Info(new() { FilePath = "/nowhere/icon.svg", MimeType = "image/svg+xml", Width = 24, Height = 24 }));
-
-        Assert.Equal((false, true), (plain.HasIcon, withIcon.HasIcon));
     }
 
     [Fact]

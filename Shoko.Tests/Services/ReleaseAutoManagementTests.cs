@@ -134,21 +134,17 @@ public class ReleaseAutoManagementTests
 
     #region Nothing to do
 
-    [Fact]
-    public void NothingIsDeletedWhenThereIsOnlyOneCandidate()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void NothingIsDeletedWhenThereIsNoSecondCandidate(int candidateCount)
     {
         var harness = TwoCandidates();
-        var only = Candidate("primary", [Place(1, 1)], [1]);
+        var candidates = Enumerable.Range(0, candidateCount)
+            .Select(_ => Candidate("primary", [Place(1, 1)], [1]))
+            .ToList();
 
-        Assert.Empty(harness.Service.ComputeRedundantPlaces(harness.Series, [only], harness.VideoLookup));
-    }
-
-    [Fact]
-    public void NothingIsDeletedWhenThereAreNoCandidates()
-    {
-        var harness = TwoCandidates();
-
-        Assert.Empty(harness.Service.ComputeRedundantPlaces(harness.Series, [], harness.VideoLookup));
+        Assert.Empty(harness.Service.ComputeRedundantPlaces(harness.Series, candidates, harness.VideoLookup));
     }
 
     [Fact]

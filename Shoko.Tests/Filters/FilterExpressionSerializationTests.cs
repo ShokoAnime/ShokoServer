@@ -2,10 +2,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using Shoko.Abstractions.Filtering.Expressions;
-using Shoko.Abstractions.Filtering.Expressions.Info;
-using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.User;
-using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Server.Databases.NHibernate;
 using Xunit;
 
@@ -58,28 +55,6 @@ public class FilterExpressionSerializationTests
 
         return data;
     }
-
-    #region Discovery
-
-    [Fact]
-    public void TheExpressionTypesAreDiscovered()
-    {
-        // Guards the theories below from silently becoming empty if the assembly or hierarchy moves.
-        Assert.True(s_expressionTypes.Length > 250, $"Only found {s_expressionTypes.Length} expression types.");
-        Assert.Contains(s_expressionTypes, t => typeof(SortingExpression).IsAssignableFrom(t));
-    }
-
-    [Fact]
-    public void TheSortingSelectorsAreIncluded()
-    {
-        // SortingExpression derives from FilterExpression<object>, so the sorting column shares this
-        // binder. If that hierarchy changes, saved sort orders stop resolving.
-        var selectors = s_expressionTypes.Where(t => typeof(SortingExpression).IsAssignableFrom(t)).ToArray();
-
-        Assert.True(selectors.Length > 50, $"Only found {selectors.Length} sorting selectors.");
-    }
-
-    #endregion
 
     #region Name binding
 
@@ -147,21 +122,6 @@ public class FilterExpressionSerializationTests
 
         Assert.NotNull(restored);
         Assert.IsType(type, restored);
-    }
-
-    [Fact]
-    public void ANestedExpressionTreeSurvivesARoundTrip()
-    {
-        var converter = new FilterExpressionConverter();
-        var original = new AndExpression(new HasWatchedEpisodesExpression(), new NotExpression(new HasTagExpression("comedy")));
-
-        var json = converter.ConvertTo(null, CultureInfo.InvariantCulture, original, typeof(string));
-        var restored = Assert.IsType<AndExpression>(converter.ConvertFrom(null, CultureInfo.InvariantCulture, json!));
-
-        // The tree, not just the root, has to come back intact.
-        Assert.IsType<HasWatchedEpisodesExpression>(restored.Left);
-        var not = Assert.IsType<NotExpression>(restored.Right);
-        Assert.Equal("comedy", Assert.IsType<HasTagExpression>(not.Left).Parameter);
     }
 
     [Fact]

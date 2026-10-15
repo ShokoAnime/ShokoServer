@@ -20,74 +20,23 @@ public class RequestUpdateMylistTests
         _request = new RequestUpdateMylist(loggerFactory, handler);
     }
 
-    [Fact]
-    public void ParseResponse_ReturnsVoid_OnEntryEdited()
+    [Theory]
+    [InlineData(UDPReturnCode.MYLIST_ENTRY_EDITED)]
+    [InlineData(UDPReturnCode.NO_SUCH_MYLIST_ENTRY)]
+    [InlineData(UDPReturnCode.NO_SUCH_FILE)]
+    [InlineData(UDPReturnCode.NO_SUCH_ANIME)]
+    [InlineData(UDPReturnCode.NO_SUCH_GROUP)]
+    public void ParseResponse_ReturnsVoid_OnAcceptedReturnCode(UDPReturnCode code)
     {
         var response = new UDPResponse<string>
         {
-            Code = UDPReturnCode.MYLIST_ENTRY_EDITED,
+            Code = code,
             Response = string.Empty
         };
 
         var result = _request.ParseResponse(response);
 
-        Assert.Equal(UDPReturnCode.MYLIST_ENTRY_EDITED, result.Code);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsVoid_OnNoSuchMylistEntry()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_SUCH_MYLIST_ENTRY,
-            Response = string.Empty
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(UDPReturnCode.NO_SUCH_MYLIST_ENTRY, result.Code);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsVoid_OnNoSuchFile()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_SUCH_FILE,
-            Response = string.Empty
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(UDPReturnCode.NO_SUCH_FILE, result.Code);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsVoid_OnNoSuchAnime()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_SUCH_ANIME,
-            Response = string.Empty
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(UDPReturnCode.NO_SUCH_ANIME, result.Code);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsVoid_OnNoSuchGroup()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_SUCH_GROUP,
-            Response = string.Empty
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(UDPReturnCode.NO_SUCH_GROUP, result.Code);
+        Assert.Equal(code, result.Code);
     }
 
     [Fact]

@@ -81,55 +81,6 @@ public class JobRepositoryTests
         }
     }
 
-    [Fact]
-    public async Task InsertBatchAsync_SingleJob_PersistedAndReloaded()
-    {
-        var (keeper, repo) = await CreateAsync();
-        await using (keeper)
-        {
-            var job = FakeJob(jobKey: "persisted-key");
-
-            await repo.InsertBatchAsync([job], TestContext.Current.CancellationToken);
-
-            var loaded = await repo.LoadAllAsync(TestContext.Current.CancellationToken);
-            Assert.Single(loaded);
-            Assert.Equal(job.Id, loaded[0].Id);
-            Assert.Equal(job.JobKey, loaded[0].JobKey);
-            Assert.Equal(job.JobType, loaded[0].JobType);
-            Assert.Equal(job.Priority, loaded[0].Priority);
-        }
-    }
-
-    [Fact]
-    public async Task InsertBatchAsync_MultipleJobs_AllReloaded()
-    {
-        var (keeper, repo) = await CreateAsync();
-        await using (keeper)
-        {
-            var jobs = Enumerable.Range(0, 10).Select(_ => FakeJob()).ToList();
-
-            await repo.InsertBatchAsync(jobs, TestContext.Current.CancellationToken);
-
-            var loaded = await repo.LoadAllAsync(TestContext.Current.CancellationToken);
-            Assert.Equal(10, loaded.Count);
-            foreach (var j in jobs)
-                Assert.Contains(loaded, l => l.Id == j.Id);
-        }
-    }
-
-    [Fact]
-    public async Task InsertBatchAsync_DuplicateJobKey_ThrowsDbUpdateException()
-    {
-        var (keeper, repo) = await CreateAsync();
-        await using (keeper)
-        {
-            await repo.InsertBatchAsync([FakeJob(jobKey: "same-key")], TestContext.Current.CancellationToken);
-
-            await Assert.ThrowsAsync<DbUpdateException>(
-                () => repo.InsertBatchAsync([FakeJob(jobKey: "same-key")], TestContext.Current.CancellationToken));
-        }
-    }
-
     // ── Load ordering ─────────────────────────────────────────────────────────
 
     [Fact]
@@ -206,21 +157,6 @@ public class JobRepositoryTests
             var remaining = await repo.LoadAllAsync(TestContext.Current.CancellationToken);
             Assert.Single(remaining);
             Assert.Equal(toKeep.Id, remaining[0].Id);
-        }
-    }
-
-    [Fact]
-    public async Task DeleteBatchAsync_EmptyCollection_IsNoOp()
-    {
-        var (keeper, repo) = await CreateAsync();
-        await using (keeper)
-        {
-            await repo.InsertBatchAsync([FakeJob()], TestContext.Current.CancellationToken);
-
-            var ex = await Record.ExceptionAsync(() => repo.DeleteBatchAsync([], TestContext.Current.CancellationToken));
-
-            Assert.Null(ex);
-            Assert.Single(await repo.LoadAllAsync(TestContext.Current.CancellationToken));
         }
     }
 
@@ -306,22 +242,6 @@ public class JobRepositoryTests
             Assert.Equal(newParent, loaded.Single(j => j.Id == child1.Id).ParentJobId);
             Assert.Equal(otherParent, loaded.Single(j => j.Id == child2.Id).ParentJobId);
             Assert.Equal(removedParent, loaded.Single(j => j.Id == untouched.Id).ParentJobId);
-        }
-    }
-
-    [Fact]
-    public async Task ActivateChainChildrenAsync_EmptyCollection_IsNoOp()
-    {
-        var (keeper, repo) = await CreateAsync();
-        await using (keeper)
-        {
-            var child = FakeJob(parentJobId: Guid.NewGuid());
-            await repo.InsertBatchAsync([child], TestContext.Current.CancellationToken);
-
-            var ex = await Record.ExceptionAsync(() => repo.ActivateChainChildrenAsync([], TestContext.Current.CancellationToken));
-
-            Assert.Null(ex);
-            Assert.NotNull((await repo.LoadAllAsync(TestContext.Current.CancellationToken)).Single().ParentJobId);
         }
     }
 

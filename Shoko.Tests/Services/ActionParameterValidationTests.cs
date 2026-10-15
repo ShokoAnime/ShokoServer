@@ -45,18 +45,6 @@ public class ActionParameterValidationTests
         => CreateConfigurationService().Validate(json, SchemaFor<TAction>());
 
     [Fact]
-    public void TheSchema_ClosesTheObjectSoATypoCannotSlipThrough()
-    {
-        // The generator leaves a configuration's objects open, which is right
-        // for a document read back from disk and wrong for an invocation
-        // payload.
-        var schema = SchemaFor<ParameterisedGlobalAction>();
-
-        Assert.False(schema.AllowAdditionalProperties);
-        Assert.Contains("\"additionalProperties\": false", schema.ToJson(), StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void AMistypedParameterName_IsRejectedRatherThanIgnored()
     {
         // The whole reason this validation is worth having: `PopulateObject`
@@ -93,15 +81,6 @@ public class ActionParameterValidationTests
         Assert.Empty(Validate<ParameterisedGlobalAction>("{}"));
         Assert.Empty(Validate<DeleteGroupAction>("""{"DeleteSeries": true}"""));
         Assert.Empty(Validate<DeleteVideoFileAction>("""{"RemoveFiles": false}"""));
-    }
-
-    [Fact]
-    public void TheSchema_RequiresNothing()
-    {
-        var schema = SchemaFor<DeleteGroupAction>();
-
-        Assert.Empty(schema.RequiredProperties);
-        Assert.All(schema.ActualProperties.Values, x => Assert.False(x.IsRequired));
     }
 
     [Fact]

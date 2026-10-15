@@ -31,45 +31,25 @@ namespace Shoko.Tests.Services;
 /// </summary>
 public class VideoStreamPipelineObserverTests
 {
-    [Fact]
-    public void CoreObserver_IsEnabledWhenTheSettingHasNeverBeenWritten()
+    [Theory]
+    [InlineData(true, null, true)] // a core observer is enabled when the setting has never been written
+    [InlineData(false, null, false)] // a plugin observer is disabled when the setting has never been written
+    [InlineData(true, false, false)] // an explicit false still disables a core observer
+    [InlineData(false, true, true)] // an explicit true still enables a plugin observer
+    public void Observer_IsEnabledByItsSettingAndOtherwiseOnlyWhenCore(bool isCore, bool? setting, bool expectedEnabled)
     {
-        var pipeline = CreatePipeline(PluginTestDoubles.CorePluginInfo(typeof(CorePlugin), CorePlugin.StaticID));
-        pipeline.AddObserverParts([new TestObserver()]);
-
-        var observer = Assert.Single(pipeline.GetAvailableObservers());
-        Assert.True(observer.Enabled);
-    }
-
-    [Fact]
-    public void PluginObserver_IsDisabledWhenTheSettingHasNeverBeenWritten()
-    {
-        var pipeline = CreatePipeline(PluginTestDoubles.InstalledPluginInfo(typeof(PluginTestDoubles.TestPlugin), Guid.NewGuid()));
-        pipeline.AddObserverParts([new TestObserver()]);
-
-        var observer = Assert.Single(pipeline.GetAvailableObservers());
-        Assert.False(observer.Enabled);
-    }
-
-    [Fact]
-    public void CoreObserver_IsStillDisabledByAnExplicitFalseSetting()
-        => AssertEnabledWithSetting(false, PluginTestDoubles.CorePluginInfo(typeof(CorePlugin), CorePlugin.StaticID));
-
-    [Fact]
-    public void PluginObserver_IsStillEnabledByAnExplicitTrueSetting()
-        => AssertEnabledWithSetting(true, PluginTestDoubles.InstalledPluginInfo(typeof(PluginTestDoubles.TestPlugin), Guid.NewGuid()));
-
-    private static void AssertEnabledWithSetting(bool enabled, LocalPluginInfo pluginInfo)
-    {
+        var pluginInfo = isCore
+            ? PluginTestDoubles.CorePluginInfo(typeof(CorePlugin), CorePlugin.StaticID)
+            : PluginTestDoubles.InstalledPluginInfo(typeof(PluginTestDoubles.TestPlugin), Guid.NewGuid());
         var settings = new VideoStreamPipelineSettings();
         var pipeline = CreatePipeline(pluginInfo, settings);
-        var id = GetPartID(typeof(TestObserver));
-        settings.ObserverEnabled[id] = enabled;
+        if (setting is { } enabled)
+            settings.ObserverEnabled[GetPartID(typeof(TestObserver))] = enabled;
 
         pipeline.AddObserverParts([new TestObserver()]);
 
         var observer = Assert.Single(pipeline.GetAvailableObservers());
-        Assert.Equal(enabled, observer.Enabled);
+        Assert.Equal(expectedEnabled, observer.Enabled);
     }
 
     /// <summary>The id a part is stored and configured under, mirrored from the service so the

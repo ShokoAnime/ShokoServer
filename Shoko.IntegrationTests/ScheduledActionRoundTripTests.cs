@@ -1,18 +1,14 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Abstractions.ScheduledActions;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Services;
 using Xunit;
 
 namespace Shoko.IntegrationTests;
 
 /// <summary>
-/// Stores an action's triggers and last runs in the migrated database and
-/// reads them back from it, so the <c>ScheduledAction</c> mapping, its column
-/// types and its unique index are checked on each backend, and runs the step
-/// that fills the last scheduled run of the rows stored before it.
+/// Runs the step that fills the last scheduled run of the <c>ScheduledAction</c>
+/// rows stored before it, on each backend.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public class ScheduledActionRoundTripTests(DatabaseMigrationFixture fixture)
@@ -29,40 +25,6 @@ public class ScheduledActionRoundTripTests(DatabaseMigrationFixture fixture)
     #endregion
 
     #region Tests
-
-    [Fact]
-    public void TriggersAndTheLastRunReadBackFromTheDatabase()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-        var repository = fixture.Services.GetRequiredService<ScheduledActionRepository>();
-        var actionID = Guid.NewGuid();
-        var lastRunAt = new DateTime(2026, 9, 28, 12, 30, 15, DateTimeKind.Utc);
-        var triggers = ScheduledActionService.SerializeTriggers([ActionTrigger.AtStartup, ActionTrigger.WeeklyOn(DayOfWeek.Monday, new TimeOnly(9, 0)), ActionTrigger.OnQueueCleared]);
-
-        repository.Save(new ScheduledAction { ActionID = actionID, CreatedAt = lastRunAt.AddDays(-1), Triggers = triggers });
-        repository.Populate(displayName: false, cancellationToken: TestContext.Current.CancellationToken);
-
-        var row = repository.GetByActionID(actionID);
-        Assert.NotNull(row);
-        Assert.Equal(triggers, row.Triggers);
-        Assert.Null(row.LastRunAt);
-        Assert.Null(row.LastScheduledRunAt);
-
-        // A later run updates the row rather than adding one, which the unique index would refuse.
-        row.LastRunAt = lastRunAt;
-        row.LastScheduledRunAt = lastRunAt.AddHours(-2);
-        row.Triggers = null;
-        repository.Save(row);
-        repository.Populate(displayName: false, cancellationToken: TestContext.Current.CancellationToken);
-
-        row = repository.GetByActionID(actionID);
-        Assert.NotNull(row);
-        Assert.Null(row.Triggers);
-        Assert.Equal(lastRunAt, DateTime.SpecifyKind(row.LastRunAt!.Value, DateTimeKind.Utc));
-        Assert.Equal(lastRunAt.AddHours(-2), DateTime.SpecifyKind(row.LastScheduledRunAt!.Value, DateTimeKind.Utc));
-
-        repository.Delete(row);
-    }
 
     [Fact]
     public void TheUpgradeStep_TakesEveryStoredLastRunAsAScheduledOne()

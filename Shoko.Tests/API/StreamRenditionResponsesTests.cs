@@ -55,22 +55,35 @@ public class StreamRenditionResponsesTests
 
     #region Refusals
 
-    [Fact]
-    public async Task NotFoundIsA404WithTheReason()
+    [Theory]
+    [InlineData(
+        typeof(StreamResourceNotFoundException),
+        typeof(NotFoundObjectResult),
+        StatusCodes.Status404NotFound,
+        "This file has no such track."
+    )]
+    [InlineData(
+        typeof(StreamResourceUnsupportedException),
+        typeof(BadRequestObjectResult),
+        StatusCodes.Status400BadRequest,
+        "This codec cannot be carried in MP4."
+    )]
+    [InlineData(
+        typeof(StreamResourceException), // the base refusal
+        typeof(ObjectResult),
+        StatusCodes.Status500InternalServerError,
+        "Something went wrong."
+    )]
+    public async Task ARefusalIsAnsweredWithItsStatusAndTheReason(Type exceptionType, Type resultType, int status, string reason)
     {
-        var opened = await Throwing(new StreamResourceNotFoundException("This file has no such track."), new DefaultHttpContext().Response);
+        var exception = (Exception)Activator.CreateInstance(exceptionType, reason, null)!;
 
-        var result = Assert.IsType<NotFoundObjectResult>(opened.Failure);
-        Assert.Equal("This file has no such track.", result.Value);
-    }
+        var opened = await Throwing(exception, new DefaultHttpContext().Response);
 
-    [Fact]
-    public async Task UnsupportedIsA400WithTheReason()
-    {
-        var opened = await Throwing(new StreamResourceUnsupportedException("This codec cannot be carried in MP4."), new DefaultHttpContext().Response);
-
-        var result = Assert.IsType<BadRequestObjectResult>(opened.Failure);
-        Assert.Equal("This codec cannot be carried in MP4.", result.Value);
+        var result = Assert.IsAssignableFrom<ObjectResult>(opened.Failure);
+        Assert.IsType(resultType, result);
+        Assert.Equal(status, result.StatusCode);
+        Assert.Equal(reason, result.Value);
     }
 
     [Fact]
@@ -96,16 +109,6 @@ public class StreamRenditionResponsesTests
         var result = Assert.IsType<ObjectResult>(opened.Failure);
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, result.StatusCode);
         Assert.False(response.Headers.ContainsKey("Retry-After"));
-    }
-
-    [Fact]
-    public async Task TheBaseRefusalIsA500WithTheReason()
-    {
-        var opened = await Throwing(new StreamResourceException("Something went wrong."), new DefaultHttpContext().Response);
-
-        var result = Assert.IsType<ObjectResult>(opened.Failure);
-        Assert.Equal(StatusCodes.Status500InternalServerError, result.StatusCode);
-        Assert.Equal("Something went wrong.", result.Value);
     }
 
     [Theory]

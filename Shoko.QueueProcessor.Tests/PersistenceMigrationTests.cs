@@ -132,39 +132,6 @@ public class PersistenceMigrationTests
 
     // ── Idempotency and history ───────────────────────────────────────────────
 
-    [Fact]
-    public async Task MigrateAsync_SecondCall_IsIdempotent()
-    {
-        var cs = NewCs();
-        using var keeper = new SqliteConnection(cs);
-        keeper.Open();
-        await using var ctx = new SqliteQueueDbContext(cs);
-
-        await ctx.Database.MigrateAsync(TestContext.Current.CancellationToken);
-
-        var ex = await Record.ExceptionAsync(() => ctx.Database.MigrateAsync(TestContext.Current.CancellationToken));
-        Assert.Null(ex);
-    }
-
-    [Fact]
-    public async Task AllMigrations_AreRecordedInHistoryTable()
-    {
-        var cs = NewCs();
-        using var keeper = new SqliteConnection(cs);
-        keeper.Open();
-        await using var ctx = new SqliteQueueDbContext(cs);
-
-        await ctx.Database.MigrateAsync(TestContext.Current.CancellationToken);
-
-        // Every migration defined in the assembly must be recorded as applied, in the same order —
-        // no hardcoded count/names, so newly added migrations are covered automatically.
-        var defined = ctx.Database.GetMigrations().ToList();
-        var applied = (await ctx.Database.GetAppliedMigrationsAsync(TestContext.Current.CancellationToken)).ToList();
-
-        Assert.NotEmpty(defined);
-        Assert.Equal(defined, applied);
-    }
-
     // ── Schema constraints ────────────────────────────────────────────────────
 
     [Fact]

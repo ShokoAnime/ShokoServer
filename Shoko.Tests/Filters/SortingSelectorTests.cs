@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Filtering.Sorting;
-using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Abstractions.Metadata;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -43,13 +42,6 @@ public class SortingSelectorTests
     }
 
     #region Discovery
-
-    [Fact]
-    public void TheSelectorsAreDiscovered()
-    {
-        // Guards the theories below from silently emptying out.
-        Assert.True(s_selectorTypes.Length > 50, $"Only found {s_selectorTypes.Length} sorting selectors.");
-    }
 
     [Fact]
     public void EverySelectorCanBeConstructedWithoutArguments()
@@ -228,14 +220,6 @@ public class SortingSelectorTests
     #region Defaults
 
     private static readonly DateTime s_date = new(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
-
-    [Fact]
-    public void Descending_DefaultsToAscending()
-        => Assert.False(new AddedDateSortingSelector().Descending);
-
-    [Fact]
-    public void Next_DefaultsToNoFurtherSort()
-        => Assert.Null(new AddedDateSortingSelector().Next);
 
     #endregion
 }

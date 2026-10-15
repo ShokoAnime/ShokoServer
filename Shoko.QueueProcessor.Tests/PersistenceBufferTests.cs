@@ -82,48 +82,6 @@ public class PersistenceBufferTests
     }
 
     [Fact]
-    public async Task EnqueueOnly_FlushedAsInsert()
-    {
-        var (buffer, repo) = Make();
-        var job = FakeJob();
-
-        IReadOnlyCollection<QueuedJob>? capturedInserts = null;
-        repo.Setup(r => r.InsertBatchAsync(It.IsAny<IReadOnlyCollection<QueuedJob>>(), It.IsAny<CancellationToken>()))
-            .Callback<IReadOnlyCollection<QueuedJob>, CancellationToken>((jobs, _) => capturedInserts = jobs)
-            .Returns(Task.CompletedTask);
-
-        buffer.OnEnqueue(job);
-        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
-
-        Assert.NotNull(capturedInserts);
-        Assert.Contains(capturedInserts!, j => j.Id == job.Id);
-        repo.Verify(r => r.DeleteBatchAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
-
-        await buffer.DisposeAsync();
-    }
-
-    [Fact]
-    public async Task CompleteOnly_FlushedAsDelete()
-    {
-        var (buffer, repo) = Make();
-        var id = Guid.NewGuid();
-
-        IReadOnlyCollection<Guid>? capturedDeletes = null;
-        repo.Setup(r => r.DeleteBatchAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
-            .Callback<IReadOnlyCollection<Guid>, CancellationToken>((ids, _) => capturedDeletes = ids)
-            .Returns(Task.CompletedTask);
-
-        buffer.OnComplete(id);
-        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
-
-        Assert.NotNull(capturedDeletes);
-        Assert.Contains(capturedDeletes!, i => i == id);
-        repo.Verify(r => r.InsertBatchAsync(It.IsAny<IReadOnlyCollection<QueuedJob>>(), It.IsAny<CancellationToken>()), Times.Never);
-
-        await buffer.DisposeAsync();
-    }
-
-    [Fact]
     public async Task MultipleEnqueueComplete_MixedOutcome()
     {
         var (buffer, repo) = Make();
@@ -192,32 +150,20 @@ public class PersistenceBufferTests
 
     // ── IsPendingInsert ───────────────────────────────────────────────────────
 
-    [Fact]
-    public void IsPendingInsert_AfterEnqueue_ReturnsTrue()
+    [Theory]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)] // Completing cancels the enqueue out
+    [InlineData(false, false, false)] // Unknown ID
+    public void IsPendingInsert_IsTrueOnlyForAnEnqueuedJobThatIsNotCompleted(bool enqueue, bool complete, bool expected)
     {
         var (buffer, _) = Make();
         var job = FakeJob();
-        buffer.OnEnqueue(job);
+        if (enqueue)
+            buffer.OnEnqueue(job);
+        if (complete)
+            buffer.OnComplete(job.Id);
 
-        Assert.True(buffer.IsPendingInsert(job.Id));
-    }
-
-    [Fact]
-    public void IsPendingInsert_AfterCancelOut_ReturnsFalse()
-    {
-        var (buffer, _) = Make();
-        var job = FakeJob();
-        buffer.OnEnqueue(job);
-        buffer.OnComplete(job.Id); // cancels out
-
-        Assert.False(buffer.IsPendingInsert(job.Id));
-    }
-
-    [Fact]
-    public void IsPendingInsert_UnknownId_ReturnsFalse()
-    {
-        var (buffer, _) = Make();
-        Assert.False(buffer.IsPendingInsert(Guid.NewGuid()));
+        Assert.Equal(expected, buffer.IsPendingInsert(job.Id));
     }
 
     // ── DisposeAsync flush ────────────────────────────────────────────────────

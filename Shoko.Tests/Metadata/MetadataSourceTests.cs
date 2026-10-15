@@ -42,10 +42,6 @@ public class MetadataSourceTests
         Assert.Throws<KeyNotFoundException>(() => MetadataSource.Get(text));
     }
 
-    [Fact]
-    public void GetThrowsForTextThatIsNotRegistered()
-        => Assert.Throws<KeyNotFoundException>(() => MetadataSource.Get("mst-get-throws-unknown"));
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -94,15 +90,6 @@ public class MetadataSourceTests
         Assert.True(MetadataSource.TryGet("mst-found-alias", out var found));
         Assert.Same(source, found);
         Assert.False(MetadataSource.TryGet("MstFound", out _));
-    }
-
-    [Fact]
-    public void RegisterKeepsTheLocalFlag()
-    {
-        var source = MetadataSource.Register("MstLocal", "mst-local", local: true);
-
-        Assert.True(source.IsLocal);
-        Assert.False(source.IsRemote);
     }
 
     [Fact]

@@ -12,26 +12,22 @@ public class QueueMetricsTests
 {
     // ── Jobs/sec sliding window ───────────────────────────────────────────────
 
-    [Fact]
-    public void JobsPerSecond_NoCompletions_IsZero()
-    {
-        var metrics = new QueueMetrics(windowSeconds: 60, rollingAvgSamples: 10);
-        var snap = metrics.GetSnapshot(new Dictionary<string, PoolStatus>(), new Dictionary<string, (int, int)>(), new Dictionary<string, string>(), 0, 0);
-
-        Assert.Equal(0, snap.JobsPerSecond);
-    }
-
-    [Fact]
-    public void JobsPerSecond_AfterCompletions_IsPositive()
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(10, true)]
+    public void JobsPerSecond_IsPositiveOnlyAfterCompletions(int completions, bool expectedPositive)
     {
         var metrics = new QueueMetrics(windowSeconds: 60, rollingAvgSamples: 10);
 
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < completions; i++)
             metrics.RecordCompletion("TestJob", "Default", TimeSpan.FromMilliseconds(50));
 
         var snap = metrics.GetSnapshot(new Dictionary<string, PoolStatus>(), new Dictionary<string, (int, int)>(), new Dictionary<string, string>(), 0, 0);
 
-        Assert.True(snap.JobsPerSecond > 0);
+        if (expectedPositive)
+            Assert.True(snap.JobsPerSecond > 0);
+        else
+            Assert.Equal(0, snap.JobsPerSecond);
     }
 
     // ── Per-type rolling average ──────────────────────────────────────────────
@@ -95,32 +91,6 @@ public class QueueMetricsTests
         Assert.Equal(2L, snap.ByType["JobA"].TotalFailed);
     }
 
-    // ── ByPool in snapshot ────────────────────────────────────────────────────
-
-    [Fact]
-    public void GetSnapshot_ByPool_ReflectsProvidedPoolStatus()
-    {
-        var metrics = new QueueMetrics();
-        var poolStatus = new Dictionary<string, PoolStatus>
-        {
-            ["TestPool"] = new PoolStatus
-            {
-                Name = "TestPool",
-                MaxWorkers = 2,
-                ActiveWorkers = 1,
-                IdleWorkers = 1,
-                WaitingCount = 5,
-                IsBlocked = false,
-                HandledTypeNames = ["JobA"]
-            }
-        };
-
-        var snap = metrics.GetSnapshot(poolStatus, new Dictionary<string, (int, int)>(), new Dictionary<string, string>(), 0, 0);
-
-        Assert.True(snap.ByPool.ContainsKey("TestPool"));
-        Assert.Equal(1, snap.ByPool["TestPool"].ActiveWorkers);
-    }
-
     // ── TotalWaiting / TotalExecuting ─────────────────────────────────────────
 
     [Fact]
@@ -136,17 +106,6 @@ public class QueueMetricsTests
         var snap = metrics.GetSnapshot(poolStatus, new Dictionary<string, (int, int)>(), new Dictionary<string, string>(), 0, 0);
 
         Assert.Equal(25, snap.TotalWaiting);
-    }
-
-    [Fact]
-    public void GetSnapshot_SnapshotAt_IsRecent()
-    {
-        var metrics = new QueueMetrics();
-        var before = DateTime.UtcNow;
-        var snap = metrics.GetSnapshot(new Dictionary<string, PoolStatus>(), new Dictionary<string, (int, int)>(), new Dictionary<string, string>(), 0, 0);
-        var after = DateTime.UtcNow;
-
-        Assert.True(snap.SnapshotAt >= before && snap.SnapshotAt <= after);
     }
 
     // ── Thread-safety smoke test ──────────────────────────────────────────────

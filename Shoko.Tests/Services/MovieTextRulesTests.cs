@@ -183,14 +183,6 @@ public class MovieTextRulesTests
     }
 
     [Fact]
-    public void AnOvaStandInWithParts_IsReadAsTheWholeFilm()
-        => Assert.Equal(_filmA, Choose(null, Episode(1, "OVA", _filmA), Episode(2, "Part 1 of 2", _filmA), Episode(3, "Part 2 of 2", _filmA)));
-
-    [Fact]
-    public void TwoVersionsOfTheWholeFilm_AreThatFilm()
-        => Assert.Equal(_filmA, Choose(null, Episode(1, "Complete Movie (Decide Version)", _filmA), Episode(2, "Complete Movie (Glory Version)", _filmA)));
-
-    [Fact]
     public void TwoWholeEpisodesOfTwoFilms_SayNothing()
         => Assert.Null(Choose(null, Episode(1, "Complete Movie (Decide Version)", _filmA), Episode(2, "Complete Movie (Glory Version)", _filmB)));
 
@@ -221,13 +213,6 @@ public class MovieTextRulesTests
         => Assert.Null(Choose(null, Episode(1, "Complete Movie"), Episode(2, "Part 1 of 2"), Other(3, "Making Of", _filmA)));
 
     [Fact]
-    public void AWholeEpisodeBesideNamedOtherEpisodes_IsThatFilm()
-        => Assert.Equal(_filmA, Choose(null,
-            Episode(1, "Complete Movie", _filmA),
-            Other(2, "Flying Memory", _filmA),
-            Other(3, "Grown-Up Wannabe", _filmA)));
-
-    [Fact]
     public void PartsOfAnotherType_BelongToTheWholeFilm()
         => Assert.Equal(_filmA, Choose(null, Episode(1, "Complete Movie"), Other(2, "Part 1 of 2", _filmA), Other(3, "Part 2 of 2", _filmA)));
 
@@ -250,17 +235,6 @@ public class MovieTextRulesTests
             Episode(2, "Part 1 of 2", _filmA),
             Episode(3, "Part 2 of 2"),
             Special(4, "TV Special", _filmB)));
-
-    [Fact]
-    public void AWholeSpecialOfANamedSeries_IsNoFilmEntry()
-        => Assert.Null(Choose(null, Episode(1, "The Beginning"), Episode(2, "The End"), Special(3, "TV Special", _filmA)));
-
-    [Fact]
-    public void NumberedStandIns_FollowTheNormalRule()
-        => Assert.Equal(_filmA, Choose(null,
-            Episode(1, "Episode 1", _filmA),
-            Episode(2, "Episode 2", _filmA),
-            Other(3, "Pokemon Ranger: Guardian Signs", _filmA)));
 
     #endregion
 

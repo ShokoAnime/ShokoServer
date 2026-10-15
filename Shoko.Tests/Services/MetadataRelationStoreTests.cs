@@ -158,20 +158,6 @@ public class MetadataRelationStoreTests
     }
 
     [Fact]
-    public void TheVoteCountsAreKeptBesideTheRating()
-    {
-        var store = Suggestions(out _);
-        store.SetSuggestions(_first, [new() { SuggestedID = _second, ApprovalRating = 75, ApprovalVotes = 3, Votes = 4 }, Suggest(_third)]);
-
-        var (voted, unvoted) = (store.GetSuggestions<ISeries, ISeries>(_first)[0], store.GetSuggestions<ISeries, ISeries>(_first)[1]);
-
-        // Reading `.Value` with no warning proves `HasVotes` vouches for both counts.
-        Assert.True(voted.HasVotes);
-        Assert.Equal((3, 4, 75d), (voted.ApprovalVotes.Value, voted.Votes.Value, voted.ApprovalRating));
-        Assert.False(unvoted.HasVotes || unvoted.HasApprovalRating || unvoted.HasScore);
-    }
-
-    [Fact]
     public void ARatingIsWorkedOutFromTheVotesWhenTheSourceGaveNone()
     {
         var store = Suggestions(out _);

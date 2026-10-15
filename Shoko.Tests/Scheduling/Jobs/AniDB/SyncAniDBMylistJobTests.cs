@@ -42,24 +42,21 @@ public class SyncAniDBMylistJobTests
         Assert.Equal(MylistFetchMode.Auto, existing.FetchMode);
     }
 
-    [Fact]
-    public void TryMerge_KeepsTheLeastDestructiveDeleteType()
+    [Theory]
+    [InlineData(MylistDeleteType.Delete, MylistDeleteType.MarkUnknown, true, MylistDeleteType.MarkUnknown)] // the least destructive wins
+    [InlineData(MylistDeleteType.DeleteLocalOnly, MylistDeleteType.Delete, false, MylistDeleteType.DeleteLocalOnly)] // never escalates to a harder type
+    public void TryMerge_KeepsTheLeastDestructiveDeleteType(
+        MylistDeleteType existingType,
+        MylistDeleteType incomingType,
+        bool expectedChanged,
+        MylistDeleteType expectedType
+    )
     {
-        var existing = new SyncAniDBMylistJob(null!) { DeleteType = MylistDeleteType.Delete };
-        var incoming = new SyncAniDBMylistJob(null!) { DeleteType = MylistDeleteType.MarkUnknown };
+        var existing = new SyncAniDBMylistJob(null!) { DeleteType = existingType };
+        var incoming = new SyncAniDBMylistJob(null!) { DeleteType = incomingType };
 
-        Assert.True(existing.TryMerge(incoming));
-        Assert.Equal(MylistDeleteType.MarkUnknown, existing.DeleteType);
-    }
-
-    [Fact]
-    public void TryMerge_NeverEscalatesToAHarderDeleteType()
-    {
-        var existing = new SyncAniDBMylistJob(null!) { DeleteType = MylistDeleteType.DeleteLocalOnly };
-        var incoming = new SyncAniDBMylistJob(null!) { DeleteType = MylistDeleteType.Delete };
-
-        Assert.False(existing.TryMerge(incoming));
-        Assert.Equal(MylistDeleteType.DeleteLocalOnly, existing.DeleteType);
+        Assert.Equal(expectedChanged, existing.TryMerge(incoming));
+        Assert.Equal(expectedType, existing.DeleteType);
     }
 
     [Fact]

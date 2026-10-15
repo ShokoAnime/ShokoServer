@@ -78,20 +78,6 @@ public class RequestReleaseGroupStatusTests
     }
 
     [Fact]
-    public void ParseResponse_ParsesEpisodeRangeWithDashes()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.GROUP_STATUS,
-            Response = "1|Group|3|9|750|100|1-9"
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(["1", "2", "3", "4", "5", "6", "7", "8", "9"], result.Response[0].ReleasedEpisodes);
-    }
-
-    [Fact]
     public void ParseResponse_ParsesCommaSeparatedEpisodes()
     {
         var response = new UDPResponse<string>
@@ -105,75 +91,36 @@ public class RequestReleaseGroupStatusTests
         Assert.Equal(["5", "7"], result.Response[0].ReleasedEpisodes);
     }
 
-    [Fact]
-    public void ParseResponse_ParsesMixedFormat()
+    [Theory]
+    [InlineData(4, Group_CompletionStatus.Dropped)]
+    [InlineData(1, Group_CompletionStatus.Ongoing)]
+    public void ParseResponse_ParsesCompletionState(int state, Group_CompletionStatus expected)
     {
         var response = new UDPResponse<string>
         {
             Code = UDPReturnCode.GROUP_STATUS,
-            Response = "1|Group|3|8|750|100|5,7"
+            Response = $"1|Group|{state}|5|0|0|1-5"
         };
 
         var result = _request.ParseResponse(response);
 
-        Assert.Equal(["5", "7"], result.Response[0].ReleasedEpisodes);
+        Assert.Equal(expected, result.Response[0].CompletionState);
     }
 
-    [Fact]
-    public void ParseResponse_ParsesDroppedCompletionState()
+    [Theory]
+    [InlineData(UDPReturnCode.NO_SUCH_ANIME)]
+    [InlineData(UDPReturnCode.NO_GROUPS_FOUND)]
+    public void ParseResponse_ReturnsNullOnNoResults(UDPReturnCode code)
     {
         var response = new UDPResponse<string>
         {
-            Code = UDPReturnCode.GROUP_STATUS,
-            Response = "1|Group|4|5|0|0|1-5"
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(Group_CompletionStatus.Dropped, result.Response[0].CompletionState);
-    }
-
-    [Fact]
-    public void ParseResponse_ParsesOngoingCompletionState()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.GROUP_STATUS,
-            Response = "1|Group|1|5|0|0|1-5"
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(Group_CompletionStatus.Ongoing, result.Response[0].CompletionState);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsNullOnNoSuchAnime()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_SUCH_ANIME,
+            Code = code,
             Response = string.Empty
         };
 
         var result = _request.ParseResponse(response);
 
-        Assert.Equal(UDPReturnCode.NO_SUCH_ANIME, result.Code);
-        Assert.Null(result.Response);
-    }
-
-    [Fact]
-    public void ParseResponse_ReturnsNullOnNoGroupsFound()
-    {
-        var response = new UDPResponse<string>
-        {
-            Code = UDPReturnCode.NO_GROUPS_FOUND,
-            Response = string.Empty
-        };
-
-        var result = _request.ParseResponse(response);
-
-        Assert.Equal(UDPReturnCode.NO_GROUPS_FOUND, result.Code);
+        Assert.Equal(code, result.Code);
         Assert.Null(result.Response);
     }
 

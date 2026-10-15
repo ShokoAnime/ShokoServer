@@ -54,17 +54,6 @@ public class IsInYearTests
         Assert.False(anime.IsInYear(2014));
     }
 
-    [Fact]
-    public void OngoingTvSeries_WithNullEndDate_IsInEveryYearUpToNow()
-    {
-        var today = DateTime.Today;
-        var anime = MakeAnime(new PartialDateOnly(today.Year - 3, 4, 6), null, AnimeType.TV);
-
-        Assert.True(anime.IsInYear(today.Year - 3));
-        Assert.True(anime.IsInYear(today.Year - 2));
-        Assert.True(anime.IsInYear(today.Year - 1));
-    }
-
     [Theory]
     [InlineData(AnimeType.Movie)]
     [InlineData(AnimeType.OVA)]

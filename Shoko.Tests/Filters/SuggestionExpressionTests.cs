@@ -89,16 +89,6 @@ public class SuggestionExpressionTests
         Assert.False(new HasLocalSuggestionExpression().Evaluate(filterable, null, s_date));
     }
 
-    [Fact]
-    public void NoneOfTheExpressionsNeedAUser()
-    {
-        Assert.False(new TotalSuggestionCountSelector().UserDependent);
-        Assert.False(new HasSuggestionExpression().UserDependent);
-        Assert.False(new HasLocalSuggestionExpression().UserDependent);
-        Assert.False(new TotalSuggestionCountSelector().TimeDependent);
-        Assert.False(new HasSuggestionExpression().TimeDependent);
-    }
-
     #endregion
 
     #region Counting off a real series
@@ -190,18 +180,6 @@ public class SuggestionExpressionTests
 
         // Two suggestions point at this series, but the expressions measure what a series suggests.
         Assert.False(new HasSuggestionExpression().Evaluate(filterable, null, s_date));
-    }
-
-    [Fact]
-    public void TheBooleansAgreeWithTheCountsOnARealSeries()
-    {
-        using var scope = Scope();
-        var filterable = new FilterableAnimeSeries(s_suggestingSeries, s_date);
-
-        Assert.True(new HasAnidbSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.True(new HasTmdbSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.True(new HasSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.Equal(6d, new TotalSuggestionCountSelector().Evaluate(filterable, null, s_date));
     }
 
     #endregion

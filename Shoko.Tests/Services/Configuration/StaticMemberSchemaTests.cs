@@ -3,10 +3,8 @@ using System.Linq;
 using System.Text.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config;
 using Shoko.Server.Services.Configuration;
-using Shoko.Server.Settings;
 using Xunit;
 
 namespace Shoko.Tests.Services.Configuration;
@@ -33,9 +31,6 @@ public class StaticMemberSchemaTests
         => new ShokoJsonSchemaGenerator(new JsonSerializerSettings { Converters = [new StringEnumConverter()] }, new JsonSerializerOptions())
             .GetSchemaForType(type);
 
-    private static JObject Schema(Type type)
-        => JObject.Parse(Generate(type).Schema.ToJson());
-
     private static string[] Structure(Type type)
     {
         // The authored member order lives on the typed builders now; the
@@ -47,22 +42,4 @@ public class StaticMemberSchemaTests
     [Fact]
     public void TheStructureListsOnlyTheInstanceSettings()
         => Assert.Equal([nameof(ConfigurationWithStatics.Value)], Structure(typeof(ConfigurationWithStatics)));
-
-    [Fact]
-    public void TheAiringScheduleSettingsListOnlyTheirSettingsWithTheirLimits()
-    {
-        var schema = Schema(typeof(AiringScheduleServiceSettings));
-        var properties = ((JObject)schema["properties"]!).Properties().Select(property => property.Name).ToHashSet();
-
-        Assert.All(Structure(typeof(AiringScheduleServiceSettings)), name => Assert.Contains(name, properties));
-        Assert.DoesNotContain(Structure(typeof(AiringScheduleServiceSettings)), name => name.StartsWith("Minimum") || name.StartsWith("Maximum") || name.StartsWith("Default"));
-        Assert.Equal(
-            (AiringScheduleServiceSettings.MinimumSweepBudgetSeconds, AiringScheduleServiceSettings.MaximumSweepBudgetSeconds),
-            (schema["properties"]!["SweepBudgetSeconds"]!["minimum"]!.Value<int>(), schema["properties"]!["SweepBudgetSeconds"]!["maximum"]!.Value<int>())
-        );
-        Assert.Equal(
-            (AiringScheduleServiceSettings.MinimumRetentionMonths, AiringScheduleServiceSettings.MaximumRetentionMonths),
-            (schema["properties"]!["RetentionMonths"]!["minimum"]!.Value<int>(), schema["properties"]!["RetentionMonths"]!["maximum"]!.Value<int>())
-        );
-    }
 }

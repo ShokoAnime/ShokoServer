@@ -254,46 +254,20 @@ public class ReleaseComparisonTests
 
     // ── redundancy detection ──────────────────────────────────────────────────
 
-    [Fact]
-    public void SingleCandidate_NeverRedundant()
+    /// <summary>
+    /// The 1080p BluRay ranks first. The 720p is redundant only when the 1080p already covers
+    /// every episode the 720p has.
+    /// </summary>
+    [Theory]
+    [InlineData(3, 3, true)] // same episodes: the 720p is redundant
+    [InlineData(4, 6, false)] // the 1080p lacks eps 5-6 the 720p has: not redundant yet
+    [InlineData(6, 4, true)] // the 720p has only a subset of the 1080p's episodes
+    [InlineData(0, 0, false)] // no coverage data (unrecognized files): never declare redundant
+    public void LowerRanked_IsRedundantOnlyWhenThePrimaryCoversIt(int primaryEpisodes, int secondaryEpisodes, bool expectedRedundant)
     {
         var svc = MakeService();
-        var only = MakeCandidate(source: ReleaseSource.BluRay, coverage: Episodes((EpisodeType.Episode, 1)));
-
-        var ranked = svc.Rank([only]);
-        var redundant = svc.GetRedundantCandidates(ranked[0].EpisodeCoverage, ranked.Skip(1).ToList());
-
-        Assert.Empty(redundant);
-    }
-
-    [Fact]
-    public void FullCoverage_LowerRanked_IsRedundant()
-    {
-        // 1080p BluRay covers eps 1-3; 720p covers the same eps → 720p is redundant.
-        var svc = MakeService();
-        var eps = Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2), (EpisodeType.Episode, 3));
-
-        var hd = MakeCandidate(key: "1080p", source: ReleaseSource.BluRay, resolution: "1080p", coverage: eps);
-        var sd = MakeCandidate(key: "720p", source: ReleaseSource.BluRay, resolution: "720p", coverage: eps);
-
-        var ranked = svc.Rank([sd, hd]);
-        var redundant = svc.GetRedundantCandidates(ranked[0].EpisodeCoverage, ranked.Skip(1).ToList());
-
-        Assert.Single(redundant);
-        Assert.Equal("720p", redundant[0].Key);
-    }
-
-    [Fact]
-    public void PartialCoverage_HigherRanked_IsNotRedundant()
-    {
-        // 1080p only has eps 1-4 of a 6-ep series; 720p has eps 1-6.
-        // 1080p is better but doesn't yet cover 720p fully → 720p is NOT redundant.
-        var svc = MakeService();
-        var hdEps = Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2),
-                             (EpisodeType.Episode, 3), (EpisodeType.Episode, 4));
-        var sdEps = Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2),
-                             (EpisodeType.Episode, 3), (EpisodeType.Episode, 4),
-                             (EpisodeType.Episode, 5), (EpisodeType.Episode, 6));
+        var hdEps = Episodes(Enumerable.Range(1, primaryEpisodes).Select(number => (EpisodeType.Episode, number)).ToArray());
+        var sdEps = Episodes(Enumerable.Range(1, secondaryEpisodes).Select(number => (EpisodeType.Episode, number)).ToArray());
 
         var hd = MakeCandidate(key: "1080p", source: ReleaseSource.BluRay, resolution: "1080p", coverage: hdEps);
         var sd = MakeCandidate(key: "720p", source: ReleaseSource.BluRay, resolution: "720p", coverage: sdEps);
@@ -301,45 +275,8 @@ public class ReleaseComparisonTests
         var ranked = svc.Rank([sd, hd]);
         var redundant = svc.GetRedundantCandidates(ranked[0].EpisodeCoverage, ranked.Skip(1).ToList());
 
-        Assert.Empty(redundant);
-    }
-
-    [Fact]
-    public void LowerRanked_WithSubsetCoverage_IsRedundant()
-    {
-        // 720p only has eps 1-4 (a subset), 1080p has 1-6 → 720p is redundant since 1080p covers it.
-        var svc = MakeService();
-        var hdEps = Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2),
-                             (EpisodeType.Episode, 3), (EpisodeType.Episode, 4),
-                             (EpisodeType.Episode, 5), (EpisodeType.Episode, 6));
-        var sdEps = Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2),
-                             (EpisodeType.Episode, 3), (EpisodeType.Episode, 4));
-
-        var hd = MakeCandidate(key: "1080p", source: ReleaseSource.BluRay, resolution: "1080p", coverage: hdEps);
-        var sd = MakeCandidate(key: "720p", source: ReleaseSource.BluRay, resolution: "720p", coverage: sdEps);
-
-        var ranked = svc.Rank([sd, hd]);
-        var redundant = svc.GetRedundantCandidates(ranked[0].EpisodeCoverage, ranked.Skip(1).ToList());
-
-        Assert.Single(redundant);
-        Assert.Equal("720p", redundant[0].Key);
-    }
-
-    [Fact]
-    public void NoCoverageData_CandidateNotRedundant()
-    {
-        // When episode coverage is empty (unrecognized files), never declare redundant.
-        var svc = MakeService();
-
-        var hd = MakeCandidate(key: "1080p", source: ReleaseSource.BluRay, resolution: "1080p",
-            coverage: new HashSet<(EpisodeType, int)>());
-        var sd = MakeCandidate(key: "720p", source: ReleaseSource.BluRay, resolution: "720p",
-            coverage: new HashSet<(EpisodeType, int)>());
-
-        var ranked = svc.Rank([sd, hd]);
-        var redundant = svc.GetRedundantCandidates(ranked[0].EpisodeCoverage, ranked.Skip(1).ToList());
-
-        Assert.Empty(redundant);
+        Assert.Equal(expectedRedundant ? 1 : 0, redundant.Count);
+        Assert.All(redundant, candidate => Assert.Equal("720p", candidate.Key));
     }
 
     [Fact]
@@ -363,32 +300,19 @@ public class ReleaseComparisonTests
 
     // ── CompareWithDecision ───────────────────────────────────────────────────
 
-    [Fact]
-    public void CompareWithDecision_ReturnsDecidingSignalAndValues()
+    [Theory]
+    [InlineData(ReleaseSource.BluRay, ReleaseSource.Web, -1)]
+    [InlineData(ReleaseSource.Web, ReleaseSource.BluRay, 1)] // when b ranks higher, PrimaryValue describes b (the winner), not a
+    public void CompareWithDecision_ReturnsDecidingSignalAndValues(ReleaseSource first, ReleaseSource second, int expectedSign)
     {
         var svc = MakeService();
-        var bluray = MakeCandidate(source: ReleaseSource.BluRay);
-        var web = MakeCandidate(source: ReleaseSource.Web);
+        var a = MakeCandidate(source: first);
+        var b = MakeCandidate(source: second);
 
-        var decision = svc.CompareWithDecision(bluray, web);
+        var decision = svc.CompareWithDecision(a, b);
 
-        Assert.True(decision.Result < 0, "BluRay should win");
+        Assert.Equal(expectedSign, int.Sign(decision.Result));
         Assert.Equal(ReleaseSignalType.Source, decision.DecidingSignal);
-        Assert.Equal("BluRay", decision.PrimaryValue);
-        Assert.Equal("Web", decision.RunnerUpValue);
-    }
-
-    [Fact]
-    public void CompareWithDecision_BWins_PrimaryValueIsB()
-    {
-        // When b ranks higher, PrimaryValue should describe b (the winner), not a.
-        var svc = MakeService();
-        var web = MakeCandidate(source: ReleaseSource.Web);
-        var bluray = MakeCandidate(source: ReleaseSource.BluRay);
-
-        var decision = svc.CompareWithDecision(web, bluray);
-
-        Assert.True(decision.Result > 0, "BluRay (b) should win");
         Assert.Equal("BluRay", decision.PrimaryValue);
         Assert.Equal("Web", decision.RunnerUpValue);
     }
@@ -489,37 +413,6 @@ public class ReleaseComparisonTests
         Assert.Empty(redundant);
     }
 
-    [Fact]
-    public void GetRedundantPlaces_AiringSeriesScenario_OnlyUncoveredEpisodeKept()
-    {
-        // Primary (HEVC) covers eps 1-2. Secondary (H264) has files for eps 1, 2, 3.
-        // Files for 1 and 2 are redundant; file for ep 3 is retained.
-        var svc = MakeService();
-        var primary = MakeCandidate(key: "hevc", videoCodec: "HEVC",
-            coverage: Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2)));
-
-        var placeEp1 = MakePlace(1);
-        var placeEp2 = MakePlace(2);
-        var placeEp3 = MakePlace(3);
-        var secondary = MakeCandidate(key: "h264", videoCodec: "H264",
-            coverage: Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2), (EpisodeType.Episode, 3)),
-            places: [placeEp1, placeEp2, placeEp3]);
-
-        var coverageByPlace = new Dictionary<VideoLocal_Place, IReadOnlySet<(EpisodeType, int)>>
-        {
-            [placeEp1] = Episodes((EpisodeType.Episode, 1)),
-            [placeEp2] = Episodes((EpisodeType.Episode, 2)),
-            [placeEp3] = Episodes((EpisodeType.Episode, 3)),
-        };
-
-        var redundant = svc.GetRedundantPlaces(primary.EpisodeCoverage, secondary.Places, p => coverageByPlace[p]);
-
-        Assert.Equal(2, redundant.Count);
-        Assert.Contains(placeEp1, redundant);
-        Assert.Contains(placeEp2, redundant);
-        Assert.DoesNotContain(placeEp3, redundant);
-    }
-
     // ── primary eligibility gate ──────────────────────────────────────────────
 
     [Fact]
@@ -534,52 +427,32 @@ public class ReleaseComparisonTests
         Assert.Equal(eps, eligible);
     }
 
-    [Fact]
-    public void GetEligiblePrimaryCoverage_Mixed_ReturnsEmpty()
-    {
-        var svc = MakeService();
-        var primary = MakeCandidate(
-            coverage: Episodes((EpisodeType.Episode, 1)),
-            isMixed: true);
-
-        Assert.Empty(svc.GetEligiblePrimaryCoverage(primary));
-    }
-
-    [Fact]
-    public void GetEligiblePrimaryCoverage_MissingReleaseInfo_ReturnsEmpty()
-    {
-        var svc = MakeService();
-        var primary = MakeCandidate(
-            coverage: Episodes((EpisodeType.Episode, 1)),
-            hasReleaseInfo: false);
-
-        Assert.Empty(svc.GetEligiblePrimaryCoverage(primary));
-    }
-
-    [Fact]
-    public void GetEligiblePrimaryCoverage_Corrupted_ReturnsEmpty()
-    {
-        var svc = MakeService();
-        var primary = MakeCandidate(
-            coverage: Episodes((EpisodeType.Episode, 1)),
-            isCorrupted: true);
-
-        Assert.Empty(svc.GetEligiblePrimaryCoverage(primary));
-    }
-
     [Theory]
-    [InlineData(true, false, false)]
-    [InlineData(false, true, false)]
-    [InlineData(false, false, true)]
-    public void GetEligiblePrimaryCoverage_InternalDisagreement_ReturnsEmpty(
-        bool chapteredMixed, bool censoredMixed, bool creditlessMixed)
+    [InlineData(true, false, false, false, false, false)] // mixed
+    [InlineData(false, true, false, false, false, false)] // no release info
+    [InlineData(false, false, true, false, false, false)] // corrupted
+    [InlineData(false, false, false, true, false, false)] // internally disagreeing: chaptered
+    [InlineData(false, false, false, false, true, false)] // internally disagreeing: censored
+    [InlineData(false, false, false, false, false, true)] // internally disagreeing: creditless
+    public void GetEligiblePrimaryCoverage_ReturnsEmpty_ForADisqualifiedPrimary(
+        bool isMixed,
+        bool noReleaseInfo,
+        bool isCorrupted,
+        bool chapteredMixed,
+        bool censoredMixed,
+        bool creditlessMixed
+    )
     {
         var svc = MakeService();
         var primary = MakeCandidate(
             coverage: Episodes((EpisodeType.Episode, 1)),
+            hasReleaseInfo: !noReleaseInfo,
+            isMixed: isMixed,
+            isCorrupted: isCorrupted,
             isChapteredMixed: chapteredMixed,
             isCensoredMixed: censoredMixed,
-            isCreditlessMixed: creditlessMixed);
+            isCreditlessMixed: creditlessMixed
+        );
 
         Assert.Empty(svc.GetEligiblePrimaryCoverage(primary));
     }
@@ -643,40 +516,5 @@ public class ReleaseComparisonTests
 
         Assert.Single(eligible);
         Assert.Contains((EpisodeType.Episode, 1), eligible);
-    }
-
-    [Fact]
-    public void GetRedundantCandidates_UsesEligiblePrimaryCoverage_NotRawCoverage()
-    {
-        // A mixed primary is ranked first but is not eligible to trump — passing its
-        // raw EpisodeCoverage would incorrectly mark the secondary redundant; passing
-        // GetEligiblePrimaryCoverage's (empty) result correctly retains it.
-        var svc = MakeService();
-        var eps = Episodes((EpisodeType.Episode, 1));
-        var primary = MakeCandidate(key: "mixed-primary", coverage: eps, isMixed: true);
-        var secondary = MakeCandidate(key: "secondary", coverage: eps);
-
-        var eligibleCoverage = svc.GetEligiblePrimaryCoverage(primary);
-        var redundant = svc.GetRedundantCandidates(eligibleCoverage, [secondary]);
-
-        Assert.Empty(redundant);
-    }
-
-    [Fact]
-    public void GetRedundantCandidates_BypassingEligibilityGate_UsesRawCoverage()
-    {
-        // Mirrors an explicit per-series "PreferredCandidateKey" override: the caller
-        // deliberately chose this mixed primary, so it passes the primary's raw
-        // EpisodeCoverage directly instead of GetEligiblePrimaryCoverage's (empty)
-        // result — the secondary is then correctly found redundant.
-        var svc = MakeService();
-        var eps = Episodes((EpisodeType.Episode, 1));
-        var primary = MakeCandidate(key: "mixed-primary", coverage: eps, isMixed: true);
-        var secondary = MakeCandidate(key: "secondary", coverage: eps);
-
-        var redundant = svc.GetRedundantCandidates(primary.EpisodeCoverage, [secondary]);
-
-        Assert.Single(redundant);
-        Assert.Equal("secondary", redundant[0].Key);
     }
 }

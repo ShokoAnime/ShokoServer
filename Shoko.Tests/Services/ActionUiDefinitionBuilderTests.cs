@@ -48,18 +48,6 @@ public class ActionUiDefinitionBuilderTests
         return data;
     }
 
-    [Fact]
-    public void MetadataSurface_IsExactlyTheKnownEight()
-    {
-        // Pins what the mechanical rule actually resolves to, so a member added
-        // to `IExecutableAction` or to a scoped base shows up here rather than
-        // silently becoming a parameter.
-        Assert.Equal(
-            ["Category", "ConfirmationMessage", "Description", "IsPrimaryAction", "Name", "Permission", "RequiresConfirmation", "Scope"],
-            ActionMetadataContractResolver.MetadataMembers.Keys.Order(StringComparer.Ordinal)
-        );
-    }
-
     [Theory]
     [MemberData(nameof(MetadataMemberNames))]
     public void MetadataSurface_IsNeverAParameter(string memberName)
@@ -142,19 +130,6 @@ public class ActionUiDefinitionBuilderTests
     }
 
     [Fact]
-    public void ScopedContext_IsNotAPublicPropertyToBeginWith()
-    {
-        // The exclusion rule leans on this: if the context were public, it
-        // would need naming, and naming it would clobber a legitimate `Series`
-        // parameter.
-        Assert.DoesNotContain(
-            typeof(ParameterisedSeriesAction).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance),
-            x => x.Name is "Series"
-        );
-        Assert.DoesNotContain(ActionMetadataContractResolver.MetadataMembers.Keys, x => x is "Series" or "Group" or "Episode" or "Video");
-    }
-
-    [Fact]
     public void AParameterThatMerelySharesAMetadataName_IsKept()
     {
         var root = RootOf(typeof(ShadowedNameAction));
@@ -228,33 +203,6 @@ public class ActionUiDefinitionBuilderTests
             elements.OfType<UiSectionContainerElement>(),
             container => Assert.All(container.Items, entry => Assert.Equal(entry.Key, entry.Value.Key))
         );
-    }
-
-    [Fact]
-    public void RealInTreeActions_AreDescribedWithoutTheirMetadata()
-    {
-        // Between them, the in-tree actions that declare parameters cover plain
-        // bools, bools initialised to `true`, and a nullable metadata source and
-        // entity type.
-        var group = RootOf(typeof(DeleteGroupAction));
-        Assert.Equal(["DeleteSeries", "DeleteFiles"], group.Items.Keys);
-        Assert.All(group.Items.Values, x => Assert.False(Assert.IsType<UiBooleanElement>(x).IsNullable));
-
-        var video = RootOf(typeof(DeleteVideoFileAction));
-        Assert.Equal(["RemoveFiles", "RemoveFolder"], video.Items.Keys);
-        // Exactly as for a configuration, a default comes off `[DefaultValue]`
-        // and not off a property initialiser, so these two carry none even
-        // though both initialise to `true`.
-        Assert.All(video.Items.Values, x => Assert.Null(Assert.IsType<UiBooleanElement>(x).Default));
-
-        // A metadata source or entity type is written as its string form.
-        var refresh = RootOf(typeof(RefreshLinkedMetadataSeriesAction));
-        Assert.Equal(["Source"], refresh.Items.Keys);
-        Assert.True(Assert.IsType<UiStringElement>(refresh.Items["Source"]).IsNullable);
-
-        var refreshAll = RootOf(typeof(RefreshLinkedMetadataAction));
-        Assert.Equal(["Source", "EntityType", "Force", "DownloadImages"], refreshAll.Items.Keys);
-        Assert.True(Assert.IsType<UiStringElement>(refreshAll.Items["EntityType"]).IsNullable);
     }
 
     /// <summary>

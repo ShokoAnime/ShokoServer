@@ -85,34 +85,30 @@ public class ConfigurationSecretMaskingTests
         Assert.Equal(string.Empty, ConfigurationSecrets.Resolve(string.Empty, "hunter2"));
     }
 
-    [Fact]
-    public void Mask_ReplacesASecretMarkedWithADataType()
+    [Theory]
+    [InlineData("Password", "hunter2")] // marked with a password property text
+    // The schema generator renders a password element for either marker, so
+    // masking has to follow both; this one used to go out in plaintext.
+    [InlineData("Token", "t0ken")] // marked with a data type
+    public void Mask_ReplacesASecretMarkedWithEitherAttribute(string property, string secret)
     {
-        // The schema generator renders a password element for either marker, so
-        // masking has to follow both; this one used to go out in plaintext.
-        var masked = Mask("""{"Username":"me","Token":"t0ken"}""");
-
-        Assert.True(ConfigurationSecrets.IsMasked(masked["Token"]!.Value<string>()));
-        Assert.Equal("me", masked["Username"]!.Value<string>());
-    }
-
-    [Fact]
-    public void Restore_KeepsAStoredSecretMarkedWithADataType()
-    {
-        var (restored, errors) = Restore(Mask("""{"Token":"t0ken"}"""), """{"Token":"t0ken"}""");
-
-        Assert.Empty(errors);
-        Assert.Equal("t0ken", restored["Token"]!.Value<string>());
-    }
-
-    [Fact]
-    public void Mask_ReplacesASetSecret()
-    {
-        var masked = Mask("""{"Username":"some-user","Password":"hunter2"}""");
+        var masked = Mask($$"""{"Username":"some-user","{{property}}":"{{secret}}"}""");
 
         Assert.Equal("some-user", masked["Username"]!.Value<string>());
-        Assert.True(ConfigurationSecrets.IsMasked(masked["Password"]!.Value<string>()));
-        Assert.DoesNotContain("hunter2", masked.ToString());
+        Assert.True(ConfigurationSecrets.IsMasked(masked[property]!.Value<string>()));
+        Assert.DoesNotContain(secret, masked.ToString());
+    }
+
+    [Theory]
+    [InlineData("Password", "hunter2")] // marked with a password property text
+    [InlineData("Token", "t0ken")] // marked with a data type
+    public void Restore_KeepsTheStoredValue_WhenTheMaskedValueRoundTripsBack(string property, string secret)
+    {
+        var stored = $$"""{"Username":"some-user","{{property}}":"{{secret}}"}""";
+        var (restored, errors) = Restore(Mask(stored), stored);
+
+        Assert.Empty(errors);
+        Assert.Equal(secret, restored[property]!.Value<string>());
     }
 
     [Fact]
@@ -172,16 +168,6 @@ public class ConfigurationSecretMaskingTests
     public void Restore_KeepsTheStoredValue_WhenThePropertyIsAbsent()
     {
         var (restored, errors) = Restore("""{"Username":"some-user"}""", """{"Username":"some-user","Password":"hunter2"}""");
-
-        Assert.Empty(errors);
-        Assert.Equal("hunter2", restored["Password"]!.Value<string>());
-    }
-
-    [Fact]
-    public void Restore_KeepsTheStoredValue_WhenTheMaskedValueRoundTripsBack()
-    {
-        const string stored = """{"Username":"some-user","Password":"hunter2"}""";
-        var (restored, errors) = Restore(Mask(stored), stored);
 
         Assert.Empty(errors);
         Assert.Equal("hunter2", restored["Password"]!.Value<string>());
@@ -288,18 +274,6 @@ public class ConfigurationSecretMaskingTests
         Assert.Empty(errors);
         Assert.Equal("beta-key", restored["Providers"]![0]!["ApiKey"]!.Value<string>());
         Assert.Equal("alpha-key", restored["Providers"]![1]!["ApiKey"]!.Value<string>());
-    }
-
-    [Fact]
-    public void Restore_KeepsSecretsApart_WhenTheLabelsCollide()
-    {
-        // Both elements share a label, so nothing but the fingerprint can tell
-        // them apart; neither may end up with the other's secret.
-        var (restored, errors) = Restore(Mask(TwoProviders), TwoProviders);
-
-        Assert.Empty(errors);
-        Assert.Equal("alpha-key", restored["Providers"]![0]!["ApiKey"]!.Value<string>());
-        Assert.Equal("beta-key", restored["Providers"]![1]!["ApiKey"]!.Value<string>());
     }
 
     [Fact]

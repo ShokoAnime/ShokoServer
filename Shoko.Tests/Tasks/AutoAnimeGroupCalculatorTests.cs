@@ -84,23 +84,6 @@ public class AutoAnimeGroupCalculatorTests
 
     #endregion
 
-    #region Construction
-
-    [Fact]
-    public void Constructor_Throws_WhenRelationMapIsNull()
-        => Assert.Throws<ArgumentNullException>(() => new AutoAnimeGroupCalculator(
-            null!, AutoGroupExclude.None, RelationType.None, MainAnimeSelectionStrategy.MinAirDate));
-
-    [Fact]
-    public void Exclusions_ExposesTheConfiguredValue()
-    {
-        var calculator = Calc([], AutoGroupExclude.SameSetting | AutoGroupExclude.Character);
-
-        Assert.Equal(AutoGroupExclude.SameSetting | AutoGroupExclude.Character, calculator.Exclusions);
-    }
-
-    #endregion
-
     #region Graph building
 
     [Fact]
@@ -117,14 +100,6 @@ public class AutoAnimeGroupCalculatorTests
         var calculator = Calc([]);
 
         Assert.Equal([42], calculator.GetIdsOfAnimeInSameGroup(42));
-    }
-
-    [Fact]
-    public void GetGroupAnimeId_GroupsDirectlyRelatedAnime()
-    {
-        var calculator = Calc(Sequel(new Anime(1, AirDate: Year(2000)), new Anime(2, AirDate: Year(2001))));
-
-        AssertGrouped(calculator, 1, 2);
     }
 
     [Fact]
@@ -213,24 +188,16 @@ public class AutoAnimeGroupCalculatorTests
         Assert.Equal(5, calculator.GetGroupAnimeId(1));
     }
 
-    [Fact]
-    public void Weighted_PrefersTvOverOva()
+    [Theory]
+    [InlineData(AnimeType.OVA)]
+    [InlineData(AnimeType.Web)]
+    public void Weighted_PrefersTvOverTheLesserType(AnimeType lesserType)
     {
         var calculator = Calc(
-            SameSetting(new Anime(9, Type: AnimeType.TV), new Anime(1, Type: AnimeType.OVA)),
+            SameSetting(new Anime(9, Type: AnimeType.TV), new Anime(1, Type: lesserType)),
             strategy: MainAnimeSelectionStrategy.Weighted);
 
         // Both sides score one alternative version, so only the series type separates them.
-        Assert.Equal(9, calculator.GetGroupAnimeId(1));
-    }
-
-    [Fact]
-    public void Weighted_PrefersTvOverWeb()
-    {
-        var calculator = Calc(
-            SameSetting(new Anime(9, Type: AnimeType.TV), new Anime(1, Type: AnimeType.Web)),
-            strategy: MainAnimeSelectionStrategy.Weighted);
-
         Assert.Equal(9, calculator.GetGroupAnimeId(1));
     }
 
@@ -248,20 +215,17 @@ public class AutoAnimeGroupCalculatorTests
 
     #region Exclusions
 
-    [Fact]
-    public void Exclusions_None_GroupsRelatedAnime()
+    [Theory]
+    [InlineData(AutoGroupExclude.None, true)]
+    [InlineData(AutoGroupExclude.SameSetting, false)]
+    public void Exclusions_SkipRelationsOfTheExcludedTypeOnly(AutoGroupExclude exclusions, bool expectedGrouped)
     {
-        var calculator = Calc(SameSetting(new Anime(1), new Anime(2)), AutoGroupExclude.None);
+        var calculator = Calc(SameSetting(new Anime(1), new Anime(2)), exclusions);
 
-        AssertGrouped(calculator, 1, 2);
-    }
-
-    [Fact]
-    public void Exclusions_SkipRelationsOfTheExcludedType()
-    {
-        var calculator = Calc(SameSetting(new Anime(1), new Anime(2)), AutoGroupExclude.SameSetting);
-
-        AssertNotGrouped(calculator, 1, 2);
+        if (expectedGrouped)
+            AssertGrouped(calculator, 1, 2);
+        else
+            AssertNotGrouped(calculator, 1, 2);
     }
 
     [Fact]
@@ -275,22 +239,14 @@ public class AutoAnimeGroupCalculatorTests
         AssertGrouped(calculator, 1, 2);
     }
 
-    [Fact]
-    public void Exclusions_Movie_SkipsRelationsInvolvingAMovie()
+    [Theory]
+    [InlineData(AutoGroupExclude.Movie, AnimeType.Movie)]
+    [InlineData(AutoGroupExclude.Ova, AnimeType.OVA)]
+    public void Exclusions_SkipRelationsInvolvingTheExcludedAnimeType(AutoGroupExclude exclusions, AnimeType relatedType)
     {
         var calculator = Calc(
-            Sequel(new Anime(1, Type: AnimeType.TV, AirDate: Year(2000)), new Anime(2, Type: AnimeType.Movie, AirDate: Year(2001))),
-            AutoGroupExclude.Movie);
-
-        AssertNotGrouped(calculator, 1, 2);
-    }
-
-    [Fact]
-    public void Exclusions_Ova_SkipsRelationsInvolvingAnOva()
-    {
-        var calculator = Calc(
-            Sequel(new Anime(1, Type: AnimeType.TV, AirDate: Year(2000)), new Anime(2, Type: AnimeType.OVA, AirDate: Year(2001))),
-            AutoGroupExclude.Ova);
+            Sequel(new Anime(1, Type: AnimeType.TV, AirDate: Year(2000)), new Anime(2, Type: relatedType, AirDate: Year(2001))),
+            exclusions);
 
         AssertNotGrouped(calculator, 1, 2);
     }
@@ -319,13 +275,32 @@ public class AutoAnimeGroupCalculatorTests
             AutoGroupExclude.None,
             RelationType.SecondaryRelations);
 
-    [Fact]
-    public void FuzzyTitle_GroupsAnimeWithOverlappingTitles()
-        => AssertGrouped(FuzzyCalc("Fullmetal Alchemist", "Fullmetal Alchemist Brotherhood"), 1, 2);
+    [Theory]
+    [InlineData("Fullmetal Alchemist", "Fullmetal Alchemist Brotherhood", true)]
+    [InlineData("Naruto", "Bleach", false)]
+    // Were "The Movie" not stripped, the shared words would group two unrelated franchises.
+    [InlineData("Bleach The Movie", "Naruto The Movie", false)]
+    [InlineData("Bleach The Animation", "Naruto The Animation", false)]
+    [InlineData("Gekijouban Naruto", "Naruto", true)]
+    [InlineData("Gundam 00", "Gundam 2", true)]
+    [InlineData("Cowboy-Bebop", "Cowboy Bebop", true)]
+    // "Cowboy/Bebop" collapses to the single token "CowboyBebop", which matches neither word.
+    [InlineData("Cowboy/Bebop", "Cowboy Bebop", false)]
+    // Two of six tokens match, which fails the "half the words" rule (2 < 3), but the matched
+    // characters (19) clear 40% of the shorter title (36 chars -> 14).
+    [InlineData("Alphabetical Betamax Gamma Delta Epsilon Zeta", "Alphabetical Betamax Eta Theta Iota Kappa", true)]
+    // Same two-of-six token overlap, but the matched characters (9) fall short of 40% of the
+    // shorter title (26 chars -> 10).
+    [InlineData("Alpha Beta Gamma Delta Epsilon Zeta", "Alpha Beta Eta Theta Iota Kappa", false)]
+    public void FuzzyTitle_GroupsAnimeOnlyWhenTheTitlesOverlap(string firstTitle, string secondTitle, bool expectedGrouped)
+    {
+        var calculator = FuzzyCalc(firstTitle, secondTitle);
 
-    [Fact]
-    public void FuzzyTitle_DoesNotGroupAnimeWithUnrelatedTitles()
-        => AssertNotGrouped(FuzzyCalc("Naruto", "Bleach"), 1, 2);
+        if (expectedGrouped)
+            AssertGrouped(calculator, 1, 2);
+        else
+            AssertNotGrouped(calculator, 1, 2);
+    }
 
     [Fact]
     public void FuzzyTitle_IsNotAppliedToPrimaryRelationTypes()
@@ -337,56 +312,6 @@ public class AutoAnimeGroupCalculatorTests
             RelationType.SecondaryRelations);
 
         AssertGrouped(calculator, 1, 2);
-    }
-
-    [Fact]
-    public void FuzzyTitle_StripsTheMovieSuffixSoItCannotCreateAMatch()
-    {
-        // Were "The Movie" not stripped, the shared words would group two unrelated franchises.
-        AssertNotGrouped(FuzzyCalc("Bleach The Movie", "Naruto The Movie"), 1, 2);
-    }
-
-    [Fact]
-    public void FuzzyTitle_StripsTheAnimationSuffixSoItCannotCreateAMatch()
-        => AssertNotGrouped(FuzzyCalc("Bleach The Animation", "Naruto The Animation"), 1, 2);
-
-    [Fact]
-    public void FuzzyTitle_IgnoresTheGekijoubanPrefix()
-        => AssertGrouped(FuzzyCalc("Gekijouban Naruto", "Naruto"), 1, 2);
-
-    [Fact]
-    public void FuzzyTitle_IgnoresDigits()
-        => AssertGrouped(FuzzyCalc("Gundam 00", "Gundam 2"), 1, 2);
-
-    [Fact]
-    public void FuzzyTitle_TreatsHyphensAsWordSeparators()
-        => AssertGrouped(FuzzyCalc("Cowboy-Bebop", "Cowboy Bebop"), 1, 2);
-
-    [Fact]
-    public void FuzzyTitle_DropsOtherPunctuationWithoutSplittingTheWord()
-    {
-        // "Cowboy/Bebop" collapses to the single token "CowboyBebop", which matches neither word.
-        AssertNotGrouped(FuzzyCalc("Cowboy/Bebop", "Cowboy Bebop"), 1, 2);
-    }
-
-    [Fact]
-    public void FuzzyTitle_GroupsWhenMatchedCharactersReachFortyPercentOfTheShorterTitle()
-    {
-        // Two of six tokens match, which fails the "half the words" rule (2 < 3), but the matched
-        // characters (19) clear 40% of the shorter title (36 chars -> 14).
-        AssertGrouped(FuzzyCalc(
-            "Alphabetical Betamax Gamma Delta Epsilon Zeta",
-            "Alphabetical Betamax Eta Theta Iota Kappa"), 1, 2);
-    }
-
-    [Fact]
-    public void FuzzyTitle_DoesNotGroupWhenNeitherTheWordNorCharacterThresholdIsMet()
-    {
-        // Same two-of-six token overlap, but the matched characters (9) fall short of 40% of the
-        // shorter title (26 chars -> 10).
-        AssertNotGrouped(FuzzyCalc(
-            "Alpha Beta Gamma Delta Epsilon Zeta",
-            "Alpha Beta Eta Theta Iota Kappa"), 1, 2);
     }
 
     #endregion

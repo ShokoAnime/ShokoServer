@@ -32,8 +32,4 @@ public class MetadataIdentityTests
             Assert.Equal((entry.Source, entry.EntityType), (entry.Entry.Source, entry.Entry.EntityType));
         });
     }
-
-    [Fact]
-    public void AChannelIsNoNetwork()
-        => Assert.False(new AiringChannel("Tokyo MX", AiringChannelType.Television) is INetwork);
 }

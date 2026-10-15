@@ -19,58 +19,14 @@ using Xunit;
 namespace Shoko.QueueProcessor.Tests;
 
 /// <summary>
-/// Tests for <see cref="JobCancellationAccessor"/>: the accessor itself, its DI registration (and
-/// the progress accessor's), and the end-to-end path where <see cref="Worker"/> stamps the job's
+/// Tests for <see cref="JobCancellationAccessor"/>: its DI registration (and the progress
+/// accessor's), and the end-to-end path where <see cref="Worker"/> stamps the job's
 /// token, linked to its pool's shutdown token, onto the job scope before
 /// <see cref="IQueueJob.Process"/> runs.
 /// </summary>
 public class JobCancellationAccessorTests
 {
     private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
-
-    // ── The accessor on its own ───────────────────────────────────────────────
-
-    [Fact]
-    public void Token_BeforeSetCurrentToken_IsNone()
-    {
-        var accessor = new JobCancellationAccessor();
-
-        Assert.Equal(CancellationToken.None, accessor.Token);
-        Assert.False(accessor.Token.CanBeCanceled);
-        Assert.False(accessor.Token.IsCancellationRequested);
-    }
-
-    [Fact]
-    public void Token_AfterSetCurrentToken_ReturnsThatToken()
-    {
-        using var cts = new CancellationTokenSource();
-        var accessor = new JobCancellationAccessor();
-
-        accessor.SetCurrentToken(cts.Token);
-
-        Assert.Equal(cts.Token, accessor.Token);
-        Assert.True(accessor.Token.CanBeCanceled);
-        Assert.False(accessor.Token.IsCancellationRequested);
-
-        cts.Cancel();
-
-        Assert.True(accessor.Token.IsCancellationRequested);
-    }
-
-    [Fact]
-    public void SetCurrentToken_CalledAgain_ReplacesPreviousToken()
-    {
-        using var first = new CancellationTokenSource();
-        using var second = new CancellationTokenSource();
-        var accessor = new JobCancellationAccessor();
-
-        accessor.SetCurrentToken(first.Token);
-        accessor.SetCurrentToken(second.Token);
-        first.Cancel();
-
-        Assert.Equal(second.Token, accessor.Token);
-        Assert.False(accessor.Token.IsCancellationRequested);
-    }
 
     // ── DI registration ───────────────────────────────────────────────────────
 

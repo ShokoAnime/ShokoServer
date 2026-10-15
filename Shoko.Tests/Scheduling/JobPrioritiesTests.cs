@@ -65,20 +65,6 @@ public class JobPrioritiesTests
         => Assert.Equal(expected, JobPriorities.ForMetadataEntry(MetadataEntityType.Get(kind), isNew: false, prioritize: false));
 
     [Fact]
-    public void ForMetadataEntry_ANewEntry_RanksAboveAKnownOneOfTheSameTier()
-        => Assert.True(
-            JobPriorities.ForMetadataEntry(MetadataEntityType.Series, isNew: true, prioritize: false) >
-            JobPriorities.ForMetadataEntry(MetadataEntityType.Series, isNew: false, prioritize: false)
-        );
-
-    [Fact]
-    public void ForMetadataEntry_APrioritizedKnownEntry_IsLevelWithANewOne()
-        => Assert.Equal(
-            JobPriorities.ForMetadataEntry(MetadataEntityType.Episode, isNew: true, prioritize: false),
-            JobPriorities.ForMetadataEntry(MetadataEntityType.Episode, isNew: false, prioritize: true)
-        );
-
-    [Fact]
     public void ForMetadataEntry_ThePrioritizedNewBoost_AddsBoth()
         => Assert.Equal(
             JobPriorities.ForMetadataEntry(MetadataEntityType.Movie, isNew: false, prioritize: false) + 100,

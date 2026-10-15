@@ -82,6 +82,10 @@ public class FuzzySearchIndexTests
     [InlineData("café", "cafe")]
     [InlineData("über", "uber")]
     [InlineData("", "")]
+    // The Latin dashes other than '-' are left as they were, so the index of
+    // the titles using them does not change.
+    [InlineData("Hanawa Hekonai – The Kappa Festival", "hanawa hekonai – the kappa festival")]
+    [InlineData("Re—Start", "re—start")]
     public void NormalizeForIndex_ProducesExpectedString(string input, string expected)
         => Assert.Equal(expected, SeriesSearch.NormalizeForIndex(input));
 
@@ -99,14 +103,6 @@ public class FuzzySearchIndexTests
     [InlineData("世界一初恋〰", "世界一初恋~")]
     public void NormalizeForIndex_FoldsIdeographicPunctuation(string input, string same)
         => Assert.Equal(SeriesSearch.NormalizeForIndex(same), SeriesSearch.NormalizeForIndex(input));
-
-    // The Latin dashes other than '-' are left as they were, so the index of
-    // the titles using them does not change.
-    [Theory]
-    [InlineData("Hanawa Hekonai – The Kappa Festival", "hanawa hekonai – the kappa festival")]
-    [InlineData("Re—Start", "re—start")]
-    public void NormalizeForIndex_KeepsTheLatinDashes(string input, string expected)
-        => Assert.Equal(expected, SeriesSearch.NormalizeForIndex(input));
 
     // ── JoinUnspacedScripts ──────────────────────────────────────────────────
 
@@ -208,34 +204,19 @@ public class FuzzySearchIndexTests
     [InlineData("Failure Frame", 18438)]
     // Abbreviation stored as its own title entry
     [InlineData("GK", 91)]
-    public void Search_ExactOrSubstringTitle_FindsCorrectAnime(string query, int expectedAnimeId)
-    {
-        var results = Search(query).ToList();
-        Assert.Contains(results, r => r.Result.AnimeId == expectedAnimeId);
-    }
-
-    // ── Case insensitivity ───────────────────────────────────────────────────
-
-    [Theory]
+    // Case insensitivity
     [InlineData("ramen aka neko", 18289)]
     [InlineData("RAMEN AKA NEKO", 18289)]
     [InlineData("BLUE LOCK", 17955)]
     [InlineData("my hero academia", 17931)]
-    public void Search_CaseInsensitive_FindsCorrectAnime(string query, int expectedAnimeId)
+    // "Tensui no Sakuna-hime" normalizes to "tensui no sakuna hime", so the query may drop the hyphen
+    [InlineData("Tensui no Sakuna hime", 18527)]
+    // The mirror of a trailing year: "Boku no Hero Academia (2024)" is the stored title
+    [InlineData("Boku no Hero Academia", 17931)]
+    public void Search_TitleQuery_FindsCorrectAnime(string query, int expectedAnimeId)
     {
         var results = Search(query).ToList();
         Assert.Contains(results, r => r.Result.AnimeId == expectedAnimeId);
-    }
-
-    // ── Separator normalization ──────────────────────────────────────────────
-
-    [Fact]
-    public void Search_HyphenRemovedFromTitle_StillFindsAnime()
-    {
-        // "Tensui no Sakuna-hime" → normalized "tensui no sakuna hime"
-        // Querying without the hyphen should match.
-        var results = Search("Tensui no Sakuna hime").ToList();
-        Assert.Contains(results, r => r.Result.AnimeId == 18527);
     }
 
     // ── Diacritic stripping ──────────────────────────────────────────────────
@@ -286,12 +267,15 @@ public class FuzzySearchIndexTests
 
     // ── Non-fuzzy mode ───────────────────────────────────────────────────────
 
-    [Fact]
-    public void Search_NonFuzzy_DoesNotMatchTypo()
+    [Theory]
+    // "Raman" is not a substring of "Ramen" — should return no result when fuzzy=false.
+    [InlineData("Red Cat Raman", 18289)]
+    // Tolerating the trailing year is a fuzzy affordance; strict mode must stay strict.
+    [InlineData("Bleach (2004)", 2369)]
+    public void Search_NonFuzzy_DoesNotMatchTyposOrTrailingQualifiers(string query, int absentAnimeId)
     {
-        // "Raman" is not a substring of "Ramen" — should return no result when fuzzy=false.
-        var results = Search("Red Cat Raman", fuzzy: false).ToList();
-        Assert.DoesNotContain(results, r => r.Result.AnimeId == 18289);
+        var results = Search(query, fuzzy: false).ToList();
+        Assert.DoesNotContain(results, r => r.Result.AnimeId == absentAnimeId);
     }
 
     [Fact]
@@ -303,21 +287,17 @@ public class FuzzySearchIndexTests
 
     // ── ExactMatch flag ──────────────────────────────────────────────────────
 
-    [Fact]
-    public void Search_ExactTitleMatch_SetsExactMatchFlag()
+    [Theory]
+    [InlineData("Ramen Aka Neko", true)]
+    // "Red Cat Raman" is 1 edit from "Red Cat Ramen" — fuzzy hit, not substring.
+    [InlineData("Red Cat Raman", false)]
+    // The year is slop, not a substring match, so it must not rank as an exact hit.
+    [InlineData("Ramen Aka Neko (2024)", false)]
+    public void Search_ExactMatchFlag_IsSetOnlyForSubstringHits(string query, bool expectedExactMatch)
     {
-        var results = Search("Ramen Aka Neko").ToList();
+        var results = Search(query).ToList();
         var target = results.First(r => r.Result.AnimeId == 18289);
-        Assert.True(target.ExactMatch);
-    }
-
-    [Fact]
-    public void Search_FuzzyTypoMatch_DoesNotSetExactMatchFlag()
-    {
-        // "Red Cat Raman" is 1 edit from "Red Cat Ramen" — fuzzy hit, not substring.
-        var results = Search("Red Cat Raman").ToList();
-        var target = results.First(r => r.Result.AnimeId == 18289);
-        Assert.False(target.ExactMatch);
+        Assert.Equal(expectedExactMatch, target.ExactMatch);
     }
 
     // ── Isolation: no cross-contamination between distinct anime ─────────────
@@ -336,20 +316,13 @@ public class FuzzySearchIndexTests
 
     // ── Edge cases ───────────────────────────────────────────────────────────
 
-    [Fact]
-    public void Search_EmptyQuery_ReturnsNoResults()
-        => Assert.Empty(Search(""));
-
-    [Fact]
-    public void Search_WhitespaceOnlyQuery_ReturnsNoResults()
-        => Assert.Empty(Search("   "));
-
-    [Fact]
-    public void Search_QueryWithNoMatchingTrigrams_ReturnsNoResults()
-    {
-        // Trigrams of this nonsense string ("zzk", "zkz", "kzq", ...) do not appear in any test title.
-        Assert.Empty(Search("zzzkzqxqzqxkzqxq"));
-    }
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    // Trigrams of this nonsense string ("zzk", "zkz", "kzq", ...) do not appear in any test title.
+    [InlineData("zzzkzqxqzqxkzqxq")]
+    public void Search_QueryWithNothingToMatch_ReturnsNoResults(string query)
+        => Assert.Empty(Search(query));
 
     // ── Trailing qualifiers in the query (e.g. " (<year>)") ──────────────────
 
@@ -371,31 +344,6 @@ public class FuzzySearchIndexTests
     {
         var results = Search(query).ToList();
         Assert.Contains(results, r => r.Result.AnimeId == expectedAnimeId);
-    }
-
-    [Fact]
-    public void Search_TitleWithYearMatchedByQueryWithout_StillFindsAnime()
-    {
-        // The mirror case: "Boku no Hero Academia (2024)" is the stored title.
-        var results = Search("Boku no Hero Academia").ToList();
-        Assert.Contains(results, r => r.Result.AnimeId == 17931);
-    }
-
-    [Fact]
-    public void Search_TrailingQualifier_DoesNotSetExactMatchFlag()
-    {
-        // The year is slop, not a substring match, so it must not rank as an exact hit.
-        var results = Search("Ramen Aka Neko (2024)").ToList();
-        var target = results.First(r => r.Result.AnimeId == 18289);
-        Assert.False(target.ExactMatch);
-    }
-
-    [Fact]
-    public void Search_NonFuzzy_TrailingQualifierDoesNotMatch()
-    {
-        // Tolerating the trailing year is a fuzzy affordance; strict mode must stay strict.
-        var results = Search("Bleach (2004)", fuzzy: false).ToList();
-        Assert.DoesNotContain(results, r => r.Result.AnimeId == 2369);
     }
 
     [Fact]

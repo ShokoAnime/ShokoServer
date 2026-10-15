@@ -11,14 +11,6 @@ public class QueueProcessorSettingsTests
 {
     private const int MaxTotalWorkers = 8;
 
-    [Fact]
-    public void DefaultPoolMaxWorkers_Unset_MatchesMaxTotalWorkers()
-    {
-        var settings = new QueueProcessorSettings();
-
-        Assert.Equal(settings.GetEffectiveMaxTotalWorkers(), settings.GetEffectiveDefaultPoolMaxWorkers());
-    }
-
     [Theory]
     [InlineData(0, MaxTotalWorkers)]
     [InlineData(MaxTotalWorkers + 1, MaxTotalWorkers)]

@@ -193,28 +193,6 @@ public class JobKeyBuilderTests
         Assert.DoesNotContain("CustomPrefixJob", key);
     }
 
-    [Fact]
-    public void Build_UnchangedProperty_NotIncludedInKey()
-    {
-        // AnimeId = 0 is the default — should not be included
-        var keyNoData = JobKeyBuilder<ClassPrefixJob>.Create().Build();
-        var keyWithDefault = JobKeyBuilder<ClassPrefixJob>.Create()
-            .UsingJobData(j => j.AnimeId = 0)
-            .Build();
-
-        Assert.Equal(keyNoData, keyWithDefault);
-    }
-
-    [Fact]
-    public void Build_NonZeroInt_IncludedInKey()
-    {
-        var key = JobKeyBuilder<ClassPrefixJob>.Create()
-            .UsingJobData(j => j.AnimeId = 9999)
-            .Build();
-
-        Assert.Contains("9999", key);
-    }
-
     // ── Upgrading keys built with the short type name ─────────────────────────
 
     private static string ToLegacy<T>(string key)

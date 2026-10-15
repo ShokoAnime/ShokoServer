@@ -56,28 +56,21 @@ public class VideoStreamSessionManagerTests
         Assert.Null(manager.TryGetSession(sessionId));
     }
 
-    [Fact]
-    public void Sweeper_EvictsSessionsIdleForLongerThanTheSettingsAllow()
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(null, false)] // the default timeout keeps a session that was just created
+    public void Sweeper_EvictsOnlySessionsIdleForLongerThanTheSettingsAllow(int? idleTimeoutMinutes, bool expectedEvicted)
     {
-        var manager = CreateManager(new VideoStreamPipelineSettings { SessionIdleTimeoutMinutes = 0 });
+        var settings = new VideoStreamPipelineSettings();
+        if (idleTimeoutMinutes is { } minutes)
+            settings.SessionIdleTimeoutMinutes = minutes;
+        var manager = CreateManager(settings);
         var sessionId = manager.CreateSession(CreateVideo(TimeSpan.FromMinutes(24)), CreateRendition(TimeSpan.FromSeconds(6)));
-        var sweeper = new VideoStreamSessionSweeper(NullLogger<VideoStreamSessionSweeper>.Instance, manager, CreateConfigurationProvider(new VideoStreamPipelineSettings { SessionIdleTimeoutMinutes = 0 }));
+        var sweeper = new VideoStreamSessionSweeper(NullLogger<VideoStreamSessionSweeper>.Instance, manager, CreateConfigurationProvider(settings));
 
         sweeper.Sweep();
 
-        Assert.Null(manager.TryGetSession(sessionId));
-    }
-
-    [Fact]
-    public void Sweeper_KeepsSessionsWithinTheIdleTimeout()
-    {
-        var manager = CreateManager();
-        var sessionId = manager.CreateSession(CreateVideo(TimeSpan.FromMinutes(24)), CreateRendition(TimeSpan.FromSeconds(6)));
-        var sweeper = new VideoStreamSessionSweeper(NullLogger<VideoStreamSessionSweeper>.Instance, manager, CreateConfigurationProvider(new VideoStreamPipelineSettings()));
-
-        sweeper.Sweep();
-
-        Assert.NotNull(manager.TryGetSession(sessionId));
+        Assert.Equal(expectedEvicted, manager.TryGetSession(sessionId) is null);
     }
 
     [Fact]

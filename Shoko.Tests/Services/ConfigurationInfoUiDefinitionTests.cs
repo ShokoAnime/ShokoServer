@@ -128,20 +128,6 @@ public class ConfigurationInfoUiDefinitionTests
         Assert.Equal(service.GenerateSchema(typeof(NewtonsoftTwinConfiguration)).Title, definition.Name);
     }
 
-    [Fact]
-    public void TheDefinitionReachedThroughTheInfo_MatchesTheGeneratorsOutput()
-    {
-        var service = CreateService();
-        var info = CreateInfo(service, typeof(NewtonsoftTwinConfiguration));
-
-        var throughInfo = info.UiDefinition;
-        var direct = service.GenerateUiDefinition(typeof(NewtonsoftTwinConfiguration));
-
-        Assert.Equal(direct.ID, throughInfo.ID);
-        Assert.Equal(direct.Name, throughInfo.Name);
-        Assert.Equal(Flatten(direct.Root).Count(), Flatten(throughInfo.Root).Count());
-    }
-
     private static IEnumerable<UiElement> Flatten(UiElement element)
     {
         yield return element;

@@ -180,55 +180,25 @@ public class ConfigurationTypeAnalyzerTests
         return test.RunAsync();
     }
 
-    [Fact]
-    public async Task ListOfList_IsReported()
+    [Theory]
+    [InlineData("List<List<string>>", "new()", "list")]
+    [InlineData("Dictionary<string, Dictionary<string, int>>", "new()", "dictionary")]
+    [InlineData("List<Dictionary<string, string>>", "new()", "list")]
+    [InlineData("string[][]", "new string[0][]", "list")]
+    public async Task ANestedCollection_IsReported(string propertyType, string initializer, string noun)
     {
-        await VerifyAsync("""
+        await VerifyAsync($$"""
             using System.Collections.Generic;
             using Shoko.Abstractions.Config;
 
             public class MyConfig : IConfiguration
             {
-                public {|#0:List<List<string>>|} Nested { get; set; } = new();
+                public {|#0:{{propertyType}}|} Nested { get; set; } = {{initializer}};
             }
             """,
             new DiagnosticResult(Diagnostics.NestedCollection)
                 .WithLocation(0)
-                .WithArguments("Nested", "List<List<string>>", "list"));
-    }
-
-    [Fact]
-    public async Task DictionaryOfDictionary_IsReported()
-    {
-        await VerifyAsync("""
-            using System.Collections.Generic;
-            using Shoko.Abstractions.Config;
-
-            public class MyConfig : IConfiguration
-            {
-                public {|#0:Dictionary<string, Dictionary<string, int>>|} Nested { get; set; } = new();
-            }
-            """,
-            new DiagnosticResult(Diagnostics.NestedCollection)
-                .WithLocation(0)
-                .WithArguments("Nested", "Dictionary<string, Dictionary<string, int>>", "dictionary"));
-    }
-
-    [Fact]
-    public async Task ListOfDictionary_IsReported()
-    {
-        await VerifyAsync("""
-            using System.Collections.Generic;
-            using Shoko.Abstractions.Config;
-
-            public class MyConfig : IConfiguration
-            {
-                public {|#0:List<Dictionary<string, string>>|} Nested { get; set; } = new();
-            }
-            """,
-            new DiagnosticResult(Diagnostics.NestedCollection)
-                .WithLocation(0)
-                .WithArguments("Nested", "List<Dictionary<string, string>>", "list"));
+                .WithArguments("Nested", propertyType, noun));
     }
 
     [Fact]
@@ -247,22 +217,6 @@ public class ConfigurationTypeAnalyzerTests
                 public Dictionary<string, string[]> Arrays { get; set; } = new();
             }
             """);
-    }
-
-    [Fact]
-    public async Task JaggedArray_IsReported()
-    {
-        await VerifyAsync("""
-            using Shoko.Abstractions.Config;
-
-            public class MyConfig : IConfiguration
-            {
-                public {|#0:string[][]|} Nested { get; set; } = new string[0][];
-            }
-            """,
-            new DiagnosticResult(Diagnostics.NestedCollection)
-                .WithLocation(0)
-                .WithArguments("Nested", "string[][]", "list"));
     }
 
     /// <summary>
@@ -438,36 +392,16 @@ public class ConfigurationTypeAnalyzerTests
     }
 
     [Theory]
-    [InlineData("ComplexDropdown", "Dropdown")]
-    [InlineData("ComplexTab", "Tab")]
-    [InlineData("ComplexInline", "Inline")]
-    public async Task ComplexListTypeOnScalarElements_IsReported(string listType, string noun)
+    [InlineData("ComplexDropdown", "string", "Dropdown", "class")]
+    [InlineData("ComplexTab", "string", "Tab", "class")]
+    [InlineData("ComplexInline", "string", "Inline", "class")]
+    // A class the generator refuses to register as a section container, because everything under
+    // the System namespace is excluded.
+    [InlineData("ComplexTab", "Uri", "Tab", "class")]
+    [InlineData("EnumCheckbox", "string", "Checkbox", "enum")]
+    public async Task ListTypeTheElementsCannotUse_IsReported(string listType, string elementType, string noun, string kind)
     {
         await VerifyAsync($$"""
-            using System.Collections.Generic;
-            using Shoko.Abstractions.Config;
-            using Shoko.Abstractions.UI.Attributes;
-            using Shoko.Abstractions.UI.Enums;
-
-            public class MyConfig : IConfiguration
-            {
-                [{|#0:List(ListType = DisplayListType.{{listType}})|}]
-                public List<string> Names { get; set; } = new();
-            }
-            """,
-            new DiagnosticResult(Diagnostics.IncompatibleListType)
-                .WithLocation(0)
-                .WithArguments("Names", noun, "class", listType, "string"));
-    }
-
-    /// <summary>
-    /// A class the generator refuses to register as a section container, because everything under
-    /// the System namespace is excluded.
-    /// </summary>
-    [Fact]
-    public async Task ComplexListTypeOnAFrameworkClass_IsReported()
-    {
-        await VerifyAsync("""
             using System;
             using System.Collections.Generic;
             using Shoko.Abstractions.Config;
@@ -476,33 +410,13 @@ public class ConfigurationTypeAnalyzerTests
 
             public class MyConfig : IConfiguration
             {
-                [{|#0:List(ListType = DisplayListType.ComplexTab)|}]
-                public List<Uri> Links { get; set; } = new();
+                [{|#0:List(ListType = DisplayListType.{{listType}})|}]
+                public List<{{elementType}}> Items { get; set; } = new();
             }
             """,
             new DiagnosticResult(Diagnostics.IncompatibleListType)
                 .WithLocation(0)
-                .WithArguments("Links", "Tab", "class", "ComplexTab", "Uri"));
-    }
-
-    [Fact]
-    public async Task EnumCheckboxOnNonEnumElements_IsReported()
-    {
-        await VerifyAsync("""
-            using System.Collections.Generic;
-            using Shoko.Abstractions.Config;
-            using Shoko.Abstractions.UI.Attributes;
-            using Shoko.Abstractions.UI.Enums;
-
-            public class MyConfig : IConfiguration
-            {
-                [{|#0:List(ListType = DisplayListType.EnumCheckbox)|}]
-                public List<string> Names { get; set; } = new();
-            }
-            """,
-            new DiagnosticResult(Diagnostics.IncompatibleListType)
-                .WithLocation(0)
-                .WithArguments("Names", "Checkbox", "enum", "EnumCheckbox", "string"));
+                .WithArguments("Items", noun, kind, listType, elementType));
     }
 
     [Theory]
@@ -740,103 +654,73 @@ public class ConfigurationTypeAnalyzerTests
             """);
     }
 
-    [Fact]
-    public async Task ATypeImplementingNeitherContract_IsNotAnalysed()
+    [Theory]
+    [InlineData("""
+        #nullable enable
+        using Shoko.Abstractions.Config;
+        using Shoko.Abstractions.UI.Attributes;
+        using Shoko.Abstractions.UI.Enums;
+
+        public class MyConfig : IConfiguration
+        {
+            public string Path { get; set; } = "";
+
+            [{|#0:Visibility(DisableWhenMemberIsSet = nameof(Path), DisableOperator = UiConditionOperator.IsEmpty, DisableWhenSetTo = "")|}]
+            public string Guarded { get; set; } = "";
+        }
+        """,
+        "MyConfig.Guarded",
+        "uses 'IsEmpty', which compares nothing, so it takes no value")] // an emptiness operator with a value
+    [InlineData("""
+        #nullable enable
+        using Shoko.Abstractions.Config;
+        using Shoko.Abstractions.UI.Attributes;
+        using Shoko.Abstractions.UI.Enums;
+
+        public class MyConfig : IConfiguration
+        {
+            public string Mode { get; set; } = "";
+
+            [{|#0:Visibility(ToggleWhenMemberIsSet = nameof(Mode), ToggleOperator = UiConditionOperator.In)|}]
+            public string Guarded { get; set; } = "";
+        }
+        """,
+        "MyConfig.Guarded",
+        "uses 'In', which matches against a set, so it needs one or more values")] // a set operator without values
+    [InlineData("""
+        #nullable enable
+        using System.Collections.Generic;
+        using Shoko.Abstractions.Config;
+        using Shoko.Abstractions.UI.Attributes;
+
+        public class Nested { public string Mode { get; set; } = ""; }
+
+        public class MyConfig : IConfiguration
+        {
+            public List<Nested> Items { get; set; } = new();
+
+            [{|#0:Visibility(DisableWhenMemberIsSet = "Items.Mode", DisableWhenSetTo = "local")|}]
+            public string Guarded { get; set; } = "";
+        }
+        """,
+        "MyConfig.Guarded",
+        "points through 'Items', which is a collection, and a condition has no index to say which entry it meant")] // a path through a collection
+    [InlineData("""
+        #nullable enable
+        using Shoko.Abstractions.Config;
+        using Shoko.Abstractions.UI.Attributes;
+
+        public class MyConfig : IConfiguration
+        {
+            [{|#0:CustomAction(DisableWhenMemberIsSet = "Nonexistent", DisableWhenSetTo = true)|}]
+            public void DoTheThing() { }
+        }
+        """,
+        "MyConfig.DoTheThing",
+        "names 'Nonexistent', which MyConfig does not have")] // an action naming a member that is not there
+    public async Task AnUnusableCondition_IsReported(string source, string symbol, string reason)
     {
-        await VerifyAsync("""
-            using System.Collections.Generic;
-
-            public class NotAnything
-            {
-                public List<List<string>> Nested { get; set; } = new();
-            }
-            """);
-    }
-    [Fact]
-    public async Task EmptinessOperatorWithAValue_IsReported()
-    {
-        await VerifyAsync("""
-            #nullable enable
-            using Shoko.Abstractions.Config;
-            using Shoko.Abstractions.UI.Attributes;
-            using Shoko.Abstractions.UI.Enums;
-
-            public class MyConfig : IConfiguration
-            {
-                public string Path { get; set; } = "";
-
-                [{|#0:Visibility(DisableWhenMemberIsSet = nameof(Path), DisableOperator = UiConditionOperator.IsEmpty, DisableWhenSetTo = "")|}]
-                public string Guarded { get; set; } = "";
-            }
-            """,
-            new DiagnosticResult(Diagnostics.UnusableCondition)
-                .WithLocation(0)
-                .WithArguments("MyConfig.Guarded", "uses 'IsEmpty', which compares nothing, so it takes no value"));
-    }
-
-    [Fact]
-    public async Task SetOperatorWithoutValues_IsReported()
-    {
-        await VerifyAsync("""
-            #nullable enable
-            using Shoko.Abstractions.Config;
-            using Shoko.Abstractions.UI.Attributes;
-            using Shoko.Abstractions.UI.Enums;
-
-            public class MyConfig : IConfiguration
-            {
-                public string Mode { get; set; } = "";
-
-                [{|#0:Visibility(ToggleWhenMemberIsSet = nameof(Mode), ToggleOperator = UiConditionOperator.In)|}]
-                public string Guarded { get; set; } = "";
-            }
-            """,
-            new DiagnosticResult(Diagnostics.UnusableCondition)
-                .WithLocation(0)
-                .WithArguments("MyConfig.Guarded", "uses 'In', which matches against a set, so it needs one or more values"));
-    }
-
-    [Fact]
-    public async Task APathThroughACollection_IsReported()
-    {
-        await VerifyAsync("""
-            #nullable enable
-            using System.Collections.Generic;
-            using Shoko.Abstractions.Config;
-            using Shoko.Abstractions.UI.Attributes;
-
-            public class Nested { public string Mode { get; set; } = ""; }
-
-            public class MyConfig : IConfiguration
-            {
-                public List<Nested> Items { get; set; } = new();
-
-                [{|#0:Visibility(DisableWhenMemberIsSet = "Items.Mode", DisableWhenSetTo = "local")|}]
-                public string Guarded { get; set; } = "";
-            }
-            """,
-            new DiagnosticResult(Diagnostics.UnusableCondition)
-                .WithLocation(0)
-                .WithArguments("MyConfig.Guarded", "points through 'Items', which is a collection, and a condition has no index to say which entry it meant"));
-    }
-
-    [Fact]
-    public async Task AnActionNamingAMemberThatIsNotThere_IsReported()
-    {
-        await VerifyAsync("""
-            #nullable enable
-            using Shoko.Abstractions.Config;
-            using Shoko.Abstractions.UI.Attributes;
-
-            public class MyConfig : IConfiguration
-            {
-                [{|#0:CustomAction(DisableWhenMemberIsSet = "Nonexistent", DisableWhenSetTo = true)|}]
-                public void DoTheThing() { }
-            }
-            """,
-            new DiagnosticResult(Diagnostics.UnusableCondition)
-                .WithLocation(0)
-                .WithArguments("MyConfig.DoTheThing", "names 'Nonexistent', which MyConfig does not have"));
+        await VerifyAsync(source, new DiagnosticResult(Diagnostics.UnusableCondition).WithLocation(0).WithArguments(symbol, reason));
     }
 
     [Fact]
@@ -871,73 +755,61 @@ public class ConfigurationTypeAnalyzerTests
             """);
     }
 
-    [Fact]
-    public async Task AHandlerWatchingAMemberThatIsNotThere_IsReported()
+    [Theory]
+    [InlineData("""
+        #nullable enable
+        using Shoko.Abstractions.Config;
+        using Shoko.Abstractions.Config.Attributes;
+        using Shoko.Abstractions.Config.Enums;
+
+        public class MyConfig : IConfiguration
+        {
+            public string Path { get; set; } = "";
+
+            [{|#0:ConfigurationAction(ConfigurationActionType.LiveEdit, ReactiveMembers = new[] { "Nonexistent" })|}]
+            public void OnEdit() { }
+        }
+        """,
+        "MyConfig.OnEdit",
+        "watches a member that names 'Nonexistent', which MyConfig does not have")] // a member that is not there
+    [InlineData("""
+        #nullable enable
+        using System.Collections.Generic;
+        using Shoko.Abstractions.Config;
+        using Shoko.Abstractions.Config.Attributes;
+        using Shoko.Abstractions.Config.Enums;
+
+        public class Nested { public string Mode { get; set; } = ""; }
+
+        public class MyConfig : IConfiguration
+        {
+            public List<Nested> Items { get; set; } = new();
+
+            [{|#0:ConfigurationAction(ConfigurationActionType.LiveEdit, ReactiveMembers = new[] { "Items.Mode" })|}]
+            public void OnEdit() { }
+        }
+        """,
+        "MyConfig.OnEdit",
+        "watches a member that points through 'Items', which is a collection, and a condition has no index to say which entry it meant")] // via a collection
+    [InlineData("""
+        #nullable enable
+        using Shoko.Abstractions.Config;
+        using Shoko.Abstractions.Config.Attributes;
+        using Shoko.Abstractions.Config.Enums;
+
+        public class MyConfig : IConfiguration
+        {
+            public string Path { get; set; } = "";
+
+            [{|#0:ConfigurationAction(ConfigurationActionType.Save, ReactiveMembers = new[] { nameof(Path) })|}]
+            public void OnSave() { }
+        }
+        """,
+        "MyConfig.OnSave",
+        "handles a hook that no event raises, so it cannot narrow what it reacts to")] // a hook no event raises
+    public async Task AnUnusableReactiveHandler_IsReported(string source, string symbol, string reason)
     {
-        await VerifyAsync("""
-            #nullable enable
-            using Shoko.Abstractions.Config;
-            using Shoko.Abstractions.Config.Attributes;
-            using Shoko.Abstractions.Config.Enums;
-
-            public class MyConfig : IConfiguration
-            {
-                public string Path { get; set; } = "";
-
-                [{|#0:ConfigurationAction(ConfigurationActionType.LiveEdit, ReactiveMembers = new[] { "Nonexistent" })|}]
-                public void OnEdit() { }
-            }
-            """,
-            new DiagnosticResult(Diagnostics.UnusableReactiveHandler)
-                .WithLocation(0)
-                .WithArguments("MyConfig.OnEdit", "watches a member that names 'Nonexistent', which MyConfig does not have"));
-    }
-
-    [Fact]
-    public async Task AHandlerWatchingThroughACollection_IsReported()
-    {
-        await VerifyAsync("""
-            #nullable enable
-            using System.Collections.Generic;
-            using Shoko.Abstractions.Config;
-            using Shoko.Abstractions.Config.Attributes;
-            using Shoko.Abstractions.Config.Enums;
-
-            public class Nested { public string Mode { get; set; } = ""; }
-
-            public class MyConfig : IConfiguration
-            {
-                public List<Nested> Items { get; set; } = new();
-
-                [{|#0:ConfigurationAction(ConfigurationActionType.LiveEdit, ReactiveMembers = new[] { "Items.Mode" })|}]
-                public void OnEdit() { }
-            }
-            """,
-            new DiagnosticResult(Diagnostics.UnusableReactiveHandler)
-                .WithLocation(0)
-                .WithArguments("MyConfig.OnEdit", "watches a member that points through 'Items', which is a collection, and a condition has no index to say which entry it meant"));
-    }
-
-    [Fact]
-    public async Task AHookNoEventRaisesNarrowingItself_IsReported()
-    {
-        await VerifyAsync("""
-            #nullable enable
-            using Shoko.Abstractions.Config;
-            using Shoko.Abstractions.Config.Attributes;
-            using Shoko.Abstractions.Config.Enums;
-
-            public class MyConfig : IConfiguration
-            {
-                public string Path { get; set; } = "";
-
-                [{|#0:ConfigurationAction(ConfigurationActionType.Save, ReactiveMembers = new[] { nameof(Path) })|}]
-                public void OnSave() { }
-            }
-            """,
-            new DiagnosticResult(Diagnostics.UnusableReactiveHandler)
-                .WithLocation(0)
-                .WithArguments("MyConfig.OnSave", "handles a hook that no event raises, so it cannot narrow what it reacts to"));
+        await VerifyAsync(source, new DiagnosticResult(Diagnostics.UnusableReactiveHandler).WithLocation(0).WithArguments(symbol, reason));
     }
 
     [Fact]

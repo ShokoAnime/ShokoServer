@@ -64,30 +64,17 @@ public class SchemaTypeMappingTests
 
     #region What SQLite is excused
 
-    [Fact]
-    public void SqliteMayDeclareIntegerWhereTheOthersDeclareBigint()
-        // Its INTEGER already holds 64 bits; there is no BIGINT to require.
-        => Assert.True(Observed(sqlite: "integer", mySql: "bigint", sqlServer: "bigint"));
-
-    [Fact]
-    public void TheOtherBackendsMayNotDisagreeWithEachOther()
-        // Both of these have a BIGINT and can say so.
-        => Assert.False(Observed(sqlite: "integer", mySql: "integer", sqlServer: "bigint"));
-
     [Theory]
-    [InlineData("text", "integer", "integer")]
-    [InlineData("datetime", "text", "text")]
-    [InlineData("", "text", "text")]
-    public void SqliteIsNotExcusedATypeItCouldHaveDeclared(string sqlite, string mySql, string sqlServer)
-        => Assert.False(Observed(sqlite, mySql, sqlServer));
-
-    [Fact]
-    public void AColumnMissingFromABackendDoesNotCountAsAgreement()
-    {
-        // Absence is the column comparison's business; the backends that do have it must still agree.
-        Assert.True(Observed(sqlite: "integer", mySql: null, sqlServer: null));
-        Assert.False(Observed(sqlite: null, mySql: "integer", sqlServer: "text"));
-    }
+    [InlineData("integer", "bigint", "bigint", true)] // its INTEGER already holds 64 bits; there is no BIGINT to require
+    [InlineData("integer", "integer", "bigint", false)] // both of these have a BIGINT and can say so
+    [InlineData("text", "integer", "integer", false)]
+    [InlineData("datetime", "text", "text", false)]
+    [InlineData("", "text", "text", false)]
+    // Absence is the column comparison's business; the backends that do have the column must still agree.
+    [InlineData("integer", null, null, true)]
+    [InlineData(null, "integer", "text", false)]
+    public void TheBackendsAgreeOnlyWhereSqliteHadNoTypeToDeclare(string? sqlite, string? mySql, string? sqlServer, bool expected)
+        => Assert.Equal(expected, Observed(sqlite, mySql, sqlServer));
 
     private static bool Observed(string? sqlite, string? mySql, string? sqlServer)
     {

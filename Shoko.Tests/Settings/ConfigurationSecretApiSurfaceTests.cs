@@ -174,26 +174,17 @@ public sealed class ConfigurationSecretApiSurfaceTests : IDisposable
         Assert.Equal(AnidbPassword, settings.AniDb.Password);
     }
 
-    [Fact]
-    public void SavingANewValue_ReplacesTheStoredCredential()
+    [Theory]
+    [InlineData("a-brand-new-password")]
+    [InlineData("")] // an empty value clears the credential
+    public void SavingAValue_ReplacesTheStoredCredential(string value)
     {
         var masked = JObject.Parse(_service.SerializeWithMasking(_service.Load<ServerSettings>()));
-        masked["AniDb"]!["Password"] = "a-brand-new-password";
+        masked["AniDb"]!["Password"] = value;
 
         _service.Save<ServerSettings>(masked.ToString(Formatting.None));
 
-        Assert.Equal("a-brand-new-password", _service.Load<ServerSettings>().AniDb.Password);
-    }
-
-    [Fact]
-    public void SavingAnEmptyValue_ClearsTheStoredCredential()
-    {
-        var masked = JObject.Parse(_service.SerializeWithMasking(_service.Load<ServerSettings>()));
-        masked["AniDb"]!["Password"] = string.Empty;
-
-        _service.Save<ServerSettings>(masked.ToString(Formatting.None));
-
-        Assert.Equal(string.Empty, _service.Load<ServerSettings>().AniDb.Password);
+        Assert.Equal(value, _service.Load<ServerSettings>().AniDb.Password);
         Assert.DoesNotContain(AnidbPassword, File.ReadAllText(_info.Path!), StringComparison.Ordinal);
     }
 

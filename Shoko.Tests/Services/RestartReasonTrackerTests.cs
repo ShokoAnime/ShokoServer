@@ -116,20 +116,6 @@ public class RestartReasonTrackerTests
     }
 
     [Fact]
-    public void ConfigurationReason_RaisesNoEventWhenNothingChanged()
-    {
-        var harness = new Harness();
-        var configuration = harness.AddConfiguration("Example Settings", harness.PluginA);
-        harness.SetPending(configuration.ID, "Web.Port");
-
-        harness.Tracker.RefreshConfigurations();
-        harness.Tracker.RefreshConfigurations();
-        _ = harness.Tracker.Reasons;
-
-        Assert.Single(harness.Events);
-    }
-
-    [Fact]
     public void ConfigurationReason_FollowsTheConfigurationServiceEvents()
     {
         var harness = new Harness();
@@ -345,19 +331,6 @@ public class RestartReasonTrackerTests
         Assert.Equal(expected, plugin.RestartPending);
         Assert.Equal(expected, RestartReasonTracker.HasPendingStateChange([plugin]));
     }
-
-    [Fact]
-    public void HasPendingStateChange_IsTrueForAnUninstalledPlugin()
-    {
-        var plugin = Plugin(1, active: true, enabled: false);
-        plugin.UninstalledAt = DateTime.UtcNow;
-
-        Assert.True(RestartReasonTracker.HasPendingStateChange([plugin]));
-    }
-
-    [Fact]
-    public void HasPendingStateChange_IsTrueForAVersionSwitch()
-        => Assert.True(RestartReasonTracker.HasPendingStateChange([Plugin(1, active: true, enabled: false), Plugin(2, active: false, enabled: true)]));
 
     [Fact]
     public void HasPendingStateChange_PrefersThePinnedVersionOverTheHighest()

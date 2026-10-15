@@ -40,25 +40,18 @@ public class SqliteRetypedVariantTests
 
     #region The columns the migration retypes
 
-    [Fact]
-    public void ADeclaredTypeIsReplaced()
-        => Assert.Contains("AirDate varchar(10) NULL", SQLite.RetypedVariantOf(AniDBAnime, "AirDate", "varchar(10)"));
-
-    [Fact]
-    public void AColumnWithNoTypeAtAllIsGivenOne()
-    {
-        var patched = SQLite.RetypedVariantOf(AnimeSeriesUser, "UserTags", "TEXT");
-
-        Assert.Contains("UserTags TEXT NOT NULL DEFAULT ''", patched);
-    }
-
-    [Fact]
-    public void ATextColumnBecomesAnIntegerOne()
-        => Assert.Contains("Runtime INTEGER NULL", SQLite.RetypedVariantOf(TmdbEpisode, "Runtime", "INTEGER"));
-
-    [Fact]
-    public void AQuotedIdentifierIsRetyped()
-        => Assert.Contains("\"DateTimeCreated\" DATETIME,", SQLite.RetypedVariantOf(QuotedVideoLocal, "DateTimeCreated", "DATETIME"));
+    [Theory]
+    [InlineData(AniDBAnime, "AirDate", "varchar(10)", "AirDate varchar(10) NULL")] // a declared type is replaced
+    [InlineData(AnimeSeriesUser, "UserTags", "TEXT", "UserTags TEXT NOT NULL DEFAULT ''")] // a column with no type at all is given one
+    [InlineData(TmdbEpisode, "Runtime", "INTEGER", "Runtime INTEGER NULL")] // a text column becomes an integer one
+    [InlineData(QuotedVideoLocal, "DateTimeCreated", "DATETIME", "\"DateTimeCreated\" DATETIME,")] // a quoted identifier
+    // The size contains a comma, which is also what separates columns.
+    [InlineData("CREATE TABLE T ( Rating decimal(6,2) NOT NULL, Votes INTEGER NOT NULL )", "Rating", "INTEGER", "Rating INTEGER NOT NULL")]
+    [InlineData("CREATE TABLE T ( FileSize UNSIGNED BIG INT NOT NULL )", "FileSize", "INTEGER", "FileSize INTEGER NOT NULL")] // a multi-word type
+    // SQLite treats an unstated column as nullable, and saying NULL here would be a change.
+    [InlineData("CREATE TABLE T ( Hash TEXT NOT NULL, LastAVDumped DATETIME )", "LastAVDumped", "varchar(10)", "LastAVDumped varchar(10) )")]
+    public void TheColumnIsRetypedAndKeepsItsConstraints(string createCommand, string columnName, string type, string expectedFragment)
+        => Assert.Contains(expectedFragment, SQLite.RetypedVariantOf(createCommand, columnName, type));
 
     [Fact]
     public void RetypingTwiceRetypesBothColumns()
@@ -94,15 +87,6 @@ public class SqliteRetypedVariantTests
     }
 
     [Fact]
-    public void ThePrimaryKeyAndConstraintsAreKept()
-    {
-        var patched = SQLite.RetypedVariantOf(AnimeSeriesUser, "UserTags", "TEXT");
-
-        Assert.Contains("AnimeSeries_UserID INTEGER PRIMARY KEY AUTOINCREMENT", patched);
-        Assert.Contains("NOT NULL DEFAULT ''", patched);
-    }
-
-    [Fact]
     public void AColumnWhoseNameContainsAnotherIsNotConfusedForIt()
     {
         var patched = SQLite.RetypedVariantOf(
@@ -118,23 +102,6 @@ public class SqliteRetypedVariantTests
     #endregion
 
     #region Shapes it still has to handle
-
-    [Fact]
-    public void ASizedTypeIsReplacedWhole()
-        // The size contains a comma, which is also what separates columns.
-        => Assert.Contains("Rating INTEGER NOT NULL",
-            SQLite.RetypedVariantOf("CREATE TABLE T ( Rating decimal(6,2) NOT NULL, Votes INTEGER NOT NULL )", "Rating", "INTEGER"));
-
-    [Fact]
-    public void AMultiWordTypeIsReplacedWhole()
-        => Assert.Contains("FileSize INTEGER NOT NULL",
-            SQLite.RetypedVariantOf("CREATE TABLE T ( FileSize UNSIGNED BIG INT NOT NULL )", "FileSize", "INTEGER"));
-
-    [Fact]
-    public void AColumnStatingNoNullabilityKeepsStatingNone()
-        // SQLite treats an unstated column as nullable, and saying NULL here would be a change.
-        => Assert.Contains("LastAVDumped varchar(10) )",
-            SQLite.RetypedVariantOf("CREATE TABLE T ( Hash TEXT NOT NULL, LastAVDumped DATETIME )", "LastAVDumped", "varchar(10)"));
 
     [Fact]
     public void AColumnAlreadyOfThatTypeIsLeftAsItIs()

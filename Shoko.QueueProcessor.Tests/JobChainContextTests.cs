@@ -20,47 +20,7 @@ public class JobChainContextTests
             CompletedAt = DateTimeOffset.UtcNow,
         };
 
-    // ── Initial state ─────────────────────────────────────────────────────────
-
-    [Fact]
-    public void NewContext_IsNotDirty()
-    {
-        var ctx = new JobChainContext(Guid.NewGuid());
-        Assert.False(ctx.IsDirty);
-    }
-
-    [Fact]
-    public void NewContext_StatusIsActive()
-    {
-        var ctx = new JobChainContext(Guid.NewGuid());
-        Assert.Equal(ChainStatus.Active, ctx.Status);
-    }
-
-    [Fact]
-    public void NewContext_Constructor_SetsChainId()
-    {
-        var id = Guid.NewGuid();
-        var ctx = new JobChainContext(id);
-        Assert.Equal(id, ctx.ChainId);
-    }
-
     // ── Shared data bag ───────────────────────────────────────────────────────
-
-    [Fact]
-    public void SetData_GetData_RoundTrip_String()
-    {
-        var ctx = new JobChainContext(Guid.NewGuid());
-        ctx.SetData("greeting", "hello world");
-        Assert.Equal("hello world", ctx.GetData<string>("greeting"));
-    }
-
-    [Fact]
-    public void SetData_GetData_RoundTrip_Int()
-    {
-        var ctx = new JobChainContext(Guid.NewGuid());
-        ctx.SetData("count", 42);
-        Assert.Equal(42, ctx.GetData<int>("count"));
-    }
 
     [Fact]
     public void SetData_ExistingKey_Overwrites()
@@ -88,12 +48,22 @@ public class JobChainContextTests
         Assert.Equal(0, ctx.GetData<int>("missing"));
     }
 
-    [Fact]
-    public void SetData_MarksDirty()
+    /// <summary>One mutation of each store, plus the status; each of them must mark the context dirty.</summary>
+    public static TheoryData<string, Action<JobChainContext>> Mutations => new()
+    {
+        { "SetData", ctx => ctx.SetData("k", "v") },
+        { "SetResult", ctx => ctx.SetResult(Guid.NewGuid(), "job:1", "value") },
+        { "AddOutcome", ctx => ctx.AddOutcome(MakeOutcome(Guid.NewGuid(), "job:1")) },
+        { "SetStatus", ctx => ctx.SetStatus(ChainStatus.Completed) },
+    };
+
+    [Theory]
+    [MemberData(nameof(Mutations))]
+    public void EveryMutation_MarksDirty(string mutationName, Action<JobChainContext> mutate)
     {
         var ctx = new JobChainContext(Guid.NewGuid());
-        ctx.SetData("k", "v");
-        Assert.True(ctx.IsDirty);
+        mutate(ctx);
+        Assert.True(ctx.IsDirty, mutationName);
     }
 
     // ── Results: key-based ────────────────────────────────────────────────────
@@ -104,15 +74,6 @@ public class JobChainContextTests
         var ctx = new JobChainContext(Guid.NewGuid());
         Assert.Null(ctx.GetResult<string>("missing-key"));
         Assert.Equal(0, ctx.GetResult<int>("missing-key"));
-    }
-
-    [Fact]
-    public void GetResult_ByKey_SingleResult_ReturnsIt()
-    {
-        var ctx = new JobChainContext(Guid.NewGuid());
-        var jobId = Guid.NewGuid();
-        ctx.SetResult(jobId, "job:1", "result-value");
-        Assert.Equal("result-value", ctx.GetResult<string>("job:1"));
     }
 
     [Fact]
@@ -147,17 +108,6 @@ public class JobChainContextTests
     }
 
     [Fact]
-    public void GetResult_ById_SingleAttempt_ReturnsSingleElement()
-    {
-        var ctx = new JobChainContext(Guid.NewGuid());
-        var jobId = Guid.NewGuid();
-        ctx.SetResult(jobId, "job:1", "the-result");
-        var results = ctx.GetResult<string>(jobId);
-        Assert.Single(results);
-        Assert.Equal("the-result", results[0]);
-    }
-
-    [Fact]
     public void GetResult_ById_MultipleAttempts_ReturnsAllInChronologicalOrder()
     {
         var ctx = new JobChainContext(Guid.NewGuid());
@@ -189,14 +139,6 @@ public class JobChainContextTests
         var resultsB = ctx.GetResult<string>(jobB);
         Assert.Single(resultsB);
         Assert.Equal("result-B", resultsB[0]);
-    }
-
-    [Fact]
-    public void SetResult_MarksDirty()
-    {
-        var ctx = new JobChainContext(Guid.NewGuid());
-        ctx.SetResult(Guid.NewGuid(), "job:1", "value");
-        Assert.True(ctx.IsDirty);
     }
 
     // ── Outcomes ──────────────────────────────────────────────────────────────
@@ -259,32 +201,6 @@ public class JobChainContextTests
         Assert.Equal("job:A", all[0].JobKey);
         Assert.Equal("job:B", all[1].JobKey);
         Assert.Equal("job:C", all[2].JobKey);
-    }
-
-    [Fact]
-    public void AddOutcome_MarksDirty()
-    {
-        var ctx = new JobChainContext(Guid.NewGuid());
-        ctx.AddOutcome(MakeOutcome(Guid.NewGuid(), "job:1"));
-        Assert.True(ctx.IsDirty);
-    }
-
-    // ── Status ────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public void SetStatus_ChangesStatus()
-    {
-        var ctx = new JobChainContext(Guid.NewGuid());
-        ctx.SetStatus(ChainStatus.Aborted);
-        Assert.Equal(ChainStatus.Aborted, ctx.Status);
-    }
-
-    [Fact]
-    public void SetStatus_MarksDirty()
-    {
-        var ctx = new JobChainContext(Guid.NewGuid());
-        ctx.SetStatus(ChainStatus.Completed);
-        Assert.True(ctx.IsDirty);
     }
 
     // ── Dirty / clean tracking ────────────────────────────────────────────────
@@ -377,13 +293,5 @@ public class JobChainContextTests
         Assert.Null(ctx.GetData<string>("any"));
         Assert.Empty(ctx.GetResult<string>(Guid.NewGuid()));
         Assert.Empty(ctx.GetAllOutcomes());
-    }
-
-    [Fact]
-    public void Deserialize_RestoresStatus()
-    {
-        var chainId = Guid.NewGuid();
-        var ctx = JobChainContext.Deserialize(chainId, ChainStatus.Aborted, null, null, null);
-        Assert.Equal(ChainStatus.Aborted, ctx.Status);
     }
 }

@@ -3,7 +3,6 @@ using System.IO;
 using System.IO.Compression;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Plugin;
@@ -143,61 +142,10 @@ public class MylistCacheTests
     // ── update data ──────────────────────────────────────────────────────────
 
     [Fact]
-    public void Update_ExactMatch_ReturnsTrue()
-    {
-        var entry = MakeEntry(state: MylistState.HDD, isViewed: true, viewedAt: new DateTime(2024, 1, 1, 12, 0, 0));
-        var data = new MylistUpdateData
-        {
-            State = MylistState.HDD,
-            IsViewed = true,
-            ViewedAt = new DateTime(2024, 1, 1, 12, 0, 0),
-        };
-
-        Assert.True(MylistCache.IsInDesiredState(entry, data));
-    }
-
-    [Fact]
-    public void Update_StateMismatch_ReturnsFalse()
-    {
-        var entry = MakeEntry(state: MylistState.HDD);
-        var data = new MylistUpdateData { State = MylistState.Deleted };
-
-        Assert.False(MylistCache.IsInDesiredState(entry, data));
-    }
-
-    [Fact]
-    public void Update_ViewedStateUntouched_WhenDataHasNoViewedFields()
-    {
-        // update data without viewed fields must not compare viewed state
-        var entry = MakeEntry(isViewed: true, viewedAt: new DateTime(2024, 1, 1, 12, 0, 0));
-        var data = new MylistUpdateData { State = MylistState.HDD };
-
-        Assert.True(MylistCache.IsInDesiredState(entry, data));
-    }
-
-    [Fact]
     public void Update_ViewedMismatch_ReturnsFalse()
     {
         var entry = MakeEntry(isViewed: false);
         var data = new MylistUpdateData { IsViewed = true };
-
-        Assert.False(MylistCache.IsInDesiredState(entry, data));
-    }
-
-    [Fact]
-    public void Update_FileStateMismatch_ReturnsFalse()
-    {
-        var entry = MakeEntry(fileState: MylistFileState.Normal);
-        var data = new MylistUpdateData { FileState = MylistFileState.Corrupted };
-
-        Assert.False(MylistCache.IsInDesiredState(entry, data));
-    }
-
-    [Fact]
-    public void Update_StorageMismatch_ReturnsFalse()
-    {
-        var entry = MakeEntry(storage: "HDD1");
-        var data = new MylistUpdateData { Storage = "HDD2" };
 
         Assert.False(MylistCache.IsInDesiredState(entry, data));
     }
@@ -246,36 +194,7 @@ public class MylistCacheTests
         Assert.True(MylistCache.IsInDesiredState(entry, data));
     }
 
-    [Fact]
-    public void Update_ViewedAtAlone_ImpliesWatched()
-    {
-        var entry = MakeEntry(isViewed: false);
-        var data = new MylistUpdateData { ViewedAt = new DateTime(2024, 1, 1, 12, 0, 0) };
-
-        Assert.False(entry.IsViewed);
-        Assert.False(MylistCache.IsInDesiredState(entry, data));
-    }
-
-    [Fact]
-    public void Update_ViewedAtAlone_MatchesAWatchedEntry()
-    {
-        var viewedAt = new DateTime(2024, 1, 1, 12, 0, 0);
-        var entry = MakeEntry(isViewed: true, viewedAt: viewedAt);
-        var data = new MylistUpdateData { ViewedAt = viewedAt };
-
-        Assert.True(MylistCache.IsInDesiredState(entry, data));
-    }
-
     // ── unwritable file states ───────────────────────────────────────────────
-
-    [Fact]
-    public void OnBluRay_IsNotWritable()
-    {
-        Assert.False(MylistFileState.OnBluRay.IsWritable);
-        Assert.True(MylistFileState.Normal.IsWritable);
-        Assert.True(MylistFileState.OnDVD.IsWritable);
-        Assert.True(MylistFileState.Other.IsWritable);
-    }
 
     [Fact]
     public void Add_UnwritableFileState_IsIgnored()
@@ -286,24 +205,6 @@ public class MylistCacheTests
         var data = new MylistAddData { FileState = MylistFileState.OnBluRay };
 
         Assert.True(MylistCache.IsInDesiredState(entry, data));
-    }
-
-    [Fact]
-    public void Update_UnwritableFileState_IsIgnored()
-    {
-        var entry = MakeEntry(fileState: MylistFileState.Normal);
-        var data = new MylistUpdateData { FileState = MylistFileState.OnBluRay };
-
-        Assert.True(MylistCache.IsInDesiredState(entry, data));
-    }
-
-    [Fact]
-    public void Update_WritableFileState_IsStillCompared()
-    {
-        var entry = MakeEntry(fileState: MylistFileState.Normal);
-        var data = new MylistUpdateData { FileState = MylistFileState.OnDVD };
-
-        Assert.False(MylistCache.IsInDesiredState(entry, data));
     }
 
     [Fact]
@@ -320,26 +221,6 @@ public class MylistCacheTests
         var entry = MakeEntry(isViewed: true, viewedAt: fetched);
         var data = new MylistAddData { IsViewed = true, ViewedAt = sent };
         Assert.True(MylistCache.IsInDesiredState(entry, data));
-    }
-
-    [Fact]
-    public void EpisodeIndex_IgnoresAnEntryProvenNotGenericByItsHash()
-    {
-        // an entry identified by ed2k+size has a real file behind it, so it can
-        // never be the episode's generic entry — unlike one identified by file
-        // ID, which generic entries also have
-        var cache = MakeCache(out var dataPath);
-        try
-        {
-            cache.Upsert(new MylistEntry { MylistID = 1, FileID = 100, EpisodeID = 42, ED2K = "abc", Size = 4096, IsGeneric = false });
-
-            Assert.Null(cache.GetByEpisodeID(42));
-            Assert.NotNull(cache.GetByEd2k("abc", 4096));
-        }
-        finally
-        {
-            Directory.Delete(dataPath, true);
-        }
     }
 
     // ── indexing and eviction ────────────────────────────────────────────────

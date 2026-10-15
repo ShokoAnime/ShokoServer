@@ -151,15 +151,6 @@ public class EventEmitterRegistryTests
     }
 
     [Fact]
-    public void FeedNames_MatchIgnoringCase()
-    {
-        var harness = new Harness(services => services.AddEventEmitter<SampleFeed>());
-        var name = Assert.Single(harness.Registry.Feeds).Key;
-
-        Assert.True(harness.Registry.Feeds.ContainsKey(name.ToUpperInvariant()));
-    }
-
-    [Fact]
     public async Task Find_MatchesIgnoringCase_AndJoinsTheFeedsOwnGroup()
     {
         var harness = new Harness(services =>

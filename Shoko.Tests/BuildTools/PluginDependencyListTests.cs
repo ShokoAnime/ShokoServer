@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Shoko.BuildTools;
 using Xunit;
 
@@ -23,9 +24,19 @@ public class PluginDependencyListTests
         return dependencies;
     }
 
-    [Fact]
-    public void Parse_DefaultsToRequired()
-        => Assert.Equal([new PluginDependencyEntry(_first, "^1.2.0", false)], ParseClean($"{_first}@^1.2.0"));
+    [Theory]
+    [InlineData("{0}@^1.2.0", new[] { "^1.2.0" }, new[] { false })] // a missing marker means required
+    [InlineData("  {0} @ ^1.2.0 : optional ,\n\t{1}@>=2.0\n", new[] { "^1.2.0", ">=2.0" }, new[] { true, false })] // whitespace around every separator
+    [InlineData(",{0}@~1.0.0,,{1}@1.5.0,", new[] { "~1.0.0", "1.5.0" }, new[] { false, false })] // empty entries are skipped
+    [InlineData("{0}:>=1.0.0,{1}:^2.0.0:true", new[] { ">=1.0.0", "^2.0.0" }, new[] { false, true })] // the legacy form
+    [InlineData("{0}:>=1.0.0:True,{1}@^2.0.0:optional", new[] { ">=1.0.0", "^2.0.0" }, new[] { true, true })] // the forms apart per entry
+    public void Parse_ReadsTheEntriesOfAList(string list, string[] ranges, bool[] optionals)
+    {
+        Guid[] ids = [_first, _second];
+        var expected = ranges.Select((range, index) => new PluginDependencyEntry(ids[index], range, optionals[index]));
+
+        Assert.Equal(expected, ParseClean(string.Format(list, _first, _second)));
+    }
 
     [Theory]
     [InlineData("optional", true)]
@@ -35,36 +46,12 @@ public class PluginDependencyListTests
     public void Parse_ReadsTheMarker(string marker, bool isOptional)
         => Assert.Equal([new PluginDependencyEntry(_first, ">=2.0", isOptional)], ParseClean($"{_first}@>=2.0:{marker}"));
 
-    [Fact]
-    public void Parse_IgnoresWhitespaceAroundEverySeparator()
-        => Assert.Equal(
-            [new PluginDependencyEntry(_first, "^1.2.0", true), new PluginDependencyEntry(_second, ">=2.0", false)],
-            ParseClean($"  {_first} @ ^1.2.0 : optional ,\n\t{_second}@>=2.0\n"));
-
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(", ,\n,")]
     public void Parse_NothingButSeparatorsIsAnEmptyList(string value)
         => Assert.Empty(ParseClean(value));
-
-    [Fact]
-    public void Parse_SkipsEmptyEntries()
-        => Assert.Equal(
-            [new PluginDependencyEntry(_first, "~1.0.0", false), new PluginDependencyEntry(_second, "1.5.0", false)],
-            ParseClean($",{_first}@~1.0.0,,{_second}@1.5.0,"));
-
-    [Fact]
-    public void Parse_ReadsTheLegacyForm()
-        => Assert.Equal(
-            [new PluginDependencyEntry(_first, ">=1.0.0", false), new PluginDependencyEntry(_second, "^2.0.0", true)],
-            ParseClean($"{_first}:>=1.0.0,{_second}:^2.0.0:true"));
-
-    [Fact]
-    public void Parse_TellsTheFormsApartPerEntry()
-        => Assert.Equal(
-            [new PluginDependencyEntry(_first, ">=1.0.0", true), new PluginDependencyEntry(_second, "^2.0.0", true)],
-            ParseClean($"{_first}:>=1.0.0:True,{_second}@^2.0.0:optional"));
 
     [Theory]
     [InlineData("{0}", "has no version range")]

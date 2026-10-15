@@ -17,17 +17,12 @@ public class NHibernateDependencyInjectorTests
 {
     private static readonly BindingFlags StaticNonPublic = BindingFlags.NonPublic | BindingFlags.Static;
 
-    [Fact]
-    public void TypeHasValidConstructorsCache_IsConcurrentDictionary()
+    [Theory]
+    [InlineData("s_typeHasValidConstructors", typeof(ConcurrentDictionary<string, bool>))]
+    [InlineData("s_allTypes", typeof(ConcurrentDictionary<string, System.Type>))]
+    public void TypeInfoCache_IsConcurrentDictionary(string fieldName, System.Type expectedType)
     {
-        var field = typeof(NHibernateDependencyInjector).GetField("s_typeHasValidConstructors", StaticNonPublic)!;
-        Assert.Equal(typeof(ConcurrentDictionary<string, bool>), field.FieldType);
-    }
-
-    [Fact]
-    public void AllTypesCache_IsConcurrentDictionary()
-    {
-        var field = typeof(NHibernateDependencyInjector).GetField("s_allTypes", StaticNonPublic)!;
-        Assert.Equal(typeof(ConcurrentDictionary<string, System.Type>), field.FieldType);
+        var field = typeof(NHibernateDependencyInjector).GetField(fieldName, StaticNonPublic)!;
+        Assert.Equal(expectedType, field.FieldType);
     }
 }

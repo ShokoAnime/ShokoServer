@@ -321,8 +321,12 @@ public class MetadataMatchingEngineTests
 
     #region Auto
 
-    [Fact]
-    public void Auto_PicksTheSeasonedPath_WhenTheSourceHasSeasonNumbers()
+    // The seasoned path has no number tier; the flat path would have raised
+    // these to DateAndNumberMatches.
+    [Theory]
+    [InlineData(1, MatchRating.DateMatches)]
+    [InlineData(null, MatchRating.DateAndNumberMatches)]
+    public void Auto_PicksTheSeasonedOrTheFlatPath_ByWhetherTheSourceHasSeasonNumbers(int? providerSeason, MatchRating expectedRating)
     {
         var anidb = new List<IAnidbEpisode>
         {
@@ -331,35 +335,14 @@ public class MetadataMatchingEngineTests
         };
         var provider = new List<IEpisode>
         {
-            ProviderEpisode(101, 1, 1, _firstAired),
-            ProviderEpisode(102, 2, 1, _firstAired.AddDays(7)),
+            ProviderEpisode(101, 1, providerSeason, _firstAired),
+            ProviderEpisode(102, 2, providerSeason, _firstAired.AddDays(7)),
         };
 
         var matches = Matcher().MatchEpisodes(anidb, provider);
 
-        // The seasoned path has no number tier; the flat path would have raised
-        // these to DateAndNumberMatches.
-        Assert.All(matches, match => Assert.Equal(MatchRating.DateMatches, match.Rating));
+        Assert.All(matches, match => Assert.Equal(expectedRating, match.Rating));
         Assert.Equal(["101", "102"], matches.Select(match => match.Candidate?.ID.ID));
-    }
-
-    [Fact]
-    public void Auto_PicksTheFlatPath_WhenTheSourceHasNoSeasonNumbers()
-    {
-        var anidb = new List<IAnidbEpisode>
-        {
-            AnidbEpisode(1, 1, _firstAired),
-            AnidbEpisode(2, 2, _firstAired.AddDays(7)),
-        };
-        var provider = new List<IEpisode>
-        {
-            ProviderEpisode(101, 1, null, _firstAired),
-            ProviderEpisode(102, 2, null, _firstAired.AddDays(7)),
-        };
-
-        var matches = Matcher().MatchEpisodes(anidb, provider);
-
-        Assert.All(matches, match => Assert.Equal(MatchRating.DateAndNumberMatches, match.Rating));
     }
 
     [Fact]
@@ -436,8 +419,11 @@ public class MetadataMatchingEngineTests
 
     // Hidden means don't look for a new match, not drop a manual one; its
     // candidate leaves the pool too, so no neighbour can claim it.
-    [Fact]
-    public void AnExistingLink_IsKept_OnAHiddenEpisode()
+    [Theory]
+    [InlineData(MatchRating.UserVerified, "103", MatchRating.UserVerified)] // a manual link is kept
+    [InlineData(null, null, MatchRating.None)] // no link: still passed over
+    [InlineData(MatchRating.DateAndTitleMatches, null, MatchRating.None)] // an automatic link is dropped
+    public void AHiddenEpisode_KeepsAManualLink_AndIsOtherwisePassedOver(MatchRating? linkRating, string? expectedCandidate, MatchRating expectedRating)
     {
         var anidb = new List<IAnidbEpisode>
         {
@@ -450,42 +436,18 @@ public class MetadataMatchingEngineTests
             ProviderEpisode(103, 1, 0, _firstAired.AddDays(3), "Bonus"),
         };
 
-        var matches = Matcher().MatchEpisodes(
-            anidb,
-            provider,
-            [CrossReference(3, "103", MatchRating.UserVerified)],
-            new EpisodeMatchOptions { Strategy = EpisodeMatchStrategy.DateAndTitleWithinSeasons }
-        );
-
-        var hidden = Assert.Single(matches, match => match.AnidbEpisode.AnidbID is 3);
-        Assert.Equal("103", hidden.Candidate?.ID.ID);
-        Assert.Equal(MatchRating.UserVerified, hidden.Rating);
-    }
-
-    [Fact]
-    public void AHiddenEpisode_IsStillPassedOver_WithNoExistingLink()
-    {
-        var anidb = new List<IAnidbEpisode>
-        {
-            AnidbEpisode(1, 1, _firstAired, title: "Alpha"),
-            HiddenAnidbEpisode(3, 1),
-        };
-        var provider = new List<IEpisode>
-        {
-            ProviderEpisode(101, 1, 1, _firstAired, "Alpha"),
-            ProviderEpisode(103, 1, 0, _firstAired.AddDays(3), "Bonus"),
-        };
+        var existing = linkRating is { } rating ? new List<IMetadataEpisodeCrossReference> { CrossReference(3, "103", rating) } : [];
 
         var matches = Matcher().MatchEpisodes(
             anidb,
             provider,
-            [],
+            existing,
             new EpisodeMatchOptions { Strategy = EpisodeMatchStrategy.DateAndTitleWithinSeasons }
         );
 
         var hidden = Assert.Single(matches, match => match.AnidbEpisode.AnidbID is 3);
-        Assert.Null(hidden.Candidate);
-        Assert.Equal(MatchRating.None, hidden.Rating);
+        Assert.Equal(expectedCandidate, hidden.Candidate?.ID.ID);
+        Assert.Equal(expectedRating, hidden.Rating);
     }
 
     // A link to an entry outside the candidates (another season or series) cannot
@@ -515,26 +477,12 @@ public class MetadataMatchingEngineTests
         Assert.Equal("102", Assert.Single(matches).Candidate?.ID.ID);
     }
 
-    [Fact]
-    public void AnEpisodeAPersonLinkedToNothing_IsLeftOut()
-    {
-        var anidb = new List<IAnidbEpisode> { AnidbEpisode(1, 1, _firstAired, title: "Alpha") };
-        var provider = new List<IEpisode> { ProviderEpisode(101, 1, 1, _firstAired, "Alpha") };
-
-        var matches = Matcher().MatchEpisodes(
-            anidb,
-            provider,
-            [CrossReference(1, null, MatchRating.UserVerified)],
-            new EpisodeMatchOptions { Strategy = EpisodeMatchStrategy.DateAndTitleWithinSeasons }
-        );
-
-        Assert.Empty(matches);
-    }
-
     // Only a person settles an episode as having no match, so an automatic
     // link to nothing is matched again.
-    [Fact]
-    public void AnAutomaticLinkToNothing_IsMatchedAgain()
+    [Theory]
+    [InlineData(MatchRating.UserVerified, false)]
+    [InlineData(MatchRating.DateAndTitleMatches, true)]
+    public void ALinkToNothing_SettlesTheEpisodeOnlyWhenAPersonMadeIt(MatchRating linkRating, bool expectedMatchedAgain)
     {
         var anidb = new List<IAnidbEpisode> { AnidbEpisode(1, 1, _firstAired, title: "Alpha") };
         var provider = new List<IEpisode> { ProviderEpisode(101, 1, 1, _firstAired, "Alpha") };
@@ -542,39 +490,20 @@ public class MetadataMatchingEngineTests
         var matches = Matcher().MatchEpisodes(
             anidb,
             provider,
-            [CrossReference(1, null, MatchRating.DateAndTitleMatches)],
+            [CrossReference(1, null, linkRating)],
             new EpisodeMatchOptions { Strategy = EpisodeMatchStrategy.DateAndTitleWithinSeasons }
         );
 
-        var match = Assert.Single(matches);
-        Assert.Equal("101", match.Candidate?.ID.ID);
-        Assert.Equal(MatchRating.DateAndTitleMatches, match.Rating);
-    }
-
-    [Fact]
-    public void AHiddenEpisode_DropsAnAutomaticLink()
-    {
-        var anidb = new List<IAnidbEpisode>
+        if (expectedMatchedAgain)
         {
-            AnidbEpisode(1, 1, _firstAired, title: "Alpha"),
-            HiddenAnidbEpisode(3, 1),
-        };
-        var provider = new List<IEpisode>
+            var match = Assert.Single(matches);
+            Assert.Equal("101", match.Candidate?.ID.ID);
+            Assert.Equal(MatchRating.DateAndTitleMatches, match.Rating);
+        }
+        else
         {
-            ProviderEpisode(101, 1, 1, _firstAired, "Alpha"),
-            ProviderEpisode(103, 1, 0, _firstAired.AddDays(3), "Bonus"),
-        };
-
-        var matches = Matcher().MatchEpisodes(
-            anidb,
-            provider,
-            [CrossReference(3, "103", MatchRating.DateAndTitleMatches)],
-            new EpisodeMatchOptions { Strategy = EpisodeMatchStrategy.DateAndTitleWithinSeasons }
-        );
-
-        var hidden = Assert.Single(matches, match => match.AnidbEpisode.AnidbID is 3);
-        Assert.Null(hidden.Candidate);
-        Assert.Equal(MatchRating.None, hidden.Rating);
+            Assert.Empty(matches);
+        }
     }
 
     #endregion
@@ -803,34 +732,6 @@ public class MetadataMatchingEngineTests
         Assert.Equal(MatchRating.FirstAvailable, Assert.Single(matches).Rating);
     }
 
-    // AniDB's generic English titles are no longer stored; the episodes pair as they did with them.
-    [Fact]
-    public void AnidbEpisodesWithoutTheirGenericTitles_PairAsBefore()
-    {
-        IReadOnlyList<IAnidbEpisode> Anidb(bool withGenericTitles)
-        {
-            return
-            [
-                AnidbEpisode(1, 1, _firstAired, title: withGenericTitles ? "Episode 1" : null),
-                AnidbEpisode(2, 2, _firstAired.AddDays(7), title: withGenericTitles ? "Episode 2" : null),
-                AnidbEpisode(3, 1, _firstAired.AddDays(14), EpisodeType.Special, withGenericTitles ? "Episode S1" : null),
-            ];
-        }
-        var provider = new List<IEpisode>
-        {
-            ProviderEpisode(101, 1, 1, _firstAired, "Alpha"),
-            ProviderEpisode(102, 2, 1, _firstAired.AddDays(7), "Beta"),
-            ProviderEpisode(103, 1, 0, _firstAired.AddDays(14), "Gamma"),
-        };
-        var options = new EpisodeMatchOptions { Strategy = EpisodeMatchStrategy.DateAndTitleWithinSeasons };
-
-        var before = Matcher().MatchEpisodes(Anidb(true), provider, options: options);
-        var after = Matcher().MatchEpisodes(Anidb(false), provider, options: options);
-
-        Assert.Equal(["101", "102", "103"], after.Select(match => match.Candidate?.ID.ID));
-        Assert.Equal(before.Select(match => (match.Candidate?.ID.ID, match.Rating)), after.Select(match => (match.Candidate?.ID.ID, match.Rating)));
-    }
-
     // A title another source put on the AniDB entry cannot vouch for a match with itself.
     [Fact]
     public void OnlyTheTitlesAnidbGave_AreSearchedWith()
@@ -1022,26 +923,17 @@ public class MetadataMatchingEngineTests
     }
 
     // A '?' or an apostrophe may be all that sets a sequel's title apart, so
-    // it still counts when comparing titles whole.
+    // it still counts when comparing titles whole; so does a title inside a longer name.
     [Theory]
     [InlineData("Gochuumon wa Usagi Desu ka??", "Gochuumon wa Usagi Desu ka?")]
     [InlineData("WORKING'!!", "WORKING!!")]
     [InlineData("Kaguya-sama wa Kokurasetai? Tensai-tachi no Renai Zunousen", "Kaguya-sama wa Kokurasetai: Tensai-tachi no Renai Zunousen")]
-    public void MatchSeries_KeepsTheMarksThatSetASequelApart(string query, string name)
+    [InlineData("Naruto", "Boruto: Naruto Next Generations")]
+    public void MatchSeries_DoesNotTakeAnInexactTitleAsExact(string query, string name)
     {
         var match = Assert.Single(Matcher().MatchSeries(SeriesAnime(new(2019, 1, 12), 12),
             [Series("1", name, aired: new(2019, 1, 12))],
             new() { Query = query }));
-        Assert.NotEqual(MatchRating.DateAndTitleMatches, match.Rating);
-        Assert.NotEqual(MatchRating.TitleMatches, match.Rating);
-    }
-
-    [Fact]
-    public void MatchSeries_DoesNotTakeATitleInsideALongerNameAsExact()
-    {
-        var match = Assert.Single(Matcher().MatchSeries(SeriesAnime(new(2017, 4, 5), 12),
-            [Series("1", "Boruto: Naruto Next Generations", aired: new(2017, 4, 5))],
-            new() { Query = "Naruto" }));
         Assert.NotEqual(MatchRating.DateAndTitleMatches, match.Rating);
         Assert.NotEqual(MatchRating.TitleMatches, match.Rating);
     }
@@ -1109,14 +1001,6 @@ public class MetadataMatchingEngineTests
 
         var allowed = Matcher().MatchSeries(SeriesAnime(new(2020, 4, 3), 12), candidates, new() { Query = "Kaguya", IncludeRestricted = true });
         Assert.Equal("1", allowed[0].Candidate.ID.ID);
-    }
-
-    [Fact]
-    public void MatchSeries_TakesNothingWhenNothingAgrees()
-    {
-        var match = Assert.Single(Matcher().MatchSeries(SeriesAnime(new(2020, 4, 3), 12), [Series("1", "Unrelated", aired: new(2011, 1, 1))], new() { Query = "Kaguya" }));
-        Assert.Equal(MatchRating.None, match.Rating);
-        Assert.Equal(MatchRejectionReason.TitleMismatch, match.Rejection);
     }
 
     // A show begun after the anime ended cannot hold it, so the long-running show

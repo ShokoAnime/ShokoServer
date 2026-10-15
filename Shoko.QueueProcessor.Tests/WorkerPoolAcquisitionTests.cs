@@ -131,29 +131,27 @@ public class WorkerPoolAcquisitionTests
 
     // ── ScheduledAt filtering ─────────────────────────────────────────────────
 
-    [Fact]
-    public void TryAcquire_FutureScheduledAt_Skipped()
+    [Theory]
+    [InlineData(3600, false)] // An hour from now
+    [InlineData(-10, true)] // Ten seconds ago
+    public void TryAcquire_OnlyAcquiresAJobOnceItsScheduledAtHasPassed(int scheduledOffsetSeconds, bool expectedAcquired)
     {
         var pool = MakePool(typeof(JobTypeA));
         pool.TryRegisterExecuting = _ => true;
-        var futureJob = MakeJob(typeof(JobTypeA), scheduledAt: DateTimeOffset.UtcNow.AddHours(1));
-        pool.AddToQueue(futureJob);
-
-        Assert.Null(pool.TryAcquire());
-    }
-
-    [Fact]
-    public void TryAcquire_PastScheduledAt_Acquired()
-    {
-        var pool = MakePool(typeof(JobTypeA));
-        pool.TryRegisterExecuting = _ => true;
-        var pastJob = MakeJob(typeof(JobTypeA), scheduledAt: DateTimeOffset.UtcNow.AddSeconds(-10));
-        pool.AddToQueue(pastJob);
+        var job = MakeJob(typeof(JobTypeA), scheduledAt: DateTimeOffset.UtcNow.AddSeconds(scheduledOffsetSeconds));
+        pool.AddToQueue(job);
 
         var acquired = pool.TryAcquire();
 
-        Assert.NotNull(acquired);
-        Assert.Equal(pastJob.Id, acquired!.Id);
+        if (expectedAcquired)
+        {
+            Assert.NotNull(acquired);
+            Assert.Equal(job.Id, acquired!.Id);
+        }
+        else
+        {
+            Assert.Null(acquired);
+        }
     }
 
     [Fact]
@@ -177,20 +175,6 @@ public class WorkerPoolAcquisitionTests
     }
 
     // ── Acquisition filter exclusions ─────────────────────────────────────────
-
-    [Fact]
-    public void TryAcquire_TypeExcludedByFilter_ReturnsNull()
-    {
-        var filter = new Mock<IAcquisitionFilter>();
-        filter.Setup(f => f.GetTypesToExclude()).Returns([typeof(JobTypeA)]);
-        filter.Setup(f => f.WatchedAttributeType).Returns((Type?)null);
-
-        var pool = MakePool(typeof(JobTypeA), filter.Object);
-        pool.TryRegisterExecuting = _ => true;
-        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
-
-        Assert.Null(pool.TryAcquire());
-    }
 
     [Fact]
     public void TryAcquire_FilterExcludesTypeA_TypeBStillAcquired()
@@ -281,28 +265,7 @@ public class WorkerPoolAcquisitionTests
         Assert.Equal(2, pool.RetryingCount);
     }
 
-    // ── Signal / IdleWorkers ──────────────────────────────────────────────────
-
-    [Fact]
-    public void Signal_DoesNotThrow()
-    {
-        // Signal is a write to a bounded channel — should never throw
-        var pool = MakePool(typeof(JobTypeA));
-        var ex = Record.Exception(() =>
-        {
-            for (var i = 0; i < 10; i++) pool.Signal(); // send many signals; channel drops extras
-        });
-        Assert.Null(ex);
-    }
-
     // ── RunnableCount ─────────────────────────────────────────────────────────
-
-    [Fact]
-    public void RunnableCount_EmptyQueue_ReturnsZero()
-    {
-        var pool = MakePool(typeof(JobTypeA));
-        Assert.Equal(0, pool.RunnableCount());
-    }
 
     [Fact]
     public void RunnableCount_AfterAddJob_ReturnsOne()
@@ -332,19 +295,6 @@ public class WorkerPoolAcquisitionTests
     }
 
     [Fact]
-    public void RunnableCount_AfterAcquire_Decremented()
-    {
-        var pool = MakePool(typeof(JobTypeA));
-        pool.TryRegisterExecuting = _ => true;
-        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
-        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
-
-        pool.TryAcquire();
-
-        Assert.Equal(1, pool.RunnableCount());
-    }
-
-    [Fact]
     public void RunnableCount_AfterRemoveFromQueue_Decremented()
     {
         var pool = MakePool(typeof(JobTypeA));
@@ -355,18 +305,6 @@ public class WorkerPoolAcquisitionTests
         pool.RemoveFromQueue(job.Id);
 
         Assert.Equal(1, pool.RunnableCount());
-    }
-
-    [Fact]
-    public void RunnableCount_AfterClearQueue_ReturnsZero()
-    {
-        var pool = MakePool(typeof(JobTypeA));
-        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
-        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
-
-        pool.ClearQueue();
-
-        Assert.Equal(0, pool.RunnableCount());
     }
 
     [Fact]

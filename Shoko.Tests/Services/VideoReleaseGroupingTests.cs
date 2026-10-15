@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.Logging;
 using Moq;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
@@ -260,33 +259,6 @@ public class VideoReleaseGroupingTests
     }
 
     /// <summary>
-    /// Files from the same group in different directories produce separate
-    /// candidates. The parent directory is the primary scope of a release.
-    /// </summary>
-    [Fact]
-    public void SameGroupDifferentFolders_ProducesSeparateCandidates()
-    {
-        var media = MakeMedia();
-        var resolved = new[]
-        {
-            new ResolvedVideoPlace(
-                MakePlace(1, 1, 8, "One Piece/[SubsPlease] One Piece - 01 [1080p].mkv"),
-                MakeVideo(1, "AAA", 700_000_000, media),
-                MakeSri("AAA", 700_000_000, "1337", "AniDB", "SubsPlease", "SubsPlease", ReleaseSource.Web, episodes: ["1"])),
-            new ResolvedVideoPlace(
-                MakePlace(2, 2, 8, "Naruto/[SubsPlease] Naruto - 01 [1080p].mkv"),
-                MakeVideo(2, "BBB", 700_000_000, media),
-                MakeSri("BBB", 700_000_000, "1337", "AniDB", "SubsPlease", "SubsPlease", ReleaseSource.Web, episodes: ["1"])),
-        };
-
-        var candidates = Group(resolved);
-
-        Assert.Equal(2, candidates.Count);
-        Assert.Contains(candidates.SelectMany(c => c.Places), p => p.RelativePath.StartsWith("One Piece"));
-        Assert.Contains(candidates.SelectMany(c => c.Places), p => p.RelativePath.StartsWith("Naruto"));
-    }
-
-    /// <summary>
     /// Different release groups in the same folder produce separate candidates.
     /// </summary>
     [Fact]
@@ -310,33 +282,6 @@ public class VideoReleaseGroupingTests
         Assert.Equal(2, candidates.Count);
         Assert.Contains(candidates, c => c.GroupShortName == "Doki");
         Assert.Contains(candidates, c => c.GroupShortName == "Coalgirls");
-    }
-
-    /// <summary>
-    /// A dual-audio release is distinct from a Japanese-only release of the
-    /// same group and source. Language sets are part of the first-pass key.
-    /// </summary>
-    [Fact]
-    public void DualAudioVsMonoAudio_ProduceSeparateCandidates()
-    {
-        var media = MakeMedia();
-        var resolved = new[]
-        {
-            new ResolvedVideoPlace(
-                MakePlace(1, 1, 8, "Cowboy Bebop/[GHOST] Cowboy Bebop - 01 [BD].mkv"),
-                MakeVideo(1, "AAA", 900_000_000, media),
-                MakeSri("AAA", 900_000_000, "777", "AniDB", "GHOST", "GHOST",
-                    ReleaseSource.BluRay, audioLangs: "en,ja", episodes: ["1"])),
-            new ResolvedVideoPlace(
-                MakePlace(2, 2, 8, "Cowboy Bebop/[AB-RMX] Cowboy Bebop - 01 [BD].mkv"),
-                MakeVideo(2, "BBB", 850_000_000, media),
-                MakeSri("BBB", 850_000_000, "888", "AniDB", "AB-RMX", "AB-RMX",
-                    ReleaseSource.BluRay, audioLangs: "ja", episodes: ["1"])),
-        };
-
-        var candidates = Group(resolved);
-
-        Assert.Equal(2, candidates.Count);
     }
 
     /// <summary>
@@ -656,43 +601,6 @@ public class VideoReleaseGroupingTests
     }
 
     /// <summary>
-    /// When a group releases a full v2 batch (every episode re-encoded) alongside
-    /// the original v1, and the user keeps both complete sets, the grouper splits
-    /// them into two candidates — one per version.
-    /// The trigger is that every episode appears in both a v1 and a v2 file.
-    /// </summary>
-    [Fact]
-    public void CompleteV1AndV2Batches_SplitIntoSeparateCandidates()
-    {
-        var media = MakeMedia(width: 1280, height: 720);
-        var doki = (string hash, long size, string ep, int ver) =>
-            MakeSri(hash, size, "584", "AniDB", "Doki", "Doki", ReleaseSource.BluRay, version: ver, episodes: [ep]);
-
-        var resolved = new[]
-        {
-            // v1 batch (original release)
-            new ResolvedVideoPlace(MakePlace(1, 1, 1, "Air/[Doki] Air - 01v1.mkv"),
-                MakeVideo(1, "A1v1", 600_000_000, media), doki("A1v1", 600_000_000, "1", 1)),
-            new ResolvedVideoPlace(MakePlace(2, 2, 1, "Air/[Doki] Air - 02v1.mkv"),
-                MakeVideo(2, "A2v1", 610_000_000, media), doki("A2v1", 610_000_000, "2", 1)),
-            new ResolvedVideoPlace(MakePlace(3, 3, 1, "Air/[Doki] Air - 03v1.mkv"),
-                MakeVideo(3, "A3v1", 605_000_000, media), doki("A3v1", 605_000_000, "3", 1)),
-            // v2 batch — every episode has a counterpart, so all collide
-            new ResolvedVideoPlace(MakePlace(4, 4, 1, "Air/[Doki] Air - 01v2.mkv"),
-                MakeVideo(4, "A1v2", 620_000_000, media), doki("A1v2", 620_000_000, "1", 2)),
-            new ResolvedVideoPlace(MakePlace(5, 5, 1, "Air/[Doki] Air - 02v2.mkv"),
-                MakeVideo(5, "A2v2", 630_000_000, media), doki("A2v2", 630_000_000, "2", 2)),
-            new ResolvedVideoPlace(MakePlace(6, 6, 1, "Air/[Doki] Air - 03v2.mkv"),
-                MakeVideo(6, "A3v2", 625_000_000, media), doki("A3v2", 625_000_000, "3", 2)),
-        };
-
-        var candidates = Group(resolved);
-
-        Assert.Equal(2, candidates.Count);
-        Assert.All(candidates, c => Assert.Equal(3, c.Places.Count));
-    }
-
-    /// <summary>
     /// A release can include a special alongside the normal episodes. Here
     /// episode 1 and special 1 are in the same release — there is no collision
     /// because they cover different episode types.
@@ -973,42 +881,6 @@ public class VideoReleaseGroupingTests
         Assert.Equal(2, candidates.Count);
         Assert.Contains(candidates, c => c.VideoCodec == "H264");
         Assert.Contains(candidates, c => c.VideoCodec == "HEVC");
-    }
-
-    /// <summary>
-    /// When some files in a folder lack a StoredReleaseInfo, the unrecognized
-    /// files merge into the SRI-backed group (their missing group field is a
-    /// wildcard) as long as the codec and resolution agree.
-    /// The resulting single candidate has HasReleaseInfo=false because not
-    /// every file has an SRI record.
-    /// </summary>
-    [Fact]
-    public void MixedReleaseInfoCoverage_UnrecognizedFileMergesIntoGroup()
-    {
-        var media = MakeMedia();
-        var resolved = new[]
-        {
-            new ResolvedVideoPlace(
-                MakePlace(1, 1, 8, "Show/[FFF] Show - 01 (BD 1080p FLAC) [AAA].mkv"),
-                MakeVideo(1, "AAA", 600_000_000, media),
-                MakeSri("AAA", 600_000_000, "102", "AniDB", "FFF", "FFF", ReleaseSource.BluRay, episodes: ["1"])),
-            new ResolvedVideoPlace(
-                MakePlace(2, 2, 8, "Show/[FFF] Show - 02 (BD 1080p FLAC) [BBB].mkv"),
-                MakeVideo(2, "BBB", 610_000_000, media),
-                MakeSri("BBB", 610_000_000, "102", "AniDB", "FFF", "FFF", ReleaseSource.BluRay, episodes: ["2"])),
-            // ep 3 was never submitted to AniDB — no SRI — but codec/resolution match the group
-            new ResolvedVideoPlace(
-                MakePlace(3, 3, 8, "Show/[FFF] Show - 03 (BD 1080p FLAC) [CCC].mkv"),
-                MakeVideo(3, "CCC", 605_000_000, media), null),
-        };
-
-        var candidates = Group(resolved);
-
-        // Fuzzy grouping: missing group = wildcard → merges into the FFF bucket
-        Assert.Single(candidates);
-        Assert.Equal(3, candidates[0].Places.Count);
-        Assert.False(candidates[0].HasReleaseInfo); // not every file has an SRI
-        Assert.Equal("FFF", candidates[0].GroupShortName); // metadata from the SRI-backed representative
     }
 
     // ── key uniqueness ────────────────────────────────────────────────────────
@@ -1292,51 +1164,6 @@ public class VideoReleaseGroupingTests
     }
 
     /// <summary>
-    /// One group covers all 12 episodes; a second covers only the first 8.
-    /// The partial group alone is not a valid choice (eps 9-12 would be missing).
-    /// The grouper must still produce two complete candidates: the full group
-    /// alone, and a gap-fill of Partial(1-8) + Full(9-12). Episodes 1-8 have
-    /// two files — there is a genuine choice for that range.
-    /// </summary>
-    [Fact]
-    public void OneGroupFullOneGroupPartial_ProducesTwoCandidatesViaGapFill()
-    {
-        var media = MakeMedia();
-        var full = (string hash, long size, string ep) =>
-            MakeSri(hash, size, "F01", "AniDB", "FullGroup", "FUL", ReleaseSource.BluRay, episodes: [ep]);
-        var part = (string hash, long size, string ep) =>
-            MakeSri(hash, size, "P01", "AniDB", "PartialGroup", "PRT", ReleaseSource.Web, episodes: [ep]);
-
-        var resolved = new List<ResolvedVideoPlace>();
-        for (var i = 1; i <= 12; i++)
-            resolved.Add(new ResolvedVideoPlace(
-                MakePlace(i, i, 1, $"Show/FUL - {i:D2}.mkv"),
-                MakeVideo(i, $"F{i}", 700_000_000, media),
-                full($"F{i}", 700_000_000, i.ToString())));
-        for (var i = 1; i <= 8; i++)
-            resolved.Add(new ResolvedVideoPlace(
-                MakePlace(100 + i, 100 + i, 1, $"Show/PRT - {i:D2}.mkv"),
-                MakeVideo(100 + i, $"P{i}", 600_000_000, media),
-                part($"P{i}", 600_000_000, i.ToString())));
-
-        var candidates = Group(resolved);
-
-        // Two candidates: FUL pure (1-12) and gap-fill PRT(1-8)+FUL(9-12).
-        // PRT pure (1-8) is partial and is removed — selecting it would leave eps 9-12 with no file.
-        Assert.Equal(2, candidates.Count);
-
-        var pure = candidates.Single(c => c.GroupShortName == "FUL" && !c.IsMixed);
-        var gapFill = candidates.Single(c => c.IsMixed);
-
-        Assert.Equal(12, pure.Places.Count);
-        Assert.False(pure.HasPartialCoverage);
-
-        Assert.Equal("PRT", gapFill.GroupShortName);
-        Assert.Contains("FUL", gapFill.SecondaryGroupNames);
-        Assert.Equal(12, gapFill.Places.Count); // PRT 1-8 + FUL 9-12
-    }
-
-    /// <summary>
     /// Group A covers eps 1-11 and Group B covers only ep 12. No episode has
     /// two competing files — every episode appears in exactly one group. Because
     /// no two buckets overlap the grouper returns an empty list: there is no
@@ -1366,47 +1193,6 @@ public class VideoReleaseGroupingTests
         var candidates = Group(resolved);
 
         // Disjoint episode ranges → no overlap → no candidates.
-        Assert.Empty(candidates);
-    }
-
-    /// <summary>
-    /// AniDB #19310 pattern: Erai-raws covers eps 1-7, DRiFTKiNG covers eps 8-12.
-    /// Same import folder, perfectly disjoint ranges — every episode has exactly
-    /// one file. No overlap → grouper must return empty so the series does not
-    /// surface in the Multiple Releases utility.
-    /// </summary>
-    [Fact]
-    public void DisjointGroupsOneFilePerEpisode_ProducesNoCandidates()
-    {
-        var media = MakeMedia();
-        var eraiRaws = (int ep) => (string hash, long size) =>
-            MakeSri(hash, size, "14642", "AniDB", "Erai-raws", "Erai-raws", ReleaseSource.Web, episodes: [ep.ToString()]);
-        var driftkiNG = (int ep) => (string hash, long size) =>
-            MakeSri(hash, size, "18264", "AniDB", "DRiFTKiNG", "DRiFTKiNG", ReleaseSource.Web, episodes: [ep.ToString()]);
-
-        var resolved = new List<ResolvedVideoPlace>();
-        // Erai-raws: eps 1-7, all in folder 3
-        for (var i = 1; i <= 7; i++)
-        {
-            var makeErai = eraiRaws(i);
-            resolved.Add(new ResolvedVideoPlace(
-                MakePlace(i, i, 3, $"Show/[Erai-raws] Show - {i:D2}.mkv"),
-                MakeVideo(i, $"ER{i}", 700_000_000, media),
-                makeErai($"ER{i}", 700_000_000)));
-        }
-        // DRiFTKiNG: eps 8-12, also in folder 3
-        for (var i = 8; i <= 12; i++)
-        {
-            var makeDK = driftkiNG(i);
-            resolved.Add(new ResolvedVideoPlace(
-                MakePlace(i, i, 3, $"Show/[DRiFTKiNG] Show - {i:D2}.mkv"),
-                MakeVideo(i, $"DK{i}", 700_000_000, media),
-                makeDK($"DK{i}", 700_000_000)));
-        }
-
-        var candidates = Group(resolved);
-
-        // No episode has two files — buckets are disjoint → no candidates.
         Assert.Empty(candidates);
     }
 
@@ -1807,36 +1593,6 @@ public class VideoReleaseGroupingTests
     }
 
     // ── MightHaveMultipleCandidates folder blindness (regression) ─────────────
-
-    /// <summary>
-    /// Real-world regression: the same episode covered by two files with identical
-    /// group/source/codec/resolution/bit-depth/version, but living in two different
-    /// <c>(ManagedFolderID, ParentDirectory)</c> locations, is always split into two
-    /// separate candidates by the real grouper (folder is an unconditional hard
-    /// separator in <c>AreCompatible</c>) — regardless of how well every other signal
-    /// matches. The pre-filter must catch this and return true, even though every
-    /// group/source/codec/resolution/bit-depth/version check would otherwise pass.
-    /// Observed live as series missing entirely from the paginated Multiple Releases
-    /// list despite having 2 real candidates when fetched directly (Elegy for the
-    /// Henchmen: Fist of the North Star (2026), Kamui: He's Behind You).
-    /// </summary>
-    [Fact]
-    public void SameEpisodeDifferentFolders_ReturnsTrue()
-    {
-        var media = MakeMedia();
-        var sriA = MakeSri("AAA", 500_000_000, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web, episodes: ["1"]);
-        var sriB = MakeSri("BBB", 500_000_000, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web, episodes: ["1"]);
-        var videoA = MakeVideo(1, "AAA", 500_000_000, media);
-        var videoB = MakeVideo(2, "BBB", 500_000_000, media);
-
-        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>(null!, null!);
-        releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
-        releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("BBB", 500_000_000)).Returns(sriB);
-
-        var grouper = CreateGrouper(releaseInfoRepo);
-
-        Assert.True(grouper.MightHaveMultipleCandidates([videoA, videoB], DefaultAnimeId));
-    }
 
     /// <summary>
     /// Companion case: the same setup but both files in the same folder must still

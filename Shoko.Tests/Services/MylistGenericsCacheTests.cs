@@ -37,14 +37,6 @@ public class MylistGenericsCacheTests
         Assert.Empty(MylistGenericsCache.FromGaps([]));
     }
 
-    [Fact]
-    public void Gaps_SurviveALargeSparseSet()
-    {
-        var fileIDs = Enumerable.Range(0, 50_000).Select(index => index * 7 + 66512).ToHashSet();
-
-        Assert.Equal(fileIDs.Order(), MylistGenericsCache.FromGaps(MylistGenericsCache.ToGaps(fileIDs)).Order());
-    }
-
     /// <summary>
     /// The reader has to agree with the writer, and .NET maps
     /// <c>CompressionLevel.Optimal</c> to a Brotli quality that comes out

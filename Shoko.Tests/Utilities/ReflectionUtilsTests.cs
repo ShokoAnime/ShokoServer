@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Moq;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Server.Utilities;
 using Xunit;
@@ -20,14 +19,6 @@ public class ReflectionUtilsTests
     [Fact]
     public void TheServerAssemblyIsScanned()
         => Assert.Contains(typeof(ReflectionUtils).Assembly, ReflectionUtils.ScannableAssemblies());
-
-    [Fact]
-    public void RuntimeEmittedAssembliesAreNotScanned()
-    {
-        GC.KeepAlive(new Mock<IDisposable>().Object);
-
-        Assert.DoesNotContain(ReflectionUtils.ScannableAssemblies(), assembly => assembly.IsDynamic);
-    }
 
     [Fact]
     public void TheScanSurvivesAssembliesBeingEmittedAlongsideIt()

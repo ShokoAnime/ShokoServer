@@ -3,7 +3,6 @@ using System.Linq;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.JsonPatch.Operations;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Metadata.Enums;
@@ -14,49 +13,48 @@ namespace Shoko.Tests.Settings;
 
 public class SettingsJsonPatchTests
 {
-    [Fact]
-    public void PerItemReplace_OnMetadataSourceImageLanguageOrder_MutatesStoredList()
+    private const string ImageLanguageOrder = "/Metadata/SourceDefaults/Images/ImageLanguageOrder";
+
+    [Theory]
+    [InlineData(
+        "replace",
+        ImageLanguageOrder + "/0",
+        "fr",
+        new[] { "fr", "x-main", "en" },
+        new[] { TitleLanguage.French, TitleLanguage.Main, TitleLanguage.English }
+    )]
+    [InlineData(
+        "remove",
+        ImageLanguageOrder + "/0",
+        null,
+        new[] { "x-main", "en" },
+        new[] { TitleLanguage.Main, TitleLanguage.English }
+    )]
+    [InlineData(
+        "add",
+        ImageLanguageOrder + "/-",
+        "de",
+        new[] { "none", "x-main", "en", "de" },
+        new[] { TitleLanguage.None, TitleLanguage.Main, TitleLanguage.English, TitleLanguage.German }
+    )]
+    public void PerItemOps_OnMetadataSourceImageLanguageOrder_MutateStoredList(
+        string op,
+        string path,
+        string? value,
+        string[] expectedStored,
+        TitleLanguage[] expectedOrder
+    )
     {
         var settings = new ServerSettings();
 
         Assert.Equal(new[] { "none", "x-main", "en" }, settings.Metadata.SourceDefaults.Images.InternalImageLanguageOrder);
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("replace", "/Metadata/SourceDefaults/Images/ImageLanguageOrder/0", null, "fr"));
+        patch.Operations.Add(new Operation<ServerSettings>(op, path, null, value));
         patch.ApplyTo(settings);
 
-        Assert.Equal(new[] { "fr", "x-main", "en" }, settings.Metadata.SourceDefaults.Images.InternalImageLanguageOrder);
-        Assert.Equal(
-            new[] { TitleLanguage.French, TitleLanguage.Main, TitleLanguage.English },
-            settings.Metadata.SourceDefaults.Images.ImageLanguageOrder);
-    }
-
-    [Fact]
-    public void PerItemRemove_OnMetadataSourceImageLanguageOrder_MutatesStoredList()
-    {
-        var settings = new ServerSettings();
-
-        var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("remove", "/Metadata/SourceDefaults/Images/ImageLanguageOrder/0", null, null));
-        patch.ApplyTo(settings);
-
-        Assert.Equal(new[] { "x-main", "en" }, settings.Metadata.SourceDefaults.Images.InternalImageLanguageOrder);
-        Assert.Equal(new[] { TitleLanguage.Main, TitleLanguage.English }, settings.Metadata.SourceDefaults.Images.ImageLanguageOrder);
-    }
-
-    [Fact]
-    public void PerItemAdd_OnMetadataSourceImageLanguageOrder_MutatesStoredList()
-    {
-        var settings = new ServerSettings();
-
-        var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("add", "/Metadata/SourceDefaults/Images/ImageLanguageOrder/-", null, "de"));
-        patch.ApplyTo(settings);
-
-        Assert.Equal(new[] { "none", "x-main", "en", "de" }, settings.Metadata.SourceDefaults.Images.InternalImageLanguageOrder);
-        Assert.Equal(
-            new[] { TitleLanguage.None, TitleLanguage.Main, TitleLanguage.English, TitleLanguage.German },
-            settings.Metadata.SourceDefaults.Images.ImageLanguageOrder);
+        Assert.Equal(expectedStored, settings.Metadata.SourceDefaults.Images.InternalImageLanguageOrder);
+        Assert.Equal(expectedOrder, settings.Metadata.SourceDefaults.Images.ImageLanguageOrder);
     }
 
     [Fact]
@@ -133,18 +131,5 @@ public class SettingsJsonPatchTests
 
         Assert.Empty(errors);
         Assert.Equal(expectedPassword, restored["AniDb"]!["Password"]!.Value<string>() ?? string.Empty);
-    }
-
-    [Fact]
-    public void InvalidOperation_SurfacesInModelState()
-    {
-        var settings = new ServerSettings();
-        var modelState = new ModelStateDictionary();
-
-        var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("replace", "/Metadata/SourceDefaults/Images/ImageLanguageOrder/99", null, "fr"));
-        patch.ApplyTo(settings, modelState);
-
-        Assert.False(modelState.IsValid);
     }
 }

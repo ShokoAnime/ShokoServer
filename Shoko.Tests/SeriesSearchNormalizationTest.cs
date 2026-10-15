@@ -35,12 +35,12 @@ public class SeriesSearchNormalizationTest
         new object[] { "gintama", "Ｇｉｎtama", true },
     };
 
-    [Theory, MemberData(nameof(FullwidthAsciiData))]
-    public void FullwidthAsciiNormalization(string title, string query, bool expectMatch)
-        => Assert.Equal(expectMatch, title.FuzzyMatch(query));
-
-    [Theory, MemberData(nameof(HalfwidthKatakanaData))]
-    public void HalfwidthKatakanaNormalization(string title, string query, bool expectMatch)
+    [Theory]
+    [MemberData(nameof(FullwidthAsciiData))]
+    [MemberData(nameof(HalfwidthKatakanaData))]
+    [MemberData(nameof(MixedData))]
+    [MemberData(nameof(EllipsisData))]
+    public void FuzzyMatchNormalization(string title, string query, bool expectMatch)
         => Assert.Equal(expectMatch, title.FuzzyMatch(query));
 
     public static IEnumerable<object[]> EllipsisData => new List<object[]>
@@ -52,14 +52,6 @@ public class SeriesSearchNormalizationTest
         // Unrelated title should not match
         new object[] { "Naruto…", "Fullmetal Alchemist...", false },
     };
-
-    [Theory, MemberData(nameof(MixedData))]
-    public void MixedWidthNormalization(string title, string query, bool expectMatch)
-        => Assert.Equal(expectMatch, title.FuzzyMatch(query));
-
-    [Theory, MemberData(nameof(EllipsisData))]
-    public void EllipsisNormalization(string title, string query, bool expectMatch)
-        => Assert.Equal(expectMatch, title.FuzzyMatch(query));
 
     public static IEnumerable<object[]> TildeData => new List<object[]>
     {
@@ -75,8 +67,10 @@ public class SeriesSearchNormalizationTest
     };
 
     // Via NormalizeForIndex (what .Search() uses), not FuzzyMatch — its ForceASCII pipeline already deletes '~'/'|', so it'd pass regardless of this fix.
-    [Theory, MemberData(nameof(TildeData))]
-    public void TildeNormalization(string title, string query, bool expectMatch)
+    [Theory]
+    [MemberData(nameof(TildeData))]
+    [MemberData(nameof(PipeData))]
+    public void IndexNormalization(string title, string query, bool expectMatch)
         => Assert.Equal(expectMatch, SeriesSearch.NormalizeForIndex(title) == SeriesSearch.NormalizeForIndex(query));
 
     public static IEnumerable<object[]> PipeData => new List<object[]>
@@ -93,8 +87,4 @@ public class SeriesSearchNormalizationTest
         // "Naruto | Shippuden" vs AniDB show "Naruto: Shippuden").
         new object[] { "Naruto | Shippuden", "Naruto: Shippuden", true },
     };
-
-    [Theory, MemberData(nameof(PipeData))]
-    public void PipeNormalization(string title, string query, bool expectMatch)
-        => Assert.Equal(expectMatch, SeriesSearch.NormalizeForIndex(title) == SeriesSearch.NormalizeForIndex(query));
 }

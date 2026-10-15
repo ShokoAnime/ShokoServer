@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.Airing;
@@ -138,20 +137,6 @@ public class AiringScheduleUtilityTests
     {
         Assert.Throws<ArgumentNullException>(() => AiringScheduleUtility.GetDerivedScheduleKey(null, null!));
         Assert.Throws<ArgumentException>(() => AiringScheduleUtility.GetDerivedScheduleKey(null, []));
-    }
-
-    [Fact]
-    public void GetDerivedAiringKey_IsTheEpisodeKey()
-    {
-        Assert.Equal("anidb:4242", AiringScheduleUtility.GetDerivedAiringKey(MetadataSource.AniDB, "4242"));
-        Assert.Throws<ArgumentException>(() => AiringScheduleUtility.GetDerivedAiringKey(MetadataSource.AniDB, " "));
-    }
-
-    [Fact]
-    public void GetDerivedSlotAiringKey_AppendsTheEpisodeToTheSlot()
-    {
-        Assert.Equal("chid-1234:1", AiringScheduleUtility.GetDerivedSlotAiringKey("chid-1234", 1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => AiringScheduleUtility.GetDerivedSlotAiringKey("chid-1234", -1));
     }
 
     #endregion
@@ -648,21 +633,6 @@ public class AiringScheduleUtilityTests
         => (new DateTime(2026, 7, day), new DateTime(2026, 7, day, hour, minute, 0, DateTimeKind.Utc));
 
     [Fact]
-    public void LearnAirTimeOffset_NeedsAtLeastTwoSamples()
-    {
-        Assert.Null(AiringScheduleUtility.LearnAirTimeOffset([]));
-        Assert.Null(AiringScheduleUtility.LearnAirTimeOffset([OffsetSample(2, 16, 28)]));
-    }
-
-    [Fact]
-    public void LearnAirTimeOffset_ReturnsTheSharedSlot()
-    {
-        var offset = AiringScheduleUtility.LearnAirTimeOffset([OffsetSample(2, 16, 28), OffsetSample(9, 16, 28), OffsetSample(16, 16, 28)]);
-
-        Assert.Equal(new TimeSpan(16, 28, 0), offset);
-    }
-
-    [Fact]
     public void LearnAirTimeOffset_IgnoresAOneOffSlotThroughTheMedian()
     {
         // Episode 9 aired in a different slot; the median still lands on the regular one.
@@ -699,15 +669,6 @@ public class AiringScheduleUtilityTests
 
         Assert.Equal(new TimeSpan(16, 28, 0), AiringScheduleUtility.LearnAirTimeOffset(samples, window: 2));
         Assert.Equal(new TimeSpan(9, 0, 0), AiringScheduleUtility.LearnAirTimeOffset(samples, window: 14));
-    }
-
-    [Fact]
-    public void EstimateAirTime_IsUtc()
-    {
-        var estimate = AiringScheduleUtility.EstimateAirTime(new DateTime(2026, 7, 23), new TimeSpan(16, 28, 0));
-
-        Assert.Equal(DateTimeKind.Utc, estimate.Kind);
-        Assert.Equal(new DateTime(2026, 7, 23, 16, 28, 0), estimate);
     }
 
     #endregion

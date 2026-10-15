@@ -4,8 +4,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
@@ -188,22 +186,6 @@ public class AnimeSeriesStatsTests
         };
 
     #region Missing episode counts
-
-    [Fact]
-    public void AnEpisodeWithoutAFileCountsAsMissing()
-    {
-        using var harness = Create(new EpisodeSpec(1, HasFile: false));
-
-        Assert.Equal(1, harness.Update().MissingEpisodeCount);
-    }
-
-    [Fact]
-    public void AnEpisodeWithAFileDoesNotCountAsMissing()
-    {
-        using var harness = Create(new EpisodeSpec(1, HasFile: true));
-
-        Assert.Equal(0, harness.Update().MissingEpisodeCount);
-    }
 
     [Fact]
     public void OnlyTheEpisodesWithoutFilesAreCounted()

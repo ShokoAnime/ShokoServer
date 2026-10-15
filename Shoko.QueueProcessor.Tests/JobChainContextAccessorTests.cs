@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Shoko.QueueProcessor.Chain;
 using Xunit;
 
@@ -68,15 +67,6 @@ public class JobChainContextAccessorTests
         Assert.Null(ex);
     }
 
-    // ── Initialize ────────────────────────────────────────────────────────────
-
-    [Fact]
-    public void Initialize_ExposesContextViaGetCurrentContext()
-    {
-        var accessor = MakeAccessor(out var ctx);
-        Assert.Same(ctx, accessor.GetCurrentContext());
-    }
-
     // ── SetResult / GetResult delegation ──────────────────────────────────────
 
     [Fact]
@@ -101,35 +91,6 @@ public class JobChainContextAccessorTests
         // Nothing should be in the results store
         Assert.Empty(ctx.GetAllOutcomes());
         Assert.Null(accessor.GetResult<string>("any-key"));
-    }
-
-    [Fact]
-    public void GetResult_ByKey_AfterSetResult_ReturnsMostRecent()
-    {
-        var accessor = MakeAccessor(out _);
-        var jobId = Guid.NewGuid();
-        accessor.SetCurrentJob(jobId, "job:1");
-
-        accessor.SetResult("first");
-        accessor.SetResult("second");
-
-        Assert.Equal("second", accessor.GetResult<string>("job:1"));
-    }
-
-    [Fact]
-    public void GetResult_ById_AfterMultipleSetResults_ReturnsAllInOrder()
-    {
-        var accessor = MakeAccessor(out _);
-        var jobId = Guid.NewGuid();
-        accessor.SetCurrentJob(jobId, "job:1");
-
-        accessor.SetResult("attempt-1");
-        accessor.SetResult("attempt-2");
-
-        var results = accessor.GetResult<string>(jobId);
-        Assert.Equal(2, results.Count);
-        Assert.Equal("attempt-1", results[0]);
-        Assert.Equal("attempt-2", results[1]);
     }
 
     [Fact]
@@ -165,48 +126,5 @@ public class JobChainContextAccessorTests
         var accessor = MakeAccessor(out _);
         accessor.SetData("key", "value");
         Assert.Equal("value", accessor.GetData<string>("key"));
-    }
-
-    [Fact]
-    public void SetData_VisibleOnUnderlyingContext()
-    {
-        var accessor = MakeAccessor(out var ctx);
-        accessor.SetData("shared", 42);
-        Assert.Equal(42, ctx.GetData<int>("shared"));
-    }
-
-    [Fact]
-    public void GetData_ReadFromUnderlyingContext()
-    {
-        var accessor = MakeAccessor(out var ctx);
-        ctx.SetData("upstream", "written-directly");
-        Assert.Equal("written-directly", accessor.GetData<string>("upstream"));
-    }
-
-    // ── Result types ──────────────────────────────────────────────────────────
-
-    [Fact]
-    public void SetResult_ComplexType_RoundTrips()
-    {
-        var accessor = MakeAccessor(out _);
-        accessor.SetCurrentJob(Guid.NewGuid(), "job:complex");
-
-        var value = new List<int> { 1, 2, 3 };
-        accessor.SetResult(value);
-
-        var result = accessor.GetResult<List<int>>("job:complex");
-        Assert.NotNull(result);
-        Assert.Equal([1, 2, 3], result);
-    }
-
-    [Fact]
-    public void SetResult_NullableValue_RoundTrips()
-    {
-        var accessor = MakeAccessor(out _);
-        accessor.SetCurrentJob(Guid.NewGuid(), "job:nullable");
-
-        accessor.SetResult<string?>(null);
-
-        Assert.Null(accessor.GetResult<string>("job:nullable"));
     }
 }

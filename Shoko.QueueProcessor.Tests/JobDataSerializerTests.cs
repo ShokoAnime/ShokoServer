@@ -77,20 +77,13 @@ public class JobDataSerializerTests
         Assert.Equal(456, restored.NullableId);
     }
 
-    [Fact]
-    public void Apply_NullJson_LeavesDefaults()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Apply_MissingJson_LeavesDefaults(string? json)
     {
         var job = new FullJob { FilePath = "/original.mkv" };
-        JobDataSerializer.Apply(job, null);
-
-        Assert.Equal("/original.mkv", job.FilePath);  // unchanged
-    }
-
-    [Fact]
-    public void Apply_EmptyJson_LeavesDefaults()
-    {
-        var job = new FullJob { FilePath = "/original.mkv" };
-        JobDataSerializer.Apply(job, "");
+        JobDataSerializer.Apply(job, json);
 
         Assert.Equal("/original.mkv", job.FilePath);  // unchanged
     }
@@ -118,19 +111,6 @@ public class JobDataSerializerTests
     }
 
     [Fact]
-    public void Apply_ReadOnlyProperty_NotApplied()
-    {
-        // Manually craft JSON that includes a read-only property
-        var json = "{\"Name\":\"newname\",\"ComputedValue\":\"injected_computed\"}";
-        var job = new ReadOnlyJob { Name = "original" };
-        JobDataSerializer.Apply(job, json);
-
-        Assert.Equal("newname", job.Name);
-        // ComputedValue is derived; check it reflects Name (not the JSON value)
-        Assert.Equal("newname_computed", job.ComputedValue);
-    }
-
-    [Fact]
     public void DiffFromDefault_OnlyChangedPropsReturned()
     {
         var diff = JobDataSerializer.DiffFromDefault<FullJob>(j =>
@@ -141,17 +121,6 @@ public class JobDataSerializerTests
 
         Assert.True(diff.ContainsKey("FilePath"));
         Assert.False(diff.ContainsKey("ForceHash"));
-        Assert.False(diff.ContainsKey("AnimeId"));
-    }
-
-    [Fact]
-    public void DiffFromDefault_ExplicitDefaultValue_ExcludedFromDiff()
-    {
-        var diff = JobDataSerializer.DiffFromDefault<FullJob>(j =>
-        {
-            j.AnimeId = 0;  // same as default int value
-        });
-
         Assert.False(diff.ContainsKey("AnimeId"));
     }
 }

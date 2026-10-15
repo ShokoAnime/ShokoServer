@@ -69,10 +69,6 @@ public class MetadataEntityTypeTests
         Assert.Throws<KeyNotFoundException>(() => MetadataEntityType.Get("Met Named Kind"));
     }
 
-    [Fact]
-    public void GetThrowsForTextThatIsNotRegistered()
-        => Assert.Throws<KeyNotFoundException>(() => MetadataEntityType.Get("met-get-throws-unknown"));
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]

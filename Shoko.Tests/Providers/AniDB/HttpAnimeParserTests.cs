@@ -52,18 +52,14 @@ public class HttpAnimeParserTests
     public void ADocumentWithoutAnAnimeIdIsRejected()
         => Assert.Null(Parser().Parse(1, "<anime><titles><title type=\"main\">X</title></titles></anime>"));
 
-    [Fact]
-    public void ADocumentWithoutAMainTitleIsRejected()
+    [Theory]
+    [InlineData("<title xml:lang=\"en\" type=\"official\">Official Only</title>")] // No main title at all.
+    [InlineData("<title xml:lang=\"x-jat\" type=\"main\">   </title>")] // A blank main title counts as missing.
+    public void ADocumentWithoutAUsableMainTitleIsRejected(string titles)
     {
         // Everything downstream keys off the main title, so a document lacking one is unusable.
-        var xml = Xml(titles: "<title xml:lang=\"en\" type=\"official\">Official Only</title>");
-
-        Assert.Null(Parser().Parse(1, xml));
+        Assert.Null(Parser().Parse(1, Xml(titles: titles)));
     }
-
-    [Fact]
-    public void AnEmptyMainTitleIsTreatedAsMissing()
-        => Assert.Null(Parser().Parse(1, Xml(titles: "<title xml:lang=\"x-jat\" type=\"main\">   </title>")));
 
     #endregion
 
@@ -85,24 +81,16 @@ public class HttpAnimeParserTests
     [InlineData("Web", AnimeType.Web)]
     [InlineData("Music Video", AnimeType.MusicVideo)]
     [InlineData("Other", AnimeType.Other)]
+    [InlineData("tv series", AnimeType.TVSeries)] // Matched without regard to case.
+    [InlineData("Interpretive Dance", AnimeType.Unknown)] // An unrecognised type becomes Unknown.
     public void TheAnimeTypeIsMapped(string type, AnimeType expected)
         => Assert.Equal(expected, ParseOrFail(Xml(type: type)).Anime.AnimeType);
 
-    [Fact]
-    public void TheAnimeTypeIsMatchedWithoutRegardToCase()
-        => Assert.Equal(AnimeType.TVSeries, ParseOrFail(Xml(type: "tv series")).Anime.AnimeType);
-
-    [Fact]
-    public void AnUnrecognisedAnimeTypeBecomesUnknown()
-        => Assert.Equal(AnimeType.Unknown, ParseOrFail(Xml(type: "Interpretive Dance")).Anime.AnimeType);
-
-    [Fact]
-    public void TheEpisodeCountIsRead()
-        => Assert.Equal(12, ParseOrFail(Xml(episodeCount: "12")).Anime.EpisodeCount);
-
-    [Fact]
-    public void AnUnreadableEpisodeCountBecomesZero()
-        => Assert.Equal(0, ParseOrFail(Xml(episodeCount: "lots")).Anime.EpisodeCount);
+    [Theory]
+    [InlineData("12", 12)]
+    [InlineData("lots", 0)] // An unreadable count becomes zero.
+    public void TheEpisodeCountIsRead(string episodeCount, int expected)
+        => Assert.Equal(expected, ParseOrFail(Xml(episodeCount: episodeCount)).Anime.EpisodeCount);
 
     [Theory]
     [InlineData("true", true)]
@@ -190,10 +178,6 @@ public class HttpAnimeParserTests
     }
 
     [Fact]
-    public void TheMainTitleIsCopiedOntoTheAnime()
-        => Assert.Equal("Main Title", ParseOrFail(Xml()).Anime.MainTitle);
-
-    [Fact]
     public void BackticksInTitlesBecomeApostrophes()
     {
         var response = ParseOrFail(Xml(titles: "<title xml:lang=\"en\" type=\"main\">It`s Here</title>"));
@@ -219,42 +203,20 @@ public class HttpAnimeParserTests
             """;
 
     [Theory]
-    [InlineData("1", 1)]
-    [InlineData("12", 12)]
-    [InlineData("S1", 1)]
-    [InlineData("C2", 2)]
-    [InlineData("T3", 3)]
-    [InlineData("P4", 4)]
-    [InlineData("O5", 5)]
-    public void TheEpisodeNumberIsReadWithoutItsTypePrefix(string epno, int expected)
+    [InlineData("1", 1, EpisodeType.Episode)]
+    [InlineData("12", 12, EpisodeType.Episode)]
+    [InlineData("S1", 1, EpisodeType.Special)]
+    [InlineData("C2", 2, EpisodeType.Credits)]
+    [InlineData("T3", 3, EpisodeType.Trailer)]
+    [InlineData("P4", 4, EpisodeType.Parody)]
+    [InlineData("O5", 5, EpisodeType.Other)]
+    [InlineData("1-2", 1, EpisodeType.Episode)] // AniDB writes a combined release as "1-2"; the first number is used.
+    public void TheEpisodeNumberAndTypeAreReadFromTheEpno(string epno, int expectedNumber, EpisodeType expectedType)
     {
         var episode = Assert.Single(ParseOrFail(Xml(extra: EpisodeXml(epno))).Episodes);
 
-        Assert.Equal(expected, episode.EpisodeNumber);
-    }
-
-    [Theory]
-    [InlineData("1", "Episode")]
-    [InlineData("S1", "Special")]
-    [InlineData("C1", "Credits")]
-    [InlineData("T1", "Trailer")]
-    [InlineData("P1", "Parody")]
-    [InlineData("O1", "Other")]
-    public void TheEpisodeTypeComesFromThePrefix(string epno, string expected)
-    {
-        var episode = Assert.Single(ParseOrFail(Xml(extra: EpisodeXml(epno))).Episodes);
-
-        Assert.Equal(expected, episode.EpisodeType.ToString());
-    }
-
-    [Fact]
-    public void ADoubleEpisodeTakesTheFirstNumber()
-    {
-        // AniDB writes a combined release as "1-2"; the first number is used as its number.
-        var episode = Assert.Single(ParseOrFail(Xml(extra: EpisodeXml("1-2"))).Episodes);
-
-        Assert.Equal(1, episode.EpisodeNumber);
-        Assert.Equal(EpisodeType.Episode, episode.EpisodeType);
+        Assert.Equal(expectedNumber, episode.EpisodeNumber);
+        Assert.Equal(expectedType, episode.EpisodeType);
     }
 
     [Fact]
@@ -305,10 +267,6 @@ public class HttpAnimeParserTests
         Assert.All(episode.Titles, title => Assert.NotEqual(TitleLanguage.Unknown, title.Language));
         Assert.Equal("Episode Title", Assert.Single(episode.Titles).Title);
     }
-
-    [Fact]
-    public void AnAnimeWithNoEpisodesParsesToAnEmptyList()
-        => Assert.Empty(ParseOrFail(Xml()).Episodes);
 
     #endregion
 

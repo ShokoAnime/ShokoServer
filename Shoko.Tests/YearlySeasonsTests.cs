@@ -278,15 +278,12 @@ public class YearlySeasonsTests
     public void EarlyPremiere_OneEpisodeThenWeekly_StaysPut()
         => Assert.Equal((2022, YearlySeason.Summer), StartOf(AnimeType.Web, [.. Weekly(new DateOnly(2022, 9, 14), 5), new(2022, 10, 12)]));
 
-    [Fact]
-    public void BatchDrop_TwelveEpisodesAlone_TakesNoLeadIn()
-        => Assert.Equal((2026, YearlySeason.Summer), StartOf(AnimeType.TV, Enumerable.Repeat(new DateOnly(2026, 9, 21), 12)));
-
     [Theory]
-    [InlineData(4, 2026, YearlySeason.Winter)]
-    [InlineData(5, 2025, YearlySeason.Fall)]
-    public void BatchDrop_NeedsFiveEpisodes(int count, int year, YearlySeason season)
-        => Assert.Equal((year, season), StartOf(AnimeType.TV, Enumerable.Repeat(new DateOnly(2025, 12, 28), count)));
+    [InlineData("2026-09-21", 12, 2026, YearlySeason.Summer)] // twelve episodes alone take no lead-in
+    [InlineData("2025-12-28", 4, 2026, YearlySeason.Winter)] // a lead-in needs five episodes
+    [InlineData("2025-12-28", 5, 2025, YearlySeason.Fall)]
+    public void BatchDrop_LeadInDependsOnTheEpisodeCount(string airDate, int count, int expectedYear, YearlySeason expectedSeason)
+        => Assert.Equal((expectedYear, expectedSeason), StartOf(AnimeType.TV, Enumerable.Repeat(DateOnly.ParseExact(airDate, "yyyy-MM-dd"), count)));
 
     #endregion
 
@@ -348,30 +345,24 @@ public class YearlySeasonsTests
         => new() { AirDate = airDate, EndDate = endDate, AnimeType = animeType };
 
     [Theory]
-    [InlineData(AnimeType.Movie)]
-    [InlineData(AnimeType.OVA)]
-    [InlineData(AnimeType.Web)]
-    [InlineData(AnimeType.Other)]
-    [InlineData(AnimeType.MusicVideo)]
-    public void EffectiveEndDateForSeasons_NullEndDate_FallsBackToAirDateForNonBroadcastTypes(AnimeType animeType)
+    // AniDB routinely leaves EndDate unset for these types even long after they've fully released, so a
+    // null EndDate here means "single-day release", not "still airing".
+    [InlineData(AnimeType.Movie, true)]
+    [InlineData(AnimeType.OVA, true)]
+    [InlineData(AnimeType.Web, true)]
+    [InlineData(AnimeType.Other, true)]
+    [InlineData(AnimeType.MusicVideo, true)]
+    // Broadcast types stay open-ended.
+    [InlineData(AnimeType.TV, false)]
+    [InlineData(AnimeType.TVSpecial, false)]
+    [InlineData(AnimeType.Unknown, false)]
+    public void EffectiveEndDateForSeasons_NullEndDate_FallsBackToAirDateOnlyForNonBroadcastTypes(AnimeType animeType, bool fallsBackToAirDate)
     {
-        // AniDB routinely leaves EndDate unset for these types even long after they've fully released, so a
-        // null EndDate here means "single-day release", not "still airing".
         var airDate = new PartialDateOnly(2024, 3, 29);
         var anime = MakeAnime(airDate, null, animeType);
 
-        Assert.Equal(airDate, anime.EffectiveEndDateForSeasons);
-    }
-
-    [Theory]
-    [InlineData(AnimeType.TV)]
-    [InlineData(AnimeType.TVSpecial)]
-    [InlineData(AnimeType.Unknown)]
-    public void EffectiveEndDateForSeasons_NullEndDate_StaysOpenEndedForBroadcastTypes(AnimeType animeType)
-    {
-        var anime = MakeAnime(new PartialDateOnly(2024, 3, 29), null, animeType);
-
-        Assert.Null(anime.EffectiveEndDateForSeasons);
+        PartialDateOnly? expected = fallsBackToAirDate ? airDate : null;
+        Assert.Equal(expected, anime.EffectiveEndDateForSeasons);
     }
 
     [Fact]

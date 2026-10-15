@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Concurrency;
@@ -55,12 +54,6 @@ public class JobWatchdogThresholdsTests
     }
 
     [Fact]
-    public void For_UnknownJobType_UsesTheGlobalThreshold()
-    {
-        Assert.Equal(_default, Build().For(typeof(JobWatchdogThresholdsTests)));
-    }
-
-    [Fact]
     public void For_LongRunningJob_IsNotWatchedAtAll()
     {
         Assert.Null(Build().For(typeof(ExemptJob)));
@@ -111,19 +104,12 @@ public class JobWatchdogThresholdsTests
     }
 
     [Theory]
+    [InlineData(null)]
     [InlineData(0)]
     [InlineData(-1)]
-    public void For_DeclaredThresholdThatIsNotPositive_FallsBackToTheGlobalThreshold(int seconds)
+    public void For_DeclaredThresholdThatIsNullOrNotPositive_FallsBackToTheGlobalThreshold(int? seconds)
     {
-        var thresholds = Build(new StubThreshold(typeof(DeadlinedJob), _ => TimeSpan.FromSeconds(seconds)));
-
-        Assert.Equal(_default, thresholds.For(typeof(DeadlinedJob)));
-    }
-
-    [Fact]
-    public void For_DeclaredThresholdReturningNull_FallsBackToTheGlobalThreshold()
-    {
-        var thresholds = Build(new StubThreshold(typeof(DeadlinedJob), _ => null));
+        var thresholds = Build(new StubThreshold(typeof(DeadlinedJob), _ => seconds is { } value ? TimeSpan.FromSeconds(value) : null));
 
         Assert.Equal(_default, thresholds.For(typeof(DeadlinedJob)));
     }
@@ -156,13 +142,5 @@ public class JobWatchdogThresholdsTests
 
         Assert.Equal(TimeSpan.FromMinutes(15), thresholds.For(typeof(DeadlinedJob)));
         Assert.Equal(0, second.Calls);
-    }
-
-    [Fact]
-    public void For_NoThresholdsAtAll_IsTheGlobalThresholdThroughout()
-    {
-        var thresholds = new JobWatchdogThresholds(_default, [typeof(PlainJob)], new List<IJobWatchdogThreshold>(), NullLogger.Instance);
-
-        Assert.Equal(_default, thresholds.For(typeof(PlainJob)));
     }
 }

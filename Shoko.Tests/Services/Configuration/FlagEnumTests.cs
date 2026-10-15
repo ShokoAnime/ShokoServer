@@ -127,6 +127,7 @@ public class FlagEnumTests
     [Theory]
     [InlineData(typeof(ListOfFlagsConfiguration), "A collection cannot hold another collection directly")]
     [InlineData(typeof(EmptyFlagsConfiguration), "has no member with a single bit set")]
+    [InlineData(typeof(MismatchedOptionsConfiguration), "rather than a collection of Access")] // options of another type
     public void Generation_RefusesAShapeItCannotRender(Type type, string fault)
     {
         var exception = Assert.Throws<NotSupportedException>(() => TestSchemaGenerator.Create().GetSchemaForType(type));
@@ -190,14 +191,6 @@ public class FlagEnumTests
         );
 
         Assert.Equal([("Read", "Read"), ("run", "Execute")], options.Select(x => (x.Value!.Value<string>(), x.Label)));
-    }
-
-    [Fact]
-    public void Options_OfAnotherTypeAreRefused()
-    {
-        var exception = Assert.Throws<NotSupportedException>(() => TestSchemaGenerator.Create().GetSchemaForType(typeof(MismatchedOptionsConfiguration)));
-
-        Assert.Contains("rather than a collection of Access", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

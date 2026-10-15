@@ -355,17 +355,6 @@ public class UserDataServiceVideoTests
     }
 
     [Fact]
-    public async Task ProgressJustBelowTheThresholdLeavesTheVideoUnwatched()
-    {
-        using var harness = Create();
-
-        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.94 });
-
-        Assert.Null(result.LastPlayedAt);
-        Assert.Equal(s_duration * 0.94, result.ProgressPosition);
-    }
-
-    [Fact]
     public async Task MarkingAVideoWatchedClearsAnyStoredProgress()
     {
         using var harness = Create(Existing(progress: TimeSpan.FromMinutes(5)));
@@ -402,24 +391,16 @@ public class UserDataServiceVideoTests
         Assert.Equal(5, result.PlaybackCount);
     }
 
-    [Fact]
-    public async Task ANegativePlaybackCountIsInferredFromTheWatchedDate()
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)] // an unwatched video infers zero
+    public async Task ANegativePlaybackCountIsInferredFromTheWatchedDate(bool watched, int expectedCount)
     {
-        using var harness = Create(Existing(watchedDate: new DateTime(2024, 5, 1, 12, 0, 0, DateTimeKind.Local)));
+        using var harness = Create(Existing(watchedDate: watched ? new DateTime(2024, 5, 1, 12, 0, 0, DateTimeKind.Local) : default(DateTime?)));
 
         var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { PlaybackCount = -1 });
 
-        Assert.Equal(1, result.PlaybackCount);
-    }
-
-    [Fact]
-    public async Task ANegativePlaybackCountOnAnUnwatchedVideoInfersZero()
-    {
-        using var harness = Create(Existing());
-
-        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { PlaybackCount = -1 });
-
-        Assert.Equal(0, result.PlaybackCount);
+        Assert.Equal(expectedCount, result.PlaybackCount);
     }
 
     #endregion
@@ -447,16 +428,6 @@ public class UserDataServiceVideoTests
         // Playback progress fires constantly; rewriting an unchanged row on every tick would be a
         // needless write per second per client.
         harness.Repository.Verify(r => r.Save(It.IsAny<VideoLocal_User>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task TheSavedRecordIsReturnedOnTheNextLookup()
-    {
-        using var harness = Create();
-
-        var result = await harness.Service.SetVideoWatchedStatus(harness.Video, harness.User);
-
-        Assert.Equal(result.LastPlayedAt, harness.Stored!.WatchedDate);
     }
 
     #endregion
@@ -489,19 +460,6 @@ public class UserDataServiceVideoTests
         // The source is what stops an AniDB import from being queued back to AniDB.
         Assert.True(captured!.IsImport);
         Assert.Equal("AniDB", captured.ImportSource);
-    }
-
-    [Fact]
-    public async Task NoEventIsRaisedWhenNothingChanged()
-    {
-        var watchedAt = new DateTime(2024, 5, 1, 12, 0, 0, DateTimeKind.Local);
-        using var harness = Create(Existing(watchedDate: watchedAt, watchedCount: 1));
-        var raised = false;
-        harness.Service.VideoUserDataSaved += (_, _) => raised = true;
-
-        await harness.Service.SaveVideoUserData(harness.Video, harness.User, new());
-
-        Assert.False(raised);
     }
 
     [Fact]

@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Primitives;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.ModelBinders;
-using Shoko.Tests.Infrastructure;
 using Xunit;
 
 namespace Shoko.Tests.API;
@@ -33,31 +32,23 @@ public class MetadataSourceModelBinderTests
     }
 
     [Theory]
-    [InlineData("anidb")]
-    [InlineData("AniDB")]
-    [InlineData(" ANIDB ")]
-    public async Task BindsARegisteredSourceByValueIgnoringCase(string text)
+    [InlineData("anidb", "anidb")]
+    [InlineData("AniDB", "anidb")]
+    [InlineData(" ANIDB ", "anidb")]
+    [InlineData("themoviedb", "tmdb")] // an alias
+    [InlineData("LocallyGenerated", "generated")]
+    [InlineData("locally-generated", "generated")]
+    [InlineData("LOCALLY_GENERATED", "generated")]
+    [InlineData("TEST_PLUGIN", "test-plugin")] // a plugin source, reading underscores as hyphens
+    [InlineData("test_plugin", "test-plugin")]
+    public async Task BindsARegisteredSourceByValueOrAliasIgnoringCase(string text, string value)
     {
         var context = await Bind(text);
 
         Assert.True(context.Result.IsModelSet);
-        Assert.Same(MetadataSource.AniDB, context.Result.Model);
+        Assert.Same(MetadataSource.Get(value), context.Result.Model);
         Assert.Equal(0, context.ModelState.ErrorCount);
     }
-
-    [Theory]
-    [InlineData("themoviedb", "tmdb")]
-    [InlineData("LocallyGenerated", "generated")]
-    [InlineData("locally-generated", "generated")]
-    [InlineData("LOCALLY_GENERATED", "generated")]
-    public async Task BindsARegisteredSourceByAliasIgnoringCase(string text, string value)
-        => Assert.Same(MetadataSource.Get(value), (await Bind(text)).Result.Model);
-
-    [Theory]
-    [InlineData("TEST_PLUGIN")]
-    [InlineData("test_plugin")]
-    public async Task BindsAPluginSourceReadingUnderscoresAsHyphens(string text)
-        => Assert.Same(TestSources.Plugin, (await Bind(text)).Result.Model);
 
     [Theory]
     [InlineData("msmb-unregistered")]
@@ -80,22 +71,16 @@ public class MetadataSourceModelBinderTests
         MetadataSource.Register("MsmbOwner", "msmb-owner", ["msmb-never"]);
     }
 
-    [Fact]
-    public async Task LeavesAMissingValueUnbound()
+    [Theory]
+    [InlineData(null, false)] // a missing value stays unbound
+    [InlineData("", true)] // an empty value is bound as null
+    public async Task AMissingOrEmptyValueBindsNoSource(string? text, bool isModelSet)
     {
-        var context = await Bind(null);
+        var context = await Bind(text);
 
-        Assert.False(context.Result.IsModelSet);
-        Assert.Equal(0, context.ModelState.ErrorCount);
-    }
-
-    [Fact]
-    public async Task BindsAnEmptyValueAsNull()
-    {
-        var context = await Bind("");
-
-        Assert.True(context.Result.IsModelSet);
+        Assert.Equal(isModelSet, context.Result.IsModelSet);
         Assert.Null(context.Result.Model);
+        Assert.Equal(0, context.ModelState.ErrorCount);
     }
 
     #region Provider

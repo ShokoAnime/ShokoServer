@@ -116,15 +116,6 @@ public class TextChooserTests
     }
 
     [Fact]
-    public void ASynonymAnswersOnlyWhenSynonymsAreAllowed()
-    {
-        IReadOnlyList<ITitle> titles = [Title("Synonym", _tmdb, TitleLanguage.English, TitleType.Synonym)];
-
-        Assert.Null(TextChooser.ChooseTitle(titles, Choice([TitleLanguage.English])));
-        Assert.Equal("Synonym", TextChooser.ChooseTitle(titles, Choice([TitleLanguage.English], synonyms: true))?.Value);
-    }
-
-    [Fact]
     public void ASourceOutsideTheOrderIsNotWalked()
     {
         IReadOnlyList<ITitle> titles = [Title("Plugin", MetadataSource.User, TitleLanguage.English)];

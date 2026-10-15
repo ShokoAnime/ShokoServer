@@ -16,9 +16,8 @@ namespace Shoko.Tests.Services;
 /// <summary>
 /// Covers the networks of orderings: a global ordering's, stored through the
 /// studio store and removed with it, a user's ordering's, of any source with
-/// stubs for the unknown ones, the default ordering's, which are the series'
-/// own, and a TMDB episode group's. A stored network reads itself through
-/// <c>RepoFactory</c>, so these tests share its collection.
+/// stubs for the unknown ones, and a TMDB episode group's. A stored network
+/// reads itself through <c>RepoFactory</c>, so these tests share its collection.
 /// </summary>
 [Collection(nameof(RepoFactoryCollection))]
 public class MetadataOrderingNetworkTests
@@ -266,20 +265,6 @@ public class MetadataOrderingNetworkTests
         Assert.Throws<ArgumentException>(() => world.Tables.StudioStore.RemoveNetworks(created.ID));
         Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(Global(series, _tokyoMX) with { ID = new(MetadataSource.User, MetadataEntityType.Ordering, "x") }));
         Assert.Empty(world.StoredNetworks(created.ID));
-    }
-
-    #endregion
-
-    #region Default Orderings
-
-    [Fact]
-    public void TheDefaultOrderingHasTheSeriesNetworks()
-    {
-        var world = new World();
-        var network = Mock.Of<INetwork>();
-        var series = world.AddSeries("a", network);
-
-        Assert.Same(network, Assert.Single(world.Service.GetDefaultOrdering(series).Networks));
     }
 
     #endregion

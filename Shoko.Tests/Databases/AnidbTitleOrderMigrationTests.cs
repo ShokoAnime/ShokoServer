@@ -11,40 +11,16 @@ public class AnidbTitleOrderMigrationTests
 {
     #region Ordering
 
-    [Fact]
-    public void TheTitlesFollowTheOrderOfTheAllTitlesColumnNotTheirIDs()
-        => Assert.Equal(
-            [2, 0, 3, 1],
-            DatabaseFixes.OrderAnidbAnimeTitles(["Main", "English", "日本語", "Short"], "English|Short|Main|日本語")
-        );
-
-    [Fact]
-    public void TitlesWithTheSameTextTakeItsPlacesInTheOrderOfTheirIDs()
-        => Assert.Equal(
-            [1, 0, 3, 2],
-            DatabaseFixes.OrderAnidbAnimeTitles(["Same", "Main", "Same", "Other"], "Main|Same|Other|Same")
-        );
-
-    [Fact]
-    public void TitlesTheColumnDoesNotHaveGoLastInTheOrderOfTheirIDs()
-        => Assert.Equal(
-            [3, 1, 2, 0, 4],
-            DatabaseFixes.OrderAnidbAnimeTitles(["New", "Main", "Same", "English", "Same"], "English|Main|Same|Gone")
-        );
-
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    public void WithoutTheColumnTheTitlesKeepTheOrderOfTheirIDs(string? allTitles)
-        => Assert.Equal([0, 1, 2], DatabaseFixes.OrderAnidbAnimeTitles(["C", "A", "B"], allTitles));
-
-    [Fact]
-    public void BackticksAndApostrophesAreTheSameWhenCompared()
-        => Assert.Equal([1, 0], DatabaseFixes.OrderAnidbAnimeTitles(["Kono `Anime`", "Main"], "Main|Kono 'Anime'"));
-
-    [Fact]
-    public void TheTextIsComparedExactly()
-        => Assert.Equal([1, 0], DatabaseFixes.OrderAnidbAnimeTitles(["main", "Other"], "Main|Other"));
+    [InlineData(new[] { "Main", "English", "日本語", "Short" }, "English|Short|Main|日本語", new[] { 2, 0, 3, 1 })] // the column's order, not the IDs
+    [InlineData(new[] { "Same", "Main", "Same", "Other" }, "Main|Same|Other|Same", new[] { 1, 0, 3, 2 })] // the same text takes its places by ID
+    [InlineData(new[] { "New", "Main", "Same", "English", "Same" }, "English|Main|Same|Gone", new[] { 3, 1, 2, 0, 4 })] // titles not in the column go last
+    [InlineData(new[] { "C", "A", "B" }, null, new[] { 0, 1, 2 })] // without the column the IDs decide
+    [InlineData(new[] { "C", "A", "B" }, "", new[] { 0, 1, 2 })]
+    [InlineData(new[] { "Kono `Anime`", "Main" }, "Main|Kono 'Anime'", new[] { 1, 0 })] // backticks and apostrophes compare the same
+    [InlineData(new[] { "main", "Other" }, "Main|Other", new[] { 1, 0 })] // the text is compared exactly
+    public void TheTitlesTakeTheOrderOfTheAllTitlesColumn(string[] titles, string? allTitles, int[] expected)
+        => Assert.Equal(expected, DatabaseFixes.OrderAnidbAnimeTitles(titles, allTitles));
 
     #endregion
 }

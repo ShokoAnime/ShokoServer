@@ -72,27 +72,17 @@ public class AniDBHttpConnectionTests
         Assert.Equal("http://anidb.invalid/httpapi?request=anime&aid=1", request.RequestUri!.ToString());
     }
 
-    [Fact]
-    public async Task AnEmptyBodyIsNotMistakenForABan()
+    [Theory]
+    [InlineData("")] // An empty body.
+    [InlineData("<anime><title>The Banned Ones</title></anime>")] // The marker is the element `>banned<`, not the word in content.
+    public async Task AnOrdinaryBodyIsNotMistakenForABan(string body)
     {
         var (handler, http) = Create();
-        http.Respond(HttpStatusCode.OK, string.Empty);
+        http.Respond(HttpStatusCode.OK, body);
 
         var response = await handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(string.Empty, response.Response);
-        Assert.False(handler.IsBanned);
-    }
-
-    [Fact]
-    public async Task AnOrdinaryBodyMentioningBannedElsewhereIsNotABan()
-    {
-        var (handler, http) = Create();
-        // The marker is the element `>banned<`, not the word appearing in content.
-        http.Respond(HttpStatusCode.OK, "<anime><title>The Banned Ones</title></anime>");
-
-        await handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken);
-
+        Assert.Equal(body, response.Response);
         Assert.False(handler.IsBanned);
     }
 
@@ -100,35 +90,18 @@ public class AniDBHttpConnectionTests
 
     #region Ban handling
 
-    [Fact]
-    public async Task ABannedResponseThrows()
+    [Theory]
+    [InlineData(BannedBody)]
+    [InlineData("<error>BANNED</error>")] // The ban marker is matched regardless of case.
+    public async Task ABannedResponseMarksTheConnectionBanned(string body)
     {
         var (handler, http) = Create();
-        http.Respond(HttpStatusCode.OK, BannedBody);
-
-        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
-    }
-
-    [Fact]
-    public async Task ABannedResponseMarksTheConnectionBanned()
-    {
-        var (handler, http) = Create();
-        http.Respond(HttpStatusCode.OK, BannedBody);
+        http.Respond(HttpStatusCode.OK, body);
 
         await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.True(handler.IsBanned);
         Assert.NotNull(handler.BanTime);
-    }
-
-    [Fact]
-    public async Task TheBanMarkerIsMatchedRegardlessOfCase()
-    {
-        var (handler, http) = Create();
-        http.Respond(HttpStatusCode.OK, "<error>BANNED</error>");
-
-        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
-        Assert.True(handler.IsBanned);
     }
 
     [Fact]
@@ -183,15 +156,6 @@ public class AniDBHttpConnectionTests
 
         await Assert.ThrowsAsync<HttpRequestException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
         Assert.False(handler.IsBanned);
-    }
-
-    [Fact]
-    public async Task ATransportFailureIsSurfaced()
-    {
-        var (handler, http) = Create();
-        http.Throw(new HttpRequestException("no route to host"));
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]

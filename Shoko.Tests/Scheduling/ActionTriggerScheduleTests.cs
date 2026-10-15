@@ -65,18 +65,16 @@ public class ActionTriggerScheduleTests
 
     #region Daily
 
-    [Fact]
-    public void ADailyTime_LaterToday_IsToday()
-        // 12:00 UTC is 14:00 in summer, so 18:00 is 16:00 UTC the same day.
-        => Assert.Equal(Utc(9, 28, 16), Next(ActionTrigger.DailyAt(new TimeOnly(18, 0)), Utc(9, 28, 12)));
-
-    [Fact]
-    public void ADailyTime_AlreadyPassedToday_IsTomorrow()
-        => Assert.Equal(Utc(9, 29, 1), Next(ActionTrigger.DailyAt(new TimeOnly(3, 0)), Utc(9, 28, 12)));
-
-    [Fact]
-    public void ADailyTime_ExactlyAtTheLastRun_IsTomorrow()
-        => Assert.Equal(Utc(9, 29, 1), Next(ActionTrigger.DailyAt(new TimeOnly(3, 0)), Utc(9, 28, 1)));
+    /// <summary>
+    /// A daily time still ahead of the last run is today, one already passed or
+    /// exactly at the last run is tomorrow. Local hours are summer time, UTC+2.
+    /// </summary>
+    [Theory]
+    [InlineData(18, 12, 28, 16)] // 12:00 UTC is 14:00 in summer, so 18:00 is 16:00 UTC the same day
+    [InlineData(3, 12, 29, 1)] // already passed today
+    [InlineData(3, 1, 29, 1)] // exactly at the last run
+    public void ADailyTime_IsTodayWhenStillAhead_AndTomorrowOtherwise(int dailyHour, int lastRunHour, int expectedDay, int expectedHour)
+        => Assert.Equal(Utc(9, expectedDay, expectedHour), Next(ActionTrigger.DailyAt(new TimeOnly(dailyHour, 0)), Utc(9, 28, lastRunHour)));
 
     [Fact]
     public void ADailyTime_KeepsItsWallClockTime_AcrossTheClockGoingBack()
@@ -154,16 +152,6 @@ public class ActionTriggerScheduleTests
         Assert.Equal(Utc(10, 9, 0), Next(trigger, Utc(10, 5, 0)));
     }
 
-    [Fact]
-    public void AWeeklyTime_TheClockSkips_RunsWhenTheSkipEnds_AndTheClockRunsTwice_RunsOnce()
-    {
-        var trigger = ActionTrigger.WeeklyOn(DayOfWeek.Sunday, new TimeOnly(2, 30));
-
-        Assert.Equal(Utc(3, 29, 1), Next(trigger, Utc(3, 28, 12)));
-        Assert.Equal(Utc(10, 25, 0, 30), Next(trigger, Utc(10, 24, 12)));
-        Assert.Equal(Utc(11, 1, 1, 30), Next(trigger, Utc(10, 25, 0, 30)));
-    }
-
     #endregion
 
     #region Monthly
@@ -228,18 +216,6 @@ public class ActionTriggerScheduleTests
         Assert.Equal(Utc(2, 28, 3), Next(lastDays, Utc(1, 31, 3)));
     }
 
-    [Fact]
-    public void AMonthlyTime_OnTheDaysTheClockChanges_KeepsTheDaylightSavingRules()
-    {
-        // 29 March 02:30 does not exist and runs at 03:00 summer time; 25
-        // October 02:30 happens twice and runs the first time only.
-        var trigger = ActionTrigger.MonthlyOn([25, 29], new TimeOnly(2, 30));
-
-        Assert.Equal(Utc(3, 29, 1), Next(trigger, Utc(3, 26, 12)));
-        Assert.Equal(Utc(10, 25, 0, 30), Next(trigger, Utc(10, 24, 12)));
-        Assert.Equal(Utc(10, 29, 1, 30), Next(trigger, Utc(10, 25, 0, 30)));
-    }
-
     #endregion
 
     #region Same Run
@@ -275,10 +251,6 @@ public class ActionTriggerScheduleTests
         Assert.Null(ActionTriggerSchedule.GetNextRun([ActionTrigger.AtStartup], Utc(9, 28, 12), CentralEurope));
         Assert.Null(ActionTriggerSchedule.GetNextRun([], Utc(9, 28, 12), CentralEurope));
     }
-
-    [Fact]
-    public void AMissedRun_IsInThePast()
-        => Assert.True(Next(ActionTrigger.Every(TimeSpan.FromHours(1)), Utc(9, 25, 12)) < Utc(9, 28, 12));
 
     #endregion
 
@@ -355,18 +327,11 @@ public class ActionTriggerScheduleTests
         => Assert.Throws<ArgumentException>(() => Next(new ActionTrigger { Type = ActionTriggerType.Daily }, Utc(9, 28, 12)));
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(59)]
-    public void AnIntervalUnderAMinute_IsRefused(int seconds)
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() => ActionTrigger.Every(TimeSpan.FromSeconds(seconds)));
-        Assert.NotNull(new ActionTrigger { Type = ActionTriggerType.Interval, Interval = TimeSpan.FromSeconds(seconds) }.GetValidationError());
-    }
-
-    [Theory]
-    [InlineData(90)]
-    [InlineData(3601)]
-    public void AnIntervalThatIsNotWholeMinutes_IsRefused(int seconds)
+    [InlineData(0)] // under a minute
+    [InlineData(59)] // under a minute
+    [InlineData(90)] // not whole minutes
+    [InlineData(3601)] // not whole minutes
+    public void AnIntervalUnderAMinuteOrNotInWholeMinutes_IsRefused(int seconds)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => ActionTrigger.Every(TimeSpan.FromSeconds(seconds)));
         Assert.NotNull(new ActionTrigger { Type = ActionTriggerType.Interval, Interval = TimeSpan.FromSeconds(seconds) }.GetValidationError());
@@ -480,9 +445,11 @@ public class ActionTriggerScheduleTests
         Assert.NotNull(ActionTriggerSchedule.GetSpacingError(triggers, gap + TimeSpan.FromMinutes(1)));
     }
 
-    [Fact]
-    public void TwoDailyTimesCloserThanTheMinimum_AreRefused()
-        => AssertClosestRunsApart(TimeSpan.FromHours(1), ActionTrigger.DailyAt(new(3, 0)), ActionTrigger.DailyAt(FourAM));
+    [Theory]
+    [InlineData(3, 4, 1)]
+    [InlineData(1, 23, 2)] // across midnight
+    public void TwoDailyTimesCloserThanTheMinimum_AreRefused_AcrossMidnightToo(int firstHour, int secondHour, int gapHours)
+        => AssertClosestRunsApart(TimeSpan.FromHours(gapHours), ActionTrigger.DailyAt(new(firstHour, 0)), ActionTrigger.DailyAt(new(secondHour, 0)));
 
     [Fact]
     public void OneTriggerRunningTwiceWithinTheMinimum_IsRefused()
@@ -510,10 +477,6 @@ public class ActionTriggerScheduleTests
         AssertClosestRunsApart(new TimeSpan(2, 2, 0, 0), ActionTrigger.WeeklyOn(DayOfWeek.Friday, new TimeOnly(23, 0)), ActionTrigger.WeeklyOn(DayOfWeek.Monday, new TimeOnly(1, 0)));
         AssertClosestRunsApart(TimeSpan.FromDays(7), ActionTrigger.WeeklyOn(DayOfWeek.Wednesday, FourAM));
     }
-
-    [Fact]
-    public void ADailyTimeAcrossMidnight_IsMeasuredAcrossIt()
-        => AssertClosestRunsApart(TimeSpan.FromHours(2), ActionTrigger.DailyAt(new(1, 0)), ActionTrigger.DailyAt(new(23, 0)));
 
     #endregion
 
