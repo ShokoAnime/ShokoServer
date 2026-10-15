@@ -12,7 +12,7 @@ namespace Shoko.Server.Settings;
 /// These are separate from the <see cref="ServerSettings"/> to prevent
 /// clients from modifying them through the settings endpoint.
 /// </summary>
-public class VideoStreamPipelineSettings : INewtonsoftJsonConfiguration, IHiddenConfiguration
+public class VideoStreamPipelineSettings : INewtonsoftJsonConfiguration
 {
     /// <summary>
     /// A dictionary containing the enabled state of each transform by id.

@@ -14,7 +14,7 @@ namespace Shoko.Server.Settings;
 /// These are separate from the <see cref="ServerSettings"/> to prevent
 /// clients from modifying them through the settings endpoint.
 /// </summary>
-public class MetadataServiceSettings : INewtonsoftJsonConfiguration, IHiddenConfiguration
+public class MetadataServiceSettings : INewtonsoftJsonConfiguration
 {
     /// <summary>
     /// What has been decided about each source. A source with no entry is

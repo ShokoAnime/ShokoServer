@@ -18,7 +18,7 @@ namespace Shoko.Server.Settings;
 /// These are separate from the <see cref="ServerSettings"/> to prevent
 /// clients from modifying them through the settings endpoint.
 /// </summary>
-public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration, IHiddenConfiguration
+public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration
 {
     /// <summary>
     /// The smallest retention window the service accepts. Anything below it is

@@ -20,7 +20,7 @@ namespace Shoko.Server.Settings;
 [Display(Name = "Core Settings")]
 [StorageLocation(RelativePath = "settings-server.json")]
 [Section(DisplaySectionType.Tab, AppendFloatingSectionsAtEnd = true, DefaultSectionName = "Misc.")]
-public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHiddenConfiguration, IConfigurationWithMigrations, IConfigurationWithCustomValidation<ServerSettings>
+public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IConfigurationWithMigrations, IConfigurationWithCustomValidation<ServerSettings>
 {
     public static string ApplyMigrations(string config, IApplicationPaths applicationPaths)
         => FixNonEmittedDefaults(SettingsMigrations.MigrateSettings(config, applicationPaths));

@@ -142,27 +142,28 @@ configuration is treated:
 | Interface | Effect |
 |---|---|
 | `INewtonsoftJsonConfiguration` | Serialise with Newtonsoft.Json rather than the default `System.Text.Json`. Reach for it when your type relies on Newtonsoft attributes or converters. |
-| `IHiddenConfiguration` | Hide the configuration from every UI. |
+| `IVisibleConfiguration` | List the configuration on its own in the settings UI. Every other configuration is hidden from it, whatever else it is. |
 | `IBaseConfiguration` | A shared base other configurations build on. It has no path, is never loaded or saved on its own, and `Load` on it returns a fresh instance. |
 | `IConfigurationWithMigrations` | Add a `static string ApplyMigrations(string config, IApplicationPaths paths)`, run on the raw JSON before it is validated and deserialised. This is how you rename or reshape a property without breaking existing installs. |
 | `IConfigurationWithNewFactory<TConfig>` | Add a `static TConfig New(IConfigurationService, IPluginManager)` for defaults that have to be computed rather than declared. |
 | `IConfigurationWithCustomValidation<TConfig>` | Add a `static IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(...)`, run after schema validation passes. Rules the schema cannot express go here. |
 
-The interfaces that tie a configuration to an extension point all imply
-`IHiddenConfiguration`, since the page is rendered next to the provider:
-`IHashProviderConfiguration`, `IReleaseInfoProviderConfiguration`,
-`IRelocationProviderConfiguration` (also a base configuration),
-`IVideoStreamTransformConfiguration` and `IAiringScheduleProviderConfiguration`.
-`IUserConfiguration` is a base configuration but not hidden: it describes a
-configuration kept per user, below, and adds `IHiddenConfiguration` only if
-it should stay out of every UI.
+The interfaces that tie a configuration to an extension point say only what
+it is for, not whether it is listed: `IHashProviderConfiguration`,
+`IReleaseInfoProviderConfiguration`, `IRelocationProviderConfiguration` (also a
+base configuration), `IVideoStreamTransformConfiguration`,
+`IAiringScheduleProviderConfiguration` and `IMetadataProviderConfiguration`.
+Their pages are rendered next to the provider, and one that should also have a
+settings entry of its own adds `IVisibleConfiguration`.
+`IUserConfiguration` is a base configuration describing a configuration kept
+per user, below.
 A provider names its configuration type through the generic form of its own
 contract, such as `IReleaseInfoProvider<TConfiguration>`.
-`IPluginConfiguration` marks a plugin's main configuration and is hidden too,
-since it is rendered with the plugin. The plugin names it through
-`IPlugin<TConfiguration>`, which attaches it to the plugin's
+`IPluginConfiguration` marks a plugin's main configuration. The plugin names it
+through `IPlugin<TConfiguration>`, which attaches it to the plugin's
 `LocalPluginInfo.ConfigurationInfo`. The type has to live in the plugin's own
-assembly.
+assembly. A configuration may be a plugin's, a provider's and visible all at
+once.
 
 The static hooks are `static abstract` interface members, declared as
 `public static` methods on the configuration class.

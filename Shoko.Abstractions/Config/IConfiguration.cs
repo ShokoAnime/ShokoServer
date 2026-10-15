@@ -12,6 +12,19 @@ namespace Shoko.Abstractions.Config;
 public interface IConfiguration { }
 
 /// <summary>
+/// Interface for signaling that the configuration should be listed on its own
+/// in the settings UI. Configurations are hidden from it unless they opt in,
+/// whatever else they are used for.
+/// </summary>
+public interface IVisibleConfiguration : IConfiguration { }
+
+/// <summary>
+/// Interface for signaling that the configuration should use Newtonsoft.Json
+/// for serialization/deserialization instead of System.Text.Json.
+/// </summary>
+public interface INewtonsoftJsonConfiguration : IConfiguration { }
+
+/// <summary>
 /// Interface for signaling that the configuration is a base configuration
 /// for other configurations, and should not be saved or loaded directly.
 /// </summary>
@@ -23,63 +36,52 @@ public interface IConfiguration { }
 public interface IBaseConfiguration : IConfiguration { }
 
 /// <summary>
-/// Interface for signaling that the configuration should use Newtonsoft.Json
-/// for serialization/deserialization instead of System.Text.Json.
+/// Interface for signaling that the configuration is a user configuration,
+/// stored per user by <see cref="Services.IUserConfigurationService"/> rather
+/// than in a file of its own. Add <see cref="IVisibleConfiguration"/> to list it
+/// in the settings UI.
 /// </summary>
-public interface INewtonsoftJsonConfiguration : IConfiguration { }
-
-/// <summary>
-/// Interface for signaling that the configuration should be hidden from any UI.
-/// </summary>
-public interface IHiddenConfiguration : IConfiguration { }
+public interface IUserConfiguration : IBaseConfiguration { }
 
 /// <summary>
 /// Interface for signaling that the configuration is the main configuration of
 /// a plugin, declared through <see cref="IPlugin{TConfiguration}"/>.
 /// </summary>
-public interface IPluginConfiguration : IHiddenConfiguration { }
+public interface IPluginConfiguration : IConfiguration { }
 
 /// <summary>
 /// Interface for signaling that the configuration is tied to a hash provider.
 /// </summary>
-public interface IHashProviderConfiguration : IHiddenConfiguration { }
-
-/// <summary>
-/// Interface for signaling that the configuration is a user configuration,
-/// stored per user by <see cref="Services.IUserConfigurationService"/> rather
-/// than in a file of its own. Add <see cref="IHiddenConfiguration"/> to keep it
-/// out of every UI.
-/// </summary>
-public interface IUserConfiguration : IBaseConfiguration { }
+public interface IHashProviderConfiguration : IConfiguration { }
 
 /// <summary>
 /// Interface for signaling that the configuration is tied to a release info
 /// provider.
 /// </summary>
-public interface IReleaseInfoProviderConfiguration : IHiddenConfiguration { }
+public interface IReleaseInfoProviderConfiguration : IConfiguration { }
 
 /// <summary>
 /// Interface for signaling that the configuration is tied to a renamer provider.
 /// </summary>
-public interface IRelocationProviderConfiguration : IHiddenConfiguration, IBaseConfiguration { }
+public interface IRelocationProviderConfiguration : IBaseConfiguration { }
 
 /// <summary>
 /// Interface for signaling that the configuration is tied to a video stream
 /// transform.
 /// </summary>
-public interface IVideoStreamTransformConfiguration : IHiddenConfiguration { }
+public interface IVideoStreamTransformConfiguration : IConfiguration { }
 
 /// <summary>
 /// Interface for signaling that the configuration is tied to an airing
 /// schedule provider.
 /// </summary>
-public interface IAiringScheduleProviderConfiguration : IHiddenConfiguration { }
+public interface IAiringScheduleProviderConfiguration : IConfiguration { }
 
 /// <summary>
 /// Interface for signaling that the configuration is tied to a metadata
 /// provider.
 /// </summary>
-public interface IMetadataProviderConfiguration : IHiddenConfiguration { }
+public interface IMetadataProviderConfiguration : IConfiguration { }
 
 /// <summary>
 /// Interface for allowing plugins to apply migrations to their configuration

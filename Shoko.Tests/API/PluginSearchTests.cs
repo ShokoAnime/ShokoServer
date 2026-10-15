@@ -171,8 +171,8 @@ public class PluginSearchTests
             HasCustomSave = false,
             HasCustomLoad = false,
             HasLiveEdit = false,
-            Type = typeof(object),
-            ContextualType = typeof(object).ToContextualType(),
+            Type = typeof(ListedConfiguration),
+            ContextualType = typeof(ListedConfiguration).ToContextualType(),
             Schema = new JsonSchema(),
             PluginInfo = plugin,
         };
@@ -195,6 +195,9 @@ public class PluginSearchTests
 
         Assert.Equal(["Images", "General", "Image Settings"], results.Select(c => c.Name));
     }
+
+    /// <summary>A configuration listed in the settings UI.</summary>
+    private sealed class ListedConfiguration : IVisibleConfiguration { }
 
     #endregion
 }

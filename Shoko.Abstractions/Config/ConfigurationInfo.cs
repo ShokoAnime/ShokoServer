@@ -46,9 +46,10 @@ public class ConfigurationInfo(IConfigurationService configurationService)
     private bool? _isHidden = null;
 
     /// <summary>
-    /// Whether the configuration should be hidden from the UI.
+    /// Whether the configuration should be hidden from the UI, which it is
+    /// unless it implements <see cref="IVisibleConfiguration"/>.
     /// </summary>
-    public bool IsHidden => _isHidden ??= Type.IsAssignableTo(typeof(IHiddenConfiguration));
+    public bool IsHidden => _isHidden ??= !Type.IsAssignableTo(typeof(IVisibleConfiguration));
 
     private bool? _isBase = null;
 
