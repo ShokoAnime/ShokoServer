@@ -65,6 +65,26 @@ public partial class ChapterInfo : IChapterInfo
     /// <inheritdoc />
     public IReadOnlyList<ITitle> Titles { get; }
 
+    /// <summary>
+    ///   A chapter's original language is not known.
+    /// </summary>
+    public string? OriginalLanguageCode => null;
+
+    /// <summary>
+    ///   A chapter's country is not known.
+    /// </summary>
+    public string? OriginalCountryCode => null;
+
+    /// <summary>
+    ///   A chapter's original language is not known.
+    /// </summary>
+    public TitleLanguage? OriginalLanguage => null;
+
+    /// <summary>
+    ///   A chapter has no original title, as its language is not known.
+    /// </summary>
+    public ITitle? OriginalTitle => null;
+
     /// <inheritdoc />
     public TimeSpan Timestamp { get; }
 

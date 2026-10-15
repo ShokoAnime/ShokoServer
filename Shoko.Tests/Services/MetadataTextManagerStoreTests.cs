@@ -38,7 +38,7 @@ public class MetadataTextManagerStoreTests
 
     private static readonly MetadataGuid _episode = new(TestSources.Plugin, MetadataEntityType.Episode, "text-e1");
 
-    private static readonly MetadataGuid _person = new(TestSources.Plugin, MetadataEntityType.Creator, "p5");
+    private static readonly MetadataGuid _tag = new(TestSources.Plugin, MetadataEntityType.Tag, "t5");
 
     private static readonly MetadataGuid _anidbEpisode = new(MetadataSource.AniDB, MetadataEntityType.Episode, "101");
 
@@ -78,8 +78,8 @@ public class MetadataTextManagerStoreTests
         return entry.Object;
     }
 
-    private static Metadata_Creator Person(string name = "Person", string? overview = "About them.")
-        => new() { Source = TestSources.Plugin, ProviderID = "p5", Name = name, Description = overview };
+    private static Metadata_Tag Tag(string name, string overview = "")
+        => new() { Source = TestSources.Plugin, ProviderID = "t5", Name = name, Description = overview };
 
     /// <summary>
     /// An episode whose model keeps its own texts, as the core's sources do.
@@ -116,6 +116,14 @@ public class MetadataTextManagerStoreTests
 
         public IReadOnlyList<ITitle> Titles => titles;
 
+        public string? OriginalLanguageCode => null;
+
+        public string? OriginalCountryCode => null;
+
+        public TitleLanguage? OriginalLanguage => null;
+
+        public ITitle? OriginalTitle => null;
+
         public IText? DefaultOverview => inlineOverview;
 
         public IText? PreferredOverview => inlineOverview;
@@ -135,18 +143,18 @@ public class MetadataTextManagerStoreTests
     public void AnEntrysDefaultOnItsRowIsListedAheadOfItsStoredTexts()
     {
         var harness = new Harness();
-        harness.Holds(_person, Person("Show", "About it."));
-        harness.Manager.SetTitles(_person, TestSources.AniList, [Title("Added")]);
+        harness.Holds(_tag, Tag("Show", "About it."));
+        harness.Manager.SetTitles(_tag, TestSources.AniList, [Title("Added")]);
 
-        var titles = harness.Manager.GetTitles(_person);
+        var titles = harness.Manager.GetTitles(_tag);
         Assert.Equal(["Show", "Added"], titles.Select(title => title.Value));
         Assert.True(titles[0].IsInlineDefault);
         Assert.Null(titles[0].ID);
         Assert.Equal(TitleLanguage.Unknown, titles[0].Language);
-        Assert.Equal(["Added"], harness.Manager.GetTitles(_person, new() { IncludeInlineDefault = false }).Select(title => title.Value));
-        Assert.Equal("Show", harness.Manager.GetDefaultTitle(_person)?.Value);
-        Assert.Equal("About it.", harness.Manager.GetDefaultOverview(_person)?.Value);
-        Assert.Equal("About it.", Assert.Single(harness.Manager.GetOverviews(_person)).Value);
+        Assert.Equal(["Added"], harness.Manager.GetTitles(_tag, new() { IncludeInlineDefault = false }).Select(title => title.Value));
+        Assert.Equal("Show", harness.Manager.GetDefaultTitle(_tag)?.Value);
+        Assert.Equal("About it.", harness.Manager.GetDefaultOverview(_tag)?.Value);
+        Assert.Equal("About it.", Assert.Single(harness.Manager.GetOverviews(_tag)).Value);
     }
 
     [Fact]
@@ -370,16 +378,16 @@ public class MetadataTextManagerStoreTests
     public void PickingTheDefaultOnARowStoresAUserPickThatWinsOverall()
     {
         var harness = new Harness();
-        harness.Holds(_person, Person("Show"));
-        harness.Manager.SetTitles(_person, TestSources.AniList, [Title("Added")]);
-        var inline = harness.Manager.GetTitles(_person)[0];
+        harness.Holds(_tag, Tag("Show"));
+        harness.Manager.SetTitles(_tag, TestSources.AniList, [Title("Added")]);
+        var inline = harness.Manager.GetTitles(_tag)[0];
 
-        var pick = harness.Manager.SetPreferredTitle(_person, inline);
+        var pick = harness.Manager.SetPreferredTitle(_tag, inline);
 
         Assert.Equal(MetadataSource.User, pick.Source);
         Assert.Null(pick.ReferenceID);
         Assert.Equal(TextPreference.Overall, pick.Preference);
-        Assert.Equal(pick.ID, harness.Manager.GetPreferredTitle(_person)?.ID);
+        Assert.Equal(pick.ID, harness.Manager.GetPreferredTitle(_tag)?.ID);
     }
 
     [Fact]

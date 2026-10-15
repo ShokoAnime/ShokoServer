@@ -6,9 +6,11 @@ using Shoko.Abstractions.Metadata.Enums;
 namespace Shoko.Abstractions.Metadata;
 
 /// <summary>
-/// Character.
+///   Character. Its main name is its default title, its official names per
+///   language are titles of the <see cref="TitleType.Official"/> type, and
+///   other names it goes by are <see cref="TitleType.Synonym"/> titles.
 /// </summary>
-public interface ICharacter : IMetadata, IWithOverviews, IWithPrimaryImage, IWithCreationDate, IWithUpdateDate, IWithResources
+public interface ICharacter : IMetadata, IWithTitles, IWithOverviews, IWithPrimaryImage, IWithCreationDate, IWithUpdateDate, IWithResources
 {
     /// <summary>
     ///   When the core last asked the source to refresh the character, found or
@@ -18,26 +20,9 @@ public interface ICharacter : IMetadata, IWithOverviews, IWithPrimaryImage, IWit
     DateTime? LastRefreshedAt { get; }
 
     /// <summary>
-    /// Casted role name.
-    /// </summary>
-    string Name { get; }
-
-    /// <summary>
-    /// Casted role name in the original language of the media, if available
-    /// from
-    /// </summary>
-    string? OriginalName { get; }
-
-    /// <summary>
     /// The type of character.
     /// </summary>
     CharacterType Type { get; }
-
-    /// <summary>
-    ///   Other names the character is known by, each with its language when
-    ///   known.
-    /// </summary>
-    IReadOnlyList<ITitle> AlternativeNames { get; }
 
     /// <summary>
     ///   The character's gender, when the source gives one.

@@ -65,11 +65,12 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
 
     /// <summary>
     /// Every copy step, in the order the migration runs them, between putting back and dropping again
-    /// the ordering columns the copy writes and a later step moves into the text store.
+    /// the ordering and people columns the copy writes and later steps move into the text store.
     /// </summary>
     internal static readonly Func<object, Tuple<bool, string?>>[] Steps =
     [
-        ReleasedOrderingSchema.Restore,
+        ReleasedColumns.Ordering.Restore,
+        ReleasedColumns.People.Restore,
         DatabaseFixes.CopyTmdbShows,
         DatabaseFixes.CopyTmdbSeasons,
         DatabaseFixes.CopyTmdbEpisodes,
@@ -100,7 +101,9 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
         DatabaseFixes.FillTmdbEpisodeLinkNumbers,
         DatabaseFixes.CopyTmdbDefaultImages,
         DatabaseFixes.CopyOrderingTexts,
-        ReleasedOrderingSchema.Drop,
+        ReleasedColumns.Ordering.Drop,
+        DatabaseFixes.CopyPeopleTexts,
+        ReleasedColumns.People.Drop,
     ];
 
     /// <summary>
@@ -274,7 +277,8 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
         foreach (var table in ReleasedTmdbSchema.Present(connection, backend).Except(restored))
             Execute(connection, $"DELETE FROM {table}");
         ReleasedTmdbSchema.Drop(connection, restored);
-        ReleasedOrderingSchema.Drop(connection);
+        ReleasedColumns.Ordering.Drop(connection);
+        ReleasedColumns.People.Drop(connection);
     }
 
     #endregion
@@ -360,12 +364,21 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
             // People, with a stub for the one a credit names that TMDB's table did not hold.
             Assert.Equal(
                 [
-                    $"{AliceID}|Alice|A life.|1|1980-05-06|0|{{\"PlaceOfBirth\":\"Tokyo\"}}|1|1",
-                    $"{BobID}|Bob|NULL|2|NULL|1|NULL|0|1",
-                    $"{UnknownPersonID}||NULL|0|NULL|0|NULL|0|0",
+                    $"{AliceID}|1|1980-05-06|0|{{\"PlaceOfBirth\":\"Tokyo\"}}|1|1",
+                    $"{BobID}|2|NULL|1|NULL|0|1",
+                    $"{UnknownPersonID}|0|NULL|0|NULL|0|0",
                 ],
-                Read(connection, $"SELECT ProviderID, Name, Description, Gender, BirthDay, IsRestricted, ExtraData, CASE WHEN Resources LIKE '%nm0000001%' THEN 1 ELSE 0 END, " +
+                Read(connection, "SELECT ProviderID, Gender, BirthDay, IsRestricted, ExtraData, CASE WHEN Resources LIKE '%nm0000001%' THEN 1 ELSE 0 END, " +
                     $"CASE WHEN LastUpdatedAt IS NULL THEN 0 ELSE 1 END FROM Metadata_Creator {Where()} ORDER BY ProviderID"));
+            // Their names and biographies end up in the text store; the stub has neither.
+            Assert.Equal(
+                [$"{AliceID}|unk|{(int)TitleType.Main}|Alice|0", $"{BobID}|unk|{(int)TitleType.Main}|Bob|0"],
+                Read(connection, $"SELECT EntityID, LanguageCode, TitleType, Value, Ordering FROM Metadata_Title {Where("EntitySource")} " +
+                    $"AND EntityType = {Kind(MetadataEntityType.Creator)} ORDER BY EntityID, Ordering"));
+            Assert.Equal(
+                [$"{AliceID}|en|A life.|0"],
+                Read(connection, $"SELECT EntityID, LanguageCode, Value, Ordering FROM Metadata_Overview {Where("EntitySource")} " +
+                    $"AND EntityType = {Kind(MetadataEntityType.Creator)} ORDER BY EntityID, Ordering"));
             // TMDB's people keep their creation date; the stub is created when copied.
             Assert.Equal([$"{AliceID}|copied", $"{BobID}|copied", $"{UnknownPersonID}|now"],
                 Read(connection, "SELECT ProviderID, CASE WHEN CreatedAt > '2024-01-01 09:00:00' AND CreatedAt < '2024-01-01 11:00:00' THEN 'copied' " +

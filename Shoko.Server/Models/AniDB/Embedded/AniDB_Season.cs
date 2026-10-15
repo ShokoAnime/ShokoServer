@@ -93,6 +93,15 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
         ]
         : anime.Titles;
 
+    // The season is named in its anime's original language.
+    string? IWithTitles.OriginalLanguageCode => anime.OriginalLanguageCode;
+
+    string? IWithTitles.OriginalCountryCode => anime.OriginalCountryCode;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => TextChooser.OriginalTitle(((IWithTitles)this).Titles, ((IWithTitles)this).OriginalLanguageCode);
+
     IText? IWithOverviews.DefaultOverview
         => seasonNumber is 0
             ? new TextStub

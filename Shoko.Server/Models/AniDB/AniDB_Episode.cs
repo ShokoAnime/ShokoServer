@@ -26,6 +26,7 @@ using Shoko.Server.Server;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #pragma warning disable CS0618
+using Shoko.Server.Services;
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
@@ -227,6 +228,15 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
     #region IWithTitles Implementation
 
     IReadOnlyList<ITitle> IWithTitles.Titles => AnidbText.Present(TextAccess.Manager.ListTitles(this));
+
+    // The episode is named in its anime's original language.
+    string? IWithTitles.OriginalLanguageCode => (AniDB_Anime as IWithTitles)?.OriginalLanguageCode;
+
+    string? IWithTitles.OriginalCountryCode => (AniDB_Anime as IWithTitles)?.OriginalCountryCode;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => TextChooser.OriginalTitle(((IWithTitles)this).Titles, ((IWithTitles)this).OriginalLanguageCode);
 
     #endregion
 

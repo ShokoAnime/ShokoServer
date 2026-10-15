@@ -296,16 +296,25 @@ empty map to clear it; a type the entry has no images of is ignored.
 
 **People.** `SetCast` and `SetCrew` make an entry's list exactly the credits
 given. A cast credit is known by its character, creator and language, a crew
-credit by its creator and job. Alternative names are stored as `Synonym`
-titles, and birthdays and days of death are `FuzzyDateOnly`, where year, month
-and day may each be unknown (`--07-04`).
+credit by its creator and job. A person's `Titles` and `Overviews` are given
+and stored like a series': every one goes to the text store under the
+person's source, its main title is its default name, its name in
+`OriginalLanguageCode` is among the others, and a synonym equal to the main or
+an official title but for whitespace is dropped. Birthdays and days of death
+are `FuzzyDateOnly`, where year, month and day may each be unknown
+(`--07-04`).
 
 **Stubs.** A credit or link may name a creator, character, studio or network
 that is not stored yet. The store then keeps a stub of it: its ID and the name
 the credit or link carried (`CreatorName`, `CharacterName` or the role's
-`Name`, `StudioName`, `NetworkName`), or an empty one. A stub reads like any
-entry with that name, and the next `SaveCreators`, `SaveCharacters`,
-`SaveStudios` or `SaveNetworks` naming it fills it in. See
+`Name`, `StudioName`, `NetworkName`), if any. A person's stub gets that name
+as its main title in the text store, under the person's own source and in no
+known language; a studio or network keeps it on its row. A stub reads like
+any entry with that name; a person's stub given none reads under a made-up
+one such as `TMDB Creator 4128`, never stored, and is queued for a refresh
+like every stub. The next `SaveCreators`, `SaveCharacters`,
+`SaveStudios` or `SaveNetworks` naming it fills it in, replacing the name the
+credit or link gave. See
 [refreshing people, studios and networks](#refreshing-people-studios-and-networks)
 for who fills it in.
 
@@ -528,7 +537,9 @@ public class ExampleProvider(ExampleClient client, IMetadataPeopleStore people) 
   `DownloadMetadataImagesJob<TProvider>` when you supply images, else the
   image contributors' jobs.
 - **Names.** A stub keeps the first name a credit or link gave it. One stored
-  with no name takes the next name given, until your source saves it.
+  with no name takes the next name given, until your source saves it. A
+  person's stub counts as unnamed while your source has stored no title for
+  it.
 - **The library.** "Refresh Missing and Stale People, Studios, Networks and
   Collections" runs at start-up and daily. It queues every stub and stale
   entry something names, for each kind a provider of its source has turned

@@ -10,6 +10,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 
 using AbstractCreatorType = Shoko.Abstractions.Metadata.Enums.CreatorType;
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
@@ -18,6 +19,9 @@ using MetadataSource = Shoko.Abstractions.Metadata.MetadataSource;
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.AniDB;
 
+/// <summary>
+///   A creator AniDB keeps: a person or company credited on its anime.
+/// </summary>
 public class AniDB_Creator : ICreator
 {
     #region DB Columns
@@ -127,6 +131,28 @@ public class AniDB_Creator : ICreator
 
     #endregion
 
+    #region IWithTitles Implementation
+
+    string IWithTitles.Title => ((IWithTitles)this).PreferredTitle?.Value ?? ((IWithTitles)this).DefaultTitle.Value;
+
+    ITitle IWithTitles.DefaultTitle => AnidbText.PersonDefaultTitle(((IMetadata)this).ID, ((IWithTitles)this).Titles);
+
+    ITitle? IWithTitles.PreferredTitle
+        => TextAccess.Manager.ChoosePreferredTitle(((IWithTitles)this).Titles, MetadataEntityType.Creator, [MetadataSource.AniDB]);
+
+    IReadOnlyList<ITitle> IWithTitles.Titles => AnidbText.PersonTitles(((IMetadata)this).ID, Name, OriginalName);
+
+    // AniDB gives the original name in Japanese, and nothing else.
+    string? IWithTitles.OriginalLanguageCode => string.IsNullOrWhiteSpace(OriginalName) ? null : "ja";
+
+    string? IWithTitles.OriginalCountryCode => null;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => ((IWithTitles)this).Titles.FirstOrDefault(title => title.LanguageCode is "ja");
+
+    #endregion
+
     #region IWithOverviews Implementation
 
     IText? IWithOverviews.DefaultOverview => null;
@@ -162,8 +188,6 @@ public class AniDB_Creator : ICreator
     bool ICreator.IsRestricted => false;
 
     AbstractCreatorType ICreator.Type => AbstractType;
-
-    IReadOnlyList<ITitle> ICreator.AlternativeNames => [];
 
     PersonGender ICreator.Gender => PersonGender.Unknown;
 

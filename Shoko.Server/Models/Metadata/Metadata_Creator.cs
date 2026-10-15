@@ -8,9 +8,9 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.Metadata;
@@ -19,7 +19,7 @@ namespace Shoko.Server.Models.Metadata;
 ///   A creator a source keeps in the people store: a person or company
 ///   credited on its entries.
 /// </summary>
-public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, IInlineTextSource, IMetadataStubRow, IMetadataDefaultImageSource
+public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, IMetadataStubRow, IMetadataDefaultImageSource
 {
     #region Database Columns
 
@@ -37,21 +37,6 @@ public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, I
     ///   The source's own ID for the creator.
     /// </summary>
     public string ProviderID { get; set; } = string.Empty;
-
-    /// <summary>
-    ///   The creator's name, as the source writes it for most readers.
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    ///   The creator's name in its original script, when it differs.
-    /// </summary>
-    public string? OriginalName { get; set; }
-
-    /// <summary>
-    ///   What the source says about the creator.
-    /// </summary>
-    public string? Description { get; set; }
 
     /// <summary>
     ///   Whether the creator is a person, a company or something else.
@@ -122,9 +107,9 @@ public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, I
     #region Helpers
 
     /// <summary>
-    ///   Whether the creator is a stub: a row the core made, with only the
-    ///   name a credit carried, before its source wrote it. The source's
-    ///   next save of the creator fills it in.
+    ///   Whether the creator is a stub: a row the core made for a credit
+    ///   before its source wrote it, with the name the credit carried as its
+    ///   main title. The source's next save of the creator fills it in.
     /// </summary>
     public bool IsStub => LastUpdatedAt is null;
 
@@ -156,11 +141,23 @@ public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, I
 
     #endregion
 
-    #region IInlineTextSource Implementation
+    #region IWithTitles Implementation
 
-    ITitle? IInlineTextSource.InlineTitle => InlineText.Title(Source, Name, TitleLanguage.Unknown, "unk");
+    string IWithTitles.Title => ((IWithTitles)this).PreferredTitle?.Value ?? ((IWithTitles)this).DefaultTitle.Value;
 
-    IText? IInlineTextSource.InlineOverview => InlineText.Overview(Source, Description, TitleLanguage.English, "en");
+    ITitle IWithTitles.DefaultTitle => MetadataStoredEntry.DefaultTitle(this);
+
+    ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
+
+    IReadOnlyList<ITitle> IWithTitles.Titles => MetadataStoredEntry.Titles(this);
+
+    string? IWithTitles.OriginalLanguageCode => ExtraData?.OriginalLanguageCode;
+
+    string? IWithTitles.OriginalCountryCode => ExtraData?.OriginalCountryCode;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => TextChooser.OriginalTitle(((IWithTitles)this).Titles, ExtraData?.OriginalLanguageCode);
 
     #endregion
 
@@ -202,8 +199,6 @@ public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, I
     #region ICreator Implementation
 
     DateTime? ICreator.LastRefreshedAt => LastRefreshedAt?.ToUniversalTime();
-
-    IReadOnlyList<ITitle> ICreator.AlternativeNames => TextAccess.Manager.AlternativeNamesOf(this);
 
     string? ICreator.PlaceOfBirth => ExtraData?.PlaceOfBirth;
 

@@ -15,7 +15,6 @@ using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko;
@@ -1251,27 +1250,15 @@ public static class TmdbCompatibility
     #region Credits
 
     /// <summary>
-    ///   The person a credit names, or <c>null</c> when TMDB never sent the
-    ///   person.
-    /// </summary>
-    /// <param name="creator">The credited creator, if any.</param>
-    /// <returns>The person, or <c>null</c>.</returns>
-    public static ICreator? CreditedPerson(ICreator? creator)
-        => creator switch
-        {
-            null => null,
-            Metadata_Creator { IsStub: true, Name.Length: 0 } => null,
-            _ => creator,
-        };
-
-    /// <summary>
     ///   A person's English biography, as TMDB gave it, never one in another
-    ///   language.
+    ///   language: the first English overview of its own source.
     /// </summary>
     /// <param name="person">The person.</param>
     /// <returns>The biography, or an empty string.</returns>
     public static string Biography(ICreator person)
-        => (person as IInlineTextSource)?.InlineOverview?.Value ?? string.Empty;
+        => person.Overviews
+            .FirstOrDefault(overview => overview.Source == person.ID.Source && string.Equals(overview.LanguageCode, "en", StringComparison.OrdinalIgnoreCase))
+            ?.Value ?? string.Empty;
 
     /// <summary>
     ///   Gathers the cast of some episodes as a show's or a season's: one
@@ -1284,7 +1271,7 @@ public static class TmdbCompatibility
         => [
             .. episodes
                 .SelectMany(episode => episode.TmdbCast)
-                .Where(cast => CreditedPerson(cast.Creator) is not null)
+                .Where(cast => cast.Creator is not null)
                 .GroupBy(cast => (Person: cast.Creator!.ID, cast.Name, Guest: (cast as Metadata_Cast)?.RoleNotes == GuestStarNotes))
                 .Select(group => group.First())
                 .OrderBy(cast => Number(cast.Creator!.ID.ID))
@@ -1302,7 +1289,7 @@ public static class TmdbCompatibility
         => [
             .. episodes
                 .SelectMany(episode => episode.TmdbCrew)
-                .Where(crew => CreditedPerson(crew.Creator) is not null)
+                .Where(crew => crew.Creator is not null)
                 .GroupBy(crew => (Person: crew.Creator!.ID, crew.Name))
                 .Select(group => group.First())
                 .OrderBy(crew => Number(crew.Creator!.ID.ID))

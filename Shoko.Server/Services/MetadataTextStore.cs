@@ -293,18 +293,18 @@ public class MetadataTextStore(TextCache cache, MetadataRowWriter writer, ILogge
     }
 
     /// <summary>
-    ///   Writes other rows together with a source's titles on several of its
-    ///   own entries, in one transaction, so a person and its alternative
-    ///   names are saved as one. Each entry's titles from the source are
-    ///   replaced by the ones given.
+    ///   Writes other rows together with the titles of several entries, each
+    ///   under its own source, in one transaction, so a stub and the name a
+    ///   credit gave it are saved as one. Each entry's titles from its source
+    ///   are replaced by the ones given, and its overviews are left alone.
     /// </summary>
-    /// <param name="titles">The entries and their titles, in order. Every entry is on the titles' source.</param>
+    /// <param name="titles">The entries and their titles, in order.</param>
     /// <param name="changes">The other rows to write.</param>
     /// <exception cref="ArgumentNullException">A title, or its value, is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">A language, country or script code is too long.</exception>
     internal void WriteWithTitles(IReadOnlyList<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles)> titles, params IReadOnlyList<MetadataRowChanges> changes)
     {
-        // Every text is checked before anything is written.
+        // Every title is checked before anything is written.
         var items = titles.Select(entry => (entry.Entry, Items: entry.Titles.Select(text => Check(text, nameof(titles))).ToList())).ToList();
         IReadOnlyList<TextEntityChange> textChanges;
         lock (_writeLock)

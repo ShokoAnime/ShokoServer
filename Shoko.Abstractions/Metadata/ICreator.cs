@@ -6,9 +6,11 @@ using Shoko.Abstractions.Metadata.Enums;
 namespace Shoko.Abstractions.Metadata;
 
 /// <summary>
-/// Creator.
+///   Creator. Its main name is its default title, its official names per
+///   language are titles of the <see cref="TitleType.Official"/> type, and
+///   other names it goes by are <see cref="TitleType.Synonym"/> titles.
 /// </summary>
-public interface ICreator : IMetadata, IWithOverviews, IWithPrimaryImage, IWithCreationDate, IWithUpdateDate, IWithResources
+public interface ICreator : IMetadata, IWithTitles, IWithOverviews, IWithPrimaryImage, IWithCreationDate, IWithUpdateDate, IWithResources
 {
     /// <summary>
     ///   When the core last asked the source to refresh the creator, found or
@@ -18,26 +20,9 @@ public interface ICreator : IMetadata, IWithOverviews, IWithPrimaryImage, IWithC
     DateTime? LastRefreshedAt { get; }
 
     /// <summary>
-    /// Casted role name.
-    /// </summary>
-    string Name { get; }
-
-    /// <summary>
-    /// Casted role name in the original language of the media, if available
-    /// from
-    /// </summary>
-    string? OriginalName { get; }
-
-    /// <summary>
     /// The type of the creator.
     /// </summary>
     CreatorType Type { get; }
-
-    /// <summary>
-    ///   Other names the creator is known by, such as a pen name or a
-    ///   spelling in another script, each with its language when known.
-    /// </summary>
-    IReadOnlyList<ITitle> AlternativeNames { get; }
 
     /// <summary>
     ///   The creator's gender, when the source gives one.

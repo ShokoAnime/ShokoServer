@@ -10,11 +10,12 @@ namespace Shoko.Abstractions.Metadata.Storage;
 /// <remarks>
 ///   A creator or character is keyed by its own <see cref="MetadataGuid"/>,
 ///   a credit by the entry it is on. Only sources outside the core can be
-///   written. A
-///   credit naming someone not stored yet stores a stub: the ID and the name
-///   the credit carried, filled in by the next save of that person. No write
-///   removes a person: one nothing credits any more is purged by
-///   <see cref="RemoveOrphaned"/> once orphaned long enough.
+///   written. A person's names and overviews are kept in the text store, as
+///   a series' are. A credit naming someone not stored yet stores a stub: the
+///   ID, with the name the credit carried as its main title, filled in by the
+///   next save of that person. No write removes a person: one nothing
+///   credits any more is purged by <see cref="RemoveOrphaned"/> once
+///   orphaned long enough.
 /// </remarks>
 public interface IMetadataPeopleStore
 {
@@ -58,7 +59,7 @@ public interface IMetadataPeopleStore
 
     /// <summary>
     ///   Adds creators, or updates the ones already stored, stubs included,
-    ///   with their alternative names.
+    ///   with their names and overviews.
     /// </summary>
     /// <param name="creators">The creators.</param>
     /// <exception cref="ArgumentNullException"><paramref name="creators"/> is or holds <c>null</c>.</exception>
@@ -70,7 +71,7 @@ public interface IMetadataPeopleStore
 
     /// <summary>
     ///   Adds characters, or updates the ones already stored, stubs included,
-    ///   with their alternative names.
+    ///   with their names and overviews.
     /// </summary>
     /// <param name="characters">The characters.</param>
     /// <exception cref="ArgumentNullException"><paramref name="characters"/> is or holds <c>null</c>.</exception>

@@ -218,6 +218,18 @@ public class TmdbDtoCompatibilityTests(DatabaseMigrationFixture fixture)
             foreach (var role in season["Cast"]!.Concat(season["Crew"]!))
                 role["Language"] = "ja";
 
+        // A credit naming a person TMDB never sent is listed under a made-up name until the person is
+        // refreshed, rather than left out.
+        foreach (var key in (string[])["show", "show-ordering", "season", "episode-9870122", "episode-9870122-bb00000000000000000000b1"])
+            ((JArray)golden[key]!["Cast"]!).Add(JObject.FromObject(new
+            {
+                Character = new { Name = "Extra", AlternateName = "", Description = "", Image = (object?)null },
+                Staff = new { ID = 9870133, Name = "TMDB Creator 9870133", AlternateName = "", Description = "", Image = (object?)null },
+                RoleName = "Actor",
+                RoleDetails = "Character",
+                Language = "ja",
+            }));
+
         // The search model's images come from the stored images; the backdrop TMDB named was never stored.
         Set(golden, "['search-show'].Backdrop", null);
 

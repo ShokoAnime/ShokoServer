@@ -28,6 +28,18 @@ public sealed record Metadata_CharacterExtra : IMetadataDefaultImages<Metadata_C
     #region Properties
 
     /// <summary>
+    ///   The country the character comes from, as an ISO 3166 two-letter code,
+    ///   when its source said.
+    /// </summary>
+    public string? OriginalCountryCode { get; init; }
+
+    /// <summary>
+    ///   The language the character is originally named in, as a language code,
+    ///   when its source said.
+    /// </summary>
+    public string? OriginalLanguageCode { get; init; }
+
+    /// <summary>
     ///   The resource ID of the primary image the character's source pins as its
     ///   default, or <c>null</c> for none.
     /// </summary>

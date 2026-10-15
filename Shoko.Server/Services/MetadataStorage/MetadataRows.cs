@@ -164,6 +164,17 @@ internal static class MetadataRows
     }
 
     /// <summary>
+    ///   The entries among those given that have no name yet, each once, with
+    ///   the first name given for it that is not blank, trimmed. An entry
+    ///   given no such name is left out.
+    /// </summary>
+    /// <param name="entries">The entries and the names given for them.</param>
+    /// <param name="isUnnamed">Whether an entry has no name yet.</param>
+    /// <returns>The entries to name, in the order given.</returns>
+    internal static List<(MetadataGuid ID, string Name)> Unnamed(IEnumerable<(MetadataGuid ID, string? Name)> entries, Func<MetadataGuid, bool> isUnnamed)
+        => [.. Missing(entries, isUnnamed).Where(pair => pair.Name.Length > 0)];
+
+    /// <summary>
     ///   Copies of the stored stubs among the entries given that have no name,
     ///   each given the first name given for it that is not blank, trimmed.
     ///   A row its source saved is never renamed here.
@@ -173,7 +184,7 @@ internal static class MetadataRows
     /// <param name="find">Finds an entry's stored row.</param>
     /// <returns>The renamed copies, to write.</returns>
     internal static List<TRow> Named<TRow>(IEnumerable<(MetadataGuid ID, string? Name)> entries, Func<MetadataGuid, TRow?> find)
-        where TRow : class, IMetadataStoreRow<TRow>, IMetadataStubRow
+        where TRow : class, IMetadataStoreRow<TRow>, IMetadataNamedStubRow
     {
         var named = new Dictionary<MetadataGuid, TRow>();
         foreach (var (id, name) in entries)

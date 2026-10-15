@@ -263,9 +263,8 @@ public sealed class MetadataModelBuilder(
         include ??= new HashSet<MetadataIncludeDetails>();
         return Fill(new MetadataCreator
         {
-            Title = creator.Name,
-            Name = creator.Name,
-            OriginalName = creator.OriginalName,
+            Name = creator.Title,
+            OriginalName = creator.OriginalTitle?.Value,
             CreatorType = creator.Type,
             Gender = creator.Gender,
             BirthDay = creator.BirthDay,
@@ -273,12 +272,21 @@ public sealed class MetadataModelBuilder(
             PlaceOfBirth = creator.PlaceOfBirth,
             IsRestricted = creator.IsRestricted,
             IsStub = IsStub(creator),
-            AlternativeNames = [.. creator.AlternativeNames.Select(name => name.Value).Distinct()],
+            AlternativeNames = Synonyms(creator),
             CreatedAt = creator.CreatedAt.ToUniversalTime(),
             LastUpdatedAt = creator.LastUpdatedAt.ToUniversalTime(),
             Resources = include.Contains(MetadataIncludeDetails.Resources) ? Resources(creator) : null,
         }, creator, include, null);
     }
+
+    /// <summary>
+    /// The other names a person goes by: the values of its synonym titles,
+    /// each once.
+    /// </summary>
+    /// <param name="person">The creator or character.</param>
+    /// <returns>The names, in order.</returns>
+    private static IReadOnlyList<string> Synonyms(IWithTitles person)
+        => [.. person.Titles.Where(title => title.Type is TitleType.Synonym).Select(title => title.Value).Distinct()];
 
     /// <summary>
     /// A character.
@@ -293,14 +301,13 @@ public sealed class MetadataModelBuilder(
         include ??= new HashSet<MetadataIncludeDetails>();
         return Fill(new MetadataCharacter
         {
-            Title = character.Name,
-            Name = character.Name,
-            OriginalName = character.OriginalName,
+            Name = character.Title,
+            OriginalName = character.OriginalTitle?.Value,
             CharacterType = character.Type,
             Gender = character.Gender,
             BirthDay = character.BirthDay,
             IsStub = IsStub(character),
-            AlternativeNames = [.. character.AlternativeNames.Select(name => name.Value).Distinct()],
+            AlternativeNames = Synonyms(character),
             CreatedAt = character.CreatedAt.ToUniversalTime(),
             LastUpdatedAt = character.LastUpdatedAt.ToUniversalTime(),
             Resources = include.Contains(MetadataIncludeDetails.Resources) ? Resources(character) : null,
@@ -677,10 +684,10 @@ public sealed class MetadataModelBuilder(
             ParentID = cast.ParentID.ID,
             ParentType = cast.ParentID.EntityType,
             Creator = cast.CreatorID is { } creatorID
-                ? new() { ID = creatorID.ID, Name = creator?.Name, OriginalName = creator?.OriginalName, Image = creator is null ? null : PrimaryImage(creator) }
+                ? new() { ID = creatorID.ID, Name = creator?.Title, OriginalName = creator?.OriginalTitle?.Value, Image = creator is null ? null : PrimaryImage(creator) }
                 : null,
             Character = cast.CharacterID is { } characterID
-                ? new() { ID = characterID.ID, Name = character?.Name ?? cast.Name, OriginalName = character?.OriginalName, Image = character is null ? null : PrimaryImage(character) }
+                ? new() { ID = characterID.ID, Name = character?.Title ?? cast.Name, OriginalName = character?.OriginalTitle?.Value, Image = character is null ? null : PrimaryImage(character) }
                 : null,
         };
     }
@@ -703,7 +710,7 @@ public sealed class MetadataModelBuilder(
             Language = LanguageOf(crew.LanguageCode),
             ParentID = crew.ParentID.ID,
             ParentType = crew.ParentID.EntityType,
-            Creator = new() { ID = crew.CreatorID.ID, Name = creator?.Name, OriginalName = creator?.OriginalName, Image = creator is null ? null : PrimaryImage(creator) },
+            Creator = new() { ID = crew.CreatorID.ID, Name = creator?.Title, OriginalName = creator?.OriginalTitle?.Value, Image = creator is null ? null : PrimaryImage(creator) },
         };
     }
 

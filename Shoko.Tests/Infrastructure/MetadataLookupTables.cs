@@ -235,8 +235,8 @@ public sealed class MetadataLookupTables
     /// <param name="source">The plugin source.</param>
     public void StorePeopleTagsStudiosAndCollections(MetadataSource source)
     {
-        Creators.Cache.Update(new Metadata_Creator { Metadata_CreatorID = 1, Source = source, ProviderID = "1", Name = "Creator" });
-        _characters.Cache.Update(new Metadata_Character { Metadata_CharacterID = 1, Source = source, ProviderID = "1", Name = "Character" });
+        Creators.Cache.Update(new Metadata_Creator { Metadata_CreatorID = 1, Source = source, ProviderID = "1" });
+        _characters.Cache.Update(new Metadata_Character { Metadata_CharacterID = 1, Source = source, ProviderID = "1" });
         _tags.Cache.Update(new Metadata_Tag { Metadata_TagID = 1, Source = source, ProviderID = "1", Name = "Tag", Kind = TagKind.Genre });
         _studios.Cache.Update(new Metadata_Studio { Metadata_StudioID = 1, Source = source, ProviderID = "1", Name = "Studio" });
         Networks.Cache.Update(new Metadata_Network { Metadata_NetworkID = 1, Source = source, ProviderID = "1", Name = "Network" });

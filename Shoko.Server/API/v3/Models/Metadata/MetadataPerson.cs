@@ -12,7 +12,9 @@ using Resource = Shoko.Server.API.v3.Models.Common.Resource;
 namespace Shoko.Server.API.v3.Models.Metadata;
 
 /// <summary>
-/// A person who worked on entries of any metadata source.
+/// A person who worked on entries of any metadata source. Its title is the
+/// preferred one of its official names per language, and its titles, when
+/// asked for, are those names.
 /// </summary>
 public class MetadataCreator : MetadataEntry
 {
@@ -69,7 +71,7 @@ public class MetadataCreator : MetadataEntry
     public bool IsStub { get; init; }
 
     /// <summary>
-    /// Other names the person is known by.
+    /// Other names the person is known by, apart from its official names.
     /// </summary>
     [Required]
     public IReadOnlyList<string> AlternativeNames { get; init; } = [];

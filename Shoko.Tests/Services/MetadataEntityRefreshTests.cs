@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
@@ -114,6 +115,8 @@ public class MetadataEntityRefreshTests
 
         public Metadata_CrewRepository Crew { get; } = new InMemoryCrewRepository();
 
+        public MetadataTextStore TextStore { get; }
+
         public EntityProvider Provider { get; } = new();
 
         public MetadataProviderInfo Info { get; }
@@ -133,7 +136,7 @@ public class MetadataEntityRefreshTests
         public World(params MetadataEntityType[] enabled)
         {
             var writer = new CacheOnlyRowWriter();
-            var textStore = new MetadataTextStore(new TextCache(), writer);
+            var textStore = TextStore = new(new TextCache(), writer);
             Info = new()
             {
                 ID = Guid.NewGuid(),
@@ -179,7 +182,7 @@ public class MetadataEntityRefreshTests
             People = new(Creators, Characters, Cast, Crew, textStore, writer, Scheduler);
             StudioStore = new(Studios, StudioEntries, Networks, NetworkEntries, writer, textStore, Scheduler);
             RefreshState = new(Mock.Of<IMetadataService>(), null!, null!, null!, People, StudioStore);
-            _scope = new RepoFactoryScope().Set(Creators).Set(Characters).Set(Studios).Set(Networks);
+            _scope = new RepoFactoryScope().Set(Creators).Set(Characters).Set(Studios).Set(Networks).Set(TestTextManager.Build(textStore));
             Manager = manager;
             Queue = queue;
         }
@@ -193,6 +196,14 @@ public class MetadataEntityRefreshTests
 
         public IMetadataStubRow Row(MetadataGuid id)
             => Scheduler.GetRow(id) ?? throw new InvalidOperationException($"{id} is not stored.");
+
+        /// <summary>
+        /// The name a row reads with: a studio's or network's own, else the main title its source stored.
+        /// </summary>
+        public string Name(IMetadataStubRow row)
+            => row is IMetadataNamedStubRow named
+                ? named.Name
+                : TextStore.GetTitles(row.ID, row.ID.Source).FirstOrDefault(title => title.Type is TitleType.Main)?.Value ?? string.Empty;
 
         public RefreshMetadataEntityJob<EntityProvider> Job(MetadataGuid id, bool force = false)
         {
@@ -235,16 +246,6 @@ public class MetadataEntityRefreshTests
             => _scope.Dispose();
     }
 
-    private static string Name(IMetadataStubRow row)
-        => row switch
-        {
-            Metadata_Creator creator => creator.Name,
-            Metadata_Character character => character.Name,
-            Metadata_Studio studio => studio.Name,
-            Metadata_Network network => network.Name,
-            _ => throw new ArgumentException("Not a stub row.", nameof(row)),
-        };
-
     private static MetadataCastData Role(string character, string? creator, string? characterName = null, string? creatorName = null)
         => new()
         {
@@ -278,10 +279,10 @@ public class MetadataEntityRefreshTests
             .ToList();
         Assert.All(stubs, stub => Assert.True(stub.IsStub));
         Assert.All(stubs, stub => Assert.Null(stub.LastOrphanedAt));
-        Assert.Equal(["Kana", "", "Alice", "Role x2", "Sunrise", "Tokyo MX", ""], stubs.Select(Name));
+        Assert.Equal(["Kana", "", "Alice", "Role x2", "Sunrise", "Tokyo MX", ""], stubs.Select(world.Name));
 
         // Readers see a stub as it is, through the entry naming it too.
-        Assert.Equal(["Kana", "Kana"], world.People.GetCast(_series).Select(cast => cast.Creator!.Name));
+        Assert.Equal(["Kana", "Kana"], world.People.GetCast(_series).Select(cast => cast.Creator!.DefaultTitle.Value));
         Assert.True(MetadataModelBuilder.IsStub(world.StudioStore.GetStudios(_series)[0]));
         Assert.Equal("Tokyo MX", world.StudioStore.GetNetworks(_series)[0].Name);
     }
@@ -295,8 +296,8 @@ public class MetadataEntityRefreshTests
         world.StudioStore.SetNetworks(_series, [ID(MetadataEntityType.Network, "n1")]);
         var creatorRow = world.Creators.GetByProviderID(TestSources.Plugin, "c1")!.Metadata_CreatorID;
 
-        world.People.SaveCreators([new() { ID = ID(MetadataEntityType.Creator, "c1"), Name = "Kana" }]);
-        world.People.SaveCharacters([new() { ID = ID(MetadataEntityType.Character, "x1"), Name = "Alice" }]);
+        world.People.SaveCreators([new() { ID = ID(MetadataEntityType.Creator, "c1"), Titles = TestTexts.Named("Kana") }]);
+        world.People.SaveCharacters([new() { ID = ID(MetadataEntityType.Character, "x1"), Titles = TestTexts.Named("Alice") }]);
         world.StudioStore.SaveStudios([new() { ID = ID(MetadataEntityType.Studio, "s1"), Name = "Sunrise" }]);
         world.StudioStore.SaveNetworks([new() { ID = ID(MetadataEntityType.Network, "n1"), Name = "Tokyo MX" }]);
 
@@ -306,7 +307,7 @@ public class MetadataEntityRefreshTests
         Assert.False(world.Row(ID(MetadataEntityType.Character, "x1")).IsStub);
         Assert.False(world.Row(ID(MetadataEntityType.Studio, "s1")).IsStub);
         Assert.False(world.Row(ID(MetadataEntityType.Network, "n1")).IsStub);
-        Assert.Equal("Kana", world.People.GetCast(_series)[0].Creator!.Name);
+        Assert.Equal("Kana", world.People.GetCast(_series)[0].Creator!.DefaultTitle.Value);
     }
 
     [Fact]
@@ -321,7 +322,7 @@ public class MetadataEntityRefreshTests
         world.People.SetCast(_series, [new() { CharacterID = character, CreatorID = creator, Name = "" }]);
         world.StudioStore.SetStudios(_series, [new() { StudioID = studio }]);
         world.StudioStore.SetNetworks(_series, [network]);
-        world.People.SaveCreators([new() { ID = saved, Name = "" }]);
+        world.People.SaveCreators([new() { ID = saved, Titles = TestTexts.Named("") }]);
 
         world.People.SetCast(_otherSeries, [Role("x1", null, characterName: "  Alice  ")]);
         world.People.SetCrew(_otherSeries, [
@@ -335,7 +336,7 @@ public class MetadataEntityRefreshTests
         // A named stub keeps its name.
         world.People.SetCast(_otherSeries, [Role("x1", null, characterName: "Bob")]);
 
-        Assert.Equal(["Kana", "Alice", "Sunrise", "Tokyo MX", ""], new[] { creator, character, studio, network, saved }.Select(world.Row).Select(Name));
+        Assert.Equal(["Kana", "Alice", "Sunrise", "Tokyo MX", ""], new[] { creator, character, studio, network, saved }.Select(world.Row).Select(world.Name));
         Assert.True(world.Row(creator).IsStub);
     }
 
@@ -358,6 +359,9 @@ public class MetadataEntityRefreshTests
 
         Assert.Equal([ID(MetadataEntityType.Creator, "c2"), ID(MetadataEntityType.Character, "x2")], people);
         Assert.Equal([ID(MetadataEntityType.Studio, "s2"), ID(MetadataEntityType.Network, "n2")], organisations);
+        // A purged stub takes the name its credit gave along.
+        Assert.Empty(world.TextStore.GetTitles(ID(MetadataEntityType.Character, "x2")));
+        Assert.Equal("Role x1", world.Name(world.Row(ID(MetadataEntityType.Character, "x1"))));
         Assert.True(world.Row(ID(MetadataEntityType.Creator, "c1")).IsStub);
         Assert.True(world.Row(ID(MetadataEntityType.Studio, "s1")).IsStub);
         Assert.True(world.Row(ID(MetadataEntityType.Network, "n1")).IsStub);
@@ -371,7 +375,7 @@ public class MetadataEntityRefreshTests
     public void AWriteQueuesOneRefreshPerDueEntryFromTheProviderTakingItsKind()
     {
         using var world = new World();
-        world.People.SaveCreators([new() { ID = ID(MetadataEntityType.Creator, "fresh"), Name = "Fresh" }]);
+        world.People.SaveCreators([new() { ID = ID(MetadataEntityType.Creator, "fresh"), Titles = TestTexts.Named("Fresh") }]);
 
         world.People.SetCast(_series, [Role("x1", "c1"), Role("x2", "c1"), Role("x3", "fresh")]);
 
@@ -490,7 +494,7 @@ public class MetadataEntityRefreshTests
         world.People.SetCast(_series, [Role("x1", "c1")]);
         world.People.SetCast(_otherSeries, [Role("x2", "gone")]);
         world.People.RemoveCast(_otherSeries);
-        world.People.SaveCreators([new() { ID = ID(MetadataEntityType.Creator, "c1"), Name = "Kana" }]);
+        world.People.SaveCreators([new() { ID = ID(MetadataEntityType.Creator, "c1"), Titles = TestTexts.Named("Kana") }]);
         world.StudioStore.SetNetworks(_series, [ID(MetadataEntityType.Network, "n1")]);
         world.Queued.Clear();
         var collections = new MetadataCollectionRefreshScheduler(
@@ -556,7 +560,7 @@ public class MetadataEntityRefreshTests
             if (id != creator)
                 return false;
 
-            world.People.SaveCreators([new() { ID = id, Name = "Kana" }]);
+            world.People.SaveCreators([new() { ID = id, Titles = TestTexts.Named("Kana") }]);
             return true;
         };
 
@@ -589,7 +593,7 @@ public class MetadataEntityRefreshTests
             if (id != creator)
                 return false;
 
-            world.People.SaveCreators([new() { ID = id, Name = "Kana" }]);
+            world.People.SaveCreators([new() { ID = id, Titles = TestTexts.Named("Kana") }]);
             return true;
         };
 

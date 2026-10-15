@@ -53,7 +53,7 @@ public class TextManagementRoundTripTests(DatabaseMigrationFixture fixture)
     {
         var services = fixture.Services;
         services.GetRequiredService<Metadata_SeriesRepository>().Populate(displayName: false);
-        services.GetRequiredService<Metadata_CreatorRepository>().Populate(displayName: false);
+        services.GetRequiredService<Metadata_StudioRepository>().Populate(displayName: false);
         services.GetRequiredService<TextCache>().Populate(displayName: false);
         MetadataTextManager.OnLanguageSettingsChanged();
     }
@@ -114,12 +114,12 @@ public class TextManagementRoundTripTests(DatabaseMigrationFixture fixture)
     public void ADefaultKeptOnTheRowIsPickedAsACopy()
     {
         var controller = Controller();
-        var personID = ID(MetadataEntityType.Creator, "tm-p1");
-        fixture.Services.GetRequiredService<IMetadataPeopleStore>().SaveCreators([new() { ID = personID, Name = "Kana" }]);
-        var (source, type, entity) = (personID.Source, personID.EntityType, personID.ID);
+        var studioID = ID(MetadataEntityType.Studio, "tm-st1");
+        fixture.Services.GetRequiredService<IMetadataStudioStore>().SaveStudios([new() { ID = studioID, Name = "Sunrise" }]);
+        var (source, type, entity) = (studioID.Source, studioID.EntityType, studioID.ID);
 
         var picked = Value(controller.SetPreferredTextForEntity(source, type, entity, new() { Kind = TextKind.Title, Default = true }));
-        Assert.Equal((MetadataSource.User, "Kana"), (picked.Source, picked.Value));
+        Assert.Equal((MetadataSource.User, "Sunrise"), (picked.Source, picked.Value));
 
         Reload();
 

@@ -2,10 +2,13 @@ using System;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached.Metadata;
+using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Xunit;
 using static Shoko.IntegrationTests.Sql;
 
@@ -40,6 +43,7 @@ public class MetadataEntityStubRoundTripTests(DatabaseMigrationFixture fixture)
             services.GetRequiredService<Metadata_Studio_EntryRepository>(),
             services.GetRequiredService<Metadata_NetworkRepository>(),
             services.GetRequiredService<Metadata_Network_EntryRepository>(),
+            services.GetRequiredService<TextCache>(),
         })
             repository.Populate(displayName: false);
     }
@@ -54,6 +58,7 @@ public class MetadataEntityStubRoundTripTests(DatabaseMigrationFixture fixture)
         var characters = fixture.Services.GetRequiredService<Metadata_CharacterRepository>();
         var studioRows = fixture.Services.GetRequiredService<Metadata_StudioRepository>();
         var networkRows = fixture.Services.GetRequiredService<Metadata_NetworkRepository>();
+        var texts = fixture.Services.GetRequiredService<IMetadataTextManager>();
         var series = ID(MetadataEntityType.Series, "stub-series-1");
         var other = ID(MetadataEntityType.Series, "stub-series-2");
         var creator = ID(MetadataEntityType.Creator, "stub-creator-1");
@@ -70,22 +75,25 @@ public class MetadataEntityStubRoundTripTests(DatabaseMigrationFixture fixture)
 
         Reload();
 
+        // A person's stub is named by a main title under its own source.
         Assert.True(creators.GetByProviderID(_plugin, creator.ID)!.IsStub);
-        Assert.Equal("Kana", creators.GetByProviderID(_plugin, creator.ID)!.Name);
-        Assert.Equal("Alice", characters.GetByProviderID(_plugin, character.ID)!.Name);
+        var stubName = Assert.Single(texts.GetTitles(creator, new() { Source = _plugin }));
+        Assert.Equal(("Kana", TitleType.Main, "unk"), (stubName.Value, stubName.Type, stubName.LanguageCode));
+        Assert.Equal("Alice", ((ICharacter)characters.GetByProviderID(_plugin, character.ID)!).DefaultTitle.Value);
         Assert.True(studioRows.GetByProviderID(_plugin, studio.ID)!.IsStub);
         Assert.Equal("Tokyo MX", networkRows.GetByProviderID(_plugin, network.ID)!.Name);
-        Assert.Equal("Kana", people.GetCast(series).Single().Creator!.Name);
+        Assert.Equal("Kana", people.GetCast(series).Single().Creator!.DefaultTitle.Value);
 
         // The purge keeps the stubs still named and drops the one let go.
         var purged = people.RemoveOrphaned(_plugin, DateTime.MaxValue);
         Assert.Contains(unlinked, purged);
         Assert.DoesNotContain(creator, purged);
 
-        people.SaveCreators([new() { ID = creator, Name = "Kana Hanazawa" }]);
+        people.SaveCreators([new() { ID = creator, Titles = TestTexts.Named("Kana Hanazawa") }]);
         studios.SaveStudios([new() { ID = studio, Name = "Sunrise" }]);
         Reload();
         Assert.False(creators.GetByProviderID(_plugin, creator.ID)!.IsStub);
+        Assert.Equal(["Kana Hanazawa"], texts.GetTitles(creator, new() { Source = _plugin }).Select(title => title.Value));
         Assert.False(studioRows.GetByProviderID(_plugin, studio.ID)!.IsStub);
         Assert.True(characters.GetByProviderID(_plugin, character.ID)!.IsStub);
 
@@ -106,7 +114,7 @@ public class MetadataEntityStubRoundTripTests(DatabaseMigrationFixture fixture)
         var series = ID(MetadataEntityType.Series, "stub-series-3");
         var stub = ID(MetadataEntityType.Creator, "stub-creator-3");
         var full = ID(MetadataEntityType.Creator, "stub-creator-4");
-        people.SaveCreators([new() { ID = full, Name = "Hiro", PlaceOfBirth = "Tokyo, Japan", IsRestricted = true }]);
+        people.SaveCreators([new() { ID = full, Titles = TestTexts.Named("Hiro"), PlaceOfBirth = "Tokyo, Japan", IsRestricted = true }]);
         people.SetCrew(series, [new() { CreatorID = stub, CreatorName = "Mio", Name = "Music" }, new() { CreatorID = full, Name = "Director" }]);
         studios.SetStudios(series, [new() { StudioID = ID(MetadataEntityType.Studio, "stub-studio-3") }]);
         string[] tables = ["Metadata_Creator", "Metadata_Character", "Metadata_Studio"];

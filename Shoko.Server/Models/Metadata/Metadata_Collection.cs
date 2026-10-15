@@ -7,6 +7,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Models.Metadata;
 
@@ -94,6 +95,15 @@ public class Metadata_Collection : IMovieCollection, IMetadataStoreRow<Metadata_
     ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
 
     IReadOnlyList<ITitle> IWithTitles.Titles => MetadataStoredEntry.Titles(this);
+
+    // A collection belongs to no series, and TMDB gives it no original language.
+    string? IWithTitles.OriginalLanguageCode => null;
+
+    string? IWithTitles.OriginalCountryCode => null;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => TextChooser.OriginalTitle(((IWithTitles)this).Titles, ((IWithTitles)this).OriginalLanguageCode);
 
     #endregion
 

@@ -69,7 +69,7 @@ public class OrderingTextRoundTripTests(DatabaseMigrationFixture fixture)
         var stored = $"EntitySource = {plugin} AND Source = {plugin} AND EntityID IN ({entries})";
         try
         {
-            ReleasedOrderingSchema.Restore(connection);
+            ReleasedColumns.Ordering.Restore(connection);
             Insert(
                 connection,
                 "Metadata_Ordering",
@@ -119,13 +119,13 @@ public class OrderingTextRoundTripTests(DatabaseMigrationFixture fixture)
                 Read(connection, $"SELECT EntityID, Value FROM Metadata_Overview WHERE {stored} ORDER BY EntityID")
             );
 
-            foreach (var step in ReleasedOrderingSchema.DropSteps(fixture))
+            foreach (var step in ReleasedColumns.Ordering.DropSteps(fixture))
                 Execute(connection, step.Command!);
-            Assert.False(ReleasedOrderingSchema.AnyPresent(connection));
+            Assert.False(ReleasedColumns.Ordering.AnyPresent(connection));
         }
         finally
         {
-            ReleasedOrderingSchema.Drop(connection);
+            ReleasedColumns.Ordering.Drop(connection);
             Execute(connection, $"DELETE FROM Metadata_Title WHERE EntitySource = {plugin} AND EntityID IN ({entries})");
             Execute(connection, $"DELETE FROM Metadata_Overview WHERE EntitySource = {plugin} AND EntityID IN ({entries})");
             Execute(connection, $"DELETE FROM Metadata_Ordering_Group WHERE Source = {plugin} AND OrderingID = '{OrderingID}'");

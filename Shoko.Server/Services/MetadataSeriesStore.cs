@@ -179,7 +179,7 @@ public class MetadataSeriesStore(
             seriesRow.FavoriteCount = series.FavoriteCount;
             seriesRow.Resources = resources;
             seriesRow.CrossSourceIDs = crossSourceIDs;
-            seriesRow.ExtraData = MetadataDefaultImages.Apply((seriesRow.ExtraData ?? new()) with { ProductionCountries = countries }, series.DefaultImageResourceIDs)
+            seriesRow.ExtraData = MetadataDefaultImages.Apply((seriesRow.ExtraData ?? new()) with { ProductionCountries = countries, OriginalCountryCode = MetadataEntries.CheckCountryCode(series.OriginalCountryCode) }, series.DefaultImageResourceIDs)
                 .NullIfEmpty();
             var (ratingsSaving, ratingsDeleting) = MetadataContentRatings.Plan(contentRatingRepository, series.ID, contentRatings);
 

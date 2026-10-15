@@ -107,6 +107,18 @@ public sealed class StoredOrderingGroup<TSeries, TEpisode>(
     /// <inheritdoc />
     public IReadOnlyList<ITitle> Titles => MetadataStoredEntry.Titles(this);
 
+    /// <inheritdoc />
+    public string? OriginalLanguageCode => ordering.OriginalLanguageCode;
+
+    /// <inheritdoc />
+    public string? OriginalCountryCode => ordering.OriginalCountryCode;
+
+    /// <inheritdoc />
+    public TitleLanguage? OriginalLanguage => TextChooser.OriginalLanguage(OriginalLanguageCode, OriginalCountryCode);
+
+    /// <inheritdoc />
+    public ITitle? OriginalTitle => TextChooser.OriginalTitle(Titles, OriginalLanguageCode);
+
     #endregion
 
     #region IWithOverviews Implementation

@@ -28,6 +28,18 @@ public sealed record Metadata_CreatorExtra : IMetadataDefaultImages<Metadata_Cre
     #region Properties
 
     /// <summary>
+    ///   The country the creator comes from, as an ISO 3166 two-letter code,
+    ///   when its source said.
+    /// </summary>
+    public string? OriginalCountryCode { get; init; }
+
+    /// <summary>
+    ///   The language the creator is originally named in, as a language code,
+    ///   when its source said.
+    /// </summary>
+    public string? OriginalLanguageCode { get; init; }
+
+    /// <summary>
     ///   Where the creator was born, as free text the way its source gave
     ///   it.
     /// </summary>

@@ -96,6 +96,15 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
         // provider that does name its seasons goes first.
         : [.. ProviderTitles, .. series.Titles];
 
+    // The season is named in its series' original language.
+    string? IWithTitles.OriginalLanguageCode => series.OriginalLanguageCode;
+
+    string? IWithTitles.OriginalCountryCode => series.OriginalCountryCode;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => TextChooser.OriginalTitle(((IWithTitles)this).Titles, ((IWithTitles)this).OriginalLanguageCode);
+
     /// <summary>
     ///   What the season's own entries call it, empty when nothing does.
     /// </summary>

@@ -51,12 +51,6 @@ public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithL
     bool Video { get; }
 
     /// <summary>
-    /// The language the movie was first made in, as a language code, when
-    /// the source says.
-    /// </summary>
-    string? OriginalLanguageCode { get; }
-
-    /// <summary>
     ///   The countries the movie was made in, as ISO 3166-1 codes when the
     ///   source gives them.
     /// </summary>

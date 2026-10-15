@@ -1726,6 +1726,13 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(196, 129, "ALTER TABLE UserConfiguration ALTER COLUMN ConfigurationID NVARCHAR(64) COLLATE Latin1_General_100_BIN2 NOT NULL;"),
         new(196, 130, "CREATE UNIQUE INDEX UIX_UserConfiguration_JMMUserID_ConfigurationID ON UserConfiguration(JMMUserID, ConfigurationID);"),
         new(197,   1, DatabaseFixes.RepairRegionTaggedStreamLanguages),
+        new(198,   1, DatabaseFixes.CopyPeopleTexts),
+        new(198,   2, "ALTER TABLE Metadata_Creator DROP COLUMN Name;"),
+        new(198,   3, "ALTER TABLE Metadata_Creator DROP COLUMN OriginalName;"),
+        new(198,   4, "ALTER TABLE Metadata_Creator DROP COLUMN Description;"),
+        new(198,   5, "ALTER TABLE Metadata_Character DROP COLUMN Name;"),
+        new(198,   6, "ALTER TABLE Metadata_Character DROP COLUMN OriginalName;"),
+        new(198,   7, "ALTER TABLE Metadata_Character DROP COLUMN Description;"),
     ];
 
     #endregion

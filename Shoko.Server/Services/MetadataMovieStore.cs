@@ -109,7 +109,12 @@ public class MetadataMovieStore(
             row.Resources = resources;
             row.CrossSourceIDs = crossSourceIDs;
             row.ExtraData = MetadataDefaultImages.Apply(
-                (row.ExtraData ?? new()) with { ProductionCountries = countries, CollectionID = movie.CollectionID?.ID },
+                (row.ExtraData ?? new()) with
+                {
+                    ProductionCountries = countries,
+                    CollectionID = movie.CollectionID?.ID,
+                    OriginalCountryCode = MetadataEntries.CheckCountryCode(movie.OriginalCountryCode),
+                },
                 movie.DefaultImageResourceIDs
             ).NullIfEmpty();
             var (ratingsSaving, ratingsDeleting) = MetadataContentRatings.Plan(contentRatingRepository, movie.ID, contentRatings);

@@ -18,13 +18,13 @@ namespace Shoko.Server.Services;
 ///   Keeps every plugin source's characters, creators and credits in the
 ///   store's own tables. The characters and creators are cached in memory,
 ///   while the credits are read from the database, as a source may have
-///   millions. Alternative names are kept as titles in the text table.
+///   millions. Their names and overviews are kept in the text tables.
 /// </summary>
 /// <param name="creatorRepository">The creators.</param>
 /// <param name="characterRepository">The characters.</param>
 /// <param name="castRepository">The cast credits.</param>
 /// <param name="crewRepository">The crew credits.</param>
-/// <param name="textStore">Keeps the alternative names.</param>
+/// <param name="textStore">Keeps the names and overviews.</param>
 /// <param name="writer">Writes the changes.</param>
 /// <param name="entityScheduler">Routes the refresh of the stub and stale people a write credits, if set.</param>
 public class MetadataPeopleStore(
@@ -92,9 +92,6 @@ public class MetadataPeopleStore(
                     row.CreatedAt = now;
                 row.Source = creator.ID.Source;
                 row.ProviderID = creator.ID.ID;
-                row.Name = creator.Name ?? string.Empty;
-                row.OriginalName = creator.OriginalName;
-                row.Description = creator.Overview;
                 row.Type = creator.Type;
                 row.Gender = creator.Gender;
                 row.BirthDay = CheckDate(creator.BirthDay);
@@ -104,6 +101,8 @@ public class MetadataPeopleStore(
                 var extra = (row.ExtraData ?? new()) with
                 {
                     PlaceOfBirth = string.IsNullOrWhiteSpace(creator.PlaceOfBirth) ? null : creator.PlaceOfBirth.Trim(),
+                    OriginalLanguageCode = string.IsNullOrWhiteSpace(creator.OriginalLanguageCode) ? null : creator.OriginalLanguageCode.Trim(),
+                    OriginalCountryCode = MetadataEntries.CheckCountryCode(creator.OriginalCountryCode),
                 };
                 row.ExtraData = MetadataDefaultImages.Apply(extra, creator.DefaultImageResourceIDs).NullIfEmpty();
                 row.LastUpdatedAt = now;
@@ -111,9 +110,10 @@ public class MetadataPeopleStore(
             var credited = CreditedCreatorIDs(saving.Select(row => row.Metadata_CreatorID));
             foreach (var row in saving)
                 row.LastOrphanedAt = credited.Contains(row.Metadata_CreatorID) ? null : now;
-            textStore.WriteWithTitles(
-                Names(items, creator => creator.ID, creator => creator.AlternativeNames, nameof(creators)),
-                new MetadataRowChanges<Metadata_Creator>(creatorRepository, saving, [])
+            textStore.WriteWithTexts(
+                StoredTexts(items, creator => creator.ID, creator => creator.Titles, creator => creator.Overviews, nameof(creators)),
+                [],
+                _ => [new MetadataRowChanges<Metadata_Creator>(creatorRepository, saving, [])]
             );
         }
     }
@@ -133,22 +133,25 @@ public class MetadataPeopleStore(
                     row.CreatedAt = now;
                 row.Source = character.ID.Source;
                 row.ProviderID = character.ID.ID;
-                row.Name = character.Name ?? string.Empty;
-                row.OriginalName = character.OriginalName;
-                row.Description = character.Overview;
                 row.Type = character.Type;
                 row.Gender = character.Gender;
                 row.BirthDay = CheckDate(character.BirthDay);
                 row.Resources = MetadataEntries.CheckResources(character.Resources, nameof(characters));
-                row.ExtraData = MetadataDefaultImages.Apply(row.ExtraData ?? new(), character.DefaultImageResourceIDs).NullIfEmpty();
+                var extra = (row.ExtraData ?? new()) with
+                {
+                    OriginalLanguageCode = string.IsNullOrWhiteSpace(character.OriginalLanguageCode) ? null : character.OriginalLanguageCode.Trim(),
+                    OriginalCountryCode = MetadataEntries.CheckCountryCode(character.OriginalCountryCode),
+                };
+                row.ExtraData = MetadataDefaultImages.Apply(extra, character.DefaultImageResourceIDs).NullIfEmpty();
                 row.LastUpdatedAt = now;
             });
             var credited = castRepository.GetCreditedCharacterIDs(saving.Select(row => row.Metadata_CharacterID));
             foreach (var row in saving)
                 row.LastOrphanedAt = credited.Contains(row.Metadata_CharacterID) ? null : now;
-            textStore.WriteWithTitles(
-                Names(items, character => character.ID, character => character.AlternativeNames, nameof(characters)),
-                new MetadataRowChanges<Metadata_Character>(characterRepository, saving, [])
+            textStore.WriteWithTexts(
+                StoredTexts(items, character => character.ID, character => character.Titles, character => character.Overviews, nameof(characters)),
+                [],
+                _ => [new MetadataRowChanges<Metadata_Character>(characterRepository, saving, [])]
             );
         }
     }
@@ -458,59 +461,67 @@ public class MetadataPeopleStore(
     }
 
     /// <summary>
-    ///   The alternative names of the people being saved, as the titles they
-    ///   are stored as. When a person comes twice, the last copy wins, as it
-    ///   does for the person itself.
+    ///   The texts of the people being saved: every title and overview, but a
+    ///   synonym equal to a main or official title once whitespace is left out
+    ///   of both. When a person comes twice, the last copy wins.
     /// </summary>
     /// <typeparam name="TItem">The kind of person.</typeparam>
     /// <param name="items">The people, already checked.</param>
     /// <param name="idOf">The identifier of a person.</param>
-    /// <param name="namesOf">The alternative names of a person.</param>
+    /// <param name="titlesOf">The titles of a person.</param>
+    /// <param name="overviewsOf">The overviews of a person.</param>
     /// <param name="paramName">The argument the people came in through.</param>
-    /// <returns>Each person and its names, as titles.</returns>
-    /// <exception cref="ArgumentNullException">A name, or its value, is <c>null</c>.</exception>
-    private static List<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles)> Names<TItem>(
+    /// <returns>Each person and its texts to store.</returns>
+    /// <exception cref="ArgumentNullException">A title, or its value, is <c>null</c>.</exception>
+    private static List<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles, IReadOnlyList<IText> Overviews)> StoredTexts<TItem>(
         IReadOnlyList<TItem> items,
         Func<TItem, MetadataGuid> idOf,
-        Func<TItem, IReadOnlyList<MetadataNameData>?> namesOf,
+        Func<TItem, IReadOnlyList<ITitle>?> titlesOf,
+        Func<TItem, IReadOnlyList<IText>?> overviewsOf,
         string paramName
     )
     {
-        var latest = new Dictionary<MetadataGuid, IReadOnlyList<MetadataNameData>>();
+        var latest = new Dictionary<MetadataGuid, TItem>();
         foreach (var item in items)
-            latest[idOf(item)] = namesOf(item) ?? [];
+            latest[idOf(item)] = item;
 
-        return [.. latest.Select(pair => (pair.Key, (IReadOnlyList<ITitle>)[.. pair.Value.Select(name => ToTitle(pair.Key.Source, name, paramName))]))];
+        var stored = new List<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles, IReadOnlyList<IText> Overviews)>();
+        foreach (var (id, item) in latest)
+        {
+            var titles = titlesOf(item) ?? [];
+            foreach (var title in titles)
+            {
+                ArgumentNullException.ThrowIfNull(title, paramName);
+                ArgumentNullException.ThrowIfNull(title.Value, paramName);
+            }
+
+            var own = titles
+                .Where(title => title.Type is TitleType.Main or TitleType.Official)
+                .Select(title => WithoutWhitespace(title.Value))
+                .ToHashSet(StringComparer.Ordinal);
+            stored.Add((
+                id,
+                [.. titles.Where(title => title.Type is not TitleType.Synonym || !own.Contains(WithoutWhitespace(title.Value)))],
+                overviewsOf(item) ?? []
+            ));
+        }
+
+        return stored;
     }
 
     /// <summary>
-    ///   An alternative name as the title it is stored as.
+    ///   A name with every whitespace character left out.
     /// </summary>
-    /// <param name="source">The person's source.</param>
     /// <param name="name">The name.</param>
-    /// <param name="paramName">The argument the name came in through.</param>
-    /// <returns>A synonym title, under <c>unk</c> when the name has no language.</returns>
-    /// <exception cref="ArgumentNullException">The name, or its value, is <c>null</c>.</exception>
-    private static TitleStub ToTitle(MetadataSource source, MetadataNameData name, string paramName)
-    {
-        ArgumentNullException.ThrowIfNull(name, paramName);
-        ArgumentNullException.ThrowIfNull(name.Name, paramName);
-        var languageCode = string.IsNullOrWhiteSpace(name.LanguageCode) ? "unk" : name.LanguageCode;
-        return new()
-        {
-            Source = source,
-            Language = languageCode.TryGetTitleLanguage(out var language) ? language : TitleLanguage.Unknown,
-            LanguageCode = languageCode,
-            Type = TitleType.Synonym,
-            Value = name.Name,
-        };
-    }
+    /// <returns>The name without whitespace.</returns>
+    private static string WithoutWhitespace(string name)
+        => string.Concat(name.Where(character => !char.IsWhiteSpace(character)));
 
     /// <summary>
     ///   Stores a stub for each creator and character a write credits that
-    ///   is not stored yet, with the first name a credit gave it, and names a
-    ///   stored stub that has none. Called under the write lock, once the
-    ///   credits are checked.
+    ///   is not stored yet, and gives the first name a credit gave it as the
+    ///   main title of a stub its source has stored no title for. Called under
+    ///   the write lock, once the credits are checked.
     /// </summary>
     /// <remarks>
     ///   A stub is stamped as orphaned until its credit is written, so a write
@@ -528,32 +539,64 @@ public class MetadataPeopleStore(
             {
                 Source = pair.ID.Source,
                 ProviderID = pair.ID.ID,
-                Name = pair.Name,
                 CreatedAt = now,
                 LastOrphanedAt = now,
             })
-            .Concat(MetadataRows.Named(creatorNames, id => creatorRepository.GetByProviderID(id.Source, id.ID)))
             .ToList();
         var characterStubs = MetadataRows.Missing(characterNames, id => characterRepository.GetByProviderID(id.Source, id.ID) is null)
             .Select(pair => new Metadata_Character
             {
                 Source = pair.ID.Source,
                 ProviderID = pair.ID.ID,
-                Name = pair.Name,
                 CreatedAt = now,
                 LastOrphanedAt = now,
             })
-            .Concat(MetadataRows.Named(characterNames, id => characterRepository.GetByProviderID(id.Source, id.ID)))
             .ToList();
-        if (creatorStubs.Count + characterStubs.Count is 0)
+        List<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles)> titles =
+        [
+            .. StubTitles(creatorNames, id => creatorRepository.GetByProviderID(id.Source, id.ID)),
+            .. StubTitles(characterNames, id => characterRepository.GetByProviderID(id.Source, id.ID)),
+        ];
+        if (creatorStubs.Count + characterStubs.Count + titles.Count is 0)
             return;
 
-        textStore.WriteWithoutEntries(
-            [],
+        textStore.WriteWithTitles(
+            titles,
             new MetadataRowChanges<Metadata_Creator>(creatorRepository, creatorStubs, []),
             new MetadataRowChanges<Metadata_Character>(characterRepository, characterStubs, [])
         );
     }
+
+    /// <summary>
+    ///   The main titles to give the stubs among the people credited that
+    ///   have no title from their own source yet: the first name a credit
+    ///   gave each, in no known language.
+    /// </summary>
+    /// <param name="names">The people credited, with the names the credits carried.</param>
+    /// <param name="find">Finds a person's stored row.</param>
+    /// <returns>Each stub to name and its main title.</returns>
+    private IEnumerable<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles)> StubTitles(
+        IEnumerable<(MetadataGuid ID, string? Name)> names,
+        Func<MetadataGuid, IMetadataStubRow?> find
+    )
+        => MetadataRows.Unnamed(names, id => find(id) is not { IsStub: false } && textStore.GetTitles(id, id.Source).Count is 0)
+            .Select(pair => (pair.ID, (IReadOnlyList<ITitle>)[StubTitle(pair.ID.Source, pair.Name)]));
+
+    /// <summary>
+    ///   The main title a stub is named by, from the name a credit carried.
+    /// </summary>
+    /// <param name="source">The stub's own source, which the title is stored under.</param>
+    /// <param name="name">The name, trimmed and not blank.</param>
+    /// <returns>The title, in no known language.</returns>
+    private static TitleStub StubTitle(MetadataSource source, string name)
+        => new()
+        {
+            Source = source,
+            Language = TitleLanguage.Unknown,
+            LanguageCode = "unk",
+            Type = TitleType.Main,
+            Value = name,
+        };
 
     /// <summary>
     ///   The rows of the creators and characters a write credits.

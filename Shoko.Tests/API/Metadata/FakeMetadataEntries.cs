@@ -91,6 +91,8 @@ public static class FakeMetadataEntries
 
         public IReadOnlyList<ITitle> Titles { get; set; } = [new FakeTitle(title)];
 
+        public ITitle? OriginalTitle => null;
+
         public IText? DefaultOverview => null;
 
         public IText? PreferredOverview => null;
@@ -132,6 +134,10 @@ public static class FakeMetadataEntries
         public SourceMaterial SourceMaterial { get; set; }
 
         public string? OriginalLanguageCode { get; set; }
+
+        public string? OriginalCountryCode => null;
+
+        public TitleLanguage? OriginalLanguage => null;
 
         public double? Popularity { get; set; }
 
@@ -193,6 +199,14 @@ public static class FakeMetadataEntries
         public ITitle? PreferredTitle => DefaultTitle;
 
         public IReadOnlyList<ITitle> Titles { get; set; } = [];
+
+        public string? OriginalLanguageCode => null;
+
+        public string? OriginalCountryCode => null;
+
+        public TitleLanguage? OriginalLanguage => null;
+
+        public ITitle? OriginalTitle => null;
 
         public IText? DefaultOverview => null;
 

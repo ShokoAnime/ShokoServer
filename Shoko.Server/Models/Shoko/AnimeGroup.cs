@@ -15,6 +15,7 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
+using Shoko.Server.Services;
 namespace Shoko.Server.Models.Shoko;
 
 public class AnimeGroup : IShokoGroup
@@ -450,6 +451,15 @@ public class AnimeGroup : IShokoGroup
         => MainSeries ?? throw new InvalidOperationException($"Group {AnimeGroupID} has no series to take its name from.");
 
     string IWithTitles.Title => GroupName;
+
+    // The group is named in its main series' original language.
+    string? IWithTitles.OriginalLanguageCode => (MainSeries as IWithTitles)?.OriginalLanguageCode;
+
+    string? IWithTitles.OriginalCountryCode => (MainSeries as IWithTitles)?.OriginalCountryCode;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => TextChooser.OriginalTitle(((IWithTitles)this).Titles, ((IWithTitles)this).OriginalLanguageCode);
 
     ITitle IWithTitles.DefaultTitle => CustomTitle ?? RequireMainSeries().DefaultTitle;
 

@@ -15,30 +15,40 @@ public sealed record MetadataCreatorData
     public required MetadataGuid ID { get; init; }
 
     /// <summary>
-    ///   The creator's name, as the source writes it for most readers.
+    ///   The creator's titles, in order: its names in each language, its name
+    ///   in its original script among them. They are stored under the
+    ///   creator's source, whatever source each title names.
     /// </summary>
-    public required string Name { get; init; }
+    /// <remarks>
+    ///   The main title (<see cref="TitleType.Main"/>) is the creator's
+    ///   default name. A synonym equal to the main or an official title but
+    ///   for whitespace is dropped.
+    /// </remarks>
+    public IReadOnlyList<ITitle> Titles { get; init; } = [];
 
     /// <summary>
-    ///   The creator's name in its original script, when it differs.
+    ///   The language the creator is originally named in, as a language code,
+    ///   when the source says. Its name in that language goes in
+    ///   <see cref="Titles"/>.
     /// </summary>
-    public string? OriginalName { get; init; }
+    public string? OriginalLanguageCode { get; init; }
 
     /// <summary>
-    ///   What the source says about the creator.
+    ///   The country the creator comes from, as an ISO 3166 two-letter code,
+    ///   when the source says or it is worked out from where they were born.
     /// </summary>
-    public string? Overview { get; init; }
+    public string? OriginalCountryCode { get; init; }
+
+    /// <summary>
+    ///   The creator's overviews, in order, stored like the titles. The first
+    ///   is its default.
+    /// </summary>
+    public IReadOnlyList<IText> Overviews { get; init; } = [];
 
     /// <summary>
     ///   Whether the creator is a person, a company or something else.
     /// </summary>
     public CreatorType Type { get; init; } = CreatorType.Person;
-
-    /// <summary>
-    ///   Other names the creator is known by. They are stored as its titles,
-    ///   of the <see cref="TitleType.Synonym"/> type.
-    /// </summary>
-    public IReadOnlyList<MetadataNameData> AlternativeNames { get; init; } = [];
 
     /// <summary>
     ///   The creator's gender, when the source says.
@@ -97,30 +107,40 @@ public sealed record MetadataCharacterData
     public required MetadataGuid ID { get; init; }
 
     /// <summary>
-    ///   The character's name, as the source writes it for most readers.
+    ///   The character's titles, in order: its names in each language, its name
+    ///   in its original script among them. They are stored under the
+    ///   character's source, whatever source each title names.
     /// </summary>
-    public required string Name { get; init; }
+    /// <remarks>
+    ///   The main title (<see cref="TitleType.Main"/>) is the character's
+    ///   default name. A synonym equal to the main or an official title but
+    ///   for whitespace is dropped.
+    /// </remarks>
+    public IReadOnlyList<ITitle> Titles { get; init; } = [];
 
     /// <summary>
-    ///   The character's name in its original script, when it differs.
+    ///   The language the character is originally named in, as a language code,
+    ///   when the source says. Its name in that language goes in
+    ///   <see cref="Titles"/>.
     /// </summary>
-    public string? OriginalName { get; init; }
+    public string? OriginalLanguageCode { get; init; }
 
     /// <summary>
-    ///   What the source says about the character.
+    ///   The country the character comes from, as an ISO 3166 two-letter code,
+    ///   when the source says.
     /// </summary>
-    public string? Overview { get; init; }
+    public string? OriginalCountryCode { get; init; }
+
+    /// <summary>
+    ///   The character's overviews, in order, stored like the titles. The first
+    ///   is its default.
+    /// </summary>
+    public IReadOnlyList<IText> Overviews { get; init; } = [];
 
     /// <summary>
     ///   Whether it is a character or an organization.
     /// </summary>
     public CharacterType Type { get; init; } = CharacterType.Character;
-
-    /// <summary>
-    ///   Other names the character is known by. They are stored as its
-    ///   titles, of the <see cref="TitleType.Synonym"/> type.
-    /// </summary>
-    public IReadOnlyList<MetadataNameData> AlternativeNames { get; init; } = [];
 
     /// <summary>
     ///   The character's gender, when the source says.
@@ -150,23 +170,6 @@ public sealed record MetadataCharacterData
 }
 
 /// <summary>
-///   Another name a creator or a character is known by.
-/// </summary>
-public sealed record MetadataNameData
-{
-    /// <summary>
-    ///   The name.
-    /// </summary>
-    public required string Name { get; init; }
-
-    /// <summary>
-    ///   The language of the name, as a language code, when known. A name
-    ///   without one is stored under <c>unk</c>.
-    /// </summary>
-    public string? LanguageCode { get; init; }
-}
-
-/// <summary>
 ///   One cast credit on an entry: a character, who voiced or played it, or
 ///   both. It is known by its character, its creator and its language. A
 ///   character or creator not stored yet is kept as a stub.
@@ -179,8 +182,8 @@ public sealed record MetadataCastData
     public MetadataGuid? CharacterID { get; init; }
 
     /// <summary>
-    ///   The character's name, kept on the stub the core makes when the
-    ///   character is not stored yet. <see cref="Name"/> is used when unset.
+    ///   The character's name, the main title of the stub the core makes when
+    ///   the character is not stored yet. <see cref="Name"/> is used when unset.
     /// </summary>
     public string? CharacterName { get; init; }
 
@@ -190,8 +193,8 @@ public sealed record MetadataCastData
     public MetadataGuid? CreatorID { get; init; }
 
     /// <summary>
-    ///   The creator's name, kept on the stub the core makes when the creator
-    ///   is not stored yet.
+    ///   The creator's name, the main title of the stub the core makes when
+    ///   the creator is not stored yet.
     /// </summary>
     public string? CreatorName { get; init; }
 
@@ -236,8 +239,8 @@ public sealed record MetadataCrewData
     public required MetadataGuid CreatorID { get; init; }
 
     /// <summary>
-    ///   The creator's name, kept on the stub the core makes when the creator
-    ///   is not stored yet.
+    ///   The creator's name, the main title of the stub the core makes when
+    ///   the creator is not stored yet.
     /// </summary>
     public string? CreatorName { get; init; }
 

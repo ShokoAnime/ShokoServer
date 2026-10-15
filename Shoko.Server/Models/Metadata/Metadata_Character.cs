@@ -8,9 +8,9 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.Metadata;
@@ -18,7 +18,7 @@ namespace Shoko.Server.Models.Metadata;
 /// <summary>
 ///   A character a source keeps in the people store.
 /// </summary>
-public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Character>, IInlineTextSource, IMetadataStubRow, IMetadataDefaultImageSource
+public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Character>, IMetadataStubRow, IMetadataDefaultImageSource
 {
     #region Database Columns
 
@@ -36,21 +36,6 @@ public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Charact
     ///   The source's own ID for the character.
     /// </summary>
     public string ProviderID { get; set; } = string.Empty;
-
-    /// <summary>
-    ///   The character's name, as the source writes it for most readers.
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    ///   The character's name in its original script, when it differs.
-    /// </summary>
-    public string? OriginalName { get; set; }
-
-    /// <summary>
-    ///   What the source says about the character.
-    /// </summary>
-    public string? Description { get; set; }
 
     /// <summary>
     ///   Whether it is a character or an organization.
@@ -109,9 +94,9 @@ public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Charact
     #region Helpers
 
     /// <summary>
-    ///   Whether the character is a stub: a row the core made, with only the
-    ///   name a credit carried, before its source wrote it. The source's
-    ///   next save of the character fills it in.
+    ///   Whether the character is a stub: a row the core made for a credit
+    ///   before its source wrote it, with the name the credit carried as its
+    ///   main title. The source's next save of the character fills it in.
     /// </summary>
     public bool IsStub => LastUpdatedAt is null;
 
@@ -143,11 +128,23 @@ public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Charact
 
     #endregion
 
-    #region IInlineTextSource Implementation
+    #region IWithTitles Implementation
 
-    ITitle? IInlineTextSource.InlineTitle => InlineText.Title(Source, Name, TitleLanguage.Unknown, "unk");
+    string IWithTitles.Title => ((IWithTitles)this).PreferredTitle?.Value ?? ((IWithTitles)this).DefaultTitle.Value;
 
-    IText? IInlineTextSource.InlineOverview => InlineText.Overview(Source, Description, TitleLanguage.English, "en");
+    ITitle IWithTitles.DefaultTitle => MetadataStoredEntry.DefaultTitle(this);
+
+    ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
+
+    IReadOnlyList<ITitle> IWithTitles.Titles => MetadataStoredEntry.Titles(this);
+
+    string? IWithTitles.OriginalLanguageCode => ExtraData?.OriginalLanguageCode;
+
+    string? IWithTitles.OriginalCountryCode => ExtraData?.OriginalCountryCode;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => TextChooser.OriginalTitle(((IWithTitles)this).Titles, ExtraData?.OriginalLanguageCode);
 
     #endregion
 
@@ -189,8 +186,6 @@ public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Charact
     #region ICharacter Implementation
 
     DateTime? ICharacter.LastRefreshedAt => LastRefreshedAt?.ToUniversalTime();
-
-    IReadOnlyList<ITitle> ICharacter.AlternativeNames => TextAccess.Manager.AlternativeNamesOf(this);
 
     IEnumerable<ICast<IEpisode>> ICharacter.EpisodeCastRoles => CastRoles(MetadataEntityType.Episode);
 

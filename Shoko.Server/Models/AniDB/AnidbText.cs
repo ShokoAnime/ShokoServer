@@ -3,6 +3,7 @@ using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
@@ -17,6 +18,59 @@ namespace Shoko.Server.Models.AniDB;
 internal static class AnidbText
 {
     #region Titles
+
+    /// <summary>
+    ///   The titles of an AniDB creator or character: its transcribed name
+    ///   as its main title in <c>x-jat</c>, then its original name as its
+    ///   official title in <c>ja</c>, the languages AniDB gives them in.
+    /// </summary>
+    /// <param name="entityID">The creator or character.</param>
+    /// <param name="name">The transcribed name, which may be empty.</param>
+    /// <param name="originalName">The name in kanji or kana, which may be empty.</param>
+    /// <returns>The titles AniDB gave, in that order.</returns>
+    internal static IReadOnlyList<ITitle> PersonTitles(MetadataGuid entityID, string? name, string? originalName)
+    {
+        var titles = new List<ITitle>(2);
+        if (!string.IsNullOrWhiteSpace(name))
+            titles.Add(new TitleStub
+            {
+                Source = MetadataSource.AniDB,
+                EntityID = entityID,
+                Language = TitleLanguage.Romaji,
+                LanguageCode = "x-jat",
+                Type = TitleType.Main,
+                Value = name,
+            });
+        if (!string.IsNullOrWhiteSpace(originalName))
+            titles.Add(new TitleStub
+            {
+                Source = MetadataSource.AniDB,
+                EntityID = entityID,
+                Language = TitleLanguage.Japanese,
+                LanguageCode = "ja",
+                Type = TitleType.Official,
+                Value = originalName,
+            });
+        return titles;
+    }
+
+    /// <summary>
+    ///   The default title of an AniDB creator or character: its first
+    ///   title, else an empty main one.
+    /// </summary>
+    /// <param name="entityID">The creator or character.</param>
+    /// <param name="titles">Its titles, from <see cref="PersonTitles"/>.</param>
+    /// <returns>The title.</returns>
+    internal static ITitle PersonDefaultTitle(MetadataGuid entityID, IReadOnlyList<ITitle> titles)
+        => titles.FirstOrDefault() ?? new TitleStub
+        {
+            Source = MetadataSource.AniDB,
+            EntityID = entityID,
+            Language = TitleLanguage.Romaji,
+            LanguageCode = "x-jat",
+            Type = TitleType.Main,
+            Value = string.Empty,
+        };
 
     /// <summary>
     ///   A stored title as AniDB's models give it: with the code of its

@@ -322,11 +322,12 @@ Overviews follow steps 1, 2, 4 and 5.
 - **Plugin sources.** Series, seasons, episodes, films, collections, creators
   and characters read their texts through the manager. `PreferredTitle` is
   steps 1 to 4, else the synthesized default when there is one, else `null`, so
-  `Title` falls back on the default. A person's
-  `AlternativeNames` are the titles its source stored. Orderings and their
-  groups read theirs the same way, the users' own under `user`; a group with
-  no title is named by its generic season name. Tags, studios and networks
-  keep their name on their own rows.
+  `Title` falls back on the default. A person's names and overviews are stored
+  like a series': its source's main title is its default name, and a stub's is
+  the name its credit carried. Orderings and their groups read theirs the same
+  way, the users' own under `user`; a group with no title is named by its
+  generic season name. Tags, studios and networks keep their name on their own
+  rows.
 - **AniDB.** An anime's and episode's titles are stored under `anidb`; an
   episode with no English title is named by its generic title, synthesized when
   read. Descriptions and the names of characters, creators and tags stay on

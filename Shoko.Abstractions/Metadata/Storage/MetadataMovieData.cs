@@ -60,6 +60,12 @@ public sealed record MetadataMovieData
     public string? OriginalLanguageCode { get; init; }
 
     /// <summary>
+    ///   The country the movie comes from, as an ISO 3166 two-letter code,
+    ///   when the source says.
+    /// </summary>
+    public string? OriginalCountryCode { get; init; }
+
+    /// <summary>
     ///   The countries the movie was made in, in order, as ISO 3166-1 codes
     ///   when the source gives them. A country given twice is kept once.
     /// </summary>

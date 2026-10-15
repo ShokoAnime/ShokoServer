@@ -75,6 +75,12 @@ internal sealed class SeriesInOrdering(ISeries series, IOrdering ordering) : ISe
     public string? OriginalLanguageCode => series.OriginalLanguageCode;
 
     /// <inheritdoc />
+    public string? OriginalCountryCode => series.OriginalCountryCode;
+
+    /// <inheritdoc />
+    public TitleLanguage? OriginalLanguage => series.OriginalLanguage;
+
+    /// <inheritdoc />
     public double? Popularity => series.Popularity;
 
     /// <inheritdoc />
@@ -143,6 +149,9 @@ internal sealed class SeriesInOrdering(ISeries series, IOrdering ordering) : ISe
 
     /// <inheritdoc />
     public IReadOnlyList<ITitle> Titles => series.Titles;
+
+    /// <inheritdoc />
+    public ITitle? OriginalTitle => series.OriginalTitle;
 
     #endregion
 

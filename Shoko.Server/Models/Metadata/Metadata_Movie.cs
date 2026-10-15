@@ -16,6 +16,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
+using Shoko.Server.Services;
 namespace Shoko.Server.Models.Metadata;
 
 /// <summary>
@@ -174,6 +175,12 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>, IMetada
     ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
 
     IReadOnlyList<ITitle> IWithTitles.Titles => MetadataStoredEntry.Titles(this);
+
+    ITitle? IWithTitles.OriginalTitle => TextChooser.OriginalTitle(((IWithTitles)this).Titles, OriginalLanguageCode);
+
+    string? IWithTitles.OriginalCountryCode => ExtraData?.OriginalCountryCode;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(OriginalLanguageCode, ExtraData?.OriginalCountryCode);
 
     #endregion
 

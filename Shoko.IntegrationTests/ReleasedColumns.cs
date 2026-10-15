@@ -11,24 +11,37 @@ using Shoko.TestData.Schema;
 namespace Shoko.IntegrationTests;
 
 /// <summary>
-/// Puts back the name and description columns the orderings and their groups kept before the text
-/// store took their texts, as a database upgraded from a released version has them until the drop
-/// steps run, and drops them again.
+/// Puts back text columns rows kept before the text store took their texts, as a database upgraded
+/// from a released version has them until the drop steps run, and drops them again.
 /// </summary>
-internal static class ReleasedOrderingSchema
+/// <param name="targets">What the drop steps remove, in the order they run.</param>
+internal sealed class ReleasedColumns(IReadOnlyList<(string Table, string Column)> targets)
 {
     #region Constants
 
     /// <summary>
-    /// What the drop steps remove, in the order they run.
+    /// The name and description columns of the orderings and their groups.
     /// </summary>
-    public static readonly IReadOnlyList<(string Table, string Column)> Targets =
+    public static readonly ReleasedColumns Ordering = new(
     [
         ("Metadata_Ordering", "Name"),
         ("Metadata_Ordering", "Description"),
         ("Metadata_Ordering_Group", "Name"),
         ("Metadata_Ordering_Group", "Description"),
-    ];
+    ]);
+
+    /// <summary>
+    /// The name, original name and description columns of the creators and characters.
+    /// </summary>
+    public static readonly ReleasedColumns People = new(
+    [
+        ("Metadata_Creator", "Name"),
+        ("Metadata_Creator", "OriginalName"),
+        ("Metadata_Creator", "Description"),
+        ("Metadata_Character", "Name"),
+        ("Metadata_Character", "OriginalName"),
+        ("Metadata_Character", "Description"),
+    ]);
 
     #endregion
 
@@ -40,7 +53,7 @@ internal static class ReleasedOrderingSchema
     /// </summary>
     /// <param name="connection">An open connection to the migrated database.</param>
     /// <returns>A step for the copy step lists, which always succeeds.</returns>
-    public static Tuple<bool, string?> Restore(object connection)
+    public Tuple<bool, string?> Restore(object connection)
     {
         var dbConnection = (IDbConnection)connection;
         var (backend, text, addColumn) = Backend(dbConnection) switch
@@ -59,7 +72,7 @@ internal static class ReleasedOrderingSchema
     /// </summary>
     /// <param name="connection">An open connection to the migrated database.</param>
     /// <returns>A step for the copy step lists, which always succeeds.</returns>
-    public static Tuple<bool, string?> Drop(object connection)
+    public Tuple<bool, string?> Drop(object connection)
     {
         var dbConnection = (IDbConnection)connection;
         foreach (var (table, column) in Columns(dbConnection, Backend(dbConnection), present: true))
@@ -68,19 +81,19 @@ internal static class ReleasedOrderingSchema
     }
 
     /// <summary>
-    /// The backend's own drop steps, one per target of <see cref="Targets"/>, in the same order.
+    /// The backend's own drop steps, one per target, in the same order.
     /// </summary>
     /// <param name="fixture">The started server.</param>
     /// <returns>One step per target.</returns>
-    public static IReadOnlyList<DatabaseCommand> DropSteps(DatabaseMigrationFixture fixture)
-        => [.. Targets.Select(target => SchemaSteps.Find(fixture, $"ALTER TABLE {target.Table} DROP COLUMN {target.Column};"))];
+    public IReadOnlyList<DatabaseCommand> DropSteps(DatabaseMigrationFixture fixture)
+        => [.. targets.Select(target => SchemaSteps.Find(fixture, $"ALTER TABLE {target.Table} DROP COLUMN {target.Column};"))];
 
     /// <summary>
     /// Whether the database has any of the columns.
     /// </summary>
     /// <param name="connection">An open connection to the migrated database.</param>
     /// <returns><c>true</c> when one is there.</returns>
-    public static bool AnyPresent(IDbConnection connection)
+    public bool AnyPresent(IDbConnection connection)
         => Columns(connection, Backend(connection), present: true).Any();
 
     #endregion
@@ -109,10 +122,10 @@ internal static class ReleasedOrderingSchema
     /// <param name="backend">The backend, as <see cref="DatabaseMigrationFixture.Backend"/> names it.</param>
     /// <param name="present">Whether to name the columns that are there rather than the missing ones.</param>
     /// <returns>The columns, by table.</returns>
-    private static IEnumerable<(string Table, string Column)> Columns(IDbConnection connection, string backend, bool present)
+    private IEnumerable<(string Table, string Column)> Columns(IDbConnection connection, string backend, bool present)
     {
         var schema = SchemaSnapshot.Read(connection, backend);
-        return Targets.Where(target => schema.Tables.TryGetValue(target.Table, out var columns) && columns.ContainsKey(target.Column) == present).ToList();
+        return targets.Where(target => schema.Tables.TryGetValue(target.Table, out var columns) && columns.ContainsKey(target.Column) == present).ToList();
     }
 
     #endregion

@@ -1298,6 +1298,15 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         /// <inheritdoc/>
         public IReadOnlyList<ITitle> Titles => _titles ??= searchResult.Result.Titles;
 
+        // A search result carries no original language.
+        public string? OriginalLanguageCode => null;
+
+        public string? OriginalCountryCode => null;
+
+        public TitleLanguage? OriginalLanguage => null;
+
+        public ITitle? OriginalTitle => null;
+
         /// <inheritdoc/>
         public string MatchedTitle { get; init; } = searchResult.Match;
 

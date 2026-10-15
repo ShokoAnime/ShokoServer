@@ -85,27 +85,25 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
             new()
             {
                 ID = Creator("c1"),
-                Name = "Kana",
-                Overview = longText,
+                Titles = [TestTexts.Title("Kana"), TestTexts.Title("かな", TitleType.Synonym, "ja"), TestTexts.Title("Kana-chan", TitleType.Synonym)],
+                Overviews = TestTexts.Described(longText),
                 Gender = PersonGender.Female,
                 BirthDay = new(1990, 4, 1),
                 DeathDay = new(null, 11, 30),
                 PlaceOfBirth = " Tokyo, Japan ",
                 IsRestricted = true,
                 Resources = [new() { Type = ResourceType.Website, Name = "Homepage", Url = "https://example.com/kana", LanguageCode = "ja" }],
-                AlternativeNames = [new() { Name = "かな", LanguageCode = "ja" }, new() { Name = "Kana-chan" }],
             },
-            new() { ID = Creator("c2"), Name = "Hiro", Type = CreatorType.Company },
+            new() { ID = Creator("c2"), Titles = TestTexts.Named("Hiro"), Type = CreatorType.Company },
         ]);
         people.SaveCharacters([
             new()
             {
                 ID = Character("x1"),
-                Name = "Alice",
-                OriginalName = "アリス",
+                OriginalLanguageCode = "ja",
+                Titles = [TestTexts.Title("Alice"), TestTexts.Title("アリス", TitleType.Official, "ja"), TestTexts.Title("Ally", TitleType.Synonym, "en")],
                 Gender = PersonGender.NonBinary,
                 BirthDay = new(1999),
-                AlternativeNames = [new() { Name = "Ally", LanguageCode = "en" }],
             },
         ]);
         people.SetCast(_series, [new() { CharacterID = Character("x1"), CreatorID = Creator("c1"), Name = "Alice", LanguageCode = "ja" }]);
@@ -129,7 +127,7 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
             new() { CreatorID = Creator("c2"), Name = "Animation" },
             new() { CreatorID = Creator("c1"), Name = "Director", RoleType = CrewRoleType.Director },
         ]);
-        people.SaveCreators([new() { ID = Creator("c2"), Name = "Hiro Studio", Type = CreatorType.Company, BirthDay = new(1985, 7) }]);
+        people.SaveCreators([new() { ID = Creator("c2"), Titles = TestTexts.Named("Hiro Studio"), Type = CreatorType.Company, BirthDay = new(1985, 7) }]);
 
         tags.SaveTags([
             new() { ID = Tag("t1"), Name = "Mecha", Category = "Theme" },
@@ -170,20 +168,20 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal(("Tokyo, Japan", true), (creator.PlaceOfBirth, creator.IsRestricted));
         var link = Assert.Single(((Metadata_Creator)creator).Resources);
         Assert.Equal((ResourceType.Website, "Homepage", "https://example.com/kana", "ja"), (link.Type, link.Name, link.Url, link.LanguageCode));
-        Assert.Equal(["かな", "Kana-chan"], creator.AlternativeNames.Select(name => name.Value));
-        Assert.Equal(["ja", "unk"], creator.AlternativeNames.Select(name => name.LanguageCode));
-        Assert.All(creator.AlternativeNames, name => Assert.Equal(TitleType.Synonym, name.Type));
+        var synonyms = creator.Titles.Where(title => title.Type is TitleType.Synonym).ToList();
+        Assert.Equal(["かな", "Kana-chan"], synonyms.Select(name => name.Value));
+        Assert.Equal(["ja", "unk"], synonyms.Select(name => name.LanguageCode));
         var company = people.GetCreator(Creator("c2"));
-        Assert.Equal("Hiro Studio", company?.Name);
+        Assert.Equal("Hiro Studio", company?.DefaultTitle.Value);
         Assert.Equal(new FuzzyDateOnly(1985, 7), company?.BirthDay);
         Assert.Empty(((Metadata_Creator)company!).Resources);
         Assert.Equal((null, false), (company.PlaceOfBirth, company.IsRestricted));
         Assert.Null(((Metadata_Creator)company).ExtraData);
         var character = people.GetCharacter(Character("x1"));
-        Assert.Equal("アリス", character?.OriginalName);
+        Assert.Equal("アリス", character?.OriginalTitle?.Value);
         Assert.Equal(PersonGender.NonBinary, character?.Gender);
         Assert.Equal(new FuzzyDateOnly(1999), character?.BirthDay);
-        Assert.Equal("Ally", Assert.Single(character!.AlternativeNames).Value);
+        Assert.Equal("Ally", Assert.Single(character!.Titles, title => title.Type is TitleType.Synonym).Value);
         var cast = Assert.Single(people.GetCast(_series));
         Assert.Equal("Alice (young)", cast.Name);
         Assert.Equal(longText, cast.Description);
@@ -268,22 +266,21 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
     {
         Assert.True(fixture.Success, fixture.FailureMessage);
         var people = fixture.Services.GetRequiredService<IMetadataPeopleStore>();
-        var creators = fixture.Services.GetRequiredService<Metadata_CreatorRepository>();
         var source = MetadataNumberRegistry.GetNumber(_plugin);
 
         people.SaveCreators([
-            new() { ID = Creator("fz-leap"), Name = "Leap", BirthDay = new(null, 2, 29) },
-            new() { ID = Creator("fz-month"), Name = "Month", BirthDay = new(null, 12) },
-            new() { ID = Creator("fz-dated"), Name = "Dated", BirthDay = new PartialDateOnly(1990, 4) },
+            new() { ID = Creator("fz-leap"), Titles = TestTexts.Named("Leap"), BirthDay = new(null, 2, 29) },
+            new() { ID = Creator("fz-month"), Titles = TestTexts.Named("Month"), BirthDay = new(null, 12) },
+            new() { ID = Creator("fz-dated"), Titles = TestTexts.Named("Dated"), BirthDay = new PartialDateOnly(1990, 4) },
         ]);
-        people.SaveCharacters([new() { ID = Character("fz-yearless"), Name = "Yearless", BirthDay = new(null, 7, 4) }]);
+        people.SaveCharacters([new() { ID = Character("fz-yearless"), Titles = TestTexts.Named("Yearless"), BirthDay = new(null, 7, 4) }]);
 
         using var connection = fixture.OpenConnection();
         try
         {
             // A row written before a year could be missing reads back as it was.
-            Execute(connection, "INSERT INTO Metadata_Creator (Source, ProviderID, Name, Type, BirthDay, LastUpdatedAt) " +
-                $"VALUES ({source}, 'fz-stored', 'Stored', 0, '1985-07-15', '2026-01-01 00:00:00')");
+            Execute(connection, "INSERT INTO Metadata_Creator (Source, ProviderID, Type, BirthDay, LastUpdatedAt) " +
+                $"VALUES ({source}, 'fz-stored', 0, '1985-07-15', '2026-01-01 00:00:00')");
 
             Reload();
 
@@ -301,9 +298,8 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
         {
             Execute(connection, "DELETE FROM Metadata_Creator WHERE ProviderID LIKE 'fz-%'");
             Execute(connection, "DELETE FROM Metadata_Character WHERE ProviderID LIKE 'fz-%'");
-            creators.Populate(displayName: false, cancellationToken: TestContext.Current.CancellationToken);
-            fixture.Services.GetRequiredService<Metadata_CharacterRepository>()
-                .Populate(displayName: false, cancellationToken: TestContext.Current.CancellationToken);
+            Execute(connection, $"DELETE FROM Metadata_Title WHERE EntitySource = {source} AND EntityID LIKE 'fz-%'");
+            Reload();
         }
     }
 }

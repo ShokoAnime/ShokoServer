@@ -115,6 +115,15 @@ public class Metadata_Season : ISeason<ISeries, IEpisode>, IMetadataStoreRow<Met
 
     IReadOnlyList<ITitle> IWithTitles.Titles => MetadataStoredEntry.Titles(this);
 
+    // The season is named in its series' original language, unknown when the series is gone.
+    string? IWithTitles.OriginalLanguageCode => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID)?.OriginalLanguageCode;
+
+    string? IWithTitles.OriginalCountryCode => (RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID) as IWithTitles)?.OriginalCountryCode;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => TextChooser.OriginalTitle(((IWithTitles)this).Titles, ((IWithTitles)this).OriginalLanguageCode);
+
     #endregion
 
     #region IWithOverviews Implementation

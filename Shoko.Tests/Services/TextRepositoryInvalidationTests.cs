@@ -24,7 +24,7 @@ public class TextRepositoryInvalidationTests
 {
     #region Helpers
 
-    private static readonly MetadataGuid _person = new(TestSources.Plugin, MetadataEntityType.Creator, "p5");
+    private static readonly MetadataGuid _studio = new(TestSources.Plugin, MetadataEntityType.Studio, "s5");
 
     private static readonly MetadataGuid _character = new(MetadataSource.AniDB, MetadataEntityType.Character, "7");
 
@@ -84,33 +84,33 @@ public class TextRepositoryInvalidationTests
     public void APluginRowWrittenWithUnchangedTextsOutdatesItsTitle()
     {
         using var harness = new Harness();
-        var creators = CachedRepo.Build<Metadata_CreatorRepository, int, Metadata_Creator>(row => row.Metadata_CreatorID);
-        var person = new Metadata_Creator { Source = TestSources.Plugin, ProviderID = "p5", Name = "Old Name" };
-        harness.Holds(_person, person);
-        harness.Store.WriteWithTitles([(_person, [])], new MetadataRowChanges<Metadata_Creator>(creators, [person], []));
-        Assert.Equal("Old Name", harness.Manager.GetPreferredTitle(_person)?.Value);
+        var studios = CachedRepo.Build<Metadata_StudioRepository, int, Metadata_Studio>(row => row.Metadata_StudioID);
+        var studio = new Metadata_Studio { Source = TestSources.Plugin, ProviderID = "s5", Name = "Old Name" };
+        harness.Holds(_studio, studio);
+        harness.Store.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Studio>(studios, [studio], []));
+        Assert.Equal("Old Name", harness.Manager.GetPreferredTitle(_studio)?.Value);
 
-        // Only the inline column changes; the stored alternative names stay.
-        person.Name = "New Name";
-        harness.Store.WriteWithTitles([(_person, [])], new MetadataRowChanges<Metadata_Creator>(creators, [person], []));
+        // Only the name on the row changes; no text is written.
+        studio.Name = "New Name";
+        harness.Store.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Studio>(studios, [studio], []));
 
-        Assert.Equal("New Name", harness.Manager.GetPreferredTitle(_person)?.Value);
+        Assert.Equal("New Name", harness.Manager.GetPreferredTitle(_studio)?.Value);
     }
 
     [Fact]
     public void APluginRowRemovedThroughItsRepositoryIsNoLongerNamed()
     {
         using var harness = new Harness();
-        var creators = CachedRepo.Build<Metadata_CreatorRepository, int, Metadata_Creator>(row => row.Metadata_CreatorID);
-        var person = new Metadata_Creator { Source = TestSources.Plugin, ProviderID = "p5", Name = "Gone Soon" };
-        harness.Holds(_person, person);
-        harness.Store.WriteWithTitles([(_person, [])], new MetadataRowChanges<Metadata_Creator>(creators, [person], []));
-        Assert.Equal("Gone Soon", harness.Manager.GetPreferredTitle(_person)?.Value);
+        var studios = CachedRepo.Build<Metadata_StudioRepository, int, Metadata_Studio>(row => row.Metadata_StudioID);
+        var studio = new Metadata_Studio { Source = TestSources.Plugin, ProviderID = "s5", Name = "Gone Soon" };
+        harness.Holds(_studio, studio);
+        harness.Store.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Studio>(studios, [studio], []));
+        Assert.Equal("Gone Soon", harness.Manager.GetPreferredTitle(_studio)?.Value);
 
-        harness.Holds(_person, null);
-        harness.Store.WriteWithoutEntries([_person], new MetadataRowChanges<Metadata_Creator>(creators, [], [person]));
+        harness.Holds(_studio, null);
+        harness.Store.WriteWithoutEntries([_studio], new MetadataRowChanges<Metadata_Studio>(studios, [], [studio]));
 
-        Assert.Null(harness.Manager.GetPreferredTitle(_person));
+        Assert.Null(harness.Manager.GetPreferredTitle(_studio));
     }
 
     [Fact]

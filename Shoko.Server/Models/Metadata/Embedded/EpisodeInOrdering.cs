@@ -7,6 +7,7 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Models.Metadata.Embedded;
 
@@ -168,6 +169,18 @@ public abstract class EpisodeInOrdering(IEpisode episode) : IEpisodeOrderingInfo
 
     /// <inheritdoc />
     public IReadOnlyList<ITitle> Titles => IsRenumbered ? TextAccess.Manager.TitlesInOrdering(this) : episode.Titles;
+
+    /// <inheritdoc />
+    public string? OriginalLanguageCode => episode.OriginalLanguageCode;
+
+    /// <inheritdoc />
+    public string? OriginalCountryCode => episode.OriginalCountryCode;
+
+    /// <inheritdoc />
+    public TitleLanguage? OriginalLanguage => TextChooser.OriginalLanguage(OriginalLanguageCode, OriginalCountryCode);
+
+    /// <inheritdoc />
+    public ITitle? OriginalTitle => TextChooser.OriginalTitle(Titles, OriginalLanguageCode);
 
     #endregion
 

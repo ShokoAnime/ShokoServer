@@ -85,8 +85,8 @@ public static partial class LanguageExtensions
                     "FR-CA" => TitleLanguage.FrenchCanadian,
                     "PT-BR" => TitleLanguage.BrazilianPortuguese,
 
-                    "ZH-HANS" => TitleLanguage.ChineseSimplified,
-                    "ZH-HANT" => TitleLanguage.ChineseTraditional,
+                    "ZH-HANS" or "ZH-CN" or "ZH-SG" => TitleLanguage.ChineseSimplified,
+                    "ZH-HANT" or "ZH-TW" or "ZH-HK" or "ZH-MO" => TitleLanguage.ChineseTraditional,
                     "ZH-NAN" or "NAN" => TitleLanguage.MinNanChinese,
                     _ => TitleLanguage.None,
                 };
@@ -665,6 +665,148 @@ public static partial class LanguageExtensions
             "kanareading" => TitleType.KanjiReading,
             _ => Enum.TryParse<TitleType>(name, true, out var type) ? type : TitleType.None,
         };
+
+    /// <summary>
+    ///   Country names the BCL's regions do not answer to, as sources such as
+    ///   TMDB write them, and their ISO 3166 alpha-2 codes.
+    /// </summary>
+    private static readonly Dictionary<string, string> _countryNameAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["USA"] = "US",
+        ["U.S.A."] = "US",
+        ["United States of America"] = "US",
+        ["America"] = "US",
+        ["UK"] = "GB",
+        ["England"] = "GB",
+        ["Scotland"] = "GB",
+        ["Wales"] = "GB",
+        ["Northern Ireland"] = "GB",
+        ["South Korea"] = "KR",
+        ["Republic of Korea"] = "KR",
+        ["Korea"] = "KR",
+        ["Hong Kong"] = "HK",
+        ["Macau"] = "MO",
+        ["Macao"] = "MO",
+        ["Viet Nam"] = "VN",
+        ["People's Republic of China"] = "CN",
+        ["Russia"] = "RU",
+        ["Taiwan"] = "TW",
+    };
+
+    /// <summary>
+    ///   Every region name the BCL knows, in English, in the current UI
+    ///   language and in its own, with its ISO 3166 alpha-2 code. Built once.
+    /// </summary>
+    private static readonly Lazy<Dictionary<string, string>> _countryNames = new(() =>
+    {
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var culture in CultureInfo.GetCultures(CultureTypes.SpecificCultures))
+        {
+            RegionInfo region;
+            try
+            {
+                region = new(culture.Name);
+            }
+            catch (ArgumentException)
+            {
+                continue;
+            }
+
+            foreach (var name in new[] { region.EnglishName, region.DisplayName, region.NativeName })
+                if (!string.IsNullOrWhiteSpace(name))
+                    names.TryAdd(name.Trim(), region.TwoLetterISORegionName);
+        }
+
+        return names;
+    });
+
+    /// <summary>
+    ///   Finds the ISO 3166 alpha-2 code of a country by its name, as the
+    ///   BCL's regions name it in English or natively, or as a few sources
+    ///   write it. Case is ignored.
+    /// </summary>
+    /// <param name="countryName">The country's name, e.g. <c>Japan</c>.</param>
+    /// <param name="countryCode">The code, e.g. <c>JP</c>, when found.</param>
+    /// <returns><c>true</c> when the name is a known country's.</returns>
+    public static bool TryGetCountryCodeFromName(string? countryName, out string countryCode)
+    {
+        countryCode = string.Empty;
+        var name = countryName?.Trim();
+        if (string.IsNullOrEmpty(name))
+            return false;
+
+        if (_countryNameAliases.TryGetValue(name, out var alias) || _countryNames.Value.TryGetValue(name, out alias))
+        {
+            countryCode = alias;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///   Finds the country a place is in, from free text such as
+    ///   <c>Osaka, Osaka Prefecture, Japan</c>: its last comma-separated
+    ///   part, without a bracketed tail, as <see cref="TryGetCountryCodeFromName"/>
+    ///   reads it.
+    /// </summary>
+    /// <param name="place">The place, e.g. a person's place of birth.</param>
+    /// <param name="countryCode">The ISO 3166 alpha-2 code, e.g. <c>JP</c>, when found.</param>
+    /// <returns><c>true</c> when the place ends in a known country.</returns>
+    public static bool TryGetCountryCodeFromPlace(string? place, out string countryCode)
+    {
+        countryCode = string.Empty;
+        if (string.IsNullOrWhiteSpace(place))
+            return false;
+
+        var country = place[(place.LastIndexOf(',') + 1)..].Trim();
+        var bracket = country.IndexOfAny(['(', '[', '（', '【']);
+        if (bracket > 0)
+            country = country[..bracket].Trim();
+
+        return TryGetCountryCodeFromName(country, out countryCode);
+    }
+
+    /// <summary>
+    ///   The main language of a country, as a plain language code such as
+    ///   <c>ja</c>, by <see cref="FromIso3166ToIso639"/> without its region
+    ///   or script, which the country code carries.
+    /// </summary>
+    /// <param name="countryCode">The ISO 3166 alpha-2 or alpha-3 code.</param>
+    /// <returns>The language code, or <c>null</c> when the country is unknown.</returns>
+    public static string? GetLanguageCodeFromCountryCode(string? countryCode)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode))
+            return null;
+
+        var code = countryCode.Trim().ToUpperInvariant();
+        // The lookup hands back a code it does not know, which for most countries is also their language's.
+        var language = code.FromIso3166ToIso639();
+        if (language == code && !_countryNames.Value.ContainsValue(code) && !_countryNameAliases.ContainsValue(code))
+            return null;
+
+        return language.Split('-')[0].ToLowerInvariant();
+    }
+
+    /// <summary>
+    ///   An entry's original language from its language and country codes:
+    ///   the language the pair names, such as <c>pt-BR</c>, else the one the
+    ///   language code names alone.
+    /// </summary>
+    /// <param name="languageCode">The plain language code, such as <c>pt</c>.</param>
+    /// <param name="countryCode">The ISO 3166 two-letter code, such as <c>BR</c>, when known.</param>
+    /// <returns>The language, or <c>null</c> without a language code or when the code names none.</returns>
+    public static TitleLanguage? GetOriginalLanguage(string? languageCode, string? countryCode)
+    {
+        if (string.IsNullOrWhiteSpace(languageCode))
+            return null;
+
+        var language = languageCode.Trim();
+        if (!string.IsNullOrWhiteSpace(countryCode) && $"{language}-{countryCode.Trim()}".TryGetTitleLanguage(out var regional))
+            return regional;
+
+        return language.TryGetTitleLanguage(out var plain) ? plain : null;
+    }
 
     /// <summary>
     /// Convert from an ISO3166 Alpha-2 or Alpha-3 country code to an ISO639-1

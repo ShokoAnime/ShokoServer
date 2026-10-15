@@ -243,7 +243,7 @@ public class MetadataPurgeRoundTripTests(DatabaseMigrationFixture fixture)
         seriesStore.SaveSeries(new() { ID = series, Episodes = [new() { ID = kept, EpisodeNumber = 1 }, new() { ID = dropped, EpisodeNumber = 2 }] });
         tags.SaveTags([new() { ID = tag, Name = "Dropped" }]);
         tags.SetTags(dropped, [new() { TagID = tag }]);
-        people.SaveCreators([new() { ID = onlyThere, Name = "Only" }, new() { ID = shared, Name = "Shared" }]);
+        people.SaveCreators([new() { ID = onlyThere, Titles = TestTexts.Named("Only") }, new() { ID = shared, Titles = TestTexts.Named("Shared") }]);
         people.SetCrew(dropped, [new() { CreatorID = onlyThere, Name = "Director" }, new() { CreatorID = shared, Name = "Writer" }]);
         people.SetCrew(kept, [new() { CreatorID = shared, Name = "Writer" }]);
         try

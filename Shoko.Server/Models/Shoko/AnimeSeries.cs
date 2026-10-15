@@ -148,6 +148,9 @@ public class AnimeSeries : IShokoSeries
     /// </summary>
     public IReadOnlyList<ITitle> Titles => TextManager.TitlesOf(this);
 
+    /// <inheritdoc />
+    public ITitle? OriginalTitle => TextChooser.OriginalTitle(Titles, ((IWithTitles)this).OriginalLanguageCode);
+
     /// <summary>
     ///   The overview the user's picks and language settings choose for the
     ///   series.
@@ -428,7 +431,11 @@ public class AnimeSeries : IShokoSeries
 
     IReadOnlyList<string> ISeries.ProductionCountries => [.. LinkedSeries.SelectMany(series => series.ProductionCountries).Distinct()];
 
-    string? ISeries.OriginalLanguageCode => LinkedSeries.Select(series => series.OriginalLanguageCode).FirstOrDefault(code => !string.IsNullOrEmpty(code));
+    string? IWithTitles.OriginalLanguageCode => LinkedSeries.Select(series => series.OriginalLanguageCode).FirstOrDefault(code => !string.IsNullOrEmpty(code));
+
+    string? IWithTitles.OriginalCountryCode => LinkedSeries.Select(series => series.OriginalCountryCode).FirstOrDefault(code => !string.IsNullOrEmpty(code));
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
 
     // Each source measures these on its own scale, so a Shoko series has none.
     double? ISeries.Popularity => null;

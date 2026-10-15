@@ -69,7 +69,7 @@ public class MetadataRefreshStateRoundTripTests(DatabaseMigrationFixture fixture
         seriesStore.SaveSeries(new() { ID = series });
         movieStore.SaveMovie(new() { ID = movie });
         collectionStore.SaveCollection(new() { ID = collection, Members = [movie] });
-        people.SaveCreators([new() { ID = creator, Name = "Kana" }]);
+        people.SaveCreators([new() { ID = creator, Titles = TestTexts.Named("Kana") }]);
         studios.SaveStudios([new() { ID = studio, Name = "Sunrise" }]);
         try
         {
@@ -85,7 +85,7 @@ public class MetadataRefreshStateRoundTripTests(DatabaseMigrationFixture fixture
 
             // A save by the source keeps the time, and a later refresh replaces it.
             seriesStore.SaveSeries(new() { ID = series, Rating = 5 });
-            people.SaveCreators([new() { ID = creator, Name = "Kana Hanazawa" }]);
+            people.SaveCreators([new() { ID = creator, Titles = TestTexts.Named("Kana Hanazawa") }]);
             state.RecordRefresh(movie, second.ToUniversalTime());
             Reload();
             Assert.Equal(first.ToUniversalTime(), state.GetLastRefreshedAt(series));
@@ -122,7 +122,7 @@ public class MetadataRefreshStateRoundTripTests(DatabaseMigrationFixture fixture
         var creator = ID(MetadataEntityType.Creator, "refresh-copy-creator");
         seriesStore.SaveSeries(new() { ID = series });
         movieStore.SaveMovie(new() { ID = movie });
-        people.SaveCreators([new() { ID = creator, Name = "Kana" }]);
+        people.SaveCreators([new() { ID = creator, Titles = TestTexts.Named("Kana") }]);
         var isSQLite = services.GetRequiredService<DatabaseFactory>().Instance is SQLite;
         using var connection = fixture.OpenConnection();
         try

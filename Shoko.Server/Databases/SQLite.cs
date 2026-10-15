@@ -1420,6 +1420,13 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(176,   2, "CREATE TABLE UserConfiguration ( UserConfigurationID INTEGER PRIMARY KEY AUTOINCREMENT, JMMUserID INTEGER NOT NULL, ConfigurationID TEXT NOT NULL, PluginID TEXT NOT NULL, Configuration TEXT NOT NULL, UpdatedAt DATETIME NOT NULL );"),
         new(176,   3, "CREATE UNIQUE INDEX UIX_UserConfiguration_JMMUserID_ConfigurationID ON UserConfiguration(JMMUserID, ConfigurationID);"),
         new(177,   1, DatabaseFixes.RepairRegionTaggedStreamLanguages),
+        new(178,   1, DatabaseFixes.CopyPeopleTexts),
+        new(178,   2, "ALTER TABLE Metadata_Creator DROP COLUMN Name;"),
+        new(178,   3, "ALTER TABLE Metadata_Creator DROP COLUMN OriginalName;"),
+        new(178,   4, "ALTER TABLE Metadata_Creator DROP COLUMN Description;"),
+        new(178,   5, "ALTER TABLE Metadata_Character DROP COLUMN Name;"),
+        new(178,   6, "ALTER TABLE Metadata_Character DROP COLUMN OriginalName;"),
+        new(178,   7, "ALTER TABLE Metadata_Character DROP COLUMN Description;"),
     ];
 
     #endregion

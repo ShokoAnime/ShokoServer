@@ -66,12 +66,6 @@ public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     SourceMaterial SourceMaterial { get; }
 
     /// <summary>
-    /// The language the series was first made in, as a language code, when
-    /// the source says.
-    /// </summary>
-    string? OriginalLanguageCode { get; }
-
-    /// <summary>
     /// How popular the series is on its source, on the source's own scale,
     /// when the source measures it. Only comparable within one source.
     /// </summary>

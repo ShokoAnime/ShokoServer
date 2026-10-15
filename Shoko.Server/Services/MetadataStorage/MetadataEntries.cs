@@ -177,6 +177,14 @@ internal static class MetadataEntries
     }
 
     /// <summary>
+    ///   Tidies the country an entry comes from before it is written.
+    /// </summary>
+    /// <param name="countryCode">The ISO 3166 code, which may be left out.</param>
+    /// <returns>The code, trimmed and upper-cased, or <c>null</c> when it was left out or blank.</returns>
+    internal static string? CheckCountryCode(string? countryCode)
+        => string.IsNullOrWhiteSpace(countryCode) ? null : countryCode.Trim().ToUpperInvariant();
+
+    /// <summary>
     ///   Checks the production countries given for an entry before they are
     ///   written, dropping blank and repeated ones.
     /// </summary>

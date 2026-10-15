@@ -18,9 +18,6 @@ public class Metadata_CharacterMap : ClassMap<Metadata_Character>
 
         Map(x => x.Source).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.ProviderID).Not.Nullable();
-        Map(x => x.Name).Not.Nullable();
-        Map(x => x.OriginalName).Nullable();
-        Map(x => x.Description).Nullable().CustomType("StringClob");
         Map(x => x.Type).CustomType<CharacterType>().Not.Nullable();
         Map(x => x.Gender).CustomType<PersonGender>().Not.Nullable();
         Map(x => x.BirthDay).CustomType<FuzzyDateOnlyConverter>().Nullable();

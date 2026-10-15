@@ -637,14 +637,6 @@ public class MetadataTextManager : IMetadataTextManager
         => StoredOverviews(entry.ID, entry as IInlineTextSource, _listing);
 
     /// <summary>
-    ///   The other names a person has, for its model.
-    /// </summary>
-    /// <param name="entry">The creator or character.</param>
-    /// <returns>The enabled titles its own source stored, in the order given, without the name on its row.</returns>
-    internal IReadOnlyList<ITitle> AlternativeNamesOf(IMetadata entry)
-        => OwnTitlesOf(entry);
-
-    /// <summary>
     ///   The titles an entry's own source stored for it, for its model.
     /// </summary>
     /// <param name="entry">The entry.</param>

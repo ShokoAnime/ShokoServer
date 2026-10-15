@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Stub;
@@ -17,6 +18,23 @@ public static class TestTexts
     /// <returns>The titles.</returns>
     public static IReadOnlyList<ITitle> Named(string name)
         => [new TitleStub { Source = TestSources.Plugin, Language = TitleLanguage.English, LanguageCode = "en", Value = name, Type = TitleType.Main }];
+
+    /// <summary>
+    /// A title of a type and language.
+    /// </summary>
+    /// <param name="name">The title.</param>
+    /// <param name="type">Its type.</param>
+    /// <param name="languageCode">Its language code.</param>
+    /// <returns>The title.</returns>
+    public static ITitle Title(string name, TitleType type = TitleType.Main, string languageCode = "unk")
+        => new TitleStub
+        {
+            Source = TestSources.Plugin,
+            Language = languageCode.TryGetTitleLanguage(out var language) ? language : TitleLanguage.Unknown,
+            LanguageCode = languageCode,
+            Value = name,
+            Type = type,
+        };
 
     /// <summary>
     /// One English overview.

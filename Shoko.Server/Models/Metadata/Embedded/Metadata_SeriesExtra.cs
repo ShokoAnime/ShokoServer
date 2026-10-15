@@ -29,6 +29,12 @@ public sealed record Metadata_SeriesExtra : IMetadataDefaultImages<Metadata_Seri
     #region Properties
 
     /// <summary>
+    ///   The country the series comes from, as an ISO 3166 two-letter code,
+    ///   when its source said.
+    /// </summary>
+    public string? OriginalCountryCode { get; init; }
+
+    /// <summary>
     ///   The countries the series was made in, as its source gave them.
     /// </summary>
     public IReadOnlyList<string> ProductionCountries { get; init; } = [];

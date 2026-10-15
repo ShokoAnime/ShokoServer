@@ -134,6 +134,37 @@ internal static class TextChooser
         => title.Type is TitleType.Main or TitleType.Official or TitleType.None;
 
     /// <summary>
+    ///   An entry's title in its original language: the first ranked one in
+    ///   the language, else its first synonym in it. The default answer of
+    ///   every model's <c>OriginalTitle</c>.
+    /// </summary>
+    /// <param name="titles">The entry's titles, in list order. Disabled and synthesized ones are skipped.</param>
+    /// <param name="languageCode">The original language's code, or <c>null</c> when unknown.</param>
+    /// <returns>The title, or <c>null</c> when the language is unknown or no title is in it.</returns>
+    internal static ITitle? OriginalTitle(IReadOnlyList<ITitle> titles, string? languageCode)
+    {
+        if (string.IsNullOrWhiteSpace(languageCode))
+            return null;
+
+        // A title in a regional form of the language, such as zh-TW for zh, counts after an exact one.
+        var code = languageCode.Trim();
+        var enabled = titles.Where(title => title.IsEnabled && !title.IsSynthesized).ToList();
+        var exact = enabled.Where(title => string.Equals(title.LanguageCode, code, StringComparison.OrdinalIgnoreCase)).ToList();
+        var regional = enabled.Where(title => title.LanguageCode.StartsWith($"{code}-", StringComparison.OrdinalIgnoreCase)).ToList();
+        return Ranked(exact, false) ?? Ranked(regional, false) ?? Ranked(exact, true) ?? Ranked(regional, true);
+    }
+
+    /// <summary>
+    ///   An entry's original language from its codes, the default answer of
+    ///   every model's <c>OriginalLanguage</c>.
+    /// </summary>
+    /// <param name="languageCode">The original language's code, or <c>null</c> when unknown.</param>
+    /// <param name="countryCode">The original country's code, or <c>null</c> when unknown.</param>
+    /// <returns>The language, or <c>null</c> without a language code.</returns>
+    internal static TitleLanguage? OriginalLanguage(string? languageCode, string? countryCode)
+        => LanguageExtensions.GetOriginalLanguage(languageCode, countryCode);
+
+    /// <summary>
     ///   Chooses the title of an entry whose texts the store keeps, such as a
     ///   plugin's series, reading the entry's own source in every language.
     /// </summary>

@@ -295,4 +295,48 @@ public class LanguageExtensionsTests
 
         Assert.All(results, r => Assert.Equal(TitleLanguage.Unknown, r));
     }
+
+    [Theory]
+    [InlineData("Tokyo, Japan", "JP", "ja", TitleLanguage.Japanese)]
+    [InlineData("Osaka, Osaka Prefecture, Japan", "JP", "ja", TitleLanguage.Japanese)]
+    [InlineData("Tokyo, Japan [日本]", "JP", "ja", TitleLanguage.Japanese)]
+    [InlineData("Beijing, China", "CN", "zh", TitleLanguage.ChineseSimplified)]
+    [InlineData("Shanghai, People's Republic of China", "CN", "zh", TitleLanguage.ChineseSimplified)]
+    [InlineData("Taipei, Taiwan", "TW", "zh", TitleLanguage.ChineseTraditional)]
+    [InlineData("Hong Kong", "HK", "zh", TitleLanguage.ChineseTraditional)]
+    [InlineData("Seoul, South Korea", "KR", "ko", TitleLanguage.Korean)]
+    [InlineData("Seoul, Republic of Korea", "KR", "ko", TitleLanguage.Korean)]
+    [InlineData("Busan, Korea", "KR", "ko", TitleLanguage.Korean)]
+    [InlineData("Bangkok, Thailand", "TH", "th", TitleLanguage.Thai)]
+    [InlineData("Hanoi, Vietnam", "VN", "vi", TitleLanguage.Vietnamese)]
+    [InlineData("Manila, Philippines", "PH", "en", TitleLanguage.English)]
+    [InlineData("Jakarta, Indonesia", "ID", "id", TitleLanguage.Indonesian)]
+    [InlineData("Kuala Lumpur, Malaysia", "MY", "ms", TitleLanguage.Malaysian)]
+    [InlineData("Singapore", "SG", "en", TitleLanguage.English)]
+    [InlineData("London, England, UK", "GB", "en", TitleLanguage.EnglishBritish)]
+    [InlineData("Manchester, England", "GB", "en", TitleLanguage.EnglishBritish)]
+    [InlineData("Los Angeles, California, USA", "US", "en", TitleLanguage.EnglishAmerican)]
+    [InlineData("São Paulo, Brazil", "BR", "pt", TitleLanguage.BrazilianPortuguese)]
+    [InlineData("Lisbon, Portugal", "PT", "pt", TitleLanguage.Portuguese)]
+    [InlineData("Montreal, Quebec, Canada", "CA", "en", TitleLanguage.EnglishCanadian)]
+    [InlineData("Somewhere, Atlantis", null, null, null)]
+    public void APlaceNamesItsCountryAndTheCountryItsLanguage(string place, string? country, string? languageCode, TitleLanguage? language)
+    {
+        var found = LanguageExtensions.TryGetCountryCodeFromPlace(place, out var countryCode);
+        var code = found ? LanguageExtensions.GetLanguageCodeFromCountryCode(countryCode) : null;
+
+        Assert.Equal(country, found ? countryCode : null);
+        Assert.Equal(languageCode, code);
+        Assert.Equal(language, LanguageExtensions.GetOriginalLanguage(code, found ? countryCode : null));
+    }
+
+    [Theory]
+    [InlineData("fr", "CA", TitleLanguage.FrenchCanadian)]
+    [InlineData("fr", "FR", TitleLanguage.French)]
+    [InlineData("zh", "MO", TitleLanguage.ChineseTraditional)]
+    [InlineData("zh", "SG", TitleLanguage.ChineseSimplified)]
+    [InlineData("ja", null, TitleLanguage.Japanese)]
+    [InlineData(null, "JP", null)]
+    public void TheOriginalLanguageIsToldApartByTheCountry(string? languageCode, string? countryCode, TitleLanguage? expected)
+        => Assert.Equal(expected, LanguageExtensions.GetOriginalLanguage(languageCode, countryCode));
 }

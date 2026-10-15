@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Ordering;
@@ -158,6 +159,19 @@ public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, Met
 
     /// <inheritdoc />
     public IReadOnlyList<ITitle> Titles => MetadataStoredEntry.Titles(this);
+
+    // The ordering is named in its series' original language, unknown when the series is gone.
+    /// <inheritdoc />
+    public string? OriginalLanguageCode => (service.GetSeries(SeriesID) as IWithTitles)?.OriginalLanguageCode;
+
+    /// <inheritdoc />
+    public string? OriginalCountryCode => (service.GetSeries(SeriesID) as IWithTitles)?.OriginalCountryCode;
+
+    /// <inheritdoc />
+    public TitleLanguage? OriginalLanguage => TextChooser.OriginalLanguage(OriginalLanguageCode, OriginalCountryCode);
+
+    /// <inheritdoc />
+    public ITitle? OriginalTitle => TextChooser.OriginalTitle(Titles, OriginalLanguageCode);
 
     #endregion
 

@@ -3,6 +3,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
@@ -57,8 +58,8 @@ public class Role
         Character = character == null ? null : new()
         {
             ID = character.ID.GetNumericID<int>(),
-            Name = character.Name,
-            AlternateName = character.OriginalName ?? string.Empty,
+            Name = character.Title,
+            AlternateName = character.OriginalTitle?.Value ?? string.Empty,
             Description = character.DefaultOverview?.Value ?? string.Empty,
             Image = character.PrimaryImage is { } characterImage ? new Image(characterImage) : null,
         };
@@ -66,8 +67,8 @@ public class Role
             ? new()
             {
                 ID = staff.ID.GetNumericID<int>(),
-                Name = staff.Name,
-                AlternateName = staff.OriginalName ?? string.Empty,
+                Name = staff.Title,
+                AlternateName = staff.OriginalTitle?.Value ?? string.Empty,
                 Description = string.Empty,
                 Image = staff.PrimaryImage is { } staffImage ? new Image(staffImage) : null,
                 Type = staff.Type.ToString(),
@@ -93,8 +94,8 @@ public class Role
         Staff = new()
         {
             ID = staff.ID.GetNumericID<int>(),
-            Name = staff.Name,
-            AlternateName = staff.OriginalName ?? string.Empty,
+            Name = staff.Title,
+            AlternateName = staff.OriginalTitle?.Value ?? string.Empty,
             Description = string.Empty,
             Image = staff.PrimaryImage is { } staffImage ? new Image(staffImage) : null,
             Type = staff.Type.ToString(),
@@ -106,7 +107,7 @@ public class Role
 
     public static Role? FromTmdb(ICast cast)
     {
-        if (TmdbCompatibility.CreditedPerson(cast.Creator) is not { } person)
+        if (cast.Creator is not { } person)
             return null;
 
         return new()
@@ -124,7 +125,7 @@ public class Role
 
     public static Role? FromTmdb(ICrew crew)
     {
-        if (TmdbCompatibility.CreditedPerson(crew.Creator) is not { } person)
+        if (crew.Creator is not { } person)
             return null;
 
         return new()
@@ -140,11 +141,11 @@ public class Role
     {
         // A person with no other names always had one empty name stored, so
         // the alternate name stays empty for one.
-        var aliases = person.AlternativeNames;
+        var aliases = person.Titles.Where(title => title.Type is TitleType.Synonym).ToList();
         return new()
         {
             ID = TmdbCompatibility.TmdbID(person),
-            Name = person.Name,
+            Name = person.Title,
             AlternateName = aliases.Count == 0 ? string.Empty : aliases[0].Value.Split("/").Last().Trim(),
             Description = TmdbCompatibility.Biography(person),
             Image = person.PrimaryImage is { } staffImage ? new Image(staffImage) : null,

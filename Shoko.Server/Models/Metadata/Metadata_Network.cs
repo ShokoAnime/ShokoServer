@@ -14,7 +14,7 @@ namespace Shoko.Server.Models.Metadata;
 /// <summary>
 ///   A network a source keeps in the studio store.
 /// </summary>
-public class Metadata_Network : INetwork, IMetadataStoreRow<Metadata_Network>, IInlineTextSource, IMetadataStubRow, IMetadataDefaultImageSource
+public class Metadata_Network : INetwork, IMetadataStoreRow<Metadata_Network>, IInlineTextSource, IMetadataNamedStubRow, IMetadataDefaultImageSource
 {
     #region Database Columns
 

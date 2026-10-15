@@ -14,7 +14,7 @@ namespace Shoko.Server.Models.Metadata;
 /// <summary>
 ///   A studio a source keeps in the studio store.
 /// </summary>
-public class Metadata_Studio : IStudio, IMetadataStoreRow<Metadata_Studio>, IInlineTextSource, IMetadataStubRow, IMetadataDefaultImageSource
+public class Metadata_Studio : IStudio, IMetadataStoreRow<Metadata_Studio>, IInlineTextSource, IMetadataNamedStubRow, IMetadataDefaultImageSource
 {
     #region Database Columns
 

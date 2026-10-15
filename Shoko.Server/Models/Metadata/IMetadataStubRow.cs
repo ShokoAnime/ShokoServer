@@ -10,11 +10,6 @@ namespace Shoko.Server.Models.Metadata;
 public interface IMetadataStubRow : IMetadata
 {
     /// <summary>
-    ///   The entry's name, or an empty string when a stub was given none.
-    /// </summary>
-    string Name { get; set; }
-
-    /// <summary>
     ///   When the source last wrote the entry, or <c>null</c> for a stub.
     /// </summary>
     DateTime? LastUpdatedAt { get; }
@@ -33,7 +28,7 @@ public interface IMetadataStubRow : IMetadata
 
     /// <summary>
     ///   Whether the entry is a stub: a row the core made for a credit or a
-    ///   link before the source wrote it, holding only the name it carried.
+    ///   link before the source wrote it, named only by what that carried.
     /// </summary>
     bool IsStub { get; }
 }

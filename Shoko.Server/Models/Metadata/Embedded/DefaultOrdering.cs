@@ -116,6 +116,19 @@ public class DefaultOrdering(ISeries series, MetadataOrderingService? service) :
     /// <inheritdoc />
     public IReadOnlyList<ITitle> Titles => MetadataStoredEntry.Titles(this);
 
+    // The ordering is named in its series' original language.
+    /// <inheritdoc />
+    public string? OriginalLanguageCode => series.OriginalLanguageCode;
+
+    /// <inheritdoc />
+    public string? OriginalCountryCode => series.OriginalCountryCode;
+
+    /// <inheritdoc />
+    public TitleLanguage? OriginalLanguage => TextChooser.OriginalLanguage(OriginalLanguageCode, OriginalCountryCode);
+
+    /// <inheritdoc />
+    public ITitle? OriginalTitle => TextChooser.OriginalTitle(Titles, OriginalLanguageCode);
+
     #endregion
 
     #region IWithOverviews Implementation

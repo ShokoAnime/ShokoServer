@@ -113,8 +113,8 @@ public class MetadataStoreSourceGuardTests
             var series = new MetadataGuid(source, MetadataEntityType.Series, "1");
             return
             [
-                ("SaveCreators", () => People.SaveCreators([new() { ID = new(source, MetadataEntityType.Creator, "1"), Name = "Kana" }])),
-                ("SaveCharacters", () => People.SaveCharacters([new() { ID = new(source, MetadataEntityType.Character, "1"), Name = "Alice" }])),
+                ("SaveCreators", () => People.SaveCreators([new() { ID = new(source, MetadataEntityType.Creator, "1"), Titles = TestTexts.Named("Kana") }])),
+                ("SaveCharacters", () => People.SaveCharacters([new() { ID = new(source, MetadataEntityType.Character, "1"), Titles = TestTexts.Named("Alice") }])),
                 ("SetCast", () => People.SetCast(series, [])),
                 ("SetCrew", () => People.SetCrew(series, [])),
                 ("RemoveCast", () => People.RemoveCast(series)),

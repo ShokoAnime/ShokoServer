@@ -15,6 +15,7 @@ using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
+using Shoko.Server.Services;
 namespace Shoko.Server.Models.Metadata;
 
 /// <summary>
@@ -219,6 +220,15 @@ public class Metadata_Episode : IEpisode<ISeries, IEpisode>, IMetadataStoreRow<M
     ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
 
     IReadOnlyList<ITitle> IWithTitles.Titles => MetadataStoredEntry.Titles(this);
+
+    // The episode is named in its series' original language, unknown when the series is gone.
+    string? IWithTitles.OriginalLanguageCode => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID)?.OriginalLanguageCode;
+
+    string? IWithTitles.OriginalCountryCode => (RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID) as IWithTitles)?.OriginalCountryCode;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => TextChooser.OriginalTitle(((IWithTitles)this).Titles, ((IWithTitles)this).OriginalLanguageCode);
 
     #endregion
 

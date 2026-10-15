@@ -94,6 +94,19 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
 
     public IReadOnlyList<ITitle> Titles => TextManager.TitlesOf(this);
 
+    // The episode is named in its series' original language.
+    /// <inheritdoc />
+    public string? OriginalLanguageCode => (AnimeSeries as IWithTitles)?.OriginalLanguageCode;
+
+    /// <inheritdoc />
+    public string? OriginalCountryCode => (AnimeSeries as IWithTitles)?.OriginalCountryCode;
+
+    /// <inheritdoc />
+    public TitleLanguage? OriginalLanguage => TextChooser.OriginalLanguage(OriginalLanguageCode, OriginalCountryCode);
+
+    /// <inheritdoc />
+    public ITitle? OriginalTitle => TextChooser.OriginalTitle(Titles, OriginalLanguageCode);
+
     public IText? PreferredOverview => TextManager.PreferredDescriptionOf(this);
 
     private static MetadataTextManager TextManager

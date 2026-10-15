@@ -1745,6 +1745,13 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(198,  33, "ALTER TABLE `ShokoImage_Entity` MODIFY COLUMN `EntityID` VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
         new(198,  34, "ALTER TABLE `UserConfiguration` MODIFY COLUMN `ConfigurationID` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
         new(199,   1, DatabaseFixes.RepairRegionTaggedStreamLanguages),
+        new(200,   1, DatabaseFixes.CopyPeopleTexts),
+        new(200,   2, "ALTER TABLE `Metadata_Creator` DROP COLUMN `Name`;"),
+        new(200,   3, "ALTER TABLE `Metadata_Creator` DROP COLUMN `OriginalName`;"),
+        new(200,   4, "ALTER TABLE `Metadata_Creator` DROP COLUMN `Description`;"),
+        new(200,   5, "ALTER TABLE `Metadata_Character` DROP COLUMN `Name`;"),
+        new(200,   6, "ALTER TABLE `Metadata_Character` DROP COLUMN `OriginalName`;"),
+        new(200,   7, "ALTER TABLE `Metadata_Character` DROP COLUMN `Description`;"),
     ];
 
     #endregion

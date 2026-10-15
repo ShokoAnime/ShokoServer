@@ -109,34 +109,34 @@ public class PluginEntryTextTests
     }
 
     [Fact]
-    public void APluginsPeopleReadTheirOverviewAndOtherNamesFromTheirRows()
+    public void APluginsPeopleReadTheirOverviewsAndOtherNamesFromTheTextStore()
     {
         using var world = new World();
         var tables = world.Tables;
         tables.PeopleStore.SaveCreators([
-            new() { ID = ID(MetadataEntityType.Creator, "p1"), Name = "Kana", Overview = "A voice actress.", AlternativeNames = [new() { Name = "かな", LanguageCode = "ja" }, new() { Name = "Kana-chan" }] },
-            new() { ID = ID(MetadataEntityType.Creator, "p2"), Name = "Hiro" },
+            new() { ID = ID(MetadataEntityType.Creator, "p1"), Titles = [TestTexts.Title("Kana"), TestTexts.Title("かな", TitleType.Synonym, "ja"), TestTexts.Title("Kana-chan", TitleType.Synonym)], Overviews = TestTexts.Described("A voice actress.") },
+            new() { ID = ID(MetadataEntityType.Creator, "p2"), Titles = TestTexts.Named("Hiro") },
         ]);
-        tables.PeopleStore.SaveCharacters([new() { ID = ID(MetadataEntityType.Character, "x1"), Name = "Alice", Overview = "The lead.", AlternativeNames = [new() { Name = "Ally", LanguageCode = "en" }] }]);
+        tables.PeopleStore.SaveCharacters([new() { ID = ID(MetadataEntityType.Character, "x1"), Titles = [TestTexts.Title("Alice"), TestTexts.Title("Ally", TitleType.Synonym, "en")], Overviews = TestTexts.Described("The lead.") }]);
 
         var kana = tables.PeopleStore.GetCreator(ID(MetadataEntityType.Creator, "p1"))!;
         var hiro = tables.PeopleStore.GetCreator(ID(MetadataEntityType.Creator, "p2"))!;
         var alice = tables.PeopleStore.GetCharacter(ID(MetadataEntityType.Character, "x1"))!;
 
-        Assert.Equal(["かな", "Kana-chan"], kana.AlternativeNames.Select(name => name.Value));
-        Assert.Equal(["Ally"], alice.AlternativeNames.Select(name => name.Value));
-        Assert.Empty(hiro.AlternativeNames);
+        Assert.Equal(["かな", "Kana-chan"], kana.SynonymTitles().Select(name => name.Value));
+        Assert.Equal(["Ally"], alice.SynonymTitles().Select(name => name.Value));
+        Assert.Empty(hiro.SynonymTitles());
         foreach (var (person, description) in new (IWithOverviews, string?)[] { (kana, "A voice actress."), (alice, "The lead."), (hiro, null) })
         {
-            // The row's description is the default, preferred and only overview, in
-            // English, whatever the language settings say.
+            // The one overview given is the default, preferred and only one, in the
+            // language it was given, stored like a series' overviews.
             Assert.Equal(description, person.DefaultOverview?.Value);
             Assert.Equal(description, person.PreferredOverview?.Value);
             Assert.Equal(description is null ? [] : [description], person.Overviews.Select(text => text.Value));
             if (person.DefaultOverview is { } overview)
             {
                 Assert.Equal((TitleLanguage.English, "en", _plugin), (overview.Language, overview.LanguageCode, overview.Source));
-                Assert.True(overview.IsInlineDefault);
+                Assert.False(overview.IsInlineDefault);
             }
         }
     }
@@ -224,16 +224,16 @@ public class PluginEntryTextTests
         using var world = new World();
         var tables = world.Tables;
         var personID = ID(MetadataEntityType.Creator, "p1");
-        tables.PeopleStore.SaveCreators([new() { ID = personID, Name = "Kana", Overview = "A voice actress.", AlternativeNames = [new() { Name = "かな", LanguageCode = "ja" }] }]);
-        var person = (ICreator)tables.PeopleStore.GetCreator(personID)!;
+        tables.PeopleStore.SaveCreators([new() { ID = personID, Titles = [TestTexts.Title("Kana"), TestTexts.Title("かな", TitleType.Synonym, "ja")], Overviews = TestTexts.Described("A voice actress.") }]);
+        var person = tables.PeopleStore.GetCreator(personID)!;
 
-        world.Manager.SetPreferredTitle(personID, person.AlternativeNames[0]);
+        world.Manager.SetPreferredTitle(personID, person.SynonymTitles()[0]);
         world.Manager.AddText(personID, new TextData { Kind = TextKind.Title, Value = "Kana-san", LanguageCode = "en", Source = MetadataSource.User });
         world.Manager.SetTitles(personID, TestSources.AniList, [Title("Kana A.", TitleLanguage.English, "en", TitleType.Official, TestSources.AniList)]);
         var overview = world.Manager.SetPreferredOverview(personID, Overview("Mine.", TitleLanguage.English, "en", MetadataSource.User));
 
-        Assert.Equal(["かな"], person.AlternativeNames.Select(name => name.Value));
-        Assert.Equal("Kana", person.Name);
+        Assert.Equal(["かな"], person.SynonymTitles().Select(name => name.Value));
+        Assert.Equal("Kana", person.DefaultTitle.Value);
         Assert.Equal(overview.ID, person.PreferredOverview?.ID);
         Assert.Equal(["A voice actress.", "Mine."], person.Overviews.Select(text => text.Value));
         Assert.Equal("A voice actress.", person.DefaultOverview?.Value);

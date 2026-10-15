@@ -12,10 +12,14 @@ using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.AniDB;
 
+/// <summary>
+///   A character AniDB keeps, credited on its anime.
+/// </summary>
 public class AniDB_Character : ICharacter, IInlineTextSource
 {
     #region Server DB columns
@@ -72,6 +76,28 @@ public class AniDB_Character : ICharacter, IInlineTextSource
 
     #endregion
 
+    #region IWithTitles Implementation
+
+    string IWithTitles.Title => ((IWithTitles)this).PreferredTitle?.Value ?? ((IWithTitles)this).DefaultTitle.Value;
+
+    ITitle IWithTitles.DefaultTitle => AnidbText.PersonDefaultTitle(((IMetadata)this).ID, ((IWithTitles)this).Titles);
+
+    ITitle? IWithTitles.PreferredTitle
+        => TextAccess.Manager.ChoosePreferredTitle(((IWithTitles)this).Titles, MetadataEntityType.Character, [MetadataSource.AniDB]);
+
+    IReadOnlyList<ITitle> IWithTitles.Titles => AnidbText.PersonTitles(((IMetadata)this).ID, Name, OriginalName);
+
+    // AniDB gives the original name in Japanese, and nothing else.
+    string? IWithTitles.OriginalLanguageCode => string.IsNullOrWhiteSpace(OriginalName) ? null : "ja";
+
+    string? IWithTitles.OriginalCountryCode => null;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    ITitle? IWithTitles.OriginalTitle => ((IWithTitles)this).Titles.FirstOrDefault(title => title.LanguageCode is "ja");
+
+    #endregion
+
     #region IWithOverviews Implementation
 
     IText? IWithOverviews.DefaultOverview => TextAccess.Manager.DefaultOverviewFor(this);
@@ -110,8 +136,6 @@ public class AniDB_Character : ICharacter, IInlineTextSource
 
     // Characters come with their anime, and nothing stores when one was last fetched.
     DateTime? ICharacter.LastRefreshedAt => null;
-
-    IReadOnlyList<ITitle> ICharacter.AlternativeNames => [];
 
     FuzzyDateOnly? ICharacter.BirthDay => null;
 

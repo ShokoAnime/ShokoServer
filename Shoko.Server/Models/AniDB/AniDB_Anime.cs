@@ -500,7 +500,7 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
 
     public string Title => (PreferredTitle ?? DefaultTitle).Value;
 
-    public string OriginalTitle => GetOriginalTitle(Titles) ?? MainTitle;
+    public string OriginalTitle => GetOriginalTitleOf(Titles)?.Value ?? MainTitle;
 
     /// <summary>
     ///   The anime's main title: AniDB's stored one, else the one in the
@@ -542,18 +542,18 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
     public ITitle? PreferredTitle
         => AnidbText.Present(TextAccess.Manager.PreferredTitleFor(this));
 
-    private static string? GetOriginalTitle(IReadOnlyList<ITitle> titles)
+    private static ITitle? GetOriginalTitleOf(IReadOnlyList<ITitle> titles)
         => GetTitleForLanguage(titles, GuessOriginLanguage(titles));
 
-    private static string? GetTitleForLanguage(IReadOnlyList<ITitle> titles, params string?[] metadataLanguages)
+    private static ITitle? GetTitleForLanguage(IReadOnlyList<ITitle> titles, params string?[] metadataLanguages)
     {
         foreach (var lang in metadataLanguages)
         {
             if (string.IsNullOrEmpty(lang))
                 continue;
 
-            var title = titles.FirstOrDefault(t => t.Type == TitleType.Official && t.LanguageCode == lang)?.Value;
-            if (!string.IsNullOrWhiteSpace(title))
+            var title = titles.FirstOrDefault(t => t.Type == TitleType.Official && t.LanguageCode == lang);
+            if (!string.IsNullOrWhiteSpace(title?.Value))
                 return title;
         }
         return null;
@@ -627,6 +627,16 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
     ITitle? IWithTitles.PreferredTitle => PreferredTitle;
 
     IReadOnlyList<ITitle> IWithTitles.Titles => AnidbText.Present(TextAccess.Manager.ListTitles(this));
+
+    // AniDB keeps no original language for an anime.
+    string? IWithTitles.OriginalLanguageCode => null;
+
+    string? IWithTitles.OriginalCountryCode => null;
+
+    TitleLanguage? IWithTitles.OriginalLanguage => TextChooser.OriginalLanguage(((IWithTitles)this).OriginalLanguageCode, ((IWithTitles)this).OriginalCountryCode);
+
+    // AniDB's official title in the language its main title is a transcription of.
+    ITitle? IWithTitles.OriginalTitle => GetOriginalTitleOf(Titles);
 
     #endregion
 
@@ -798,9 +808,8 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
 
     SourceMaterial ISeries.SourceMaterial => SourceMaterial;
 
-    // AniDB keeps no original language, popularity, favorite count, networks
-    // or production countries for an anime.
-    string? ISeries.OriginalLanguageCode => null;
+    // AniDB keeps no popularity, favorite count, networks or production
+    // countries for an anime.
 
     double? ISeries.Popularity => null;
 

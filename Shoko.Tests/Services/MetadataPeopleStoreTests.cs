@@ -17,9 +17,10 @@ namespace Shoko.Tests.Services;
 /// <summary>
 /// Covers <see cref="MetadataPeopleStore"/> against in-memory tables: credits
 /// keep the order they were given, a new set replaces the old one and says
-/// how much changed, a credit refused changes nothing, a
-/// person's alternative names live in the text table, and people no credit
-/// names are stamped as orphaned and removed after a cutoff.
+/// how much changed, a credit refused changes nothing, a person's names live
+/// in the text table, a stub is named by its credit until its source saves it,
+/// and people no credit names are stamped as orphaned and removed after a
+/// cutoff.
 /// </summary>
 [Collection(nameof(RepoFactoryCollection))]
 public class MetadataPeopleStoreTests
@@ -75,10 +76,10 @@ public class MetadataPeopleStoreTests
         => new(source ?? TestSources.AniList, MetadataEntityType.Character, id);
 
     private static MetadataCreatorData Creator(string id, string name, MetadataSource? source = null)
-        => new() { ID = CreatorID(id, source), Name = name };
+        => new() { ID = CreatorID(id, source), Titles = TestTexts.Named(name) };
 
     private static MetadataCharacterData Character(string id, string name, MetadataSource? source = null)
-        => new() { ID = CharacterID(id, source), Name = name };
+        => new() { ID = CharacterID(id, source), Titles = TestTexts.Named(name) };
 
     private static MetadataCastData Role(string character, string? creator, string? languageCode = "ja", string? name = null)
         => new()
@@ -242,13 +243,14 @@ public class MetadataPeopleStoreTests
     {
         var tables = Seeded();
         var store = tables.Store();
+        using var scope = new RepoFactoryScope().Set(tables.Texts).Set(tables.TextManager);
         var id = ((Metadata_Creator)store.GetCreator(CreatorID("c1"))!).Metadata_CreatorID;
 
         store.SaveCreators([Creator("c1", "First"), Creator("c1", "Second")]);
 
         var creator = store.GetCreator(CreatorID("c1"));
         Assert.Equal(id, ((Metadata_Creator)creator!).Metadata_CreatorID);
-        Assert.Equal("Second", creator.Name);
+        Assert.Equal("Second", creator.DefaultTitle.Value);
         Assert.Equal(3, tables.Creators.GetAll().Count);
     }
 
@@ -281,28 +283,112 @@ public class MetadataPeopleStoreTests
     }
 
     [Fact]
-    public void APersonsAlternativeNamesAreSynonymTitlesOnTheTextTable()
+    public void APersonsNamesAreTitlesOnTheTextTable()
     {
         var tables = Seeded();
         var store = tables.Store();
         using var scope = new RepoFactoryScope().Set(tables.Texts).Set(tables.TextManager);
 
-        store.SaveCreators([Creator("c1", "Kana") with { AlternativeNames = [new() { Name = "かな", LanguageCode = "ja" }, new() { Name = "Kana-chan" }] }]);
-        store.SaveCharacters([Character("x1", "Alice") with { AlternativeNames = [new() { Name = "Ally", LanguageCode = "en" }] }]);
+        store.SaveCreators([Creator("c1", "Kana") with { Titles = [TestTexts.Title("Kana"), TestTexts.Title("かな", TitleType.Synonym, "ja"), TestTexts.Title("Kana-chan", TitleType.Synonym)] }]);
+        store.SaveCharacters([Character("x1", "Alice") with { Titles = [TestTexts.Title("Alice"), TestTexts.Title("Ally", TitleType.Synonym, "en")] }]);
 
-        var names = ((ICreator)store.GetCreator(CreatorID("c1"))!).AlternativeNames;
+        var names = store.GetCreator(CreatorID("c1"))!.SynonymTitles();
         Assert.Equal(["かな", "Kana-chan"], names.Select(name => name.Value));
         Assert.Equal(["ja", "unk"], names.Select(name => name.LanguageCode));
         Assert.Equal([TitleLanguage.Japanese, TitleLanguage.Unknown], names.Select(name => name.Language));
         Assert.All(names, name => Assert.Equal(TitleType.Synonym, name.Type));
         Assert.All(names, name => Assert.Equal(TestSources.AniList, name.Source));
-        Assert.Equal("Ally", Assert.Single(((ICharacter)store.GetCharacter(CharacterID("x1"))!).AlternativeNames).Value);
+        Assert.Equal("Ally", Assert.Single(store.GetCharacter(CharacterID("x1"))!.SynonymTitles()).Value);
 
         // Saving the creator again replaces its names, and leaves the character's alone.
-        store.SaveCreators([Creator("c1", "Kana") with { AlternativeNames = [new() { Name = "Kana-chan" }] }]);
+        store.SaveCreators([Creator("c1", "Kana") with { Titles = [TestTexts.Title("Kana"), TestTexts.Title("Kana-chan", TitleType.Synonym)] }]);
 
-        Assert.Equal(["Kana-chan"], ((ICreator)store.GetCreator(CreatorID("c1"))!).AlternativeNames.Select(name => name.Value));
-        Assert.Equal(2, tables.Texts.GetAll().Count);
+        Assert.Equal(["Kana-chan"], store.GetCreator(CreatorID("c1"))!.SynonymTitles().Select(name => name.Value));
+        Assert.Equal(
+            [("Kana", TitleType.Main), ("Kana-chan", TitleType.Synonym)],
+            tables.TextStore.GetTitles(CreatorID("c1")).Select(name => (name.Value, name.Type))
+        );
+        Assert.Equal(["Alice", "Ally"], tables.TextStore.GetTitles(CharacterID("x1")).Select(name => name.Value));
+    }
+
+    [Fact]
+    public void APersonsOfficialNamesAreItsTitlesAndTheLanguageOrderPicksOne()
+    {
+        var tables = Seeded();
+        var store = tables.Store();
+        using var scope = new RepoFactoryScope().Set(tables.Texts).Set(tables.TextManager);
+
+        store.SaveCreators([
+            Creator("c1", "Kana Hanazawa") with
+            {
+                OriginalLanguageCode = "ja",
+                Titles =
+                [
+                    TestTexts.Title("Kana Hanazawa"),
+                    TestTexts.Title("花澤香菜", TitleType.Official, "ja"),
+                    TestTexts.Title("Kana Hanazawa", TitleType.Official, "en"),
+                    TestTexts.Title("Kanaa", TitleType.Synonym, "ja"),
+                ],
+            },
+        ]);
+        store.SaveCharacters([
+            Character("x1", "Alice") with
+            {
+                OriginalLanguageCode = "ja",
+                Titles = [TestTexts.Title("Alice"), TestTexts.Title("アリス", TitleType.Official, "ja"), TestTexts.Title("Ally", TitleType.Synonym, "en")],
+            },
+        ]);
+
+        var creator = store.GetCreator(CreatorID("c1"))!;
+        Assert.Equal("Kana Hanazawa", creator.DefaultTitle.Value);
+        Assert.Equal(["Kana Hanazawa", "花澤香菜", "Kana Hanazawa", "Kanaa"], creator.Titles.Select(title => title.Value));
+        Assert.Equal(["Kanaa"], creator.SynonymTitles().Select(name => name.Value));
+        Assert.Equal(("ja", "花澤香菜"), (creator.OriginalLanguageCode, creator.OriginalTitle?.Value));
+        var character = store.GetCharacter(CharacterID("x1"))!;
+        Assert.Equal(["Alice", "アリス", "Ally"], character.Titles.Select(title => title.Value));
+        Assert.Equal("アリス", character.OriginalTitle?.Value);
+
+        // The language order picks an official name, and a synonym only when synonyms are allowed.
+        var order = new[] { TestSources.AniList, MetadataSource.User };
+        Assert.Equal("花澤香菜", TextChooser.ChooseStoredTitle(creator.Titles, TestSources.AniList, new([TitleLanguage.Japanese], order, false, false))?.Value);
+        Assert.Equal("Kana Hanazawa", TextChooser.ChooseStoredTitle(creator.Titles, TestSources.AniList, new([TitleLanguage.Main], order, false, false))?.Value);
+        Assert.Null(TextChooser.ChooseStoredTitle(creator.Titles, TestSources.AniList, new([TitleLanguage.German], order, false, false)));
+
+        // Saving the creator again replaces its official names along with its synonyms.
+        store.SaveCreators([Creator("c1", "Kana Hanazawa") with { Titles = [TestTexts.Title("Kana Hanazawa"), TestTexts.Title("Kana Hanazawa", TitleType.Official, "en")] }]);
+
+        creator = store.GetCreator(CreatorID("c1"))!;
+        Assert.Equal([TitleType.Main, TitleType.Official], creator.Titles.Select(title => title.Type));
+        Assert.Empty(creator.SynonymTitles());
+        Assert.Null(creator.OriginalTitle);
+    }
+
+    [Fact]
+    public void ACreatorsSynonymRepeatingOneOfItsNamesButForWhitespaceIsDropped()
+    {
+        var tables = Seeded();
+        var store = tables.Store();
+        using var scope = new RepoFactoryScope().Set(tables.Texts).Set(tables.TextManager);
+
+        store.SaveCreators([
+            Creator("c1", "Yamada Taro") with
+            {
+                OriginalLanguageCode = "ja",
+                Titles =
+                [
+                    TestTexts.Title("Yamada Taro"),
+                    TestTexts.Title("山田太郎", TitleType.Official, "ja"),
+                    TestTexts.Title("TaroYamada", TitleType.Official, "en"),
+                    TestTexts.Title("山田\u3000太郎", TitleType.Synonym),
+                    TestTexts.Title("Taro\u00A0Yamada", TitleType.Synonym),
+                    TestTexts.Title(" Yamada  Taro ", TitleType.Synonym),
+                    TestTexts.Title("taro yamada", TitleType.Synonym),
+                    TestTexts.Title("Yamada-sensei", TitleType.Synonym),
+                ],
+            },
+        ]);
+
+        Assert.Equal(["taro yamada", "Yamada-sensei"], store.GetCreator(CreatorID("c1"))!.SynonymTitles().Select(name => name.Value));
     }
 
     [Fact]
@@ -313,11 +399,50 @@ public class MetadataPeopleStoreTests
         var before = tables.Writer.Writes;
 
         Assert.Throws<ArgumentException>(() => store.SaveCreators([
-            Creator("c9", "New") with { AlternativeNames = [new() { Name = "Too long", LanguageCode = new string('x', 33) }] },
+            Creator("c9", "New") with { Titles = [TestTexts.Title("New"), TestTexts.Title("Too long", TitleType.Synonym, new string('x', 33))] },
         ]));
 
         Assert.Equal(before, tables.Writer.Writes);
         Assert.Null(store.GetCreator(CreatorID("c9")));
+    }
+
+    [Fact]
+    public void AStubIsNamedByAMainTitleUntilItsSourceSavesIt()
+    {
+        var tables = Seeded();
+        var store = tables.Store();
+        string Names(MetadataGuid id)
+            => string.Join("|", tables.TextStore.GetTitles(id).Select(title => $"{title.Source}:{title.Type}:{title.LanguageCode}:{title.Value}"));
+
+        store.SetCast(_series, [Role("x9", "c9") with { CreatorName = " Kana ", CharacterName = "Alice" }]);
+        store.SetCrew(_otherSeries, [Job("c9", "Music") with { CreatorName = "Someone Else" }]);
+
+        Assert.True(tables.Creators.GetByProviderID(TestSources.AniList, "c9")!.IsStub);
+        Assert.Equal($"{TestSources.AniList}:Main:unk:Kana", Names(CreatorID("c9")));
+        Assert.Equal($"{TestSources.AniList}:Main:unk:Alice", Names(CharacterID("x9")));
+
+        // The source's own save replaces the name a credit gave, and a later credit leaves its names alone.
+        store.SaveCreators([Creator("c9", "Kana Hanazawa") with { Titles = [TestTexts.Title("花澤香菜", TitleType.Official, "ja")] }]);
+        store.SetCrew(_series, [Job("c9", "Sound") with { CreatorName = "Kana" }]);
+
+        Assert.False(tables.Creators.GetByProviderID(TestSources.AniList, "c9")!.IsStub);
+        Assert.Equal($"{TestSources.AniList}:Official:ja:花澤香菜", Names(CreatorID("c9")));
+    }
+
+    [Fact]
+    public void AStubNoCreditNamedReadsUnderAnObviousTemporaryName()
+    {
+        var tables = Seeded();
+        var store = tables.Store();
+        using var scope = new RepoFactoryScope().Set(tables.Texts).Set(tables.TextManager).Set(tables.Creators).Set(tables.Characters);
+
+        store.SetCast(_series, [Role("x8", "c8")]);
+
+        var creator = Assert.Single(store.GetCast(_series)).Creator!;
+        Assert.True(((Metadata_Creator)creator).IsStub);
+        Assert.Empty(tables.TextStore.GetTitles(CreatorID("c8")));
+        Assert.Equal($"{TestSources.AniList.Name} {MetadataEntityType.Creator.Name} c8", creator.Title);
+        Assert.True(creator.DefaultTitle.IsSynthesized);
     }
 
     [Fact]
@@ -364,7 +489,7 @@ public class MetadataPeopleStoreTests
         var store = tables.Store();
         store.SaveCreators([
             Creator("t1", "Elsewhere", TestSources.Plugin),
-            Creator("c4", "Old") with { AlternativeNames = [new() { Name = "Oldie" }] },
+            Creator("c4", "Old") with { Titles = [TestTexts.Title("Old"), TestTexts.Title("Oldie", TitleType.Synonym)] },
         ]);
         store.SetCast(_series, [Role("x1", "c1")]);
         store.SetCrew(_series, [Job("c2", "Director")]);
@@ -386,7 +511,9 @@ public class MetadataPeopleStoreTests
         Assert.NotNull(store.GetCharacter(CharacterID("x1")));
         Assert.NotNull(store.GetCreator(CreatorID("t1", TestSources.Plugin)));
         Assert.NotNull(tables.Creators.GetByProviderID(TestSources.AniList, "c3")!.LastOrphanedAt);
-        Assert.Empty(tables.Texts.GetAll());
+        Assert.Empty(tables.TextStore.GetTitles(CreatorID("c4")));
+        Assert.Empty(tables.TextStore.GetTitles(CharacterID("x2")));
+        Assert.NotEmpty(tables.TextStore.GetTitles(CreatorID("c1")));
         Assert.Throws<ArgumentException>(() => store.RemoveOrphaned(MetadataSource.AniDB, DateTime.Now));
     }
 
@@ -396,8 +523,8 @@ public class MetadataPeopleStoreTests
         var tables = Seeded();
         var store = tables.Store();
 
-        Assert.Throws<ArgumentException>(() => store.SaveCreators([new() { ID = CharacterID("c9"), Name = "Nobody" }]));
-        Assert.Throws<ArgumentException>(() => store.SaveCharacters([new() { ID = CreatorID("x9"), Name = "Nobody" }]));
+        Assert.Throws<ArgumentException>(() => store.SaveCreators([new() { ID = CharacterID("c9"), Titles = TestTexts.Named("Nobody") }]));
+        Assert.Throws<ArgumentException>(() => store.SaveCharacters([new() { ID = CreatorID("x9"), Titles = TestTexts.Named("Nobody") }]));
         Assert.Throws<ArgumentException>(() => store.SetCast(_series, [new() { CharacterID = CreatorID("c1"), Name = "Nobody" }]));
         Assert.Null(store.GetCreator(CharacterID("c1")));
         Assert.Null(store.GetCharacter(CreatorID("x1")));
