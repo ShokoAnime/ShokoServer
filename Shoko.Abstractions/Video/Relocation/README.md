@@ -3,9 +3,9 @@
 The API for deciding **where a video file should live and what it should be
 called**. Any plugin can add `IRelocationProvider` implementations (renamers),
 alongside the WebAOM renamer. That renamer lives in the bundled
-`Shoko.Plugin.WebAOM` plugin, and a server starting with no presets creates a
-"Default" preset for it, so it is the default provider until a user picks
-another.
+`Shoko.Plugin.WebAOM` plugin (in its own repository, bundled with official
+builds), and a server starting with no presets creates a "Default" preset for
+it, so it is the default provider until a user picks another.
 
 A provider never touches the file system. It is handed everything known about
 one file and answers with a destination; `IVideoRelocationService` does the

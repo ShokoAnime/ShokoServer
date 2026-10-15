@@ -9,7 +9,6 @@ using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Abstractions.UI.Enums;
-using Shoko.Plugin.WebAOM;
 using Shoko.Server.Actions;
 using Shoko.Server.Services.Configuration;
 using Xunit;
@@ -264,7 +263,7 @@ public class ActionUiDefinitionBuilderTests
     public static TheoryData<Type> InTreeActionTypes()
     {
         var data = new TheoryData<Type>();
-        Assembly[] assemblies = [typeof(DeleteGroupAction).Assembly, typeof(WebAOMSettings).Assembly];
+        Assembly[] assemblies = [typeof(DeleteGroupAction).Assembly];
         foreach (var type in assemblies.SelectMany(x => x.GetTypes())
             .Where(x => x is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false } && x.IsAssignableTo(typeof(IExecutableAction)))
             .OrderBy(x => x.FullName, StringComparer.Ordinal))

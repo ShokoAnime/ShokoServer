@@ -9,7 +9,6 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
-using Shoko.Plugin.WebAOM;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Configuration;
@@ -48,9 +47,9 @@ public sealed class WebAOMRenamerMigrationTests : IDisposable
             Version = new(1, 0, 0),
             Name = "WebAOM Renamer",
             Description = string.Empty,
-            Provider = new WebAOMRenamer(NullLogger<WebAOMRenamer>.Instance, Mock.Of<IVideoRelocationService>()),
+            Provider = new WebAOMRenamer(),
             ConfigurationInfo = configurationInfo,
-            PluginInfo = PluginTestDoubles.InstalledPluginInfo(typeof(Shoko.Plugin.WebAOM.Plugin), WebAOMRenamerMigration.PluginID, "Shoko.Plugin.WebAOM.dll"),
+            PluginInfo = PluginTestDoubles.InstalledPluginInfo(typeof(WebAOMPlugin), WebAOMRenamerMigration.PluginID, "Shoko.Plugin.WebAOM.dll"),
         };
     }
 
@@ -79,8 +78,7 @@ public sealed class WebAOMRenamerMigrationTests : IDisposable
     [Fact]
     public void ProviderID_IsTheOneTheServerGivesThePluginsRenamer()
     {
-        Assert.Equal(new Shoko.Plugin.WebAOM.Plugin().ID, WebAOMRenamerMigration.PluginID);
-        Assert.Equal(VideoRelocationService.GetProviderID(typeof(WebAOMRenamer).FullName!, WebAOMRenamerMigration.PluginID), WebAOMRenamerMigration.ProviderID);
+        Assert.Equal(VideoRelocationService.GetProviderID(WebAOMRenamerMigration.ProviderTypeName, WebAOMRenamerMigration.PluginID), WebAOMRenamerMigration.ProviderID);
     }
 
     [Fact]

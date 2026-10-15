@@ -27,7 +27,6 @@ public class PluginReferenceCheckerTests
         };
 
     [Theory]
-    [InlineData("Shoko.Plugin.WebAOM")]
     [InlineData("Shoko.Plugin.LegacyPlex")]
     [InlineData("Shoko.Tests")]
     public void FindMissingReferences_BuiltAgainstThisServer_FindsNothing(string name)
@@ -46,7 +45,7 @@ public class PluginReferenceCheckerTests
             ["Shoko.Abstractions"] = ReadSurface(typeof(object).Assembly),
         };
 
-        var missing = PluginReferenceChecker.FindMissingReferences(GetDllPath("Shoko.Plugin.WebAOM"), hostAssemblies);
+        var missing = PluginReferenceChecker.FindMissingReferences(GetDllPath("Shoko.Plugin.LegacyPlex"), hostAssemblies);
 
         Assert.Contains($"type {typeof(IPlugin).FullName}", missing);
     }

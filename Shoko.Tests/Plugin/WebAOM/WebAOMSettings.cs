@@ -5,7 +5,7 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Enums;
 
-namespace Shoko.Plugin.WebAOM;
+namespace Shoko.Tests.Plugin.WebAOM;
 
 /// <summary>
 ///   The settings of a WebAOM renamer preset.

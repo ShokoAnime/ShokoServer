@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <ShokoBundledPlugin Include="$(MSBuildThisFileDirectory)Shoko.Plugin.LegacyPlex\Shoko.Plugin.LegacyPlex.csproj" />
-    <ShokoBundledPlugin Include="$(MSBuildThisFileDirectory)Shoko.Plugin.WebAOM\Shoko.Plugin.WebAOM.csproj" />
   </ItemGroup>
 
   <ItemGroup>

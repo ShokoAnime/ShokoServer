@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Elements;
-using Shoko.Plugin.WebAOM;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 using Xunit;
@@ -30,7 +29,7 @@ public class AllConfigurationTypesTests
         get
         {
             var data = new TheoryData<Type>();
-            Assembly[] assemblies = [typeof(ServerSettings).Assembly, typeof(WebAOMSettings).Assembly];
+            Assembly[] assemblies = [typeof(ServerSettings).Assembly];
             foreach (var type in assemblies.SelectMany(x => x.GetTypes())
                 .Where(x => x is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false } && x.IsAssignableTo(typeof(IConfiguration)))
                 .Where(x => x.GetConstructor(Type.EmptyTypes) is not null)

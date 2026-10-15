@@ -6,7 +6,6 @@ using Shoko.Server.Plugin;
 using Xunit;
 
 using LegacyPlexPlugin = Shoko.Plugin.LegacyPlex.Plugin;
-using WebAOMPlugin = Shoko.Plugin.WebAOM.Plugin;
 
 namespace Shoko.Tests.Plugin;
 
@@ -35,7 +34,6 @@ public class BundledPluginImageTests
 
     [Theory]
     [InlineData(typeof(LegacyPlexPlugin))]
-    [InlineData(typeof(WebAOMPlugin))]
     public void ThePluginShipsItsThumbnailAndIcon(Type pluginType)
     {
         var plugin = (IPlugin)Activator.CreateInstance(pluginType)!;
