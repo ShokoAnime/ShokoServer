@@ -361,6 +361,19 @@ public class UserDataService(
             }
         }
 
+        // A save without a watched change (progress, stream picks) never recomputes
+        // the series stats, so bump the series' last video update by hand, or the
+        // dashboard never lists the series until something is marked watched.
+        if (shouldSave && updateStatsNow && !watchedStatusChanged)
+        {
+            var touchedSeries = video.CrossReferences
+                .Select(xref => xref.ShokoEpisode?.Series as AnimeSeries)
+                .WhereNotNull()
+                .DistinctBy(series => series.AnimeSeriesID);
+            foreach (var series in touchedSeries)
+                TouchLastVideoUpdate(series, user, userData.LastUpdated, videoReason);
+        }
+
         // We run these events _after_ invoking the above event(s) so the series event(s) are fired after the episode and video event(s).
         if (updateStatsNow && toUpdateSeries.Count > 0)
         {
@@ -967,6 +980,28 @@ public class UserDataService(
             .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.JMMUserID), b => b.AnimeEpisode_User);
         var lockObj = new object();
         UpdateWatchedStatsInternal(series, episodes, user, reason, videoLookup, videoUserDataLookup, episodeUserDataLookup, lockObj);
+    }
+
+    /// <summary>
+    ///   Moves the series' last video update forward to
+    ///   <paramref name="lastUpdated"/> without recomputing the watched stats,
+    ///   creating the user data if the user never touched the series before.
+    /// </summary>
+    /// <param name="series">The series the video belongs to.</param>
+    /// <param name="user">The user the video was saved for.</param>
+    /// <param name="lastUpdated">When the video user data was saved.</param>
+    /// <param name="videoReason">The reason the video user data was saved.</param>
+    private void TouchLastVideoUpdate(AnimeSeries series, IUser user, DateTime lastUpdated, VideoUserDataSaveReason videoReason)
+    {
+        var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.AnimeSeriesID)
+            ?? new() { JMMUserID = user.LocalID, AnimeSeriesID = series.AnimeSeriesID, LastUpdated = DateTime.Now };
+        if (userData.AnimeSeries_UserID is not 0 && userData.LastVideoUpdate is { } current && current >= lastUpdated)
+            return;
+
+        userData.LastVideoUpdate = lastUpdated;
+        seriesUserDataRepository.Save(userData);
+
+        SendEvent(series, user, userData, SeriesUserDataSaveReason.SeriesStats, videoReason: videoReason);
     }
 
     private void UpdateWatchedStatsInternal(
