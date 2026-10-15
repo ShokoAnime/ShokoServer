@@ -776,7 +776,7 @@ public class MetadataEntryControllerTests
 
         Assert.Equal(
             // Sent back in the cross-reference routes' order, by AniDB anime.
-            [(MetadataEntityType.Series, 10, (int?)null), (MetadataEntityType.Episode, 10, 102), (MetadataEntityType.Series, 20, null)],
+            [(MetadataEntityType.Series, 10, null), (MetadataEntityType.Episode, 10, 102), (MetadataEntityType.Series, 20, null)],
             Value(result).Select(x => (x.EntityType, x.AnidbAnimeID, x.AnidbEpisodeID))
         );
     }

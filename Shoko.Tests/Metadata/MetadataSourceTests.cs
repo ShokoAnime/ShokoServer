@@ -696,7 +696,7 @@ public class MetadataSourceTests
         MetadataSource? none = null;
 
         Assert.True(MetadataSource.AniDB != MetadataSource.TMDB);
-        Assert.False(MetadataSource.AniDB.Equals((object)"anidb"));
+        Assert.False(MetadataSource.AniDB.Equals("anidb"));
         Assert.False(MetadataSource.AniDB == none);
         Assert.True(none == null);
     }

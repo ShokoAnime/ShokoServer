@@ -1143,7 +1143,7 @@ public class AiringScheduleServiceTests
         var regular = Assert.Single(written, airing => airing.AiredAt == harness.Air(8));
         var pinned = Assert.Single(written, airing => airing.AiredAt == harness.Air(9));
         Assert.Equal((2, harness.Episodes[1].ID), (regular.SequenceNumber, regular.EpisodeID));
-        Assert.Equal(((int?)null, special.Object.ID), (pinned.SequenceNumber, pinned.EpisodeID));
+        Assert.Equal((null, special.Object.ID), (pinned.SequenceNumber, pinned.EpisodeID));
         Assert.NotEqual(regular.Key, pinned.Key);
     }
 

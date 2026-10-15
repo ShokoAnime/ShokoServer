@@ -182,7 +182,7 @@ public partial class DatabaseFixes
             ? (channel.Name, channel.CountryCode)
             : TrySplitRegionalChannelName(channel.Name, out var brand, out var country)
                 ? (brand, country)
-                : (channel.Name, (string?)null);
+                : (channel.Name, null);
         if (channel.Type is AiringChannelType.Streaming && GlobalStreamingBrands.Contains(AiringScheduleUtility.NormalizeChannelName(name)))
             countryCode = null;
 

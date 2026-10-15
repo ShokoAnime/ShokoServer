@@ -78,7 +78,7 @@ public class FuzzyDateOnlyConverter : TypeConverter, IUserType
 
     /// <inheritdoc/>
     public void NullSafeSet(DbCommand cmd, object value, int index, ISessionImplementor session)
-        => ((IDataParameter)cmd.Parameters[index]).Value = ConvertTo(null, null, value, typeof(string)) ?? (object)DBNull.Value;
+        => ((IDataParameter)cmd.Parameters[index]).Value = ConvertTo(null, null, value, typeof(string)) ?? DBNull.Value;
 
     /// <inheritdoc/>
     public object Replace(object original, object target, object owner)

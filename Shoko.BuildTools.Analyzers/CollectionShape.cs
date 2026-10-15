@@ -166,9 +166,9 @@ internal readonly struct CollectionShape(CollectionKind kind, ITypeSymbol? eleme
 
             var bits = value switch
             {
-                sbyte x => (ulong)(byte)x,
-                short x => (ulong)(ushort)x,
-                int x => (ulong)(uint)x,
+                sbyte x => (byte)x,
+                short x => (ushort)x,
+                int x => (uint)x,
                 long x => (ulong)x,
                 byte x => x,
                 ushort x => x,

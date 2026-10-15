@@ -265,7 +265,7 @@ public class PlacedSpecialsTests
         Assert.False(json.ContainsKey(nameof(SeriesOrdering.OrderingEpisode.AirsBeforeEpisodeNumber)));
         var special = Assert.Single(specials.Episodes);
         Assert.True(special.IsSpecial);
-        Assert.Equal((1, 1, 2, (int?)null), (special.EpisodeNumber, special.AirsBeforeSeasonNumber, special.AirsBeforeEpisodeNumber, special.AirsAfterSeasonNumber));
+        Assert.Equal((1, 1, 2, null), (special.EpisodeNumber, special.AirsBeforeSeasonNumber, special.AirsBeforeEpisodeNumber, special.AirsAfterSeasonNumber));
         Assert.Equal((EpisodeID(series, "e1").ToString(), EpisodeID(series, "e2").ToString()), (special.AirsAfterEpisodeID, special.AirsBeforeEpisodeID));
     }
 

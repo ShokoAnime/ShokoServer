@@ -40,7 +40,7 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
     ///   The season's episodes.
     /// </summary>
     private IEnumerable<IAnidbEpisode> Episodes
-        => ((ISeries<IAnidbAnime, IAnidbEpisode>)anime).Episodes.Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber);
+        => anime.Episodes.Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber);
 
     IReadOnlyList<IMetadataSeasonCrossReference> ISeason.MetadataSeasonCrossReferences
         => MetadataService.GetSeasonCrossReferences(this, ((ISeason)this).MetadataEpisodeCrossReferences);

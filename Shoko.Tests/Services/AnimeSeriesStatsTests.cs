@@ -157,7 +157,7 @@ public class AnimeSeriesStatsTests
         /// </summary>
         private static AniDB_GroupStatusRepository GroupStatuses(IEnumerable<AniDB_GroupStatus>? statuses)
         {
-            var mock = new Mock<AniDB_GroupStatusRepository>((DatabaseFactory)null!, (IQueueScheduler)null!);
+            var mock = new Mock<AniDB_GroupStatusRepository>(null!, null!);
             mock.Setup(r => r.GetByAnimeID(It.IsAny<int>())).Returns([.. statuses ?? []]);
             return mock.Object;
         }

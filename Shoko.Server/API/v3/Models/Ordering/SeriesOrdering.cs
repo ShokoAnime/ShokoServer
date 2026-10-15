@@ -149,7 +149,7 @@ public class SeriesOrdering
         HiddenEpisodeCount = ordering.HiddenEpisodeCount;
         SeasonCount = ordering.SeasonCount;
         Networks = [.. ordering.Networks.Select(network => models.Network(network))];
-        Images = ((IWithImages)ordering).GetImages().ToDto();
+        Images = ordering.GetImages().ToDto();
         var placement = (ordering as IPlacedOrdering)?.Placement;
         Groups = includeGroups ? [.. ordering.Seasons.Select(season => new OrderingGroup(season, placement))] : null;
         CreatedAt = ordering.CreatedAt.ToUniversalTime();
@@ -217,7 +217,7 @@ public class SeriesOrdering
             Name = season.Title;
             SeasonNumber = season.SeasonNumber;
             IsSpecial = season.IsSpecial;
-            Images = ((IWithImages)season).GetImages().ToDto();
+            Images = season.GetImages().ToDto();
             Episodes = placement is not null
                 ? [.. placement.Listed(season.ID).Select(place => new OrderingEpisode(place))]
                 : [.. season.Episodes.Select((episode, index) => new OrderingEpisode(episode.ID, index + 1, season.IsSpecial, null))];

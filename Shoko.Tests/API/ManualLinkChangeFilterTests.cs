@@ -84,7 +84,7 @@ public class ManualLinkChangeFilterTests
             [
                 (MetadataLinkChangeKind.Replaced, "57", "55"),
                 (MetadataLinkChangeKind.Replaced, "58", "56"),
-                (MetadataLinkChangeKind.Added, "59", (string?)null),
+                (MetadataLinkChangeKind.Added, "59", null),
             ],
             eventArgs.Changes.Select(change => (change.Kind, change.ProviderID!.ID, change.PreviousProviderID?.ID))
         );

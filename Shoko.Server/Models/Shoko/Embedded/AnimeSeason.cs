@@ -50,7 +50,7 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
     ///   The season's episodes.
     /// </summary>
     private IEnumerable<IShokoEpisode> Episodes
-        => ((ISeries<IShokoSeries, IShokoEpisode>)series).Episodes.Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber);
+        => series.Episodes.Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber);
 
     string IWithTitles.Title
         => seasonNumber is 0

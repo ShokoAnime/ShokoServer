@@ -754,9 +754,9 @@ public sealed class MetadataModelBuilder(
 
         var (anidbEpisodeID, parentID, seasonID, seasonNumber, episodeNumber) = link switch
         {
-            IMetadataEpisodeCrossReference episode => ((int?)episode.AnidbEpisodeID, episode.ProviderParentID?.ID, episode.SeasonID?.ID, episode.SeasonNumber, episode.EpisodeNumber),
+            IMetadataEpisodeCrossReference episode => (episode.AnidbEpisodeID, episode.ProviderParentID?.ID, episode.SeasonID?.ID, episode.SeasonNumber, episode.EpisodeNumber),
             IMetadataMovieCrossReference movie => (movie.AnidbEpisodeID, null, null, null, null),
-            IMetadataSeasonCrossReference season => (null, season.ProviderParentID.ID, null, (int?)season.SeasonNumber, null),
+            IMetadataSeasonCrossReference season => (null, season.ProviderParentID.ID, null, season.SeasonNumber, null),
             _ => ((int?)null, (string?)null, (string?)null, (int?)null, (int?)null),
         };
         return new()

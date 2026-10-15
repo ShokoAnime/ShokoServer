@@ -352,7 +352,7 @@ public class AnimeCreator
         DateTimeUpdated = rawEpisode.LastUpdated,
         EpisodeID = rawEpisode.EpisodeID,
         EpisodeNumber = rawEpisode.EpisodeNumber,
-        EpisodeType = (AbstractEpisodeType)rawEpisode.EpisodeType,
+        EpisodeType = rawEpisode.EpisodeType,
         LengthSeconds = rawEpisode.LengthSeconds,
         Rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture),
         Votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture),
@@ -421,9 +421,9 @@ public class AnimeCreator
                     isUpdated = true;
                 }
 
-                if (episode.EpisodeType != (AbstractEpisodeType)rawEpisode.EpisodeType)
+                if (episode.EpisodeType != rawEpisode.EpisodeType)
                 {
-                    episode.EpisodeType = (AbstractEpisodeType)rawEpisode.EpisodeType;
+                    episode.EpisodeType = rawEpisode.EpisodeType;
                     isUpdated = true;
                 }
 
@@ -462,7 +462,7 @@ public class AnimeCreator
             // which are synthesized when read.
             var episodeID = new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Episode, rawEpisode.EpisodeID.ToString(CultureInfo.InvariantCulture));
             var currentTitles = _textStore.GetTitles(episodeID, MetadataSource.AniDB);
-            var number = new GenericEpisodeTitles.EntryNumber(rawEpisode.EpisodeNumber, (AbstractEpisodeType)rawEpisode.EpisodeType, AnidbForms: true);
+            var number = new GenericEpisodeTitles.EntryNumber(rawEpisode.EpisodeNumber, rawEpisode.EpisodeType, AnidbForms: true);
             var newTitles = AnidbTextListing.PlanEpisodeTitles(
                 currentTitles,
                 rawEpisode.Titles.Select(rawtitle => new AnidbTextListing.ListedTitle(rawtitle.Language, TitleType.None, rawtitle.Title)),

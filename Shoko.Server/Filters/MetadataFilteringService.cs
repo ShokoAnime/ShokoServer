@@ -292,7 +292,7 @@ public class MetadataFilteringService(
             {
                 var groupIDChains = chainsByTopGroup.TryGetValue(group.AnimeGroupID, out var chains)
                     ? chains
-                    : (IReadOnlyList<IReadOnlyList<int>>)[];
+                    : [];
                 var groupIds = groupIDChains.SelectMany(chain => chain).ToHashSet();
                 var seriesIDs = groupIds.SelectMany(id => seriesByGroupID[id]).ToHashSet();
                 return new FilteredGroupResult

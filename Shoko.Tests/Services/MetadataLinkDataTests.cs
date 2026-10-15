@@ -30,7 +30,7 @@ public class MetadataLinkDataTests
             Ordering = 2,
         };
 
-        var link = ((IMetadataEpisodeCrossReference)stored).ToLinkData();
+        var link = stored.ToLinkData();
 
         Assert.Equal(new MetadataGuid(TestSources.AniList, MetadataEntityType.Episode, "70001"), link.ProviderID);
         Assert.Equal(new MetadataGuid(TestSources.AniList, MetadataEntityType.Series, "9001"), link.ProviderParentID);
@@ -48,7 +48,7 @@ public class MetadataLinkDataTests
             ProviderID = "10",
         };
 
-        Assert.Null(((IMetadataEpisodeCrossReference)stored).ToLinkData().ProviderParentID);
+        Assert.Null(stored.ToLinkData().ProviderParentID);
     }
 
     [Theory]
@@ -66,7 +66,7 @@ public class MetadataLinkDataTests
 
         Assert.Null(((IMetadataCrossReference)stored).ProviderID);
         Assert.True(stored.IsUnlinked);
-        Assert.Null(((IMetadataEpisodeCrossReference)stored).ToLinkData().ProviderID);
+        Assert.Null(stored.ToLinkData().ProviderID);
     }
 
     [Fact]

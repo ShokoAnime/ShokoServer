@@ -30,7 +30,7 @@ internal sealed record AiringEpisodeOffset(
     /// <returns>The schedule's episode number, or <c>null</c> when the offset does not place the episode.</returns>
     public int? GetScheduleEpisodeNumber(IAnidbEpisode episode)
     {
-        if (((IEpisode)episode).Type is not EpisodeType.Episode || LinkedEpisodeIDs.Contains(episode.AnidbID))
+        if (episode.Type is not EpisodeType.Episode || LinkedEpisodeIDs.Contains(episode.AnidbID))
             return null;
         if (episode.EpisodeNumber <= LastLinkedEpisodeNumber)
             return null;

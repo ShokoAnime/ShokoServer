@@ -61,9 +61,9 @@ public class VideoReleaseGroupingTests
 
         // CrossRef lookups: no manually linked files in unit tests.
         var crossRefRepo = new Mock<CrossRef_File_EpisodeRepository>(
-            (ILogger<CrossRef_File_EpisodeRepository>)null!,
-            (IServiceProvider)null!,
-            (DatabaseFactory)null!);
+            null!,
+            null!,
+            null!);
         crossRefRepo.Setup(r => r.GetByEd2k(It.IsAny<string>())).Returns([]);
 
         return new VideoReleaseGroupingService(
@@ -1829,7 +1829,7 @@ public class VideoReleaseGroupingTests
         var videoA = MakeVideo(1, "AAA", 500_000_000, media);
         var videoB = MakeVideo(2, "BBB", 500_000_000, media);
 
-        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
+        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>(null!, null!);
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("BBB", 500_000_000)).Returns(sriB);
 
@@ -1850,7 +1850,7 @@ public class VideoReleaseGroupingTests
         var sriA = MakeSri("AAA", 500_000_000, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web, episodes: ["1"]);
         var videoA = MakeVideo(1, "AAA", 500_000_000, media);
 
-        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
+        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>(null!, null!);
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
 
         var grouper = CreateGrouper(releaseInfoRepo);
@@ -1879,7 +1879,7 @@ public class VideoReleaseGroupingTests
         var videoA = MakeVideo(1, "AAA", 500_000_000, media);
         var videoB = MakeVideo(2, "BBB", 510_000_000, media);
 
-        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
+        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>(null!, null!);
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("BBB", 510_000_000)).Returns(sriB);
 
@@ -1909,7 +1909,7 @@ public class VideoReleaseGroupingTests
             new ResolvedVideoPlace(MakePlace(2, 2, 1, "Show/Show - 09v2.mkv"), videoB, sriB),
         };
 
-        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
+        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>(null!, null!);
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("BBB", 510_000_000)).Returns(sriB);
         var grouper = CreateGrouper(releaseInfoRepo);
@@ -1960,7 +1960,7 @@ public class VideoReleaseGroupingTests
         episodeRepo.Setup(r => r.GetByEpisodeID(targetEpisodeId))
             .Returns(new AniDB_Episode { AnimeID = targetAnimeId, EpisodeType = EpisodeType.Episode, EpisodeNumber = 2 });
 
-        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
+        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>(null!, null!);
         var crossoverSri = new StoredReleaseInfo
         {
             ED2K = "XOVER",
@@ -1971,9 +1971,9 @@ public class VideoReleaseGroupingTests
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("XOVER", 500_000_000)).Returns(crossoverSri);
 
         var crossRefRepo = new Mock<CrossRef_File_EpisodeRepository>(
-            (ILogger<CrossRef_File_EpisodeRepository>)null!,
-            (IServiceProvider)null!,
-            (DatabaseFactory)null!);
+            null!,
+            null!,
+            null!);
         crossRefRepo.Setup(r => r.GetByEd2k(It.IsAny<string>())).Returns([]);
 
         var grouper = new VideoReleaseGroupingService(

@@ -234,7 +234,7 @@ public class PlaylistParsingTests
             [("g123", ["includeAllSeries", "onlyUnwatched"])],
             GeneratedPlaylistService.SplitSubItems("g123+includeAllSeries-onlyUnwatched").Select(token => (token.Value, token.Extras.ToArray())));
         Assert.Equal(
-            [("a123", (string[])[]), ("r789", [])],
+            [("a123", []), ("r789", [])],
             GeneratedPlaylistService.SplitSubItems("a123 r789").Select(token => (token.Value, token.Extras.ToArray())));
     }
 

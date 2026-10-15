@@ -144,8 +144,8 @@ public class MetadataOrderingTransferRoundTripTests(DatabaseMigrationFixture fix
         Reload();
 
         var read = orderings.GetOrdering(ordering.ID)!;
-        Assert.Equal([poster.ID], ((IWithImages)read).GetImages().Select(image => image.ID));
-        Assert.Equal([backdrop.ID], ((IWithImages)read.Seasons[0]).GetImages().Select(image => image.ID));
+        Assert.Equal([poster.ID], read.GetImages().Select(image => image.ID));
+        Assert.Equal([backdrop.ID], read.Seasons[0].GetImages().Select(image => image.ID));
 
         var export = await transfer.ExportToBytes(
             new() { SeriesIDs = [seriesID], ImageMode = MetadataOrderingImageExportMode.EmbedMissingRemote },
@@ -185,13 +185,13 @@ public class MetadataOrderingTransferRoundTripTests(DatabaseMigrationFixture fix
         Assert.Equal([episodes[3]], imported.Seasons[1].Episodes.Select(episode => episode.ID));
         Assert.Equal([episodes[2]], imported.Seasons[2].Episodes.Select(episode => episode.ID));
 
-        var importedPoster = Assert.Single(((IWithImages)imported).GetImages());
+        var importedPoster = Assert.Single(imported.GetImages());
         Assert.Equal((ImageEntityType.Primary, true), (importedPoster.Type, importedPoster.IsPreferred));
         Assert.Equal(SHA256.HashData(posterFile), SHA256.HashData(Held(importedPoster)));
-        var importedBackdrop = Assert.Single(((IWithImages)imported.Seasons[0]).GetImages());
+        var importedBackdrop = Assert.Single(imported.Seasons[0].GetImages());
         Assert.Equal(ImageEntityType.Backdrop, importedBackdrop.Type);
         Assert.Equal(backdropFile, Held(importedBackdrop));
-        var importedLogo = Assert.Single(((IWithImages)imported.Seasons[2]).GetImages());
+        var importedLogo = Assert.Single(imported.Seasons[2].GetImages());
         Assert.Equal((logo.ID, ImageEntityType.Logo), (importedLogo.ID, importedLogo.Type));
 
         // Nothing is left for the other tests sharing the database.

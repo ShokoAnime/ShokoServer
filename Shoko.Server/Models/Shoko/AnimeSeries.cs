@@ -510,7 +510,7 @@ public class AnimeSeries : IShokoSeries
     ///   each based on the Shoko series standing for the suggesting entry.
     /// </summary>
     IReadOnlyList<ISuggestedMetadata<IShokoSeries, ISeries>> ISeries<IShokoSeries, IShokoEpisode>.SuggestedBy =>
-        [.. GetLinkedSuggestedBy().Select(suggestion => new AnimeSeriesSuggestion(suggestion, (suggestion.Base as ISeries)?.ShokoSeries.FirstOrDefault()))];
+        [.. GetLinkedSuggestedBy().Select(suggestion => new AnimeSeriesSuggestion(suggestion, suggestion.Base?.ShokoSeries.FirstOrDefault()))];
 
     IReadOnlyList<IVideoCrossReference> ISeries.VideoCrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);

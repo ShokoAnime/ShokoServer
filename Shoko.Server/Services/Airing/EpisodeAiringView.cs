@@ -280,7 +280,7 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
         {
             ResolveEpisodeViews();
             if (_anidbEpisode is { } anidbEpisode)
-                return ((IEpisode)anidbEpisode).Type is EpisodeType.Episode ? anidbEpisode.EpisodeNumber : null;
+                return anidbEpisode.Type is EpisodeType.Episode ? anidbEpisode.EpisodeNumber : null;
 
             return _anidbPosition?.EpisodeNumber;
         }

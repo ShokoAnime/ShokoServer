@@ -422,7 +422,7 @@ WHERE
             .SetParameterList("neverLinked", neverLinked.Count is 0 ? [(int)AnimeType.Unknown - 1] : neverLinked.Select(type => (int)type).ToArray())
             .SetParameter("veto", $"%\"{source.Value}\"%")
             // A source without a number has no rows, and no row holds -1, so both NOT EXISTS hold.
-            .SetParameter("source", MetadataNumberRegistry.TryGetNumber(source, out var number) ? (int)number : -1);
+            .SetParameter("source", MetadataNumberRegistry.TryGetNumber(source, out var number) ? number : -1);
 
     #endregion
 

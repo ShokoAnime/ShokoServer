@@ -168,8 +168,8 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
         var createdAt = row.CreatedAt;
         Assert.Equal(row.LastUpdatedAt, createdAt);
         Assert.InRange(createdAt, DateTime.Now.AddMinutes(-5), DateTime.Now.AddMinutes(1));
-        Assert.All(storedSeries.Seasons, season => Assert.Equal(createdAt, ((IWithCreationDate)season).CreatedAt));
-        Assert.All(storedSeries.Episodes, episode => Assert.Equal(createdAt, ((IWithCreationDate)episode).CreatedAt));
+        Assert.All(storedSeries.Seasons, season => Assert.Equal(createdAt, season.CreatedAt));
+        Assert.All(storedSeries.Episodes, episode => Assert.Equal(createdAt, episode.CreatedAt));
         Assert.Equal(["Entity Series", "エンティティ"], storedSeries.Titles.Select(title => title.Value));
         Assert.Equal([TitleType.Main, TitleType.Official], storedSeries.Titles.Select(title => title.Type));
         Assert.Equal(longText, Assert.Single(storedSeries.Overviews).Value);
@@ -206,7 +206,7 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal("ja", movie.OriginalLanguageCode);
         Assert.Equal(["JP"], movie.ProductionCountries);
         Assert.Equal(TimeSpan.FromSeconds(5730), movie.Runtime);
-        Assert.Equal(((Metadata_Movie)movie).LastUpdatedAt, ((IWithCreationDate)movie).CreatedAt);
+        Assert.Equal(((Metadata_Movie)movie).LastUpdatedAt, movie.CreatedAt);
         Assert.Equal("Entity Movie", movie.DefaultTitle.Value);
         Assert.Equal("imdb://movie/tt0000003", Assert.Single(movie.CrossSourceIDs).ToString());
         Assert.Equal(("DE", "FSK 12"), movie.ContentRatings.Select(rating => (rating.CountryCode, rating.Value)).Single());
@@ -230,7 +230,7 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal(["entity-episode-1"], seriesStore.GetSeries(series)!.Episodes.Select(item => item.ID.ID));
         // A later write leaves the creation date alone.
         Assert.Equal(createdAt, Assert.IsType<Metadata_Series>(seriesStore.GetSeries(series)).CreatedAt);
-        Assert.Equal(createdAt, ((IWithCreationDate)seriesStore.GetEpisode(ID(MetadataEntityType.Episode, "entity-episode-1"))!).CreatedAt);
+        Assert.Equal(createdAt, seriesStore.GetEpisode(ID(MetadataEntityType.Episode, "entity-episode-1"))!.CreatedAt);
         Assert.Null(seriesStore.GetSeason(ID(MetadataEntityType.Season, longID)));
         // Saved without titles, the series is only listed by its synthesized name.
         Assert.True(Assert.Single(seriesStore.GetSeries(series)!.Titles).IsSynthesized);

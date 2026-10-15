@@ -663,7 +663,7 @@ public partial class AiringScheduleService
 
         var (anidbEpisode, shokoEpisode) = context.GetEpisodeViews(episode);
         if (anidbEpisode is not null)
-            return ((IEpisode)anidbEpisode).Type is EpisodeType.Episode
+            return anidbEpisode.Type is EpisodeType.Episode
                 ? AiringEpisodeKey.ForAnidbPosition(anidbEpisode.AnidbAnimeID, anidbEpisode.EpisodeNumber)
                 : AiringEpisodeKey.ForEpisode(anidbEpisode.ID);
 

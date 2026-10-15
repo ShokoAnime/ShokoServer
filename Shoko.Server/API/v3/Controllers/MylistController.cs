@@ -105,7 +105,7 @@ public class MylistController(
         [FromBody] MylistSyncOptions? options = null)
         => episodes.GetByID(episodeID) is not { } episode
             ? NotFoundTask<MylistSyncPlan>($"No episode with ID {episodeID}.")
-            : PlanAsync(o => mylistService.SyncAsync([(IShokoEpisode)episode], o, HttpContext.RequestAborted), options);
+            : PlanAsync(o => mylistService.SyncAsync([episode], o, HttpContext.RequestAborted), options);
 
     /// <inheritdoc cref="PlanSync"/>
     /// <param name="fileID">The file to confine the preview to.</param>
@@ -118,7 +118,7 @@ public class MylistController(
         [FromBody] MylistSyncOptions? options = null)
         => videos.GetByID(fileID) is not { } video
             ? NotFoundTask<MylistSyncPlan>($"No file with ID {fileID}.")
-            : PlanAsync(o => mylistService.SyncAsync([(IVideo)video], o, HttpContext.RequestAborted), options);
+            : PlanAsync(o => mylistService.SyncAsync([video], o, HttpContext.RequestAborted), options);
 
     /// <summary>
     /// Carry out a plan from one of the endpoints above, after whatever review

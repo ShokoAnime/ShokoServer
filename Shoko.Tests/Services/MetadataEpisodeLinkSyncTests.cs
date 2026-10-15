@@ -222,7 +222,7 @@ public class MetadataEpisodeLinkSyncTests
         var changed = tables.Store.SyncFromSeriesStore(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal([1, 2], changed.Select(link => link.CrossRef_AniDB_Metadata_EpisodeID).Order());
-        Assert.Equal(("s1", null, (int?)null, (int?)7), (plugin.ProviderParentID, plugin.ProviderSeasonID, plugin.SeasonNumber, plugin.EpisodeNumber));
+        Assert.Equal(("s1", null, null, 7), (plugin.ProviderParentID, plugin.ProviderSeasonID, plugin.SeasonNumber, plugin.EpisodeNumber));
         Assert.Equal(("as-1", 1, 2), (anilist.ProviderSeasonID, anilist.SeasonNumber, anilist.EpisodeNumber));
         Assert.Null(tmdb.EpisodeNumber);
         Assert.Equal(string.Empty, unknown.ProviderParentID);

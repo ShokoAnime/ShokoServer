@@ -214,7 +214,7 @@ public class FuzzyDateOnlyTests
         Assert.True(dated == new FuzzyDateOnly(2020, 5, 5));
         Assert.True(dated != yearless);
         Assert.True(missing != dated);
-        Assert.True(missing == (FuzzyDateOnly?)null);
+        Assert.True(missing == null);
     }
 
     [Fact]

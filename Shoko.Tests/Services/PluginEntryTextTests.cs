@@ -119,9 +119,9 @@ public class PluginEntryTextTests
         ]);
         tables.PeopleStore.SaveCharacters([new() { ID = ID(MetadataEntityType.Character, "x1"), Name = "Alice", Overview = "The lead.", AlternativeNames = [new() { Name = "Ally", LanguageCode = "en" }] }]);
 
-        var kana = (ICreator)tables.PeopleStore.GetCreator(ID(MetadataEntityType.Creator, "p1"))!;
-        var hiro = (ICreator)tables.PeopleStore.GetCreator(ID(MetadataEntityType.Creator, "p2"))!;
-        var alice = (ICharacter)tables.PeopleStore.GetCharacter(ID(MetadataEntityType.Character, "x1"))!;
+        var kana = tables.PeopleStore.GetCreator(ID(MetadataEntityType.Creator, "p1"))!;
+        var hiro = tables.PeopleStore.GetCreator(ID(MetadataEntityType.Creator, "p2"))!;
+        var alice = tables.PeopleStore.GetCharacter(ID(MetadataEntityType.Character, "x1"))!;
 
         Assert.Equal(["かな", "Kana-chan"], kana.AlternativeNames.Select(name => name.Value));
         Assert.Equal(["Ally"], alice.AlternativeNames.Select(name => name.Value));
@@ -192,7 +192,7 @@ public class PluginEntryTextTests
             Titles = [Title("Main", TitleLanguage.Main, "x-main", TitleType.Main), Title("English", TitleLanguage.English, "en", TitleType.Official)],
             Overviews = [Overview("About it.", TitleLanguage.English, "en")],
         });
-        var series = (ISeries)tables.SeriesStore.GetSeries(seriesID)!;
+        var series = tables.SeriesStore.GetSeries(seriesID)!;
         Assert.Equal("Main", series.Title);
 
         // Another source's titles come after the entry's own.

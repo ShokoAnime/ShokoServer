@@ -539,7 +539,7 @@ public class MetadataEntityTypeTests
         MetadataEntityType? none = null;
 
         Assert.True(MetadataEntityType.Network != MetadataEntityType.Channel);
-        Assert.False(MetadataEntityType.Series.Equals((object)"series"));
+        Assert.False(MetadataEntityType.Series.Equals("series"));
         Assert.False(MetadataEntityType.Series == none);
         Assert.True(none == null);
     }

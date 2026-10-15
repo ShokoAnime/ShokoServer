@@ -2161,7 +2161,7 @@ public partial class TmdbController(
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
-            return ((IWithImages)altOrderSeason.Season).GetImages(options)
+            return altOrderSeason.Season.GetImages(options)
                 .ToDto(language, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource)
                 .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(altOrderSeason.Season, options));
         }

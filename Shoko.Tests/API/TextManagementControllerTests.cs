@@ -271,7 +271,7 @@ public class TextManagementControllerTests
 
         Assert.Equal(2, result.Total);
         var (first, second) = (result.List[0], result.List[1]);
-        Assert.Equal(("Show", true, (int?)null, true, false), (first.Value, first.Inline, first.ID, first.Default!.Value, first.Preferred!.Value));
+        Assert.Equal(("Show", true, null, true, false), (first.Value, first.Inline, first.ID, first.Default!.Value, first.Preferred!.Value));
         Assert.Equal(("Série", false, 3, false, true), (second.Value, second.Inline, second.ID!.Value, second.Default!.Value, second.Preferred!.Value));
 
         var json = JObject.Parse(JsonConvert.SerializeObject(first, _apiSettings));
@@ -468,7 +468,7 @@ public class TextManagementControllerTests
 
     [Fact]
     public void NoTextIsNoStep()
-        => Assert.Equal((TextChoiceStep.None, (TitleLanguage?)null), StepOf(_anime, TextKind.Title, null, null));
+        => Assert.Equal((TextChoiceStep.None, null), StepOf(_anime, TextKind.Title, null, null));
 
     [Fact]
     public void AUsersPicksAreTheirOwnSteps()
@@ -486,7 +486,7 @@ public class TextManagementControllerTests
         var english = Title(2, "Official");
 
         Assert.Equal((TextChoiceStep.LanguageOrder, (TitleLanguage?)TitleLanguage.English), StepOf(_anime, TextKind.Title, english, null, s => s.Language.SeriesTitleLanguageOrder = ["x-main", "en"]));
-        Assert.Equal((TextChoiceStep.Default, (TitleLanguage?)null), StepOf(_anime, TextKind.Title, english, english, s => s.Language.SeriesTitleLanguageOrder = ["ja"]));
+        Assert.Equal((TextChoiceStep.Default, null), StepOf(_anime, TextKind.Title, english, english, s => s.Language.SeriesTitleLanguageOrder = ["ja"]));
     }
 
     [Fact]

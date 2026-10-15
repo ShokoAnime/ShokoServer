@@ -1390,8 +1390,8 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
         var (state, progress, cancellable) = executing.TryGetValue(action.JobKey, out var item)
             ? (item.CancellationRequested ? ScheduledActionState.CancellationRequested : ScheduledActionState.Running, item.Progress, item.Cancellable)
             : _scheduler.IsQueued(action.JobKey)
-                ? (ScheduledActionState.Waiting, (decimal?)null, true)
-                : (ScheduledActionState.Idle, (decimal?)null, false);
+                ? (ScheduledActionState.Waiting, null, true)
+                : (ScheduledActionState.Idle, null, false);
         return new()
         {
             ID = action.ID,

@@ -1108,7 +1108,7 @@ public class MetadataLinkingServiceTests
 
         Assert.Equal(
             [
-                (Entry(Source, MetadataEntityType.Series, "1"), (int?)null),
+                (Entry(Source, MetadataEntityType.Series, "1"), null),
                 (Entry(Source, MetadataEntityType.Movie, "2"), 5),
                 (Entry(Source, MetadataEntityType.Episode, "301"), null),
             ],
@@ -1854,7 +1854,7 @@ public class MetadataLinkingServiceTests
         Assert.Equal(MetadataLinkChangeReason.Other, raised.Reason);
         var change = Assert.Single(raised.Changes);
         Assert.Equal(
-            (MetadataLinkChangeKind.Added, MetadataEntityType.Series, AnimeID, (int?)null, "1", (MatchRating?)null),
+            (MetadataLinkChangeKind.Added, MetadataEntityType.Series, AnimeID, null, "1", null),
             (change.Kind, change.EntityType, change.AnidbAnimeID, change.AnidbEpisodeID, change.ProviderID!.ID, change.PreviousMatchRating)
         );
         Assert.Equal([Source], raised.Sources);

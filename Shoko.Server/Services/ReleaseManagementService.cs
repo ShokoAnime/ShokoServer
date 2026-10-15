@@ -358,7 +358,7 @@ public class ReleaseManagementService(
                 RedundantEpisodes = redundantFiles
                     .SelectMany(p => placeEpisodeCoverage.TryGetValue(p.ID, out var cov)
                         ? cov
-                        : (IReadOnlySet<(EpisodeType, int)>)new HashSet<(EpisodeType, int)>())
+                        : new HashSet<(EpisodeType, int)>())
                     .ToHashSet(),
                 GroupID = candidate.GroupID,
                 GroupSource = candidate.GroupSource,

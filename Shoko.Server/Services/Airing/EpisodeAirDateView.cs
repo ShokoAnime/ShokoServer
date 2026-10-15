@@ -94,7 +94,7 @@ internal sealed class EpisodeAirDateView : IEpisodeAiring
     public IAnidbAnime? AnidbAnime => _context.GetAnidbAnime(_anidbEpisode.AnidbAnimeID);
 
     /// <inheritdoc/>
-    public int? AnidbEpisodeNumber => ((IEpisode)_anidbEpisode).Type is EpisodeType.Episode ? _anidbEpisode.EpisodeNumber : null;
+    public int? AnidbEpisodeNumber => _anidbEpisode.Type is EpisodeType.Episode ? _anidbEpisode.EpisodeNumber : null;
 
     /// <inheritdoc/>
     public IShokoSeries? ShokoSeries => ShokoEpisode?.Series ?? _context.GetShokoSeriesByAnimeID(_anidbEpisode.AnidbAnimeID);

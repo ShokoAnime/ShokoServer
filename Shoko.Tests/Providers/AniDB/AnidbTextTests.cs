@@ -166,7 +166,7 @@ public class AnidbTextTests
         var titles = AnidbTextListing.PlanEpisodeTitles(
             [],
             episode.Titles.Select(title => Listed(title.Language, TitleType.None, title.Title)),
-            (EpisodeType)episode.EpisodeType,
+            episode.EpisodeType,
             episode.EpisodeNumber
         );
 
@@ -197,7 +197,7 @@ public class AnidbTextTests
         var titles = AnidbTextListing.PlanEpisodeTitles(
             [],
             parsed.Titles.Select(title => Listed(title.Language, TitleType.None, title.Title)),
-            (EpisodeType)parsed.EpisodeType,
+            parsed.EpisodeType,
             parsed.EpisodeNumber
         );
         AnimeCreator.StoreTitles(world.Store, null, new AniDB_Anime { AnimeID = 1 }, [(EpisodeID(1001), new(parsed.EpisodeNumber), titles)], []);
@@ -420,7 +420,7 @@ public class AnidbTextTests
             var episodeTitles = AnidbTextListing.PlanEpisodeTitles(
                 world.Store.GetTitles(EpisodeID(100), MetadataSource.AniDB),
                 episode.Titles.Select(title => Listed(title.Language, TitleType.None, title.Title)),
-                (EpisodeType)episode.EpisodeType,
+                episode.EpisodeType,
                 episode.EpisodeNumber
             );
             AnimeCreator.StoreTitles(world.Store, response.Titles, anime, [(EpisodeID(100), new(episode.EpisodeNumber), episodeTitles)], []);

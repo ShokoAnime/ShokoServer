@@ -786,7 +786,7 @@ public class AnidbAnimeCatalogTests
             Assert.Equal(((Guid?)PosterID(1), (Guid?)BackdropID(1)), ImagesOf(harness, (2015, YearlySeason.Spring)));
 
         using (var harness = new Harness(anime, episodes, withPosters: new HashSet<int> { 1, 2 }, withBackdrops: new HashSet<int> { 2 }))
-            Assert.Equal(((Guid?)PosterID(1), (Guid?)null), ImagesOf(harness, (2015, YearlySeason.Spring)));
+            Assert.Equal(((Guid?)PosterID(1), null), ImagesOf(harness, (2015, YearlySeason.Spring)));
     }
 
     [Fact]

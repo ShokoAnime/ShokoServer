@@ -1052,9 +1052,9 @@ public class VideoReleaseGroupingService(
             string.Join(",", audioLanguages.Select(l => l.GetString()).Order()),
             string.Join(",", subtitleLanguages.Select(l => l.GetString()).Order()),
             videoCodec, bitDepth, resolution,
-            audioCodec, (string?)null,
+            audioCodec, null,
             audioStreamCount, subtitleStreamCount,
-            (bool?)null, (bool?)null, (bool?)null,
+            null, null, null,
             false, 0,
             ReleaseVersionStrategy.BestAvailable, false, string.Empty,
             compositionKey);

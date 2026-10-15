@@ -59,7 +59,7 @@ public class AnidbResourceTests
 
         Assert.Equal(19, response.Resources.Count);
         Assert.Equal(Enumerable.Range(0, 19), response.Resources.Select(resource => resource.Ordering));
-        Assert.All(response.Resources, resource => Assert.Equal((16984, (int?)null), (resource.AnimeID, resource.EpisodeID)));
+        Assert.All(response.Resources, resource => Assert.Equal((16984, null), (resource.AnimeID, resource.EpisodeID)));
         Assert.Equal(
             ["https://soushokudragon.jp/", "https://weibo.com/u/7723662904"],
             response.Resources.Where(resource => resource.ResourceType is ResourceLinkType.Site_JP).SelectMany(resource => resource.Urls)

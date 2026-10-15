@@ -100,7 +100,7 @@ public class MetadataLinkChangeTrackerTests
         ]);
 
         Assert.Equal(
-            [(MetadataLinkChangeKind.Replaced, null, "11", (int?)10), (MetadataLinkChangeKind.Added, "1", null, null)],
+            [(MetadataLinkChangeKind.Replaced, null, "11", 10), (MetadataLinkChangeKind.Added, "1", null, null)],
             changes.Select(change => (change.Kind, change.ProviderID?.ID, change.PreviousProviderID?.ID, change.AnidbEpisodeID))
         );
     }
