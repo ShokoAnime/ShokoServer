@@ -1157,7 +1157,9 @@ public partial class ConfigurationService : IConfigurationService
             if (errors.Count > 0)
                 throw new ConfigurationValidationException("load", info, errors);
 
-            config = DeserializeInternal<TConfig>(token.ToJson());
+            // The validated document carries the environment overrides, which the save expects and keeps off the disk.
+            json = token.ToJson();
+            config = DeserializeInternal<TConfig>(json);
             _loadedConfigurations[info.ID] = config;
         }
 
