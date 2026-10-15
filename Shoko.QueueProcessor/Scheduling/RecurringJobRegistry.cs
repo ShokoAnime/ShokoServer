@@ -14,7 +14,8 @@ namespace Shoko.QueueProcessor.Scheduling;
 /// if they are not already waiting or executing.
 /// </summary>
 /// <remarks>
-/// Plugins call <see cref="Register{T}"/> from DI (<c>IPlugin.Load</c> or <c>RegisterServices</c>),
+/// Plugins resolve it from the container and call <see cref="Register{T}"/>, from <c>IPlugin.Setup</c> or
+/// <c>IPluginApplicationRegistration.RegisterServices</c>,
 /// after registering the job type with <c>QueueProcessorExtensions.AddQueueJobsFromAssembly</c>.
 /// Registrations before <see cref="StartAsync"/> are armed when the host starts, later ones at once.
 /// Jobs that need the database should carry <c>[DatabaseRequired]</c>. The interval is fixed by

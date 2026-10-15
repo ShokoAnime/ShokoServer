@@ -10,9 +10,9 @@ namespace Shoko.Abstractions.Metadata.Providers;
 /// </summary>
 /// <remarks>
 ///   Optional. The core's image job for you walks a linked entry's entities
-///   (seasons, episodes, credited people and studios included), asks you for
-///   each one's images, and links and downloads them by the admin's image
-///   settings for your source. Register your source's template URL with
+///   (seasons, episodes, credited people, studios and networks included),
+///   asks you for each one's images, and links and downloads them by the
+///   admin's image settings for your source. Register your source's template URL with
 ///   <see cref="Services.IImageManager.RegisterTemplateUrl"/> first, since
 ///   every <see cref="ImageCandidate.ResourceID"/> completes it.
 /// </remarks>
@@ -28,7 +28,7 @@ public interface IMetadataImageProvider : IMetadataProvider
     /// </remarks>
     /// <param name="entityID">
     ///   The entity: on your source, and a series, season, episode, movie,
-    ///   collection, creator, character or studio.
+    ///   collection, creator, character, studio or network.
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>

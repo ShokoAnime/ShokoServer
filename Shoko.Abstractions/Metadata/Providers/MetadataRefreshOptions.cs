@@ -7,8 +7,9 @@ namespace Shoko.Abstractions.Metadata.Providers;
 /// </summary>
 /// <remarks>
 ///   Passed to <see cref="Services.IMetadataRefreshService"/> and handed on to
-///   the provider for each entry refreshed. A switch left
-///   <c>null</c> means "as the provider's settings say". There is
+///   the provider for each entry refreshed. Leaving
+///   <see cref="DownloadAlternateOrdering"/> <c>null</c> means "as the
+///   provider's settings say". There is
 ///   no force flag: the core only asks for an entry that is due or forced.
 ///   <see cref="LastRefreshedAt"/> is set by the core, replacing what a
 ///   caller put there.

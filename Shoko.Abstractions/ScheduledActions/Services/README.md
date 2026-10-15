@@ -228,8 +228,10 @@ public bool ScheduleCountsManualRuns => true;
 ```
 
 Then the triggers count from `LastRunAt`, and a trigger time skipped after a run
-by hand is logged at debug level instead. The core's scheduled actions that call
-AniDB declare 6 hours, the plugin update check 1 hour, and all of them opt in.
+by hand is logged at debug level instead. Most of the core's scheduled actions
+that call AniDB declare 6 hours, the AniDB update feed and calendar 4 hours,
+and the plugin update check and "Refresh Anime Airing Soon" 1 hour. All of
+them opt in except "Refresh Anime Airing Soon".
 
 ---
 

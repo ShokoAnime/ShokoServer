@@ -8,8 +8,7 @@ using Shoko.Server.API.SignalR.Models;
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 /// <summary>
-///   Emits SignalR events for plugin lifecycle changes (install, uninstall,
-///   enable, disable, pin, unpin).
+///   Emits SignalR events for plugins being installed and uninstalled.
 /// </summary>
 public class PluginEventEmitter : BaseEventEmitter, IDisposable
 {
