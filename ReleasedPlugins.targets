@@ -11,9 +11,9 @@
 
     Each plugin's published manifest names its newest release and the SHA-256
     of the archive. Accepted archives are kept in `.cache/plugins/<name>/`
-    with their SHA-256, and the manifest is read again at most once a day. A
-    build that cannot reach the network uses the newest archive accepted
-    before, or one that the cached manifest vouches for.
+    with their SHA-256. The manifest itself is never cached: an online build
+    reads it every time, and one that cannot reach it uses the newest archive
+    accepted before.
 
     For a build without network, such as a packaging sandbox, fill the cache
     yourself and set `ShokoReleasedPluginsOffline` to `true`:
@@ -94,7 +94,7 @@ public class _ShokoFetchReleasedPlugin : Task
             return true;
 
         // Offline, or the release is not reachable: the newest archive accepted before, or one
-        // the cached manifest vouches for.
+        // the manifest vouches for.
         var found = releases.Skip(latest == null ? 0 : 1).Any(TryUseCached)
             || Directory.GetDirectories(PluginRoot)
                 .Select(Path.GetFileName)
@@ -107,7 +107,11 @@ public class _ShokoFetchReleasedPlugin : Task
             return false;
         }
 
-        Log.LogWarning("Could not get the latest {0} plugin; using the cached {1}.", Name, Version);
+        // Offline without a manifest, the newest accepted archive is the expected pick.
+        if (Offline && releases.Count == 0)
+            Log.LogMessage(MessageImportance.High, "Using the cached {0} plugin {1}.", Name, Version);
+        else
+            Log.LogWarning("Could not get the latest {0} plugin; using the cached {1}.", Name, Version);
         return true;
     }
 
@@ -139,26 +143,29 @@ public class _ShokoFetchReleasedPlugin : Task
     // The stable releases with an archive for any runtime, newest first, as the manifest lists them.
     private List<Release> ReadReleases()
     {
-        var cachedPath = Path.Combine(PluginRoot, "manifest.json");
+        // Read fresh on every online build, so a new release is never missed. Only an
+        // offline build reads a manifest from the cache, one put there by hand.
+        var providedPath = Path.Combine(PluginRoot, "manifest.json");
         string text = null;
-        if (File.Exists(cachedPath) && (Offline || DateTime.UtcNow - File.GetLastWriteTimeUtc(cachedPath) < TimeSpan.FromDays(1)))
-            text = File.ReadAllText(cachedPath);
-
-        if (text == null && !Offline)
+        if (Offline)
         {
+            if (File.Exists(providedPath))
+                text = File.ReadAllText(providedPath);
+        }
+        else
+        {
+            // A manifest left by an older build would steer a later offline build to its release.
+            try { File.Delete(providedPath); } catch (IOException) { }
+
             try
             {
                 text = Client.GetStringAsync(ManifestUrl).GetAwaiter().GetResult();
-                try { File.WriteAllText(cachedPath, text); } catch (IOException) { }
             }
             catch (Exception ex)
             {
                 Log.LogWarning("Could not read the {0} manifest: {1}", Name, ex.Message);
             }
         }
-
-        if (text == null && File.Exists(cachedPath))
-            text = File.ReadAllText(cachedPath);
 
         var releases = new List<Release>();
         if (text == null)
