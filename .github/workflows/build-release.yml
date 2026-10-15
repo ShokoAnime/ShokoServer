@@ -52,14 +52,21 @@ jobs:
             const sha = context.sha.substring(0, 7);
             core.setOutput("sha", sha);
 
-  plugin-nuget:
+  nuget:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         dotnet: [ '10.x' ]
+        package:
+          - Shoko.Abstractions
+          - Shoko.QueueProcessor
+          - Shoko.BuildTools
+          - Shoko.BuildTools.Targets
+          - Shoko.BuildTools.Analyzers
 
-    name: Publish Shoko.Abstractions Nuget
+    name: Publish ${{ matrix.package }} Nuget
 
     env:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
@@ -77,120 +84,15 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Run dotnet build
-        run: dotnet build -c Release Shoko.Abstractions
+        run: dotnet build -c Release ${{ matrix.package }}
 
-      - name: Publish Shoko.Abstractions Nuget
+      - name: Publish ${{ matrix.package }} Nuget
         uses: ./.github/actions/publish-nuget
         if: ${{ env.NUGET_API_KEY != '' }}
         with:
-          project-file-path: Shoko.Abstractions/Shoko.Abstractions.csproj
+          project-file-path: ${{ matrix.package }}/${{ matrix.package }}.csproj
           nuget-key: ${{ env.NUGET_API_KEY }}
-          tag-format: Shoko.Abstractions-v*
-
-  queue-nuget:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        dotnet: [ '10.x' ]
-
-    name: Publish Shoko.QueueProcessor Nuget
-
-    env:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-
-    steps:
-      - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v7
-        with:
-          ref: "${{ github.sha }}"
-          fetch-tags: true
-
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: ${{ matrix.dotnet }}
-
-      - name: Run dotnet build
-        run: dotnet build -c Release Shoko.QueueProcessor
-
-      - name: Publish Shoko.QueueProcessor Nuget
-        uses: ./.github/actions/publish-nuget
-        if: ${{ env.NUGET_API_KEY != '' }}
-        with:
-          project-file-path: Shoko.QueueProcessor/Shoko.QueueProcessor.csproj
-          nuget-key: ${{ env.NUGET_API_KEY }}
-          tag-format: Shoko.QueueProcessor-v*
-
-  buildtools-nuget:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        dotnet: [ '10.x' ]
-
-    name: Publish Shoko.BuildTools Nuget Tool
-
-    env:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-
-    steps:
-      - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v7
-        with:
-          ref: "${{ github.sha }}"
-          fetch-tags: true
-
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: ${{ matrix.dotnet }}
-
-      - name: Run dotnet build
-        run: dotnet build -c Release Shoko.BuildTools
-
-      - name: Publish Shoko.BuildTools Nuget Tool
-        uses: ./.github/actions/publish-nuget
-        if: ${{ env.NUGET_API_KEY != '' }}
-        with:
-          project-file-path: Shoko.BuildTools/Shoko.BuildTools.csproj
-          nuget-key: ${{ env.NUGET_API_KEY }}
-          tag-format: Shoko.BuildTools-v*
-
-  buildtools-targets-nuget:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        dotnet: [ '10.x' ]
-
-    name: Publish Shoko.BuildTools.Targets Nuget
-
-    env:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-
-    steps:
-      - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v7
-        with:
-          ref: "${{ github.sha }}"
-          fetch-tags: true
-
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: ${{ matrix.dotnet }}
-
-      - name: Run dotnet build
-        run: dotnet build -c Release Shoko.BuildTools.Targets
-
-      - name: Publish Shoko.BuildTools.Targets Nuget
-        uses: ./.github/actions/publish-nuget
-        if: ${{ env.NUGET_API_KEY != '' }}
-        with:
-          project-file-path: Shoko.BuildTools.Targets/Shoko.BuildTools.Targets.csproj
-          nuget-key: ${{ env.NUGET_API_KEY }}
-          tag-format: Shoko.BuildTools.Targets-v*
+          tag-format: ${{ matrix.package }}-v*
 
   webui:
     runs-on: ubuntu-latest
@@ -303,7 +205,7 @@ jobs:
 
     needs:
       - current_info
-      - plugin-nuget
+      - nuget
       - webui
       - plugins
 
@@ -381,7 +283,7 @@ jobs:
 
     needs:
       - current_info
-      - plugin-nuget
+      - nuget
       - webui
       - plugins
 
@@ -447,7 +349,7 @@ jobs:
 
     needs:
       - current_info
-      - plugin-nuget
+      - nuget
       - webui
       - plugins
       - mediainfo
@@ -513,7 +415,7 @@ jobs:
 
     needs:
       - current_info
-      - plugin-nuget
+      - nuget
       - webui
       - plugins
       - mediainfo
@@ -610,7 +512,7 @@ jobs:
 
     needs:
       - current_info
-      - plugin-nuget
+      - nuget
       - webui
       - plugins
 
