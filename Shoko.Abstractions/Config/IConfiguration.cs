@@ -34,6 +34,12 @@ public interface INewtonsoftJsonConfiguration : IConfiguration { }
 public interface IHiddenConfiguration : IConfiguration { }
 
 /// <summary>
+/// Interface for signaling that the configuration is the main configuration of
+/// a plugin, declared through <see cref="IPlugin{TConfiguration}"/>.
+/// </summary>
+public interface IPluginConfiguration : IHiddenConfiguration { }
+
+/// <summary>
 /// Interface for signaling that the configuration is tied to a hash provider.
 /// </summary>
 public interface IHashProviderConfiguration : IHiddenConfiguration { }

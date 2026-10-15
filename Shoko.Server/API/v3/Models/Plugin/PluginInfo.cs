@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Core;
+using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.Plugin;
 using Shoko.Server.Services;
 
@@ -198,6 +199,11 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     /// </summary>
     [Required]
     public IReadOnlyList<PluginDependency> Dependencies { get; init; } = pluginInfo.Dependencies?.Select(d => new PluginDependency(d)).ToArray() ?? [];
+
+    /// <summary>
+    ///   Information about the plugin's main configuration, if it declares one.
+    /// </summary>
+    public ConfigurationInfo? Configuration { get; init; } = pluginInfo.ConfigurationInfo is null ? null : new(pluginInfo.ConfigurationInfo);
 
     /// <summary>
     ///   Indicates if the plugin can be enabled or disabled by the user.

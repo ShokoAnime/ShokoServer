@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Utilities;
 
@@ -171,6 +172,12 @@ public sealed class LocalPluginInfo
     ///   The type of the plugin, if it has been loaded.
     /// </summary>
     public required Type? PluginType { get; init; }
+
+    /// <summary>
+    ///   The plugin's main configuration, when the plugin declares one through
+    ///   <see cref="IPlugin{TConfiguration}"/> and it was registered.
+    /// </summary>
+    public ConfigurationInfo? ConfigurationInfo { get; internal set; }
 
     /// <summary>
     ///   The type used for the plugin to register its services with the core.

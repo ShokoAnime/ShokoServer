@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Plugin.Models;
 
 namespace Shoko.Abstractions.Plugin;
@@ -131,3 +132,14 @@ public interface IPlugin
     /// </returns>
     public IReadOnlyList<PluginFeature> GetFeatures() => [];
 }
+
+/// <summary>
+///   Typed variant of <see cref="IPlugin"/> for plugins with a main
+///   configuration, attached to the plugin's info as
+///   <see cref="LocalPluginInfo.ConfigurationInfo"/>.
+/// </summary>
+/// <typeparam name="TConfiguration">
+///   The configuration's type, which must live in the plugin's own assembly.
+/// </typeparam>
+public interface IPlugin<TConfiguration> : IPlugin
+    where TConfiguration : class, IPluginConfiguration, new();

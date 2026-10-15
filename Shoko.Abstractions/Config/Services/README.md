@@ -158,6 +158,11 @@ configuration kept per user, below, and adds `IHiddenConfiguration` only if
 it should stay out of every UI.
 A provider names its configuration type through the generic form of its own
 contract, such as `IReleaseInfoProvider<TConfiguration>`.
+`IPluginConfiguration` marks a plugin's main configuration and is hidden too,
+since it is rendered with the plugin. The plugin names it through
+`IPlugin<TConfiguration>`, which attaches it to the plugin's
+`LocalPluginInfo.ConfigurationInfo`. The type has to live in the plugin's own
+assembly.
 
 The static hooks are `static abstract` interface members, declared as
 `public static` methods on the configuration class.

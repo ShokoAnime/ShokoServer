@@ -267,6 +267,9 @@ public partial class ConfigurationService : IConfigurationService
                     Schema = wrappedSchema.Schema,
                     PluginInfo = pluginInfo,
                 };
+
+                if (IsMainConfiguration(pluginInfo, configurationType))
+                    pluginInfo.ConfigurationInfo = _configurationTypes[id];
             }
             // The core's own types failing is not a plugin's failure to isolate.
             catch (Exception ex) when (pluginInfo.PluginType != typeof(CorePlugin))
@@ -277,6 +280,17 @@ public partial class ConfigurationService : IConfigurationService
 
         _logger.LogTrace("Loaded {ConfigurationCount} configurations.", _configurationTypes.Count);
     }
+
+    /// <summary>
+    ///   Checks whether the plugin declares the configuration type as its main
+    ///   configuration through <see cref="IPlugin{TConfiguration}"/>.
+    /// </summary>
+    /// <param name="pluginInfo">The plugin owning the configuration type.</param>
+    /// <param name="configurationType">The configuration type.</param>
+    /// <returns><c>true</c> if it is the plugin's main configuration.</returns>
+    private static bool IsMainConfiguration(LocalPluginInfo pluginInfo, Type configurationType)
+        => pluginInfo.PluginType?.GetInterfaces()
+            .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPlugin<>) && i.GenericTypeArguments[0] == configurationType) ?? false;
 
     public ConfigurationProvider<TConfig> CreateProvider<TConfig>() where TConfig : class, IConfiguration, new()
         => new(this);
