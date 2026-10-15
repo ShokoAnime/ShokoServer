@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.527",
+      "tag": "v6.0.0-dev.527",
+      "commit": "d449d1c374034d161a08a42d7de06331971bc3e2",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.527/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-15T06:18:01Z",
+      "releaseNotes": "\n`fix`: **Carry the server settings over in `AddParts` only when they were loaded**.\n"
+    },
+    {
       "version": "6.0.0.526",
       "tag": "v6.0.0-dev.526",
       "commit": "c20b2fa344bb1d6b7061b68ec2d1e6fc25900615",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.498/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-05T12:30:28Z",
       "releaseNotes": "\n`fix`: **Back off MyList HTTP refresh after a failure** ([#1448](https://github.com/ShokoAnime/ShokoServer/pull/1448)):\n\nA failed fetch never updates LastFetchedAt, so every MyList add retried the export. Skip retries for one cache lifetime unless the time check is ignored.\n"
-    },
-    {
-      "version": "6.0.0.497",
-      "tag": "v6.0.0-dev.497",
-      "commit": "a62b00332e5f8e9bcf0c96f9900361fdda36c536",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.497/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-05T12:29:27Z",
-      "releaseNotes": "\n`fix` (`tmdb`): **Accept ja, zh, cn and ko original_language for restricted auto-match** ([#1450](https://github.com/ShokoAnime/ShokoServer/pull/1450)):\n\nTMDb's genre tags are sparse for adult titles, so restricted anime without the Animation genre were dropped from auto-match candidates.\n"
     }
   ]
 }
