@@ -700,7 +700,8 @@ nothing, or to an entry not stored yet, is left out.
 
 ## TMDB
 
-TMDB is served by the bundled plugin `Shoko.Plugin.Tmdb`, a provider like any
+TMDB is served by the TMDB plugin (`Shoko.Plugin.Tmdb`, in its own repository
+and bundled with official builds), a provider like any
 other: it claims `tmdb`, runs through the same jobs, freshness check and
 locking, and keeps its entries in the shared stores, so the core resolves,
 refreshes and purges them the same way:

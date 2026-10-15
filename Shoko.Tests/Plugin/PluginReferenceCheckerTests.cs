@@ -27,7 +27,6 @@ public class PluginReferenceCheckerTests
         };
 
     [Theory]
-    [InlineData("Shoko.Plugin.Tmdb")]
     [InlineData("Shoko.Plugin.WebAOM")]
     [InlineData("Shoko.Plugin.LegacyPlex")]
     [InlineData("Shoko.Tests")]

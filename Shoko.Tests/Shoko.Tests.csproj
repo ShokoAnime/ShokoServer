@@ -31,14 +31,12 @@
   <ItemGroup>
     <!-- Hand-written TMDB answers in the shapes TMDB's API documents, for the
          TMDB plugin's client to read through TMDbLib. -->
-    <Content Include="Plugin\Tmdb\Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- ExcludeAssets keeps Microsoft.Build.Locator's MSBL001 guard out of this project. -->
     <ProjectReference Include="..\Shoko.BuildTools\Shoko.BuildTools.csproj" ExcludeAssets="build;buildTransitive" />
     <ProjectReference Include="..\Shoko.Plugin.LegacyPlex\Shoko.Plugin.LegacyPlex.csproj" />
-    <ProjectReference Include="..\Shoko.Plugin.Tmdb\Shoko.Plugin.Tmdb.csproj" />
     <ProjectReference Include="..\Shoko.Plugin.WebAOM\Shoko.Plugin.WebAOM.csproj" />
     <!-- Referenced as a plain library so the tests can drive the analyzer directly. -->
     <ProjectReference Include="..\Shoko.BuildTools.Analyzers\Shoko.BuildTools.Analyzers.csproj" />

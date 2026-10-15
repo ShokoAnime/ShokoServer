@@ -6,7 +6,6 @@ using Shoko.Server.Plugin;
 using Xunit;
 
 using LegacyPlexPlugin = Shoko.Plugin.LegacyPlex.Plugin;
-using TmdbPlugin = Shoko.Plugin.Tmdb.Plugin;
 using WebAOMPlugin = Shoko.Plugin.WebAOM.Plugin;
 
 namespace Shoko.Tests.Plugin;
@@ -36,7 +35,6 @@ public class BundledPluginImageTests
 
     [Theory]
     [InlineData(typeof(LegacyPlexPlugin))]
-    [InlineData(typeof(TmdbPlugin))]
     [InlineData(typeof(WebAOMPlugin))]
     public void ThePluginShipsItsThumbnailAndIcon(Type pluginType)
     {

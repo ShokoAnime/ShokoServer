@@ -38,7 +38,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\issue-no-response.yml = .github\workflows\issue-no-response.yml
 		.github\workflows\ReplaceAVD3URL.ps1 = .github\workflows\ReplaceAVD3URL.ps1
 		.github\workflows\ReplaceSentryDSN.ps1 = .github\workflows\ReplaceSentryDSN.ps1
-		.github\workflows\ReplaceTmdbApiKey.ps1 = .github\workflows\ReplaceTmdbApiKey.ps1
 		.github\workflows\UploadRelease.ps1 = .github\workflows\UploadRelease.ps1
 	EndProjectSection
 EndProject
@@ -78,8 +77,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.BuildTools", "Shoko.BuildTools\Shoko.BuildTools.csproj", "{78CC2990-11D0-4A02-AB24-BFEB612C7944}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.BuildTools.Targets", "Shoko.BuildTools.Targets\Shoko.BuildTools.Targets.csproj", "{391720CB-A745-4967-A67B-F8D9C0DAB0C6}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.Tmdb", "Shoko.Plugin.Tmdb\Shoko.Plugin.Tmdb.csproj", "{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.Plugin.WebAOM", "Shoko.Plugin.WebAOM\Shoko.Plugin.WebAOM.csproj", "{28451FA6-1E94-4257-8684-C4D6DCA2986A}"
 EndProject
@@ -368,30 +365,6 @@ Global
 		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|x64.Build.0 = Debug|Any CPU
 		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|x86.ActiveCfg = Debug|Any CPU
 		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|x86.Build.0 = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Debug|x64.ActiveCfg = Debug|x64
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Debug|x64.Build.0 = Debug|x64
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Debug|x86.Build.0 = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Release|x64.ActiveCfg = Release|x64
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Release|x64.Build.0 = Release|x64
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Release|x86.ActiveCfg = Release|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Release|x86.Build.0 = Release|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.ApiLogging|Any CPU.ActiveCfg = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.ApiLogging|Any CPU.Build.0 = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.ApiLogging|x64.ActiveCfg = Debug|x64
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.ApiLogging|x64.Build.0 = Debug|x64
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.ApiLogging|x86.ActiveCfg = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.ApiLogging|x86.Build.0 = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Benchmarks|Any CPU.ActiveCfg = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Benchmarks|Any CPU.Build.0 = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Benchmarks|x64.ActiveCfg = Debug|x64
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Benchmarks|x64.Build.0 = Debug|x64
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Benchmarks|x86.ActiveCfg = Debug|Any CPU
-		{8FDE83C4-0A1A-4CBE-8E5F-FFE5F3BCE0B5}.Benchmarks|x86.Build.0 = Debug|Any CPU
 		{28451FA6-1E94-4257-8684-C4D6DCA2986A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{28451FA6-1E94-4257-8684-C4D6DCA2986A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{28451FA6-1E94-4257-8684-C4D6DCA2986A}.Debug|x64.ActiveCfg = Debug|x64

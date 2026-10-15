@@ -17,7 +17,6 @@ using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Services;
 using Shoko.Tests.Actors;
 using Shoko.Tests.Infrastructure;
-using Shoko.Tests.Plugin.Tmdb;
 using Shoko.Tests.Scheduling.Jobs.Metadata;
 using Xunit;
 

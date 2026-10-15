@@ -390,7 +390,6 @@ jobs:
 
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-      TMDB_API: ${{ secrets.TMDB_API }}
       AVD3_URL: ${{ secrets.AVD3_URL }}
 
     steps:
@@ -411,11 +410,6 @@ jobs:
         run: |
           ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ env.SENTRY_DSN }}
 
-      - name: Replace TMDB API Key
-        if: ${{ env.TMDB_API != '' }}
-        shell: pwsh
-        run: |
-          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ env.TMDB_API }}
 
       - name: Replace AVD3 URL
         if: ${{ env.AVD3_URL != '' }}
@@ -460,7 +454,6 @@ jobs:
 
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-      TMDB_API: ${{ secrets.TMDB_API }}
       AVD3_URL: ${{ secrets.AVD3_URL }}
 
     steps:
@@ -481,11 +474,6 @@ jobs:
         run: |
           ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ env.SENTRY_DSN }}
 
-      - name: Replace TMDB API Key
-        if: ${{ env.TMDB_API != '' }}
-        shell: pwsh
-        run: |
-          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ env.TMDB_API }}
 
       - name: Replace AVD3 URL
         if: ${{ env.AVD3_URL != '' }}
@@ -536,7 +524,6 @@ jobs:
 
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-      TMDB_API: ${{ secrets.TMDB_API }}
       AVD3_URL: ${{ secrets.AVD3_URL }}
 
     steps:
@@ -557,11 +544,6 @@ jobs:
         run: |
           .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ env.SENTRY_DSN }}
 
-      - name: Replace TMDB API Key
-        if: ${{ env.TMDB_API != '' }}
-        shell: pwsh
-        run: |
-          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ env.TMDB_API }}
 
       - name: Replace AVD3 URL
         if: ${{ env.AVD3_URL != '' }}
@@ -606,7 +588,6 @@ jobs:
 
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-      TMDB_API: ${{ secrets.TMDB_API }}
       AVD3_URL: ${{ secrets.AVD3_URL }}
 
     steps:
@@ -627,11 +608,6 @@ jobs:
         run: |
           .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ env.SENTRY_DSN }}
 
-      - name: Replace TMDB API Key
-        if: ${{ env.TMDB_API != '' }}
-        shell: pwsh
-        run: |
-          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ env.TMDB_API }}
 
       - name: Replace AVD3 URL
         if: ${{ env.AVD3_URL != '' }}
@@ -698,7 +674,6 @@ jobs:
         shell: pwsh
         run: |
           ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - uses: docker/setup-qemu-action@v4
