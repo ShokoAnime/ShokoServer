@@ -57,7 +57,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Services.Airing;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Services.Connectivity;
@@ -682,9 +681,6 @@ public class SystemService : ISystemService
             // Each metadata provider's job types follow the limit it declared.
             services.AddSingleton<IJobConcurrencyProvider, MetadataProviderJobConcurrency>();
             services.AddSingleton<IJobConcurrencyProvider, MetadataImageContributorJobConcurrency>();
-
-            // Register per-job watchdog thresholds
-            services.AddSingleton<IJobWatchdogThreshold, AiringScheduleSweepWatchdogThreshold>();
 
             // Names the clients whose expired handlers are still referenced and so never disposed.
             services.AddHostedService<ExpiredHttpHandlerMonitor>();

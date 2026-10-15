@@ -506,6 +506,15 @@ public partial class AiringScheduleService(
     public AiringScheduleProviderInfo? GetProviderInfo(Guid providerID)
         => _providerInfos.TryGetValue(providerID, out var info) ? Copy(info) : null;
 
+    /// <summary>
+    /// The registered provider of exactly the given type, which is how a
+    /// provider's own job types find their provider.
+    /// </summary>
+    /// <param name="providerType">The provider's concrete type.</param>
+    /// <returns>The provider, or <c>null</c> when none of that type is registered.</returns>
+    internal AiringScheduleProviderInfo? GetProviderInfo(Type providerType)
+        => _providerInfos.Values.FirstOrDefault(info => info.Provider.GetType() == providerType) is { } info ? Copy(info) : null;
+
     /// <inheritdoc/>
     public AiringScheduleProviderInfo GetProviderInfo(IAiringScheduleProvider provider)
         => Copy(GetRegisteredProvider(provider, nameof(provider)));

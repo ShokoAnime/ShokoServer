@@ -393,7 +393,7 @@ public class AiringScheduleSweepTests
         var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
         using var harness = new Harness(provider);
         harness.Settings.SweepBudgetSeconds = budgetSeconds;
-        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service);
+        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service, typeof(SweepAiringScheduleProviderJob<ScriptedProvider>));
 
         Assert.Equal(TimeSpan.FromSeconds(90), threshold.GetThreshold(TimeSpan.FromSeconds(90)));
     }
@@ -407,7 +407,7 @@ public class AiringScheduleSweepTests
         var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
         using var harness = new Harness(provider);
         harness.Settings.SweepBudgetSeconds = budgetSeconds;
-        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service);
+        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service, typeof(SweepAiringScheduleProviderJob<ScriptedProvider>));
 
         Assert.Equal(TimeSpan.FromSeconds(expectedSeconds), threshold.GetThreshold(TimeSpan.FromSeconds(90)));
     }
@@ -418,7 +418,7 @@ public class AiringScheduleSweepTests
         var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
         using var harness = new Harness(provider);
         harness.Settings.SweepBudgetSeconds = 86_400;
-        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service);
+        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service, typeof(SweepAiringScheduleProviderJob<ScriptedProvider>));
 
         Assert.Equal(TimeSpan.FromMinutes(15), threshold.GetThreshold(TimeSpan.FromSeconds(90)));
     }
@@ -428,21 +428,12 @@ public class AiringScheduleSweepTests
     {
         var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
         using var harness = new Harness(provider);
-        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service);
+        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service, typeof(SweepAiringScheduleProviderJob<ScriptedProvider>));
         Assert.Equal(TimeSpan.FromSeconds(90), threshold.GetThreshold(TimeSpan.FromSeconds(90)));
 
         harness.Settings.SweepBudgetSeconds = 300;
 
         Assert.Equal(TimeSpan.FromMinutes(7.5), threshold.GetThreshold(TimeSpan.FromSeconds(90)));
-    }
-
-    [Fact]
-    public void WatchdogThreshold_NamesTheSweepJob()
-    {
-        var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
-        using var harness = new Harness(provider);
-
-        Assert.Equal(typeof(SweepAiringScheduleProviderJob), new AiringScheduleSweepWatchdogThreshold(harness.Service).JobType);
     }
 
     #endregion
@@ -553,14 +544,41 @@ public class AiringScheduleSweepTests
         await harness.Service.ScheduleSweeps(cancellationToken: TestContext.Current.CancellationToken);
 
         harness.Scheduler.Verify(
-            scheduler => scheduler.Enqueue(
-                It.IsAny<Action<SweepAiringScheduleProviderJob>>(),
-                It.IsAny<bool>(),
-                It.IsAny<DateTimeOffset?>(),
-                It.IsAny<CancellationToken>()
-            ),
+            scheduler => scheduler.Enqueue(It.IsAny<Type>(), It.IsAny<Action<IQueueJob>?>(), It.IsAny<bool>()),
             Times.Once
         );
+        harness.Scheduler.Verify(
+            scheduler => scheduler.Enqueue(typeof(SweepAiringScheduleProviderJob<ScriptedProvider>), It.IsAny<Action<IQueueJob>?>(), It.IsAny<bool>()),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task ScheduleRefresh_QueuesEachEnabledProvidersOwnRefreshJobForTheEntity()
+    {
+        var first = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
+        var second = new PlainProvider("Beta");
+        var third = new SecondScriptedProvider("Gamma", (_, _) => Task.FromResult<string?>(null));
+        using var harness = new Harness(first, second, third);
+        harness.Disable(third);
+        var configured = new List<(Type JobType, Action<IQueueJob>? Configure)>();
+        harness.Scheduler
+            .Setup(scheduler => scheduler.Enqueue(It.IsAny<Type>(), It.IsAny<Action<IQueueJob>?>(), It.IsAny<bool>()))
+            .Callback<Type, Action<IQueueJob>?, bool>((jobType, configure, _) => configured.Add((jobType, configure)))
+            .Returns(Task.CompletedTask);
+        var series = new Mock<ISeries>();
+        series.SetupGet(entity => entity.Source).Returns(TestSources.Plugin);
+        series.SetupGet(entity => entity.ID).Returns(new MetadataGuid(TestSources.Plugin, MetadataEntityType.Series, "42"));
+
+        await harness.Service.ScheduleRefresh(series.Object);
+
+        Assert.Equal(
+            new HashSet<Type> { typeof(RefreshAiringScheduleJob<ScriptedProvider>), typeof(RefreshAiringScheduleJob<PlainProvider>) },
+            configured.Select(entry => entry.JobType).ToHashSet()
+        );
+        var job = new RefreshAiringScheduleJob<PlainProvider>(harness.Service);
+        configured.Single(entry => entry.JobType == job.GetType()).Configure!(job);
+        Assert.Equal((TestSources.Plugin, MetadataEntityType.Series, "42"), (job.EntitySource, job.EntityType, job.EntityID));
     }
 
     #endregion
@@ -650,7 +668,7 @@ public class AiringScheduleSweepTests
         /// <summary>Asserts how many follow-up chunks the driver queued.</summary>
         public void VerifyContinuations(Times times)
             => Scheduler.Verify(
-                scheduler => scheduler.RunAfterCurrent(It.IsAny<Action<SweepAiringScheduleProviderJob>>(), It.IsAny<CancellationToken>()),
+                scheduler => scheduler.RunAfterCurrent(typeof(SweepAiringScheduleProviderJob<ScriptedProvider>), It.IsAny<Action<IQueueJob>?>()),
                 times
             );
 

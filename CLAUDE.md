@@ -234,7 +234,7 @@ Timer-based `IHostedService` on a fixed interval the admin cannot change; the co
 - `[NetworkRequired]` — waits until network connectivity is confirmed.
 - `[AniDBUdpRateLimited]` — respects AniDB UDP rate limits.
 - `[AniDBHttpRateLimited]` — respects AniDB HTTP rate limits.
-- The jobs of every metadata or release provider a suspended `ISuspensionProvider` lists in `HeldProviderTypes` are held back (`SuspensionAcquisitionFilter`, fed by `ISuspensionService`, attached to the pools of the jobs marked `[ProviderJob]`); the TMDB plugin suspends this way for a 429 or its 5XX circuit breaker.
+- The jobs of every metadata, release or airing schedule provider a suspended `ISuspensionProvider` lists in `HeldProviderTypes` are held back (`SuspensionAcquisitionFilter`, fed by `ISuspensionService`, attached to the pools of the jobs marked `[ProviderJob]`); the TMDB plugin suspends this way for a 429 or its 5XX circuit breaker.
 
 **`IJobFactory`** (`Shoko.QueueProcessor/JobFactory.cs`): DI-resolved single-shot execution via `Execute<T>()`. Used internally by the worker and by tests or services that need to run a job inline.
 
@@ -493,5 +493,6 @@ If no release provider returns a match, the provider chain completes without cre
 | `AVDumpFilesJob` | 1 (16) | AVDump resource limits |
 | `RefreshMetadataJob<T>`, `SearchMetadataJob<T>`, `DownloadMetadataImagesJob<T>` | The provider's `MaxConcurrentJobs` (TMDB: 4) | One pool per provider job type |
 | `DownloadContributedImagesJob<T>` | The contributor's `MaxConcurrentJobs` (default 2) | One pool per image contributor |
+| `RefreshAiringScheduleJob<T>`, `SweepAiringScheduleProviderJob<T>` | 2 (8) and 1 (4) | One pool per airing schedule provider |
 | `DownloadImageJob` | 4 | Image download throughput |
 | `ValidateAllImagesJob` | 1 (1) | Sequential validation |

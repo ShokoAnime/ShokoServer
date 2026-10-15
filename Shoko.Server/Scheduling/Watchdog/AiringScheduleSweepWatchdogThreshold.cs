@@ -7,8 +7,8 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.Scheduling.Watchdog;
 
 /// <summary>
-/// The queue watchdog's threshold for <see cref="SweepAiringScheduleProviderJob"/>, which is the
-/// global one until the sweep budget grows past it and half as long again as the budget after that.
+/// The queue watchdog's threshold for one provider's <see cref="SweepAiringScheduleProviderJob{TProvider}"/>,
+/// which is the global one until the sweep budget grows past it and half as long again as the budget after that.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,9 +22,13 @@ namespace Shoko.Server.Scheduling.Watchdog;
 /// The budget is a setting, so the threshold is worked out on each poll rather than pinned at
 /// startup, and a budget lowered or raised while the server runs is watched against at once.
 /// </para>
+/// <para>
+/// Each provider's sweep is a job type of its own, so one threshold is registered per provider.
+/// </para>
 /// </remarks>
 /// <param name="airingScheduleService">The service that owns the budget.</param>
-public class AiringScheduleSweepWatchdogThreshold(AiringScheduleService airingScheduleService) : IJobWatchdogThreshold
+/// <param name="jobType">The provider's closed sweep job type.</param>
+public class AiringScheduleSweepWatchdogThreshold(AiringScheduleService airingScheduleService, Type jobType) : IJobWatchdogThreshold
 {
     /// <summary>
     /// How much longer than its budget a chunk may run before it is reported.
@@ -32,7 +36,7 @@ public class AiringScheduleSweepWatchdogThreshold(AiringScheduleService airingSc
     private const double BudgetMargin = 1.5d;
 
     /// <inheritdoc/>
-    public Type JobType => typeof(SweepAiringScheduleProviderJob);
+    public Type JobType => jobType;
 
     /// <inheritdoc/>
     public TimeSpan? GetThreshold(TimeSpan defaultThreshold)

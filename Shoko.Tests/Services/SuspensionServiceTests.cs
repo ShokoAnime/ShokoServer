@@ -13,10 +13,12 @@ using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Scheduling.Acquisition.Filters;
+using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Services;
 using Shoko.Tests.Actors;
 using Shoko.Tests.Infrastructure;
+using Shoko.Tests.Scheduling.Jobs.Airing;
 using Shoko.Tests.Scheduling.Jobs.Metadata;
 using Xunit;
 
@@ -31,8 +33,8 @@ public class SuspensionServiceTests
     #region Fixture
 
     /// <summary>
-    /// A provider holding back the fake metadata provider, lifting by
-    /// counting.
+    /// A provider holding back the fake metadata provider and a sweeping
+    /// airing schedule provider, lifting by counting.
     /// </summary>
     public sealed class HoldingProvider : ISuspensionProvider
     {
@@ -42,7 +44,7 @@ public class SuspensionServiceTests
 
         public string? Description => null;
 
-        public IReadOnlyList<Type> HeldProviderTypes => [typeof(MetadataProviderJobTests.FakeProvider)];
+        public IReadOnlyList<Type> HeldProviderTypes => [typeof(MetadataProviderJobTests.FakeProvider), typeof(AiringScheduleProviderJobsTests.SweepingProvider)];
 
         public Task Lift(SuspensionKind kind, CancellationToken token)
         {
@@ -215,6 +217,10 @@ public class SuspensionServiceTests
             typeof(SearchMetadataJob<MetadataProviderJobTests.FakeProvider>),
             typeof(RefreshMetadataJob<MetadataProviderJobTests.SeriesOnlyProvider>),
             typeof(PurgeMetadataJob),
+            typeof(RefreshAiringScheduleJob<AiringScheduleProviderJobsTests.SweepingProvider>),
+            typeof(SweepAiringScheduleProviderJob<AiringScheduleProviderJobsTests.SweepingProvider>),
+            typeof(RefreshAiringScheduleJob<AiringScheduleProviderJobsTests.RefreshingProvider>),
+            typeof(SweepAiringSchedulesJob),
         ]);
         var changes = 0;
         filter.StateChanged += (_, _) => changes++;
@@ -224,7 +230,12 @@ public class SuspensionServiceTests
 
         Assert.Equal(1, changes);
         Assert.Equal(
-            [typeof(RefreshMetadataJob<MetadataProviderJobTests.FakeProvider>), typeof(SearchMetadataJob<MetadataProviderJobTests.FakeProvider>)],
+            [
+                typeof(RefreshMetadataJob<MetadataProviderJobTests.FakeProvider>),
+                typeof(SearchMetadataJob<MetadataProviderJobTests.FakeProvider>),
+                typeof(RefreshAiringScheduleJob<AiringScheduleProviderJobsTests.SweepingProvider>),
+                typeof(SweepAiringScheduleProviderJob<AiringScheduleProviderJobsTests.SweepingProvider>),
+            ],
             filter.GetTypesToExclude()
         );
 

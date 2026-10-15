@@ -41,8 +41,10 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.API.Swagger;
 using Shoko.Server.Plugin.Databases;
+using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Configuration;
@@ -798,16 +800,31 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     JobTypeNames.Short(overlong), contributorType.FullName
                 );
 
+        // And one per airing schedule provider, likewise.
+        foreach (var providerType in providerTypes)
+            foreach (var overlong in AiringScheduleProviderJobs.GetOverlongJobTypes(providerType))
+                logger.LogWarning(
+                    "Not registering {JobType} for {Provider}: its stored name is longer than the queue keeps, so its jobs cannot be queued.",
+                    JobTypeNames.Short(overlong), providerType.FullName
+                );
+
         var providerJobTypes = providerTypes
             .SelectMany(MetadataProviderJobs.GetJobTypes)
             .Concat(providerTypes.Select(MetadataImageContributorJobs.GetJobType).OfType<Type>())
             .Concat(ReleaseProviderJobs.GetJobTypes(providerTypes))
+            .Concat(providerTypes.SelectMany(AiringScheduleProviderJobs.GetJobTypes))
             .ToList();
         if (providerJobTypes.Count > 0)
         {
-            logger.LogTrace("Registering {Count} metadata provider, release provider and image contributor job types.", providerJobTypes.Count);
+            logger.LogTrace("Registering {Count} metadata, release and airing schedule provider and image contributor job types.", providerJobTypes.Count);
             serviceCollection.AddQueueJobTypes(providerJobTypes);
         }
+
+        // Each sweep job type is watched against the sweep budget rather than the global threshold.
+        foreach (var sweepJobType in providerTypes.Select(AiringScheduleProviderJobs.GetSweepJobType).OfType<Type>())
+            serviceCollection.AddSingleton<IJobWatchdogThreshold>(
+                services => new AiringScheduleSweepWatchdogThreshold(services.GetRequiredService<AiringScheduleService>(), sweepJobType)
+            );
 
         // Transient, so the jobs running them resolve them fresh per execution.
         foreach (var actionType in _pluginTypes

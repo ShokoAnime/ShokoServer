@@ -107,8 +107,8 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration
     /// </summary>
     /// <remarks>
     /// A chunk holds a queue worker for as long as it runs, and a worker is
-    /// shared, so this is the server's to set and never the provider's. The
-    /// sweep job runs at most four at a time, so four chunks at the full budget
+    /// shared, so this is the server's to set and never the provider's. Each
+    /// provider runs one chunk at a time, so one worker per sweeping provider
     /// is the most this can hold. The queue watchdog is told the budget through
     /// <see cref="AiringScheduleSweepWatchdogThreshold"/> and watches the job
     /// against a threshold above it, so a chunk that runs its budget out is not

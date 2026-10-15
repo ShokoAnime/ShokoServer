@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Services.Airing;
 
@@ -14,6 +16,16 @@ namespace Shoko.Server.Services;
 
 public partial class AiringScheduleService
 {
+    #region Refreshing | Fields
+
+    /// <summary>
+    /// <see cref="EnqueueRefreshImmediately{TJob}"/>, closed over a provider's refresh job type when used.
+    /// </summary>
+    private static readonly MethodInfo _enqueueRefreshImmediately = typeof(AiringScheduleService)
+        .GetMethod(nameof(EnqueueRefreshImmediately), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+    #endregion
+
     #region Refreshing | Hints
 
     /// <inheritdoc/>
@@ -44,9 +56,9 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// Enqueue the refresh job for every enabled provider and return. The job
-    /// is keyed by provider and entity, so ten refresh clicks collapse into one
-    /// per provider.
+    /// Enqueue the refresh job for every enabled provider and return. Each
+    /// provider has a job type of its own keyed by entity, so ten refresh
+    /// clicks collapse into one per provider.
     /// </summary>
     /// <param name="source">The source of the entity to refresh.</param>
     /// <param name="type">The kind of entity to refresh.</param>
@@ -59,13 +71,30 @@ public partial class AiringScheduleService
             throw new InvalidOperationException("Parts have not been added yet.");
 
         foreach (var info in GetAvailableProviders(onlyEnabled: true).ToList())
-            await schedulerFactory.Enqueue<RefreshAiringScheduleJob>(job =>
+        {
+            if (AiringScheduleProviderJobs.GetRefreshJobType(info.Provider.GetType()) is not { } jobType)
             {
-                job.ProviderID = info.ID;
-                job.EntitySource = source;
-                job.EntityType = type;
-                job.EntityID = id;
-            }).ConfigureAwait(false);
+                logger.LogWarning("Skipped a refresh with provider {ProviderName}, which has no refresh job type registered.", info.Name);
+                continue;
+            }
+
+            await schedulerFactory.Enqueue(jobType, job => ConfigureRefresh(job, source, type, id)).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Point a refresh job at one entity.
+    /// </summary>
+    /// <param name="job">A provider's <see cref="RefreshAiringScheduleJob{TProvider}"/>.</param>
+    /// <param name="source">The source of the entity to refresh.</param>
+    /// <param name="type">The kind of entity to refresh.</param>
+    /// <param name="id">The ID of the entity within its source.</param>
+    private static void ConfigureRefresh(IQueueJob job, MetadataSource source, MetadataEntityType type, string id)
+    {
+        var refresh = (IRefreshAiringScheduleJob)job;
+        refresh.EntitySource = source;
+        refresh.EntityType = type;
+        refresh.EntityID = id;
     }
 
     #endregion
@@ -172,16 +201,10 @@ public partial class AiringScheduleService
 
         try
         {
-            await schedulerFactory.EnqueueImmediate<RefreshAiringScheduleJob>(
-                job =>
-                {
-                    job.ProviderID = info.ID;
-                    job.EntitySource = source;
-                    job.EntityType = type;
-                    job.EntityID = id;
-                },
-                ct: cancellationToken
-            ).ConfigureAwait(false);
+            var jobType = AiringScheduleProviderJobs.GetRefreshJobType(info.Provider.GetType())
+                ?? throw new InvalidOperationException($"No refresh job type is registered for provider '{info.Name}'.");
+            await ((Task)_enqueueRefreshImmediately.MakeGenericMethod(jobType).Invoke(null, [schedulerFactory, source, type, id, cancellationToken])!)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -213,6 +236,26 @@ public partial class AiringScheduleService
             ? await waiter.Task.ConfigureAwait(false)
             : new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Skipped, null);
     }
+
+    /// <summary>
+    /// Queue a refresh job of a type known only at runtime at the front of the
+    /// queue, and wait for it to finish.
+    /// </summary>
+    /// <typeparam name="TJob">A provider's closed refresh job type.</typeparam>
+    /// <param name="scheduler">The queue.</param>
+    /// <param name="source">The source of the entity to refresh.</param>
+    /// <param name="type">The kind of entity to refresh.</param>
+    /// <param name="id">The ID of the entity within its source.</param>
+    /// <param name="cancellationToken">The token cancelling the wait.</param>
+    /// <returns>A task that completes once the job has run.</returns>
+    private static async Task EnqueueRefreshImmediately<TJob>(
+        IQueueScheduler scheduler,
+        MetadataSource source,
+        MetadataEntityType type,
+        string id,
+        CancellationToken cancellationToken
+    ) where TJob : class, IQueueJob
+        => await scheduler.EnqueueImmediate<TJob>(job => ConfigureRefresh(job, source, type, id), ct: cancellationToken).ConfigureAwait(false);
 
     /// <summary>
     /// Run one provider's refresh for one entity. This is what the refresh job
@@ -248,8 +291,8 @@ public partial class AiringScheduleService
         if (entity is null)
             return Publish(key, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Skipped, null));
 
-        // One shared job type can't vary its attributes per provider, so the
-        // provider's own cap is honoured here instead.
+        // The job type's attributes can't follow the provider's own cap, so it
+        // is honoured here instead.
         var limit = _refreshLimits.GetOrAdd(providerID, _ => new SemaphoreSlim(Math.Max(1, info.Provider.MaxConcurrentRefreshes)));
         await limit.WaitAsync(cancellationToken).ConfigureAwait(false);
         try

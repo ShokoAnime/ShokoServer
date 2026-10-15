@@ -1,6 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Connectivity.Suspensions.Attributes;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
@@ -13,37 +14,33 @@ using Shoko.Server.Services;
 namespace Shoko.Server.Scheduling.Jobs.Airing;
 
 /// <summary>
-/// One chunk of one provider's sweep. It stands in for every
-/// <see cref="ISweepingAiringScheduleProvider"/>, the way
-/// <see cref="RefreshAiringScheduleJob"/> does for a refresh, so a provider
-/// implements only the walk.
+/// One chunk of one provider's sweep. The core runs it for every
+/// <see cref="ISweepingAiringScheduleProvider"/>, so a provider implements
+/// only the walk.
 /// </summary>
 /// <remarks>
-/// The job is keyed by provider, so a chunk queued while the same provider's
-/// chunk is waiting or running is a no-op. It holds a worker for the chunk's
-/// deadline at the very most, and the service queues the next chunk itself when
-/// the provider says there is more to do. The deadline can be longer than the
-/// queue watchdog's own timeout, so
-/// <see cref="AiringScheduleSweepWatchdogThreshold"/>
-/// tells the watchdog what to watch this job against: a chunk that runs its
-/// whole budget is expected, one that runs half as long again is a provider
-/// ignoring the token it was handed, and is reported.
+/// One job type per provider, so a suspended provider holds back only its own
+/// chunks, and a chunk queued while the provider's chunk is waiting or running
+/// is a no-op. The deadline can be longer than the queue watchdog's own
+/// timeout, so <see cref="AiringScheduleSweepWatchdogThreshold"/> tells the
+/// watchdog what to watch it against.
 /// </remarks>
+/// <typeparam name="TProvider">The provider to sweep with.</typeparam>
 [DatabaseRequired]
 [NetworkRequired]
+[ProviderJob]
 [LimitConcurrency(1, 4)]
 [JobKeyGroup(JobKeyGroup.Airing)]
-public class SweepAiringScheduleProviderJob(IAiringScheduleService airingScheduleService, IJobCancellationAccessor cancellationAccessor) : BaseJob
+public class SweepAiringScheduleProviderJob<TProvider>(
+    IAiringScheduleService airingScheduleService,
+    IJobCancellationAccessor cancellationAccessor
+) : BaseJob where TProvider : class, ISweepingAiringScheduleProvider
 {
+    #region Properties
+
     private readonly AiringScheduleService _airingScheduleService = (AiringScheduleService)airingScheduleService;
 
     private AiringScheduleProviderInfo? _providerInfo;
-
-    /// <summary>
-    /// The provider to sweep with.
-    /// </summary>
-    [JobKeyMember]
-    public Guid ProviderID { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName => "Sweep Airing Schedules From Provider";
@@ -55,18 +52,31 @@ public class SweepAiringScheduleProviderJob(IAiringScheduleService airingSchedul
     public override Dictionary<string, object> Details
         => new()
         {
-            ["Provider"] = _providerInfo?.Name ?? ProviderID.ToString(),
+            ["Provider"] = _providerInfo?.Name ?? typeof(TProvider).Name,
         };
+
+    #endregion
+
+    #region Execution
 
     /// <inheritdoc/>
     public override void PostInit()
-        => _providerInfo = _airingScheduleService.GetProviderInfo(ProviderID);
+        => _providerInfo = _airingScheduleService.GetProviderInfo(typeof(TProvider));
 
     /// <inheritdoc/>
     public override async Task Execute()
     {
+        _providerInfo ??= _airingScheduleService.GetProviderInfo(typeof(TProvider));
+        if (_providerInfo is null)
+        {
+            _logger.LogWarning("Skipped a sweep for the unregistered provider {ProviderType}.", typeof(TProvider).FullName);
+            return;
+        }
+
         // The worker's own token, which the service links this chunk's deadline
         // to, so the provider sees one token for both.
-        await _airingScheduleService.ExecuteSweepAsync(ProviderID, cancellationAccessor.Token);
+        await _airingScheduleService.ExecuteSweepAsync(_providerInfo.ID, cancellationAccessor.Token);
     }
+
+    #endregion
 }

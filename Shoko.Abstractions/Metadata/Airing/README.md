@@ -104,6 +104,10 @@ every write throws `ArgumentException`. Inside the provider, pass `this`.
 - **Configuration**: implement `IAiringScheduleProvider<TConfiguration>` to
   get a settings page, as for a release provider.
 - **`MaxConcurrentRefreshes`** caps your parallel refreshes (default one).
+- **Suspensions**: your refreshes and sweep chunks are job types of your
+  provider's own, so naming your provider in an `ISuspensionProvider`'s
+  `HeldProviderTypes` holds them back while it is suspended. See
+  [Suspensions](../../Connectivity/Services/README.md#suspensions).
 - **Icon**: name it with `EmbeddedIconResourceName`, the way a plugin names
   its own: an absolute resource name in your assembly, in any format the
   image system takes. The core extracts it beside your plugin as

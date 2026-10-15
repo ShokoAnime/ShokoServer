@@ -14,7 +14,8 @@ namespace Shoko.Server.Scheduling.Acquisition.Filters;
 ///   Holds back the jobs of every provider a suspended
 ///   <see cref="ISuspensionProvider"/> names in its
 ///   <see cref="SuspensionProviderInfo.HeldProviderTypes"/>: a metadata
-///   provider's jobs and a release provider's own job.
+///   provider's jobs, a release provider's own job and an airing schedule
+///   provider's refreshes and sweeps.
 /// </summary>
 /// <remarks>
 ///   The held jobs carry <see cref="ProviderJobAttribute"/>, which attaches the

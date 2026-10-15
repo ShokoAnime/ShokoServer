@@ -36,9 +36,9 @@ public partial class AiringScheduleService
 
     /// <summary>
     /// Enqueue a chunk for every sweeping provider that is due one. This is
-    /// what the recurring dispatcher calls; the jobs are keyed by provider, so
-    /// a tick that lands while a provider's chunk is still queued is a no-op
-    /// for that provider.
+    /// what the recurring dispatcher calls; each provider has a sweep job type
+    /// of its own, so a tick that lands while a provider's chunk is still
+    /// queued is a no-op for that provider.
     /// </summary>
     /// <param name="progress">Told how far the queuing is, from 0 to 100.</param>
     /// <param name="cancellationToken">The token cancelling the enqueue.</param>
@@ -56,8 +56,15 @@ public partial class AiringScheduleService
         foreach (var info in providers)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (AiringScheduleProviderJobs.GetSweepJobType(info.Provider.GetType()) is not { } jobType)
+            {
+                logger.LogWarning("Skipped a sweep with provider {ProviderName}, which has no sweep job type registered.", info.Name);
+                items.Increment();
+                continue;
+            }
+
             logger.LogDebug("Queueing a sweep with provider {ProviderName}.", info.Name);
-            await schedulerFactory.Enqueue<SweepAiringScheduleProviderJob>(job => job.ProviderID = info.ID, ct: cancellationToken).ConfigureAwait(false);
+            await schedulerFactory.Enqueue(jobType).ConfigureAwait(false);
             items.Increment();
         }
     }
@@ -254,8 +261,8 @@ public partial class AiringScheduleService
         // carries straight on. Everything else waits for the dispatcher, which
         // is what keeps a provider that overruns its deadline, or hands back the
         // cursor it was given, to one chunk a tick instead of a tight loop.
-        if (advanced && nextCursor is not null)
-            await schedulerFactory.RunAfterCurrent<SweepAiringScheduleProviderJob>(job => job.ProviderID = providerID).ConfigureAwait(false);
+        if (advanced && nextCursor is not null && AiringScheduleProviderJobs.GetSweepJobType(provider.GetType()) is { } jobType)
+            await schedulerFactory.RunAfterCurrent(jobType).ConfigureAwait(false);
 
         return args;
     }
