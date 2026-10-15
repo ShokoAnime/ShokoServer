@@ -8,7 +8,15 @@ using AbstractConfigurationInfo = Shoko.Abstractions.Config.ConfigurationInfo;
 
 namespace Shoko.Server.API.v3.Models.Configuration;
 
-public class ConfigurationInfo(AbstractConfigurationInfo info)
+/// <summary>
+/// Information about a configuration.
+/// </summary>
+/// <param name="info">The configuration.</param>
+/// <param name="withPlugin">
+/// Whether to include <see cref="Plugin"/>; <c>false</c> when the configuration
+/// is nested in its own plugin's information.
+/// </param>
+public class ConfigurationInfo(AbstractConfigurationInfo info, bool withPlugin = true)
 {
     /// <summary>
     /// The ID of the configuration.
@@ -89,8 +97,8 @@ public class ConfigurationInfo(AbstractConfigurationInfo info)
     public bool HasLiveEdit { get; init; } = info.HasLiveEdit;
 
     /// <summary>
-    /// Information about the plugin that the configuration belongs to.
+    /// Information about the plugin that the configuration belongs to, or
+    /// <c>null</c> when the configuration is nested in that plugin's information.
     /// </summary>
-    [Required]
-    public PluginInfo Plugin { get; init; } = new(info.PluginInfo);
+    public PluginInfo? Plugin { get; init; } = withPlugin ? new(info.PluginInfo) : null;
 }

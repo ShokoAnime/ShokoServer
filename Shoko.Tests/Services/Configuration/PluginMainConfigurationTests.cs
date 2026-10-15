@@ -12,6 +12,8 @@ using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
+using PluginModel = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
+
 namespace Shoko.Tests.Services.Configuration;
 
 /// <summary>
@@ -36,6 +38,17 @@ public class PluginMainConfigurationTests : IDisposable
         var pluginInfo = AddParts(typeof(PluginWithConfiguration), typeof(MainConfiguration), typeof(OtherConfiguration));
 
         Assert.Equal(typeof(MainConfiguration), pluginInfo.ConfigurationInfo?.Type);
+    }
+
+    [Fact]
+    public void PluginModel_NestsTheConfigurationWithoutItsPlugin()
+    {
+        var pluginInfo = AddParts(typeof(PluginWithConfiguration), typeof(MainConfiguration));
+
+        var model = new PluginModel(pluginInfo);
+
+        Assert.Equal(pluginInfo.ConfigurationInfo!.ID, model.Configuration?.ID);
+        Assert.Null(model.Configuration?.Plugin);
     }
 
     [Fact]
