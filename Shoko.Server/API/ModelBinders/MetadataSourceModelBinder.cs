@@ -1,19 +1,21 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Metadata;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.API.ModelBinders;
 
 /// <summary>
 ///   Binds a <see cref="MetadataSource"/> from a route, query or form value,
-///   taking the value or an alias of a registered source only, ignoring case.
-///   Unlike the type's own converter, it never makes an unregistered source.
+///   taking the value or an alias of a registered source, or the value of one
+///   rows are stored under, ignoring case. Unlike the type's own converter, it
+///   never makes up a source nothing knows.
 /// </summary>
 public sealed class MetadataSourceModelBinder : IModelBinder
 {
     /// <summary>
     ///   Binds the source, or adds a model error if no source is registered
-    ///   under the text.
+    ///   or stored under the text.
     /// </summary>
     /// <param name="bindingContext">The binding context.</param>
     /// <returns>A completed task.</returns>
@@ -32,10 +34,10 @@ public sealed class MetadataSourceModelBinder : IModelBinder
             return Task.CompletedTask;
         }
 
-        if (MetadataSource.TryGet(text, out var source))
+        if (MetadataNumberRegistry.TryGetKnownSource(text, out var source))
             bindingContext.Result = ModelBindingResult.Success(source);
         else
-            bindingContext.ModelState.TryAddModelError(bindingContext.ModelName, $"\"{text}\" is not a registered metadata source.");
+            bindingContext.ModelState.TryAddModelError(bindingContext.ModelName, $"\"{text}\" is not a known metadata source.");
         return Task.CompletedTask;
     }
 }

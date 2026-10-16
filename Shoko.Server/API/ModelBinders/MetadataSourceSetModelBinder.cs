@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Databases;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.API.ModelBinders;
@@ -17,9 +18,10 @@ namespace Shoko.Server.API.ModelBinders;
 ///   Each item is read first as the old <see cref="DataSourceType"/> it may
 ///   have been sent as, name or number, so every value the parameter took
 ///   before still means the same source; then as the value, an alias or an
-///   old spelling of a registered source, ignoring case. An item naming no
-///   registered source is left out, as the old enum's binder left out a
-///   name it did not know, so a request is never refused over it.
+///   old spelling of a registered source, or the value of one rows are stored
+///   under, ignoring case. An item naming no such source is left out, as the
+///   old enum's binder left out a name it did not know, so a request is never
+///   refused over it.
 /// </remarks>
 public sealed class MetadataSourceSetModelBinder : IModelBinder
 {
@@ -56,7 +58,7 @@ public sealed class MetadataSourceSetModelBinder : IModelBinder
     ///   Reads one source, the old enum's way first.
     /// </summary>
     /// <param name="text">The text.</param>
-    /// <returns>The source, or <c>null</c> when no registered source is named.</returns>
+    /// <returns>The source, or <c>null</c> when no registered or stored source is named.</returns>
     internal static MetadataSource? ParseOne(string text)
     {
         if (Enum.TryParse<DataSourceType>(text, ignoreCase: true, out var dataSource) && Enum.IsDefined(dataSource))
@@ -70,6 +72,6 @@ public sealed class MetadataSourceSetModelBinder : IModelBinder
             return MetadataSource.TryGet(value, out var old) ? old : null;
         }
 
-        return MetadataSource.TryGet(text, out var source) ? source : null;
+        return MetadataNumberRegistry.TryGetKnownSource(text, out var source) ? source : null;
     }
 }

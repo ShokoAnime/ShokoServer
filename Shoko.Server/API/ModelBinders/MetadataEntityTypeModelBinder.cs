@@ -1,20 +1,21 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Metadata;
+using Shoko.Server.Databases;
 
 namespace Shoko.Server.API.ModelBinders;
 
 /// <summary>
 ///   Binds a <see cref="MetadataEntityType"/> from a route, query or form
-///   value, taking the value or an alias of a registered entity type only,
-///   ignoring case. Unlike the type's own converter, it never makes an
-///   unregistered entity type.
+///   value, taking the value or an alias of a registered entity type, or the
+///   value of one rows are stored under, ignoring case. Unlike the type's own
+///   converter, it never makes up an entity type nothing knows.
 /// </summary>
 public sealed class MetadataEntityTypeModelBinder : IModelBinder
 {
     /// <summary>
     ///   Binds the entity type, or adds a model error if no entity type is
-    ///   registered under the text.
+    ///   registered or stored under the text.
     /// </summary>
     /// <param name="bindingContext">The binding context.</param>
     /// <returns>A completed task.</returns>
@@ -33,10 +34,10 @@ public sealed class MetadataEntityTypeModelBinder : IModelBinder
             return Task.CompletedTask;
         }
 
-        if (MetadataEntityType.TryGet(text, out var entityType))
+        if (MetadataNumberRegistry.TryGetKnownEntityType(text, out var entityType))
             bindingContext.Result = ModelBindingResult.Success(entityType);
         else
-            bindingContext.ModelState.TryAddModelError(bindingContext.ModelName, $"\"{text}\" is not a registered metadata entity type.");
+            bindingContext.ModelState.TryAddModelError(bindingContext.ModelName, $"\"{text}\" is not a known metadata entity type.");
         return Task.CompletedTask;
     }
 }

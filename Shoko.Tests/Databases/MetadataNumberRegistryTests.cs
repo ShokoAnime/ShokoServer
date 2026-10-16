@@ -183,6 +183,20 @@ public class MetadataNumberRegistryTests
         Assert.Equal(212, MetadataNumberRegistry.GetNumber(source));
     }
 
+    [Fact]
+    public void ARequestMayNameAStoredSourceNothingRegistersButNotAnUnknownOne()
+    {
+        // The source of a plugin that is not loaded still has its rows, so a request may name it.
+        using var scope = new MetadataNumberRegistryScope("""{ "Sources": { "mnr-dormant-plugin": 213 } }""");
+
+        Assert.True(MetadataNumberRegistry.TryGetKnownSource("MNR_Dormant_Plugin", out var stored));
+        Assert.Equal("mnr-dormant-plugin", stored.Value);
+        Assert.False(stored.IsRegistered);
+        Assert.True(MetadataNumberRegistry.TryGetKnownSource(MetadataSource.TMDB.Value, out var registered));
+        Assert.Same(MetadataSource.TMDB, registered);
+        Assert.False(MetadataNumberRegistry.TryGetKnownSource("mnr-never-stored", out _));
+    }
+
     [Theory]
     [InlineData(0xFA)]
     [InlineData(0xF0)]

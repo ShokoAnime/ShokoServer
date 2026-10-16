@@ -424,6 +424,30 @@ public static class MetadataNumberRegistry
         => MetadataSource.GetByValue(TryGetValue(number, out var value) ? value : UnknownPrefix + number.ToString(CultureInfo.InvariantCulture));
 
     /// <summary>
+    /// Gets a source a request may name: a registered one, or one rows are
+    /// stored under while nothing registers it, such as the source of a
+    /// plugin that is not loaded, by its exact value.
+    /// </summary>
+    /// <param name="text">The value, or an alias of a registered source.</param>
+    /// <param name="source">The source, if one is known.</param>
+    /// <returns><c>true</c> if the text names a registered or stored source.</returns>
+    public static bool TryGetKnownSource([NotNullWhen(true)] string? text, [NotNullWhen(true)] out MetadataSource? source)
+    {
+        if (MetadataSource.TryGet(text, out source))
+            return true;
+
+        var value = text?.Trim().ToLowerInvariant().Replace('_', '-');
+        lock (_lock)
+        {
+            if (string.IsNullOrEmpty(value) || !(_fixedSourceNumbers.ContainsKey(value) || _assignedSources.ContainsKey(value)))
+                return false;
+        }
+
+        source = MetadataSource.GetByValue(value);
+        return true;
+    }
+
+    /// <summary>
     /// Whether a stored number is fixed or assigned.
     /// </summary>
     /// <param name="number">The stored number.</param>
@@ -506,6 +530,29 @@ public static class MetadataNumberRegistry
     /// </returns>
     public static MetadataEntityType GetEntityType(byte number)
         => MetadataEntityType.GetByValue(TryGetEntityTypeValue(number, out var value) ? value : UnknownEntityTypePrefix + number.ToString(CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// Gets an entity type a request may name: a registered one, or one rows
+    /// are stored under while nothing registers it, by its exact value.
+    /// </summary>
+    /// <param name="text">The value, or an alias of a registered entity type.</param>
+    /// <param name="entityType">The entity type, if one is known.</param>
+    /// <returns><c>true</c> if the text names a registered or stored entity type.</returns>
+    public static bool TryGetKnownEntityType([NotNullWhen(true)] string? text, [NotNullWhen(true)] out MetadataEntityType? entityType)
+    {
+        if (MetadataEntityType.TryGet(text, out entityType))
+            return true;
+
+        var value = text?.Trim().ToLowerInvariant().Replace('_', '-');
+        lock (_lock)
+        {
+            if (string.IsNullOrEmpty(value) || !(_fixedEntityTypeNumbers.ContainsKey(value) || _assignedEntityTypes.ContainsKey(value)))
+                return false;
+        }
+
+        entityType = MetadataEntityType.GetByValue(value);
+        return true;
+    }
 
     /// <summary>
     /// Whether a stored entity type number is fixed or assigned.
