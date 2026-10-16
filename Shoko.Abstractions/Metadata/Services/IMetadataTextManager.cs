@@ -100,8 +100,9 @@ public interface IMetadataTextManager
     /// </remarks>
     /// <param name="titles">The candidates, in any order.</param>
     /// <param name="entityType">
-    ///   Which ordering to walk. Episodes have their own; anything else,
-    ///   <c>null</c> included, is ranked as a series.
+    ///   Which ordering to walk. Episodes and seasons have their own, which
+    ///   creators and characters share; anything else, <c>null</c>
+    ///   included, is ranked as a series.
     /// </param>
     /// <returns>The preferred title, or <c>null</c> when none qualifies.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="titles"/> is <c>null</c>.</exception>
@@ -113,8 +114,9 @@ public interface IMetadataTextManager
     /// </summary>
     /// <param name="titles">The candidates, in any order.</param>
     /// <param name="entityType">
-    ///   Which language order to walk. Episodes have their own; anything else,
-    ///   <c>null</c> included, is ranked as a series.
+    ///   Which language order to walk. Episodes and seasons have their own,
+    ///   which creators and characters share; anything else, <c>null</c>
+    ///   included, is ranked as a series.
     /// </param>
     /// <param name="sourceOrder">
     ///   The sources to read, best first. Candidates from any other source are
@@ -147,8 +149,9 @@ public interface IMetadataTextManager
     /// </summary>
     /// <param name="kind">Titles or overviews.</param>
     /// <param name="entityType">
-    ///   Which title order to read. Episodes have their own; anything else,
-    ///   <c>null</c> included, reads the series order. Ignored for overviews.
+    ///   Which title order to read. Episodes and seasons have their own, which
+    ///   creators and characters share; anything else, <c>null</c>
+    ///   included, reads the series order. Ignored for overviews.
     /// </param>
     /// <returns>
     ///   The languages, <see cref="TitleLanguage.Main"/> included where the

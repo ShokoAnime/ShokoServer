@@ -199,8 +199,8 @@ public class MetadataTextManager : IMetadataTextManager
         ArgumentNullException.ThrowIfNull(titles);
 
         var settings = ISettingsProvider.Instance.GetSettings();
-        var episode = entityType == MetadataEntityType.Episode;
-        return ChoosePreferredTitle(titles, entityType, episode ? settings.Language.EpisodeTitleSourceOrder : settings.Language.SeriesTitleSourceOrder);
+        var episodeOrder = TextChooser.UsesEpisodeTitleOrder(entityType);
+        return ChoosePreferredTitle(titles, entityType, episodeOrder ? settings.Language.EpisodeTitleSourceOrder : settings.Language.SeriesTitleSourceOrder);
     }
 
     /// <inheritdoc />
@@ -214,12 +214,12 @@ public class MetadataTextManager : IMetadataTextManager
         if (candidates.Count is 0)
             return null;
 
-        var episode = entityType == MetadataEntityType.Episode;
+        var languages = TextChooser.UsesEpisodeTitleOrder(entityType) ? Languages.PreferredEpisodeNamingLanguages : Languages.PreferredNamingLanguages;
         return TextChooser.ChooseTitle(candidates, new(
-            [.. (episode ? Languages.PreferredEpisodeNamingLanguages : Languages.PreferredNamingLanguages).Select(language => language.Language)],
+            [.. languages.Select(language => language.Language)],
             sourceOrder,
             ISettingsProvider.Instance.GetSettings().Language.UseSynonyms,
-            episode
+            entityType == MetadataEntityType.Episode
         ));
     }
 
@@ -246,7 +246,7 @@ public class MetadataTextManager : IMetadataTextManager
     {
         var languages = kind is TextKind.Overview
             ? Languages.PreferredDescriptionNamingLanguages
-            : entityType == MetadataEntityType.Episode
+            : TextChooser.UsesEpisodeTitleOrder(entityType)
                 ? Languages.PreferredEpisodeNamingLanguages
                 : Languages.PreferredNamingLanguages;
         return [.. languages.Select(language => language.Language)];
@@ -829,12 +829,12 @@ public class MetadataTextManager : IMetadataTextManager
                 return null;
 
             var settings = ISettingsProvider.Instance.GetSettings();
-            var episode = entityID.EntityType == MetadataEntityType.Episode;
+            var episodeOrder = TextChooser.UsesEpisodeTitleOrder(entityID.EntityType);
             return TextChooser.ChooseStoredTitle(candidates, entityID.Source, new(
-                [.. (episode ? Languages.PreferredEpisodeNamingLanguages : Languages.PreferredNamingLanguages).Select(language => language.Language)],
-                [.. (episode ? settings.Language.EpisodeTitleSourceOrder : settings.Language.SeriesTitleSourceOrder).Append(MetadataSource.User).Distinct()],
+                [.. (episodeOrder ? Languages.PreferredEpisodeNamingLanguages : Languages.PreferredNamingLanguages).Select(language => language.Language)],
+                [.. (episodeOrder ? settings.Language.EpisodeTitleSourceOrder : settings.Language.SeriesTitleSourceOrder).Append(MetadataSource.User).Distinct()],
                 settings.Language.UseSynonyms,
-                episode,
+                entityID.EntityType == MetadataEntityType.Episode,
                 Main: main
             ));
         });

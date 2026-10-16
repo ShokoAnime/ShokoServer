@@ -86,7 +86,7 @@ internal static class TextChoiceExplainer
             return (TextChoiceStep.OverallPreference, null);
 
         var episode = entityID.EntityType == MetadataEntityType.Episode;
-        var (languages, sourceOrder) = OrdersOf(kind, episode, settings);
+        var (languages, sourceOrder) = OrdersOf(kind, TextChooser.UsesEpisodeTitleOrder(entityID.EntityType), settings);
         if (chosen.Preference is TextPreference.Language)
         {
             var spoken = languages.Where(language => language is not TitleLanguage.Main && TextChooser.Speaks(chosen, language)).ToList();
@@ -144,7 +144,7 @@ internal static class TextChoiceExplainer
     ///   The languages and sources the chooser walks for a kind of text.
     /// </summary>
     /// <param name="kind">Titles or overviews.</param>
-    /// <param name="episode">Whether the entry is an episode, which has its own title orders.</param>
+    /// <param name="episode">Whether the entry's titles follow the episode title orders.</param>
     /// <param name="settings">The settings.</param>
     /// <returns>The languages, best first, and the sources, best first.</returns>
     private static (IReadOnlyList<TitleLanguage> Languages, IReadOnlyList<MetadataSource> SourceOrder) OrdersOf(TextKind kind, bool episode, IServerSettings settings)

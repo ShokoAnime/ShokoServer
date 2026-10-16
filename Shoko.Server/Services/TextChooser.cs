@@ -337,6 +337,19 @@ internal static class TextChooser
     #region Helpers
 
     /// <summary>
+    ///   Whether an entry's titles are chosen by the episode title orders
+    ///   rather than the series ones: episodes and seasons, and the creators
+    ///   and characters read alongside them.
+    /// </summary>
+    /// <param name="entityType">The entry's kind, or <c>null</c> when unknown.</param>
+    /// <returns><c>true</c> for an episode, a season, a creator or a character.</returns>
+    internal static bool UsesEpisodeTitleOrder(MetadataEntityType? entityType)
+        => entityType == MetadataEntityType.Episode
+            || entityType == MetadataEntityType.Season
+            || entityType == MetadataEntityType.Creator
+            || entityType == MetadataEntityType.Character;
+
+    /// <summary>
     ///   An entry's default title, when it answers <c>x-main</c> for a source.
     /// </summary>
     /// <param name="main">The entry's default title, or <c>null</c>.</param>

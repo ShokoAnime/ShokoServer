@@ -39,7 +39,8 @@ public class LanguageSettings
     private List<string> _episodeLanguagePreference = ["en"];
 
     /// <summary>
-    /// Episode / season title language preference order.
+    /// Episode / season title language preference order, which creators and
+    /// characters follow too.
     /// </summary>
     [RequiresRestart]
     public List<string> EpisodeTitleLanguageOrder
@@ -51,7 +52,8 @@ public class LanguageSettings
     private List<MetadataSource> _episodeTitleSourceOrder = [MetadataSource.TMDB, MetadataSource.AniDB];
 
     /// <summary>
-    /// Episode / season title source preference order.
+    /// Episode / season title source preference order, which creators and
+    /// characters follow too.
     /// </summary>
     [RequiresRestart]
     public List<MetadataSource> EpisodeTitleSourceOrder
