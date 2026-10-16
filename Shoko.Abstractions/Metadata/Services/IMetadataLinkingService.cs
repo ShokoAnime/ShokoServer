@@ -48,11 +48,7 @@ public interface IMetadataLinkingService
     ///   in an episode link's season and numbers raise nothing. Handlers run
     ///   on the writer's thread after the write; an exception is logged.
     /// </remarks>
-    event EventHandler<MetadataLinksChangedEventArgs>? LinksChanged
-    {
-        add { }
-        remove { }
-    }
+    event EventHandler<MetadataLinksChangedEventArgs>? LinksChanged;
 
     #endregion
 

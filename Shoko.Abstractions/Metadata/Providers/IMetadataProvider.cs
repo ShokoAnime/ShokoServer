@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Config;
@@ -71,7 +70,7 @@ public interface IMetadataProvider
 
     /// <summary>
     ///   The kinds you suggest being turned on for when you are first seen on
-    ///   your source. Every kind you serve by default.
+    ///   your source, or <c>null</c>, the default, for every kind you serve.
     /// </summary>
     /// <remarks>
     ///   Seeded from each provider's own suggestion on first sight, owned by
@@ -82,15 +81,7 @@ public interface IMetadataProvider
     ///   when collections are not worth fetching by default. Kinds you do not
     ///   serve are ignored.
     /// </remarks>
-    IReadOnlySet<MetadataEntityType> DefaultEnabledKinds
-    {
-        get => new HashSet<MetadataEntityType>(
-            (this is IMetadataSeriesProvider ? [MetadataEntityType.Series, MetadataEntityType.Season, MetadataEntityType.Episode] : (MetadataEntityType[])[])
-                .Concat(this is IMetadataMovieProvider ? [MetadataEntityType.Movie] : [])
-                .Concat(this is IMetadataCollectionProvider ? [MetadataEntityType.Collection] : [])
-                .Concat(this is IMetadataEntityProvider entityProvider ? entityProvider.EntityScope.Select(pair => pair.EntityType) : [])
-        );
-    }
+    IReadOnlySet<MetadataEntityType>? DefaultEnabledKinds { get => null; }
 
     /// <summary>
     ///   Whether you have what you need to answer, such as an API key or
