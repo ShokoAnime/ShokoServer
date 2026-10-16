@@ -10,7 +10,7 @@ on:
 
 jobs:
   test-sqlite:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Integration Tests — SQLite
 
     steps:
@@ -38,7 +38,7 @@ jobs:
           path: schema-dumps/schema-SQLite.json
 
   test-mysql:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Integration Tests — MySQL (MariaDB)
 
     services:
@@ -84,7 +84,7 @@ jobs:
           path: schema-dumps/schema-MySQL.json
 
   test-mssql:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Integration Tests — SQL Server
 
     services:
@@ -131,7 +131,7 @@ jobs:
           path: schema-dumps/schema-SQLServer.json
 
   schema-parity:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Schema Parity — SQLite vs MySQL vs SQL Server
     needs: [test-sqlite, test-mysql, test-mssql]
 

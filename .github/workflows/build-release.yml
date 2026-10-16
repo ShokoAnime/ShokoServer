@@ -7,7 +7,7 @@ on:
 
 jobs:
   current_info:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Current Information
 
@@ -53,7 +53,7 @@ jobs:
             core.setOutput("sha", sha);
 
   nuget:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     strategy:
       fail-fast: false
@@ -95,7 +95,7 @@ jobs:
           tag-format: ${{ matrix.package }}-v*
 
   webui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Download Web UI
 
@@ -127,7 +127,7 @@ jobs:
           retention-days: 1
 
   plugins:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Fetch ${{ matrix.plugin }}
 
@@ -167,7 +167,7 @@ jobs:
           retention-days: 1
 
   mediainfo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Download MediaInfo
 
@@ -201,7 +201,7 @@ jobs:
           retention-days: 1
 
   cli-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -279,7 +279,7 @@ jobs:
           file_glob: true
 
   tray-service-framework-cross:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -508,7 +508,7 @@ jobs:
           .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ needs.current_info.outputs.version_short }}-Win.exe" -local "Shoko.Setup.exe";
 
   docker-release-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -605,7 +605,7 @@ jobs:
           provenance: false
 
   docker-release-push_manifest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -647,7 +647,7 @@ jobs:
           docker manifest push ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}
 
   update-manifest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -695,7 +695,7 @@ jobs:
           file_pattern: manifest.json
 
   sentry-upload:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -721,7 +721,7 @@ jobs:
           release: ${{ needs.current_info.outputs.version }}
 
   cleanup-artifacts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Remove Build Artifacts
 

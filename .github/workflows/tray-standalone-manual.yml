@@ -18,7 +18,7 @@ on:
 
 jobs:
   webui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Download Web UI
 
@@ -50,7 +50,7 @@ jobs:
           retention-days: 1
 
   mediainfo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Download MediaInfo
 

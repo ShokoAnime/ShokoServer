@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   current_info:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Current Information
 
@@ -163,7 +163,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   webui:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Download Web UI
 
@@ -195,7 +195,7 @@ jobs:
           retention-days: 1
 
   plugins:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Fetch ${{ matrix.plugin }}
 
@@ -235,7 +235,7 @@ jobs:
           retention-days: 1
 
   mediainfo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Download MediaInfo
 
@@ -269,7 +269,7 @@ jobs:
           retention-days: 1
 
   nuget:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     strategy:
       fail-fast: false
@@ -311,7 +311,7 @@ jobs:
           tag-format: ${{ matrix.package }}-v*
 
   cli:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -390,7 +390,7 @@ jobs:
           path: Shoko.Server/bin/Release/net10.0/${{matrix.rid}}/publish/
 
   tray-service-framework-cross:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -615,7 +615,7 @@ jobs:
           path: Shoko.Setup.exe
 
   docker-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -706,7 +706,7 @@ jobs:
           provenance: false
 
   docker-push-manifest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Push combined tag for both docker images
 
@@ -738,7 +738,7 @@ jobs:
           docker manifest push ${{ secrets.DOCKER_REPO }}:daily
 
   add-tag:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -764,7 +764,7 @@ jobs:
           message: Shoko Server v${{ needs.current_info.outputs.version }} Pre-Release
 
   update-manifest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -807,7 +807,7 @@ jobs:
           file_pattern: manifest.json
 
   sentry-upload:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     needs:
       - current_info
@@ -869,7 +869,7 @@ jobs:
         run : Compress-Archive .\\ShokoServer .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
 
   discord-notify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Send notifications about the new daily build
 
@@ -896,7 +896,7 @@ jobs:
             ${{ needs.current_info.outputs.changelog }}
 
   cleanup-artifacts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Remove Build Artifacts
 
