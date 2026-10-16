@@ -144,7 +144,7 @@ Plugin controllers are registered via `AddPluginControllers` during API setup.
 Two hubs, only mapped when `EnableSignalR` is on:
 
 - **`LoggingHub`** (`/signalr/logging`, admins only) — streams buffered server logs to connecting clients, separate from the aggregate hub because it can become noisy, fast.
-- **`AggregateHub`** (`/signalr/aggregate`, any authenticated user) — subscription only; clients call `feed.join_single` / `feed.join_many` etc. to subscribe to event categories, and cannot call into a feed.
+- **`AggregateHub`** (`/signalr/aggregate`, any authenticated user) — subscription only; clients call `feed.join_single` / `feed.join_many` etc. to subscribe to event categories, and cannot call into a feed. Every joining or leaving call answers with the connection's feeds afterwards, and `feed.joined` sends them once the connection has joined the ones its `feeds` query named.
 
 Event emitters (`Shoko.Server/API/SignalR/Aggregate/`) bridge internal domain events to SignalR: `AiringEventEmitter`, `AnidbEventEmitter`, `AvdumpEventEmitter`, `ConfigurationEventEmitter`, `FileEventEmitter`, `GroupEventEmitter`, `ManagedFolderEventEmitter`, `MetadataEventEmitter`, `NetworkEventEmitter`, `PluginEventEmitter`, `QueueEventEmitter`, `ReleaseEventEmitter`, `RestartEventEmitter`, `SuspensionEventEmitter`, `UserDataEventEmitter`, `UserEventEmitter`. An emitter can refuse a user by overriding `CanConnect`.
 

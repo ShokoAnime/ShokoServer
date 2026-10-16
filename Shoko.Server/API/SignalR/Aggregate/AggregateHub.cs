@@ -40,10 +40,9 @@ public class AggregateHub : Hub
             .Select(a => a.Trim())
             .ToArray();
 
-        if (query == null || query.Length == 0)
-            return;
-
-        await JoinFeeds(query);
+        // Says which feeds the connection is on once it joined what it asked for, an empty list if nothing.
+        var joined = query is { Length: > 0 } ? await JoinFeeds(query) : [];
+        await Clients.Caller.SendAsync("feed.joined", joined);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -70,70 +69,67 @@ public class AggregateHub : Hub
         return feeds;
     }
 
-    [HubMethodName("feed.join_single")]
-    public async Task<bool> JoinFeed(string feed, DateTime? lastConnectedAt = null)
-    {
-        if (!_allFeeds.TryGetValue(feed, out var emitter))
-            return false;
+    // Every call that changes the feeds answers with the ones the connection is on afterwards, as
+    // feed.list_joined does: a feed asked for but missing is unknown or refused the user.
 
-        return await emitter.ConnectAsync(Context.ConnectionId, Context.User.GetUser(), lastConnectedAt);
+    [HubMethodName("feed.join_single")]
+    public async Task<IReadOnlyList<string>> JoinFeed(string feed, DateTime? lastConnectedAt = null)
+    {
+        if (_allFeeds.TryGetValue(feed, out var emitter))
+            await emitter.ConnectAsync(Context.ConnectionId, Context.User.GetUser(), lastConnectedAt);
+        return ListJoinedFeeds();
     }
 
     [HubMethodName("feed.join_many")]
-    public async Task<bool> JoinFeeds(string[] feeds, DateTime? lastConnectedAt = null)
+    public async Task<IReadOnlyList<string>> JoinFeeds(string[] feeds, DateTime? lastConnectedAt = null)
     {
         var connectionId = Context.ConnectionId;
         var user = Context.User.GetUser();
-        var updated = false;
         foreach (var emitter in _registry.Find(feeds))
-            updated = await emitter.ConnectAsync(connectionId, user, lastConnectedAt) || updated;
-        return updated;
+            await emitter.ConnectAsync(connectionId, user, lastConnectedAt);
+        return ListJoinedFeeds();
     }
 
     [HubMethodName("feed.leave_single")]
-    public async Task<bool> LeaveFeeds(string feed)
+    public async Task<IReadOnlyList<string>> LeaveFeeds(string feed)
     {
-        if (!_allFeeds.TryGetValue(feed, out var emitter))
-            return false;
-
-        return await emitter.DisconnectAsync(Context.ConnectionId);
+        if (_allFeeds.TryGetValue(feed, out var emitter))
+            await emitter.DisconnectAsync(Context.ConnectionId);
+        return ListJoinedFeeds();
     }
 
     [HubMethodName("feed.leave_many")]
-    public async Task<bool> LeaveFeeds(string[] feeds)
+    public async Task<IReadOnlyList<string>> LeaveFeeds(string[] feeds)
     {
         var connectionId = Context.ConnectionId;
-        var updated = false;
         foreach (var emitter in _registry.Find(feeds))
-            updated = await emitter.DisconnectAsync(connectionId) || updated;
-        return updated;
+            await emitter.DisconnectAsync(connectionId);
+        return ListJoinedFeeds();
     }
 
     [HubMethodName("feed.replace_all")]
-    public async Task<bool> UpdateFeeds(string[] feeds, DateTime? lastConnectedAt = null)
+    public async Task<IReadOnlyList<string>> UpdateFeeds(string[] feeds, DateTime? lastConnectedAt = null)
     {
         var connectionId = Context.ConnectionId;
         var user = Context.User.GetUser();
         var feedsToAdd = _registry.Find(feeds);
-        var updated = false;
         foreach (var emitter in _allFeeds.Values)
         {
             if (feedsToAdd.Contains(emitter))
-                updated = await emitter.ConnectAsync(connectionId, user, lastConnectedAt) || updated;
+                await emitter.ConnectAsync(connectionId, user, lastConnectedAt);
             else
-                updated = await emitter.DisconnectAsync(connectionId) || updated;
+                await emitter.DisconnectAsync(connectionId);
         }
-        return updated;
+        return ListJoinedFeeds();
     }
 
     [HubMethodName("feed.clear_all")]
-    public async Task<bool> ClearFeeds()
+    public async Task<IReadOnlyList<string>> ClearFeeds()
     {
         var connectionId = Context.ConnectionId;
-        var updated = false;
         foreach (var emitter in _allFeeds.Values)
-            updated = await emitter.DisconnectAsync(connectionId) || updated;
-        return updated;
+            await emitter.DisconnectAsync(connectionId);
+        return ListJoinedFeeds();
     }
 
     /// <summary>

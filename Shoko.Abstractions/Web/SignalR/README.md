@@ -96,6 +96,7 @@ const connection = new HubConnectionBuilder()
     .build();
 connection.on("template:connected", status => { /* … */ });
 connection.on("template:status.changed", status => { /* … */ });
+connection.on("feed.joined", feeds => { /* the feeds the connection is on */ });
 await connection.start();
 ```
 
@@ -103,5 +104,9 @@ The `feeds` query parameter, comma-separated, joins those feeds as the
 connection opens. The hub's methods for feeds are `feed.list_all`, `feed.list_joined`,
 `feed.join_single(feed, lastConnectedAt?)`, `feed.join_many(feeds, lastConnectedAt?)`,
 `feed.leave_single(feed)`, `feed.leave_many(feeds)`,
-`feed.replace_all(feeds, lastConnectedAt?)` and `feed.clear_all`. A join
-returns `false` when the feed is unknown, already joined, or refused the user.
+`feed.replace_all(feeds, lastConnectedAt?)` and `feed.clear_all`. Each call
+that joins or leaves answers with the feeds the connection is on afterwards,
+as `feed.list_joined` does; a feed asked for but missing from the answer is
+unknown (not in `feed.list_all`) or refused the user. Once the connection has
+joined the feeds its query named, after their `connected` messages, the hub
+sends it `feed.joined` with the feeds it is on, an empty list for none.
