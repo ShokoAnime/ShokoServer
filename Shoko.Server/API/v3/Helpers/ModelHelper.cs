@@ -228,6 +228,9 @@ public static class ModelHelper
         EpisodeType? episodeType = null;
         if (!int.TryParse(input, out var episodeNumber))
         {
+            if (string.IsNullOrEmpty(input))
+                return (0, null, "Unable to parse an int from `{VariableName}`");
+
             var maybeType = input[0];
             var maybeRangeStart = input.Substring(1);
             if (!int.TryParse(maybeRangeStart, out episodeNumber))
