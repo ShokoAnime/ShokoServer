@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -241,6 +242,8 @@ public class AnimeSeriesService
 
         var latestLocalEpNumber = 0;
         DateTime? lastEpAirDate = null;
+        // Guards the two above, which the parallel loop below updates.
+        var latestLock = new Lock();
         var epReleasedList = new EpisodeList(animeType);
         var epGroupReleasedList = new EpisodeList(animeType);
         var daysofweekcounter = new Dictionary<DayOfWeek, int>();
@@ -303,9 +306,12 @@ public class AnimeSeriesService
 
             var vids = videoLocals[ep.AniDB_EpisodeID].ToList();
 
-            if (thisEpNum > latestLocalEpNumber && vids.Any())
+            if (vids.Count > 0)
             {
-                latestLocalEpNumber = thisEpNum;
+                lock (latestLock)
+                {
+                    latestLocalEpNumber = Math.Max(latestLocalEpNumber, thisEpNum);
+                }
             }
 
             var airdate = ep.AniDB_Episode?.GetAirDateAsDate();
@@ -340,9 +346,10 @@ public class AnimeSeriesService
                     daysofweekcounter[airdateLocal.DayOfWeek]++;
                 }
 
-                if (lastEpAirDate == null || lastEpAirDate < airdate)
+                lock (latestLock)
                 {
-                    lastEpAirDate = airdate.Value;
+                    if (lastEpAirDate == null || lastEpAirDate < airdate)
+                        lastEpAirDate = airdate.Value;
                 }
             }
 

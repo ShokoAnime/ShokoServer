@@ -322,7 +322,7 @@ public class AnimeSeriesStatsTests
 
     #region Derived values
 
-    [Fact(Skip = "Possible bug - Needs investigation")]
+    [Fact]
     public void TheLatestLocalEpisodeNumberFollowsTheHighestHeldEpisode()
     {
         using var harness = Create(
