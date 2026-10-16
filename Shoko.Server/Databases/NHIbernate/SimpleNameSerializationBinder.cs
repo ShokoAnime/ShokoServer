@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using Newtonsoft.Json.Serialization;
 using NLog;
@@ -10,6 +11,9 @@ public class SimpleNameSerializationBinder : DefaultSerializationBinder
 {
     private readonly Logger _logger = LogManager.GetCurrentClassLogger();
     private readonly Type? _baseType;
+
+    // The scannable types never change once the server is up, so each name is looked up once.
+    private readonly ConcurrentDictionary<string, Type?> _typesByName = new();
 
     public SimpleNameSerializationBinder(Type? baseType = null)
     {
@@ -24,11 +28,13 @@ public class SimpleNameSerializationBinder : DefaultSerializationBinder
     }
 
     public override Type BindToType(string? assemblyName, string typeName)
+        => _typesByName.GetOrAdd(typeName.Split('.')[^1], FindType)!;
+
+    private Type? FindType(string name)
     {
-        var name = typeName.Split('.').LastOrDefault();
         var types = ReflectionUtils.ScannableAssemblies().SelectMany(a => a.GetTypes())
             .Where(a => a.Name.Equals(name) && (_baseType == null || _baseType.IsAssignableFrom(a))).ToArray();
         if (types.Length > 1) _logger.Warn($"SimpleNameSerializationBinder found multiple types that match {name}");
-        return types.FirstOrDefault()!;
+        return types.FirstOrDefault();
     }
 }
