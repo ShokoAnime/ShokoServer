@@ -293,6 +293,19 @@ public class StartupPluginUpgradeTests : IDisposable
     #region Version Choice
 
     [Fact]
+    public void AVersionThatCannotLoadWithNothingOlderFailsTheStart()
+    {
+        var manager = TestPluginManager.Create(Mock.Of<IApplicationPaths>(paths => paths.PluginsPath == PluginsPath));
+        var only = Candidate("2.0.0", cannotLoadReason: "Could not load a type it refers to.");
+
+        var (toLoad, failureReason, passedOver) = manager.PickVersionToLoad([only], new Dictionary<string, string>());
+
+        Assert.Same(only, toLoad);
+        Assert.Equal("Could not load a type it refers to.", failureReason);
+        Assert.Empty(passedOver);
+    }
+
+    [Fact]
     public void FailingVersionIsNotPassedOver()
     {
         var manager = TestPluginManager.Create(Mock.Of<IApplicationPaths>(paths => paths.PluginsPath == PluginsPath));

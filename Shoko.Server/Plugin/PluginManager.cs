@@ -505,7 +505,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     /// <summary>
     ///   Orders the plugins so every dependency loads before its dependents,
-    ///   and refuses every enabled plugin whose required dependencies are not
+    ///   and fails every enabled plugin whose required dependencies are not
     ///   satisfied.
     /// </summary>
     /// <param name="plugins">Every registered plugin version. Reordered in place.</param>
@@ -515,7 +515,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     /// <summary>
     ///   Orders the plugins so every dependency loads before its dependents,
-    ///   and refuses every enabled plugin whose required dependencies are not
+    ///   and fails every enabled plugin whose required dependencies are not
     ///   satisfied.
     /// </summary>
     /// <param name="plugins">Every registered plugin version. Reordered in place.</param>
@@ -528,6 +528,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     internal static void ApplyDependencyGraph(List<LocalPluginInfo> plugins, Dictionary<LocalPluginInfo, PluginLoadState> refusals, ILogger logger)
     {
         var rank = RefuseUnsatisfiedDependencies(plugins, refusals, logger);
+        // A plugin refused at start fails it, as any enabled plugin that cannot load does.
+        foreach (var pluginInfo in refusals.Keys)
+            MarkFailed(pluginInfo, pluginInfo.CannotLoadReason ?? "The plugin's dependencies are not satisfied.");
+
         var reordered = plugins
             .Select((pluginInfo, index) => (pluginInfo, index, rank: rank.GetValueOrDefault(pluginInfo.ID)))
             .OrderBy(tuple => tuple.rank)
@@ -1279,6 +1283,26 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             .Where(location => location.Length > 0));
 
     /// <summary>
+    ///   Why a plugin's types could not be read: built for another version of
+    ///   the server when the missing type should come from the server or the
+    ///   runtime, naming it, or else a missing dependency.
+    /// </summary>
+    /// <param name="exception">What reading the plugin's types threw.</param>
+    /// <returns>The reason, as shown to the admin.</returns>
+    private string DescribeTypeLoadFailure(Exception exception)
+    {
+        const string AssemblyMarker = "from assembly '";
+        if (exception is not TypeLoadException { TypeName: { Length: > 0 } typeName } typeLoad)
+            return MissingDependenciesMessage;
+
+        var start = typeLoad.Message.IndexOf(AssemblyMarker, StringComparison.Ordinal);
+        var end = start < 0 ? -1 : typeLoad.Message.IndexOfAny([',', '\''], start + AssemblyMarker.Length);
+        return end > 0 && GetHostProvidedAssemblies().Contains(typeLoad.Message[(start + AssemblyMarker.Length)..end])
+            ? $"{HostMismatchMessage}: {typeName}."
+            : MissingDependenciesMessage;
+    }
+
+    /// <summary>
     ///   The names of the assemblies every plugin gets from the server or the
     ///   runtime, whichever copy a plugin ships beside itself.
     /// </summary>
@@ -1482,13 +1506,16 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         if (candidates.Count is 0)
             return (null, null, passedOver);
 
-        // Read before the assembly loads, so a plugin built for another contract never runs.
+        // Read before the assembly loads, so a plugin built for another contract never runs. An
+        // enabled plugin that cannot load fails the start, rather than going missing from it.
         string? GetFailureReason(InternalPluginInfo info)
-            => info.ID == CorePlugin.StaticID || !info.CanLoad
+            => info.ID == CorePlugin.StaticID
                 ? null
-                : info.FailureReason
-                    ?? rememberedFailures.GetValueOrDefault(GetRememberedFailureKey(info.ID, info.Version.Version))
-                    ?? FindContractMismatch(info.DLLs, GetHostSurfaces(), HostMismatchMessage);
+                : !info.CanLoad
+                    ? info.CannotLoadReason ?? "The plugin cannot load on this server."
+                    : info.FailureReason
+                        ?? rememberedFailures.GetValueOrDefault(GetRememberedFailureKey(info.ID, info.Version.Version))
+                        ?? FindContractMismatch(info.DLLs, GetHostSurfaces(), HostMismatchMessage);
 
         var first = candidates[0];
         if (first.CanLoad || first.IsPinned || first.ID == CorePlugin.StaticID || candidates.Skip(1).FirstOrDefault(info => info.CanLoad) is not { } older)
@@ -1799,7 +1826,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
                             IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
-                            IsEnabled = false,
+                            IsEnabled = settings.Plugins.EnabledPlugins[name],
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
                             CanLoad = false,
@@ -1850,7 +1877,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
                             IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
-                            IsEnabled = false,
+                            IsEnabled = settings.Plugins.EnabledPlugins[name],
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
                             CanLoad = false,
@@ -1893,7 +1920,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
                             IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
-                            IsEnabled = false,
+                            IsEnabled = settings.Plugins.EnabledPlugins[name],
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
                             CanLoad = false,
@@ -1914,6 +1941,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     {
                         logger.LogError(e, "Failed to get exported types from DLL. Ensure all dependencies are available; {DllPath}", dllPath);
 
+                        var typeLoadReason = DescribeTypeLoadFailure(e);
                         return new()
                         {
                             // Create an unique ID for this specific version if it failed to load.
@@ -1921,8 +1949,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             DllName = name,
                             Name = embeddedName ?? name,
                             Description = embeddedDescription is not null
-                                ? $"{MissingDependenciesMessage}\n\n{embeddedDescription}"
-                                : MissingDependenciesMessage,
+                                ? $"{typeLoadReason}\n\n{embeddedDescription}"
+                                : typeLoadReason,
                             Version = version,
                             Authors = authors,
                             RepositoryUrl = repositoryUrl,
@@ -1933,11 +1961,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
                             IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
-                            IsEnabled = false,
+                            IsEnabled = settings.Plugins.EnabledPlugins[name],
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
                             CanLoad = false,
-                            CannotLoadReason = MissingDependenciesMessage,
+                            CannotLoadReason = typeLoadReason,
                             CanUninstall = !isSystem,
                             DLLs = [dllPath, .. dlls.Except([dllPath])],
                             Thumbnail = null,

@@ -98,7 +98,8 @@ public class PluginDependencyGraphTests
         Assert.False(dependent.CanLoad);
         Assert.True(dependent.IsEnabled);
         Assert.Contains("not installed", dependent.CannotLoadReason);
-        // Enabled but unable to load, so not waiting on a restart.
+        // Enabled but unable to load, so it fails the start rather than going missing from it.
+        Assert.True(dependent.HasFailed);
         Assert.False(dependent.RestartPending);
     }
 
