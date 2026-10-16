@@ -20,6 +20,10 @@
     <IncludeBuildOutput>true</IncludeBuildOutput>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
+    <!-- Roslyn goes next to the tasks, in the output and the package, so MSBuild loads that copy instead
+         of falling back to the SDK's, which a host such as shoko-build may have bound to another version. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_ShokoPackTaskDependencies</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,7 +39,14 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Framework" Version="18.9.6" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.9.6" ExcludeAssets="runtime" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" PrivateAssets="all" />
   </ItemGroup>
+
+  <!-- Packs the assemblies copied next to the tasks, without their satellite resources. -->
+  <Target Name="_ShokoPackTaskDependencies" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.AssetType)' == 'runtime'" />
+    </ItemGroup>
+  </Target>
 
 </Project>
