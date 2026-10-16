@@ -226,9 +226,9 @@ A throw from either stops the server finishing its start-up; see
 
 ### `IPluginApplicationRegistration.RegisterServices(IApplicationBuilder, IApplicationPaths)`
 
-Called from `UseAPI()` while the HTTP pipeline is built: after
+Called from `UseAPI()` while the HTTP pipeline is built: after `UseCors`,
 `UseAuthentication`, `UseAuthorization` and the SignalR hub endpoints, and
-before `UseCors` and `UseMvc`. Register your own middleware here, and map your
+before `UseMvc`. Register your own middleware here, and map your
 own SignalR hubs; see
 [Mapping a SignalR hub](Web/Services/README.md#mapping-a-signalr-hub). Endpoints
 mapped here can be listed in your plugin's Swagger document; see

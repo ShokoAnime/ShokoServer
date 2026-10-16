@@ -111,13 +111,13 @@ and should not be used for new code unless DI is not an option and only as a las
 3. Swagger UI (if enabled) — configurable path via `WebSettings.SwaggerUIPrefix`
 4. Static files (if enabled) — WebUI served via `WebUiFileProvider` at configurable path (`WebSettings.WebUIPublicPath`, defaults to `/webui`)
 5. `UseRouting`
-6. `ServerNotRunningMiddleware` — returns 503 until the server is started, exempted via `[InitFriendly]`
-7. `UseAuthentication` — custom "ShokoServer" scheme
-8. `ActorContextMiddleware` — makes the request's API token the current actor (`IActorContext`) until the request ends
-9. `UseAuthorization` — policies: `"admin"` (IsAdmin == 1), `"init"` (setup user only)
-10. `UseEndpoints` — `MapControllers`, plus the SignalR hubs when `EnableSignalR` is on: `/signalr/logging`, `/signalr/aggregate`
-11. Plugin middleware registration
-12. `UseCors` (any origin/method/header)
+6. `UseCors` — any method and header; any origin unless `Web.AllowedOrigins` (set by `SHOKO_CORS_ORIGINS`) lists some. Before the endpoints, so every answer gets its headers, and before the not-running check, so preflights work in setup and failure mode
+7. `ServerNotRunningMiddleware` — returns 503 until the server is started, exempted via `[InitFriendly]`
+8. `UseAuthentication` — custom "ShokoServer" scheme
+9. `ActorContextMiddleware` — makes the request's API token the current actor (`IActorContext`) until the request ends
+10. `UseAuthorization` — policies: `"admin"` (IsAdmin == 1), `"init"` (setup user only)
+11. `UseEndpoints` — `MapControllers`, plus the SignalR hubs when `EnableSignalR` is on: `/signalr/logging`, `/signalr/aggregate`
+12. Plugin middleware registration
 13. `UseMvc` (legacy, `EnableEndpointRouting = false`)
 
 **Global action filters** (registered on all MVC controllers):
@@ -250,7 +250,7 @@ The queue system lives in the QueueProcessor project, but the Shoko-specific cod
 
 Plugin upgrades are installed before the plugin scan when `Plugins.Updates.IsUpgradeOnStartEnabled` is on (opt-out, default on, set by `SHOKO_PLUGIN_UPGRADE_ON_START_ENABLED` when present; independent of `IsAutoUpgradeEnabled`, which upgrades while running and is set by `SHOKO_PLUGIN_AUTO_UPGRADE_ENABLED`). `PluginPackageManager`, built in the `SystemService` constructor and registered in the web host as that same instance, syncs the enabled repositories fetched longer than `RepositoryStaleTimeOnStart` ago (5 minutes; a repository's own stale time when shorter), then installs for each enabled plugin on disk the newest release above its newest installed version with an archive `IsAbiAndRuntimeCompatible` accepts (`SelectUpgrades`). It reads the plugins on disk with the plugin manager's own reader (`IInstalledPluginReader`, the scan's `LoadInternalPluginInfo` in a collectible load context, registering nothing), and uses `CoreHttpClientFactory`, which holds the core's `"Default"` client only. It skips plugins with a pinned version, a read-only plugins folder and an unreachable repository, and gives up after `StartupUpgradeBudget` (90 s), starting with what is installed. Nothing is remembered between starts and a version that fails is never passed over: it fails as any plugin does, and the admin decides. A newest version that cannot load yet (`CanLoad` false, such as one built for a newer server) is not a mismatch: the newest older version that can load waits in its place (`PickVersionToLoad`), so the newer one loads once the server is upgraded. Auto-upgrade while running (`CheckForUpdates`) makes the same choice (`SelectUpgrades`). Only installing by hand picks a release built for a newer server, which then waits that way.
 
-Plugins can also implement `IPluginApplicationRegistration` to register custom middleware via `RegisterServices(IApplicationBuilder, IApplicationPaths)` — invoked during `UseAPI()` after `UseEndpoints` but before CORS.
+Plugins can also implement `IPluginApplicationRegistration` to register custom middleware via `RegisterServices(IApplicationBuilder, IApplicationPaths)` — invoked during `UseAPI()` after `UseEndpoints` and before `UseMvc`.
 
 Plugin controllers are registered via `AddPluginControllers` during API setup. Plugins add SignalR feeds with `services.AddEventEmitter<TFeed>()`.
 

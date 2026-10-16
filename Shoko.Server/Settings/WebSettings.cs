@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
@@ -111,6 +112,19 @@ public class WebSettings
     [EnvironmentVariable("SHOKO_API_INDEX_REDIRECT_ENABLED")]
     [DefaultValue(true)]
     public bool EnableIndexRedirect { get; set; } = true;
+
+    /// <summary>
+    ///   The origins web pages may call the API from, such as a web client
+    ///   served from another host, as <c>http://host:port</c>. Empty, or
+    ///   <c>*</c>, allows any origin. The Web UI the server serves itself
+    ///   never needs listing.
+    /// </summary>
+    [Visibility(Advanced = true)]
+    [Display(Name = "Allowed Origins")]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_CORS_ORIGINS")]
+    [List(UniqueItems = true)]
+    public List<string> AllowedOrigins { get; set; } = [];
 
     /// <summary>
     ///   Enable the built-in SignalR hubs available at <c>/signalr</c>.

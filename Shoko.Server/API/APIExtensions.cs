@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -209,11 +210,8 @@ public static partial class APIExtensions
             })
             .AddNewtonsoftJsonProtocol(o => o.PayloadSerializerSettings.ContractResolver = new ApiContractResolver());
 
-        // allow CORS calls from other both local and non-local hosts
-        services.AddCors(options =>
-        {
-            options.AddDefaultPolicy(builder => { builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader(); });
-        });
+        // Calls from any origin by default, so web clients on other hosts work; an admin may narrow it.
+        services.AddCors(options => options.AddDefaultPolicy(builder => ConfigureCors(builder, ISettingsProvider.Instance.GetSettings().Web.AllowedOrigins)));
 
         // this caused issues with auth. https://stackoverflow.com/questions/43574552
         services.AddMvc(options =>
@@ -510,6 +508,27 @@ public static partial class APIExtensions
     }
 
     /// <summary>
+    ///   Sets up the CORS policy: any origin when no origin is listed or
+    ///   <c>*</c> is, else only the origins listed, with any method and header.
+    /// </summary>
+    /// <param name="builder">The policy builder.</param>
+    /// <param name="origins">The origins an admin allowed.</param>
+    internal static void ConfigureCors(CorsPolicyBuilder builder, IReadOnlyCollection<string> origins)
+    {
+        // A browser sends an origin without a trailing slash, and matches it exactly.
+        var allowed = origins
+            .Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .Select(origin => origin.Trim().TrimEnd('/'))
+            .ToArray();
+        if (allowed.Length is 0 || allowed.Contains("*"))
+            builder.AllowAnyOrigin();
+        else
+            builder.WithOrigins(allowed);
+
+        builder.AllowAnyMethod().AllowAnyHeader();
+    }
+
+    /// <summary>
     /// A plugin's Swagger document.
     /// </summary>
     /// <param name="Name">The document name, <c>{DllName}-{version group}</c>.</param>
@@ -676,6 +695,10 @@ public static partial class APIExtensions
 
         app.UseRouting();
 
+        // Between routing and the endpoints, so it adds its headers to every endpoint's answer, and before
+        // the not-running check, so a preflight is answered in setup and failure mode too.
+        app.UseCors();
+
         app.UseMiddleware<ServerNotRunningMiddleware>();
 
         // Important for first run at least
@@ -716,8 +739,6 @@ public static partial class APIExtensions
         // explorer cached its endpoints earlier; a new empty source makes it re-read them all.
         if (registeredPlugins)
             app.UseEndpoints(endpoints => endpoints.DataSources.Add(new DefaultEndpointDataSource()));
-
-        app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
         app.UseMvc();
 
