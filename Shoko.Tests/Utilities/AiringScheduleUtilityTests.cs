@@ -629,46 +629,47 @@ public class AiringScheduleUtilityTests
 
     #region Estimation | Offsets
 
+    /// <summary>
+    /// A sample anchored at midnight UTC of the AniDB air date, as
+    /// <see cref="AiringScheduleUtility.LearnProfile"/> anchors them.
+    /// </summary>
     private static (DateTime, DateTime) OffsetSample(int day, int hour, int minute = 0)
-        => (new DateTime(2026, 7, day), new DateTime(2026, 7, day, hour, minute, 0, DateTimeKind.Utc));
+        => (new DateTime(2026, 7, day, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 7, day, hour, minute, 0, DateTimeKind.Utc));
 
     [Fact]
-    public void LearnAirTimeOffset_IgnoresAOneOffSlotThroughTheMedian()
+    public void LearnOffset_IgnoresAOneOffSlotThroughTheMedian()
     {
         // Episode 9 aired in a different slot; the median still lands on the regular one.
-        var offset = AiringScheduleUtility.LearnAirTimeOffset([OffsetSample(2, 16, 28), OffsetSample(9, 3, 0), OffsetSample(16, 16, 28)]);
+        var offset = AiringScheduleUtility.LearnOffset([OffsetSample(2, 16, 28), OffsetSample(9, 3, 0), OffsetSample(16, 16, 28)]);
 
         Assert.Equal(new TimeSpan(16, 28, 0), offset);
     }
 
     [Fact]
-    public void LearnAirTimeOffset_CrossesMidnightWhenTheSlotIsOnTheNextUtcDay()
+    public void LearnOffset_CrossesMidnightWhenTheSlotIsOnTheNextUtcDay()
     {
         // A late-night JST slot lands on the following UTC day; the offset is simply more than a day.
         var samples = new List<(DateTime, DateTime)>
         {
-            (new DateTime(2026, 7, 2), new DateTime(2026, 7, 3, 1, 30, 0, DateTimeKind.Utc)),
-            (new DateTime(2026, 7, 9), new DateTime(2026, 7, 10, 1, 30, 0, DateTimeKind.Utc)),
+            (new DateTime(2026, 7, 2, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 7, 3, 1, 30, 0, DateTimeKind.Utc)),
+            (new DateTime(2026, 7, 9, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 7, 10, 1, 30, 0, DateTimeKind.Utc)),
         };
 
-        var offset = AiringScheduleUtility.LearnAirTimeOffset(samples);
-
-        Assert.Equal(new TimeSpan(25, 30, 0), offset);
-        Assert.Equal(new DateTime(2026, 7, 24, 1, 30, 0, DateTimeKind.Utc), AiringScheduleUtility.EstimateAirTime(new DateTime(2026, 7, 23), offset!.Value));
+        Assert.Equal(new TimeSpan(25, 30, 0), AiringScheduleUtility.LearnOffset(samples));
     }
 
     [Fact]
-    public void LearnAirTimeOffset_OnlyLooksAtTheMostRecentWindow()
+    public void LearnOffset_OnlyLooksAtTheMostRecentWindow()
     {
         // Twelve old episodes in one slot, then the series moved; with a window of two only the new slot counts.
         var samples = new List<(DateTime, DateTime)>();
         for (var day = 1; day <= 12; day++)
-            samples.Add((new DateTime(2026, 1, day), new DateTime(2026, 1, day, 9, 0, 0, DateTimeKind.Utc)));
+            samples.Add((new DateTime(2026, 1, day, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 1, day, 9, 0, 0, DateTimeKind.Utc)));
         samples.Add(OffsetSample(2, 16, 28));
         samples.Add(OffsetSample(9, 16, 28));
 
-        Assert.Equal(new TimeSpan(16, 28, 0), AiringScheduleUtility.LearnAirTimeOffset(samples, window: 2));
-        Assert.Equal(new TimeSpan(9, 0, 0), AiringScheduleUtility.LearnAirTimeOffset(samples, window: 14));
+        Assert.Equal(new TimeSpan(16, 28, 0), AiringScheduleUtility.LearnOffset(samples, window: 2));
+        Assert.Equal(new TimeSpan(9, 0, 0), AiringScheduleUtility.LearnOffset(samples, window: 14));
     }
 
     #endregion

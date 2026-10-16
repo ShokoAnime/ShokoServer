@@ -274,22 +274,6 @@ public static class AiringScheduleUtility
     public const int DefaultWindow = 10;
 
     /// <summary>
-    /// Learn the offset between an AniDB air date, taken as midnight UTC, and
-    /// the actual air time in UTC, from the most recent samples.
-    /// </summary>
-    /// <param name="samples">Pairs of the AniDB air date and the precise air time (UTC) for the same episode.</param>
-    /// <param name="window">How many of the most recent samples to consider.</param>
-    /// <param name="minimumSamples">How many samples are needed before an offset is trusted.</param>
-    /// <returns>The median offset, or <c>null</c> with too few samples.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <c>null</c>.</exception>
-    public static TimeSpan? LearnAirTimeOffset(IEnumerable<(DateTime AnidbAirDate, DateTime AiredAtUtc)> samples, int window = DefaultWindow, int minimumSamples = 2)
-    {
-        ArgumentNullException.ThrowIfNull(samples);
-
-        return LearnOffset(samples.Select(sample => (GetMidnightUtc(sample.AnidbAirDate), sample.AiredAtUtc)), window, minimumSamples);
-    }
-
-    /// <summary>
     /// Learn the offset between an anchor instant and the actual air time in UTC,
     /// from the most recent samples. The anchor is midnight UTC of the AniDB air
     /// date for most schedules, and the episode's earliest known Original airing
@@ -323,15 +307,6 @@ public static class AiringScheduleUtility
     /// How far a sample's offset may sit from the median and still agree with it.
     /// </summary>
     private static readonly TimeSpan OffsetAgreement = TimeSpan.FromDays(2);
-
-    /// <summary>
-    /// Apply a learned offset to an AniDB air date.
-    /// </summary>
-    /// <param name="anidbAirDate">The AniDB air date.</param>
-    /// <param name="offset">The learned offset from midnight UTC.</param>
-    /// <returns>The estimated air time in UTC.</returns>
-    public static DateTime EstimateAirTime(DateTime anidbAirDate, TimeSpan offset)
-        => GetMidnightUtc(anidbAirDate) + offset;
 
     /// <summary>
     /// Midnight UTC of a date, whatever kind the value carried.
