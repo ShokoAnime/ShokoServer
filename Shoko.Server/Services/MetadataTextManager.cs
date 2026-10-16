@@ -194,62 +194,42 @@ public class MetadataTextManager : IMetadataTextManager
     }
 
     /// <inheritdoc />
-    public ITitle? ChoosePreferredTitle(IEnumerable<ITitle> titles, MetadataEntityType? entityType = null)
+    public TitleSelection GetTitleSelection(MetadataEntityType? entityType = null, IReadOnlyList<MetadataSource>? sources = null)
     {
-        ArgumentNullException.ThrowIfNull(titles);
-
         var settings = ISettingsProvider.Instance.GetSettings();
         var episodeOrder = TextChooser.UsesEpisodeTitleOrder(entityType);
-        return ChoosePreferredTitle(titles, entityType, episodeOrder ? settings.Language.EpisodeTitleSourceOrder : settings.Language.SeriesTitleSourceOrder);
+        var languages = episodeOrder ? Languages.PreferredEpisodeNamingLanguages : Languages.PreferredNamingLanguages;
+        return new TitleChoice(
+            [.. languages.Select(language => language.Language)],
+            sources ?? (episodeOrder ? settings.Language.EpisodeTitleSourceOrder : settings.Language.SeriesTitleSourceOrder),
+            settings.Language.UseSynonyms,
+            entityType == MetadataEntityType.Episode
+        ).ToSelection();
     }
 
     /// <inheritdoc />
-    public ITitle? ChoosePreferredTitle(IEnumerable<ITitle> titles, MetadataEntityType? entityType, IReadOnlyList<MetadataSource> sourceOrder)
+    public ITitle? ChooseTitle(IEnumerable<ITitle> titles, TitleSelection selection)
     {
         ArgumentNullException.ThrowIfNull(titles);
-        ArgumentNullException.ThrowIfNull(sourceOrder);
+        ArgumentNullException.ThrowIfNull(selection);
 
-        if (titles is not IReadOnlyList<ITitle> candidates)
-            candidates = [.. titles];
-        if (candidates.Count is 0)
-            return null;
-
-        var languages = TextChooser.UsesEpisodeTitleOrder(entityType) ? Languages.PreferredEpisodeNamingLanguages : Languages.PreferredNamingLanguages;
-        return TextChooser.ChooseTitle(candidates, new(
-            [.. languages.Select(language => language.Language)],
-            sourceOrder,
-            ISettingsProvider.Instance.GetSettings().Language.UseSynonyms,
-            entityType == MetadataEntityType.Episode
-        ));
+        return TextChooser.ChooseTitle(titles as IReadOnlyList<ITitle> ?? [.. titles], selection);
     }
 
     /// <inheritdoc />
-    public IText? ChoosePreferredOverview(IEnumerable<IText> overviews)
+    public OverviewSelection GetOverviewSelection(IReadOnlyList<MetadataSource>? sources = null)
+        => TextChooser.OverviewSelectionOf(
+            [.. Languages.PreferredDescriptionNamingLanguages.Select(language => language.Language)],
+            sources ?? ISettingsProvider.Instance.GetSettings().Language.DescriptionSourceOrder
+        );
+
+    /// <inheritdoc />
+    public IText? ChooseOverview(IEnumerable<IText> overviews, OverviewSelection selection)
     {
         ArgumentNullException.ThrowIfNull(overviews);
+        ArgumentNullException.ThrowIfNull(selection);
 
-        if (overviews is not IReadOnlyList<IText> candidates)
-            candidates = [.. overviews];
-        if (candidates.Count is 0)
-            return null;
-
-        return TextChooser.ChooseOverview(
-            candidates,
-            [.. Languages.PreferredDescriptionNamingLanguages.Select(language => language.Language)],
-            ISettingsProvider.Instance.GetSettings().Language.DescriptionSourceOrder,
-            null
-        );
-    }
-
-    /// <inheritdoc />
-    public IReadOnlyList<TitleLanguage> GetLanguageOrder(TextKind kind, MetadataEntityType? entityType = null)
-    {
-        var languages = kind is TextKind.Overview
-            ? Languages.PreferredDescriptionNamingLanguages
-            : TextChooser.UsesEpisodeTitleOrder(entityType)
-                ? Languages.PreferredEpisodeNamingLanguages
-                : Languages.PreferredNamingLanguages;
-        return [.. languages.Select(language => language.Language)];
+        return TextChooser.ChooseOverview(overviews as IReadOnlyList<IText> ?? [.. overviews], selection);
     }
 
     #endregion
@@ -2352,8 +2332,8 @@ public class MetadataTextManager : IMetadataTextManager
                 {
                     var title = source switch
                     {
-                        // AniDB has no main episode title, so x-main reads its
-                        // English one.
+                        // An AniDB episode's main title is its English one, so
+                        // x-main reads it in English.
                         _ when source == MetadataSource.AniDB => PickAnidb(anidbTitles ??= [.. episode.AniDB_Episode?.GetTitles() ?? []],
                             language.Language is TitleLanguage.Main ? TitleLanguage.English : language.Language, settings.Language.UseSynonyms),
                         _ => Pick(Cached(perSource, source, () => EpisodeTitlesFrom(episode, source)), language.Language, settings.Language.UseSynonyms),

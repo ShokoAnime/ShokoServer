@@ -297,7 +297,9 @@ goes.
 
 ## How a text is chosen
 
-One chooser serves every entry and `ChoosePreferredTitle`:
+One chooser serves every entry and `ChooseTitle`. A `TitleSelection` is its
+steps: each step a source, or any source, and a language, walked in order, and
+the settings' selection walks each preferred language over each ranked source:
 
 1. A user's overall pick.
 2. Language by language: a user's pick for that language, then the sources in

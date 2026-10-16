@@ -157,10 +157,13 @@ and the language and source order in the settings.
 | A plugin, on any other entry | `SetTitles` and `SetOverviews` under its own source; `RemoveContributions` takes them back |
 | A user | `AddText`, `UpdateText`, `EnableText`, `SetPreferredTitle`, `SetPreferredOverview` and the unsetting members, under `user` |
 
-`ChoosePreferredTitle` and `ChoosePreferredOverview` apply the same rules to
-any list of texts, such as a video chapter's names (`IChapterInfo` is an
-`IWithTitles`). `GetLanguageOrder` hands a provider the language order itself,
-for choosing which translations to store.
+`ChooseTitle` and `ChooseOverview` apply the same rules to any list of texts,
+such as a video chapter's names (`IChapterInfo` is an `IWithTitles`), by a
+`TitleSelection` or `OverviewSelection`: steps of a source, or any source, and
+a language, walked in order. `GetTitleSelection` and `GetOverviewSelection`
+build the steps the settings make, to use as they are or to change, such as
+another source order or a client's own steps per kind of entry; a provider
+reads the languages from them to choose which translations to store.
 
 An entry's main title (`TitleType.Main`) is its default. A plugin source's
 entry stored without one gets a synthesized default, listed first in `Titles` and

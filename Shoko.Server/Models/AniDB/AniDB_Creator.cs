@@ -138,7 +138,7 @@ public class AniDB_Creator : ICreator
     ITitle IWithTitles.DefaultTitle => AnidbText.PersonDefaultTitle(((IMetadata)this).ID, ((IWithTitles)this).Titles);
 
     ITitle? IWithTitles.PreferredTitle
-        => TextAccess.Manager.ChoosePreferredTitle(((IWithTitles)this).Titles, MetadataEntityType.Creator, [MetadataSource.AniDB]);
+        => TextAccess.Manager.ChooseTitle(((IWithTitles)this).Titles, TextAccess.Manager.GetTitleSelection(MetadataEntityType.Creator, [MetadataSource.AniDB]));
 
     IReadOnlyList<ITitle> IWithTitles.Titles => AnidbText.PersonTitles(((IMetadata)this).ID, Name, OriginalName);
 

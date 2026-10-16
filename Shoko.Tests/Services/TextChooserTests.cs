@@ -3,6 +3,7 @@ using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Abstractions.Metadata.Text.Options;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -121,6 +122,43 @@ public class TextChooserTests
         IReadOnlyList<ITitle> titles = [Title("Plugin", MetadataSource.User, TitleLanguage.English)];
 
         Assert.Null(TextChooser.ChooseTitle(titles, Choice([TitleLanguage.English])));
+    }
+
+    #endregion
+
+    #region Selections
+
+    [Fact]
+    public void ASelectionWalksItsOwnStepsWhateverTheSettingsSay()
+    {
+        IReadOnlyList<ITitle> titles =
+        [
+            Title("Main", _anidb, TitleLanguage.Romaji, TitleType.Main),
+            Title("日本語", _tmdb, TitleLanguage.Japanese),
+            Title("English", _tmdb, TitleLanguage.English),
+        ];
+        TitleSelection Steps(params (MetadataSource? Source, TitleLanguage Language)[] steps)
+            => new() { Steps = [.. steps.Select(step => new TitleSelectionStep { Source = step.Source, Language = step.Language })] };
+
+        Assert.Equal("日本語", TextChooser.ChooseTitle(titles, Steps((_tmdb, TitleLanguage.Japanese), (_anidb, TitleLanguage.Main)))?.Value);
+        Assert.Equal("Main", TextChooser.ChooseTitle(titles, Steps((_anidb, TitleLanguage.Main), (_tmdb, TitleLanguage.Japanese)))?.Value);
+        // A step without a source reads every source.
+        Assert.Equal("English", TextChooser.ChooseTitle(titles, Steps((null, TitleLanguage.English)))?.Value);
+        Assert.Null(TextChooser.ChooseTitle(titles, Steps((_anidb, TitleLanguage.English))));
+    }
+
+    [Fact]
+    public void ASelectionCanLeaveTheUsersPicksOut()
+    {
+        IReadOnlyList<ITitle> titles =
+        [
+            Title("English", _tmdb, TitleLanguage.English),
+            Title("Picked", MetadataSource.User, TitleLanguage.German, preference: TextPreference.Overall),
+        ];
+        var selection = new TitleSelection { Steps = [new() { Source = _tmdb, Language = TitleLanguage.English }] };
+
+        Assert.Equal("Picked", TextChooser.ChooseTitle(titles, selection)?.Value);
+        Assert.Equal("English", TextChooser.ChooseTitle(titles, selection with { UsePreferences = false })?.Value);
     }
 
     #endregion

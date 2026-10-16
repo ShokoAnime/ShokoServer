@@ -85,8 +85,8 @@ public class ChooseTitleBenchmarks
     ///   The generic chooser plugins call, over each series' full title list.
     /// </summary>
     [Benchmark]
-    public int ChoosePreferredTitleFromList()
-        => _fixture.Series.Sum(series => _textManager.ChoosePreferredTitle(series.Titles)?.Value.Length ?? 0);
+    public int ChooseTitleFromList()
+        => _fixture.Series.Sum(series => _textManager.ChooseTitle(series.Titles, _textManager.GetTitleSelection())?.Value.Length ?? 0);
 
     #endregion
 

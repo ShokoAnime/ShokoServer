@@ -199,7 +199,7 @@ Repositories use primary constructors. Side effects around saves and deletes (ca
 - `IMetadataImageContributor` — adds images from a plugin's own source to entries of any source, core ones included, declared as a `MetadataEntityScope`. One `DownloadContributedImagesJob<TContributor>` per contributor is queued whenever the core refreshes an entry's images; admins turn pairs off through `IMetadataImageContributorManager` (kept in `MetadataServiceSettings`).
 - `IMetadataPeopleStore`, `IMetadataTagStore`, `IMetadataStudioStore`, `IMetadataRelationStore`, `IMetadataSuggestionStore` — typed stores for data every source shares, keyed by `MetadataGuid` (source, entity type, source ID).
 - `IMetadataOrderingService` (in `Services/`) — alternate orderings of any series: global ones under a plugin's own source, users' local ones under `user`, plus the preferred ordering and hidden episodes.
-- `IMetadataTextManager` (in `Services/`) — keeps, chooses and gathers the titles and overviews of any entry (`ChoosePreferredTitle`, `ChoosePreferredOverview`): providers write their own entries' texts, plugins may add theirs to any entry, and users pick, add, disable and remove texts.
+- `IMetadataTextManager` (in `Services/`) — keeps, chooses and gathers the titles and overviews of any entry (`ChooseTitle`, `ChooseOverview`, by the steps of a `TitleSelection` or `OverviewSelection`; `GetTitleSelection` and `GetOverviewSelection` build the settings' steps): providers write their own entries' texts, plugins may add theirs to any entry, and users pick, add, disable and remove texts.
 
 ### Scheduling
 

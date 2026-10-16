@@ -88,76 +88,59 @@ public interface IMetadataTextManager
     IText? GetPreferredOverview(IWithOverviews entry);
 
     /// <summary>
-    ///   Picks the title a user would want out of any set of candidates, the
+    ///   The title selection the settings make for one kind of entry: each
+    ///   preferred language, best first, read from each ranked source.
+    /// </summary>
+    /// <param name="entityType">
+    ///   Which orders to read. Episodes and seasons have their own, which
+    ///   creators and characters share; anything else, <c>null</c> included,
+    ///   reads the series orders. Episodes rank generic titles last.
+    /// </param>
+    /// <param name="sources">
+    ///   Optional. The sources to read, best first, in place of the ranked
+    ///   ones.
+    /// </param>
+    /// <returns>The selection.</returns>
+    TitleSelection GetTitleSelection(MetadataEntityType? entityType = null, IReadOnlyList<MetadataSource>? sources = null);
+
+    /// <summary>
+    ///   Picks a title out of any set of candidates by a selection, the same
+    ///   way the core picks for its own entries.
+    /// </summary>
+    /// <remarks>
+    ///   Disabled and synthesized candidates are skipped. A user's picks win
+    ///   when <see cref="TitleSelection.UsePreferences"/> is set.
+    /// </remarks>
+    /// <param name="titles">The candidates, in any order.</param>
+    /// <param name="selection">The steps to walk, such as <see cref="GetTitleSelection"/> builds.</param>
+    /// <returns>The title, or <c>null</c> when no step finds one.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="titles"/> or <paramref name="selection"/> is <c>null</c>.</exception>
+    ITitle? ChooseTitle(IEnumerable<ITitle> titles, TitleSelection selection);
+
+    /// <summary>
+    ///   The overview selection the settings make: each preferred language,
+    ///   best first, read from each ranked source.
+    /// </summary>
+    /// <param name="sources">
+    ///   Optional. The sources to read, best first, in place of the ranked
+    ///   ones.
+    /// </param>
+    /// <returns>The selection.</returns>
+    OverviewSelection GetOverviewSelection(IReadOnlyList<MetadataSource>? sources = null);
+
+    /// <summary>
+    ///   Picks an overview out of any set of candidates by a selection, the
     ///   same way the core picks for its own entries.
     /// </summary>
     /// <remarks>
-    ///   A candidate a user prefers overall wins outright, and one preferred
-    ///   for its language wins once the language order reaches it. For
-    ///   episodes a real title in any preferred language beats a generic one
-    ///   such as <c>Episode 5</c>. Disabled candidates, and those from a
-    ///   source the user did not rank, are skipped.
-    /// </remarks>
-    /// <param name="titles">The candidates, in any order.</param>
-    /// <param name="entityType">
-    ///   Which ordering to walk. Episodes and seasons have their own, which
-    ///   creators and characters share; anything else, <c>null</c>
-    ///   included, is ranked as a series.
-    /// </param>
-    /// <returns>The preferred title, or <c>null</c> when none qualifies.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="titles"/> is <c>null</c>.</exception>
-    ITitle? ChoosePreferredTitle(IEnumerable<ITitle> titles, MetadataEntityType? entityType = null);
-
-    /// <summary>
-    ///   Picks the title a user would want out of any set of candidates, ranking
-    ///   the sources in the order given rather than the configured one.
-    /// </summary>
-    /// <param name="titles">The candidates, in any order.</param>
-    /// <param name="entityType">
-    ///   Which language order to walk. Episodes and seasons have their own,
-    ///   which creators and characters share; anything else, <c>null</c>
-    ///   included, is ranked as a series.
-    /// </param>
-    /// <param name="sourceOrder">
-    ///   The sources to read, best first. Candidates from any other source are
-    ///   only chosen through a user's preference.
-    /// </param>
-    /// <returns>The preferred title, or <c>null</c> when none qualifies.</returns>
-    /// <exception cref="ArgumentNullException">
-    ///   <paramref name="titles"/> or <paramref name="sourceOrder"/> is <c>null</c>.
-    /// </exception>
-    ITitle? ChoosePreferredTitle(IEnumerable<ITitle> titles, MetadataEntityType? entityType, IReadOnlyList<MetadataSource> sourceOrder);
-
-    /// <summary>
-    ///   Picks the overview a user would want out of any set of
-    ///   candidates, the same way the core picks for its own entries.
-    /// </summary>
-    /// <remarks>
-    ///   A candidate a user prefers overall wins outright, and one preferred
-    ///   for its language wins once the language order reaches it. Disabled
-    ///   candidates, and those from a source the user did not rank, are
-    ///   skipped.
+    ///   Disabled candidates are skipped. A user's picks win when
+    ///   <see cref="OverviewSelection.UsePreferences"/> is set.
     /// </remarks>
     /// <param name="overviews">The candidates, in any order.</param>
-    /// <returns>The preferred overview, or <c>null</c> when none qualifies.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="overviews"/> is <c>null</c>.</exception>
-    IText? ChoosePreferredOverview(IEnumerable<IText> overviews);
-
-    /// <summary>
-    ///   The languages the settings rank for one kind of text, best first,
-    ///   for a provider choosing which of its translations to store.
-    /// </summary>
-    /// <param name="kind">Titles or overviews.</param>
-    /// <param name="entityType">
-    ///   Which title order to read. Episodes and seasons have their own, which
-    ///   creators and characters share; anything else, <c>null</c>
-    ///   included, reads the series order. Ignored for overviews.
-    /// </param>
-    /// <returns>
-    ///   The languages, <see cref="TitleLanguage.Main"/> included where the
-    ///   settings place it.
-    /// </returns>
-    IReadOnlyList<TitleLanguage> GetLanguageOrder(TextKind kind, MetadataEntityType? entityType = null);
+    /// <param name="selection">The steps to walk, such as <see cref="GetOverviewSelection"/> builds.</param>
+    /// <returns>The overview, or <c>null</c> when no step finds one.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="overviews"/> or <paramref name="selection"/> is <c>null</c>.</exception>
+    IText? ChooseOverview(IEnumerable<IText> overviews, OverviewSelection selection);
 
     #endregion
 

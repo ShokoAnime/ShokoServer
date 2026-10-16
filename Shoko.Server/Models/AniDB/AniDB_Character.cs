@@ -83,7 +83,7 @@ public class AniDB_Character : ICharacter, IInlineTextSource
     ITitle IWithTitles.DefaultTitle => AnidbText.PersonDefaultTitle(((IMetadata)this).ID, ((IWithTitles)this).Titles);
 
     ITitle? IWithTitles.PreferredTitle
-        => TextAccess.Manager.ChoosePreferredTitle(((IWithTitles)this).Titles, MetadataEntityType.Character, [MetadataSource.AniDB]);
+        => TextAccess.Manager.ChooseTitle(((IWithTitles)this).Titles, TextAccess.Manager.GetTitleSelection(MetadataEntityType.Character, [MetadataSource.AniDB]));
 
     IReadOnlyList<ITitle> IWithTitles.Titles => AnidbText.PersonTitles(((IMetadata)this).ID, Name, OriginalName);
 

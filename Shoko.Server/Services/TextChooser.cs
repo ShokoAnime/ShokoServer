@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Text.Options;
 
 namespace Shoko.Server.Services;
 
@@ -37,35 +38,46 @@ internal static class TextChooser
     /// <param name="choice">The orders to walk and the fallbacks.</param>
     /// <returns>The title, or <c>null</c> when nothing qualifies and there is no fallback.</returns>
     private static ITitle? ChooseTitleFor(IReadOnlyList<ITitle> candidates, TitleChoice choice)
+        => ChooseTitle(candidates, choice.ToSelection(), choice.Main) ?? choice.Default ?? choice.Synthesize?.Invoke();
+
+    /// <summary>
+    ///   Chooses a title out of candidates by a selection's steps, the one
+    ///   walk every title choice goes through.
+    /// </summary>
+    /// <param name="candidates">The candidates, in any order. Disabled and synthesized ones are skipped.</param>
+    /// <param name="selection">The steps to walk.</param>
+    /// <param name="main">
+    ///   The entry's default title, which answers <c>x-main</c> for its
+    ///   source when the source lists no main title, or <c>null</c>.
+    /// </param>
+    /// <returns>The title, or <c>null</c> when no step finds one.</returns>
+    internal static ITitle? ChooseTitle(IReadOnlyList<ITitle> candidates, TitleSelection selection, ITitle? main = null)
     {
         var enabled = candidates.Where(title => title.IsEnabled && !title.IsSynthesized).ToList();
-        if (enabled.FirstOrDefault(title => title.Preference is TextPreference.Overall) is { } overall)
+        if (selection.UsePreferences && enabled.FirstOrDefault(title => title.Preference is TextPreference.Overall) is { } overall)
             return overall;
 
-        // Real titles in every language come before generic ones in any, so a real second-language
+        // Real titles in every step come before generic ones in any, so a real second-language
         // title beats "Episode 5" in the first.
-        foreach (var language in choice.Languages)
+        var picksRead = new HashSet<TitleLanguage>();
+        foreach (var step in selection.Steps)
         {
-            if (language is not TitleLanguage.Main &&
-                enabled.FirstOrDefault(title => title.Preference is TextPreference.Language && Speaks(title, language)) is { } picked)
+            if (selection.UsePreferences && step.Language is not TitleLanguage.Main && picksRead.Add(step.Language) &&
+                enabled.FirstOrDefault(title => title.Preference is TextPreference.Language && Speaks(title, step.Language)) is { } picked)
                 return picked;
 
-            foreach (var source in choice.SourceOrder)
-            {
-                if (Walk(enabled, source, language, choice.UseSynonyms, choice.RankGeneric ? false : null, choice.Main) is { } title)
-                    return title;
-            }
+            if (Walk(enabled, step.Source, step.Language, step.AllowSynonyms, selection.RankGenericTitlesLast ? false : null, main) is { } title)
+                return title;
         }
 
-        if (choice.RankGeneric)
+        if (selection.RankGenericTitlesLast)
         {
-            foreach (var language in choice.Languages)
-                foreach (var source in choice.SourceOrder)
-                    if (Walk(enabled, source, language, choice.UseSynonyms, true, choice.Main) is { } title)
-                        return title;
+            foreach (var step in selection.Steps)
+                if (Walk(enabled, step.Source, step.Language, step.AllowSynonyms, true, main) is { } title)
+                    return title;
         }
 
-        return choice.Default ?? choice.Synthesize?.Invoke();
+        return null;
     }
 
     /// <summary>
@@ -78,7 +90,7 @@ internal static class TextChooser
     ///   when the source has no title of type main.
     /// </remarks>
     /// <param name="titles">The enabled candidates.</param>
-    /// <param name="source">The source to read.</param>
+    /// <param name="source">The source to read, or <c>null</c> for any.</param>
     /// <param name="language">The language wanted.</param>
     /// <param name="useSynonyms">Whether a synonym may answer.</param>
     /// <param name="generic">
@@ -87,14 +99,14 @@ internal static class TextChooser
     /// </param>
     /// <param name="main">The entry's default title, or <c>null</c>.</param>
     /// <returns>The title, or <c>null</c> when the source has none for the language.</returns>
-    private static ITitle? Walk(List<ITitle> titles, MetadataSource source, TitleLanguage language, bool useSynonyms, bool? generic, ITitle? main)
+    private static ITitle? Walk(List<ITitle> titles, MetadataSource? source, TitleLanguage language, bool useSynonyms, bool? generic, ITitle? main)
     {
-        var pool = titles.Where(title => title.Source == source && (generic is null || GenericEpisodeTitles.LooksGeneric(title.Value) == generic));
+        var pool = titles.Where(title => (source is null || title.Source == source) && (generic is null || GenericEpisodeTitles.LooksGeneric(title.Value) == generic));
 
         // x-main asks for whatever the source calls its main title, not for a
         // title in a language named "Main".
         if (language is TitleLanguage.Main)
-            return pool.FirstOrDefault(title => title.Type is TitleType.Main) ?? MainOf(main, source, generic);
+            return pool.FirstOrDefault(title => title.Type is TitleType.Main) ?? (main is null ? null : MainOf(main, source ?? main.Source, generic));
 
         return Ranked(pool.Where(title => Speaks(title, language)), useSynonyms);
     }
@@ -262,23 +274,44 @@ internal static class TextChooser
     /// <param name="fallback">The overview to use when none qualifies, or <c>null</c>.</param>
     /// <returns>The overview, or the fallback.</returns>
     internal static IText? ChooseOverview(IReadOnlyList<IText> candidates, IReadOnlyList<TitleLanguage> languages, IReadOnlyList<MetadataSource> sourceOrder, IText? fallback)
+        => ChooseOverview(candidates, OverviewSelectionOf(languages, sourceOrder)) ?? fallback;
+
+    /// <summary>
+    ///   Chooses an overview out of candidates by a selection's steps, the one
+    ///   walk every overview choice goes through.
+    /// </summary>
+    /// <param name="candidates">The candidates, in any order. Disabled ones are skipped.</param>
+    /// <param name="selection">The steps to walk.</param>
+    /// <returns>The overview, or <c>null</c> when no step finds one.</returns>
+    internal static IText? ChooseOverview(IReadOnlyList<IText> candidates, OverviewSelection selection)
     {
         var enabled = candidates.Where(text => text.IsEnabled).ToList();
-        if (enabled.FirstOrDefault(text => text.Preference is TextPreference.Overall) is { } overall)
+        if (selection.UsePreferences && enabled.FirstOrDefault(text => text.Preference is TextPreference.Overall) is { } overall)
             return overall;
 
-        foreach (var language in languages)
+        var picksRead = new HashSet<TitleLanguage>();
+        foreach (var step in selection.Steps)
         {
-            if (enabled.FirstOrDefault(text => text.Preference is TextPreference.Language && Speaks(text, language)) is { } picked)
+            if (selection.UsePreferences && picksRead.Add(step.Language) &&
+                enabled.FirstOrDefault(text => text.Preference is TextPreference.Language && Speaks(text, step.Language)) is { } picked)
                 return picked;
 
-            foreach (var source in sourceOrder)
-                if (enabled.FirstOrDefault(text => text.Source == source && Speaks(text, language)) is { } hit)
-                    return hit;
+            if (enabled.FirstOrDefault(text => (step.Source is null || text.Source == step.Source) && Speaks(text, step.Language)) is { } hit)
+                return hit;
         }
 
-        return fallback;
+        return null;
     }
+
+    /// <summary>
+    ///   The overview selection that walks each language, best first, over
+    ///   each source.
+    /// </summary>
+    /// <param name="languages">The languages, best first.</param>
+    /// <param name="sourceOrder">The sources, best first.</param>
+    /// <returns>The selection.</returns>
+    internal static OverviewSelection OverviewSelectionOf(IReadOnlyList<TitleLanguage> languages, IReadOnlyList<MetadataSource> sourceOrder)
+        => new() { Steps = [.. languages.SelectMany(language => sourceOrder.Select(source => new OverviewSelectionStep { Source = source, Language = language }))] };
 
     /// <summary>
     ///   Chooses the overview of an entry whose texts the store keeps, reading
@@ -384,8 +417,8 @@ internal static class TextChooser
 }
 
 /// <summary>
-///   What <see cref="TextChooser.ChooseTitle"/> walks, and what it falls back
-///   to.
+///   What <see cref="TextChooser.ChooseTitle(IReadOnlyList{ITitle}, TitleChoice)"/>
+///   walks, and what it falls back to.
 /// </summary>
 /// <param name="Languages">The languages to walk, best first; <c>x-main</c> reads each source's main title.</param>
 /// <param name="SourceOrder">The sources to walk in each language, best first.</param>
@@ -406,4 +439,25 @@ internal sealed record TitleChoice(
     ITitle? Default = null,
     Func<ITitle?>? Synthesize = null,
     ITitle? Main = null
-);
+)
+{
+    /// <summary>
+    ///   The steps the choice walks: each language, best first, over each
+    ///   source.
+    /// </summary>
+    /// <returns>The selection.</returns>
+    internal TitleSelection ToSelection()
+        => new()
+        {
+            Steps =
+            [
+                .. Languages.SelectMany(language => SourceOrder.Select(source => new TitleSelectionStep
+                {
+                    Source = source,
+                    Language = language,
+                    AllowSynonyms = UseSynonyms,
+                })),
+            ],
+            RankGenericTitlesLast = RankGeneric,
+        };
+}
