@@ -26,6 +26,10 @@ public class AVDumpFilesJob() : BaseJob<AVDumpHelper.AVDumpSession>
     /// <summary>
     /// Hash key representing the videos to dump.
     /// </summary>
+    /// <remarks>
+    /// Worked out from <see cref="Videos"/>. The setter ignores its value and only
+    /// exists because the queue builds job keys from read-write properties alone.
+    /// </remarks>
     [JobKeyMember]
     public string Key
     {

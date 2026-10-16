@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Settings;
 
@@ -44,21 +43,15 @@ public static class Languages
                 return _preferredNamingLanguages;
             }
         }
-        set
-        {
-            if (ISystemService.StaticServices is null)
-                return;
+    }
 
-            lock (_lockObj)
-            {
-                var preference = ISettingsProvider.Instance.GetSettings().Language.SeriesTitleLanguageOrder;
-                _preferredNamingLanguages = preference
-                    .Where(l => !string.IsNullOrEmpty(l))
-                    .Select(l => new NamingLanguage(l))
-                    .ExceptBy(_invalidLanguages, l => l.Language)
-                    .ToList();
-            }
-        }
+    /// <summary>
+    /// Forgets <see cref="PreferredNamingLanguages"/>, so the next read takes them from the settings again.
+    /// </summary>
+    public static void ResetPreferredNamingLanguages()
+    {
+        lock (_lockObj)
+            _preferredNamingLanguages = null;
     }
 
     private static List<NamingLanguage>? _preferredEpisodeNamingLanguages;
@@ -84,21 +77,15 @@ public static class Languages
                 return _preferredEpisodeNamingLanguages;
             }
         }
-        set
-        {
-            if (ISystemService.StaticServices is null)
-                return;
+    }
 
-            lock (_lockObj)
-            {
-                var preference = ISettingsProvider.Instance.GetSettings().Language.EpisodeTitleLanguageOrder;
-                _preferredEpisodeNamingLanguages = preference
-                    .Where(l => !string.IsNullOrEmpty(l))
-                    .Select(l => new NamingLanguage(l))
-                    .ExceptBy(_invalidLanguages, l => l.Language)
-                    .ToList();
-            }
-        }
+    /// <summary>
+    /// Forgets <see cref="PreferredEpisodeNamingLanguages"/>, so the next read takes them from the settings again.
+    /// </summary>
+    public static void ResetPreferredEpisodeNamingLanguages()
+    {
+        lock (_lockObj)
+            _preferredEpisodeNamingLanguages = null;
     }
 
     private static List<NamingLanguage>? _preferredDescriptionNamingLanguages;
@@ -124,20 +111,14 @@ public static class Languages
                 return _preferredDescriptionNamingLanguages;
             }
         }
-        set
-        {
-            if (ISystemService.StaticServices is null)
-                return;
+    }
 
-            lock (_lockObj)
-            {
-                var preference = ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder;
-                _preferredDescriptionNamingLanguages = preference
-                    .Where(l => !string.IsNullOrEmpty(l))
-                    .Select(l => new NamingLanguage(l))
-                    .ExceptBy(_invalidLanguages, l => l.Language)
-                    .ToList();
-            }
-        }
+    /// <summary>
+    /// Forgets <see cref="PreferredDescriptionNamingLanguages"/>, so the next read takes them from the settings again.
+    /// </summary>
+    public static void ResetPreferredDescriptionNamingLanguages()
+    {
+        lock (_lockObj)
+            _preferredDescriptionNamingLanguages = null;
     }
 }

@@ -81,7 +81,7 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         else if (_ready && !eventArgs.Configuration.Language.SeriesTitleLanguageOrder.SequenceEqual(_seriesTitleLanguageOrder))
         {
             _seriesTitleLanguageOrder = eventArgs.Configuration.Language.SeriesTitleLanguageOrder.ToArray();
-            Languages.PreferredNamingLanguages = [];
+            Languages.ResetPreferredNamingLanguages();
             ISystemService.StaticServices.GetRequiredService<IFuzzySearchService>().InvalidateCache();
         }
 
@@ -92,7 +92,7 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         else if (_ready && !eventArgs.Configuration.Language.EpisodeTitleLanguageOrder.SequenceEqual(_episodeTitleLanguageOrder))
         {
             _episodeTitleLanguageOrder = eventArgs.Configuration.Language.EpisodeTitleLanguageOrder.ToArray();
-            Languages.PreferredEpisodeNamingLanguages = [];
+            Languages.ResetPreferredEpisodeNamingLanguages();
         }
 
         if (_descriptionLanguageOrder is null)
@@ -102,7 +102,7 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         else if (_ready && !eventArgs.Configuration.Language.DescriptionLanguageOrder.SequenceEqual(_descriptionLanguageOrder))
         {
             _descriptionLanguageOrder = eventArgs.Configuration.Language.DescriptionLanguageOrder.ToArray();
-            Languages.PreferredDescriptionNamingLanguages = [];
+            Languages.ResetPreferredDescriptionNamingLanguages();
         }
 
         // The text manager's remembered choices were made with the old language settings. This runs

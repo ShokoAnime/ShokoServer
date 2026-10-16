@@ -39,6 +39,9 @@ public interface IJobActorAccessor
     /// <summary>
     /// Raised when <see cref="CanRestore"/> changes, so the queue can let held jobs go.
     /// </summary>
+    /// <remarks>
+    /// The default keeps no handlers, since the default <see cref="CanRestore"/> never changes.
+    /// </remarks>
     event EventHandler? CanRestoreChanged { add { } remove { } }
 }
 

@@ -25,6 +25,10 @@ public class DeleteRedundantReleasesJob(IVideoService videoService, VideoLocal_P
     /// <summary>
     /// Hash key representing the places to be deleted.
     /// </summary>
+    /// <remarks>
+    /// Worked out from <see cref="PlaceIDs"/>. The setter ignores its value and only
+    /// exists because the queue builds job keys from read-write properties alone.
+    /// </remarks>
     [JobKeyMember]
     public string Key
     {

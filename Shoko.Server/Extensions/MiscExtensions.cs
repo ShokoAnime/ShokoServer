@@ -138,16 +138,6 @@ public static class MiscExtensions
                 return hashCode;
             }
         }
-
-        public static bool operator ==(SearchInfo<T> left, SearchInfo<T> right)
-        {
-            return Equals(left, right);
-        }
-
-        public static bool operator !=(SearchInfo<T> left, SearchInfo<T> right)
-        {
-            return !Equals(left, right);
-        }
     }
 
     public static SearchInfo<T> DiceFuzzySearch<T>(string text, string pattern, int k, T value)

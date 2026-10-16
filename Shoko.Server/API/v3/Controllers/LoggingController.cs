@@ -331,7 +331,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     /// <param name="threadID">Exact thread id.</param>
     /// <returns>The paged log read result.</returns>
     [HttpGet("File/{fileID}/Read")]
-    public ActionResult<LogReadResult> GetLogFileById(
+    public ActionResult<LogReadResult> GetLogsByFileId(
         [FromRoute] Guid fileID,
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null,

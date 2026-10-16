@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32.SafeHandles;
 using Mono.Unix;
 using Shoko.Abstractions.Utilities;
 
@@ -211,7 +212,7 @@ public class FileSystemHelpers : IFileSystemHelpers
         if (PlatformUtility.IsWindows)
         {
             using var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            if (GetFileInformationByHandle(fileStream.SafeFileHandle.DangerousGetHandle(), out var fileInfo))
+            if (GetFileInformationByHandle(fileStream.SafeFileHandle, out var fileInfo))
                 return (long)(((ulong)fileInfo.FileIndexHigh << 32) | fileInfo.FileIndexLow);
         }
         // We're running on Unix, so try to get the inode number.
@@ -226,7 +227,7 @@ public class FileSystemHelpers : IFileSystemHelpers
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool GetFileInformationByHandle(IntPtr hFile, out BY_HANDLE_FILE_INFORMATION lpFileInformation);
+    private static extern bool GetFileInformationByHandle(SafeFileHandle hFile, out BY_HANDLE_FILE_INFORMATION lpFileInformation);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct BY_HANDLE_FILE_INFORMATION

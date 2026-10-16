@@ -65,10 +65,13 @@ public class MetadataSourceModelBinderTests
     [Fact]
     public async Task NeverHandsOutAnUnregisteredSource()
     {
-        await Bind("msmb-never");
+        var context = await Bind("msmb-never");
 
         // A text handed out as a source of its own could no longer become an alias.
-        MetadataSource.Register("MsmbOwner", "msmb-owner", ["msmb-never"]);
+        var owner = MetadataSource.Register("MsmbOwner", "msmb-owner", ["msmb-never"]);
+
+        Assert.False(context.Result.IsModelSet);
+        Assert.Same(owner, MetadataSource.Get("msmb-never"));
     }
 
     [Theory]

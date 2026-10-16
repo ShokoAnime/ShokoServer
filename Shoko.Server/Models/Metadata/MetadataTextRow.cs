@@ -100,6 +100,10 @@ public abstract class MetadataTextRow
     /// <summary>
     ///   The kind of title, or <see cref="TitleType.None"/> for an overview.
     /// </summary>
+    /// <remarks>
+    ///   An overview has none, so setting it on one does nothing; this lets
+    ///   text be copied onto a row of either kind.
+    /// </remarks>
     public virtual TitleType TitleType
     {
         get => TitleType.None;

@@ -749,7 +749,7 @@ public static class TagFilter
             }
         }
 
-        return inverted ^ false;
+        return inverted;
     }
 }
 

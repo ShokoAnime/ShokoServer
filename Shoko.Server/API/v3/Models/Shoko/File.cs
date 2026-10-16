@@ -397,15 +397,9 @@ public partial class File
         /// </summary>
         public int? LastSubtitleStreamIndex { get; set; }
 
-        public FileUserData()
-        {
-            ProgressPosition = TimeSpan.Zero;
-            WatchedCount = 0;
-            LastWatchedAt = null;
-            LastUpdatedAt = DateTime.UtcNow;
-        }
+        public FileUserData() : this(null) { }
 
-        public FileUserData(IVideoUserData? userData = null)
+        public FileUserData(IVideoUserData? userData)
         {
             ProgressPosition = userData?.ProgressPosition ?? TimeSpan.Zero;
             WatchedCount = userData?.PlaybackCount ?? 0;

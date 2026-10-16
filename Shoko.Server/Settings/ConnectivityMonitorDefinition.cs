@@ -18,7 +18,6 @@ public class ConnectivityMonitorDefinition : IConnectivityMonitor
     public string Key
     {
         get => !string.IsNullOrWhiteSpace(Name) ? $"{Name} ({Type}: {Address})" : "New Monitor";
-        set { }
     }
 
     /// <inheritdoc/>

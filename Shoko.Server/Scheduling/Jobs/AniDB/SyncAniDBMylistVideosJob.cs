@@ -43,6 +43,10 @@ public class SyncAniDBMylistVideosJob(IMylistService mylistService, IVideoServic
     /// Hash key representing the videos to sync, so two syncs over different
     /// sets stay separate jobs while two over the same set collide and merge.
     /// </summary>
+    /// <remarks>
+    /// Worked out from <see cref="VideoIDs"/>. The setter ignores its value and only
+    /// exists because the queue builds job keys from read-write properties alone.
+    /// </remarks>
     [JobKeyMember]
     public string Key
     {

@@ -26,8 +26,6 @@ public class LogLevelRuleConfiguration : IEquatable<LogLevelRuleConfiguration>
         get => !string.IsNullOrWhiteSpace(LoggerNamePattern)
             ? LoggerNamePattern
             : "New Log Level Rule";
-        // no setter
-        set { }
     }
 
     /// <summary>
