@@ -105,6 +105,14 @@ public class SystemService : ISystemService
         LanguageExtensions.OnUnknownLanguage += lang =>
             unknownLangLogger.LogError("Unrecognized language string '{Language}' from {Caller}; add a mapping to LanguageExtensions.GetTitleLanguage().", lang, DescribeLanguageCaller());
 
+        var regexLogger = loggerFactory.CreateLogger("BoundedRegex");
+        BoundedRegex.Tripped += (pattern, input) => regexLogger.LogWarning(
+            "The regular expression {Pattern} ran past {Timeout} on {Input}; it matches nothing from now on, until it is set again.",
+            pattern,
+            RegexUtility.MatchTimeout,
+            input.Length > 200 ? input[..200] + "…" : input
+        );
+
         Version = PluginManager.GetVersionInformation();
 
         _logger = loggerFactory.CreateLogger<SystemService>();

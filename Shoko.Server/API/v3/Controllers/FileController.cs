@@ -18,6 +18,7 @@ using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
+using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Video.Streaming;
 using Shoko.QueueProcessor.Abstractions;
@@ -1841,33 +1842,7 @@ public class FileController(
     /// <returns></returns>
     [HttpGet("PathRegex/{*path}")]
     public ActionResult<List<File>> RegexSearchByPath([FromRoute] string path)
-    {
-        var query = path;
-        if (query.Contains('%') || query.Contains('+')) query = Uri.UnescapeDataString(query);
-        if (query.Contains('%')) query = Uri.UnescapeDataString(query);
-        if (Path.DirectorySeparatorChar == '\\') query = query.Replace("\\/", "\\\\");
-        Regex regex;
-
-        try
-        {
-            regex = new Regex(query, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-        }
-        catch (RegexParseException e)
-        {
-            return ValidationProblem(e.Message, "path");
-        }
-
-        var results = _videoLocalPlaces.GetAll()
-            .AsParallel()
-            .Where(a => regex.IsMatch(a.Path ?? ""))
-            .DistinctBy(v => v.VideoID)
-            .Select(a => a.VideoLocal)
-            .WhereNotNull()
-            .Where(User.AllowedVideo)
-            .Select(a => new File(HttpContext, a, true))
-            .ToList();
-        return results;
-    }
+        => RegexSearch(path, place => place.Path ?? "");
 
     /// <summary>
     /// Search for a file by path or name via regex. Internally, it will convert \/ to the system directory separator and match against the string
@@ -1876,31 +1851,48 @@ public class FileController(
     /// <returns></returns>
     [HttpGet("FilenameRegex/{*path}")]
     public ActionResult<List<File>> RegexSearchByFileName([FromRoute] string path)
+        => RegexSearch(path, place => place.FileName);
+
+    /// <summary>
+    /// Finds the files with a location whose text matches the pattern, giving
+    /// up with a validation problem on a pattern that cannot be parsed or takes
+    /// too long to match.
+    /// </summary>
+    /// <param name="path">The URL encoded pattern.</param>
+    /// <param name="selectText">Picks the text of a location to match.</param>
+    /// <returns>The files the user may see, or the validation problem.</returns>
+    private ActionResult<List<File>> RegexSearch(string path, Func<VideoLocal_Place, string> selectText)
     {
         var query = path;
         if (query.Contains('%') || query.Contains('+')) query = Uri.UnescapeDataString(query);
         if (query.Contains('%')) query = Uri.UnescapeDataString(query);
         if (Path.DirectorySeparatorChar == '\\') query = query.Replace("\\/", "\\\\");
-        Regex regex;
+        BoundedRegex regex;
 
         try
         {
-            regex = new Regex(query, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+            regex = new BoundedRegex(query, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
         }
         catch (RegexParseException e)
         {
             return ValidationProblem(e.Message, "path");
         }
 
-        var results = _videoLocalPlaces.GetAll().AsParallel()
-            .Where(a => regex.IsMatch(a.FileName))
+        // Once one location runs out of time, the rest are skipped at once.
+        var places = _videoLocalPlaces.GetAll()
+            .AsParallel()
+            .Where(a => regex.IsMatch(selectText(a)))
+            .ToList();
+        if (regex.IsTripped)
+            return ValidationProblem("The pattern took too long to match.", "path");
+
+        return places
             .DistinctBy(v => v.VideoID)
             .Select(a => a.VideoLocal)
             .WhereNotNull()
             .Where(User.AllowedVideo)
             .Select(a => new File(HttpContext, a, true))
             .ToList();
-        return results;
     }
 
     #region Linking Compat.

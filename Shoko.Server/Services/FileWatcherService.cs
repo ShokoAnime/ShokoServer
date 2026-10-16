@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services.FileSystemWatcher;
@@ -36,7 +36,7 @@ public class FileWatcherService
 
     private List<string>? _videoExtensions;
 
-    private IReadOnlyList<Regex>? _excludeExpressions;
+    private IReadOnlyList<BoundedRegex>? _excludeExpressions;
 
     private IVideoService? _videoService;
 

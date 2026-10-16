@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Settings;
 

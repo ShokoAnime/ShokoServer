@@ -1,5 +1,8 @@
 using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.UDP;
@@ -215,6 +218,25 @@ public class RequestGetFileTests
         Assert.Equal(50, result.Response.OtherEpisodes[0].Percentage);
         Assert.Equal(2222, result.Response.OtherEpisodes[1].EpisodeID);
         Assert.Equal(75, result.Response.OtherEpisodes[1].Percentage);
+    }
+
+    [Fact(Timeout = 30_000)]
+    public async Task ParseResponse_RejectsAMalformedOtherEpisodesFieldInLinearTime()
+    {
+        // Every run of digits splits two ways between neighbouring pairs, which a backtracking match tries all of.
+        var otherEpisodesField = "1," + string.Join(',', Enumerable.Repeat("111", 64)) + "x";
+        var response = new UDPResponse<string>
+        {
+            Code = UDPReturnCode.FILE,
+            Response = $"1|2|3|4|{otherEpisodesField}|0|0|high|tv|jpn|eng|desc|0|file.mkv|G|GRP"
+        };
+
+        // The field is logged as unhandled, so the request needs a logger that takes it.
+        var request = new RequestGetFile(NullLoggerFactory.Instance, Mock.Of<IAniDbUdpRequestChannel>());
+
+        var result = await Task.Run(() => request.ParseResponse(response), TestContext.Current.CancellationToken);
+
+        Assert.Empty(result.Response.OtherEpisodes);
     }
 
     [Fact]

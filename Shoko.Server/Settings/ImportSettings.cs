@@ -9,6 +9,7 @@ using NLog;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Enums;
+using Shoko.Abstractions.Utilities;
 
 namespace Shoko.Server.Settings;
 
@@ -78,25 +79,29 @@ public class ImportSettings
         @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]"
     ];
 
-    private List<Regex>? _internalExcludeRegexes;
+    private List<BoundedRegex>? _internalExcludeRegexes;
 
     /// <summary>
     /// List of regular expression instances to exclude any files that match on the full path.
     /// </summary>
+    /// <remarks>
+    /// A pattern that runs out of time stops excluding anything, so the files it was meant to
+    /// catch are let in, until the settings are saved again.
+    /// </remarks>
     [JsonIgnore]
-    public IReadOnlyList<Regex> ExcludeExpressions
+    internal IReadOnlyList<BoundedRegex> ExcludeExpressions
     {
         get
         {
             if (_internalExcludeRegexes is not null)
                 return _internalExcludeRegexes;
 
-            var excludes = new List<Regex>();
+            var excludes = new List<BoundedRegex>();
             foreach (var exclusion in Exclude)
             {
                 try
                 {
-                    var regex = new Regex(exclusion, RegexOptions.Compiled);
+                    var regex = new BoundedRegex(exclusion, RegexOptions.Compiled);
                     excludes.Add(regex);
                 }
                 catch (Exception ex)

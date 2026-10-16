@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -38,7 +37,7 @@ public class RecoveringFileSystemWatcher : IDisposable
     private readonly ILogger _logger;
     private readonly IFileSystemHelpers _fileSystemHelpers;
     private readonly IReadOnlyCollection<string> _filters;
-    private readonly IReadOnlyCollection<Regex> _pathExclusions;
+    private readonly IReadOnlyCollection<BoundedRegex> _pathExclusions;
     private readonly ConcurrentDictionary<string, byte> _buffer = new();
 
     // Raw watcher callbacks only do cheap filtering and enqueue here; all heavy work (directory
@@ -53,7 +52,7 @@ public class RecoveringFileSystemWatcher : IDisposable
     public event EventHandler<string>? FileDeleted;
     public FileSystemWatcherLockOptions Options { get; set; } = new();
 
-    public RecoveringFileSystemWatcher(string path, IReadOnlyCollection<string> filters, IReadOnlyCollection<Regex> pathExclusions, IFileSystemHelpers fileSystemHelpers)
+    internal RecoveringFileSystemWatcher(string path, IReadOnlyCollection<string> filters, IReadOnlyCollection<BoundedRegex> pathExclusions, IFileSystemHelpers fileSystemHelpers)
     {
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
         if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");

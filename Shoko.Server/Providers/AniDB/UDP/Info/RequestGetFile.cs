@@ -51,8 +51,9 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
         return b.ToString("X").PadLeft(2, '0');
     }
 
-    private static readonly Regex s_episodeFormat1 = new("^(\\d+'\\d+)+$", RegexOptions.Compiled);
-    private static readonly Regex s_episodeFormat2 = new("^(\\d+,\\d+'?)+$", RegexOptions.Compiled);
+    // The repeated groups can split a run of digits many ways, so they run without backtracking to stay linear on any reply.
+    private static readonly Regex s_episodeFormat1 = new("^(\\d+'\\d+)+$", RegexOptions.NonBacktracking);
+    private static readonly Regex s_episodeFormat2 = new("^(\\d+,\\d+'?)+$", RegexOptions.NonBacktracking);
 
     protected internal override UDPResponse<ResponseGetFile> ParseResponse(UDPResponse<string> response)
     {

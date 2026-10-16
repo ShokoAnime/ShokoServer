@@ -520,8 +520,6 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
     #region Shared Internals
 
-    private static readonly TimeSpan _logFilterRegexMatchTimeout = TimeSpan.FromMilliseconds(250);
-
     private DirectoryInfo EnsureLogDirectory()
     {
         var currentLog = GetCurrentLogFilePath();
@@ -806,7 +804,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         if (!TryParseLogFilterDsl(dsl, fieldName, out var mode, out var inverse, out var ignoreCase, out var payload, out error))
             return false;
 
-        Regex? rx = null;
+        BoundedRegex? rx = null;
         if (mode is LogTextMatchMode.Regex && !TryCompileLogFilterRegexPayload(payload, fieldName, out rx, out error))
             return false;
 
@@ -910,7 +908,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
     private static bool TryCompileLogFilterRegexPayload(
         string payload,
         string fieldName,
-        [NotNullWhen(true)] out Regex? regex,
+        [NotNullWhen(true)] out BoundedRegex? regex,
         [NotNullWhen(false)] out string? error)
     {
         regex = null;
@@ -948,7 +946,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
         try
         {
-            regex = new Regex(pattern, options, _logFilterRegexMatchTimeout);
+            regex = new BoundedRegex(pattern, options);
         }
         catch (ArgumentException ex)
         {
@@ -981,7 +979,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         /// For non-regex modes: pattern / substring.
         /// </summary>
         public required string Payload { get; init; }
-        public Regex? CompiledRegex { get; init; }
+        public BoundedRegex? CompiledRegex { get; init; }
     }
 
     /// <summary>

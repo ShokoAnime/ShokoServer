@@ -1,15 +1,20 @@
 using System;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Utilities;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Logic.Strings;
 
 /// <summary>
 /// This condition passes if the left selector matches the regular expression given in the parameter
 /// </summary>
+/// <remarks>
+/// A pattern that runs out of time on any value matches nothing from then on.
+/// </remarks>
 public class StringRegexMatchesExpression : FilterExpression<bool>, IWithStringSelectorParameter, IWithStringParameter
 {
-    private Regex? _regex;
+    private BoundedRegex? _regex;
 
     /// <inheritdoc/>
     public StringRegexMatchesExpression(FilterExpression<string> left, string parameter)
@@ -46,8 +51,9 @@ public class StringRegexMatchesExpression : FilterExpression<bool>, IWithStringS
         if (Parameter is null)
             return false;
 
-        _regex ??= new Regex(Parameter, RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        return _regex.IsMatch(left);
+        var pattern = Parameter;
+        var regex = LazyInitializer.EnsureInitialized(ref _regex, () => new BoundedRegex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase));
+        return regex.IsMatch(left);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

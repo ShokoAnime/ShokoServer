@@ -2,16 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Utilities;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Logic.StringSets;
 
 /// <summary>
 /// This condition passes if all of the values in the left selector matches the regex provided in the parameter
 /// </summary>
+/// <remarks>
+/// A pattern that runs out of time on any value matches nothing from then on.
+/// </remarks>
 public class AllRegexMatchesExpression : FilterExpression<bool>, IWithStringSetSelectorParameter, IWithStringParameter
 {
-    private Regex? _regex;
+    private BoundedRegex? _regex;
 
     /// <inheritdoc/>
     public AllRegexMatchesExpression(FilterExpression<IReadOnlySet<string>> left, string parameter)
@@ -48,8 +53,9 @@ public class AllRegexMatchesExpression : FilterExpression<bool>, IWithStringSetS
         if (Parameter is null)
             return false;
 
-        _regex ??= new Regex(Parameter, RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        return left.All(_regex.IsMatch);
+        var pattern = Parameter;
+        var regex = LazyInitializer.EnsureInitialized(ref _regex, () => new BoundedRegex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase));
+        return left.All(regex.IsMatch);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

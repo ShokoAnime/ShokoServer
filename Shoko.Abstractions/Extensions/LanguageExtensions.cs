@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Utilities;
 
 namespace Shoko.Abstractions.Extensions;
 
@@ -31,7 +32,7 @@ public static partial class LanguageExtensions
     [GeneratedRegex(
         @"^(?<lang>[^()]+?)\s*(?:\((?:[^)]*\b(?:Audio|Subs?|Subtitles?)\b[^)]*|\s*(?:\d+(?:\.\d+)?[\s-]*ch|\d\.\d)\s*)\)|\b(?:Audio|Subs?|Subtitles?)\b.*)$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
-        matchTimeoutMilliseconds: 100)]
+        matchTimeoutMilliseconds: RegexUtility.MatchTimeoutMilliseconds)]
     private static partial Regex StreamTitle();
 
     /// <summary>

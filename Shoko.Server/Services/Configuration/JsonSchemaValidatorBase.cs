@@ -1,15 +1,16 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NJsonSchema;
 using NJsonSchema.Validation;
 using NJsonSchema.Validation.FormatValidators;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services.Configuration;
@@ -28,6 +29,9 @@ public class JsonSchemaValidatorBase
     private readonly Dictionary<string, IFormatValidator[]> _formatValidatorsMap;
 
     private readonly JsonSchemaValidatorSettings _settings;
+
+    // Each pattern is compiled once per validator, so one that runs out of time is not run again for the next value.
+    private readonly ConcurrentDictionary<string, BoundedRegex> _patterns = new(StringComparer.Ordinal);
 
     public JsonSchemaValidatorBase(JsonSchemaValidatorSettings? settings = null)
     {
@@ -263,7 +267,7 @@ public class JsonSchemaValidatorBase
 
             if (value is not null)
             {
-                if (!string.IsNullOrEmpty(schema.Pattern) && !Regex.IsMatch(value, schema.Pattern))
+                if (!string.IsNullOrEmpty(schema.Pattern) && !IsPatternMatch(value, schema.Pattern))
                     errors.Add(new ValidationError(ValidationErrorKind.PatternMismatch, propertyName, propertyPath, token, schema));
 
                 if (schema.MinLength.HasValue && value.Length < schema.MinLength)
@@ -290,6 +294,17 @@ public class JsonSchemaValidatorBase
             errors.Add(new ValidationError(ValidationErrorKind.StringExpected, propertyName, propertyPath, token, schema));
         }
     }
+
+    /// <summary>
+    /// Checks whether a schema's pattern matches the input, counting a pattern
+    /// that has run out of time as no match.
+    /// </summary>
+    /// <param name="input">The text to match.</param>
+    /// <param name="pattern">The schema's pattern.</param>
+    /// <returns><c>true</c> if it matched in time, otherwise <c>false</c>.</returns>
+    /// <exception cref="ArgumentException">The pattern is not a valid regular expression.</exception>
+    private bool IsPatternMatch(string input, string pattern)
+        => _patterns.GetOrAdd(pattern, key => new BoundedRegex(key)).IsMatch(input);
 
     #endregion
 
@@ -544,7 +559,7 @@ public class JsonSchemaValidatorBase
         foreach (var property in additionalProperties.ToArray())
         {
             var subPropertyPath = GetPropertyPath(propertyPath, property.Name);
-            var patternPropertySchema = schema.PatternProperties.FirstOrDefault(p => Regex.IsMatch(property.Name, p.Key));
+            var patternPropertySchema = schema.PatternProperties.FirstOrDefault(p => IsPatternMatch(property.Name, p.Key));
             if (patternPropertySchema.Value is not null)
             {
                 if (!TryValidateChildSchema(parentToken, property.Value, patternPropertySchema.Value, schemaType, ValidationErrorKind.AdditionalPropertiesNotValid, property.Name, subPropertyPath, out var error))
