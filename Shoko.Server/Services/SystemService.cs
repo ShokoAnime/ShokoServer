@@ -1445,6 +1445,8 @@ public class SystemService : ISystemService
             {
                 lock (_databaseBlockingTasks)
                 {
+                    // Signals are only cancelled and swapped under this lock, so none is cancelled once disposed.
+                    changedSignal.Dispose();
                     changedSignal = _databaseTasksChangedCTS = new();
                     tasks = _databaseBlockingTasks.ToArray();
                 }
@@ -1461,6 +1463,7 @@ public class SystemService : ISystemService
                 {
                     _databaseBlockingTasks.Remove(finished);
                     _databaseTasksChangedCTS = null;
+                    changedSignal.Dispose();
                 }
 
                 if (finished.Exception is { } exception)
@@ -1479,11 +1482,13 @@ public class SystemService : ISystemService
                     taskSource.TrySetResult();
                     _databaseTaskSource = null;
                     _databaseTasksChangedCTS = null;
+                    changedSignal.Dispose();
 
                     Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = false }));
                     return;
                 }
 
+                changedSignal.Dispose();
                 changedSignal = _databaseTasksChangedCTS = new();
                 tasks = _databaseBlockingTasks.ToArray();
             }

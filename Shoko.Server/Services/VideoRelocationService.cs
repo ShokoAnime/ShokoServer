@@ -786,10 +786,9 @@ public class VideoRelocationService(
             .Cast<IManagedFolder>()
             .Where(a => a.DropFolderType != DropFolderType.Excluded)
             .ToList();
-        var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken ?? CancellationToken.None);
         var args = new RelocationContext
         {
-            CancellationToken = cancellationTokenSource.Token,
+            CancellationToken = cancellationToken ?? CancellationToken.None,
             Series = anime,
             File = place,
             Video = videoLocal,
