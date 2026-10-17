@@ -39,6 +39,8 @@ public class AnimeCreator
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly MetadataTextStore _textStore;
     private readonly MetadataCrossReferenceStore _crossReferences;
+    private readonly MetadataPeopleStore _peopleStore;
+    private readonly MetadataStudioStore _studioStore;
     private readonly ConcurrentDictionary<int, object> _updatingIDs = [];
 
     public AnimeCreator(
@@ -47,7 +49,9 @@ public class AnimeCreator
         IQueueScheduler scheduler,
         IVideoReleaseService videoReleaseService,
         MetadataTextStore textStore,
-        MetadataCrossReferenceStore crossReferences
+        MetadataCrossReferenceStore crossReferences,
+        MetadataPeopleStore peopleStore,
+        MetadataStudioStore studioStore
     )
     {
         _logger = logger;
@@ -56,6 +60,8 @@ public class AnimeCreator
         _videoReleaseService = videoReleaseService;
         _textStore = textStore;
         _crossReferences = crossReferences;
+        _peopleStore = peopleStore;
+        _studioStore = studioStore;
     }
 
 
@@ -1135,6 +1141,9 @@ public class AnimeCreator
 
             RepoFactory.AniDB_Anime_Character_Creator.Save(creatorXrefsToSave);
             RepoFactory.AniDB_Anime_Character_Creator.Delete(xrefsCreatorToDelete);
+
+            var creditsChanged = characterXrefsToSave.Count + xrefsToDelete.Count + creatorXrefsToSave.Count + xrefsCreatorToDelete.Count > 0;
+            RaiseCreditEvents(anime, creditsChanged, creatorsToRemove, charactersToRemove);
         }
         catch (Exception ex)
         {
@@ -1267,6 +1276,8 @@ public class AnimeCreator
 
             RepoFactory.AniDB_Anime_Staff.Save(creatorXrefsToSave);
             RepoFactory.AniDB_Anime_Staff.Delete(xrefsCreatorToDelete);
+
+            RaiseCreditEvents(anime, creatorXrefsToSave.Count + xrefsCreatorToDelete.Count > 0, creatorsToRemove, []);
         }
         catch (Exception ex)
         {
@@ -1275,6 +1286,40 @@ public class AnimeCreator
 
         if (!skipCreatorScheduling)
             ScheduleCreators(creatorsToSchedule, anime.MainTitle);
+    }
+
+    /// <summary>
+    ///   Tells the people and studio stores' listeners what a write of an
+    ///   anime's characters or staff changed, as it bypasses the stores.
+    /// </summary>
+    /// <param name="anime">The anime whose characters or staff were written.</param>
+    /// <param name="creditsChanged">Whether any of the anime's character or staff links were saved or removed.</param>
+    /// <param name="creatorsRemoved">The creators removed, the companies among them also removed as studios.</param>
+    /// <param name="charactersRemoved">The characters removed.</param>
+    private void RaiseCreditEvents(
+        AniDB_Anime anime,
+        bool creditsChanged,
+        IReadOnlyList<AniDB_Creator> creatorsRemoved,
+        IReadOnlyList<AniDB_Character> charactersRemoved
+    )
+    {
+        if (creditsChanged)
+            _peopleStore.OnCreditsChanged([((IMetadata)anime).ID]);
+
+        var creators = creatorsRemoved.DistinctBy(creator => creator.CreatorID).ToList();
+        _peopleStore.OnEntitiesRemoved(
+            [
+                .. creators.Select(creator => ((IMetadata)creator).ID),
+                .. charactersRemoved.DistinctBy(character => character.CharacterID).Select(character => ((IMetadata)character).ID),
+            ]
+        );
+        _studioStore.OnEntitiesRemoved(
+            [
+                .. creators
+                    .Where(creator => creator.Type is CreatorType.Company)
+                    .Select(creator => ((IMetadata)new AniDB_Studio(creator)).ID),
+            ]
+        );
     }
 
     private async void ScheduleCreators(IEnumerable<int> creatorIDs, string mainTitle)

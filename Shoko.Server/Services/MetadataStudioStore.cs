@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Metadata;
@@ -31,6 +34,7 @@ namespace Shoko.Server.Services;
 /// <param name="anidbCreatorRepository">The AniDB creators, of which the companies are AniDB's studios.</param>
 /// <param name="anidbStaffRepository">The AniDB staff roles, read for the anime an AniDB studio worked on.</param>
 /// <param name="entityScheduler">Routes the refresh of the stub and stale studios and networks a write names, if set.</param>
+/// <param name="logger">Optional. Where a handler's failure is logged.</param>
 public class MetadataStudioStore(
     Metadata_StudioRepository studioRepository,
     Metadata_Studio_EntryRepository entryRepository,
@@ -41,7 +45,8 @@ public class MetadataStudioStore(
     AniDB_AnimeRepository anidbAnimeRepository,
     AniDB_CreatorRepository anidbCreatorRepository,
     AniDB_Anime_StaffRepository anidbStaffRepository,
-    MetadataEntityRefreshScheduler? entityScheduler = null
+    MetadataEntityRefreshScheduler? entityScheduler = null,
+    ILogger<MetadataStudioStore>? logger = null
 ) : IMetadataStudioStore
 {
     /// <summary>
@@ -49,6 +54,31 @@ public class MetadataStudioStore(
     ///   and both add the same row.
     /// </summary>
     private readonly object _writeLock = new();
+
+    /// <summary>
+    ///   Where a handler's failure is logged.
+    /// </summary>
+    private readonly ILogger _logger = (ILogger?)logger ?? NullLogger.Instance;
+
+    #region Events
+
+    /// <inheritdoc />
+    public event EventHandler<MetadataEntitiesRemovedEventArgs>? EntitiesRemoved;
+
+    /// <summary>
+    ///   Raises <see cref="EntitiesRemoved"/> for studios and networks
+    ///   removed, those the core removes outside the store included.
+    /// </summary>
+    /// <param name="removed">The studios and networks removed. Empty raises nothing.</param>
+    internal void OnEntitiesRemoved(IReadOnlyList<MetadataGuid> removed)
+    {
+        if (removed.Count is 0)
+            return;
+
+        MetadataStoreEvents.Raise(EntitiesRemoved, this, new() { EntityIDs = removed }, _logger, nameof(EntitiesRemoved));
+    }
+
+    #endregion
 
     #region Reading
 
@@ -300,6 +330,7 @@ public class MetadataStudioStore(
         ArgumentNullException.ThrowIfNull(source);
         MetadataEntries.CheckWritableSource(source, nameof(source));
 
+        List<MetadataGuid> removed;
         lock (_writeLock)
         {
             var now = DateTime.Now;
@@ -323,7 +354,7 @@ public class MetadataStudioStore(
                     networksDeleting.Add(network);
             }
 
-            List<MetadataGuid> removed =
+            removed =
             [
                 .. studiosDeleting.Select(studio => ((IMetadata)studio).ID),
                 .. networksDeleting.Select(network => ((IMetadata)network).ID),
@@ -333,8 +364,10 @@ public class MetadataStudioStore(
                 new MetadataRowChanges<Metadata_Studio>(studioRepository, studiosStamping, studiosDeleting),
                 new MetadataRowChanges<Metadata_Network>(networkRepository, networksStamping, networksDeleting)
             );
-            return removed;
         }
+
+        OnEntitiesRemoved(removed);
+        return removed;
     }
 
     #endregion

@@ -573,4 +573,44 @@ public class MetadataPeopleStoreTests
     }
 
     #endregion
+
+    #region Events
+
+    [Fact]
+    public void ACreditWriteRaisesOneEventOnlyWhenItChangedSomething()
+    {
+        var tables = Seeded();
+        var store = tables.Store();
+        var raised = new List<IReadOnlyList<MetadataGuid>>();
+        // A failing handler is logged, and neither breaks the write nor keeps the event from the rest.
+        store.CreditsChanged += (_, _) => throw new InvalidOperationException();
+        store.CreditsChanged += (_, eventArgs) => raised.Add(eventArgs.EntityIDs);
+
+        Assert.Equal(2, store.SetCast(_series, [Role("x1", "c1"), Role("x2", "c2")]));
+        store.SetCast(_series, [Role("x1", "c1"), Role("x2", "c2")]);
+        store.SetCrew(_otherSeries, [Job("c1", "Director")]);
+        store.RemoveCast(_series);
+        store.RemoveCast(_series);
+
+        Assert.Equal([[_series], [_otherSeries], [_series]], raised);
+    }
+
+    [Fact]
+    public void RemovingTheOrphanedRaisesOneEventWithEveryOneRemoved()
+    {
+        var tables = Seeded();
+        var store = tables.Store();
+        var raised = new List<IReadOnlyList<MetadataGuid>>();
+        store.EntitiesRemoved += (_, eventArgs) => raised.Add(eventArgs.EntityIDs);
+        var longAgo = DateTime.Now.AddDays(-10);
+        tables.Creators.GetByProviderID(TestSources.AniList, "c3")!.LastOrphanedAt = longAgo;
+        tables.Characters.GetByProviderID(TestSources.AniList, "x2")!.LastOrphanedAt = longAgo;
+
+        store.RemoveOrphaned(TestSources.AniList, DateTime.Now.AddDays(-7));
+        store.RemoveOrphaned(TestSources.AniList, DateTime.Now.AddDays(-7));
+
+        Assert.Equal([[CreatorID("c3"), CharacterID("x2")]], raised);
+    }
+
+    #endregion
 }

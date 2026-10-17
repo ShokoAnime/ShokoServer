@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Models.Metadata;
@@ -34,6 +37,7 @@ namespace Shoko.Server.Services;
 /// <param name="anidbCreatorRepository">The AniDB creators.</param>
 /// <param name="anidbCharacterRepository">The AniDB characters.</param>
 /// <param name="entityScheduler">Routes the refresh of the stub and stale people a write credits, if set.</param>
+/// <param name="logger">Optional. Where a handler's failure is logged.</param>
 public class MetadataPeopleStore(
     Metadata_CreatorRepository creatorRepository,
     Metadata_CharacterRepository characterRepository,
@@ -45,7 +49,8 @@ public class MetadataPeopleStore(
     AniDB_EpisodeRepository anidbEpisodeRepository,
     AniDB_CreatorRepository anidbCreatorRepository,
     AniDB_CharacterRepository anidbCharacterRepository,
-    MetadataEntityRefreshScheduler? entityScheduler = null
+    MetadataEntityRefreshScheduler? entityScheduler = null,
+    ILogger<MetadataPeopleStore>? logger = null
 ) : IMetadataPeopleStore
 {
     /// <summary>
@@ -53,6 +58,47 @@ public class MetadataPeopleStore(
     ///   and both add the same row.
     /// </summary>
     private readonly object _writeLock = new();
+
+    /// <summary>
+    ///   Where a handler's failure is logged.
+    /// </summary>
+    private readonly ILogger _logger = (ILogger?)logger ?? NullLogger.Instance;
+
+    #region Events
+
+    /// <inheritdoc />
+    public event EventHandler<MetadataEntitiesRemovedEventArgs>? EntitiesRemoved;
+
+    /// <inheritdoc />
+    public event EventHandler<MetadataCreditsChangedEventArgs>? CreditsChanged;
+
+    /// <summary>
+    ///   Raises <see cref="EntitiesRemoved"/> for creators and characters
+    ///   removed, those the core removes outside the store included.
+    /// </summary>
+    /// <param name="removed">The creators and characters removed. Empty raises nothing.</param>
+    internal void OnEntitiesRemoved(IReadOnlyList<MetadataGuid> removed)
+    {
+        if (removed.Count is 0)
+            return;
+
+        MetadataStoreEvents.Raise(EntitiesRemoved, this, new() { EntityIDs = removed }, _logger, nameof(EntitiesRemoved));
+    }
+
+    /// <summary>
+    ///   Raises <see cref="CreditsChanged"/> for entries whose cast or crew
+    ///   changed, those the core writes outside the store included.
+    /// </summary>
+    /// <param name="entries">The entries. Empty raises nothing.</param>
+    internal void OnCreditsChanged(IReadOnlyList<MetadataGuid> entries)
+    {
+        if (entries.Count is 0)
+            return;
+
+        MetadataStoreEvents.Raise(CreditsChanged, this, new() { EntityIDs = entries }, _logger, nameof(CreditsChanged));
+    }
+
+    #endregion
 
     #region Reading
 
@@ -254,6 +300,8 @@ public class MetadataPeopleStore(
         }
 
         entityScheduler?.ScheduleDue(credited);
+        if (changed > 0)
+            OnCreditsChanged([entry]);
         return changed;
     }
 
@@ -311,6 +359,8 @@ public class MetadataPeopleStore(
         }
 
         entityScheduler?.ScheduleDue(credited);
+        if (changed > 0)
+            OnCreditsChanged([entry]);
         return changed;
     }
 
@@ -328,6 +378,7 @@ public class MetadataPeopleStore(
         ArgumentNullException.ThrowIfNull(source);
         MetadataEntries.CheckWritableSource(source, nameof(source));
 
+        List<MetadataGuid> removed;
         lock (_writeLock)
         {
             var now = DateTime.Now;
@@ -355,7 +406,7 @@ public class MetadataPeopleStore(
                     charactersDeleting.Add(character);
             }
 
-            List<MetadataGuid> removed =
+            removed =
             [
                 .. creatorsDeleting.Select(creator => ((IMetadata)creator).ID),
                 .. charactersDeleting.Select(character => ((IMetadata)character).ID),
@@ -365,8 +416,10 @@ public class MetadataPeopleStore(
                 new MetadataRowChanges<Metadata_Creator>(creatorRepository, creatorsStamping, creatorsDeleting),
                 new MetadataRowChanges<Metadata_Character>(characterRepository, charactersStamping, charactersDeleting)
             );
-            return removed;
         }
+
+        OnEntitiesRemoved(removed);
+        return removed;
     }
 
     #endregion

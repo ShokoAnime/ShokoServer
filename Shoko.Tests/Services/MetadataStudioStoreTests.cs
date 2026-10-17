@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
@@ -248,6 +249,23 @@ public class MetadataStudioStoreTests
 
         Assert.NotNull(tables.Studio("s1").LastOrphanedAt);
         Assert.Equal([StudioID("s1")], store.RemoveOrphaned(TestSources.Plugin, DateTime.MaxValue));
+    }
+
+    [Fact]
+    public void RemovingTheOrphanedRaisesOneEventWithEveryOneRemoved()
+    {
+        var tables = new Tables();
+        using var scope = tables.Scope();
+        var store = tables.Store();
+        var raised = new List<IReadOnlyList<MetadataGuid>>();
+        store.EntitiesRemoved += (_, eventArgs) => raised.Add(eventArgs.EntityIDs);
+        store.SaveStudios([new() { ID = StudioID("s1"), Name = "Unused" }]);
+        store.SaveNetworks([new() { ID = NetworkID("n1"), Name = "Unused" }]);
+
+        store.RemoveOrphaned(TestSources.Plugin, DateTime.MaxValue);
+        store.RemoveOrphaned(TestSources.Plugin, DateTime.MaxValue);
+
+        Assert.Equal([[StudioID("s1"), NetworkID("n1")]], raised);
     }
 
     #endregion

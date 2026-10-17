@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata.Events;
 
 namespace Shoko.Abstractions.Metadata.Storage;
 
@@ -19,6 +20,21 @@ namespace Shoko.Abstractions.Metadata.Storage;
 /// </remarks>
 public interface IMetadataStudioStore
 {
+    #region Events
+
+    /// <summary>
+    ///   Raised once per write that removed studios or networks, of any
+    ///   source, with every one it removed.
+    /// </summary>
+    /// <remarks>
+    ///   Covers <see cref="RemoveOrphaned"/> and the core's own removals of
+    ///   <c>anidb</c> studios. Handlers run on the writer's thread after the
+    ///   write; an exception is logged.
+    /// </remarks>
+    event EventHandler<MetadataEntitiesRemovedEventArgs>? EntitiesRemoved;
+
+    #endregion
+
     #region Reading
 
     /// <summary>

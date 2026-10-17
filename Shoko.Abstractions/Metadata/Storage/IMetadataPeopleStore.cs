@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata.Events;
 
 namespace Shoko.Abstractions.Metadata.Storage;
 
@@ -20,6 +21,31 @@ namespace Shoko.Abstractions.Metadata.Storage;
 /// </remarks>
 public interface IMetadataPeopleStore
 {
+    #region Events
+
+    /// <summary>
+    ///   Raised once per write that removed creators or characters, of any
+    ///   source, with every one it removed.
+    /// </summary>
+    /// <remarks>
+    ///   Covers <see cref="RemoveOrphaned"/> and the core's own removals of
+    ///   <c>anidb</c> people. Handlers run on the writer's thread after the
+    ///   write; an exception is logged.
+    /// </remarks>
+    event EventHandler<MetadataEntitiesRemovedEventArgs>? EntitiesRemoved;
+
+    /// <summary>
+    ///   Raised once per write that changed the cast or crew of one or more
+    ///   entries, of any source, with every entry it changed.
+    /// </summary>
+    /// <remarks>
+    ///   A write that leaves the credits as they were raises nothing. Handlers
+    ///   run on the writer's thread after the write; an exception is logged.
+    /// </remarks>
+    event EventHandler<MetadataCreditsChangedEventArgs>? CreditsChanged;
+
+    #endregion
+
     #region Reading
 
     /// <summary>
