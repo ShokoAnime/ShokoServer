@@ -486,7 +486,8 @@ public class MetadataCrossReferenceTransferService(
     ///   names, so a file another tool wrote for the same source reads the
     ///   same: three for series links, four for movie links and five for
     ///   episode links. A header is any line whose first field is not a
-    ///   number; every link starts with its AniDB anime ID.
+    ///   number; every link starts with its AniDB anime ID. A quoted field
+    ///   may span lines; its line breaks are read back as <c>\n</c>.
     /// </remarks>
     /// <param name="format">The source's file format.</param>
     /// <param name="reader">The file's text.</param>
@@ -496,14 +497,27 @@ public class MetadataCrossReferenceTransferService(
     {
         var file = new ParsedFile();
         var section = Section.None;
-        var lineNumber = 0;
+        var linesRead = 0;
         while (await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false) is { } line)
         {
-            lineNumber++;
+            var lineNumber = ++linesRead;
             if (line.Length is 0 || line[0] is '#')
                 continue;
 
-            var fields = SplitLine(line);
+            var record = line;
+            while (HasOpenQuote(record))
+            {
+                if (await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false) is not { } next)
+                {
+                    file.Errors.Add(new(lineNumber, $"Unclosed quote in the line starting at line {lineNumber}."));
+                    return file;
+                }
+
+                linesRead++;
+                record = $"{record}\n{next}";
+            }
+
+            var fields = SplitLine(record);
             if (IsHeader(fields))
             {
                 section = fields.Count switch
@@ -610,6 +624,15 @@ public class MetadataCrossReferenceTransferService(
     /// <returns>The field as written.</returns>
     private static string Quote(string field)
         => field.AsSpan().IndexOfAny(",\"\r\n") is -1 ? field : $"\"{field.Replace("\"", "\"\"")}\"";
+
+    /// <summary>
+    ///   Whether text ends inside a quoted field. A doubled quote inside a
+    ///   quoted field counts twice, so an odd count means one is open.
+    /// </summary>
+    /// <param name="text">The text read so far.</param>
+    /// <returns><c>true</c> when a quote is still open.</returns>
+    private static bool HasOpenQuote(string text)
+        => text.AsSpan().Count('"') % 2 is 1;
 
     /// <summary>
     ///   Splits a line into its fields, reading quoted ones.

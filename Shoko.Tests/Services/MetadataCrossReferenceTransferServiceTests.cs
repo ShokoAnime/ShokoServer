@@ -358,6 +358,23 @@ public class MetadataCrossReferenceTransferServiceTests
     }
 
     [Fact]
+    public async Task AQuotedLineBreakStaysInItsField()
+    {
+        var harness = new Harness();
+        var prefix = string.Concat(TestSources.Plugin.Value.Split('-').Select(part => char.ToUpperInvariant(part[0]) + part[1..]));
+        var header = $"AnidbAnimeId,{prefix}ShowId,Rating\n";
+
+        var result = await harness.Import(TestSources.Plugin, $"{header}1,\"a\nb\",UserVerified\n");
+        var counted = await harness.Import(TestSources.Plugin, $"{header}1,\"a\nb\",UserVerified\n0,5,UserVerified\n");
+        var unclosed = await harness.Import(TestSources.Plugin, $"{header}1,\"a\nb,UserVerified\n");
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("a\nb", Assert.Single(harness.Merged[0].Links).ProviderID!.ID);
+        Assert.Equal(4, Assert.Single(counted.Errors).Line);
+        Assert.Equal(2, Assert.Single(unclosed.Errors).Line);
+    }
+
+    [Fact]
     public async Task SectionsAreReadByTheirColumnsNotTheirNames()
     {
         var harness = new Harness();
