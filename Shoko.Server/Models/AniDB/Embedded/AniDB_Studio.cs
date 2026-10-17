@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Models.AniDB;
 
@@ -32,9 +33,16 @@ public class AniDB_Studio : IStudio
 
     #region Methods
 
+    /// <summary>
+    /// The anime the company has a studio role on, as the anime read their studios.
+    /// </summary>
+    /// <returns>Each anime once.</returns>
     IEnumerable<AniDB_Anime> GetAnime() =>
-        RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(AnidbID)
-        .Select(xref => xref.Anime)
+        RepoFactory.AniDB_Anime_Staff.GetByCreatorID(AnidbID)
+        .Where(xref => xref.RoleType is CreatorRoleType.Studio)
+        .Select(xref => xref.AnimeID)
+        .Distinct()
+        .Select(animeID => RepoFactory.AniDB_Anime.GetByAnimeID(animeID))
         .WhereNotNull();
 
     #endregion
