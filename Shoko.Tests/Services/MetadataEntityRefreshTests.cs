@@ -179,8 +179,9 @@ public class MetadataEntityRefreshTests
                 });
             Scheduler = new(manager.Object, queue.Object, Mock.Of<IJobFactory>(), Creators, Characters, Studios, Networks,
                 NullLogger<MetadataEntityRefreshScheduler>.Instance);
-            People = new(Creators, Characters, Cast, Crew, textStore, writer, Scheduler);
-            StudioStore = new(Studios, StudioEntries, Networks, NetworkEntries, writer, textStore, Scheduler);
+            var anidb = new AnidbPeopleTables();
+            People = new(Creators, Characters, Cast, Crew, textStore, writer, anidb.Anime, anidb.Episodes, anidb.Creators, anidb.Characters, Scheduler);
+            StudioStore = new(Studios, StudioEntries, Networks, NetworkEntries, writer, textStore, anidb.Anime, anidb.Creators, anidb.Staff, Scheduler);
             RefreshState = new(Mock.Of<IMetadataService>(), null!, null!, null!, People, StudioStore);
             _scope = new RepoFactoryScope().Set(Creators).Set(Characters).Set(Studios).Set(Networks).Set(TestTextManager.Build(textStore));
             Manager = manager;

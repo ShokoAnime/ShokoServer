@@ -10,7 +10,8 @@ namespace Shoko.Abstractions.Metadata.Storage;
 /// <remarks>
 ///   A creator or character is keyed by its own <see cref="MetadataGuid"/>,
 ///   a credit by the entry it is on. Only sources outside the core can be
-///   written. A person's names and overviews are kept in the text store, as
+///   written, but the reads also answer for <c>anidb</c>, from the core's
+///   own tables. A person's names and overviews are kept in the text store, as
 ///   a series' are. A credit naming someone not stored yet stores a stub: the
 ///   ID, with the name the credit carried as its main title, filled in by the
 ///   next save of that person. No write removes a person: one nothing

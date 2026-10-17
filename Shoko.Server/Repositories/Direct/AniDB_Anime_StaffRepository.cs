@@ -10,7 +10,7 @@ public class AniDB_Anime_StaffRepository(DatabaseFactory databaseFactory) : Base
 {
     private const int ChunkSize = 500;
 
-    public List<AniDB_Anime_Staff> GetByAnimeID(int animeID)
+    public virtual List<AniDB_Anime_Staff> GetByAnimeID(int animeID)
     {
         using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
         return session.Query<AniDB_Anime_Staff>()
@@ -18,7 +18,7 @@ public class AniDB_Anime_StaffRepository(DatabaseFactory databaseFactory) : Base
             .ToList();
     }
 
-    public List<AniDB_Anime_Staff> GetByCreatorID(int creatorID)
+    public virtual List<AniDB_Anime_Staff> GetByCreatorID(int creatorID)
     {
         using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
         return session.Query<AniDB_Anime_Staff>()

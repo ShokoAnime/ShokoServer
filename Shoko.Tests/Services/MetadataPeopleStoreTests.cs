@@ -4,10 +4,12 @@ using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Shoko.Server.Repositories.Direct.Metadata;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -57,7 +59,10 @@ public class MetadataPeopleStoreTests
             TextManager = TestTextManager.Build(TextStore);
         }
 
-        public MetadataPeopleStore Store() => new(Creators, Characters, Cast, Crew, TextStore, Writer);
+        public AnidbPeopleTables Anidb { get; } = new();
+
+        public MetadataPeopleStore Store()
+            => new(Creators, Characters, Cast, Crew, TextStore, Writer, Anidb.Anime, Anidb.Episodes, Anidb.Creators, Anidb.Characters);
     }
 
     private static Tables Seeded()
@@ -232,6 +237,42 @@ public class MetadataPeopleStoreTests
 
         Assert.Equal(["x1", "x2"], store.GetCast(_series).Select(cast => cast.Name));
         Assert.Equal([0, 1], store.GetCast(_series).Select(cast => ((Metadata_Cast)cast).Ordering));
+    }
+
+    [Fact]
+    public void AnidbPeopleAndCreditsReadFromTheAnidbTables()
+    {
+        var tables = new Tables();
+        var anidb = tables.Anidb;
+        using var scope = anidb.Scope();
+        anidb.Anime.Cache.Update(new AniDB_Anime { AniDB_AnimeID = 1, AnimeID = 30 });
+        anidb.Episodes.Cache.Update(new AniDB_Episode { AniDB_EpisodeID = 1, EpisodeID = 300, AnimeID = 30 });
+        var actor = new AniDB_Creator { AniDB_CreatorID = 1, CreatorID = 5, Name = "Kana" };
+        anidb.Creators.Cache.Update(actor);
+        anidb.Creators.Cache.Update(new AniDB_Creator { AniDB_CreatorID = 2, CreatorID = 6, Name = "Hiro" });
+        var character = new AniDB_Character { AniDB_CharacterID = 1, CharacterID = 41, Name = "Alice" };
+        anidb.Characters.Cache.Update(character);
+        anidb.AnimeCharacters.Cache.Update(new AniDB_Anime_Character { AniDB_Anime_CharacterID = 1, AnimeID = 30, CharacterID = 41 });
+        anidb.CharacterCreators.Cache.Update(
+            new AniDB_Anime_Character_Creator { AniDB_Anime_Character_CreatorID = 1, AnimeID = 30, CharacterID = 41, CreatorID = 5 }
+        );
+        anidb.StaffRows.AddRange([
+            new() { AnimeID = 30, CreatorID = 6, Role = "Direction", RoleType = CreatorRoleType.Director },
+            new() { AnimeID = 30, CreatorID = 7, Role = "Animation Work", RoleType = CreatorRoleType.Studio },
+        ]);
+        var store = tables.Store();
+        var series = new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Series, "30");
+        var characterID = new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Character, "41");
+
+        Assert.Same(actor, store.GetCreator(new(MetadataSource.AniDB, MetadataEntityType.Creator, "5")));
+        Assert.Same(character, store.GetCharacter(characterID));
+        var cast = Assert.Single(store.GetCast(series));
+        Assert.Equal(characterID, cast.CharacterID);
+        Assert.Equal(new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Creator, "5"), cast.CreatorID);
+        // The studio role is left to the studio store.
+        Assert.Equal(new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Creator, "6"), Assert.Single(store.GetCrew(series)).CreatorID);
+        Assert.Equal(characterID, Assert.Single(store.GetCast(new(MetadataSource.AniDB, MetadataEntityType.Episode, "300"))).CharacterID);
+        Assert.Empty(store.GetCast(new(MetadataSource.AniDB, MetadataEntityType.Series, "31")));
     }
 
     #endregion

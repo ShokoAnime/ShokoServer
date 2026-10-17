@@ -2,17 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Metadata.Embedded;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
+using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Server;
 using Shoko.Server.Services.MetadataStorage;
 
 namespace Shoko.Server.Services;
 
 /// <summary>
 ///   Keeps every source's studios and networks, and the entries they worked
-///   on or aired, in the store's own tables, cached in memory.
+///   on or aired, in the store's own tables, cached in memory. AniDB's
+///   studios are read from the core's own AniDB tables.
 /// </summary>
 /// <param name="studioRepository">The studios.</param>
 /// <param name="entryRepository">The studios on entries.</param>
@@ -20,6 +27,9 @@ namespace Shoko.Server.Services;
 /// <param name="networkEntryRepository">The networks on entries.</param>
 /// <param name="writer">Writes the changes.</param>
 /// <param name="textStore">Writes the studios and networks, whose names stay on their rows, and tells the text manager.</param>
+/// <param name="anidbAnimeRepository">The AniDB anime, whose studios are read for an AniDB series.</param>
+/// <param name="anidbCreatorRepository">The AniDB creators, of which the companies are AniDB's studios.</param>
+/// <param name="anidbStaffRepository">The AniDB staff roles, read for the anime an AniDB studio worked on.</param>
 /// <param name="entityScheduler">Routes the refresh of the stub and stale studios and networks a write names, if set.</param>
 public class MetadataStudioStore(
     Metadata_StudioRepository studioRepository,
@@ -28,6 +38,9 @@ public class MetadataStudioStore(
     Metadata_Network_EntryRepository networkEntryRepository,
     MetadataRowWriter writer,
     MetadataTextStore textStore,
+    AniDB_AnimeRepository anidbAnimeRepository,
+    AniDB_CreatorRepository anidbCreatorRepository,
+    AniDB_Anime_StaffRepository anidbStaffRepository,
     MetadataEntityRefreshScheduler? entityScheduler = null
 ) : IMetadataStudioStore
 {
@@ -43,21 +56,55 @@ public class MetadataStudioStore(
     public IStudio? GetStudio(MetadataGuid id)
     {
         ArgumentNullException.ThrowIfNull(id);
-        return id.EntityType == MetadataEntityType.Studio ? studioRepository.GetByProviderID(id.Source, id.ID) : null;
+        if (id.EntityType != MetadataEntityType.Studio)
+            return null;
+
+        if (id.Source == MetadataSource.AniDB)
+            return GetAnidbCreator(id) is { } creator ? new AniDB_Studio(creator) : null;
+
+        return studioRepository.GetByProviderID(id.Source, id.ID);
     }
 
     /// <inheritdoc />
     public IReadOnlyList<IStudio> GetStudios(MetadataGuid entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
+        if (entry.Source == MetadataSource.AniDB)
+        {
+            if (entry.EntityType != MetadataEntityType.Series || !TryGetAnidbID(entry, out var animeID))
+                return [];
+
+            return anidbAnimeRepository.GetByAnimeID(animeID) is IWithStudios anime ? anime.Studios : [];
+        }
+
         return entryRepository.GetByEntry(entry);
     }
 
     /// <inheritdoc />
     public IReadOnlyList<MetadataGuid> GetEntriesForStudio(MetadataGuid studio)
-        => GetStudio(studio) is Metadata_Studio stored
+    {
+        ArgumentNullException.ThrowIfNull(studio);
+        if (studio.Source == MetadataSource.AniDB)
+        {
+            // Only a company's studio roles make it a studio of the anime, as the anime read their studios.
+            if (studio.EntityType != MetadataEntityType.Studio || GetAnidbCreator(studio) is not { Type: CreatorType.Company } creator)
+                return [];
+
+            return
+            [
+                .. anidbStaffRepository.GetByCreatorID(creator.CreatorID)
+                    .Where(xref => xref.RoleType is CreatorRoleType.Studio)
+                    .Select(xref => xref.AnimeID)
+                    .Distinct()
+                    .Order()
+                    .Select(animeID => new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Series, animeID.ToString())),
+            ];
+        }
+
+        return GetStudio(studio) is Metadata_Studio stored
             ? [.. MetadataEntryRow.InOrder(entryRepository.GetByStudioID(stored.Metadata_StudioID)).Select(row => row.EntryID).Distinct()]
             : [];
+    }
 
     /// <inheritdoc />
     public INetwork? GetNetwork(MetadataGuid id)
@@ -414,6 +461,23 @@ public class MetadataStudioStore(
     #endregion
 
     #region Helpers
+
+    /// <summary>
+    ///   The AniDB creator an AniDB studio's ID names.
+    /// </summary>
+    /// <param name="id">The studio, on <c>anidb</c>.</param>
+    /// <returns>The creator, or <c>null</c> when it is not stored.</returns>
+    private AniDB_Creator? GetAnidbCreator(MetadataGuid id)
+        => TryGetAnidbID(id, out var creatorID) ? anidbCreatorRepository.GetByCreatorID(creatorID) : null;
+
+    /// <summary>
+    ///   Reads the positive number an AniDB entry is keyed by.
+    /// </summary>
+    /// <param name="id">The entry.</param>
+    /// <param name="number">The number, when the ID is one.</param>
+    /// <returns><c>true</c> when the ID is a positive number.</returns>
+    private static bool TryGetAnidbID(MetadataGuid id, out int number)
+        => id.TryGetNumericID(out number) && number > 0;
 
     /// <summary>
     ///   Stores a stub for each network named that is not stored yet, with

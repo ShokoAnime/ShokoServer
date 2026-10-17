@@ -170,13 +170,18 @@ public sealed class MetadataLookupTables
             texts,
             NoCleanup.Build()
         );
+        var anidb = new AnidbPeopleTables();
         PeopleStore = new(
             Creators,
             _characters,
             new InMemoryCastRepository(),
             new InMemoryCrewRepository(),
             texts,
-            _writer
+            _writer,
+            anidb.Anime,
+            anidb.Episodes,
+            anidb.Creators,
+            anidb.Characters
         );
         TagStore = new(_tags, CachedRepo.Build<Metadata_Tag_EntryRepository, int, Metadata_Tag_Entry>(row => row.Metadata_Tag_EntryID), _writer, texts);
         StudioStore = new(
@@ -185,7 +190,10 @@ public sealed class MetadataLookupTables
             Networks,
             CachedRepo.Build<Metadata_Network_EntryRepository, int, Metadata_Network_Entry>(row => row.Metadata_Network_EntryID),
             _writer,
-            texts
+            texts,
+            anidb.Anime,
+            anidb.Creators,
+            anidb.Staff
         );
         Orderings.StudioStore = StudioStore;
         OrderingService = Orderings.Build(() => Service!);

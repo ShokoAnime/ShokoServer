@@ -55,13 +55,18 @@ public class MetadataStoreSourceGuardTests
         public Stores()
         {
             var texts = new MetadataTextStore(new TextCache(), Writer);
+            var anidb = new AnidbPeopleTables();
             People = new(
                 CachedRepo.Build<Metadata_CreatorRepository, int, Metadata_Creator>(row => row.Metadata_CreatorID),
                 CachedRepo.Build<Metadata_CharacterRepository, int, Metadata_Character>(row => row.Metadata_CharacterID),
                 new InMemoryCastRepository(),
                 new InMemoryCrewRepository(),
                 texts,
-                Writer
+                Writer,
+                anidb.Anime,
+                anidb.Episodes,
+                anidb.Creators,
+                anidb.Characters
             );
             Tags = new(
                 CachedRepo.Build<Metadata_TagRepository, int, Metadata_Tag>(row => row.Metadata_TagID),
@@ -75,7 +80,10 @@ public class MetadataStoreSourceGuardTests
                 CachedRepo.Build<Metadata_NetworkRepository, int, Metadata_Network>(row => row.Metadata_NetworkID),
                 CachedRepo.Build<Metadata_Network_EntryRepository, int, Metadata_Network_Entry>(row => row.Metadata_Network_EntryID),
                 Writer,
-                texts
+                texts,
+                anidb.Anime,
+                anidb.Creators,
+                anidb.Staff
             );
             Relations = new(CachedRepo.Build<Metadata_RelationRepository, int, Metadata_Relation>(row => row.Metadata_RelationID), Writer);
             Suggestions = new(CachedRepo.Build<Metadata_SuggestionRepository, int, Metadata_Suggestion>(row => row.Metadata_SuggestionID), Writer);

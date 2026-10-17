@@ -103,13 +103,17 @@ public sealed class OrderingTables
     public OrderingTables(params AnimeEpisode[] shokoEpisodes)
     {
         TextStore = new(Texts, Writer);
+        var anidb = new AnidbPeopleTables();
         StudioStore = new MetadataStudioStore(
             CachedRepo.Build<Metadata_StudioRepository, int, Metadata_Studio>(row => row.Metadata_StudioID),
             CachedRepo.Build<Metadata_Studio_EntryRepository, int, Metadata_Studio_Entry>(row => row.Metadata_Studio_EntryID),
             Networks,
             NetworkEntries,
             new CacheOnlyRowWriter(),
-            TextStore
+            TextStore,
+            anidb.Anime,
+            anidb.Creators,
+            anidb.Staff
         );
         ShokoEpisodes = CachedRepo.BuildWritable<AnimeEpisodeRepository, int, AnimeEpisode>(episode => episode.AnimeEpisodeID, shokoEpisodes);
         ShokoEpisodes.Setup(repository => repository.Save(It.IsAny<AnimeEpisode>()))

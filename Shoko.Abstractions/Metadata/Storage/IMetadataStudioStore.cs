@@ -10,7 +10,8 @@ namespace Shoko.Abstractions.Metadata.Storage;
 /// <remarks>
 ///   Every source but the core's own can be written; the core keeps the
 ///   studios and networks of <c>shoko</c>, <c>user</c>, <c>generated</c> and
-///   <c>anidb</c> itself. An entry naming a studio or network not stored
+///   <c>anidb</c> itself, and the reads answer for <c>anidb</c> studios from
+///   the core's own tables. An entry naming a studio or network not stored
 ///   yet stores a stub: the ID and the name the link carried, filled in by
 ///   the next save of it. No write removes a studio or network: one no entry
 ///   names any more is purged by <see cref="RemoveOrphaned"/> once it has

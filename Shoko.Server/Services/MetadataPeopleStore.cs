@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Metadata.Embedded;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Direct.Metadata;
 using Shoko.Server.Services.MetadataStorage;
@@ -19,6 +21,7 @@ namespace Shoko.Server.Services;
 ///   store's own tables. The characters and creators are cached in memory,
 ///   while the credits are read from the database, as a source may have
 ///   millions. Their names and overviews are kept in the text tables.
+///   AniDB's people and credits are read from the core's own AniDB tables.
 /// </summary>
 /// <param name="creatorRepository">The creators.</param>
 /// <param name="characterRepository">The characters.</param>
@@ -26,6 +29,10 @@ namespace Shoko.Server.Services;
 /// <param name="crewRepository">The crew credits.</param>
 /// <param name="textStore">Keeps the names and overviews.</param>
 /// <param name="writer">Writes the changes.</param>
+/// <param name="anidbAnimeRepository">The AniDB anime, whose cast and crew are read for an AniDB series.</param>
+/// <param name="anidbEpisodeRepository">The AniDB episodes, whose cast and crew are read for an AniDB episode.</param>
+/// <param name="anidbCreatorRepository">The AniDB creators.</param>
+/// <param name="anidbCharacterRepository">The AniDB characters.</param>
 /// <param name="entityScheduler">Routes the refresh of the stub and stale people a write credits, if set.</param>
 public class MetadataPeopleStore(
     Metadata_CreatorRepository creatorRepository,
@@ -34,6 +41,10 @@ public class MetadataPeopleStore(
     Metadata_CrewRepository crewRepository,
     MetadataTextStore textStore,
     MetadataRowWriter writer,
+    AniDB_AnimeRepository anidbAnimeRepository,
+    AniDB_EpisodeRepository anidbEpisodeRepository,
+    AniDB_CreatorRepository anidbCreatorRepository,
+    AniDB_CharacterRepository anidbCharacterRepository,
     MetadataEntityRefreshScheduler? entityScheduler = null
 ) : IMetadataPeopleStore
 {
@@ -49,20 +60,35 @@ public class MetadataPeopleStore(
     public ICreator? GetCreator(MetadataGuid id)
     {
         ArgumentNullException.ThrowIfNull(id);
-        return id.EntityType == MetadataEntityType.Creator ? creatorRepository.GetByProviderID(id.Source, id.ID) : null;
+        if (id.EntityType != MetadataEntityType.Creator)
+            return null;
+
+        if (id.Source == MetadataSource.AniDB)
+            return TryGetAnidbID(id, out var creatorID) ? anidbCreatorRepository.GetByCreatorID(creatorID) : null;
+
+        return creatorRepository.GetByProviderID(id.Source, id.ID);
     }
 
     /// <inheritdoc />
     public ICharacter? GetCharacter(MetadataGuid id)
     {
         ArgumentNullException.ThrowIfNull(id);
-        return id.EntityType == MetadataEntityType.Character ? characterRepository.GetByProviderID(id.Source, id.ID) : null;
+        if (id.EntityType != MetadataEntityType.Character)
+            return null;
+
+        if (id.Source == MetadataSource.AniDB)
+            return TryGetAnidbID(id, out var characterID) ? anidbCharacterRepository.GetByCharacterID(characterID) : null;
+
+        return characterRepository.GetByProviderID(id.Source, id.ID);
     }
 
     /// <inheritdoc />
     public IReadOnlyList<ICast> GetCast(MetadataGuid entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
+        if (entry.Source == MetadataSource.AniDB)
+            return GetAnidbEntry(entry)?.Cast ?? [];
+
         return castRepository.GetByEntry(entry);
     }
 
@@ -70,6 +96,9 @@ public class MetadataPeopleStore(
     public IReadOnlyList<ICrew> GetCrew(MetadataGuid entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
+        if (entry.Source == MetadataSource.AniDB)
+            return GetAnidbEntry(entry)?.Crew ?? [];
+
         return crewRepository.GetByEntry(entry);
     }
 
@@ -379,6 +408,32 @@ public class MetadataPeopleStore(
     #endregion
 
     #region Helpers
+
+    /// <summary>
+    ///   The AniDB anime or episode an entry names, which credit their own
+    ///   cast and crew.
+    /// </summary>
+    /// <param name="entry">The entry, on <c>anidb</c>.</param>
+    /// <returns>The anime or episode, or <c>null</c> when it is not stored or of another kind.</returns>
+    private IWithCastAndCrew? GetAnidbEntry(MetadataGuid entry)
+    {
+        if (!TryGetAnidbID(entry, out var id))
+            return null;
+
+        if (entry.EntityType == MetadataEntityType.Series)
+            return anidbAnimeRepository.GetByAnimeID(id);
+
+        return entry.EntityType == MetadataEntityType.Episode ? anidbEpisodeRepository.GetByEpisodeID(id) : null;
+    }
+
+    /// <summary>
+    ///   Reads the positive number an AniDB entry is keyed by.
+    /// </summary>
+    /// <param name="id">The entry.</param>
+    /// <param name="number">The number, when the ID is one.</param>
+    /// <returns><c>true</c> when the ID is a positive number.</returns>
+    private static bool TryGetAnidbID(MetadataGuid id, out int number)
+        => id.TryGetNumericID(out number) && number > 0;
 
     /// <summary>
     ///   Keeps a date only when it is valid, so a date with no parts, such as
