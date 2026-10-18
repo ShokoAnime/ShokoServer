@@ -140,6 +140,15 @@ copies each one to `plugins/<project name>/` in the output.
 
 If that doesn't work, this document may be out of date. Check the dockerfile for guaranteedly updated build steps.
 
+# Attribution
+
+<a href="https://www.themoviedb.org/"><img src="https://www.themoviedb.org/assets/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg" alt="TMDB" width="80"></a>
+
+Shoko Server uses TMDB and the TMDB APIs, through the bundled TMDB plugin, but is not endorsed, certified, or otherwise
+approved by TMDB. Metadata and images fetched from TMDB belong to TMDB and its contributors.
+
+Other third-party data, code and libraries are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 # Contributing
 
 We are always accepting help, and there are a million little things that always need done. Hop on our [discord](https://discord.gg/shokoanime) and talk to us. Communication is important in any team. No offense, but it's difficult to help anyone that shows up out of nowhere, opens 3 issues, then creates a PR without even talking to us. We have a wealth of experience. Let us help you...preferably before the ADHD takes over, you hyperfixate, and you come up with a fantastic solution to problem that isn't at all what you expected. Support is also best found in the discord, in case you read this far.
