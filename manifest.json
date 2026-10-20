@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.535",
+      "tag": "v6.0.0-dev.535",
+      "commit": "f9289552c4e7699183623a29456f598c0ccb5677",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.535/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-20T04:52:57Z",
+      "releaseNotes": "\n`fix` (`airing`): **List airings that share a time in episode order**:\n\nAirings at the same time were ordered by link, channel and key, so a batch\nrelease came out scrambled (`#10` before `#2`, or by GUID in the lists).\n\n- Added `AiringEpisodeOrder` (anime, episode type, episode number) as the\n  first tie-break after the time in `GetAiringsInRange`, the calendar days\n  and the series and schedule airing lists\n"
+    },
+    {
       "version": "6.0.0.534",
       "tag": "v6.0.0-dev.534",
       "commit": "ce04581e6c781c1f145ef70d659d454ee36a680e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.506/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-11T14:50:39Z",
       "releaseNotes": "\n`fix` (`relocation`): **Allow case-only renames on case-sensitive file systems** ([#1451](https://github.com/ShokoAnime/ShokoServer/pull/1451)):\n\n* fix(relocation): allow case-only renames on case-sensitive file systems\n\nThe same-location guard in `InternalDirectlyRelocateFile` aborted every path that differed only by case, even where the file system treats them as different paths.\n\n- Aborted only when the new path exists and is not the same file as the old one.\n- Rename via temp. name for same file different case rename.\n- Added `ReuseExistingFolderCase` so a folder differing only by case from an existing one is reused rather than duplicated.\n"
-    },
-    {
-      "version": "6.0.0.505",
-      "tag": "v6.0.0-dev.505",
-      "commit": "2629c66b1aa0acfaae94f15b3ac32dfc1dc46501",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.505/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-10T17:20:56Z",
-      "releaseNotes": "\n`fix` (`shoko`): **Resolve series episode/movie cross-references by anime id** ([#1453](https://github.com/ShokoAnime/ShokoServer/pull/1453)):\n\nAnimeSeries exposed ISeries.MetadataEpisodeCrossReferences and\nISeries.MetadataMovieCrossReferences by calling the per-episode lookups\n(GetEpisodeCrossReferences / GetMovieCrossReferences) with the series'\nAniDB *anime* id. Those methods are keyed by AniDB episode id, so the\nresult was empty (or, when an unrelated AniDB episode happens to share\nthe id, wrong).\n\nThe sibling MetadataSeriesCrossReferences / MetadataSeasonCrossReferences\nproperties and AniDB_Anime already use the series-scoped overloads; do\nthe same here with GetEpisodeCrossReferencesForSeries /\nGetMovieCrossReferencesForSeries.\n\nThis restores the episode<->AniDB mapping consumed by relocation/rename\nproviders (e.g. LuaRenamer's TmdbToModel), which otherwise lose the link\nand fall back to season 1 for sequel anime.\n\nRegression introduced in afe0455581.\n"
     }
   ]
 }
