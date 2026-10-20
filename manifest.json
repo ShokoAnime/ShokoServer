@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.538",
+      "tag": "v6.0.0-dev.538",
+      "commit": "0dde8916fa33d6e7752671d8406cb1f5f5f224f2",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.538/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-20T09:31:12Z",
+      "releaseNotes": "\n`repo`: **Add AniDB, TMDB attribution and third-party notices** ([#1462](https://github.com/ShokoAnime/ShokoServer/pull/1462)):\n\nCo-authored-by: revam <7761729+revam@users.noreply.github.com>\n"
+    },
+    {
       "version": "6.0.0.537",
       "tag": "v6.0.0-dev.537",
       "commit": "20919ee978fb7fbdd3d6ede66ce531d6c8a2d201",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.509/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-11T19:16:14Z",
       "releaseNotes": "\n`fix` (`abstractions`): **Map more language codes and stream-title junk** ([#1454](https://github.com/ShokoAnime/ShokoServer/pull/1454)): (_Skip CI_)\n\n- Added `LowGerman`, `Akan`, `Romansh`, `Tongan`, `Newari`, `Yapese` and `Pali` to `TitleLanguage` with their `GetTitleLanguage`, `GetDescription` and `GetString` mappings. `yue` resolves to `Chinese` like the existing `Cantonese` name, and `jap` and `Deutsch` are aliases.\n\n- Added `nds`, `new` and `yap` to the language table, renamed `rm` to `Romansh`, `to` to `Tongan`, `nd` to `North Ndebele`, `cu` to `Church Slavic`, `na` to `Nauruan`, `li` to `Limburgish` and the Norwegian variants to their `TitleLanguage` descriptions. A test checks every language the table and the enum share, with the ISO names kept on purpose listed as exceptions.\n\n- Language fields holding stream titles such as `English (Japanese Audio)` or `Japanese Audio (2 ch)` now resolve from the text before the suffix. Strings that still do not resolve keep logging as an error.\n\n`fix` (`media-info`): **Resolve region-tagged stream languages** ([#1455](https://github.com/ShokoAnime/ShokoServer/pull/1455)): (_Skip CI_)\n\n- MKV tracks tagged `ja-JP`, `en-US` or `es-419` missed the 2-letter lookup, logged a missing language code warning and left `LanguageCode` and `LanguageName` empty. The lookup is now case-insensitive and retries on the part before the first `-` or `_`.\n\n- Added `RepairRegionTaggedStreamLanguages` as its own schema version on SQLite (175), SQL Server (194) and MySQL (196). It fills `LanguageCode` and `LanguageName` on every stored stream whose language carries a region and whose code is empty.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.103**.\n"
-    },
-    {
-      "version": "6.0.0.508",
-      "tag": "v6.0.0-dev.508",
-      "commit": "0d8d42a186e7bfd34c3f7a733fb5cebbf039af16",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.508/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-11T18:46:51Z",
-      "releaseNotes": "\n`chore`: **Drop tests pinning authorization levels**:\n\n- Removed `AdminAuthorizationTests` and the non-admin refusal test in `RestartEventEmitterTests`\n- Renamed the registry's `CanConnect` test after what it checks\n- Stopped singling out emitters in `CLAUDE.md`\n"
     }
   ]
 }
