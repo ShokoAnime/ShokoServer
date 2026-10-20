@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/ShokoAnime/Shoko/master/Shoko.BuildTools/manifest.schema.json",
   "title": "Shoko Plugin Manifest",
-  "description": "Schema for Shoko plugin manifest files (manifest.json). Defines the plugin package metadata, releases, and dependencies.",
+  "description": "Schema for Shoko plugin manifest files (manifest.json). Defines the plugin package metadata and its releases, with their dependencies.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -76,13 +76,6 @@
       },
       "uniqueItems": true
     },
-    "dependencies": {
-      "description": "Top-level dependencies for the plugin. These are injected into the built DLL as serialized assembly metadata. Per-release dependencies in each release entry are used for install-time resolution.",
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/Dependency"
-      }
-    },
     "releases": {
       "description": "Available releases/versions of the plugin.",
       "type": "array",
@@ -118,9 +111,6 @@
         "description": "Ignored for reference manifests."
       },
       "tags": {
-        "description": "Ignored for reference manifests."
-      },
-      "dependencies": {
         "description": "Ignored for reference manifests."
       },
       "releases": {
@@ -211,7 +201,7 @@
           "type": "string"
         },
         "dependencies": {
-          "description": "Per-release dependencies for install-time resolution. If not set, the top-level dependencies are used.",
+          "description": "The plugins this release depends on, which the server resolves when it installs the release. The build records the dependencies the project states.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/Dependency"

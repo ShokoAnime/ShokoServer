@@ -6,7 +6,7 @@ namespace Shoko.BuildTools.Tasks;
 /// <summary>
 ///   MSBuild task that reads a plugin's manifest.json and writes a .cs file
 ///   with assembly metadata attributes for PackageID, PackageName,
-///   PackageOverview, tags, and dependencies.
+///   PackageOverview, tags, and the dependencies the project states.
 /// </summary>
 public class ReadPluginManifest : PluginMetadataTask
 {
@@ -51,24 +51,10 @@ public class ReadPluginManifest : PluginMetadataTask
                 ? tagsEl.EnumerateArray().Select(t => t.GetString()).OfType<string>().Where(t => t.Length > 0).ToList()
                 : null;
 
-            var dependencies = new List<PluginDependencyEntry>();
-            if (root.TryGetProperty("dependencies", out var depsEl) && depsEl.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var d in depsEl.EnumerateArray())
-                {
-                    if (!d.TryGetProperty("id", out var depIdEl) || !Guid.TryParse(depIdEl.GetString(), out var depId) ||
-                        !d.TryGetProperty("version", out var depVersionEl) || depVersionEl.GetString() is not { } depVersion)
-                    {
-                        Log.LogError("A dependency in {0} lacks a GUID id or a version: {1}", manifestPath, d.GetRawText());
-                        return false;
-                    }
+            if (root.TryGetProperty("dependencies", out _))
+                Log.LogWarning("{0} lists top-level dependencies, which a build does not read. State them in the project as PluginDependency items.", manifestPath);
 
-                    var optional = d.TryGetProperty("optional", out var o) && o.ValueKind == JsonValueKind.True;
-                    dependencies.Add(new PluginDependencyEntry(depId, depVersion, optional));
-                }
-            }
-
-            return WriteMetadata(nameof(ReadPluginManifest), id, name, overview, tags, dependencies, $"dependencies in {manifestPath}");
+            return WriteMetadata(nameof(ReadPluginManifest), id, name, overview, tags, null, "PluginDependencies");
         }
         catch (Exception ex)
         {

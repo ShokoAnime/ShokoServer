@@ -93,7 +93,9 @@ internal static class BuildCommand
 
             // ── Plugin metadata ───────────────────────────────────────
             // A flag beats the matching MSBuild property, which beats the
-            // manifest. A stated list replaces the manifest's; never merged.
+            // manifest. The dependencies come from the flag, the property or
+            // the project's PluginDependency items, never from the manifest.
+            // A stated list replaces the others; never merged.
             var pluginId = manifest?.ID;
             if (Stated(metadataInput.ID, "--id", project, "PluginID") is { } statedId)
             {
@@ -123,8 +125,12 @@ internal static class BuildCommand
 
             List<PluginDependencyEntry> dependencies;
             string dependencySource;
+            var dependencyItems = project.GetItems("PluginDependency");
             if (Stated(metadataInput.Dependencies, "--dependencies", project, "PluginDependencies") is { } statedDependencies)
             {
+                if (dependencyItems.Count > 0)
+                    Console.Error.WriteLine($"Warning: {statedDependencies.Source} replaces the project's PluginDependency items.");
+
                 dependencySource = statedDependencies.Source;
                 dependencies = PluginDependencyList.Parse(statedDependencies.Value, out var parseErrors);
                 if (parseErrors.Count > 0)
@@ -135,13 +141,31 @@ internal static class BuildCommand
                     return 1;
                 }
             }
+            else if (dependencyItems.Count > 0)
+            {
+                dependencySource = $"PluginDependency items in {Path.GetFileName(projectFile)}";
+                var items = dependencyItems.Select(item => (
+                    item.EvaluatedInclude,
+                    (string?)item.GetMetadataValue("Version"),
+                    (string?)item.GetMetadataValue("Optional")
+                ));
+                dependencies = PluginDependencyList.ParseItems(items, out var parseErrors);
+                if (parseErrors.Count > 0)
+                {
+                    Console.Error.WriteLine($"Invalid {dependencySource}:");
+                    foreach (var error in parseErrors)
+                        Console.Error.WriteLine($"  {error}");
+                    return 1;
+                }
+            }
             else
             {
-                dependencySource = $"dependencies in {manifestFullPath}";
-                dependencies = manifest?.Dependencies
-                    ?.Select(d => new PluginDependencyEntry(d.ID, d.Version, d.IsOptional))
-                    .ToList() ?? [];
+                dependencySource = "dependencies";
+                dependencies = [];
             }
+
+            if (manifest?.Extra?.ContainsKey("dependencies") is true)
+                Console.Error.WriteLine($"Warning: {manifestFullPath} lists top-level dependencies, which a build does not read. State them in the project as PluginDependency items.");
 
             var dependencyErrors = PluginDependencyList.Validate(dependencies);
             if (dependencyErrors.Count > 0)

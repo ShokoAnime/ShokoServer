@@ -1,6 +1,6 @@
 # Shoko.BuildTools.Targets
 
-MSBuild targets for [Shoko Server](https://shokoanime.com) plugin projects. On every build they stamp the assembly metadata the server reads from a plugin: its identity (from `manifest.json` or the source), the runtime identifier, the release channel and the source revision.
+MSBuild targets for [Shoko Server](https://shokoanime.com) plugin projects. On every build they stamp the assembly metadata the server reads from a plugin: its identity (from the project, `manifest.json` or the source), its dependencies (from the project), the runtime identifier, the release channel and the source revision.
 
 ## Getting started
 
@@ -9,6 +9,19 @@ MSBuild targets for [Shoko Server](https://shokoanime.com) plugin projects. On e
 ```
 
 Nothing else is needed; the targets run as part of `dotnet build`. To also pack a release archive and update a release manifest, use the [Shoko.BuildTools](https://www.nuget.org/packages/Shoko.BuildTools) tool.
+
+## Plugin metadata
+
+The plugin's identity and tags come from its `manifest.json`, or from its source without one, unless the project states them as `PluginID`, `PluginName`, `PluginOverview` and `PluginTags` properties. Its dependencies, the plugins the server loads before it, belong in the project, one `PluginDependency` item per plugin:
+
+```xml
+<ItemGroup>
+  <PluginDependency Include="0f8a1c2e-1111-2222-3333-444455556666" Version="^1.2.0" />
+  <PluginDependency Include="7d3b9f40-aaaa-bbbb-cccc-ddddeeeeffff" Version=">=2.0" Optional="true" />
+</ItemGroup>
+```
+
+`Include` is the plugin's ID, `Version` a range (`>=1.0.0`, `^1.0.0`, `~1.0.0` or `1.0.0`), and `Optional` `true` or `false`, `false` when left out. The `PluginDependencies` property, the same list as one string, replaces the items. A manifest's top-level `dependencies` are not read. A bad item stops the build, naming it. See [Plugin metadata](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#plugin-metadata) and [Dependencies](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#dependencies) in the guide.
 
 ## Documentation
 

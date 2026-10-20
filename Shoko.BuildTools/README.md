@@ -5,8 +5,10 @@ auto-discovery of service interfaces, and manifest management.
 
 ## What it does
 
-1. **Reads** the plugin's `manifest.json` (if supplied) for dependencies, tags, and identity,
-   any of which can instead be [stated on the command line](#plugin-metadata).
+1. **Reads** the plugin's identity and tags from its project or the command line, or
+   from its `manifest.json` (if supplied) for what neither states, and its
+   dependencies from the project or the command line alone. See
+   [Plugin metadata](#plugin-metadata) and [Dependencies](#dependencies).
 2. **Scans source files** with Roslyn syntax trees to auto-detect Shoko service
    interface implementations (`IReleaseInfoProvider` → `release-provider`,
    `IHostedService` → `hosted-service`, etc.) and prepends them to the tags.
@@ -60,7 +62,7 @@ shoko-build [options] [-- <msbuild-args>]
 | `--name <name>` | | Plugin name, replacing the manifest's. |
 | `--overview <text>` | | Plugin overview, replacing the manifest's. |
 | `--tags <list>` | | Comma-separated tags, replacing the manifest's. Auto-detected tags are still added. |
-| `--dependencies <list>` | | Plugin dependencies, replacing the manifest's. See [Dependency list](#dependency-list). |
+| `--dependencies <list>` | | Plugin dependencies, replacing the project's. See [Dependencies](#dependencies). |
 
 Both templates are evaluated per runtime identifier, so one invocation
 covers a whole matrix:
@@ -114,27 +116,75 @@ an error in both the tool and the targets package.
 
 ### Plugin metadata
 
-The plugin's identity, tags and dependencies come from the manifest unless
-stated, highest precedence first:
+The plugin's identity and tags come from the manifest unless stated, and its
+dependencies only ever from the project or the command line, highest
+precedence first:
 
-| Flag | MSBuild property | Manifest field |
-|------|------------------|----------------|
+| Flag | In the project | Manifest field |
+|------|----------------|----------------|
 | `--id` | `PluginID` | `id` |
 | `--name` | `PluginName` | `name` |
 | `--overview` | `PluginOverview` | `overview` |
 | `--tags` | `PluginTags` | `tags` |
-| `--dependencies` | `PluginDependencies` | `dependencies` |
+| `--dependencies` | `PluginDependencies`, then `PluginDependency` items | |
 
-A stated value replaces the manifest's; lists are never merged. Stated
-dependencies are also what the manifest's release entry records.
-`Shoko.BuildTools.Targets` reads the same properties, so a plain
-`dotnet build` takes them too.
+A stated value replaces the manifest's, and lists are never merged. The
+dependencies stated are what the release entry records.
+`Shoko.BuildTools.Targets` reads the same properties and items, so a plain
+`dotnet build` takes them too. The properties go in the plugin's `.csproj`
+like any other:
+
+```xml
+<PropertyGroup>
+  <PluginName>Example Plugin</PluginName>
+  <PluginTags>example,metadata</PluginTags>
+</PropertyGroup>
+```
 
 When there is a manifest, `--id` has to match its `id`: the manifest is
 updated with this build's release, so it must describe the same plugin.
 The targets package never writes the manifest and has no such check.
 
+### Dependencies
+
+A plugin's dependencies are the plugins the server installs and loads
+before it. They are build inputs: stamped into the assembly as
+`PackageDependencies` and recorded in the release entry each build adds,
+which is what the server resolves when it installs a release. So they belong
+in the project, one `PluginDependency` item per plugin:
+
+```xml
+<ItemGroup>
+  <!-- Example Library, which the plugin cannot run without. -->
+  <PluginDependency Include="0f8a1c2e-1111-2222-3333-444455556666" Version="^1.2.0" />
+  <!-- Example Extras, used when it is installed. -->
+  <PluginDependency Include="7d3b9f40-aaaa-bbbb-cccc-ddddeeeeffff" Version=">=2.0" Optional="true" />
+</ItemGroup>
+```
+
+- `Include` is the plugin's ID, a GUID.
+- `Version` is required: `>=1.0.0`, `^1.0.0`, `~1.0.0` or an exact `1.0.0`.
+- `Optional` is `true` or `false`, and `false` when left out. A required
+  dependency that is missing, disabled or of another version keeps the
+  plugin from loading; an optional one is loaded first when it is there, and
+  ignored when it is not.
+- An item that does not parse, a range the server cannot evaluate, or a
+  plugin listed twice stops the build, naming the item.
+
+They are an ordinary item group, so a `Condition` on an item, or items added
+from a `Directory.Build.props`, work as anywhere else, and a version may come
+from a property, such as `Version=">=$(ExampleLibraryVersion)"`.
+
+A manifest has no top-level `dependencies`: a build that finds them there
+warns and ignores them.
+
 ### Dependency list
+
+`--dependencies` and the `PluginDependencies` property take the same
+dependencies as one string, the format of the assembly's
+`PackageDependencies` metadata. Either replaces the project's
+`PluginDependency` items, the property with a warning when the project has
+some, so `-p:PluginDependencies=...` overrides them for one build.
 
 ```
 <guid>@<range>[:optional|:required][,<guid>@<range>[:optional|:required]]*
@@ -250,9 +300,6 @@ See `manifest.schema.json` in this directory for the full JSON Schema.
   "authors": "Example Author",
   "repository_url": "https://github.com/user/Shoko.Plugin.ExamplePlugin",
   "tags": ["example"],
-  "dependencies": [
-    { "id": "<guid-of-dependency>", "version": ">=1.0.0" }
-  ],
   "releases": [
     {
       "version": "1.0.0",
@@ -266,18 +313,25 @@ See `manifest.schema.json` in this directory for the full JSON Schema.
           "url": "https://github.com/user/Shoko.Plugin.ExamplePlugin/releases/download/v1.0.5/plugin.zip",
           "checksum": "sha256:<sha256>"
         }
+      ],
+      "dependencies": [
+        { "id": "<guid-of-dependency>", "version": ">=1.0.0" }
       ]
     }
   ]
 }
 ```
 
+The dependencies are per release: each entry records those its build stated
+(see [Dependencies](#dependencies)), and the server resolves them when it
+installs that release.
+
 Besides the fields above, a manifest may give `homepage_url`, a wide
 `thumbnail_url` and a square `icon_url` (readable at 16 pixels). The
 deprecated `image_url` is read as the thumbnail when there is no
 `thumbnail_url`. A manifest with `"type": "manifest"` and a `url` points at
 another manifest instead of describing a plugin. A release can also carry
-`source_revision`, `release_notes` and its own `dependencies`.
+`source_revision` and `release_notes`.
 
 A plugin can embed its thumbnail and icon in its assembly instead
 (`IPlugin.EmbeddedThumbnailResourceName` and `EmbeddedIconResourceName`).
@@ -337,6 +391,9 @@ in their `.csproj`. The tool handles all of that. A minimal plugin `.csproj`:
 </Project>
 ```
 
+A plugin that needs other plugins lists them as `PluginDependency` items; see
+[Dependencies](#dependencies).
+
 Keep `ExcludeAssets="runtime"` on the `Shoko.Abstractions` reference. The tool
 packs everything in the build's output directory, and without it your plugin
 ships its own copy of `Shoko.Abstractions.dll`, which makes the server skip the
@@ -364,14 +421,16 @@ dependency:
 Its targets run before `CoreGenerateAssemblyInfo` and stamp the assembly with:
 
 - `RuntimeIdentifier`: the build's runtime identifier, or `any` without one.
-- The plugin's identity, tags and dependencies (`PackageID`, `PackageName`,
-  `PackageOverview`, `PackageTags`, `PackageDependencies`). They come from
-  `manifest.json` in the project's directory or its parent. Without a
-  manifest, the ID, name and description are read from the plugin class's
-  source with Roslyn, following an ID derived from a type name through
-  `UuidUtility.GetV5`. Either way, the `PluginID`, `PluginName`,
-  `PluginOverview`, `PluginTags` and `PluginDependencies` properties win, as
-  described in [Plugin metadata](#plugin-metadata).
+- The plugin's identity and tags (`PackageID`, `PackageName`,
+  `PackageOverview`, `PackageTags`). They come from `manifest.json` in the
+  project's directory or its parent. Without a manifest, the ID, name and
+  description are read from the plugin class's source with Roslyn, following
+  an ID derived from a type name through `UuidUtility.GetV5`. Either way, the
+  `PluginID`, `PluginName`, `PluginOverview` and `PluginTags` properties win,
+  as described in [Plugin metadata](#plugin-metadata).
+- The plugin's dependencies (`PackageDependencies`), from the project's
+  `PluginDependency` items or its `PluginDependencies` property, as described
+  in [Dependencies](#dependencies).
 - `ReleaseChannel`, only when the `ReleaseChannel` property is set. An
   unrecognised name fails the build.
 - `ReleaseDate`, `SourceRevision` and `ReleaseTag` from the repository, the

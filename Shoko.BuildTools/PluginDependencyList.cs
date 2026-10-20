@@ -1,8 +1,9 @@
 namespace Shoko.BuildTools;
 
 /// <summary>
-///   One plugin dependency, as carried by the <c>PackageDependencies</c>
-///   assembly metadata and the <c>--dependencies</c> flag.
+///   One plugin dependency, as the <c>--dependencies</c> flag, the
+///   <c>PluginDependencies</c> property and <c>PluginDependency</c> items
+///   state it, and the <c>PackageDependencies</c> assembly metadata carries it.
 /// </summary>
 internal readonly record struct PluginDependencyEntry(Guid PluginID, string VersionRange, bool IsOptional);
 
@@ -11,6 +12,7 @@ internal readonly record struct PluginDependencyEntry(Guid PluginID, string Vers
 ///   <c>guid@range[:optional|:required][,guid@range[:optional|:required]]*</c>.
 ///   Whitespace around every separator is ignored, and so are empty entries.
 ///   The legacy <c>guid:range[:true]</c> form is still read, entry by entry.
+///   Also reads the same dependencies from <c>PluginDependency</c> items.
 ///   <c>Shoko.BuildTools.Targets</c> reads the same inputs with a copy of its
 ///   own, and <c>Shoko.Server</c> reads the metadata with another, each with
 ///   what its side uses; keep the format the same in all three.
@@ -45,6 +47,61 @@ internal static class PluginDependencyList
         }
 
         return dependencies;
+    }
+
+    /// <summary>
+    ///   Read <c>PluginDependency</c> items. Entries that cannot be read are
+    ///   left out and described in <paramref name="errors" />.
+    /// </summary>
+    public static List<PluginDependencyEntry> ParseItems(IEnumerable<(string Include, string? Version, string? Optional)> items, out List<string> errors)
+    {
+        errors = [];
+        var dependencies = new List<PluginDependencyEntry>();
+        foreach (var (include, version, optional) in items)
+        {
+            if (TryParseItem(include, version, optional, out var dependency, out var error))
+                dependencies.Add(dependency);
+            else
+                errors.Add(error);
+        }
+
+        return dependencies;
+    }
+
+    /// <summary>
+    ///   Read one <c>PluginDependency</c> item: its <c>Include</c> is the
+    ///   plugin's ID, its <c>Version</c> the version range, and its
+    ///   <c>Optional</c>, when given, <c>true</c> or <c>false</c>. The range
+    ///   is checked by <see cref="Validate" />, as a list's ranges are.
+    /// </summary>
+    private static bool TryParseItem(string include, string? version, string? optional, out PluginDependencyEntry dependency, out string error)
+    {
+        dependency = default;
+        var id = include.Trim();
+        if (!Guid.TryParse(id, out var pluginId))
+        {
+            error = $"PluginDependency '{id}' does not name a plugin; its Include is the plugin's ID, a GUID.";
+            return false;
+        }
+
+        var range = version?.Trim() ?? string.Empty;
+        if (range.Length == 0)
+        {
+            error = $"PluginDependency '{pluginId:D}' has no Version; give it a version range, such as Version=\">=1.0.0\".";
+            return false;
+        }
+
+        var isOptional = false;
+        var marker = optional?.Trim() ?? string.Empty;
+        if (marker.Length > 0 && !bool.TryParse(marker, out isOptional))
+        {
+            error = $"PluginDependency '{pluginId:D}' has Optional=\"{marker}\"; it is true or false.";
+            return false;
+        }
+
+        dependency = new PluginDependencyEntry(pluginId, range, isOptional);
+        error = string.Empty;
+        return true;
     }
 
     /// <summary>

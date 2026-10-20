@@ -6,8 +6,9 @@ namespace Shoko.BuildTools.Tasks;
 /// <summary>
 ///   Base for the tasks that stamp the plugin's identity, tags and
 ///   dependencies. Whatever a task finds on its own is replaced by the
-///   matching <c>Plugin*</c> property when that is set; lists are never
-///   merged.
+///   matching <c>Plugin*</c> property when that is set. The dependencies come
+///   from the project alone: <c>$(PluginDependencies)</c>, else its
+///   <c>PluginDependency</c> items. Lists are never merged.
 /// </summary>
 public abstract class PluginMetadataTask : Microsoft.Build.Utilities.Task
 {
@@ -44,6 +45,14 @@ public abstract class PluginMetadataTask : Microsoft.Build.Utilities.Task
     public string? PluginDependencies { get; set; }
 
     /// <summary>
+    ///   <c>@(PluginDependency)</c>: each item's <c>Include</c> is a plugin
+    ///   ID, its <c>Version</c> the version range, and its <c>Optional</c>
+    ///   <c>true</c> or <c>false</c>. <c>$(PluginDependencies)</c> wins when
+    ///   both are set.
+    /// </summary>
+    public ITaskItem[]? PluginDependencyItems { get; set; }
+
+    /// <summary>
     ///   Apply the <c>Plugin*</c> properties over what the task found, check
     ///   the result, and write it to <see cref="OutputPath" />. Logs every
     ///   problem and returns <c>false</c> if there is any.
@@ -77,10 +86,25 @@ public abstract class PluginMetadataTask : Microsoft.Build.Utilities.Task
         if (!string.IsNullOrWhiteSpace(PluginTags))
             tags = PluginTags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+        var items = PluginDependencyItems ?? [];
         if (!string.IsNullOrWhiteSpace(PluginDependencies))
         {
+            if (items.Length > 0)
+                Log.LogWarning("Both PluginDependencies and PluginDependency items are set; PluginDependencies wins, and the items are ignored.");
+
             dependencies = PluginDependencyList.Parse(PluginDependencies, out var parseErrors);
             dependencySource = "PluginDependencies";
+            foreach (var error in parseErrors)
+                Log.LogError("Invalid {0}: {1}", dependencySource, error);
+
+            if (parseErrors.Count > 0)
+                return false;
+        }
+        else if (items.Length > 0)
+        {
+            var entries = items.Select(item => (item.ItemSpec, (string?)item.GetMetadata("Version"), (string?)item.GetMetadata("Optional")));
+            dependencies = PluginDependencyList.ParseItems(entries, out var parseErrors);
+            dependencySource = "PluginDependency items";
             foreach (var error in parseErrors)
                 Log.LogError("Invalid {0}: {1}", dependencySource, error);
 

@@ -64,14 +64,6 @@ internal sealed class Manifest
     [JsonPropertyName("icon_url")]
     public string? IconUrl { get; set; }
 
-    /// <summary>
-    ///   Top-level dependencies for the plugin. These are injected into the
-    ///   built DLL as serialized assembly metadata. Per-release dependencies
-    ///   in each release entry are used for install-time resolution.
-    /// </summary>
-    [JsonPropertyName("dependencies")]
-    public List<ManifestDependency>? Dependencies { get; set; }
-
     [JsonPropertyName("releases")]
     public List<ManifestRelease>? Releases { get; set; }
 

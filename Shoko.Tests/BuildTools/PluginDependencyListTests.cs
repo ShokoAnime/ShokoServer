@@ -8,8 +8,9 @@ namespace Shoko.Tests.BuildTools;
 
 /// <summary>
 /// Covers <see cref="PluginDependencyList"/>, the one parser and formatter behind
-/// <c>--dependencies</c>, the <c>PluginDependencies</c> MSBuild property and the
-/// <c>PackageDependencies</c> assembly metadata the server reads.
+/// <c>--dependencies</c>, the <c>PluginDependencies</c> MSBuild property, the
+/// <c>PluginDependency</c> items and the <c>PackageDependencies</c> assembly
+/// metadata the server reads.
 /// </summary>
 public class PluginDependencyListTests
 {
@@ -92,6 +93,35 @@ public class PluginDependencyListTests
         ];
 
         Assert.Equal(dependencies, ParseClean(PluginDependencyList.Format(dependencies)));
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("false", false)]
+    [InlineData(" True ", true)]
+    public void ParseItems_ReadsAnItemsIncludeVersionAndOptional(string? optional, bool isOptional)
+    {
+        var dependencies = PluginDependencyList.ParseItems([($" {_first} ", " >=1.0.0 ", optional)], out var errors);
+
+        Assert.Empty(errors);
+        Assert.Equal([new PluginDependencyEntry(_first, ">=1.0.0", isOptional)], dependencies);
+    }
+
+    [Theory]
+    [InlineData("Kotoha", ">=1.0.0", null, "does not name a plugin")]
+    [InlineData("{0}", null, null, "has no Version")]
+    [InlineData("{0}", " ", null, "has no Version")]
+    [InlineData("{0}", ">=1.0.0", "yes", "is true or false")]
+    public void ParseItems_ReportsAndSkipsABadItem(string include, string? version, string? optional, string expectedError)
+    {
+        var dependencies = PluginDependencyList.ParseItems(
+            [(string.Format(include, _first), version, optional), (_second.ToString(), "^1.0", null)],
+            out var errors
+        );
+
+        Assert.Contains(expectedError, Assert.Single(errors));
+        Assert.Equal([new PluginDependencyEntry(_second, "^1.0", false)], dependencies);
     }
 
     [Theory]
