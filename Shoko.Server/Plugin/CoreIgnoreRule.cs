@@ -12,8 +12,22 @@ public class CoreIgnoreRule(ISettingsProvider settingsProvider) : IManagedFolder
 
     public bool ShouldIgnore(IManagedFolder folder, FileSystemInfo fileInfo)
     {
-        if (fileInfo is not FileInfo) return false;
+        if (fileInfo is null) return false;
         var exclusions = settingsProvider.GetSettings().Import.ExcludeExpressions;
-        return exclusions.Any(r => r.IsMatch(fileInfo.FullName));
+        if (exclusions.Count == 0) return false;
+
+        var path = fileInfo.FullName;
+        if (exclusions.Any(r => r.IsMatch(path)))
+            return true;
+
+        // Scans hand directories to ignore rules so that answering true prunes the whole
+        // subtree, and the documented patterns are written with a trailing separator
+        // (see the defaults: `[\\/]\.Trash-\d+[\\/]`). A directory's FullName never ends
+        // with one, so without this second check an excluded directory itself would never
+        // match and the walk would still descend into it, only pruning one level deeper.
+        if (fileInfo is not DirectoryInfo || Path.EndsInDirectorySeparator(path))
+            return false;
+
+        return exclusions.Any(r => r.IsMatch(path + Path.DirectorySeparatorChar));
     }
 }
