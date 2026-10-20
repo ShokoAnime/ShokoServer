@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.537",
+      "tag": "v6.0.0-dev.537",
+      "commit": "20919ee978fb7fbdd3d6ede66ce531d6c8a2d201",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.537/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-20T08:31:33Z",
+      "releaseNotes": "\n`fix` (`buildtools`): **Default `EnableDynamicLoading` in `Shoko.BuildTools.Targets`**:\n\n- A `build/Shoko.BuildTools.Targets.props` set `EnableDynamicLoading` to `true` when the project leaves it unset, so a plain `dotnet build` copies a plugin's own NuGet dependencies as `shoko-build` does\n- The README and the package's readme said so, and how a project that is not a plugin opts out\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.5.0**.\n"
+    },
+    {
       "version": "6.0.0.536",
       "tag": "v6.0.0-dev.536",
       "commit": "dbbeecba67d16effd0624d6ea6e50b177dcdc979",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.508/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-11T18:46:51Z",
       "releaseNotes": "\n`chore`: **Drop tests pinning authorization levels**:\n\n- Removed `AdminAuthorizationTests` and the non-admin refusal test in `RestartEventEmitterTests`\n- Renamed the registry's `CanConnect` test after what it checks\n- Stopped singling out emitters in `CLAUDE.md`\n"
-    },
-    {
-      "version": "6.0.0.507",
-      "tag": "v6.0.0-dev.507",
-      "commit": "c7c3efda56b50ea584ff590f8b52297e2a6cd184",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.507/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-11T17:08:06Z",
-      "releaseNotes": "\n`misc`: **Allow normal users to list the restart reasons**.\n"
     }
   ]
 }
