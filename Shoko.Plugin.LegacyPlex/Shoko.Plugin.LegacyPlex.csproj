@@ -11,7 +11,6 @@
         <Platforms>AnyCPU;x64</Platforms>
         <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
         <Nullable>enable</Nullable>
-        <EnableDynamicLoading>true</EnableDynamicLoading>
         <!-- The models under `Models/` mirror Plex's own payloads, field for
              field, and carry no documentation of their own. -->
         <NoWarn>$(NoWarn);1591</NoWarn>
@@ -54,6 +53,6 @@
         <!-- Injects the embedded plugin identity metadata the server reads during
              discovery. With no `manifest.json` beside this file, the ID, name and
              description are read from the literals in `Plugin.cs`. -->
-        <PackageReference Include="Shoko.BuildTools.Targets" Version="0.3.2" PrivateAssets="All" ExcludeAssets="runtime" />
+        <PackageReference Include="Shoko.BuildTools.Targets" Version="0.5.0" PrivateAssets="All" ExcludeAssets="runtime" />
     </ItemGroup>
 </Project>
