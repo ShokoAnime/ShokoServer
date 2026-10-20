@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.534",
+      "tag": "v6.0.0-dev.534",
+      "commit": "ce04581e6c781c1f145ef70d659d454ee36a680e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.534/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-20T02:33:06Z",
+      "releaseNotes": "\n`fix` (`tray`): **Start the server off the UI thread**:\n\n`StartAsync` resumed its awaits on the Avalonia UI thread, which was blocked\nwaiting for it, so the start hung whenever the plugin update check before the\nscan had to sync a repository.\n\nCloses #1463\n"
+    },
+    {
       "version": "6.0.0.533",
       "tag": "v6.0.0-dev.533",
       "commit": "3c153793d0c1a3d4e1582f7db75cf91282564027",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.505/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-10T17:20:56Z",
       "releaseNotes": "\n`fix` (`shoko`): **Resolve series episode/movie cross-references by anime id** ([#1453](https://github.com/ShokoAnime/ShokoServer/pull/1453)):\n\nAnimeSeries exposed ISeries.MetadataEpisodeCrossReferences and\nISeries.MetadataMovieCrossReferences by calling the per-episode lookups\n(GetEpisodeCrossReferences / GetMovieCrossReferences) with the series'\nAniDB *anime* id. Those methods are keyed by AniDB episode id, so the\nresult was empty (or, when an unrelated AniDB episode happens to share\nthe id, wrong).\n\nThe sibling MetadataSeriesCrossReferences / MetadataSeasonCrossReferences\nproperties and AniDB_Anime already use the series-scoped overloads; do\nthe same here with GetEpisodeCrossReferencesForSeries /\nGetMovieCrossReferencesForSeries.\n\nThis restores the episode<->AniDB mapping consumed by relocation/rename\nproviders (e.g. LuaRenamer's TmdbToModel), which otherwise lose the link\nand fall back to season 1 for sequel anime.\n\nRegression introduced in afe0455581.\n"
-    },
-    {
-      "version": "6.0.0.504",
-      "tag": "v6.0.0-dev.504",
-      "commit": "6b4bfca9d33684bed0a921b5cf9e24cfcf464764",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.504/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-09T02:01:23Z",
-      "releaseNotes": "\n`feat` (`plugin`): **Purge inactive plugin versions**:\n\n- Added `IPluginPackageManager.PurgeInactivePluginVersions`, marking older versions for removal once a newer one was installed longer ago than `InactivePluginVersionRetention`, and newer ones only behind a pinned active version\n- Added the `.keep` marker, written by `IPluginManager.KeepPlugin`/`UnkeepPlugin` and exposed as `IsKept` beside `IsPinned`, to protect a version from the purge\n- Took `LocalPluginInfo.InstalledAt` from the main DLL's last-write time, stamped on a package install\n- Added the daily \"Purge Inactive Plugin Versions\" scheduled action\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.102**.\n"
     }
   ]
 }
