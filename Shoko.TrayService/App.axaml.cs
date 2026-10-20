@@ -41,10 +41,12 @@ public partial class App : Application
         Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
         InitialiseTrayIcon();
 
-        _systemService = new SystemService();
-        _systemService.Shutdown += (_, _) => DispatchShutdown();
-        var host = _systemService.StartAsync()
-            .ConfigureAwait(true)
+        var systemService = _systemService = new SystemService();
+        systemService.Shutdown += (_, _) => DispatchShutdown();
+
+        // Started on the thread pool, as its awaits would otherwise resume on this
+        // thread, which is blocked waiting for them.
+        var host = Task.Run(systemService.StartAsync)
             .GetAwaiter()
             .GetResult();
         if (host is null)
