@@ -142,15 +142,16 @@ If that doesn't work, this document may be out of date. Check the dockerfile for
 
 # Attribution
 
-<a href="https://www.themoviedb.org/"><img src="https://www.themoviedb.org/assets/v4/logos/v2/blue_square_1-5bdc75aaebeb75dc7ae79426ddd9be3b2be1e342510f8202baf6bffa71d7f5c4.svg" alt="TMDB" width="80"></a>
-
 Shoko Server gets its primary anime metadata from [AniDB](https://anidb.net/), which is available under
-[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) for non-commercial use under [AniDB's policies](https://anidb.net/policy). Shoko is not affiliated with AniDB.
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) for non-commercial use under
+[AniDB's policies](https://anidb.net/policy). Shoko is not affiliated with AniDB.
 
-Shoko Server uses TMDB and the TMDB APIs, through the bundled TMDB plugin, but is not endorsed, certified, or otherwise
-approved by TMDB. Metadata and images fetched from TMDB belong to TMDB and its contributors.
+Shoko Server uses [TMDB](https://www.themoviedb.org/) and the [TMDB APIs](https://developer.themoviedb.org/docs/getting-started),
+through the bundled TMDB plugin, but is not endorsed, certified, or otherwise approved by TMDB. Metadata and images fetched
+from TMDB belong to TMDB and its contributors.
 
-Other third-party data, code and libraries are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+For a more complete list of third-party data, code and libraries used or bundled with the server, see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 # Contributing
 
