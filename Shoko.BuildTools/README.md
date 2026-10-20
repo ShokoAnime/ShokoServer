@@ -375,7 +375,9 @@ shoko-build -c Release --manifest manifest.json \
 
 When using `shoko-build`, plugins need no `PluginAssemblyVersion` MSBuild
 target, `EnableDynamicLoading` or `IncludeSourceRevisionInInformationalVersion`
-in their `.csproj`. The tool handles all of that. A minimal plugin `.csproj`:
+in their `.csproj`. The tool handles all of that, and
+[`Shoko.BuildTools.Targets`](#shokobuildtoolstargets) sets `EnableDynamicLoading`
+for a plain `dotnet build` too. A minimal plugin `.csproj`:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -436,10 +438,18 @@ Its targets run before `CoreGenerateAssemblyInfo` and stamp the assembly with:
 - `ReleaseDate`, `SourceRevision` and `ReleaseTag` from the repository, the
   tag being a `v<major>.<minor>.<patch>` tag on `HEAD`.
 
-It does not set `EnableDynamicLoading`, so a plugin built with `dotnet build`
-alone sets that in its `.csproj`. It never writes the manifest either.
+It also sets `EnableDynamicLoading` to `true` when the project leaves it unset,
+as `shoko-build` does. That copies the plugin's own NuGet dependencies into its
+output, where the server looks for them through the plugin's `.deps.json`; a
+package the server ships stays out with `ExcludeAssets="runtime"` on its
+reference. The default comes from a `.props` file NuGet imports ahead of the
+project, since the SDK settles what a build copies before a package's
+`.targets` load. A project that references the package but is not a plugin
+sets `<EnableDynamicLoading>false</EnableDynamicLoading>`. The targets never
+write the manifest.
 
 A build that imports the targets from source instead of the package, as the
-server does, points `ShokoBuildToolsTasksAssembly` at the tasks it built,
+server does, leaves the `.props` out, so a plugin built that way sets
+`EnableDynamicLoading` itself. It points `ShokoBuildToolsTasksAssembly` at the tasks it built,
 names the targets that put them there in `ShokoBuildToolsPrepareTargets`, and
 sets `ShokoBuildToolsUseTaskHost` to `true` so the tasks run out of process.

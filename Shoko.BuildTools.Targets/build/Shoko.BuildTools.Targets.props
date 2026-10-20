@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    Shoko.BuildTools.Targets: the defaults a plugin project needs before the
+    SDK reads them. NuGet imports this file ahead of the project and the SDK,
+    which settle what a build copies while they are imported, so a property
+    set in the package's .targets would come too late.
+
+    EnableDynamicLoading copies the plugin's own NuGet dependencies into its
+    output, where the server's loader looks for them through the plugin's
+    .deps.json, as shoko-build does by passing it. A project that sets it
+    keeps its value, so one in the same solution that is not a plugin opts out
+    with <EnableDynamicLoading>false</EnableDynamicLoading>.
+  -->
+  <PropertyGroup>
+    <EnableDynamicLoading Condition="'$(EnableDynamicLoading)' == ''">true</EnableDynamicLoading>
+  </PropertyGroup>
+</Project>

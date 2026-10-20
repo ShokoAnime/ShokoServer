@@ -1,6 +1,6 @@
 # Shoko.BuildTools.Targets
 
-MSBuild targets for [Shoko Server](https://shokoanime.com) plugin projects. On every build they stamp the assembly metadata the server reads from a plugin: its identity (from the project, `manifest.json` or the source), its dependencies (from the project), the runtime identifier, the release channel and the source revision.
+MSBuild targets for [Shoko Server](https://shokoanime.com) plugin projects. On every build they stamp the assembly metadata the server reads from a plugin: its identity (from the project, `manifest.json` or the source), its dependencies (from the project), the runtime identifier, the release channel and the source revision. They also turn on `EnableDynamicLoading` unless the project sets it, so the plugin's own NuGet dependencies are copied into its output as the server expects; a project that is not a plugin sets it to `false`.
 
 ## Getting started
 

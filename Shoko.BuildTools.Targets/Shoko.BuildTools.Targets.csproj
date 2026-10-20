@@ -9,7 +9,7 @@
     <AssemblyName>Shoko.BuildTools.Tasks</AssemblyName>
     <RootNamespace>Shoko.BuildTools.Tasks</RootNamespace>
     <PackageId>Shoko.BuildTools.Targets</PackageId>
-    <Description>MSBuild targets and tasks for Shoko plugin builds. Stamps assembly metadata: the plugin's identity from its manifest.json or its source, the runtime identifier, the release channel, and the git revision, tag and date it was built from.</Description>
+    <Description>MSBuild targets and tasks for Shoko plugin builds. Stamps assembly metadata: the plugin's identity from its manifest.json or its source, the runtime identifier, the release channel, and the git revision, tag and date it was built from. Turns on EnableDynamicLoading unless the project sets it.</Description>
     <Authors>Shoko Team</Authors>
     <PackageProjectUrl>https://shokoanime.com</PackageProjectUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="build\Shoko.BuildTools.Targets.props" Pack="true" PackagePath="build\" />
     <None Include="build\Shoko.BuildTools.Targets.targets" Pack="true" PackagePath="build\" />
   </ItemGroup>
 
