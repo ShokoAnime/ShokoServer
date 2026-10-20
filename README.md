@@ -140,6 +140,19 @@ copies each one to `plugins/<project name>/` in the output.
 
 If that doesn't work, this document may be out of date. Check the dockerfile for guaranteedly updated build steps.
 
+# Attribution
+
+Shoko Server gets its primary anime metadata from [AniDB](https://anidb.net/), which is available under
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) for non-commercial use under
+[AniDB's policies](https://anidb.net/policy). Shoko is not affiliated with AniDB.
+
+Shoko Server uses [TMDB](https://www.themoviedb.org/) and the [TMDB APIs](https://developer.themoviedb.org/docs/getting-started),
+through the bundled TMDB plugin, but is not endorsed, certified, or otherwise approved by TMDB. Metadata and images fetched
+from TMDB belong to TMDB and its contributors.
+
+For a more complete list of third-party data, code and libraries used or bundled with the server, see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 # Contributing
 
 We are always accepting help, and there are a million little things that always need done. Hop on our [discord](https://discord.gg/shokoanime) and talk to us. Communication is important in any team. No offense, but it's difficult to help anyone that shows up out of nowhere, opens 3 issues, then creates a PR without even talking to us. We have a wealth of experience. Let us help you...preferably before the ADHD takes over, you hyperfixate, and you come up with a fantastic solution to problem that isn't at all what you expected. Support is also best found in the discord, in case you read this far.
