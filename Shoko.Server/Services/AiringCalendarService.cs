@@ -430,7 +430,12 @@ public class AiringCalendarService(
             .. days.Select(pair => new AiringCalendarDay(
                 pair.Key,
                 GroupByEpisode(
-                    [.. pair.Value.OrderByDescending(entry => entry.IsAllDay).ThenBy(entry => entry.Time)],
+                    [
+                        .. pair.Value
+                            .OrderByDescending(entry => entry.IsAllDay)
+                            .ThenBy(entry => entry.Time)
+                            .ThenBy(entry => AiringEpisodeOrder.For(entry.Airing)),
+                    ],
                     everyChannel
                 )
             )),
@@ -479,7 +484,7 @@ public class AiringCalendarService(
     ///   ones its place stands for; an airing of an unknown episode with no
     ///   place stays on its own.
     /// </summary>
-    /// <param name="entries">The day's entries, the date-only ones first, then by time.</param>
+    /// <param name="entries">The day's entries, the date-only ones first, then by time and episode.</param>
     /// <param name="everyChannel">Whether to keep each episode's other airings, or only its lead.</param>
     /// <returns>The episodes, by their leads' order.</returns>
     private static IReadOnlyList<AiringCalendarEpisode> GroupByEpisode(IReadOnlyList<AiringCalendarEntry> entries, bool everyChannel)

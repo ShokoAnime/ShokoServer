@@ -986,7 +986,8 @@ public interface IAiringScheduleService
     ///   <see cref="IEpisodeAiring.AiredAt"/> and, unless turned off, by
     ///   <see cref="IEpisodeAiring.OriginalAiredAt"/> for delayed airings, so a
     ///   week an episode was delayed out of still has something to draw its gap
-    ///   from. They are ordered by the slot they occupy in the range.
+    ///   from. They are ordered by the slot they occupy in the range, then by
+    ///   anime and episode number.
     /// </summary>
     /// <remarks>
     ///   <para>

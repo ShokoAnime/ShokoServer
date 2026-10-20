@@ -20,7 +20,8 @@ declared names (`Original`, `Subtitled`, `Poster`). Query parameter names stay
 ## Reading the airings endpoint
 
 `GET /api/v3/AiringSchedule/Airing?from=…&to=…` returns the airings in a
-window, ordered by the time they occupy in it.
+window, ordered by the time they occupy in it, then by anime and episode
+number, so a batch release lists in episode order.
 
 ### The window
 

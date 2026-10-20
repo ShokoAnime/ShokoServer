@@ -329,6 +329,7 @@ public partial class AiringScheduleService
             : airings;
         return reduced
             .OrderBy(airing => GetRangeSortTime(airing, fromUtc, toUtc, from.Offset))
+            .ThenBy(AiringEpisodeOrder.For)
             .ThenBy(airing => airing.LinkID)
             .ThenBy(airing => airing.Channel?.Name ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(airing => airing.Key, StringComparer.Ordinal)

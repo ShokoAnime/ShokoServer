@@ -918,6 +918,29 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
+    public void GetAiringsInRange_ListsABatchReleaseInEpisodeOrder()
+    {
+        using var harness = new Harness();
+        var netflix = harness.Service.FindOrRegisterChannel("Netflix", AiringChannelType.Streaming);
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData("netflix", netflix.ChannelID));
+        // Every episode at once, under keys that sort against the episodes.
+        harness.Service.SetAirings(harness.Primary, schedule, harness.Episodes.Select((episode, index) => new EpisodeAiringData()
+        {
+            Key = $"drop-{9 - index}",
+            Episode = episode,
+            AiredAt = harness.Air(3, 9),
+        }));
+
+        var airings = harness.Service.GetAiringsInRange(
+            harness.Air(3, 0),
+            harness.Air(3, 23, 59),
+            new EpisodeAiringFilteringOptions() { IncludeEstimates = false }
+        );
+
+        Assert.Equal(harness.Episodes.Select(episode => (MetadataGuid?)episode.ID), airings.Select(airing => airing.EpisodeID));
+    }
+
+    [Fact]
     public void GetAiringByID_ResolvesAnEstimateTheSameWayItResolvesAStoredAiring()
     {
         using var harness = new Harness();

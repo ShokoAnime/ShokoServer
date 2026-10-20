@@ -28,6 +28,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Services;
+using Shoko.Server.Services.Airing;
 using Shoko.Server.Settings;
 
 using AiringCalendarDayDto = Shoko.Server.API.v3.Models.Airing.AiringCalendarDay;
@@ -614,6 +615,7 @@ public class AiringScheduleController(
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForSchedule(scheduleID, options)
             .OrderBy(GetListSortTime)
+            .ThenBy(AiringEpisodeOrder.For)
             .ThenBy(airing => airing.ID)
             .Select(airing => context.ToDto(airing, include))
             .ToList();
@@ -1972,6 +1974,7 @@ public class AiringScheduleController(
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForSeries(series, options)
             .OrderBy(GetListSortTime)
+            .ThenBy(AiringEpisodeOrder.For)
             .ThenBy(airing => airing.ID)
             .Select(airing => context.ToDto(airing, include))
             .ToList();
