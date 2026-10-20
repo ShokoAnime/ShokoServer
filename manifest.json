@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.536",
+      "tag": "v6.0.0-dev.536",
+      "commit": "dbbeecba67d16effd0624d6ea6e50b177dcdc979",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.536/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-20T07:58:39Z",
+      "releaseNotes": "\n`refactor`: **Keep only what each side uses in the dependency list copies**:\n\n- The server's copy dropped `Format`, which only the build tools write with, and each copy's note named the copies the others keep, each with what its side uses\n\n`refactor` (`buildtools`): **Read plugin dependencies from the project, as `PluginDependency` items**:\n\n- `shoko-build` and `Shoko.BuildTools.Targets` read `<PluginDependency Include=\"<id>\" Version=\"...\" Optional=\"...\" />` items below `--dependencies` and the `PluginDependencies` property, and stopped reading a manifest's top-level `dependencies`, warning when one still lists them\n- The property beside items warned that it wins, and a bad item stopped the build naming it\n- The schema dropped the top-level field, and the README and both NuGet readmes documented the items as where a plugin's dependencies belong\n\n`chore` (`buildtools`): **Bump build tools version to v0.6.0**.\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.4.0**.\n"
+    },
+    {
       "version": "6.0.0.535",
       "tag": "v6.0.0-dev.535",
       "commit": "f9289552c4e7699183623a29456f598c0ccb5677",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.507/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-11T17:08:06Z",
       "releaseNotes": "\n`misc`: **Allow normal users to list the restart reasons**.\n"
-    },
-    {
-      "version": "6.0.0.506",
-      "tag": "v6.0.0-dev.506",
-      "commit": "ddb25b262865ae236fb7764e3b206acacc120efa",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.506/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-11T14:50:39Z",
-      "releaseNotes": "\n`fix` (`relocation`): **Allow case-only renames on case-sensitive file systems** ([#1451](https://github.com/ShokoAnime/ShokoServer/pull/1451)):\n\n* fix(relocation): allow case-only renames on case-sensitive file systems\n\nThe same-location guard in `InternalDirectlyRelocateFile` aborted every path that differed only by case, even where the file system treats them as different paths.\n\n- Aborted only when the new path exists and is not the same file as the old one.\n- Rename via temp. name for same file different case rename.\n- Added `ReuseExistingFolderCase` so a folder differing only by case from an existing one is reused rather than duplicated.\n"
     }
   ]
 }
