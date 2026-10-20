@@ -1,21 +1,23 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Shoko.Server.Plugin;
 
 /// <summary>
-///   One plugin dependency, as carried by the <c>PackageDependencies</c>
-///   assembly metadata and the <c>--dependencies</c> flag.
+///   One plugin dependency, as a plugin's <c>PackageDependencies</c> assembly
+///   metadata carries it.
 /// </summary>
 internal readonly record struct PluginDependencyEntry(Guid PluginID, string VersionRange, bool IsOptional);
 
 /// <summary>
-///   Parses and formats plugin dependency lists:
+///   Parses the dependency list a plugin's <c>PackageDependencies</c> assembly
+///   metadata carries:
 ///   <c>guid@range[:optional|:required][,guid@range[:optional|:required]]*</c>.
 ///   Whitespace around every separator is ignored, and so are empty entries.
-///   The legacy <c>guid:range[:true]</c> form is still read, entry by entry.
-///   Copied in <c>Shoko.BuildTools</c> and <c>Shoko.BuildTools.Targets</c>; keep them in sync.
+///   The legacy <c>guid:range[:true]</c> form older builds wrote is still read,
+///   entry by entry. <c>Shoko.BuildTools</c> and <c>Shoko.BuildTools.Targets</c>
+///   write the list with copies of their own, each with what its side uses;
+///   keep the format the same in all three.
 /// </summary>
 internal static class PluginDependencyList
 {
@@ -48,15 +50,6 @@ internal static class PluginDependencyList
 
         return dependencies;
     }
-
-    /// <summary>
-    ///   Format a dependency list in its canonical form: no whitespace, and a
-    ///   marker only on optional dependencies.
-    /// </summary>
-    public static string Format(IEnumerable<PluginDependencyEntry> dependencies)
-        => string.Join(",", dependencies.Select(d => d.IsOptional
-            ? $"{d.PluginID:D}@{d.VersionRange.Trim()}:{Optional}"
-            : $"{d.PluginID:D}@{d.VersionRange.Trim()}"));
 
     /// <summary>
     ///   Check what parsing cannot: that every version range is one the

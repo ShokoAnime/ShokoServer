@@ -11,7 +11,9 @@ internal readonly record struct PluginDependencyEntry(Guid PluginID, string Vers
 ///   <c>guid@range[:optional|:required][,guid@range[:optional|:required]]*</c>.
 ///   Whitespace around every separator is ignored, and so are empty entries.
 ///   The legacy <c>guid:range[:true]</c> form is still read, entry by entry.
-///   Copied in <c>Shoko.BuildTools.Targets</c> and <c>Shoko.Server</c>; keep them in sync.
+///   <c>Shoko.BuildTools.Targets</c> reads the same inputs with a copy of its
+///   own, and <c>Shoko.Server</c> reads the metadata with another, each with
+///   what its side uses; keep the format the same in all three.
 /// </summary>
 internal static class PluginDependencyList
 {
