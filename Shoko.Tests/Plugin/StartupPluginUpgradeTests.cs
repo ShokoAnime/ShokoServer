@@ -170,7 +170,13 @@ public class StartupPluginUpgradeTests : IDisposable
         return Release(version, checksum: $"sha256:{Convert.ToHexString(SHA256.HashData(_host.Archive))}");
     }
 
-    private static PluginManager.InternalPluginInfo Candidate(string version, string? failureReason = null, bool isPinned = false, string? cannotLoadReason = null)
+    private static PluginManager.InternalPluginInfo Candidate(
+        string version,
+        string? failureReason = null,
+        bool isPinned = false,
+        string? cannotLoadReason = null,
+        bool isLegacy = false
+    )
         => new()
         {
             ID = _pluginId,
@@ -196,6 +202,7 @@ public class StartupPluginUpgradeTests : IDisposable
             IsEnabled = true,
             CanLoad = cannotLoadReason is null,
             CannotLoadReason = cannotLoadReason,
+            IsLegacy = isLegacy,
             FailureReason = failureReason,
             CanUninstall = true,
             DllName = "Plugin",
@@ -329,6 +336,28 @@ public class StartupPluginUpgradeTests : IDisposable
 
         Assert.Same(older, toLoad);
         Assert.Equal([newer], passedOver.Keys);
+    }
+
+    [Fact]
+    public void LegacyBuildIsReplacedByAnInstalledBuildForThisServer()
+    {
+        var legacy = Candidate("5.0.0", cannotLoadReason: "Built for the legacy abstractions.", isLegacy: true);
+        var current = Candidate("6.4.0");
+
+        var replacements = PluginManager.FindLegacyReplacements([legacy, current]);
+
+        Assert.Same(current, Assert.Single(replacements, pair => pair.Key == legacy).Value);
+    }
+
+    [Fact]
+    public void LegacyBuildWithoutALoadableReplacementIsKept()
+    {
+        var legacy = Candidate("5.0.0", cannotLoadReason: "Built for the legacy abstractions.", isLegacy: true);
+        var newer = Candidate("7.0.0", cannotLoadReason: "References a newer version of Shoko.Abstractions.");
+
+        var replacements = PluginManager.FindLegacyReplacements([legacy, newer]);
+
+        Assert.Empty(replacements);
     }
 
     #endregion

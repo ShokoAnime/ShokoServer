@@ -228,6 +228,14 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         public string? CannotLoadReason { get; init; }
 
         /// <summary>
+        ///   Indicates the plugin was built for the legacy
+        ///   <c>Shoko.Plugin.Abstractions</c>. Its ID is made up from its name
+        ///   and version, so an installed build of the same assembly for this
+        ///   server replaces it.
+        /// </summary>
+        public bool IsLegacy { get; init; }
+
+        /// <summary>
         ///   Why the plugin failed while it was looked at, if it did. An
         ///   enabled plugin with one is not loaded and fails the start.
         /// </summary>
@@ -384,6 +392,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         if (settingsChanged)
             ISettingsProvider.Instance.SaveSettings();
 
+        var legacyReplacements = FindLegacyReplacements(internalPlugins);
         foreach (var grouping in internalPlugins.OrderBy(a => a.Priority).GroupBy(a => a.ID))
         {
             var orderedInfo = grouping
@@ -394,6 +403,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 .ThenBy(a => a.DLLs[0])
                 .ToList();
             var (toLoad, failureReason, passedOver) = PickVersionToLoad(orderedInfo, rememberedFailures);
+            if (toLoad is not null && legacyReplacements.TryGetValue(toLoad, out var replacement))
+            {
+                var reason = $"Replaced by version {replacement.Version.Version} of \"{replacement.Name}\", built for this server.";
+                logger.LogInformation("Not loading legacy plugin \"{Name}\". {Reason} ({Version})", toLoad.Name, reason, toLoad.Version);
+                passedOver[toLoad] = reason;
+                (toLoad, failureReason) = (null, null);
+            }
             foreach (var internalPluginInfo in orderedInfo)
             {
                 if (internalPluginInfo != toLoad)
@@ -1533,6 +1549,25 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         return (older, GetFailureReason(older), passedOver);
     }
 
+    /// <summary>
+    ///   Pairs every legacy plugin with the build of the same assembly made for
+    ///   this server, when one is installed and can load. A legacy plugin has
+    ///   no ID of its own, so installing the new build is enough to replace it.
+    /// </summary>
+    /// <param name="plugins">Every plugin version found on disk.</param>
+    /// <returns>The replacing build of each replaced legacy plugin.</returns>
+    internal static Dictionary<InternalPluginInfo, InternalPluginInfo> FindLegacyReplacements(IReadOnlyList<InternalPluginInfo> plugins)
+    {
+        var builds = plugins
+            .Where(info => !info.IsLegacy && info.CanLoad && info.ID != CorePlugin.StaticID)
+            .OrderByDescending(info => info.Version.Version)
+            .GroupBy(info => info.DllName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+        return plugins
+            .Where(info => info.IsLegacy && builds.ContainsKey(info.DllName))
+            .ToDictionary(info => info, info => builds[info.DllName]);
+    }
+
     #endregion
 
     private IEnumerable<(string?, string[], bool)> GetPluginDirectories()
@@ -1678,9 +1713,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         return internalPluginInfo;
     }
 
-    private const string LegacyNamespaceMessage = "This plugin uses the deprecated Shoko.Plugin.Abstractions namespace and is incompatible with this version of Shoko Server. Please update the plugin to use Shoko.Abstractions.";
+    private const string LegacyNamespaceMessage = "This plugin uses the deprecated Shoko.Plugin.Abstractions namespace and is incompatible with this version of Shoko Server. Disable or uninstall it, or install a version built for Shoko.Abstractions.";
 
     private const string AbiTooNewMessage = "The plugin failed to load because it references a newer version of Shoko.Abstractions than what this server supports.";
+
+    private const string AbiTooOldMessage = "This plugin was built for an older major version of Shoko.Abstractions and is incompatible with this version of Shoko Server. Disable or uninstall it, or install a version built for this server.";
 
     private const string MissingDependenciesMessage = "The plugin failed to load due to missing dependencies.";
 
@@ -1831,6 +1868,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
                             CanLoad = false,
                             CannotLoadReason = LegacyNamespaceMessage,
+                            IsLegacy = true,
                             CanUninstall = !isSystem,
                             DLLs = [dllPath, .. dlls.Except([dllPath])],
                             Thumbnail = null,
@@ -1855,9 +1893,15 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             name, version);
                     }
 
-                    if (version.AbstractionVersion > AbstractionVersion)
+                    // A newer contract waits for the server to be upgraded; an older major never loads here.
+                    var abiMismatch = version.AbstractionVersion > AbstractionVersion
+                        ? AbiTooNewMessage
+                        : version.AbstractionVersion.Major < AbstractionVersion.Major
+                            ? AbiTooOldMessage
+                            : null;
+                    if (abiMismatch is not null)
                     {
-                        logger.LogInformation("Skipping DLL because the loaded assembly references a newer version of Shoko.Abstractions than what this server supports; {DllPath}", dllPath);
+                        logger.LogInformation("Skipping DLL. {Reason} ({DllName}, {Version})", abiMismatch, name, version);
                         return new()
                         {
                             // Create an unique ID for this specific version if it failed to load.
@@ -1865,8 +1909,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             DllName = name,
                             Name = embeddedName ?? name,
                             Description = embeddedDescription is not null
-                                ? $"{AbiTooNewMessage}\n\n{embeddedDescription}"
-                                : AbiTooNewMessage,
+                                ? $"{abiMismatch}\n\n{embeddedDescription}"
+                                : abiMismatch,
                             Version = version,
                             Authors = authors,
                             RepositoryUrl = repositoryUrl,
@@ -1881,7 +1925,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
                             CanLoad = false,
-                            CannotLoadReason = AbiTooNewMessage,
+                            CannotLoadReason = abiMismatch,
                             CanUninstall = !isSystem,
                             DLLs = [dllPath, .. dlls.Except([dllPath])],
                             Thumbnail = null,

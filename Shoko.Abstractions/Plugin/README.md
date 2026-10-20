@@ -615,6 +615,13 @@ cannot load yet: the older version keeps loading in its place, and the newer
 one loads once the server is upgraded. Only installing by hand picks such a
 release; automatic upgrades, on start or while running, never do.
 
+A version built for a contract this server never loads, the legacy
+`Shoko.Plugin.Abstractions` or an older major version of `Shoko.Abstractions`,
+fails the start like any plugin that cannot load, so the admin decides: disable
+or uninstall it, or install a version built for this server. A legacy plugin
+has no ID of its own, so an installed build of the same assembly for this
+server replaces it, and installing that build is enough.
+
 **Cleaning up.** An update leaves the older versions installed beside the new
 one. `PurgeInactivePluginVersions(retention)` marks for removal on the next
 start the inactive versions of each plugin with an active version, keeping the
