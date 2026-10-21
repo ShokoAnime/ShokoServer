@@ -154,7 +154,7 @@ which `GetStream(IApplicationPaths)` expands.
 
 Both images are optional. The **thumbnail** is wide, shown where there is room;
 the **icon** is square, shown beside the plugin's name. The server neither crops
-nor scales them, so keep the icon readable at 16 pixels. A file on disk wins
+nor scales them, so keep the icon readable at 24 pixels. A file on disk wins
 over an embedded resource:
 
 | | in a plugin directory | as a loose dll |

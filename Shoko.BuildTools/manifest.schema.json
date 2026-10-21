@@ -63,7 +63,7 @@
       "format": "uri"
     },
     "icon_url": {
-      "description": "Optional square image URL, shown beside the plugin's name where there is no room for the thumbnail. Supply something that is still readable at 16 pixels; it is neither cropped nor scaled for you.",
+      "description": "Optional square image URL, shown beside the plugin's name where there is no room for the thumbnail. Supply something that is still readable at 24 pixels; it is neither cropped nor scaled for you.",
       "type": "string",
       "format": "uri"
     },

@@ -48,7 +48,7 @@ public interface IPlugin
     /// <remarks>
     ///   The icon is the plugin's mark, shown beside its name wherever the
     ///   list has no room for the thumbnail. Supply something square that is
-    ///   still readable at 16 pixels; the server neither crops nor scales it.
+    ///   still readable at 24 pixels; the server neither crops nor scales it.
     /// </remarks>
     /// <example>
     ///   A valid resource name for the icon image located at

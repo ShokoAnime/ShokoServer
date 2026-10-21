@@ -327,7 +327,7 @@ The dependencies are per release: each entry records those its build stated
 installs that release.
 
 Besides the fields above, a manifest may give `homepage_url`, a wide
-`thumbnail_url` and a square `icon_url` (readable at 16 pixels). The
+`thumbnail_url` and a square `icon_url` (readable at 24 pixels). The
 deprecated `image_url` is read as the thumbnail when there is no
 `thumbnail_url`. A manifest with `"type": "manifest"` and a `url` points at
 another manifest instead of describing a plugin. A release can also carry
