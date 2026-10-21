@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.540",
+      "tag": "v6.0.0-dev.540",
+      "commit": "1c54f2dfbdcb727f7154016922f8d92ac8c48b00",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.540/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-21T00:03:00Z",
+      "releaseNotes": "\n`docs`: **Ask for plugin icons readable at 24 pixels, not 16**:\n\nNo client draws a plugin icon below 24 pixels; the Web UI draws source\nicons at that size.\n"
+    },
+    {
       "version": "6.0.0.539",
       "tag": "v6.0.0-dev.539",
       "commit": "909cd68dd81c96bd8a5c1aaf2472b0409aaee3e7",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.511/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-11T22:51:30Z",
       "releaseNotes": "\n`fix` (`images`): **Keep preferred links in `MetadataImageReconciler`**:\n\n- Kept a link marked preferred when its source stopped offering the image\n- Dropped the duplicate-link pass, as a link is unique per entity, image, type and source\n\n`feat` (`abstractions`): **Let image contributors serve local sources**:\n\n- Added `GetImageStream` and `CheckIfImageAvailable` to `IMetadataImageContributor`, with defaults\n- Fetched a local source's images through its contributor, leaving them alone while none serves it\n- Served a local contributor's images through the `Remote` image routes\n\n`refactor` (`images`): **Walk image entries by interface and queue contributors for new videos**:\n\n- Added `SkipEvents` to `VideoFileHashedEventArgs`\n- Queued the image contributors for new videos from a `VideoImageContributorListener`\n- Replaced the per-kind branches and `GetReachableKinds` in `MetadataImageEntities.Gather` with an interface walk\n- Added the `DownloadMetadataImagesVideoAction` video action\n\n`fix` (`db`): **Make image cross-references unique**:\n\n- Removed duplicate `ShokoImage_Entity` rows, keeping the preferred one, else the oldest\n- Added a unique index over the entity, image, image type and link source\n\n`fix` (`db`): **Add `UserTags` without a `TEXT` default for MySQL**:\n\nMySQL refuses a default on a `TEXT` column, so the migration stopped at\n159.15 there; MariaDB accepts it. Existing rows still get an empty string.\n"
-    },
-    {
-      "version": "6.0.0.510",
-      "tag": "v6.0.0-dev.510",
-      "commit": "8a84375d0425f16e801ccea07555ff66a3f62526",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.510/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-11T21:16:52Z",
-      "releaseNotes": "\n`fix` (`db`): **Skip null streams in `RepairRegionTaggedStreamLanguages`** ([#1457](https://github.com/ShokoAnime/ShokoServer/pull/1457)):\n\n`RepairRegionTaggedStreamLanguage` now returns false for a null stream instead of throwing, which aborted start-up in schema step 193.2.\n"
     }
   ]
 }
