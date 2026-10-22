@@ -53,6 +53,11 @@
     <None Update="Resources\Icons\anidb-icon.png" Link="Shoko.Server.anidb-icon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The core plugin's thumbnail and icon, shipped beside the dll, where the plugin loader finds them. -->
+    <None Update="Resources\Plugin\thumbnail.svg" Link="Shoko.Server.thumbnail.svg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Resources\Plugin\icon.svg" Link="Shoko.Server.icon.svg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Shoko.Abstractions\Shoko.Abstractions.csproj" />
     <ProjectReference Include="..\Shoko.QueueProcessor\Shoko.QueueProcessor.csproj" />
   </ItemGroup>
