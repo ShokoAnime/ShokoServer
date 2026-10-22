@@ -71,7 +71,7 @@ public class FilterTests
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]
-    public void GroupFilterable_WithSwitchedOffSide_LeavesItOut(TestFilterable group)
+    public void GroupFilterable_WithSwitchedOffOrMissingSide_LeavesItOut(TestFilterable group)
     {
         var off = new SwitchExpression(new HasTagExpression("comedy"), false);
         var offAroundUserData = new SwitchExpression(new HasWatchedEpisodesExpression(), false);
@@ -85,6 +85,9 @@ public class FilterTests
         Assert.True(new AndExpression(new HasTagExpression("comedy"), new ScopeExpression(new SwitchExpression(off, true))).Evaluate(group, null, DateTime.Now));
         Assert.False(new NotExpression(off).Evaluate(group, null, DateTime.Now));
         Assert.False(new AndExpression(off, off).Evaluate(group, null, DateTime.Now));
+        Assert.True(new AndExpression { Left = new HasTagExpression("comedy") }.Evaluate(group, null, DateTime.Now));
+        Assert.True(new XorExpression { Left = new HasTagExpression("comedy") }.Evaluate(group, null, DateTime.Now));
+        Assert.True(new AndExpression(new HasTagExpression("comedy"), new NotExpression()).Evaluate(group, null, DateTime.Now));
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]

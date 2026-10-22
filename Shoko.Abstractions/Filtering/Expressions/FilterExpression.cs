@@ -18,12 +18,13 @@ public class FilterExpression : IFilterExpression, IEquatable<FilterExpression>
     public virtual bool UserDependent => false;
 
     /// <summary>
-    /// Indicates the expression is a switched-off or empty switch, or holds
-    /// nothing but such switches. The logic gates leave such a side out and
-    /// let the other side decide; evaluated anyway, it fails.
+    /// Indicates the expression takes part in the filter. A switched-off or
+    /// empty switch does not, nor does a logic expression with nothing in it
+    /// or holding only such parts. The logic gates leave out a side that does
+    /// not take part and let the other side decide; evaluated anyway, it fails.
     /// </summary>
     [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
-    public virtual bool IsSwitchedOff => false;
+    public virtual bool IsApplicable => true;
 
     /// <summary>
     /// Indicates whether this expression is deprecated and should not be used in new filters.

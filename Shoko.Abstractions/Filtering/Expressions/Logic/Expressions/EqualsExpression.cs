@@ -7,8 +7,9 @@ namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 /// This condition passes if the left expression is equal to the right expression or the parameter.
 /// </summary>
 /// <remarks>
-/// A switched-off side is left out, and the other side decides. A
-/// switched-off left expression with no right one leaves nothing to compare.
+/// A side that does not take part (see
+/// <see cref="FilterExpression.IsApplicable"/>) is left out, and the other
+/// side decides. A missing right side is the parameter instead.
 /// </remarks>
 public class EqualsExpression : FilterExpression<bool>, IWithExpressionParameter, IWithSecondExpressionParameter, IWithBoolParameter
 {
@@ -39,7 +40,7 @@ public class EqualsExpression : FilterExpression<bool>, IWithExpressionParameter
     public override bool UserDependent => (Left?.UserDependent ?? false) || (Right?.UserDependent ?? false);
 
     /// <inheritdoc/>
-    public override bool IsSwitchedOff => Left is { IsSwitchedOff: true } && Right is null or { IsSwitchedOff: true };
+    public override bool IsApplicable => Left is { IsApplicable: true } || Right is { IsApplicable: true };
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the left expression is equal to the right expression or the parameter.";
@@ -50,18 +51,13 @@ public class EqualsExpression : FilterExpression<bool>, IWithExpressionParameter
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        if (Left is { IsSwitchedOff: true })
-            return Right is { IsSwitchedOff: false } live && live.Evaluate(filterable, userInfo, time);
+        if (Left is not { IsApplicable: true })
+            return Right is { IsApplicable: true } right && right.Evaluate(filterable, userInfo, time);
 
-        if (Right is { IsSwitchedOff: true })
-            return Left?.Evaluate(filterable, userInfo, time) ?? false;
+        if (Right is { IsApplicable: false })
+            return Left.Evaluate(filterable, userInfo, time);
 
-        var left = Left?.Evaluate(filterable, userInfo, time);
-        if (left is null)
-            return false;
-
-        var right = Right?.Evaluate(filterable, userInfo, time) ?? Parameter;
-        return left.Value == right;
+        return Left.Evaluate(filterable, userInfo, time) == (Right?.Evaluate(filterable, userInfo, time) ?? Parameter);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

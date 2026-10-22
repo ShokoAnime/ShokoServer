@@ -13,6 +13,11 @@ A comparer (the date, number, string and string set ones in `Logic/`) always tak
 `Right` wins, and a missing value from `Right` is never replaced by `Parameter`:
 `var right = Right is null ? Parameter : Right.Evaluate(…)`.
 
+The logic expressions leave out a side that is missing or does not take part (`IsApplicable` is false for a
+switched-off or empty `Switch`, and for a logic expression with nothing applicable in it), and let the other side
+decide. Evaluated anyway, such as at the top of a filter, a part that does not take part fails. An expression taking
+boolean inputs follows the same rule.
+
 FilterExpression is a single Expression, whether that's something like "Or" or "HasTag"
 in `And(Or(HasTag('comedy'), HasTag('action')), Not(HasTag('18 restricted')))`. Expressions should be the least amount
 of work possible. NAND can be expressed as `Not(And())`. Exceptions can be made if it would take more than 2 or 3

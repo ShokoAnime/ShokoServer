@@ -58,7 +58,7 @@ public class SwitchExpression : FilterExpression<bool>, IWithExpressionParameter
     public override bool UserDependent => IsOn && (Left?.UserDependent ?? false);
 
     /// <inheritdoc/>
-    public override bool IsSwitchedOff => !IsOn || Left is null || Left.IsSwitchedOff;
+    public override bool IsApplicable => IsOn && Left is { IsApplicable: true };
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the switch is on and the left expression passes. Switched off, or with no left expression, the logic around it leaves it out";

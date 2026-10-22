@@ -7,7 +7,9 @@ namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 /// This condition passes if both the left expression and the right expression pass
 /// </summary>
 /// <remarks>
-/// A switched-off side is left out, and the other side decides.
+/// A side that is missing or does not take part (see
+/// <see cref="FilterExpression.IsApplicable"/>) is left out, and the other
+/// side decides.
 /// </remarks>
 public class AndExpression : FilterExpression<bool>, IWithExpressionParameter, IWithSecondExpressionParameter
 {
@@ -31,7 +33,7 @@ public class AndExpression : FilterExpression<bool>, IWithExpressionParameter, I
     public override bool UserDependent => (Left?.UserDependent ?? false) || (Right?.UserDependent ?? false);
 
     /// <inheritdoc/>
-    public override bool IsSwitchedOff => Left is { IsSwitchedOff: true } && Right is { IsSwitchedOff: true };
+    public override bool IsApplicable => Left is { IsApplicable: true } || Right is { IsApplicable: true };
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if both the left expression and the right expression pass";
@@ -42,18 +44,13 @@ public class AndExpression : FilterExpression<bool>, IWithExpressionParameter, I
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        if (Left is { IsSwitchedOff: true })
+        if (Left is not { IsApplicable: true })
             return Right?.Evaluate(filterable, userInfo, time) ?? false;
 
-        if (Right is { IsSwitchedOff: true })
-            return Left?.Evaluate(filterable, userInfo, time) ?? false;
+        if (Right is not { IsApplicable: true })
+            return Left.Evaluate(filterable, userInfo, time);
 
-        var left = Left?.Evaluate(filterable, userInfo, time);
-        if (left is null or false)
-            return false;
-
-        var right = Right?.Evaluate(filterable, userInfo, time);
-        return right ?? false;
+        return Left.Evaluate(filterable, userInfo, time) && Right.Evaluate(filterable, userInfo, time);
     }
 
     /// <inheritdoc cref="Equals(object)"/>
