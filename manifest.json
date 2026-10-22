@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.544",
+      "tag": "v6.0.0-dev.544",
+      "commit": "ddec6b12f913e12a7a3a8fec8dca9075581531c2",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.544/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-22T11:38:56Z",
+      "releaseNotes": "\n`refactor` (`filters`): **Replace `IsSwitchedOff` with `IsApplicable`, leaving missing inputs out too**:\n\n- A gate with a missing input now acts as its other input, as with a switched-off one, so saved single-input gates match the editor's preview\n- An empty `Not`, `Scope` or gate drops out of its parent\n- Wrote the rule into the filters readme\n"
+    },
+    {
       "version": "6.0.0.543",
       "tag": "v6.0.0-dev.543",
       "commit": "02b79c88b73ae54d9c763cce2f055e405235edf3",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.515/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-13T05:41:14Z",
       "releaseNotes": "\n`fix` (`plugin`): **Keep the cached copy of a linked manifest that cannot be fetched**:\n\nA repository linking to one manifest per package lost every package whose\nmanifest failed to load, since the manifest cache was read but never written.\n\n- Wrote each fetched manifest and its ETag to the cache\n- Fell back on the cached copy when a linked manifest fails, and skipped it when there is none\n\n`fix` (`plugin`): **Say why a linked manifest was skipped without a stack trace**:\n\n- Named the address and the HTTP status in the warning, and what happened to the manifest's packages\n- Kept the stack trace for failures without a status code\n\n`feat` (`plugin`): **Let a plugin page say who it is offered to**:\n\n- Added `PluginPageVisibility` (`Authenticated`, `Admin`) and `PluginPage.Visibility`, admin by default\n- Opened `/api/v3/Plugin/Pages` to every user, filtered by the caller's level; only administrators get the plugin info and the filters\n- Added `Visibility` and `PluginID` to the APIv3 `PluginPage`\n\n`refactor` (`api`): **List plugin pages from a controller of its own**:\n\nMoved `/api/v3/Plugin/Pages` to `PluginPageController`, which takes any\nauthenticated user, so the route no longer steps around the admin-only\n`PluginController` with `[AllowAnonymous]`.\n\n`fix` (`api`): **Save a changed `PlexUsernames` on `/api/v3/User`**:\n\nThe save was skipped exactly when the value changed, so the edit was lost on the next restart.\n\n`refactor` (`plugin`): **Move the legacy Plex systems into the bundled `Shoko.Plugin.LegacyPlex` plugin**:\n\n- Moved the Plex client and models, the `/plex` routes, `/api/v3/Action/PlexSyncAll`, `SyncPlexWatchedStatesJob` and \"Plex Sync All\" out of the core\n- Left `ServerSettings.Plex` and the Plex columns of `JMMUser` where they are; the plugin compiles against `Shoko.Server` to reach them\n- Dropped `Web.EnableLegacyPlexAPI`; disabling the plugin replaces it\n\n`docs` (`plugin`): **Say the WebAOM renamer is feature-frozen and what to use beyond it**:\n\nPointed at the Lua renamer or a custom relocation provider for a folder\nstructure of one's own or several managed folders.\n\n`fix` (`db`): **Give TMDB's provisional tags IDs no collation takes for one**:\n\n`CopyTmdbTags` told keywords apart by ordinal comparison, while MySQL and\nSQL Server compare IDs ignoring case (MySQL accents too), so `shonen`,\n`Shonen` and `shōnen` hit `UIX_Metadata_Tag_ProviderID` and stopped the upgrade.\n\n- Hashed a name that is not plain ASCII, or differs only in case from one already kept\n\n`fix` (`db`): **Skip image links that exist when migrating preferred images and avatars**:\n\nTwo old rows naming the same image, or a second run after one that stopped half\nway, hit `UIX_ShokoImage_Entity_Entity_Image` and stopped the upgrade.\n"
-    },
-    {
-      "version": "6.0.0.514",
-      "tag": "v6.0.0-dev.514",
-      "commit": "a99f13aab48464fbc02347d9702960411d4396aa",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.514/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-12T06:14:13Z",
-      "releaseNotes": "\n`repo`: **Download MediaInfo once per workflow run**:\n\n- Added a `mediainfo` job that fetches and caches the archive, then hands it to the Windows jobs as an artifact\n- Checked the MediaInfo signature on every Windows build, not only after a download\n"
     }
   ]
 }
