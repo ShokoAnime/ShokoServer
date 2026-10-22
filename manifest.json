@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.543",
+      "tag": "v6.0.0-dev.543",
+      "commit": "02b79c88b73ae54d9c763cce2f055e405235edf3",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.543/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-22T10:42:42Z",
+      "releaseNotes": "\n`fix` (`filters`): **Let a set `Right` win over `Parameter` in the string comparers**:\n\n- The string and string set comparers used `Parameter` when both were set, unlike the number and date ones\n- Wrote the rule into the filters readme\n"
+    },
+    {
       "version": "6.0.0.542",
       "tag": "v6.0.0-dev.542",
       "commit": "b456861e895408f408a859531dcefe833d544ff8",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.514/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-12T06:14:13Z",
       "releaseNotes": "\n`repo`: **Download MediaInfo once per workflow run**:\n\n- Added a `mediainfo` job that fetches and caches the archive, then hands it to the Windows jobs as an artifact\n- Checked the MediaInfo signature on every Windows build, not only after a download\n"
-    },
-    {
-      "version": "6.0.0.513",
-      "tag": "v6.0.0-dev.513",
-      "commit": "f6197ca61e7ec03485ee4fa55e9157bcf200932b",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.513/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-12T06:06:09Z",
-      "releaseNotes": "\n`repo`: **Download the MediaInfo CLI at build time instead of committing it**:\n\n- Added `MediaInfo.targets`, which fetches the latest MediaInfo CLI for Windows builds, checked against the SHA-256 in Scoop's manifest and, on Windows, MediaArea's signature\n- Removed the committed 24.06 copy from `Dependencies/MediaInfo`\n- Cached the download in the Windows CI jobs\n\nCloses #1154\n\n`repo`: **Check the MediaInfo signature with PowerShell 7 when available**.\n"
     }
   ]
 }
