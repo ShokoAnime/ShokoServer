@@ -72,15 +72,15 @@ public class SwitchExpression : FilterExpression<bool>, IWithExpressionParameter
     /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-    bool IWithBoolParameter.Parameter
+    bool? IWithBoolParameter.Parameter
     {
         get => IsOn;
-        set => IsOn = value;
+        set => IsOn = value ?? false;
     }
 
-    string IWithSecondStringParameter.SecondParameter
+    string? IWithSecondStringParameter.SecondParameter
     {
-        get => Label ?? string.Empty;
+        get => Label;
         set => Label = value;
     }
 

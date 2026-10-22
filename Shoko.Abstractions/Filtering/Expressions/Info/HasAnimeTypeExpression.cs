@@ -20,6 +20,9 @@ public class HasAnimeTypeExpression : FilterExpression<bool>, IWithStringParamet
     /// <inheritdoc/>
     public string? Parameter { get; set; }
 
+    /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
     /// <summary>
     /// The parsed anime type from the parameter string.
     /// </summary>

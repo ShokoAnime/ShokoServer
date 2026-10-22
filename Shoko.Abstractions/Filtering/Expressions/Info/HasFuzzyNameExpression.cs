@@ -30,6 +30,9 @@ public class HasFuzzyNameExpression : FilterExpression<bool>, IWithStringParamet
     public string? Parameter { get; set; }
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
+    /// <inheritdoc/>
     public override string HelpDescription =>
         "This condition passes if any name of the series or group fuzzy-matches the given query.";
 

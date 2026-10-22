@@ -26,13 +26,16 @@ public class NumberGreaterThanEqualsExpression : FilterExpression<bool>, IWithNu
     public FilterExpression<double>? Right { get; set; }
 
     /// <inheritdoc/>
-    public double Parameter { get; set; }
+    public double? Parameter { get; set; }
 
     /// <inheritdoc/>
     public override bool TimeDependent => (Left?.TimeDependent ?? false) || (Right?.TimeDependent ?? false);
 
     /// <inheritdoc/>
     public override bool UserDependent => (Left?.UserDependent ?? false) || (Right?.UserDependent ?? false);
+
+    /// <inheritdoc/>
+    public override bool IsApplicable => Left is { IsApplicable: true } && (Right is { IsApplicable: true } || Parameter is not null);
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the left selector is greater than or equal to either the right selector or the parameter";
@@ -43,11 +46,16 @@ public class NumberGreaterThanEqualsExpression : FilterExpression<bool>, IWithNu
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (!IsApplicable)
+            return false;
+
         var left = Left?.Evaluate(filterable, userInfo, time);
         if (left is null)
             return false;
 
-        var right = Right?.Evaluate(filterable, userInfo, time) ?? Parameter;
+        if ((Right is { IsApplicable: true } ? Right.Evaluate(filterable, userInfo, time) : Parameter) is not { } right)
+            return false;
+
         return Math.Abs(left.Value - right) < 0.001D || left.Value > right;
     }
 

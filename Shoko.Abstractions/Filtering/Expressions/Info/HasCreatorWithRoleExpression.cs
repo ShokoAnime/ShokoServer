@@ -25,10 +25,13 @@ public class HasCreatorWithRoleExpression : FilterExpression<bool>, IWithStringP
     public string? CreatorID { get; set; }
 
     /// <summary>
-    /// The role the creator has to have, kept as the second parameter.
+    /// The role the creator has to have, kept as the second parameter, or <c>null</c> when it is not set.
     /// </summary>
     [JsonConverter(typeof(LenientEnumNewtonsoftJsonConverter))]
-    public CrewRoleType Role { get; set; }
+    public CrewRoleType? Role { get; set; }
+
+    /// <inheritdoc/>
+    public override bool IsApplicable => CreatorID is not null && Role is not null;
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the filterable has a creator with the specified role.";
@@ -52,16 +55,16 @@ public class HasCreatorWithRoleExpression : FilterExpression<bool>, IWithStringP
         set => CreatorID = value;
     }
 
-    string IWithSecondStringParameter.SecondParameter
+    string? IWithSecondStringParameter.SecondParameter
     {
-        get => Role.ToString();
-        set => Role = Enum.Parse<CrewRoleType>(value, ignoreCase: true);
+        get => Role?.ToString();
+        set => Role = value is null ? null : Enum.Parse<CrewRoleType>(value, ignoreCase: true);
     }
 
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return CreatorID is not null && filterable.CreatorRoles.TryGetValue(Role, out var roles) && roles.Contains(CreatorID);
+        return CreatorID is not null && Role is { } role && filterable.CreatorRoles.TryGetValue(role, out var roles) && roles.Contains(CreatorID);
     }
 
     /// <inheritdoc cref="Equals(object)"/>
@@ -88,6 +91,6 @@ public class HasCreatorWithRoleExpression : FilterExpression<bool>, IWithStringP
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        return HashCode.Combine(base.GetHashCode(), CreatorID, (int)Role);
+        return HashCode.Combine(base.GetHashCode(), CreatorID, Role);
     }
 }

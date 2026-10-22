@@ -21,6 +21,9 @@ public class HasCharacterExpression : FilterExpression<bool>, IWithStringParamet
     public string? CharacterID { get; set; }
 
     /// <inheritdoc/>
+    public override bool IsApplicable => CharacterID is not null;
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the filterable has a character.";
 
     string? IWithStringParameter.Parameter

@@ -37,6 +37,9 @@ public class AllStartsWithExpression : FilterExpression<bool>, IWithStringSetSel
     public override bool UserDependent => (Left?.UserDependent ?? false) || (Right?.UserDependent ?? false);
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Left is { IsApplicable: true } && (Right is { IsApplicable: true } || Parameter is not null);
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if all of the values in the left selector start with either the right selector or the parameter";
 
     /// <inheritdoc/>
@@ -45,11 +48,14 @@ public class AllStartsWithExpression : FilterExpression<bool>, IWithStringSetSel
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (!IsApplicable)
+            return false;
+
         var left = Left?.Evaluate(filterable, userInfo, time);
         if (left is null)
             return false;
 
-        var right = Right is null ? Parameter : Right.Evaluate(filterable, userInfo, time);
+        var right = Right is { IsApplicable: true } ? Right.Evaluate(filterable, userInfo, time) : Parameter;
         if (right is null)
             return false;
 

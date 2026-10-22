@@ -21,6 +21,9 @@ public class HasUnairedEpisodeTypeExpression : FilterExpression<bool>, IWithStri
     public string? Parameter { get; set; }
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
+    /// <inheritdoc/>
     protected EpisodeType? EpisodeType => Enum.TryParse<EpisodeType>(Parameter, true, out var type)
         ? type
         : null;

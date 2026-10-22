@@ -4,7 +4,8 @@ using Shoko.Abstractions.Filtering.Expressions.Containers;
 namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 
 /// <summary>
-/// This condition passes if the left expression is equal to the right expression or the parameter.
+/// This condition passes if its parameter is true. With no parameter it does
+/// not take part (see <see cref="FilterExpression.IsApplicable"/>).
 /// </summary>
 public class ConstantExpression : FilterExpression<bool>, IWithBoolParameter
 {
@@ -16,10 +17,13 @@ public class ConstantExpression : FilterExpression<bool>, IWithBoolParameter
     public ConstantExpression() { }
 
     /// <inheritdoc/>
-    public bool Parameter { get; set; }
+    public bool? Parameter { get; set; }
 
     /// <inheritdoc/>
-    public override string HelpDescription => "This condition passes if the left expression is equal to the right expression or the parameter.";
+    public override bool IsApplicable => Parameter is not null;
+
+    /// <inheritdoc/>
+    public override string HelpDescription => "This condition passes if the parameter is true.";
 
     /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
@@ -27,7 +31,7 @@ public class ConstantExpression : FilterExpression<bool>, IWithBoolParameter
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return Parameter;
+        return Parameter ?? false;
     }
 
     /// <inheritdoc cref="Equals(object)"/>

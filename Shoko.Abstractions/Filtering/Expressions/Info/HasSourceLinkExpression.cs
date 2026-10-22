@@ -24,6 +24,9 @@ public class HasSourceLinkExpression : FilterExpression<bool>, IWithStringParame
     /// <inheritdoc/>
     public string? Parameter { get; set; }
 
+    /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
     /// <summary>
     /// The source asked about, when the parameter names one.
     /// </summary>

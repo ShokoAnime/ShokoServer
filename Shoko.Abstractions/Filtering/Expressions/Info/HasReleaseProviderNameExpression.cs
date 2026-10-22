@@ -19,6 +19,9 @@ public class HasReleaseProviderNameExpression : FilterExpression<bool>, IWithStr
     public string? Parameter { get; set; }
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
+    /// <inheritdoc/>
     public override bool TimeDependent => false;
 
     /// <inheritdoc/>

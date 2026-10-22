@@ -26,13 +26,16 @@ public class DateEqualsExpression : FilterExpression<bool>, IWithDateSelectorPar
     public FilterExpression<DateTime?>? Right { get; set; }
 
     /// <inheritdoc/>
-    public DateTime Parameter { get; set; }
+    public DateTime? Parameter { get; set; }
 
     /// <inheritdoc/>
     public override bool TimeDependent => (Left?.TimeDependent ?? false) || (Right?.TimeDependent ?? false);
 
     /// <inheritdoc/>
     public override bool UserDependent => (Left?.UserDependent ?? false) || (Right?.UserDependent ?? false);
+
+    /// <inheritdoc/>
+    public override bool IsApplicable => Left is { IsApplicable: true } && (Right is { IsApplicable: true } || Parameter is not null);
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the left selector equals either the right selector or the parameter";
@@ -43,9 +46,12 @@ public class DateEqualsExpression : FilterExpression<bool>, IWithDateSelectorPar
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (!IsApplicable)
+            return false;
+
         var date = Left?.Evaluate(filterable, userInfo, time);
         var dateIsNull = date is null || date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue || date.Value == DateTime.UnixEpoch;
-        var operand = Right is null ? Parameter : Right.Evaluate(filterable, userInfo, time);
+        var operand = Right is { IsApplicable: true } ? Right.Evaluate(filterable, userInfo, time) : Parameter;
         var operandIsNull = operand is null || operand.Value == DateTime.MinValue || operand.Value == DateTime.MaxValue || operand.Value == DateTime.UnixEpoch;
         if (dateIsNull && operandIsNull)
         {

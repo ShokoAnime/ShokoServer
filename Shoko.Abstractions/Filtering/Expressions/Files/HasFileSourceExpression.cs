@@ -20,6 +20,9 @@ public class HasFileSourceExpression : FilterExpression<bool>, IWithStringParame
     /// <inheritdoc/>
     public string? Parameter { get; set; }
 
+    /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
     /// <summary>
     /// The parsed release source from the parameter string.
     /// </summary>

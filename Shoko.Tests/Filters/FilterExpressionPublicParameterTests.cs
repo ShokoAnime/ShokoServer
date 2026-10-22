@@ -92,16 +92,14 @@ public class FilterExpressionPublicParameterTests
     [InlineData("Staff")]
     [InlineData("Studio")]
     [InlineData("NotARole")]
-    public void HasCreatorWithRole_LoadsARoleThatNoLongerExistsAsNone(string role)
+    public void HasCreatorWithRole_LoadsARoleThatNoLongerExistsAsUnset(string role)
     {
         var restored = Load<HasCreatorWithRoleExpression>(
             $"{{\"$type\":\"HasCreatorWithRoleExpression\",\"CreatorID\":\"202\",\"Role\":\"{role}\"}}");
 
         Assert.Equal("202", restored.CreatorID);
-        Assert.Equal(CrewRoleType.None, restored.Role);
-
-        // None still matches the creators a series files under it, staff and studios among them; this
-        // series only credits creator 202 in other roles.
+        Assert.Null(restored.Role);
+        Assert.False(restored.IsApplicable);
         Assert.False(restored.Evaluate(s_filterable, null, null));
     }
 

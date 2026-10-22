@@ -15,8 +15,13 @@ public class InYearExpression : FilterExpression<bool>, IWithNumberParameter
     /// <inheritdoc/>
     public InYearExpression() { }
 
+    /// <summary>
+    /// The year, or <c>null</c> when it is not set.
+    /// </summary>
+    public int? Parameter { get; set; }
+
     /// <inheritdoc/>
-    public int Parameter { get; set; }
+    public override bool IsApplicable => Parameter is not null;
 
     /// <inheritdoc/>
     public override bool TimeDependent => true;
@@ -26,16 +31,16 @@ public class InYearExpression : FilterExpression<bool>, IWithNumberParameter
     /// <inheritdoc/>
     public override string HelpParameterName => "Year";
 
-    double IWithNumberParameter.Parameter
+    double? IWithNumberParameter.Parameter
     {
         get => Parameter;
-        set => Parameter = (int)value;
+        set => Parameter = value is { } year ? (int)year : null;
     }
 
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.Years.Contains(Parameter);
+        return Parameter is { } year && filterable.Years.Contains(year);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

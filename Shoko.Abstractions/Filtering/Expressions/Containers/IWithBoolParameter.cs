@@ -6,7 +6,8 @@ namespace Shoko.Abstractions.Filtering.Expressions.Containers;
 public interface IWithBoolParameter
 {
     /// <summary>
-    /// The boolean parameter value.
+    /// The boolean parameter value, or <c>null</c> when it is not set.
+    /// <c>false</c> is set.
     /// </summary>
-    bool Parameter { get; set; }
+    bool? Parameter { get; set; }
 }

@@ -36,6 +36,9 @@ public class StringRegexMatchesExpression : FilterExpression<bool>, IWithStringS
     public override bool UserDependent => Left?.UserDependent ?? false;
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Left is { IsApplicable: true } && Parameter is not null;
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the left selector matches the regular expression given in the parameter";
 
     /// <inheritdoc/>
@@ -44,6 +47,9 @@ public class StringRegexMatchesExpression : FilterExpression<bool>, IWithStringS
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (!IsApplicable)
+            return false;
+
         var left = Left?.Evaluate(filterable, userInfo, time);
         if (left is null)
             return false;

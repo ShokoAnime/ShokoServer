@@ -144,22 +144,22 @@ public class FilterFactory
         switch (expression)
         {
             case IWithBoolParameter parameter:
-                result.Parameter = parameter.Parameter.ToString().ToLower();
+                result.Parameter = parameter.Parameter?.ToString().ToLower();
                 break;
             case IWithStringParameter parameter:
                 result.Parameter = parameter.Parameter;
                 break;
             case IWithNumberParameter parameter:
-                result.Parameter = parameter.Parameter == 0 ? null : parameter.Parameter.ToString(CultureInfo.CurrentCulture);
+                result.Parameter = parameter.Parameter?.ToString(CultureInfo.CurrentCulture);
                 break;
             case IWithDateParameter parameter:
-                result.Parameter = parameter.Parameter == default ? null : parameter.Parameter.ToUniversalTime().ToString("u");
+                result.Parameter = parameter.Parameter?.ToUniversalTime().ToString("u");
                 break;
             case IWithTimeSpanParameter parameter:
-                result.Parameter = parameter.Parameter == default ? null : parameter.Parameter.ToString("G");
+                result.Parameter = parameter.Parameter?.ToString("G");
                 break;
             case IWithStringSetParameter parameter:
-                result.Parameter = parameter.Parameter.Count is 0 ? null : parameter.Parameter.Join("|||");
+                result.Parameter = parameter.Parameter?.Join("|||");
                 break;
         }
 
@@ -222,28 +222,27 @@ public class FilterFactory
         switch (result)
         {
             case IWithBoolParameter parameter:
-                parameter.Parameter = condition.Parameter?.ToLower() == "true";
+                parameter.Parameter = bool.TryParse(condition.Parameter, out var flag) ? flag : null;
                 break;
             case IWithStringParameter parameter:
                 parameter.Parameter = condition.Parameter;
                 break;
             case IWithNumberParameter parameter:
-                parameter.Parameter = !string.IsNullOrEmpty(condition.Parameter) && double.TryParse(condition.Parameter!, out var number)
-                    ? number
-                    : default;
+                parameter.Parameter = double.TryParse(condition.Parameter, out var number) ? number : null;
                 break;
             case IWithDateParameter parameter:
-                parameter.Parameter = !string.IsNullOrEmpty(condition.Parameter) && DateTime.TryParse(condition.Parameter!, out var date)
-                    ? date
-                    : default;
+                parameter.Parameter = DateTime.TryParse(condition.Parameter, out var date) ? date : null;
                 break;
             case IWithTimeSpanParameter parameter:
-                parameter.Parameter = !string.IsNullOrEmpty(condition.Parameter) && TimeSpan.TryParse(condition.Parameter!, out var timeSpan)
-                    ? timeSpan
-                    : default;
+                parameter.Parameter = TimeSpan.TryParse(condition.Parameter, out var timeSpan) ? timeSpan : null;
                 break;
             case IWithStringSetParameter parameter:
-                parameter.Parameter = string.IsNullOrEmpty(condition.Parameter) ? [] : condition.Parameter.Split("|||").ToHashSet();
+                parameter.Parameter = condition.Parameter switch
+                {
+                    null => null,
+                    "" => [],
+                    var text => text.Split("|||").ToHashSet(),
+                };
                 break;
         }
 
@@ -268,7 +267,7 @@ public class FilterFactory
         switch (result)
         {
             case IWithSecondStringParameter right:
-                right.SecondParameter = condition.SecondParameter!;
+                right.SecondParameter = condition.SecondParameter;
                 break;
         }
 

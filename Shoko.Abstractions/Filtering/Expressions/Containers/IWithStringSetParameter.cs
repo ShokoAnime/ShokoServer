@@ -8,7 +8,8 @@ namespace Shoko.Abstractions.Filtering.Expressions.Containers;
 public interface IWithStringSetParameter
 {
     /// <summary>
-    /// The string set parameter value.
+    /// The string set parameter value, or <c>null</c> when it is not set. An
+    /// empty set is set.
     /// </summary>
-    IReadOnlySet<string> Parameter { get; set; }
+    IReadOnlySet<string>? Parameter { get; set; }
 }

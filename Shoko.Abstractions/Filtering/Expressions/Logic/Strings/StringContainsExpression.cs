@@ -35,6 +35,9 @@ public class StringContainsExpression : FilterExpression<bool>, IWithStringSelec
     public override bool UserDependent => (Left?.UserDependent ?? false) || (Right?.UserDependent ?? false);
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Left is { IsApplicable: true } && (Right is { IsApplicable: true } || Parameter is not null);
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the left selector contains either the right selector or the parameter";
 
     /// <inheritdoc/>
@@ -43,8 +46,11 @@ public class StringContainsExpression : FilterExpression<bool>, IWithStringSelec
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (!IsApplicable)
+            return false;
+
         var left = Left?.Evaluate(filterable, userInfo, time);
-        var right = Right is null ? Parameter : Right.Evaluate(filterable, userInfo, time);
+        var right = Right is { IsApplicable: true } ? Right.Evaluate(filterable, userInfo, time) : Parameter;
         if (left is null || string.IsNullOrEmpty(right))
             return false;
         return left.Contains(right, StringComparison.InvariantCultureIgnoreCase);

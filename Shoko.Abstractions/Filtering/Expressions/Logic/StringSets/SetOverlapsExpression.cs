@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Filtering.Expressions.Converters;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Logic.StringSets;
 
@@ -14,20 +16,23 @@ public class SetOverlapsExpression : FilterExpression<bool>, IWithStringSetSelec
         => (Left, Parameter) = (left, parameter);
 
     /// <inheritdoc/>
-    public SetOverlapsExpression()
-        => (Left, Parameter) = (null, new HashSet<string>());
+    public SetOverlapsExpression() { }
 
     /// <inheritdoc/>
     public FilterExpression<IReadOnlySet<string>>? Left { get; set; }
 
     /// <inheritdoc/>
-    public IReadOnlySet<string> Parameter { get; set; }
+    [JsonConverter(typeof(StringSetNewtonsoftJsonConverter))]
+    public IReadOnlySet<string>? Parameter { get; set; }
 
     /// <inheritdoc/>
     public override bool TimeDependent => Left?.TimeDependent ?? false;
 
     /// <inheritdoc/>
     public override bool UserDependent => Left?.UserDependent ?? false;
+
+    /// <inheritdoc/>
+    public override bool IsApplicable => Left is { IsApplicable: true } && Parameter is not null;
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if any of the values in the left selector overlaps with the parameter";
@@ -38,17 +43,20 @@ public class SetOverlapsExpression : FilterExpression<bool>, IWithStringSetSelec
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (!IsApplicable)
+            return false;
+
         var left = Left?.Evaluate(filterable, userInfo, time) ?? new HashSet<string>();
         if (left.Count == 0)
             return false;
 
-        return left.Overlaps(Parameter);
+        return Parameter is { } parameter && left.Overlaps(parameter);
     }
 
     /// <inheritdoc cref="Equals(object)"/>
     protected bool Equals(SetOverlapsExpression other)
     {
-        return base.Equals(other) && Equals(Left, other.Left) && Parameter.SetEquals(other.Parameter);
+        return base.Equals(other) && Equals(Left, other.Left) && (Parameter is null ? other.Parameter is null : other.Parameter is not null && Parameter.SetEquals(other.Parameter));
     }
 
     /// <inheritdoc/>

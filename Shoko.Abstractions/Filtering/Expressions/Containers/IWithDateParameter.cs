@@ -8,7 +8,7 @@ namespace Shoko.Abstractions.Filtering.Expressions.Containers;
 public interface IWithDateParameter
 {
     /// <summary>
-    /// The date parameter value.
+    /// The date parameter value, or <c>null</c> when it is not set.
     /// </summary>
-    DateTime Parameter { get; set; }
+    DateTime? Parameter { get; set; }
 }

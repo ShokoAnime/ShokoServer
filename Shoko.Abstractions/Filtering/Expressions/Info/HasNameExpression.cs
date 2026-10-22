@@ -19,6 +19,9 @@ public class HasNameExpression : FilterExpression<bool>, IWithStringParameter
     public string? Parameter { get; set; }
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the name of the series or group equals the name specified. This exists for legacy compatibility and should not be used.";
 
     /// <inheritdoc/>

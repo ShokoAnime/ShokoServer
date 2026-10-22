@@ -44,6 +44,9 @@ public class StringFuzzyMatchesExpression : FilterExpression<bool>, IWithStringS
     public override bool UserDependent => (Left?.UserDependent ?? false) || (Right?.UserDependent ?? false);
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Left is { IsApplicable: true } && (Right is { IsApplicable: true } || Parameter is not null);
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the left selector fuzzy matches either the right selector or the parameter";
 
     /// <inheritdoc/>
@@ -52,8 +55,11 @@ public class StringFuzzyMatchesExpression : FilterExpression<bool>, IWithStringS
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (!IsApplicable)
+            return false;
+
         var left = Left?.Evaluate(filterable, userInfo, time);
-        var right = Right is null ? Parameter : Right.Evaluate(filterable, userInfo, time);
+        var right = Right is { IsApplicable: true } ? Right.Evaluate(filterable, userInfo, time) : Parameter;
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right))
             return false;
         return Service.FuzzyMatchesAnyName(right, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { left });

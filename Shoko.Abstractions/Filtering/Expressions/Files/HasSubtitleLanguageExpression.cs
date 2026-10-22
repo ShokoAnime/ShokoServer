@@ -19,6 +19,9 @@ public class HasSubtitleLanguageExpression : FilterExpression<bool>, IWithString
     public string? Parameter { get; set; }
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if any of the files have the specified subtitle language";
 
     /// <inheritdoc/>

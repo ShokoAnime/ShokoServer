@@ -9,7 +9,8 @@ namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 /// <remarks>
 /// A side that does not take part (see
 /// <see cref="FilterExpression.IsApplicable"/>) is left out, and the other
-/// side decides. A missing right side is the parameter instead.
+/// side decides. A missing right side is the parameter instead, and with
+/// neither it acts as its left side.
 /// </remarks>
 public class EqualsExpression : FilterExpression<bool>, IWithExpressionParameter, IWithSecondExpressionParameter, IWithBoolParameter
 {
@@ -31,7 +32,7 @@ public class EqualsExpression : FilterExpression<bool>, IWithExpressionParameter
     public FilterExpression<bool>? Right { get; set; }
 
     /// <inheritdoc/>
-    public bool Parameter { get; set; }
+    public bool? Parameter { get; set; }
 
     /// <inheritdoc/>
     public override bool TimeDependent => (Left?.TimeDependent ?? false) || (Right?.TimeDependent ?? false);
@@ -57,7 +58,10 @@ public class EqualsExpression : FilterExpression<bool>, IWithExpressionParameter
         if (Right is { IsApplicable: false })
             return Left.Evaluate(filterable, userInfo, time);
 
-        return Left.Evaluate(filterable, userInfo, time) == (Right?.Evaluate(filterable, userInfo, time) ?? Parameter);
+        if (Right is null)
+            return Parameter is { } parameter ? Left.Evaluate(filterable, userInfo, time) == parameter : Left.Evaluate(filterable, userInfo, time);
+
+        return Left.Evaluate(filterable, userInfo, time) == Right.Evaluate(filterable, userInfo, time);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

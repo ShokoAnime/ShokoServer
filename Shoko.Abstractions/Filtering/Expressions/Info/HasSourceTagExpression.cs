@@ -20,7 +20,10 @@ public class HasSourceTagExpression : FilterExpression<bool>, IWithStringParamet
     public string? Parameter { get; set; }
 
     /// <inheritdoc/>
-    public string SecondParameter { get; set; } = string.Empty;
+    public string? SecondParameter { get; set; }
+
+    /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null && SecondParameter is not null;
 
     /// <summary>
     /// The source asked about, when the parameter names one.
@@ -40,7 +43,7 @@ public class HasSourceTagExpression : FilterExpression<bool>, IWithStringParamet
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return Source is { } source && !string.IsNullOrEmpty(SecondParameter) && filterable.GetTags(source).Contains(SecondParameter);
+        return Source is { } source && SecondParameter is not null && filterable.GetTags(source).Contains(SecondParameter);
     }
 
     /// <summary>

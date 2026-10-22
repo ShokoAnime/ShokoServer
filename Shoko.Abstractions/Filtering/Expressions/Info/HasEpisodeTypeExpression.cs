@@ -20,6 +20,9 @@ public class HasEpisodeTypeExpression : FilterExpression<bool>, IWithStringParam
     /// <inheritdoc/>
     public string? Parameter { get; set; }
 
+    /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
     /// <summary>
     /// The parsed episode type from the parameter string.
     /// </summary>

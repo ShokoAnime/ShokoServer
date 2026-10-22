@@ -25,10 +25,13 @@ public class HasCharacterWithAppearanceExpression : FilterExpression<bool>, IWit
     public string? CharacterID { get; set; }
 
     /// <summary>
-    /// How the character has to appear, kept as the second parameter.
+    /// How the character has to appear, kept as the second parameter, or <c>null</c> when it is not set.
     /// </summary>
     [JsonConverter(typeof(LenientEnumNewtonsoftJsonConverter))]
-    public CastRoleType Appearance { get; set; }
+    public CastRoleType? Appearance { get; set; }
+
+    /// <inheritdoc/>
+    public override bool IsApplicable => CharacterID is not null && Appearance is not null;
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the filterable has a character with the specified appearance.";
@@ -52,16 +55,16 @@ public class HasCharacterWithAppearanceExpression : FilterExpression<bool>, IWit
         set => CharacterID = value;
     }
 
-    string IWithSecondStringParameter.SecondParameter
+    string? IWithSecondStringParameter.SecondParameter
     {
-        get => Appearance.ToString();
-        set => Appearance = Enum.Parse<CastRoleType>(value, ignoreCase: true);
+        get => Appearance?.ToString();
+        set => Appearance = value is null ? null : Enum.Parse<CastRoleType>(value, ignoreCase: true);
     }
 
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return CharacterID is not null && filterable.CharacterAppearances.TryGetValue(Appearance, out var appearances) && appearances.Contains(CharacterID);
+        return CharacterID is not null && Appearance is { } appearance && filterable.CharacterAppearances.TryGetValue(appearance, out var appearances) && appearances.Contains(CharacterID);
     }
 
     /// <inheritdoc cref="Equals(object)"/>
@@ -88,6 +91,6 @@ public class HasCharacterWithAppearanceExpression : FilterExpression<bool>, IWit
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        return HashCode.Combine(base.GetHashCode(), CharacterID, (int)Appearance);
+        return HashCode.Combine(base.GetHashCode(), CharacterID, Appearance);
     }
 }

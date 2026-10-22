@@ -19,6 +19,9 @@ public class HasCustomTagExpression : FilterExpression<bool>, IWithStringParamet
     public string? Parameter { get; set; }
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if any of the anime have a specified custom tag";
 
     /// <inheritdoc/>

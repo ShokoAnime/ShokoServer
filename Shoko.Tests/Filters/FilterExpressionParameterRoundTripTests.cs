@@ -8,8 +8,16 @@ using Moq;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Filtering.Expressions.Functions;
+using Shoko.Abstractions.Filtering.Expressions.Info;
+using Shoko.Abstractions.Filtering.Expressions.Logic.DateTimes;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Numbers;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Strings;
+using Shoko.Abstractions.Filtering.Expressions.Logic.StringSets;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Filtering.Sorting;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Databases.NHibernate;
@@ -80,16 +88,36 @@ public class FilterExpressionParameterRoundTripTests
     [MemberData(nameof(Expressions))]
     public void EveryParameterSurvivesTheApiFilterCondition(string fullName)
     {
-        var type = Resolve(fullName);
-        var original = Fill(type);
+        var original = Fill(Resolve(fullName));
 
-        var condition = s_factory.GetExpressionTree(original);
-        var wire = JsonConvert.DeserializeObject<Filter.FilterCondition>(JsonConvert.SerializeObject(condition));
-        var restored = (FilterExpression?)s_conditionToExpression
-            .MakeGenericMethod(ResultType(type))
-            .Invoke(s_factory, [wire]);
+        var restored = ThroughApiFilterCondition(original);
 
         Assert.Equal(Describe(original), Describe(restored));
+    }
+
+    [Fact]
+    public void FalsyAndUnsetParametersSurviveTheApiFilterCondition()
+    {
+        FilterExpression[] cases =
+        [
+            new NumberEqualsExpression { Left = Leaf<double>(last: false), Parameter = 0 },
+            new NumberEqualsExpression { Left = Leaf<double>(last: false) },
+            new DateEqualsExpression { Left = Leaf<DateTime?>(last: false) },
+            new StringContainsExpression { Left = Leaf<string>(last: false), Parameter = string.Empty },
+            new StringContainsExpression { Left = Leaf<string>(last: false) },
+            new SetOverlapsExpression { Left = Leaf<IReadOnlySet<string>>(last: false), Parameter = new HashSet<string>() },
+            new SetOverlapsExpression { Left = Leaf<IReadOnlySet<string>>(last: false) },
+            new ConstantExpression(false),
+            new ConstantExpression(),
+            new InSeasonExpression(2022, YearlySeason.Winter),
+            new InSeasonExpression(),
+            new InYearExpression(2022),
+            new InYearExpression(),
+            new HasSourceGenreExpression { Parameter = "AniDB" },
+            new DateAddFunction { Left = Leaf<DateTime?>(last: false) },
+        ];
+
+        Assert.All(cases, original => Assert.Equal(Describe(original), Describe(ThroughApiFilterCondition(original))));
     }
 
     [Theory]
@@ -108,6 +136,20 @@ public class FilterExpressionParameterRoundTripTests
     #endregion
 
     #region Helpers
+
+    /// <summary>
+    /// Sends an expression through the APIv3 filter condition and back, as a client would.
+    /// </summary>
+    /// <param name="original">The expression to send.</param>
+    /// <returns>The expression the server reads back.</returns>
+    private static FilterExpression? ThroughApiFilterCondition(FilterExpression original)
+    {
+        var condition = s_factory.GetExpressionTree(original);
+        var wire = JsonConvert.DeserializeObject<Filter.FilterCondition>(JsonConvert.SerializeObject(condition));
+        return (FilterExpression?)s_conditionToExpression
+            .MakeGenericMethod(ResultType(original.GetType()))
+            .Invoke(s_factory, [wire]);
+    }
 
     private static Type Resolve(string fullName)
         => s_expressionTypes.Single(t => t.FullName == fullName);
@@ -221,8 +263,9 @@ public class FilterExpressionParameterRoundTripTests
 
         var enumNames = expression.GetType()
             .GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            .Where(p => p.PropertyType.IsEnum)
-            .Select(p => Enum.GetNames(p.PropertyType)[^1]);
+            .Select(p => Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType)
+            .Where(type => type.IsEnum)
+            .Select(type => Enum.GetNames(type)[^1]);
         foreach (var name in enumNames)
         {
             try
@@ -269,15 +312,15 @@ public class FilterExpressionParameterRoundTripTests
             parts.Add($"Right={Describe(stringRight.Right)}");
 
         if (expression is IWithBoolParameter boolParameter)
-            parts.Add($"Bool={boolParameter.Parameter}");
+            parts.Add($"Bool={boolParameter.Parameter?.ToString() ?? "null"}");
         if (expression is IWithDateParameter dateParameter)
-            parts.Add($"Date={dateParameter.Parameter.ToUniversalTime():O}");
+            parts.Add($"Date={(dateParameter.Parameter is { } date ? date.ToUniversalTime().ToString("O") : "null")}");
         if (expression is IWithNumberParameter numberParameter)
-            parts.Add($"Number={numberParameter.Parameter.ToString(CultureInfo.InvariantCulture)}");
+            parts.Add($"Number={(numberParameter.Parameter is { } number ? number.ToString(CultureInfo.InvariantCulture) : "null")}");
         if (expression is IWithTimeSpanParameter timeSpanParameter)
-            parts.Add($"TimeSpan={timeSpanParameter.Parameter:c}");
+            parts.Add($"TimeSpan={(timeSpanParameter.Parameter is { } span ? span.ToString("c") : "null")}");
         if (expression is IWithStringSetParameter stringSetParameter)
-            parts.Add($"StringSet={string.Join('|', (stringSetParameter.Parameter ?? new HashSet<string>()).Order(StringComparer.Ordinal))}");
+            parts.Add($"StringSet={(stringSetParameter.Parameter is { } set ? $"[{string.Join('|', set.Order(StringComparer.Ordinal))}]" : "null")}");
         if (expression is IWithStringParameter stringParameter)
             parts.Add($"String={stringParameter.Parameter ?? "null"}");
         if (expression is IWithSecondStringParameter secondStringParameter)

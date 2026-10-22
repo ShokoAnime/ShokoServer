@@ -19,6 +19,9 @@ public class HasTagExpression : FilterExpression<bool>, IWithStringParameter
     public string? Parameter { get; set; }
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if any of the anime have the specified AniDB tag";
 
     /// <inheritdoc/>

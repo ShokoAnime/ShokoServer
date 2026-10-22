@@ -6,7 +6,11 @@ using Shoko.Abstractions.Filtering.Expressions.Functions;
 using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Filtering.Expressions.Logic.DateTimes;
 using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Numbers;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Strings;
 using Shoko.Abstractions.Filtering.Expressions.Selectors.DateSelectors;
+using Shoko.Abstractions.Filtering.Expressions.Selectors.NumberSelectors;
+using Shoko.Abstractions.Filtering.Expressions.Selectors.StringSelectors;
 using Shoko.Abstractions.Filtering.Expressions.User;
 using Xunit;
 
@@ -88,6 +92,22 @@ public class FilterTests
         Assert.True(new AndExpression { Left = new HasTagExpression("comedy") }.Evaluate(group, null, DateTime.Now));
         Assert.True(new XorExpression { Left = new HasTagExpression("comedy") }.Evaluate(group, null, DateTime.Now));
         Assert.True(new AndExpression(new HasTagExpression("comedy"), new NotExpression()).Evaluate(group, null, DateTime.Now));
+    }
+
+    [Theory, MemberData(nameof(GroupFilterable))]
+    public void GroupFilterable_WithUnsetParameter_LeavesItOut(TestFilterable group)
+    {
+        var comedy = new HasTagExpression("comedy");
+
+        Assert.True(new AndExpression(comedy, new NumberEqualsExpression { Left = new EpisodeCountSelector() }).Evaluate(group, null, DateTime.Now));
+        Assert.False(new AndExpression(comedy, new NumberEqualsExpression { Left = new EpisodeCountSelector(), Parameter = 0 }).Evaluate(group, null, DateTime.Now));
+        Assert.True(new StringContainsExpression { Left = new NameSelector(), Parameter = string.Empty }.IsApplicable);
+        Assert.True(new AndExpression(comedy, new ConstantExpression()).Evaluate(group, null, DateTime.Now));
+        Assert.False(new ConstantExpression().Evaluate(group, null, DateTime.Now));
+        Assert.True(new EqualsExpression { Left = comedy }.Evaluate(group, null, DateTime.Now));
+        Assert.False(new EqualsExpression { Left = new HasTagExpression("18 restricted") }.Evaluate(group, null, DateTime.Now));
+        Assert.True(new AndExpression(comedy, new InSeasonExpression { Year = 2022 }).Evaluate(group, null, DateTime.Now));
+        Assert.True(new AndExpression(comedy, new DateGreaterThanExpression { Left = new DateAddFunction { Left = new AirDateSelector() }, Parameter = DateTime.MaxValue }).Evaluate(group, null, DateTime.Now));
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]

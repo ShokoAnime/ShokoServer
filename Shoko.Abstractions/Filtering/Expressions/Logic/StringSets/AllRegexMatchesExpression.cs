@@ -38,6 +38,9 @@ public class AllRegexMatchesExpression : FilterExpression<bool>, IWithStringSetS
     public override bool UserDependent => Left?.UserDependent ?? false;
 
     /// <inheritdoc/>
+    public override bool IsApplicable => Left is { IsApplicable: true } && Parameter is not null;
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if all of the values in the left selector matches the regex provided in the parameter";
 
     /// <inheritdoc/>
@@ -46,6 +49,9 @@ public class AllRegexMatchesExpression : FilterExpression<bool>, IWithStringSetS
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (!IsApplicable)
+            return false;
+
         var left = Left?.Evaluate(filterable, userInfo, time);
         if (left is null)
             return false;

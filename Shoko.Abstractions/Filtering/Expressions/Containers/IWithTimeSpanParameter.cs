@@ -8,7 +8,7 @@ namespace Shoko.Abstractions.Filtering.Expressions.Containers;
 public interface IWithTimeSpanParameter
 {
     /// <summary>
-    /// The time-span parameter value.
+    /// The time-span parameter value, or <c>null</c> when it is not set.
     /// </summary>
-    TimeSpan Parameter { get; set; }
+    TimeSpan? Parameter { get; set; }
 }

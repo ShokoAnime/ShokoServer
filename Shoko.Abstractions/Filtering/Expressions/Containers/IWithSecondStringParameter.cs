@@ -6,7 +6,8 @@ namespace Shoko.Abstractions.Filtering.Expressions.Containers;
 public interface IWithSecondStringParameter
 {
     /// <summary>
-    /// The second string parameter value.
+    /// The second string parameter value, or <c>null</c> when it is not set.
+    /// An empty string is set.
     /// </summary>
-    string SecondParameter { get; set; }
+    string? SecondParameter { get; set; }
 }

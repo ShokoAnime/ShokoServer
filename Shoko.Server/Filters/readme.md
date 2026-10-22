@@ -9,14 +9,20 @@ The argument types an expression can take are listed in `FilterExpressionParamet
 Integers are numbers like any other, coerced to double for simplicity.
 
 A comparer (the date, number, string and string set ones in `Logic/`) always takes its left side as a selector in
-`Left`. Its right side is either a second selector in `Right` or a plain value in `Parameter`. When both are set,
-`Right` wins, and a missing value from `Right` is never replaced by `Parameter`:
-`var right = Right is null ? Parameter : Right.Evaluate(…)`.
+`Left`. Its right side is either a second selector in `Right` or a plain value in `Parameter`. A `Right` that takes part
+wins over `Parameter`, and a missing value from it is never replaced by `Parameter`; a `Right` that does not take part is
+left out: `var right = Right is { IsApplicable: true } ? Right.Evaluate(…) : Parameter`.
 
 The logic expressions leave out a side that is missing or does not take part (`IsApplicable` is false for a
 switched-off or empty `Switch`, and for a logic expression with nothing applicable in it), and let the other side
 decide. Evaluated anyway, such as at the top of a filter, a part that does not take part fails. An expression taking
 boolean inputs follows the same rule.
+
+A parameter is unset only when it is `null`: `0`, `""`, `false` and an empty set are all set, and nothing stands in for
+a missing value. An expression missing a value it needs does not take part: a condition without its value, a selector
+without its source, a date function without its time span. A comparer takes part only when its `Left` does and it has
+something to compare it with, a `Right` that takes part or a set `Parameter`; a `Constant` only with a set `Parameter`.
+Optional values, such as the label of a `Scope` or a `Switch`, never decide whether a part takes part.
 
 FilterExpression is a single Expression, whether that's something like "Or" or "HasTag"
 in `And(Or(HasTag('comedy'), HasTag('action')), Not(HasTag('18 restricted')))`. Expressions should be the least amount

@@ -19,7 +19,10 @@ public class DateDiffFunction : FilterExpression<DateTime?>, IWithDateSelectorPa
     public FilterExpression<DateTime?>? Left { get; set; }
 
     /// <inheritdoc/>
-    public TimeSpan Parameter { get; set; }
+    public TimeSpan? Parameter { get; set; }
+
+    /// <inheritdoc/>
+    public override bool IsApplicable => Left is { IsApplicable: true } && Parameter is not null;
 
     /// <inheritdoc/>
     public override bool TimeDependent => Left?.TimeDependent ?? false;
@@ -36,6 +39,9 @@ public class DateDiffFunction : FilterExpression<DateTime?>, IWithDateSelectorPa
     /// <inheritdoc/>
     public override DateTime? Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (!IsApplicable)
+            return null;
+
         var date = Left?.Evaluate(filterable, userInfo, time);
         if (date is null)
             return null;

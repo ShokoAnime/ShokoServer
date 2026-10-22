@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Filtering.Expressions.Converters;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Logic.StringSets;
 
@@ -14,20 +17,23 @@ public class StringInExpression : FilterExpression<bool>, IWithStringSelectorPar
         => (Left, Parameter) = (left, parameter);
 
     /// <inheritdoc/>
-    public StringInExpression()
-        => Parameter = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+    public StringInExpression() { }
 
     /// <inheritdoc/>
     public FilterExpression<string>? Left { get; set; }
 
     /// <inheritdoc/>
-    public IReadOnlySet<string> Parameter { get; set; }
+    [JsonConverter(typeof(StringSetNewtonsoftJsonConverter))]
+    public IReadOnlySet<string>? Parameter { get; set; }
 
     /// <inheritdoc/>
     public override bool TimeDependent => Left?.TimeDependent ?? false;
 
     /// <inheritdoc/>
     public override bool UserDependent => Left?.UserDependent ?? false;
+
+    /// <inheritdoc/>
+    public override bool IsApplicable => Left is { IsApplicable: true } && Parameter is not null;
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if any of the value from the left selector is contained within the parameter set";
@@ -38,17 +44,20 @@ public class StringInExpression : FilterExpression<bool>, IWithStringSelectorPar
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (!IsApplicable)
+            return false;
+
         var left = Left?.Evaluate(filterable, userInfo, time);
         var right = Parameter;
         if (string.IsNullOrEmpty(left) || right is null)
             return false;
-        return right.Contains(left);
+        return right.Contains(left, StringComparer.InvariantCultureIgnoreCase);
     }
 
     /// <inheritdoc cref="Equals(object)"/>
     protected bool Equals(StringInExpression other)
     {
-        return base.Equals(other) && Equals(Left, other.Left) && Parameter.SetEquals(other.Parameter);
+        return base.Equals(other) && Equals(Left, other.Left) && (Parameter is null ? other.Parameter is null : other.Parameter is not null && Parameter.SetEquals(other.Parameter));
     }
 
     /// <inheritdoc/>

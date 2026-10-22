@@ -18,10 +18,11 @@ public class FilterExpression : IFilterExpression, IEquatable<FilterExpression>
     public virtual bool UserDependent => false;
 
     /// <summary>
-    /// Indicates the expression takes part in the filter. A switched-off or
-    /// empty switch does not, nor does a logic expression with nothing in it
-    /// or holding only such parts. The logic gates leave out a side that does
-    /// not take part and let the other side decide; evaluated anyway, it fails.
+    /// Indicates the expression takes part in the filter. One missing a value
+    /// or input it needs does not (a value is missing only when <c>null</c>),
+    /// nor does a switched-off or empty switch, or a logic expression holding
+    /// only such parts. The logic gates and comparers leave out a part that
+    /// does not take part; evaluated anyway, a condition fails.
     /// </summary>
     [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual bool IsApplicable => true;

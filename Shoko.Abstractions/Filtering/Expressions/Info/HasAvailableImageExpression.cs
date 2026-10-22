@@ -19,6 +19,9 @@ public class HasAvailableImageExpression : FilterExpression<bool>, IWithStringPa
     /// <inheritdoc/>
     public string? Parameter { get; set; }
 
+    /// <inheritdoc/>
+    public override bool IsApplicable => Parameter is not null;
+
     /// <summary>
     /// The parsed image entity type from the parameter string.
     /// </summary>

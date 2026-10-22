@@ -19,15 +19,20 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
     public InSeasonExpression() { }
 
     /// <summary>
-    /// The year of the season, kept as the parameter.
+    /// The year of the season, kept as the parameter, or <c>null</c> when it
+    /// is not set.
     /// </summary>
-    public int Year { get; set; }
+    public int? Year { get; set; }
 
     /// <summary>
-    /// The season within the year, kept as the second parameter.
+    /// The season within the year, kept as the second parameter, or
+    /// <c>null</c> when it is not set.
     /// </summary>
     [JsonConverter(typeof(LenientEnumNewtonsoftJsonConverter))]
-    public YearlySeason Season { get; set; }
+    public YearlySeason? Season { get; set; }
+
+    /// <inheritdoc/>
+    public override bool IsApplicable => Year is not null && Season is not null;
 
     /// <inheritdoc/>
     public override bool TimeDependent => true;
@@ -41,22 +46,22 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
     /// <inheritdoc/>
     public override string HelpSecondParameterName => "Season";
 
-    double IWithNumberParameter.Parameter
+    double? IWithNumberParameter.Parameter
     {
         get => Year;
-        set => Year = (int)value;
+        set => Year = value is { } year ? (int)year : null;
     }
 
-    string IWithSecondStringParameter.SecondParameter
+    string? IWithSecondStringParameter.SecondParameter
     {
-        get => Season.ToString();
-        set => Season = Enum.Parse<YearlySeason>(value, ignoreCase: true);
+        get => Season?.ToString();
+        set => Season = value is null ? null : Enum.Parse<YearlySeason>(value, ignoreCase: true);
     }
 
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.Seasons.Contains((Year, Season));
+        return Year is { } year && Season is { } season && filterable.Seasons.Contains((year, season));
     }
 
     /// <inheritdoc cref="Equals(object)"/>
@@ -77,6 +82,6 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        return HashCode.Combine(base.GetHashCode(), Year, (int)Season);
+        return HashCode.Combine(base.GetHashCode(), Year, Season);
     }
 }

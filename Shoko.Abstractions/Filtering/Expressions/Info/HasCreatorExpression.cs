@@ -21,6 +21,9 @@ public class HasCreatorExpression : FilterExpression<bool>, IWithStringParameter
     public string? CreatorID { get; set; }
 
     /// <inheritdoc/>
+    public override bool IsApplicable => CreatorID is not null;
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the filterable has a creator.";
 
     string? IWithStringParameter.Parameter
