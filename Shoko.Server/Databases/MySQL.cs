@@ -1752,6 +1752,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(200,   5, "ALTER TABLE `Metadata_Character` DROP COLUMN `Name`;"),
         new(200,   6, "ALTER TABLE `Metadata_Character` DROP COLUMN `OriginalName`;"),
         new(200,   7, "ALTER TABLE `Metadata_Character` DROP COLUMN `Description`;"),
+        new(201,   1, "ALTER TABLE `StoredReleaseInfo` MODIFY COLUMN `AudioLanguages` VARCHAR(1024) NULL;"),
+        new(201,   2, "ALTER TABLE `StoredReleaseInfo` MODIFY COLUMN `SubtitleLanguages` VARCHAR(1024) NULL;"),
     ];
 
     #endregion
