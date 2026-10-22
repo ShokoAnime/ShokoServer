@@ -58,7 +58,7 @@ Three details follow from where the call sits in that walk:
   directory prunes it *and everything under it*: the walker never descends into
   a directory a rule rejected. This is the cheap way to exclude a whole tree.
   It is also why `fileSystemInfo` is a `FileSystemInfo` rather than a
-  `FileInfo`, and why the built-in rule opens with `if (fileInfo is not FileInfo) return false;`.
+  `FileInfo`.
 - **It runs before the video-extension check,** so you see every file in the
   folder: subtitle files, artwork, `.nfo` sidecars, partial downloads. Do not
   assume an entry is a video.
@@ -107,8 +107,10 @@ public class SampleFileIgnoreRule(ConfigurationProvider<MyPluginConfiguration> c
 ```
 
 The built-in `CoreIgnoreRule` is the same shape: it applies the user's
-`Import.ExcludeExpressions` regexes to files only, and reads them from settings
-on every call so a settings change takes effect on the next scan.
+`Import.ExcludeExpressions` regexes to files **and** directories (a matching
+directory is pruned with everything under it, and patterns written with a
+trailing separator also match the directory they name), and reads them from
+settings on every call so a settings change takes effect on the next scan.
 
 ### Registering
 

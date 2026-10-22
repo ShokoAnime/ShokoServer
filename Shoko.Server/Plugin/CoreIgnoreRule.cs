@@ -12,8 +12,11 @@ public class CoreIgnoreRule(ISettingsProvider settingsProvider) : IManagedFolder
 
     public bool ShouldIgnore(IManagedFolder folder, FileSystemInfo fileInfo)
     {
-        if (fileInfo is not FileInfo) return false;
         var exclusions = settingsProvider.GetSettings().Import.ExcludeExpressions;
-        return exclusions.Any(r => r.IsMatch(fileInfo.FullName));
+        var path = fileInfo.FullName;
+        if (fileInfo is DirectoryInfo && !Path.EndsInDirectorySeparator(path))
+            path += Path.DirectorySeparatorChar;
+
+        return exclusions.Any(r => r.IsMatch(path));
     }
 }
