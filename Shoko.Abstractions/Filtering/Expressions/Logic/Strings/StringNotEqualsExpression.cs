@@ -44,7 +44,7 @@ public class StringNotEqualsExpression : FilterExpression<bool>, IWithStringSele
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         var left = Left?.Evaluate(filterable, userInfo, time);
-        var right = Parameter ?? Right?.Evaluate(filterable, userInfo, time);
+        var right = Right is null ? Parameter : Right.Evaluate(filterable, userInfo, time);
         return !string.Equals(left, right, StringComparison.InvariantCultureIgnoreCase);
     }
 

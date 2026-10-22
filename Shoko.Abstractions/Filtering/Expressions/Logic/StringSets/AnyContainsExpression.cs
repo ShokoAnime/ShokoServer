@@ -48,7 +48,7 @@ public class AnyContainsExpression : FilterExpression<bool>, IWithStringSetSelec
         if (left is null)
             return false;
 
-        var right = Parameter ?? Right?.Evaluate(filterable, userInfo, time);
+        var right = Right is null ? Parameter : Right.Evaluate(filterable, userInfo, time);
         if (right is null)
             return false;
 

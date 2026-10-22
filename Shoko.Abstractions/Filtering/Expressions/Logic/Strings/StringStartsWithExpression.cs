@@ -44,7 +44,7 @@ public class StringStartsWithExpression : FilterExpression<bool>, IWithStringSel
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         var left = Left?.Evaluate(filterable, userInfo, time);
-        var right = Parameter ?? Right?.Evaluate(filterable, userInfo, time);
+        var right = Right is null ? Parameter : Right.Evaluate(filterable, userInfo, time);
         if (left is null || string.IsNullOrEmpty(right))
             return false;
         return left.StartsWith(right, StringComparison.InvariantCultureIgnoreCase);

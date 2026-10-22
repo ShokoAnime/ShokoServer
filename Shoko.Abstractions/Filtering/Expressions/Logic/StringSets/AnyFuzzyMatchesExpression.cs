@@ -56,7 +56,7 @@ public class AnyFuzzyMatchesExpression : FilterExpression<bool>, IWithStringSetS
         if (left is null)
             return false;
 
-        var right = Parameter ?? Right?.Evaluate(filterable, userInfo, time);
+        var right = Right is null ? Parameter : Right.Evaluate(filterable, userInfo, time);
         if (string.IsNullOrEmpty(right))
             return false;
 

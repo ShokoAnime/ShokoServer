@@ -8,6 +8,11 @@ The argument types an expression can take are listed in `FilterExpressionParamet
 (date, number, string and string set) and plain values (date, number, string, string set, time span and bool).
 Integers are numbers like any other, coerced to double for simplicity.
 
+A comparer (the date, number, string and string set ones in `Logic/`) always takes its left side as a selector in
+`Left`. Its right side is either a second selector in `Right` or a plain value in `Parameter`. When both are set,
+`Right` wins, and a missing value from `Right` is never replaced by `Parameter`:
+`var right = Right is null ? Parameter : Right.Evaluate(…)`.
+
 FilterExpression is a single Expression, whether that's something like "Or" or "HasTag"
 in `And(Or(HasTag('comedy'), HasTag('action')), Not(HasTag('18 restricted')))`. Expressions should be the least amount
 of work possible. NAND can be expressed as `Not(And())`. Exceptions can be made if it would take more than 2 or 3

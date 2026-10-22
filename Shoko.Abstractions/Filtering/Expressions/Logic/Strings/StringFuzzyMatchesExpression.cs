@@ -53,7 +53,7 @@ public class StringFuzzyMatchesExpression : FilterExpression<bool>, IWithStringS
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         var left = Left?.Evaluate(filterable, userInfo, time);
-        var right = Parameter ?? Right?.Evaluate(filterable, userInfo, time);
+        var right = Right is null ? Parameter : Right.Evaluate(filterable, userInfo, time);
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right))
             return false;
         return Service.FuzzyMatchesAnyName(right, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { left });
