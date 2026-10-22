@@ -7,7 +7,8 @@ namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 /// This condition passes if the left expression passes. It adds nothing but
 /// the parentheses a filter was written with, so a filter language can write
 /// the grouping back as it was typed, and an editor can show it as a group
-/// with an optional label.
+/// with an optional label. A switched-off left expression switches the
+/// group off too.
 /// </summary>
 public class ScopeExpression : FilterExpression<bool>, IWithExpressionParameter, IWithStringParameter
 {
@@ -50,6 +51,9 @@ public class ScopeExpression : FilterExpression<bool>, IWithExpressionParameter,
 
     /// <inheritdoc/>
     public override bool UserDependent => Left?.UserDependent ?? false;
+
+    /// <inheritdoc/>
+    public override bool IsSwitchedOff => Left?.IsSwitchedOff ?? false;
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the left expression passes, e.g. a pair of parentheses";

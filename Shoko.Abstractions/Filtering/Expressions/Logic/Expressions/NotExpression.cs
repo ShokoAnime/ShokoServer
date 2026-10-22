@@ -6,6 +6,9 @@ namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 /// <summary>
 /// This condition passes if the left expression does not pass, e.g. an inverse
 /// </summary>
+/// <remarks>
+/// A switched-off left expression switches this condition off too.
+/// </remarks>
 public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
 {
     /// <inheritdoc/>
@@ -25,6 +28,9 @@ public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
     public override bool UserDependent => Left?.UserDependent ?? false;
 
     /// <inheritdoc/>
+    public override bool IsSwitchedOff => Left?.IsSwitchedOff ?? false;
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the left expression does not pass, e.g. an inverse";
 
     /// <inheritdoc/>
@@ -33,6 +39,9 @@ public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (Left is { IsSwitchedOff: true })
+            return false;
+
         var left = Left?.Evaluate(filterable, userInfo, time);
         if (left is null)
             return false;

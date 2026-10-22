@@ -6,6 +6,9 @@ namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 /// <summary>
 /// This condition passes if either the left expression or the right expression pass
 /// </summary>
+/// <remarks>
+/// A switched-off side is left out, and the other side decides.
+/// </remarks>
 public class OrExpression : FilterExpression<bool>, IWithExpressionParameter, IWithSecondExpressionParameter
 {
     /// <inheritdoc/>
@@ -28,15 +31,23 @@ public class OrExpression : FilterExpression<bool>, IWithExpressionParameter, IW
     public override bool UserDependent => (Left?.UserDependent ?? false) || (Right?.UserDependent ?? false);
 
     /// <inheritdoc/>
+    public override bool IsSwitchedOff => Left is { IsSwitchedOff: true } && Right is { IsSwitchedOff: true };
+
+    /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if either the left expression or the right expression pass";
 
     /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
+        if (Left is { IsSwitchedOff: true })
+            return Right?.Evaluate(filterable, userInfo, time) ?? false;
+
+        if (Right is { IsSwitchedOff: true })
+            return Left?.Evaluate(filterable, userInfo, time) ?? false;
+
         var left = Left?.Evaluate(filterable, userInfo, time);
         if (left is null)
             return false;

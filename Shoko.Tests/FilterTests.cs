@@ -60,6 +60,34 @@ public class FilterTests
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]
+    public void GroupFilterable_WithSwitch_AnswersAsItsStateAndContents(TestFilterable group)
+    {
+        Assert.False(new SwitchExpression().Evaluate(group, null, DateTime.Now));
+        Assert.False(new SwitchExpression(new HasTagExpression("comedy"), false).Evaluate(group, null, DateTime.Now));
+        Assert.False(new SwitchExpression(null, true).Evaluate(group, null, DateTime.Now));
+        Assert.True(new SwitchExpression(new HasTagExpression("comedy"), true, "Funny ones").Evaluate(group, null, DateTime.Now));
+        Assert.False(new SwitchExpression(new HasTagExpression("18 restricted"), true).Evaluate(group, null, DateTime.Now));
+        Assert.Null(new SwitchExpression(null, true, string.Empty).Label);
+    }
+
+    [Theory, MemberData(nameof(GroupFilterable))]
+    public void GroupFilterable_WithSwitchedOffSide_LeavesItOut(TestFilterable group)
+    {
+        var off = new SwitchExpression(new HasTagExpression("comedy"), false);
+        var offAroundUserData = new SwitchExpression(new HasWatchedEpisodesExpression(), false);
+
+        Assert.True(new AndExpression(new HasTagExpression("comedy"), off).Evaluate(group, null, DateTime.Now));
+        Assert.True(new AndExpression(new HasTagExpression("comedy"), new SwitchExpression(null, true)).Evaluate(group, null, DateTime.Now));
+        Assert.True(new AndExpression(offAroundUserData, new HasTagExpression("comedy")).Evaluate(group, null, DateTime.Now));
+        Assert.False(new AndExpression(new HasTagExpression("comedy"), offAroundUserData).UserDependent);
+        Assert.False(new OrExpression(new HasTagExpression("18 restricted"), new NotExpression(off)).Evaluate(group, null, DateTime.Now));
+        Assert.True(new EqualsExpression(new HasTagExpression("comedy"), off).Evaluate(group, null, DateTime.Now));
+        Assert.True(new AndExpression(new HasTagExpression("comedy"), new ScopeExpression(new SwitchExpression(off, true))).Evaluate(group, null, DateTime.Now));
+        Assert.False(new NotExpression(off).Evaluate(group, null, DateTime.Now));
+        Assert.False(new AndExpression(off, off).Evaluate(group, null, DateTime.Now));
+    }
+
+    [Theory, MemberData(nameof(GroupFilterable))]
     public void GroupFilterable_WithDateFunctionFilter_ExpectsFalse(TestFilterable group)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), new NotExpression(new HasTagExpression("18 restricted"))),
