@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.542",
+      "tag": "v6.0.0-dev.542",
+      "commit": "b456861e895408f408a859531dcefe833d544ff8",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.542/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-22T08:51:03Z",
+      "releaseNotes": "\n`feat` (`plugin`): **Give the core plugin the Shoko logo as its icon and thumbnail**:\n\n- Shipped `Shoko.Server.icon.svg` (the docs logo, squared) and `Shoko.Server.thumbnail.svg` (16:9, the logo on the generic plugin background) beside the dll, where the plugin loader finds them without writing anything\n\n`feat` (`filters`): **Add `SwitchExpression`**:\n\n- Added a switch around a condition: off or empty it fails, on it passes as its `Left` does; its label never changes the result\n- The logic gates leave a switched-off or empty switch out (`IsSwitchedOff`), and `Not` and `Scope` pass it up\n- Fixed `EqualsExpression.UserDependent` reading the right side's `TimeDependent`\n"
+    },
+    {
       "version": "6.0.0.541",
       "tag": "v6.0.0-dev.541",
       "commit": "cc7315e8a89d54f89c3a5e751f9f4915b25553c2",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.513/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-12T06:06:09Z",
       "releaseNotes": "\n`repo`: **Download the MediaInfo CLI at build time instead of committing it**:\n\n- Added `MediaInfo.targets`, which fetches the latest MediaInfo CLI for Windows builds, checked against the SHA-256 in Scoop's manifest and, on Windows, MediaArea's signature\n- Removed the committed 24.06 copy from `Dependencies/MediaInfo`\n- Cached the download in the Windows CI jobs\n\nCloses #1154\n\n`repo`: **Check the MediaInfo signature with PowerShell 7 when available**.\n"
-    },
-    {
-      "version": "6.0.0.512",
-      "tag": "v6.0.0-dev.512",
-      "commit": "9ba9a0fda7c566948e27629c37bec245e587b706",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.512/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-12T05:12:52Z",
-      "releaseNotes": "\n`fix` (`api`): **Make `ImageManagementController` admin-only**:\n\nNormal users get images through the series, episode, group and image\nroutes; only admin tooling used the management reads.\n\n`refactor` (`db`): **Drop `JMMUser.CanEditServerSettings`**:\n\nIt only mirrored `IsAdmin`; nothing read it.\n\n`fix` (`api`): **Disable APIv2 `config/export`**:\n\nIt returned the settings with every secret unmasked; the other APIv2\nsettings routes were already disabled in favour of APIv3.\n\n`feat` (`abstractions`): **Keep user configurations per user**:\n\n- Added `IUserConfigurationService` and `AddUserConfiguration` to register a user configuration under a kebab-case ID, with an optional name, description and schema, or an `IUserConfiguration` type served by the configuration system\n- Stored them per user in a new `UserConfiguration` table, raising `Saved` and `Deleted`\n- Added the `/api/v3/User/{Current|userID}/Configuration` and `/api/v3/User/Configuration` routes\n- Removed a user's configurations with the user, and a plugin's with its data\n\n`refactor` (`settings`): **Move `WebUI_Settings` into the first admin's web UI configuration**:\n\n`WebUI_Settings` stays on `/api/v3/Settings` only until the WebUI reads and writes `/api/v3/User/Current/Configuration/webui` itself.\n\n- Took `WebUI_Settings` out of the settings file in settings migration 30, carrying it over to the first admin's own `webui` user configuration\n- Kept reading and patching it through `/api/v3/Settings`, backed by the caller's own `webui` configuration\n- Dropped it from `ServerSettings` and `IServerSettings`, with `SHOKO_WEBUI_SETTINGS`\n\n`feat` (`api`): **Let any user read `/api/v3/Settings` and patch their `WebUI_Settings`**:\n\nSecrets go out masked, so a normal user can see the settings without being able to change them. A patch from a normal user may only touch `WebUI_Settings`, their own `webui` configuration; any other operation refuses the whole patch. `WebUI_Settings` stays on `/api/v3/Settings` only until the WebUI reads and writes `/api/v3/User/Current/Configuration/webui` itself.\n\n`chore`: **Remove unused usings**.\n\n`feat` (`api`): **Leave base and hidden configurations out of `/api/v3/Configuration` by default**:\n\nBase configurations are never loaded or saved on their own, and hidden ones are kept out of every UI, so a listing asks for them with `isBase` or `hidden` when it wants them.\n"
     }
   ]
 }
