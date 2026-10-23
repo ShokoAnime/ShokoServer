@@ -229,9 +229,7 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
-        var xrefs = _crossRefCustomTags.GetByCustomTagID(tagID);
-        _crossRefCustomTags.Delete(xrefs);
-        _customTags.Delete(tag);
+        metadataService.DeleteCustomTag(tag);
 
         return NoContent();
     }

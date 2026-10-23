@@ -976,9 +976,9 @@ public class MetadataService : IMetadataService
             throw new ArgumentException("Invalid tag supplied.", nameof(tag));
 
         var updated = false;
-        if (!string.IsNullOrWhiteSpace(data.Name))
+        if (!string.IsNullOrWhiteSpace(data.Name) && !string.Equals(customTag.TagName, data.Name, StringComparison.Ordinal))
         {
-            if (_customTagRepository.GetByTagName(data.Name) is not null)
+            if (_customTagRepository.GetByTagName(data.Name) is { } namesake && namesake.CustomTagID != customTag.CustomTagID)
                 throw new DuplicateNameException($"Tag with name '{data.Name}' already exists.");
 
             customTag.TagName = data.Name;
@@ -1001,9 +1001,8 @@ public class MetadataService : IMetadataService
         if (tag is not (CustomTag or AnimeTag))
             throw new ArgumentException("Invalid tag supplied.", nameof(tag));
 
-        var xrefs = _customTagXrefRepository.GetByCustomTagID(tag.LocalID);
+        // The repository deletes the tag's cross-references with it.
         _customTagRepository.Delete(tag.LocalID);
-        _customTagXrefRepository.Delete(xrefs);
     }
 
     /// <inheritdoc />
