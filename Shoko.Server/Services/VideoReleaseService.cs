@@ -357,6 +357,15 @@ public class VideoReleaseService(
     public IReleaseInfo? GetCurrentReleaseForVideo(IVideo video)
         => releaseInfoRepository.GetByEd2kAndFileSize(video.ED2K, video.Size);
 
+    public IReadOnlyList<IReleaseInfo> GetReleasesByURI(string releaseURI)
+        => releaseInfoRepository.GetAllByReleaseURI(releaseURI);
+
+    public IReleaseInfo? GetReleaseByHashAndSize(string ed2k, long fileSize)
+        => releaseInfoRepository.GetByEd2kAndFileSize(ed2k, fileSize);
+
+    public IVideo? GetVideoForRelease(IReleaseInfo release)
+        => release is StoredReleaseInfo stored ? videoRepository.GetByEd2kAndSize(stored.ED2K, stored.FileSize) : null;
+
     public IReadOnlyList<IReleaseMatchAttempt> GetReleaseMatchAttemptsForVideo(IVideo video)
         => releaseInfoMatchAttemptRepository.GetByEd2kAndFileSize(video.ED2K, video.Size);
 

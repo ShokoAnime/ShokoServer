@@ -65,6 +65,11 @@ public class StoredReleaseInfoRepository(DatabaseFactory databaseFactory, IServi
             ? _releaseURIs!.GetOne(releaseUri)
             : null;
 
+    public IReadOnlyList<StoredReleaseInfo> GetAllByReleaseURI(string? releaseUri)
+        => !string.IsNullOrEmpty(releaseUri)
+            ? _releaseURIs!.GetMultiple(releaseUri)
+            : [];
+
     public IReadOnlyList<StoredReleaseInfo> GetByAnidbEpisodeID(int episodeId)
         => episodeId > 0
             ? _anidbEpisodeIDs!.GetMultiple(episodeId)

@@ -301,6 +301,9 @@ The consuming half of the release pipeline. Writing a provider is
 | Call | Returns |
 |---|---|
 | `GetCurrentReleaseForVideo(video)` | The stored release for the file, or `null` if it is unrecognised |
+| `GetReleasesByURI(uri)` | Every stored release with that URI; several videos can share one, such as a release copied onto a variant |
+| `GetReleaseByHashAndSize(ed2k, size)` | The stored release for that video, even once the video is gone from Shoko |
+| `GetVideoForRelease(release)` | The video a stored release belongs to, or `null` when it is gone or the release was never stored |
 | `GetAllReleases(providerNames?)` | Every stored release, optionally filtered |
 | `GetReleaseMatchAttemptsForVideo(video)` | Every match attempt recorded for the file |
 | `GetStoredReleaseProviderNames()` | Every provider name that appears on a stored release, including names of providers no longer installed |

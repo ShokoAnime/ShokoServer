@@ -162,6 +162,45 @@ public interface IVideoReleaseService
     IReleaseInfo? GetCurrentReleaseForVideo(IVideo video);
 
     /// <summary>
+    ///   Gets the stored releases with the given URI. Several videos can
+    ///   share one, such as a release copied onto a variant of its video.
+    /// </summary>
+    /// <param name="releaseURI">
+    ///   The URI of the release.
+    /// </param>
+    /// <returns>
+    ///   The releases, empty if none is stored under that URI.
+    /// </returns>
+    IReadOnlyList<IReleaseInfo> GetReleasesByURI(string releaseURI);
+
+    /// <summary>
+    ///   Gets the stored release for the video with the given ED2K hash and
+    ///   size, whether that video is still in Shoko or not.
+    /// </summary>
+    /// <param name="ed2k">
+    ///   The ED2K hash of the video.
+    /// </param>
+    /// <param name="fileSize">
+    ///   The size of the video, in bytes.
+    /// </param>
+    /// <returns>
+    ///   The release, or <c>null</c> if none is stored for that video.
+    /// </returns>
+    IReleaseInfo? GetReleaseByHashAndSize(string ed2k, long fileSize);
+
+    /// <summary>
+    ///   Gets the video a stored release belongs to.
+    /// </summary>
+    /// <param name="release">
+    ///   The stored release.
+    /// </param>
+    /// <returns>
+    ///   The video, or <c>null</c> if the release is not a stored one or its
+    ///   video is no longer in Shoko.
+    /// </returns>
+    IVideo? GetVideoForRelease(IReleaseInfo release);
+
+    /// <summary>
     ///   Schedule a call to find a release for the specified video in the
     ///   queue.
     /// </summary>
