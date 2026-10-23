@@ -103,6 +103,7 @@ The same file copied into two managed folders is one `IVideo` with two
 |---|---|
 | `GetVideoByID`, `GetAllVideos` | Straight lookups over the video records |
 | `GetIgnoredVideos` | The videos marked as ignored, read from an index rather than a walk over every video |
+| `GetUnrecognizedVideos(includeBrokenLinks)` | The videos not ignored that no episode is linked to, sorted by path; with `includeBrokenLinks`, also those linked only to episodes or series the collection lacks. A walk over every video |
 | `GetVideoByHash(hash, algorithm)` | Returns a video **only if exactly one** matches; ambiguity gives `null`, not a first hit |
 | `GetVideoByHashAndSize(hash, size, algorithm)` | Same, narrowed by file size. Prefer this one |
 | `GetAllVideoByHash(hash, algorithm[, metadata])` | Every match, for when you want to handle ambiguity yourself |

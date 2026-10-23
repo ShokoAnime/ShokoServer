@@ -810,6 +810,10 @@ public class VideoService : IVideoService
         => _videoLocalRepository.GetIgnoredVideos();
 
     /// <inheritdoc/>
+    public IReadOnlyList<IVideo> GetUnrecognizedVideos(bool includeBrokenLinks = false)
+        => _videoLocalRepository.GetVideosWithoutEpisode(includeBrokenLinks);
+
+    /// <inheritdoc/>
     public IVideo? GetVideoByID(int videoID)
         => videoID <= 0 ? null : _videoLocalRepository.GetByID(videoID);
 

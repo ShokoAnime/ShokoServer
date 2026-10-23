@@ -255,6 +255,19 @@ public interface IVideoService
     IReadOnlyList<IVideo> GetIgnoredVideos();
 
     /// <summary>
+    ///   Gets the videos not marked as ignored that no episode is linked to,
+    ///   sorted by path.
+    /// </summary>
+    /// <param name="includeBrokenLinks">
+    ///   <c>true</c> to also get the videos whose every link is to an episode
+    ///   or series not in the collection, or has no stored release.
+    /// </param>
+    /// <returns>
+    ///   The unrecognized videos.
+    /// </returns>
+    IReadOnlyList<IVideo> GetUnrecognizedVideos(bool includeBrokenLinks = false);
+
+    /// <summary>
     ///   Looks up a video by its ID.
     /// </summary>
     /// <param name="videoID">
