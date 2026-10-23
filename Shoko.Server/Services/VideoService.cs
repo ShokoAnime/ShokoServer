@@ -803,6 +803,10 @@ public class VideoService : IVideoService
         => _videoLocalRepository.GetAll().AsQueryable();
 
     /// <inheritdoc/>
+    public IReadOnlyList<IVideo> GetIgnoredVideos()
+        => _videoLocalRepository.GetIgnoredVideos();
+
+    /// <inheritdoc/>
     public IVideo? GetVideoByID(int videoID)
         => videoID <= 0 ? null : _videoLocalRepository.GetByID(videoID);
 

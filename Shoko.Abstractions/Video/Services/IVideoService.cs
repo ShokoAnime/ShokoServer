@@ -240,6 +240,14 @@ public interface IVideoService
     IEnumerable<IVideo> GetAllVideos();
 
     /// <summary>
+    ///   Gets all videos marked as ignored.
+    /// </summary>
+    /// <returns>
+    ///   The ignored videos.
+    /// </returns>
+    IReadOnlyList<IVideo> GetIgnoredVideos();
+
+    /// <summary>
     ///   Looks up a video by its ID.
     /// </summary>
     /// <param name="videoID">
