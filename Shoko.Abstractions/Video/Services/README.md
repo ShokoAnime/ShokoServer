@@ -7,7 +7,7 @@ pluggable parts they drive live in sibling folders, each with its own README.
 
 | Interface | Use it to | You |
 |---|---|---|
-| `IVideoService` | Look up videos, files and managed folders, scan, delete, read media info, subscribe to file events | consume |
+| `IVideoService` | Look up videos, files and managed folders, mark videos, scan, delete, read media info, subscribe to file and video events | consume |
 | `IVideoHashingService` | Hash a file, inspect and configure hash providers | consume |
 | `IVideoReleaseService` | Read, search, save and clear the episode mapping for a file | consume |
 | `IVideoRelocationService` | Move and rename files, now or through the queue | consume |
@@ -102,6 +102,7 @@ The same file copied into two managed folders is one `IVideo` with two
 | Call | Notes |
 |---|---|
 | `GetVideoByID`, `GetAllVideos` | Straight lookups over the video records |
+| `GetIgnoredVideos` | The videos marked as ignored, read from an index rather than a walk over every video |
 | `GetVideoByHash(hash, algorithm)` | Returns a video **only if exactly one** matches; ambiguity gives `null`, not a first hit |
 | `GetVideoByHashAndSize(hash, size, algorithm)` | Same, narrowed by file size. Prefer this one |
 | `GetAllVideoByHash(hash, algorithm[, metadata])` | Every match, for when you want to handle ambiguity yourself |
@@ -124,6 +125,14 @@ read; `AddManagedFolder(ManagedFolderData)`,
 non-null ones are applied. `keepRecords: true` on removal drops the folder row
 but leaves the video and location rows alone, which is what a migration to a new
 path wants.
+
+### Marking videos
+
+`SetVideoIgnored(video, isIgnored)` and `SetVideoVariation(video, isVariation)`
+set a video's two flags and return the video. The unrecognized files and the
+release re-checks leave ignored videos out; release management and the
+duplicate checks leave variations out. A call that changes nothing saves
+nothing and raises nothing; one that changes a flag raises `VideoUpdated`.
 
 ### Scanning
 
@@ -186,13 +195,14 @@ other services entirely.
 | `VideoFileHashed` | Hashing finished and the records are in the database. The file is ready to be matched |
 | `VideoFileRelocated` | A file was moved or renamed |
 | `VideoFileDeleted` | A file was removed from Shoko |
+| `VideoUpdated` | A video was marked or unmarked as ignored or as a variation. `Changes` names the flags that changed; each holds its new value on the video |
 | `ManagedFolderAdded` / `ManagedFolderUpdated` / `ManagedFolderRemoved` | A managed folder changed |
 
 Every file event carries both `RelativePath`, from the managed folder's root, and
 `Path`, the absolute path as it was when the event was raised. The hashed,
-relocated and deleted events also carry `Actor`, the API token of whoever
-caused the change, or `null` for the system; `ReleaseSaved` and
-`ReleaseDeleted` carry one too. See
+relocated and deleted events, and `VideoUpdated`, also carry `Actor`, the API
+token of whoever caused the change, or `null` for the system; `ReleaseSaved`
+and `ReleaseDeleted` carry one too. See
 [`IActorContext`](../../User/Services/README.md#iactorcontext-who-did-it).
 
 The service is a process-wide singleton, so unsubscribe when your plugin shuts

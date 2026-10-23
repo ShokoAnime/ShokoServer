@@ -86,6 +86,9 @@ public class VideoService : IVideoService
     public event EventHandler<VideoFileRelocatedEventArgs>? VideoFileRelocated;
 
     /// <inheritdoc/>
+    public event EventHandler<VideoUpdatedEventArgs>? VideoUpdated;
+
+    /// <inheritdoc/>
     public event EventHandler<ManagedFolderChangedEventArgs>? ManagedFolderAdded;
 
     /// <inheritdoc/>
@@ -844,6 +847,7 @@ public class VideoService : IVideoService
 
         videoLocal.IsVariation = isVariation;
         _videoLocalRepository.Save(videoLocal, false);
+        RaiseVideoUpdated(videoLocal, VideoChanges.Variation);
         return videoLocal;
     }
 
@@ -859,7 +863,20 @@ public class VideoService : IVideoService
 
         videoLocal.IsIgnored = isIgnored;
         _videoLocalRepository.Save(videoLocal, false);
+        RaiseVideoUpdated(videoLocal, VideoChanges.Ignored);
         return videoLocal;
+    }
+
+    private void RaiseVideoUpdated(VideoLocal video, VideoChanges changes)
+    {
+        try
+        {
+            VideoUpdated?.Invoke(this, new() { Video = video, Changes = changes, Actor = ActorContext.CurrentActor });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Got an error in a VideoUpdated event.");
+        }
     }
 
     public async Task DeleteVideo(IVideo video, bool removeFiles = true, bool removeFolders = true)

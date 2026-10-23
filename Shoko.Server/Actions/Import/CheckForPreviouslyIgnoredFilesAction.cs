@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.ScheduledActions;
 using Shoko.Abstractions.Utilities;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Actions;
@@ -13,7 +14,8 @@ namespace Shoko.Server.Actions;
 ///   Ignore again the files with the hash of a file that is ignored.
 /// </summary>
 /// <param name="videoLocals">The files.</param>
-public sealed class CheckForPreviouslyIgnoredFilesAction(VideoLocalRepository videoLocals) : IScheduledAction
+/// <param name="videoService">Marks the files as ignored.</param>
+public sealed class CheckForPreviouslyIgnoredFilesAction(VideoLocalRepository videoLocals, IVideoService videoService) : IScheduledAction
 {
     public string Name => "Check for Previously Ignored Files";
 
@@ -33,10 +35,7 @@ public sealed class CheckForPreviouslyIgnoredFilesAction(VideoLocalRepository vi
         {
             token.ThrowIfCancellationRequested();
             if (!video.IsIgnored && ignoredHashes.Contains(video.Hash))
-            {
-                video.IsIgnored = true;
-                videoLocals.Save(video, false);
-            }
+                videoService.SetVideoIgnored(video, true);
 
             items.Increment();
         }

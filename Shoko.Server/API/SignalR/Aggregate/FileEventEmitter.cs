@@ -39,6 +39,7 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
         _videoService.VideoFileHashed += OnVideoFileHashed;
         _videoService.VideoFileRelocated += OnFileRelocated;
         _videoService.VideoFileDeleted += OnFileDeleted;
+        _videoService.VideoUpdated += OnVideoUpdated;
     }
 
     public void Dispose()
@@ -47,6 +48,7 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
         _videoService.VideoFileHashed -= OnVideoFileHashed;
         _videoService.VideoFileRelocated -= OnFileRelocated;
         _videoService.VideoFileDeleted -= OnFileDeleted;
+        _videoService.VideoUpdated -= OnVideoUpdated;
     }
 
     private async void OnFileDetected(object? sender, VideoFileDetectedEventArgs e)
@@ -96,6 +98,18 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while sending the 'deleted' video file event.");
+        }
+    }
+
+    private async void OnVideoUpdated(object? sender, VideoUpdatedEventArgs e)
+    {
+        try
+        {
+            await SendToAudienceAsync(EventAudience.ForVideo(e.Video, _anidbAnime.GetByAnimeID), "updated", new VideoUpdatedSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'updated' video event.");
         }
     }
 }

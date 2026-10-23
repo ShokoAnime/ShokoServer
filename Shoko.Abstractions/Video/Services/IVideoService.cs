@@ -232,6 +232,13 @@ public interface IVideoService
     #region Video
 
     /// <summary>
+    ///   Dispatched when a video's own settings change, such as being marked
+    ///   as ignored or as a variation. Not raised when a change leaves the
+    ///   video as it was.
+    /// </summary>
+    event EventHandler<VideoUpdatedEventArgs>? VideoUpdated;
+
+    /// <summary>
     ///   Gets all videos.
     /// </summary>
     /// <returns>

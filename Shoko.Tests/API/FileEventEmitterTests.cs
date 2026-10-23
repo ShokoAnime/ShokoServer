@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.SignalR.Aggregate;
@@ -54,6 +55,19 @@ public class FileEventEmitterTests
         harness.VideoService.Raise(service => service.VideoFileDeleted += null, new VideoFileEventArgs("/file.mkv", Folder(), File(), Video(videoAnimeIDs), [], series, []));
 
         Assert.Equal(Expected(restrictedReceives), harness.Hub.ReceivedBy("file:deleted"));
+    }
+
+    [Theory]
+    [InlineData(new[] { HiddenAnimeID }, false)]
+    [InlineData(new[] { HiddenAnimeID, VisibleAnimeID }, true)]
+    [InlineData(new int[0], true)]
+    public async Task Updated_ReachesTheRestrictedUserOnlyWhenTheVideoIsVisible(int[] animeIDs, bool restrictedReceives)
+    {
+        var harness = await Harness.Create();
+
+        harness.VideoService.Raise(service => service.VideoUpdated += null, new VideoUpdatedEventArgs { Video = Video(animeIDs), Changes = VideoChanges.Ignored });
+
+        Assert.Equal(Expected(restrictedReceives), harness.Hub.ReceivedBy("file:updated"));
     }
 
     private static string[] Expected(bool restrictedReceives)
