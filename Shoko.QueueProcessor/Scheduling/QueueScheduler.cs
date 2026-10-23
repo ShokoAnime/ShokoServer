@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
+using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;
 using Shoko.QueueProcessor.Workers;
@@ -23,14 +24,16 @@ public sealed class QueueScheduler : IQueueScheduler
     private readonly IChainScopeRegistry _chainScopeRegistry;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IJobActorAccessor? _actorAccessor;
+    private readonly QueueStateEventHandler? _events;
 
     public QueueScheduler(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry,
-        IServiceScopeFactory scopeFactory, IJobActorAccessor? actorAccessor = null)
+        IServiceScopeFactory scopeFactory, IJobActorAccessor? actorAccessor = null, QueueStateEventHandler? events = null)
     {
         _orchestrator = orchestrator;
         _chainScopeRegistry = chainScopeRegistry;
         _scopeFactory = scopeFactory;
         _actorAccessor = actorAccessor;
+        _events = events;
     }
 
     public bool IsPaused => _orchestrator.IsPaused;
@@ -226,9 +229,23 @@ public sealed class QueueScheduler : IQueueScheduler
 
     public Task Clear(CancellationToken ct = default) => _orchestrator.ClearAsync(ct);
 
-    public Task Pause() { _orchestrator.Pause(); return Task.CompletedTask; }
+    public Task Pause()
+    {
+        _orchestrator.Pause();
+        _events?.InvokeQueuePaused();
+        return Task.CompletedTask;
+    }
 
-    public Task Resume() { _orchestrator.Resume(); return Task.CompletedTask; }
+    public Task Resume()
+    {
+        // A halted queue stays paused, so don't announce a start that didn't happen.
+        if (_orchestrator.IsHalted)
+            return Task.CompletedTask;
+
+        _orchestrator.Resume();
+        _events?.InvokeQueueStarted();
+        return Task.CompletedTask;
+    }
 
     public Task Halt(string reason) { _orchestrator.Halt(reason); return Task.CompletedTask; }
 
