@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
@@ -259,11 +260,7 @@ public class FilterController(
         // Return the top level groups with no filter.
         if (filterID is 0)
         {
-            var user = User;
-            return animeGroupRepository.GetAll()
-                .Where(group => !topLevelOnly || group is { AnimeGroupParentID: null })
-                .Select(group => AnimeGroupView.For(group, user))
-                .Where(view => view.IsVisible && (includeEmpty || view.AllSeries.Any(s => s.VideoLocals.Count > 0)))
+            return UnfilteredGroupViews(topLevelOnly, includeEmpty)
                 .OrderBy(view => view.SortName)
                 .ToListResult(view => new Group(view, randomImages), page, pageSize);
         }
@@ -279,6 +276,17 @@ public class FilterController(
     }
 
     private ListResult<Group> GetFilteredGroups(FilterPreset filterPreset, int pageSize, int page, bool topLevelOnly, bool includeEmpty, bool randomImages)
+        => FilteredGroupViews(filterPreset, topLevelOnly, includeEmpty)
+            .ToListResult(t => new Group(t.View, randomImages, t.Result.GroupIDChains, t.Result.SeriesIDs), page, pageSize);
+
+    /// <summary>
+    /// The groups a filter lists, with their views, before paging.
+    /// </summary>
+    /// <param name="filterPreset">The filter.</param>
+    /// <param name="topLevelOnly">Only the top level groups if set.</param>
+    /// <param name="includeEmpty">Keep groups whose series have no files.</param>
+    /// <returns>The groups, in the filter's order.</returns>
+    private IEnumerable<(FilteredGroupResult Result, AnimeGroupView View)> FilteredGroupViews(FilterPreset filterPreset, bool topLevelOnly, bool includeEmpty)
     {
         var user = User;
         return (
@@ -287,8 +295,22 @@ public class FilterController(
                 : filteringService.GetAllFilteredGroupsWithChains(filterPreset, user, cancellationToken: HttpContext.RequestAborted)
         )
             .Select(r => (r, view: AnimeGroupView.For((AnimeGroup)r.Group, user)))
-            .Where(t => includeEmpty || t.view.AllSeries.Any(s => s.VideoLocals.Count > 0))
-            .ToListResult(t => new Group(t.view, randomImages, t.r.GroupIDChains, t.r.SeriesIDs), page, pageSize);
+            .Where(t => includeEmpty || t.view.AllSeries.Any(s => s.VideoLocals.Count > 0));
+    }
+
+    /// <summary>
+    /// The groups the user may see when no filter applies.
+    /// </summary>
+    /// <param name="topLevelOnly">Only the top level groups if set.</param>
+    /// <param name="includeEmpty">Keep groups whose series have no files.</param>
+    /// <returns>The groups' views, unordered.</returns>
+    private IEnumerable<AnimeGroupView> UnfilteredGroupViews(bool topLevelOnly, bool includeEmpty)
+    {
+        var user = User;
+        return animeGroupRepository.GetAll()
+            .Where(group => !topLevelOnly || group is { AnimeGroupParentID: null })
+            .Select(group => AnimeGroupView.For(group, user))
+            .Where(view => view.IsVisible && (includeEmpty || view.AllSeries.Any(s => s.VideoLocals.Count > 0)));
     }
 
     /// <summary>
@@ -317,10 +339,8 @@ public class FilterController(
     )
     {
         // Return the series with no group filter applied.
-        var user = User;
         if (filterID is 0)
-            return animeSeriesRepository.GetAll()
-                .Where(series => user.AllowedSeries(series) && (includeMissing || series.VideoLocals.Count > 0))
+            return UnfilteredSeries(includeMissing)
                 .OrderBy(series => series.Title.ToSortName())
                 .ThenBy(series => series.AniDB_ID)
                 .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
@@ -338,12 +358,83 @@ public class FilterController(
 
     private ListResult<Series> GetFilteredSeries(FilterPreset filterPreset, int pageSize, int page, bool includeMissing, bool randomImages)
     {
-        var user = User;
-        return filteringService.GetAllFilteredSeries(filterPreset, user, cancellationToken: HttpContext.RequestAborted)
-            .Cast<AnimeSeries>()
-            .Where(s => s is not null && (includeMissing || s.VideoLocals.Count > 0))
-            .ToListResult(s => new Series(s, user.JMMUserID, randomImages), page, pageSize);
+        var userID = User.JMMUserID;
+        return FilteredSeries(filterPreset, includeMissing)
+            .ToListResult(s => new Series(s, userID, randomImages), page, pageSize);
     }
+
+    /// <summary>
+    /// The series a filter lists, before paging.
+    /// </summary>
+    /// <param name="filterPreset">The filter.</param>
+    /// <param name="includeMissing">Keep series without files.</param>
+    /// <returns>The series, in the filter's order.</returns>
+    private IEnumerable<AnimeSeries> FilteredSeries(FilterPreset filterPreset, bool includeMissing)
+        => filteringService.GetAllFilteredSeries(filterPreset, User, cancellationToken: HttpContext.RequestAborted)
+            .Cast<AnimeSeries>()
+            .Where(s => s is not null && (includeMissing || s.VideoLocals.Count > 0));
+
+    /// <summary>
+    /// The series the user may see when no filter applies.
+    /// </summary>
+    /// <param name="includeMissing">Keep series without files.</param>
+    /// <returns>The series, unordered.</returns>
+    private IEnumerable<AnimeSeries> UnfilteredSeries(bool includeMissing)
+    {
+        var user = User;
+        return animeSeriesRepository.GetAll()
+            .Where(series => user.AllowedSeries(series) && (includeMissing || series.VideoLocals.Count > 0));
+    }
+
+    /// <summary>
+    /// Count the <see cref="Group"/>s and <see cref="Series"/> the
+    /// <see cref="Filter"/> with the given <paramref name="filterID"/> lists,
+    /// as its group and series listings would for the same options, without
+    /// listing them.
+    /// </summary>
+    /// <remarks>
+    /// Pass a <paramref name="filterID"/> of <code>0</code> to count without a
+    /// filter. A directory counts nothing.
+    /// </remarks>
+    /// <param name="filterID"><see cref="Filter"/> ID</param>
+    /// <param name="topLevelOnly">Count only the top level groups if set, as the group listing does.</param>
+    /// <param name="includeEmpty">Count groups whose series have no files, as the group listing does.</param>
+    /// <param name="includeMissing">Count series without files, as the series listing does.</param>
+    /// <returns>The counts.</returns>
+    [HttpGet("{filterID}/Count")]
+    public ActionResult<FilterCount> GetFilterCount(
+        [FromRoute, Range(0, int.MaxValue)] int filterID,
+        [FromQuery] bool topLevelOnly = true,
+        [FromQuery] bool includeEmpty = true,
+        [FromQuery] bool includeMissing = true
+    )
+    {
+        if (filterID is 0)
+            return new FilterCount { Groups = UnfilteredGroupViews(topLevelOnly, includeEmpty).Count(), Series = UnfilteredSeries(includeMissing).Count() };
+
+        if (filterPresetRepository.GetByID(filterID) is not { } filterPreset)
+            return NotFound(FilterNotFound);
+
+        if (filterPreset.IsDirectory)
+            return new FilterCount { Groups = 0, Series = 0 };
+
+        return CountFiltered(filterPreset, topLevelOnly, includeEmpty, includeMissing);
+    }
+
+    /// <summary>
+    /// Counts what a filter's group and series listings would list.
+    /// </summary>
+    /// <param name="filterPreset">The filter.</param>
+    /// <param name="topLevelOnly">Count only the top level groups if set.</param>
+    /// <param name="includeEmpty">Count groups whose series have no files.</param>
+    /// <param name="includeMissing">Count series without files.</param>
+    /// <returns>The counts.</returns>
+    private FilterCount CountFiltered(FilterPreset filterPreset, bool topLevelOnly, bool includeEmpty, bool includeMissing)
+        => new()
+        {
+            Groups = FilteredGroupViews(filterPreset, topLevelOnly, includeEmpty).Count(),
+            Series = FilteredSeries(filterPreset, includeMissing).Count(),
+        };
 
     /// <summary>
     /// Get a raw list of <see cref="Series"/> IDs for the <see cref="Filter"/>
@@ -561,6 +652,37 @@ public class FilterController(
             return ValidationProblem(ModelState);
 
         return GetFilteredSeries(filterPreset!, pageSize, page, includeMissing, randomImages);
+    }
+
+    /// <summary>
+    /// Count the <see cref="Group"/>s and <see cref="Series"/> the live filter
+    /// lists, as the <c>Preview/Group</c> and <c>Preview/Series</c> listings
+    /// would for the same options, without listing them.
+    /// </summary>
+    /// <remarks>
+    /// A directory counts nothing.
+    /// </remarks>
+    /// <param name="filter">The filter to count.</param>
+    /// <param name="topLevelOnly">Count only the top level groups if set, as the group listing does.</param>
+    /// <param name="includeEmpty">Count groups whose series have no files, as the group listing does.</param>
+    /// <param name="includeMissing">Count series without files, as the series listing does.</param>
+    /// <returns>The counts.</returns>
+    [HttpPost("Preview/Count")]
+    public ActionResult<FilterCount> GetPreviewFilterCount(
+        [FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
+        [FromQuery] bool topLevelOnly = true,
+        [FromQuery] bool includeEmpty = true,
+        [FromQuery] bool includeMissing = true
+    )
+    {
+        if (filter.IsDirectory)
+            return new FilterCount { Groups = 0, Series = 0 };
+
+        var filterPreset = factory.GetFilterPreset(filter, ModelState);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        return CountFiltered(filterPreset!, topLevelOnly, includeEmpty, includeMissing);
     }
 
     /// <summary>
