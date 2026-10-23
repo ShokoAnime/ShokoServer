@@ -200,6 +200,54 @@ public interface IVideoReleaseService
     /// </returns>
     IVideo? GetVideoForRelease(IReleaseInfo release);
 
+    #region Release Groups
+
+    /// <summary>
+    ///   Gets the release groups of the stored releases, sorted by name.
+    /// </summary>
+    /// <param name="sources">
+    ///   The sources to keep groups from, or <c>null</c> for every source.
+    /// </param>
+    /// <param name="isUsed">
+    ///   <c>true</c> to keep the groups with a release whose video is in
+    ///   Shoko, <c>false</c> for those with a release whose video is gone, or
+    ///   <c>null</c> for both.
+    /// </param>
+    /// <returns>
+    ///   The release groups, each once.
+    /// </returns>
+    IReadOnlyList<IReleaseGroup> GetReleaseGroups(IEnumerable<string>? sources = null, bool? isUsed = null);
+
+    /// <summary>
+    ///   Gets a release group of the stored releases.
+    /// </summary>
+    /// <param name="source">
+    ///   The source of the group, such as <c>AniDB</c>.
+    /// </param>
+    /// <param name="groupID">
+    ///   The ID of the group at its source.
+    /// </param>
+    /// <returns>
+    ///   The release group, or <c>null</c> if no stored release is from it.
+    /// </returns>
+    IReleaseGroup? GetReleaseGroup(string source, string groupID);
+
+    /// <summary>
+    ///   Gets the stored releases from a release group.
+    /// </summary>
+    /// <param name="source">
+    ///   The source of the group, such as <c>AniDB</c>.
+    /// </param>
+    /// <param name="groupID">
+    ///   The ID of the group at its source.
+    /// </param>
+    /// <returns>
+    ///   The releases from the group.
+    /// </returns>
+    IReadOnlyList<IReleaseInfo> GetReleasesByGroup(string source, string groupID);
+
+    #endregion
+
     /// <summary>
     ///   Schedule a call to find a release for the specified video in the
     ///   queue.

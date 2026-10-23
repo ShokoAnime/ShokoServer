@@ -372,6 +372,27 @@ public class VideoReleaseService(
 
     #endregion Get Current Data
 
+    #region Release Groups
+
+    public IReadOnlyList<IReleaseGroup> GetReleaseGroups(IEnumerable<string>? sources = null, bool? isUsed = null)
+    {
+        var sourceSet = sources?.ToHashSet();
+        return isUsed switch
+        {
+            true => releaseInfoRepository.GetUsedReleaseGroups(sourceSet),
+            false => releaseInfoRepository.GetUnusedReleaseGroups(sourceSet),
+            null => releaseInfoRepository.GetReleaseGroups(sourceSet),
+        };
+    }
+
+    public IReleaseGroup? GetReleaseGroup(string source, string groupID)
+        => releaseInfoRepository.GetByGroupAndProviderIDs(groupID, source).Select(release => ((IReleaseInfo)release).Group).WhereNotNull().FirstOrDefault();
+
+    public IReadOnlyList<IReleaseInfo> GetReleasesByGroup(string source, string groupID)
+        => releaseInfoRepository.GetByGroupAndProviderIDs(groupID, source);
+
+    #endregion Release Groups
+
     #region Find Release
 
     public async Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool skipEvents = false, bool relocateFiles = true, bool prioritize = false)
