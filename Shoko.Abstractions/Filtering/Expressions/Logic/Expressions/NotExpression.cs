@@ -4,7 +4,7 @@ using Shoko.Abstractions.Filtering.Expressions.Containers;
 namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 
 /// <summary>
-/// This condition passes if the left expression does not pass, e.g. an inverse
+/// This condition passes if its condition does not pass.
 /// </summary>
 /// <remarks>
 /// With no left expression that takes part, this condition does not take
@@ -32,7 +32,7 @@ public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
     public override bool IsApplicable => Left is { IsApplicable: true };
 
     /// <inheritdoc/>
-    public override string HelpDescription => "This condition passes if the left expression does not pass, e.g. an inverse";
+    public override string HelpDescription => "This condition passes if its condition does not pass. If that condition is missing or switched off, this one is left out too";
 
     /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;

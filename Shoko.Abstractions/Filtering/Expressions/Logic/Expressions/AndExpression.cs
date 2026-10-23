@@ -4,7 +4,7 @@ using Shoko.Abstractions.Filtering.Expressions.Containers;
 namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 
 /// <summary>
-/// This condition passes if both the left expression and the right expression pass
+/// This condition passes if both the left and the right condition pass.
 /// </summary>
 /// <remarks>
 /// A side that is missing or does not take part (see
@@ -36,7 +36,7 @@ public class AndExpression : FilterExpression<bool>, IWithExpressionParameter, I
     public override bool IsApplicable => Left is { IsApplicable: true } || Right is { IsApplicable: true };
 
     /// <inheritdoc/>
-    public override string HelpDescription => "This condition passes if both the left expression and the right expression pass";
+    public override string HelpDescription => "This condition passes if both the left and the right condition pass. A side that is missing or switched off is left out, and the other side decides";
 
     /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
