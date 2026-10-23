@@ -156,6 +156,11 @@ and return whether anything changed. Names are unique (`DuplicateNameException`
 on a clash), and the links are keyed by AniDB anime ID, so they survive a
 series being removed and re-added.
 
+`CustomTagAdded`, `CustomTagUpdated` and `CustomTagRemoved` follow the tags,
+the update carrying the name and overview it replaced; a deleted tag's links
+go with it without further events. `SeriesCustomTagsChanged` follows the links,
+with the tags added to and removed from the series. All of them carry `Actor`.
+
 ## Resources
 
 `GatherResourcesForEntity(entity)` runs every `IResourceResolver` over an

@@ -389,6 +389,27 @@ public interface IMetadataService
     #region Series | Custom Tags
 
     /// <summary>
+    ///   Dispatched when a custom tag is created.
+    /// </summary>
+    event EventHandler<CustomTagChangedEventArgs>? CustomTagAdded;
+
+    /// <summary>
+    ///   Dispatched when a custom tag's name or overview changes.
+    /// </summary>
+    event EventHandler<CustomTagChangedEventArgs>? CustomTagUpdated;
+
+    /// <summary>
+    ///   Dispatched when a custom tag is deleted. Its links to series go with
+    ///   it, without a <see cref="SeriesCustomTagsChanged"/> per series.
+    /// </summary>
+    event EventHandler<CustomTagChangedEventArgs>? CustomTagRemoved;
+
+    /// <summary>
+    ///   Dispatched when custom tags are added to or removed from a series.
+    /// </summary>
+    event EventHandler<SeriesCustomTagsChangedEventArgs>? SeriesCustomTagsChanged;
+
+    /// <summary>
     /// Looks up all custom tags as an enumerable list.
     /// </summary>
     /// <returns>A collection of custom tags if found, otherwise an empty collection.</returns>
@@ -416,6 +437,9 @@ public interface IMetadataService
     /// </summary>
     /// <param name="tag">The custom tag to update.</param>
     /// <param name="data">The custom tag update data.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="tag"/> is not a stored custom tag.</exception>
+    /// <exception cref="DuplicateNameException">Thrown when another tag already has the new name.</exception>
     /// <returns>The updated custom tag.</returns>
     IShokoTag UpdateCustomTag(IShokoTag tag, CustomTagUpdateData data);
 

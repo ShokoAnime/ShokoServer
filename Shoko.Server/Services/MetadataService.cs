@@ -949,6 +949,18 @@ public class MetadataService : IMetadataService
     #region Series | Custom Tags
 
     /// <inheritdoc />
+    public event EventHandler<CustomTagChangedEventArgs>? CustomTagAdded;
+
+    /// <inheritdoc />
+    public event EventHandler<CustomTagChangedEventArgs>? CustomTagUpdated;
+
+    /// <inheritdoc />
+    public event EventHandler<CustomTagChangedEventArgs>? CustomTagRemoved;
+
+    /// <inheritdoc />
+    public event EventHandler<SeriesCustomTagsChangedEventArgs>? SeriesCustomTagsChanged;
+
+    /// <inheritdoc />
     public IEnumerable<IShokoTag> GetAllCustomTags()
         => _customTagRepository.GetAll();
 
@@ -970,6 +982,7 @@ public class MetadataService : IMetadataService
             TagDescription = data.Overview ?? string.Empty,
         };
         _customTagRepository.Save(tag);
+        RaiseCustomTagEvent(CustomTagAdded, new() { Tag = tag, Actor = ActorContext.CurrentActor });
         return tag;
     }
 
@@ -980,21 +993,34 @@ public class MetadataService : IMetadataService
             throw new ArgumentException("Invalid tag supplied.", nameof(tag));
 
         var updated = false;
+        string? previousName = null;
+        string? previousOverview = null;
         if (!string.IsNullOrWhiteSpace(data.Name) && !string.Equals(customTag.TagName, data.Name, StringComparison.Ordinal))
         {
             if (_customTagRepository.GetByTagName(data.Name) is { } namesake && namesake.CustomTagID != customTag.CustomTagID)
                 throw new DuplicateNameException($"Tag with name '{data.Name}' already exists.");
 
+            previousName = customTag.TagName;
             customTag.TagName = data.Name;
             updated = true;
         }
-        if (data.Overview is not null)
+        if (data.Overview is not null && !string.Equals(customTag.TagDescription, data.Overview, StringComparison.Ordinal))
         {
+            previousOverview = customTag.TagDescription;
             customTag.TagDescription = data.Overview;
             updated = true;
         }
         if (updated)
+        {
             _customTagRepository.Save(customTag);
+            RaiseCustomTagEvent(CustomTagUpdated, new()
+            {
+                Tag = customTag,
+                PreviousName = previousName,
+                PreviousOverview = previousOverview,
+                Actor = ActorContext.CurrentActor,
+            });
+        }
 
         return customTag;
     }
@@ -1005,8 +1031,12 @@ public class MetadataService : IMetadataService
         if (tag is not (CustomTag or AnimeTag))
             throw new ArgumentException("Invalid tag supplied.", nameof(tag));
 
+        if (_customTagRepository.GetByID(tag.LocalID) is not { } customTag)
+            return;
+
         // The repository deletes the tag's cross-references with it.
-        _customTagRepository.Delete(tag.LocalID);
+        _customTagRepository.Delete(customTag);
+        RaiseCustomTagEvent(CustomTagRemoved, new() { Tag = customTag, Actor = ActorContext.CurrentActor });
     }
 
     /// <inheritdoc />
@@ -1039,6 +1069,7 @@ public class MetadataService : IMetadataService
             return false;
 
         _customTagXrefRepository.Save(toAdd);
+        RaiseSeriesCustomTagsChanged(series, added: toAdd, removed: []);
         return true;
     }
 
@@ -1067,6 +1098,7 @@ public class MetadataService : IMetadataService
             return false;
 
         _customTagXrefRepository.Delete(toRemove);
+        RaiseSeriesCustomTagsChanged(series, added: [], removed: toRemove);
         return true;
     }
 
@@ -1079,7 +1111,41 @@ public class MetadataService : IMetadataService
             return false;
 
         _customTagXrefRepository.Delete(existingTagIds);
+        RaiseSeriesCustomTagsChanged(series, added: [], removed: existingTagIds);
         return true;
+    }
+
+    private void RaiseCustomTagEvent(EventHandler<CustomTagChangedEventArgs>? handler, CustomTagChangedEventArgs eventArgs)
+    {
+        try
+        {
+            handler?.Invoke(this, eventArgs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Got an error in a custom tag event.");
+        }
+    }
+
+    private void RaiseSeriesCustomTagsChanged(IShokoSeries series, IReadOnlyList<CrossRef_CustomTag> added, IReadOnlyList<CrossRef_CustomTag> removed)
+    {
+        try
+        {
+            SeriesCustomTagsChanged?.Invoke(this, new()
+            {
+                Series = series,
+                Added = TagsOf(added),
+                Removed = TagsOf(removed),
+                Actor = ActorContext.CurrentActor,
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Got an error in a SeriesCustomTagsChanged event.");
+        }
+
+        IReadOnlyList<IShokoTag> TagsOf(IReadOnlyList<CrossRef_CustomTag> xrefs)
+            => xrefs.Select(xref => _customTagRepository.GetByID(xref.CustomTagID)).WhereNotNull().ToList();
     }
 
     #endregion
