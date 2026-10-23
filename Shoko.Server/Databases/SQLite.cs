@@ -1427,6 +1427,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(178,   5, "ALTER TABLE Metadata_Character DROP COLUMN Name;"),
         new(178,   6, "ALTER TABLE Metadata_Character DROP COLUMN OriginalName;"),
         new(178,   7, "ALTER TABLE Metadata_Character DROP COLUMN Description;"),
+        new(179,   1, DatabaseFixes.MigrateStoredFilterParameters),
     ];
 
     #endregion

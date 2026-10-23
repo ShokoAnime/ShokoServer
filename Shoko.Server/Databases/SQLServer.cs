@@ -1735,6 +1735,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(198,   7, "ALTER TABLE Metadata_Character DROP COLUMN Description;"),
         new(199,   1, "ALTER TABLE StoredReleaseInfo ALTER COLUMN AudioLanguages NVARCHAR(1024) NULL;"),
         new(199,   2, "ALTER TABLE StoredReleaseInfo ALTER COLUMN SubtitleLanguages NVARCHAR(1024) NULL;"),
+        new(200,   1, DatabaseFixes.MigrateStoredFilterParameters),
     ];
 
     #endregion

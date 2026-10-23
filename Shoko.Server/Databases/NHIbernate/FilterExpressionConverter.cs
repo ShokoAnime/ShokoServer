@@ -38,12 +38,12 @@ public class FilterExpressionConverter : TypeConverter, IUserType
             MissingMemberHandling = MissingMemberHandling.Ignore,
             TypeNameHandling = TypeNameHandling.Objects,
             SerializationBinder = _binder,
+            ContractResolver = FilterExpressionContractResolver.Instance,
             Error = (_, args) =>
             {
                 LogManager.GetCurrentClassLogger().Error(args.ErrorContext.Error, "Could not read {Path} of a stored filter; it loads without it.", args.ErrorContext.Path);
                 args.ErrorContext.Handled = true;
             }
-            //Converters = new List<JsonConverter> { new FilterExpressionJsonConverter() },
         });
     }
 
@@ -68,6 +68,7 @@ public class FilterExpressionConverter : TypeConverter, IUserType
             MissingMemberHandling = MissingMemberHandling.Ignore,
             TypeNameHandling = TypeNameHandling.Objects,
             SerializationBinder = _binder,
+            ContractResolver = FilterExpressionContractResolver.Instance,
         });
     }
 

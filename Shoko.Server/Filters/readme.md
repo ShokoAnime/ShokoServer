@@ -24,6 +24,11 @@ without its source, a date function without its time span. A comparer takes part
 something to compare it with, a `Right` that takes part or a set `Parameter`; a `Constant` only with a set `Parameter`.
 Optional values, such as the label of a `Scope` or a `Switch`, never decide whether a part takes part.
 
+A stored preset keeps every expression in one shape: `$type`, then `Left`, `Right`, `Parameter` and `SecondParameter`
+as the container interfaces expose them (a number as a double, a season or role as its name), and for a sorting
+expression `Descending` and `Next`. A class's own names for those values, such as `Year` or `IsOn`, are not stored
+(`FilterExpressionContractResolver`), so any other public value of an expression has to stand behind a container.
+
 FilterExpression is a single Expression, whether that's something like "Or" or "HasTag"
 in `And(Or(HasTag('comedy'), HasTag('action')), Not(HasTag('18 restricted')))`. Expressions should be the least amount
 of work possible. NAND can be expressed as `Not(And())`. Exceptions can be made if it would take more than 2 or 3
