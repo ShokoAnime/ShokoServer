@@ -1258,6 +1258,9 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
     #region IScheduledActionService
 
     /// <inheritdoc/>
+    public event EventHandler<ScheduledActionTriggersChangedEventArgs>? TriggersChanged;
+
+    /// <inheritdoc/>
     public IReadOnlyList<ScheduledActionInfo> GetScheduledActions()
     {
         EnsureLoaded();
@@ -1347,6 +1350,7 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
                 throw new ArgumentException(spacingError, nameof(triggers));
         }
 
+        var previous = ToInfo(action, GetExecuting());
         lock (_lock)
         {
             var row = _schedules.GetByActionID(actionId) ?? new() { ActionID = actionId, CreatedAt = UtcNow };
@@ -1356,7 +1360,17 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
 
         _logger.LogInformation("Set the triggers of \"{ActionName}\" ({ActionId}) to {Triggers}", action.Name, actionId, triggers is null ? "its defaults" : SerializeTriggers(triggers));
         Arm();
-        return ToInfo(action, GetExecuting());
+        var current = ToInfo(action, GetExecuting());
+        try
+        {
+            TriggersChanged?.Invoke(this, new() { Previous = previous, Current = current, Actor = ActorContext.CurrentActor });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Got an error in a TriggersChanged event.");
+        }
+
+        return current;
     }
 
     /// <summary>

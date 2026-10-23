@@ -21,6 +21,12 @@ namespace Shoko.Abstractions.ScheduledActions.Services;
 public interface IScheduledActionService
 {
     /// <summary>
+    ///   Dispatched when the triggers of a scheduled action are set or reset,
+    ///   with the action as it was and as it is.
+    /// </summary>
+    event EventHandler<ScheduledActionTriggersChangedEventArgs>? TriggersChanged;
+
+    /// <summary>
     ///   Lists every scheduled action, by category, category name and name.
     /// </summary>
     /// <exception cref="InvalidOperationException">
