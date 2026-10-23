@@ -294,6 +294,25 @@ public interface IMetadataService
     /// <returns>The episode if found, otherwise <c>null</c>.</returns>
     IShokoEpisode? GetShokoEpisodeByAnidbID(int anidbEpisodeID);
 
+    /// <summary>
+    ///   Gets the Shoko episodes missing a file: aired regular episodes, not
+    ///   hidden, with no file linked, and released by at least one of the
+    ///   anime's AniDB release groups when AniDB lists any. A part another
+    ///   layout of a movie or OVA covers is left out, as in the series'
+    ///   missing episode counts.
+    /// </summary>
+    /// <param name="collecting">
+    ///   <c>true</c> to keep only the episodes released by an AniDB release
+    ///   group the collection has files of the same anime from.
+    /// </param>
+    /// <param name="series">
+    ///   The series to look in, or <c>null</c> for every series.
+    /// </param>
+    /// <returns>
+    ///   The missing episodes, ordered by anime, episode type and number.
+    /// </returns>
+    IReadOnlyList<IShokoEpisode> GetMissingShokoEpisodes(bool collecting = false, IShokoSeries? series = null);
+
     #endregion
 
     #region Season

@@ -45,6 +45,12 @@ wants: `GetShokoSeriesByID`, `GetShokoSeriesByAnidbID`, `GetShokoEpisodeByID`,
 `GetShokoEpisodeByAnidbID`, `GetShokoGroupByID` and the `GetAllShoko…`
 enumerations.
 
+`GetMissingShokoEpisodes(collecting, series?)` lists the episodes the series'
+missing counts are made of: aired regular episodes with no file linked, which
+an AniDB release group has released when AniDB lists any, leaving out the parts
+another layout of a movie or OVA covers. `collecting: true` keeps the ones
+released by a group the collection already has files of that anime from.
+
 Everything else takes a `MetadataGuid`. `GetEntry(id)` answers any kind;
 `GetEntry<TMetadata>(id)` only when the entry is a `TMetadata`. `GetSeries`,
 `GetSeason`, `GetEpisode`, `GetMovie` and `GetCollection` are the typed forms,

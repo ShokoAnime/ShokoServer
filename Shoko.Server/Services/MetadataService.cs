@@ -853,6 +853,10 @@ public class MetadataService : IMetadataService
     public IShokoEpisode? GetShokoEpisodeByAnidbID(int anidbEpisodeID)
         => anidbEpisodeID <= 0 ? null : _episodeRepository.GetByAniDBEpisodeID(anidbEpisodeID);
 
+    /// <inheritdoc />
+    public IReadOnlyList<IShokoEpisode> GetMissingShokoEpisodes(bool collecting = false, IShokoSeries? series = null)
+        => _episodeRepository.GetMissing(collecting, series?.AnidbAnimeID).ToList();
+
     #endregion
 
     #region Season
