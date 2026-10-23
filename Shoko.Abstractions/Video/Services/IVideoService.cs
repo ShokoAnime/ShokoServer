@@ -320,6 +320,29 @@ public interface IVideoService
     IReadOnlyList<IVideo> GetAllVideoByHash(string hash, string algorithm, string? metadata);
 
     /// <summary>
+    ///   Marks a video as a variation, or unmarks it. Release management and
+    ///   the duplicate checks leave variations out. Nothing is saved when the
+    ///   video already is as asked.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to mark or unmark.
+    /// </param>
+    /// <param name="isVariation">
+    ///   <c>true</c> to mark the video as a variation, <c>false</c> to unmark
+    ///   it.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="video"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="video"/> is not stored in Shoko.
+    /// </exception>
+    /// <returns>
+    ///   The updated video.
+    /// </returns>
+    IVideo SetVideoVariation(IVideo video, bool isVariation);
+
+    /// <summary>
     ///   Deletes a video from the database and optionally from the disk.
     /// </summary>
     /// <param name="video">

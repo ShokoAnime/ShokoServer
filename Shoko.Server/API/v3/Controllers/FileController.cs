@@ -1625,8 +1625,7 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        file.IsVariation = value;
-        _videoLocals.Save(file, false);
+        _videoService.SetVideoVariation(file, value);
 
         return Ok();
     }

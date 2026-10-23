@@ -828,6 +828,21 @@ public class VideoService : IVideoService
             .WhereNotNull()
             .ToList();
 
+    /// <inheritdoc/>
+    public IVideo SetVideoVariation(IVideo video, bool isVariation)
+    {
+        ArgumentNullException.ThrowIfNull(video);
+
+        var videoLocal = _videoLocalRepository.GetByID(video.LocalID)
+            ?? throw new ArgumentException("The video is not stored in Shoko.", nameof(video));
+        if (videoLocal.IsVariation == isVariation)
+            return videoLocal;
+
+        videoLocal.IsVariation = isVariation;
+        _videoLocalRepository.Save(videoLocal, false);
+        return videoLocal;
+    }
+
     public async Task DeleteVideo(IVideo video, bool removeFiles = true, bool removeFolders = true)
     {
         foreach (var videoFile in video.Files)
