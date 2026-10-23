@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -88,7 +89,7 @@ public class AniDBController(
     [HttpGet("ReleaseGroup/{groupID}")]
     public ActionResult<ReleaseGroup> GetReleaseGroup(int groupID)
     {
-        if (storedReleaseInfos.GetByGroupAndProviderIDs(groupID.ToString(), "AniDB") is not IReleaseInfo { Group.Source: "AniDB" } releaseInfo)
+        if (storedReleaseInfos.GetByGroupAndProviderIDs(groupID.ToString(), "AniDB").FirstOrDefault() is not IReleaseInfo { Group.Source: "AniDB" } releaseInfo)
             return NotFound();
 
         return new ReleaseGroup(releaseInfo.Group);
