@@ -483,6 +483,9 @@ public interface IVideoService
     /// <param name="folderUpdate">
     ///   The update data for the managed folder.
     /// </param>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="folder"/> is not stored in Shoko.
+    /// </exception>
     /// <returns>
     ///   The updated managed folder.
     /// </returns>

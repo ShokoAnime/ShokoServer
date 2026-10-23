@@ -91,7 +91,7 @@ public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : Bas
 
         // Only fire the events if something changed or if it's a new folder.
         if (isNew || isUpdated)
-            Task.Run(() => DispatchEvent(folder, isNew));
+            Task.Run(() => DispatchEvent(ns, isNew));
 
         return ns;
     }

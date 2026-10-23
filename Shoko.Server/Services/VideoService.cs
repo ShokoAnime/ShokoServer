@@ -925,11 +925,17 @@ public class VideoService : IVideoService
 
     public IManagedFolder UpdateManagedFolder(IManagedFolder folder, ManagedFolderUpdateData folderUpdate)
     {
-        var managedFolder = (ShokoManagedFolder)folder;
-        if (folderUpdate.Name is { Length: > 0 }) managedFolder.Name = folderUpdate.Name;
-        if (folderUpdate.Path is { Length: > 0 }) managedFolder.Path = folderUpdate.Path;
-        if (folderUpdate.DropFolderType is not null) managedFolder.DropFolderType = folderUpdate.DropFolderType.Value;
-        if (folderUpdate.WatchForNewFiles is not null) managedFolder.IsWatched = folderUpdate.WatchForNewFiles.Value;
+        // The save compares the changes against the cached folder, so they go on a copy.
+        var current = _managedFolderRepository.GetByID(folder.ID)
+            ?? throw new ArgumentException("The managed folder is not stored in Shoko.", nameof(folder));
+        var managedFolder = new ShokoManagedFolder
+        {
+            ID = current.ID,
+            Name = folderUpdate.Name is { Length: > 0 } ? folderUpdate.Name : current.Name,
+            Path = folderUpdate.Path is { Length: > 0 } ? folderUpdate.Path : current.Path,
+            DropFolderType = folderUpdate.DropFolderType ?? current.DropFolderType,
+            IsWatched = folderUpdate.WatchForNewFiles ?? current.IsWatched,
+        };
         return _managedFolderRepository.SaveFolder(managedFolder);
     }
 
