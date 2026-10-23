@@ -343,6 +343,28 @@ public interface IVideoService
     IVideo SetVideoVariation(IVideo video, bool isVariation);
 
     /// <summary>
+    ///   Marks a video as ignored, or unmarks it. The unrecognized files and
+    ///   the release re-checks leave ignored videos out. Nothing is saved
+    ///   when the video already is as asked.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to mark or unmark.
+    /// </param>
+    /// <param name="isIgnored">
+    ///   <c>true</c> to mark the video as ignored, <c>false</c> to unmark it.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="video"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="video"/> is not stored in Shoko.
+    /// </exception>
+    /// <returns>
+    ///   The updated video.
+    /// </returns>
+    IVideo SetVideoIgnored(IVideo video, bool isIgnored);
+
+    /// <summary>
     ///   Deletes a video from the database and optionally from the disk.
     /// </summary>
     /// <param name="video">

@@ -1606,8 +1606,7 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        file.IsIgnored = value;
-        _videoLocals.Save(file, false);
+        _videoService.SetVideoIgnored(file, value);
 
         return Ok();
     }

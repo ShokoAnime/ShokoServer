@@ -843,6 +843,21 @@ public class VideoService : IVideoService
         return videoLocal;
     }
 
+    /// <inheritdoc/>
+    public IVideo SetVideoIgnored(IVideo video, bool isIgnored)
+    {
+        ArgumentNullException.ThrowIfNull(video);
+
+        var videoLocal = _videoLocalRepository.GetByID(video.LocalID)
+            ?? throw new ArgumentException("The video is not stored in Shoko.", nameof(video));
+        if (videoLocal.IsIgnored == isIgnored)
+            return videoLocal;
+
+        videoLocal.IsIgnored = isIgnored;
+        _videoLocalRepository.Save(videoLocal, false);
+        return videoLocal;
+    }
+
     public async Task DeleteVideo(IVideo video, bool removeFiles = true, bool removeFolders = true)
     {
         foreach (var videoFile in video.Files)
