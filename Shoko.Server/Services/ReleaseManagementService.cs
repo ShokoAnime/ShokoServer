@@ -78,6 +78,7 @@ public class ReleaseManagementService(
             })
             .Where(q => q is not null)
             .Select(q => q!.Value)
+            .OrderBy(q => q.Series.Title)
             .ToList();
 
         var pageItems = pageSize <= 0
@@ -85,7 +86,6 @@ public class ReleaseManagementService(
             : qualifying.Skip(pageSize * (page - 1)).Take(pageSize).ToList();
 
         var results = pageItems
-            .OrderBy(q => q.Series.Title)
             .Select(q => BuildSeriesWithCandidates(q.Series, q.VideoLookup, includeVariations,
                 includeOverrides: false, computation: q.Computation)!)
             .ToList();
