@@ -1241,7 +1241,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             if (!videoSet.Add(videoFile.VideoID))
                 continue;
 
-            videoDictionary.Add(videoFile.ID, videoFile.Path);
+            videoDictionary.Add(videoFile.VideoID, videoFile.Path);
         }
 
         await Task.Run(() => AVDumpHelper.DumpFiles(videoDictionary)).ConfigureAwait(false);
@@ -1260,7 +1260,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             if (!videoSet.Add(videoFile.VideoID))
                 continue;
 
-            videoDictionary.Add(videoFile.ID, videoFile.Path);
+            videoDictionary.Add(videoFile.VideoID, videoFile.Path);
         }
         await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: true).ConfigureAwait(false);
     }
