@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.550",
+      "tag": "v6.0.0-dev.550",
+      "commit": "5cf693b32bd2d5e0a435fe30fa439797afda7893",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.550/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-23T21:44:46Z",
+      "releaseNotes": "\n`feat` (`abstractions`): **Add `IVideoService.SetVideoVariation`**:\n\n- Plugins can mark a video as a variation, or unmark it\n- `PUT /api/v3/File/{fileID}/Variation` goes through it, as the video\n  action will\n\n`feat` (`abstractions`): **Add `IVideoService.SetVideoIgnored`**:\n\n- Plugins can mark a video as ignored, or unmark it\n- `PUT /api/v3/File/{fileID}/Ignore` goes through it, as the video\n  action will\n\n`feat` (`abstractions`): **Add `IVideoService.GetIgnoredVideos`**.\n\n`feat` (`abstractions`): **Add `IVideoService.VideoUpdated`**:\n\n- Raised by `SetVideoIgnored` and `SetVideoVariation` when a flag\n  changes, with the actor\n- \"Check for Previously Ignored Files\" goes through `SetVideoIgnored`,\n  so its changes raise it too\n- The `file` feed forwards it as `file:updated`\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.112**.\n"
+    },
+    {
       "version": "6.0.0.549",
       "tag": "v6.0.0-dev.549",
       "commit": "46db34105f33eb55fc7caef4657119c7436e9cd1",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.521/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-13T21:35:58Z",
       "releaseNotes": "\n`fix` (`abstractions`): **Migrate stored select values written before the UI namespace move** ([#1460](https://github.com/ShokoAnime/ShokoServer/pull/1460)):\n\nAdded `LegacySelectComponentMigration`, run from `ConfigurationService` on load ahead of schema validation, which renames the old lowercase `SelectComponent` keys (`options`, `groupId`, `selected`, ...) to their current names and saves the result back.\n"
-    },
-    {
-      "version": "6.0.0.520",
-      "tag": "v6.0.0-dev.520",
-      "commit": "90d390d1bde275ecf4f15e2ee65a20ae4068faa5",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.520/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-13T20:26:56Z",
-      "releaseNotes": "\n`fix` (`plugin`): **Sync never-synced repositories and check for updates before the database is up**:\n\n- Counted a repository without a `LastFetchedAt` as stale in `GetAvailablePackageManifests`, so the ones the server adds fill in on first use\n- Dropped the `ScheduledUpdate` row `CheckForUpdates` wrote and nothing read, which threw while there is no database, as in first-run setup and after a failed start\n\n`refactor`: **Drop the last-run rows scheduled actions made redundant**:\n\n- Stopped `GetAniDBCalendarJob` and `CheckAniDBFileUpdatesJob` writing a `ScheduledUpdate` row nothing reads; their actions keep the last run\n- Removed the unused `ScheduledUpdateRepository` from `ActionService`\n\n`chore`: **Remove unused usings**.\n"
     }
   ]
 }
