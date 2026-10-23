@@ -6,6 +6,7 @@ using System.Threading;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Abstractions.User;
@@ -34,6 +35,8 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         cancellationToken.ThrowIfCancellationRequested();
 
         var now = time?.ToLocalTime() ?? DateTime.Now;
+        // A filter whose expression doesn't take part, such as one of only switched-off switches, is no filter.
+        var expression = filter.Expression is FilterExpression { IsApplicable: false } ? null : filter.Expression;
         var filterable = filter.ApplyAtSeriesLevel switch
         {
             true when needsUser => seriesRepository.GetAll()
@@ -54,7 +57,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                return filter.Expression?.Evaluate(a.Filterable, a.UserInfo, now) ?? true;
+                return expression?.Evaluate(a.Filterable, a.UserInfo, now) ?? true;
             }
             // Don't log and rethrow OperationCanceledExceptions for the caller to handle.
             catch (OperationCanceledException)
@@ -151,7 +154,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         foreach (var filter in filters.Where(a => a is not IFilterPreset { IsDirectory: true }))
         {
             var filterable = filter.ApplyAtSeriesLevel ? series : groups;
-            var expression = filter.Expression;
+            var expression = filter.Expression is FilterExpression { IsApplicable: false } ? null : filter.Expression;
             var filtered = filterable
                 .AsParallel()
                 .AsUnordered()

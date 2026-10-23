@@ -15,7 +15,8 @@ left out: `var right = Right is { IsApplicable: true } ? Right.Evaluate(…) : P
 
 The logic expressions leave out a side that is missing or does not take part (`IsApplicable` is false for a `Switch`
 set to keep everything, unset or empty, and for a logic expression with nothing applicable in it), and let the other side
-decide. Evaluated anyway, such as at the top of a filter, a part that does not take part fails. An expression taking
+decide. A filter whose whole expression does not take part is no filter, so everything matches; evaluated directly,
+a part that does not take part fails. An expression taking
 boolean inputs follows the same rule.
 
 A parameter is unset only when it is `null`: `0`, `""`, `false` and an empty set are all set, and nothing stands in for

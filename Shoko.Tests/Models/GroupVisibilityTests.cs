@@ -7,6 +7,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Filtering.Expressions.Info;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
@@ -234,6 +237,29 @@ public class GroupVisibilityTests
         Assert.Equal(1, filterable.SeriesCount);
         Assert.Equal(0, filterable.GroupCount);
         Assert.DoesNotContain("Hidden Show", filterable.Names);
+    }
+
+    [Fact]
+    public void AFilterWithNothingThatTakesPartMatchesEverything()
+    {
+        using var world = new World();
+        var engine = new FilteringEngine(NullLogger<FilteringEngine>.Instance, world.Groups, world.Series);
+        var unfiltered = new FilterPreset { FilterPresetID = 1, ApplyAtSeriesLevel = false };
+        var allSwitchedOff = new FilterPreset
+        {
+            FilterPresetID = 2,
+            ApplyAtSeriesLevel = false,
+            Expression = new AndExpression(
+                new SwitchExpression(new HasTagExpression("comedy"), null),
+                new SwitchExpression(new HasTagExpression("action"), InclusionFilter.True)
+            ),
+        };
+
+        var expected = engine.EvaluateFilterWithTuples(unfiltered, world.User, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.NotEmpty(expected);
+        Assert.Equal(expected, engine.EvaluateFilterWithTuples(allSwitchedOff, world.User, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(expected, engine.BatchPrepareFiltersWithTuples([allSwitchedOff], world.User, cancellationToken: TestContext.Current.CancellationToken)[allSwitchedOff]);
     }
 
     [Fact]
