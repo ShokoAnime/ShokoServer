@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.549",
+      "tag": "v6.0.0-dev.549",
+      "commit": "46db34105f33eb55fc7caef4657119c7436e9cd1",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.549/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-23T11:00:43Z",
+      "releaseNotes": "\n`fix` (`filters`): **Treat a filter where nothing takes part as no filter**:\n\n- A filter whose expression didn't take part, such as one of only switches set to keep everything, matched nothing; it now matches everything\n"
+    },
+    {
       "version": "6.0.0.548",
       "tag": "v6.0.0-dev.548",
       "commit": "aa46f4470cb98b56cda42daa2f630e97c28181de",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.520/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-13T20:26:56Z",
       "releaseNotes": "\n`fix` (`plugin`): **Sync never-synced repositories and check for updates before the database is up**:\n\n- Counted a repository without a `LastFetchedAt` as stale in `GetAvailablePackageManifests`, so the ones the server adds fill in on first use\n- Dropped the `ScheduledUpdate` row `CheckForUpdates` wrote and nothing read, which threw while there is no database, as in first-run setup and after a failed start\n\n`refactor`: **Drop the last-run rows scheduled actions made redundant**:\n\n- Stopped `GetAniDBCalendarJob` and `CheckAniDBFileUpdatesJob` writing a `ScheduledUpdate` row nothing reads; their actions keep the last run\n- Removed the unused `ScheduledUpdateRepository` from `ActionService`\n\n`chore`: **Remove unused usings**.\n"
-    },
-    {
-      "version": "6.0.0.519",
-      "tag": "v6.0.0-dev.519",
-      "commit": "40199e58423b9ad495dd4ffff7a375560dc02595",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.519/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-13T19:54:30Z",
-      "releaseNotes": "\n`chore` (`plugin`): **Recolour the WebAOM thumbnail and icon**.\n"
     }
   ]
 }
