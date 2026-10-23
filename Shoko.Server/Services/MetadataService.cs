@@ -4,6 +4,7 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering;
@@ -97,6 +98,8 @@ public class MetadataService : IMetadataService
 
     private readonly Lazy<MetadataCollectionRefreshScheduler>? _collectionScheduler;
 
+    private readonly Lazy<AnimeSeriesService>? _seriesService;
+
     public MetadataService(
         AnimeGroupRepository groupRepository,
         AnimeSeriesRepository seriesRepository,
@@ -122,7 +125,8 @@ public class MetadataService : IMetadataService
         IMetadataCrossReferenceStore crossReferences,
         Lazy<IMetadataProviderManager> providerManager,
         ILogger<MetadataService> logger,
-        Lazy<MetadataCollectionRefreshScheduler>? collectionScheduler = null
+        Lazy<MetadataCollectionRefreshScheduler>? collectionScheduler = null,
+        Lazy<AnimeSeriesService>? seriesService = null
     )
     {
         _groupRepository = groupRepository;
@@ -150,6 +154,7 @@ public class MetadataService : IMetadataService
         _providerManager = providerManager;
         _logger = logger;
         _collectionScheduler = collectionScheduler;
+        _seriesService = seriesService;
         (_coreLookups, _storedLookups) = BuildLookups();
 
         ShokoEventHandler.Instance.SeriesUpdated += OnSeriesUpdated;
@@ -949,6 +954,18 @@ public class MetadataService : IMetadataService
     /// <inheritdoc />
     public IShokoSeries? GetShokoSeriesByAnidbID(int anidbSeriesID)
         => anidbSeriesID <= 0 ? null : _seriesRepository.GetByAnimeID(anidbSeriesID);
+
+    /// <inheritdoc />
+    public Task DeleteShokoSeries(IShokoSeries series, bool deleteFiles = false, bool purgeAnidbAnime = false, bool removeFromMylist = true)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+
+        if (series is not AnimeSeries animeSeries)
+            throw new ArgumentException("Series must be an AnimeSeries instance", nameof(series));
+
+        var seriesService = _seriesService?.Value ?? throw new InvalidOperationException("The series service is not available.");
+        return seriesService.DeleteSeries(animeSeries, deleteFiles, updateGroups: true, completelyRemove: purgeAnidbAnime, removeFromMylist: removeFromMylist);
+    }
 
     #region Series | Custom Tags
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Threading.Tasks;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Events;
@@ -385,6 +386,26 @@ public interface IMetadataService
     /// <param name="anidbSeriesID">The AniDB ID of the series.</param>
     /// <returns>The series if found, otherwise <c>null</c>.</returns>
     IShokoSeries? GetShokoSeriesByAnidbID(int anidbSeriesID);
+
+    /// <summary>
+    ///   Deletes a series with its episodes, the records of its files and its
+    ///   links to every source, and updates or removes its group.
+    /// </summary>
+    /// <param name="series">The series to delete.</param>
+    /// <param name="deleteFiles">
+    ///   If <c>true</c>, the series' files are deleted from disk too; their
+    ///   records go either way.
+    /// </param>
+    /// <param name="purgeAnidbAnime">
+    ///   If <c>true</c>, the cached AniDB anime is purged as well.
+    /// </param>
+    /// <param name="removeFromMylist">
+    ///   If <c>true</c>, purging the AniDB anime takes its releases off the
+    ///   AniDB MyList. Only used with <paramref name="purgeAnidbAnime"/>.
+    /// </param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="series"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="series"/> is not an <c>AnimeSeries</c> instance.</exception>
+    Task DeleteShokoSeries(IShokoSeries series, bool deleteFiles = false, bool purgeAnidbAnime = false, bool removeFromMylist = true);
 
     #region Series | Custom Tags
 

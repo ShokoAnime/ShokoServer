@@ -195,7 +195,7 @@ public class SeriesController(
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
 
-        await _seriesService.DeleteSeries(series, deleteFiles, true, completelyRemove);
+        await _metadataService.DeleteShokoSeries(series, deleteFiles, purgeAnidbAnime: completelyRemove);
 
         return Ok();
     }

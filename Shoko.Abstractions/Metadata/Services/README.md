@@ -45,6 +45,12 @@ wants: `GetShokoSeriesByID`, `GetShokoSeriesByAnidbID`, `GetShokoEpisodeByID`,
 `GetShokoEpisodeByAnidbID`, `GetShokoGroupByID` and the `GetAllShoko…`
 enumerations.
 
+`DeleteShokoSeries(series, deleteFiles, purgeAnidbAnime, removeFromMylist)`
+deletes one series the way the API does: its episodes, the records of its files
+(and the files themselves with `deleteFiles`) and its links to every source,
+then updates or removes its group. `purgeAnidbAnime` also purges the cached
+AniDB anime, through `IAnidbService.PurgeAnimeByID`. `SeriesRemoved` fires.
+
 `GetMissingShokoEpisodes(collecting, series?)` lists the episodes the series'
 missing counts are made of: aired regular episodes with no file linked, which
 an AniDB release group has released when AniDB lists any, leaving out the parts
