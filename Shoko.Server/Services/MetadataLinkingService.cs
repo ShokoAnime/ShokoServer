@@ -67,6 +67,9 @@ public class MetadataLinkingService(
     private bool _forwarding;
 
     /// <inheritdoc />
+    public event EventHandler<AutoLinkingChangedEventArgs>? AutoLinkingChanged;
+
+    /// <inheritdoc />
     public event EventHandler<MetadataLinksChangedEventArgs>? LinksChanged
     {
         add
@@ -612,6 +615,14 @@ public class MetadataLinkingService(
 
         animeSeries.DisabledAutoMatchKeys = updated;
         seriesRepository.Save(animeSeries, false, false);
+        try
+        {
+            AutoLinkingChanged?.Invoke(this, new() { Series = animeSeries, Source = source, IsDisabled = disabled, Actor = ActorContext.CurrentActor });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Got an error in an AutoLinkingChanged event.");
+        }
     }
 
     /// <inheritdoc />

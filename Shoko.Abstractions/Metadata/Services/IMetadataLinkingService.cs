@@ -50,6 +50,14 @@ public interface IMetadataLinkingService
     /// </remarks>
     event EventHandler<MetadataLinksChangedEventArgs>? LinksChanged;
 
+    /// <summary>
+    ///   Raised when a source is told to leave a series alone, or to stop
+    ///   leaving it alone, through <see cref="SetAutoLinkingDisabled"/>, the
+    ///   source-wide reset or an unlink that disables auto-linking. Not raised
+    ///   when the series already was as asked.
+    /// </summary>
+    event EventHandler<AutoLinkingChangedEventArgs>? AutoLinkingChanged;
+
     #endregion
 
     #region Search

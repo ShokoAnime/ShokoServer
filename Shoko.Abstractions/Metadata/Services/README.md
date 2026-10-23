@@ -251,6 +251,11 @@ linkingService.LinksChanged += (_, eventArgs) =>
 };
 ```
 
+`AutoLinkingChanged` is raised when a source is told to leave a series alone,
+or to stop leaving it alone: through `SetAutoLinkingDisabled`, the source-wide
+reset, or an unlink that disables auto-linking. It names the series, the
+source, whether auto-linking is now disabled, and `Actor`.
+
 ---
 
 # `IMetadataTextManager`
