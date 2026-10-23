@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.548",
+      "tag": "v6.0.0-dev.548",
+      "commit": "aa46f4470cb98b56cda42daa2f630e97c28181de",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.548/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-23T09:56:42Z",
+      "releaseNotes": "\n`docs` (`filters`): **Reword the help of the `And`, `Or`, `Xor` and `Not` gates**.\n\n`refactor` (`filters`): **Make the switch three-way on `InclusionFilter`, label first**:\n\n- `SwitchExpression` keeps only (`Only`) or leaves out (`False`) what its condition matches; set to keep everything (`True`) or left unset, it is left out of the filter\n- Its label moved to `Parameter`, as a group's, and the inclusion to `SecondParameter`, offered as the `InclusionFilter` names\n- Dropped the switch from the stored-shape migration, as nothing had stored one yet\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.111**.\n\n`feat` (`api`): **Add filter count endpoints**:\n\n- `POST /api/v3/Filter/Preview/Count` and `GET /api/v3/Filter/{filterID}/Count` answer `{ Groups, Series }`, counted as the matching group and series listings would list them, without building the list items\n- The listings and the counts share the same filtering helpers in `FilterController`\n"
+    },
+    {
       "version": "6.0.0.547",
       "tag": "v6.0.0-dev.547",
       "commit": "5001a23330d33ae60dc5693c0fcd4ae9ab8e81d8",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.519/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-13T19:54:30Z",
       "releaseNotes": "\n`chore` (`plugin`): **Recolour the WebAOM thumbnail and icon**.\n"
-    },
-    {
-      "version": "6.0.0.518",
-      "tag": "v6.0.0-dev.518",
-      "commit": "e7c8d271e3412c9a55a8b873d5cfd95f329af374",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.518/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-13T19:21:25Z",
-      "releaseNotes": "\n`fix` (`plugin`): **Halt the start with the web host up when a plugin fails**:\n\nA plugin built for an older contract threw in `ConfigurationService.AddParts`,\nbefore the web host started, so the server exited and restart-looped.\n\n- Recorded a plugin that fails while being loaded, registered, created or handed to the services (`LocalPluginInfo.HasFailed`, `FailureReason`), went on with the rest and halted the start as for a failed `Setup`\n- Added `PluginReferenceChecker`, which fails a plugin referring to types or members the server no longer has before its assembly loads\n- Left the plugin enabled; disabling it is the admin's choice\n- Added a `failed` filter to `/api/v3/Plugin`\n\n`repo` (`workflows`): **Stop bundling the offline importer**:\n\nRemoved the download job and its steps from the daily and release builds.\nThe plugin is installed like any other.\n\n`feat` (`plugin`): **Ship the core and community plugin repositories**:\n\n- Seeded the repositories the server ships with once, remembered by key in `Plugins.Updates.SeededRepositories` so one an admin removed stays removed: `core` enabled, `community` disabled\n- Added `IPluginPackageManager.RestoreDefaultPackageRepositories` and `POST /api/v3/Plugin/Package/Repository/RestoreDefaults` to add the missing ones back\n- Added `PackageRepositoryInfo.IsEnabled` with `EnablePackageRepository`, `DisablePackageRepository` and `PUT /api/v3/Plugin/Package/Repository/{repositoryID}`; a disabled repository is kept but not synced and its packages are not offered\n- Added `PackageRepositoryInfo.Description`, set when a repository is added and not editable afterwards\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.104**.\n\n`repo`: **Give the NuGet packages a readme and full metadata**:\n\n- Added a short `NUGET.md` per package, packed as its readme, with absolute links to the full guides\n- Added descriptions to `Shoko.Abstractions` and `Shoko.QueueProcessor`, and license, icon, project and repository to the build tool packages\n- Removed the stale `PackageReleaseNotes`\n\n`chore` (`queue`): **Bump `Shoko.QueueProcessor` to `6.0.0-alpha.12`**.\n\n`chore` (`buildtools`): **Bump build tools version to v0.5.2**.\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.3.3**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.105**.\n"
     }
   ]
 }
