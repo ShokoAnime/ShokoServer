@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Metadata.Embedded;
@@ -91,10 +92,12 @@ public class MetadataCollectionStore(
         }
 
         var changed = false;
+        Metadata_Collection row;
+        Metadata_Collection? stored;
         lock (_writeLock)
         {
-            var stored = collectionRepository.GetByProviderID(source, collection.ID.ID);
-            var row = MetadataRows.Copy(stored) ?? new Metadata_Collection();
+            stored = collectionRepository.GetByProviderID(source, collection.ID.ID);
+            row = MetadataRows.Copy(stored) ?? new Metadata_Collection();
             row.Source = source;
             row.ProviderID = collection.ID.ID;
             row.ExtraData = MetadataDefaultImages.Apply(row.ExtraData ?? new(), collection.DefaultImageResourceIDs).NullIfEmpty();
@@ -136,7 +139,11 @@ public class MetadataCollectionStore(
             });
         }
 
-        return changed ? 1 : 0;
+        if (!changed)
+            return 0;
+
+        MetadataStoredEntry.Events.OnCollectionUpdated(row, stored is null ? UpdateReason.Added : UpdateReason.Updated);
+        return 1;
     }
 
     /// <inheritdoc />
@@ -145,10 +152,11 @@ public class MetadataCollectionStore(
         MetadataEntries.CheckEntry(id, MetadataEntityType.Collection, nameof(id));
 
         int count;
+        Metadata_Collection? row;
         IReadOnlyList<Metadata_Collection_Member> members;
         lock (_writeLock)
         {
-            var row = collectionRepository.GetByProviderID(id.Source, id.ID);
+            row = collectionRepository.GetByProviderID(id.Source, id.ID);
             members = memberRepository.GetByCollectionID(id.Source, id.ID);
             if (row is null && members.Count is 0)
                 return 0;
@@ -160,6 +168,9 @@ public class MetadataCollectionStore(
             ]);
             count = row is null ? 0 : 1;
         }
+
+        if (row is not null)
+            MetadataStoredEntry.Events.OnCollectionUpdated(row, UpdateReason.Removed);
 
         // Outside the lock, since the other stores take their own.
         cleanup.Remove([id]);

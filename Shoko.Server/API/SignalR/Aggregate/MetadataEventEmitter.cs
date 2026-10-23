@@ -57,6 +57,9 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         _metadataService.MovieAdded += OnMovieUpdated;
         _metadataService.MovieUpdated += OnMovieUpdated;
         _metadataService.MovieRemoved += OnMovieUpdated;
+        _metadataService.CollectionAdded += OnCollectionUpdated;
+        _metadataService.CollectionUpdated += OnCollectionUpdated;
+        _metadataService.CollectionRemoved += OnCollectionUpdated;
     }
 
     public void Dispose()
@@ -71,6 +74,9 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         _metadataService.MovieAdded -= OnMovieUpdated;
         _metadataService.MovieUpdated -= OnMovieUpdated;
         _metadataService.MovieRemoved -= OnMovieUpdated;
+        _metadataService.CollectionAdded -= OnCollectionUpdated;
+        _metadataService.CollectionUpdated -= OnCollectionUpdated;
+        _metadataService.CollectionRemoved -= OnCollectionUpdated;
     }
 
     private async void OnSeriesUpdated(object? sender, SeriesInfoUpdatedEventArgs e)
@@ -142,6 +148,24 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while sending the 'movie' event.");
+        }
+    }
+
+    private async void OnCollectionUpdated(object? sender, CollectionInfoUpdatedEventArgs e)
+    {
+        // The group feed already sends a Shoko group's changes.
+        if (e.CollectionInfo is IShokoGroup)
+            return;
+
+        try
+        {
+            var eventName = e.Reason is UpdateReason.None ? "collection.updated" : "collection." + e.Reason.ToString().ToLower();
+            var audience = EventAudience.ForEntry(e.CollectionInfo, _anidbAnime.GetByAnimeID, e.Reason is UpdateReason.Removed);
+            await SendToAudienceAsync(audience, eventName, new CollectionInfoUpdatedEventSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'collection' event.");
         }
     }
 }

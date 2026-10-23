@@ -110,8 +110,8 @@ first, and asks about a bare ID when nothing holds it.
 
 ## Events
 
-`Series…`, `Season…`, `Episode…` and `Movie…`, each with `Added`, `Updated`
-and `Removed`. `Added` and `Removed` get their own event and every other
+`Series…`, `Season…`, `Episode…`, `Movie…` and `Collection…`, each with
+`Added`, `Updated` and `Removed`. `Added` and `Removed` get their own event and every other
 `UpdateReason` arrives as `…Updated`. A store write raises them for what
 changed, provider refreshes included; providers raise nothing themselves.
 
@@ -119,7 +119,9 @@ The payload is provider-agnostic: `SeriesInfoUpdatedEventArgs.SeriesInfo` is
 an `ISeries` of any source, so check `SeriesInfo.Source`. It also carries the
 nested `Seasons` and `Episodes` that changed with it, and `Actor`, the API
 token the change was made for (from `IActorContext`), or `null` for the
-system. Group events live on `IShokoGroupManager`.
+system. A Shoko group is the `shoko` source's collection, so its changes arrive
+as `Collection…` events here as well as the group events on
+`IShokoGroupManager`, which alone has `SeriesMoved` and `GroupsRecreated`.
 
 ```csharp
 public class MyWatcher(IMetadataService metadataService, ILogger<MyWatcher> logger) : IHostedService

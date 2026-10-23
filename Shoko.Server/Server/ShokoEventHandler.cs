@@ -29,6 +29,8 @@ public class ShokoEventHandler
 
     public event EventHandler<MovieInfoUpdatedEventArgs>? MovieUpdated;
 
+    public event EventHandler<CollectionInfoUpdatedEventArgs>? CollectionUpdated;
+
     public event EventHandler<GroupInfoUpdatedEventArgs>? GroupUpdated;
 
     public event EventHandler<SeriesMovedEventArgs>? SeriesMoved;
@@ -119,6 +121,12 @@ public class ShokoEventHandler
     {
         ArgumentNullException.ThrowIfNull(movie, nameof(movie));
         MovieUpdated?.Invoke(null, new(movie, reason) { Actor = ActorContext.CurrentActor });
+    }
+
+    public void OnCollectionUpdated(ICollection collection, UpdateReason reason)
+    {
+        ArgumentNullException.ThrowIfNull(collection, nameof(collection));
+        CollectionUpdated?.Invoke(null, new(collection, reason) { Actor = ActorContext.CurrentActor });
     }
 
     public void OnGroupUpdated(IShokoGroup group, UpdateReason reason)

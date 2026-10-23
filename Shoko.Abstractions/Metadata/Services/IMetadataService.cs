@@ -543,6 +543,24 @@ public interface IMetadataService
     #region Collection
 
     /// <summary>
+    ///   Dispatched when a source's collection is added to the collection
+    ///   store, or a Shoko group is created.
+    /// </summary>
+    event EventHandler<CollectionInfoUpdatedEventArgs>? CollectionAdded;
+
+    /// <summary>
+    ///   Dispatched when a stored collection's members, texts or images
+    ///   change, or a Shoko group is updated.
+    /// </summary>
+    event EventHandler<CollectionInfoUpdatedEventArgs>? CollectionUpdated;
+
+    /// <summary>
+    ///   Dispatched when a collection is removed from the collection store,
+    ///   or a Shoko group is deleted.
+    /// </summary>
+    event EventHandler<CollectionInfoUpdatedEventArgs>? CollectionRemoved;
+
+    /// <summary>
     ///   Looks up all collections from a given metadata source as an enumerable list.
     /// </summary>
     /// <param name="source">The metadata source to look up.</param>

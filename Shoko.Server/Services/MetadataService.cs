@@ -156,6 +156,8 @@ public class MetadataService : IMetadataService
         ShokoEventHandler.Instance.SeasonUpdated += OnSeasonUpdated;
         ShokoEventHandler.Instance.EpisodeUpdated += OnEpisodeUpdated;
         ShokoEventHandler.Instance.MovieUpdated += OnMovieUpdated;
+        ShokoEventHandler.Instance.CollectionUpdated += OnCollectionUpdated;
+        ShokoEventHandler.Instance.GroupUpdated += OnGroupUpdated;
     }
 
     ~MetadataService()
@@ -164,6 +166,8 @@ public class MetadataService : IMetadataService
         ShokoEventHandler.Instance.SeasonUpdated -= OnSeasonUpdated;
         ShokoEventHandler.Instance.EpisodeUpdated -= OnEpisodeUpdated;
         ShokoEventHandler.Instance.MovieUpdated -= OnMovieUpdated;
+        ShokoEventHandler.Instance.CollectionUpdated -= OnCollectionUpdated;
+        ShokoEventHandler.Instance.GroupUpdated -= OnGroupUpdated;
     }
 
     #region Resource Providers
@@ -1270,6 +1274,35 @@ public class MetadataService : IMetadataService
     #endregion
 
     #region Collection
+
+    /// <inheritdoc />
+    public event EventHandler<CollectionInfoUpdatedEventArgs>? CollectionAdded;
+
+    /// <inheritdoc />
+    public event EventHandler<CollectionInfoUpdatedEventArgs>? CollectionUpdated;
+
+    /// <inheritdoc />
+    public event EventHandler<CollectionInfoUpdatedEventArgs>? CollectionRemoved;
+
+    private void OnCollectionUpdated(object? sender, CollectionInfoUpdatedEventArgs eventArgs)
+    {
+        switch (eventArgs.Reason)
+        {
+            case UpdateReason.Added:
+                CollectionAdded?.Invoke(this, eventArgs);
+                break;
+            case UpdateReason.Removed:
+                CollectionRemoved?.Invoke(this, eventArgs);
+                break;
+            default:
+                CollectionUpdated?.Invoke(this, eventArgs);
+                break;
+        }
+    }
+
+    // A Shoko group is the shoko source's collection, so its changes are told here too.
+    private void OnGroupUpdated(object? sender, GroupInfoUpdatedEventArgs eventArgs)
+        => OnCollectionUpdated(sender, new(eventArgs.GroupInfo, eventArgs.Reason) { Actor = ActorContext.CurrentActor });
 
     /// <inheritdoc />
     public IEnumerable<ICollection> GetAllCollectionsForSource(MetadataSource source)

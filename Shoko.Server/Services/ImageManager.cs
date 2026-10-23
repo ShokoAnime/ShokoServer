@@ -1775,6 +1775,15 @@ public class ImageManager(
                 ShokoEventHandler.Instance.OnMovieUpdated(movie, reason);
                 break;
 
+            // A Shoko group has events of its own, which reach the collection events too.
+            case IShokoGroup group:
+                ShokoEventHandler.Instance.OnGroupUpdated(group, reason);
+                break;
+
+            case ICollection collection:
+                ShokoEventHandler.Instance.OnCollectionUpdated(collection, reason);
+                break;
+
             case ISeries show:
                 ShokoEventHandler.Instance.OnSeriesUpdated(show, reason);
                 break;
