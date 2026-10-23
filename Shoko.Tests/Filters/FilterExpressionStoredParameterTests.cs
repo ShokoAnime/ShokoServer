@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
 using Shoko.Abstractions.Filtering.Expressions.Info;
@@ -40,7 +41,12 @@ public class FilterExpressionStoredParameterTests
     {
         { new InSeasonExpression(2019, YearlySeason.Summer), ["\"Parameter\":2019.0", "\"SecondParameter\":\"Summer\""], ["Year", "Season"], new InSeasonExpression(2019, YearlySeason.Fall) },
         { new InYearExpression(2019), ["\"Parameter\":2019.0"], [], new InYearExpression(2020) },
-        { new SwitchExpression(new HasCharacterExpression("101"), true, "Mine"), ["\"Parameter\":true", "\"SecondParameter\":\"Mine\""], ["IsOn", "Label"], new SwitchExpression(new HasCharacterExpression("101"), false) },
+        {
+            new SwitchExpression(new HasCharacterExpression("101"), InclusionFilter.Only, "Mine"),
+            ["\"Parameter\":\"Mine\"", "\"SecondParameter\":\"Only\""],
+            ["Label", "Inclusion"],
+            new SwitchExpression(new HasCharacterExpression("101"), InclusionFilter.False)
+        },
         { new HasCharacterExpression("101"), ["\"Parameter\":\"101\""], ["CharacterID"], new HasCharacterExpression("102") },
         {
             new HasCharacterWithAppearanceExpression("101", CastRoleType.MainCharacter),

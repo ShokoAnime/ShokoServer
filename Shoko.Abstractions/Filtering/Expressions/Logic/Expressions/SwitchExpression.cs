@@ -1,49 +1,49 @@
 using System;
+using System.Linq;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 
 /// <summary>
-/// A switch around a condition. Switched on, it passes if the left expression
-/// passes. Switched off, or with no left expression, the logic around it
-/// leaves it out, as if it and its condition were not there; with nothing
-/// around to leave it out, it fails. The label does not change what it matches.
+/// A three-way switch around a condition. It keeps only, or leaves out, what
+/// its condition matches; set to keep everything, or left unset, the logic
+/// around it leaves it out, as if it and its condition were not there, and
+/// with nothing around to leave it out it fails. The label does not change
+/// what it matches.
 /// </summary>
-public class SwitchExpression : FilterExpression<bool>, IWithExpressionParameter, IWithBoolParameter, IWithSecondStringParameter
+public class SwitchExpression : FilterExpression<bool>, IWithExpressionParameter, IWithStringParameter, IWithSecondStringParameter
 {
     /// <summary>
     /// Creates a switch around an expression.
     /// </summary>
-    /// <param name="left">The condition the switch turns on and off, or <c>null</c> for none yet.</param>
-    /// <param name="isOn">Whether the switch is on.</param>
+    /// <param name="left">The condition the switch acts on, or <c>null</c> for none yet.</param>
+    /// <param name="inclusion">
+    /// What the switch does with the condition: <see cref="InclusionFilter.Only"/> keeps only what it
+    /// matches, <see cref="InclusionFilter.False"/> leaves out what it matches, and
+    /// <see cref="InclusionFilter.True"/> or <c>null</c> leaves the switch out of the filter.
+    /// </param>
     /// <param name="label">The switch's label, or <c>null</c> for none. An empty label is none.</param>
-    public SwitchExpression(FilterExpression<bool>? left, bool isOn, string? label = null)
+    public SwitchExpression(FilterExpression<bool>? left, InclusionFilter? inclusion, string? label = null)
     {
         Left = left;
-        IsOn = isOn;
+        Inclusion = inclusion;
         Label = label;
     }
 
     /// <summary>
-    /// Creates a switched-off switch with no condition, for deserialization.
+    /// Creates an unset switch with no condition, for deserialization.
     /// </summary>
     public SwitchExpression() { }
 
     /// <summary>
-    /// The condition the switch turns on and off, or <c>null</c> for none yet.
-    /// A switch without one counts as switched off.
+    /// The condition the switch acts on, or <c>null</c> for none yet. A switch
+    /// without one is left out of the filter.
     /// </summary>
     public FilterExpression<bool>? Left { get; set; }
 
     /// <summary>
-    /// Whether the switch is on. Kept as the parameter, so a switch whose
-    /// parameter is not set is off.
-    /// </summary>
-    public bool IsOn { get; set; }
-
-    /// <summary>
-    /// The switch's label, or <c>null</c> for none. Kept as the second
-    /// parameter; an empty label is none.
+    /// The switch's label, or <c>null</c> for none. Kept as the parameter, like
+    /// a group's label; an empty label is none.
     /// </summary>
     public string? Label
     {
@@ -51,52 +51,70 @@ public class SwitchExpression : FilterExpression<bool>, IWithExpressionParameter
         set => field = string.IsNullOrEmpty(value) ? null : value;
     }
 
-    /// <inheritdoc/>
-    public override bool TimeDependent => IsOn && (Left?.TimeDependent ?? false);
+    /// <summary>
+    /// What the switch does with its condition, kept as the second parameter:
+    /// <see cref="InclusionFilter.Only"/> keeps only what it matches,
+    /// <see cref="InclusionFilter.False"/> leaves out what it matches, and
+    /// <see cref="InclusionFilter.True"/> (keep everything) or <c>null</c>
+    /// leaves the switch out of the filter.
+    /// </summary>
+    public InclusionFilter? Inclusion { get; set; }
 
     /// <inheritdoc/>
-    public override bool UserDependent => IsOn && (Left?.UserDependent ?? false);
+    public override bool TimeDependent => IsApplicable && Left!.TimeDependent;
 
     /// <inheritdoc/>
-    public override bool IsApplicable => IsOn && Left is { IsApplicable: true };
+    public override bool UserDependent => IsApplicable && Left!.UserDependent;
 
     /// <inheritdoc/>
-    public override string HelpDescription => "This condition passes if the switch is on and the left expression passes. Switched off, or with no left expression, the logic around it leaves it out";
+    public override bool IsApplicable
+        => Inclusion is InclusionFilter.Only or InclusionFilter.False && Left is { IsApplicable: true };
 
     /// <inheritdoc/>
-    public override string HelpParameterName => "On";
+    public override string HelpDescription => "This condition keeps only, or leaves out, what its condition matches. Set to keep everything, or left unset, it is left out of the filter";
 
     /// <inheritdoc/>
-    public override string HelpSecondParameterName => "Label";
+    public override string HelpParameterName => "Label";
+
+    /// <inheritdoc/>
+    public override string HelpSecondParameterName => "Inclusion";
+
+    /// <summary>
+    /// The values the inclusion takes, the names of <see cref="InclusionFilter"/>:
+    /// <c>False</c> leaves out what the condition matches, <c>True</c> keeps
+    /// everything, and <c>Only</c> keeps only what it matches.
+    /// </summary>
+    public override string[] HelpPossibleSecondParameters => [.. Enum.GetValues<InclusionFilter>().Select(value => value.ToString())];
 
     /// <inheritdoc/>
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-    bool? IWithBoolParameter.Parameter
-    {
-        get => IsOn;
-        set => IsOn = value ?? false;
-    }
-
-    string? IWithSecondStringParameter.SecondParameter
+    string? IWithStringParameter.Parameter
     {
         get => Label;
         set => Label = value;
     }
 
+    string? IWithSecondStringParameter.SecondParameter
+    {
+        get => Inclusion?.ToString();
+        set => Inclusion = Enum.TryParse<InclusionFilter>(value, ignoreCase: true, out var inclusion) && Enum.IsDefined(inclusion) ? inclusion : null;
+    }
+
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        if (!IsOn)
+        if (!IsApplicable)
             return false;
 
-        return Left?.Evaluate(filterable, userInfo, time) ?? false;
+        var passes = Left!.Evaluate(filterable, userInfo, time);
+        return Inclusion is InclusionFilter.Only ? passes : !passes;
     }
 
     /// <inheritdoc cref="Equals(object)"/>
     protected bool Equals(SwitchExpression other)
     {
-        return base.Equals(other) && Equals(Left, other.Left) && IsOn == other.IsOn && Label == other.Label;
+        return base.Equals(other) && Equals(Left, other.Left) && Inclusion == other.Inclusion && Label == other.Label;
     }
 
     /// <inheritdoc/>
@@ -116,7 +134,7 @@ public class SwitchExpression : FilterExpression<bool>, IWithExpressionParameter
 
     /// <inheritdoc/>
     public override int GetHashCode()
-        => HashCode.Combine(base.GetHashCode(), Left, IsOn, Label);
+        => HashCode.Combine(base.GetHashCode(), Left, Inclusion, Label);
 
     /// <inheritdoc/>
     public override bool IsType(FilterExpression? expression)

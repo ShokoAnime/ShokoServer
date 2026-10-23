@@ -20,7 +20,6 @@ public partial class DatabaseFixes
     private enum StoredFilterValueKind
     {
         Number,
-        Bool,
         Text,
         YearlySeason,
         CastRole,
@@ -36,7 +35,6 @@ public partial class DatabaseFixes
         {
             ["InSeasonExpression"] = [("Year", "Parameter", StoredFilterValueKind.Number), ("Season", "SecondParameter", StoredFilterValueKind.YearlySeason)],
             ["InYearExpression"] = [("Parameter", "Parameter", StoredFilterValueKind.Number)],
-            ["SwitchExpression"] = [("IsOn", "Parameter", StoredFilterValueKind.Bool), ("Label", "SecondParameter", StoredFilterValueKind.Text)],
             ["HasCharacterExpression"] = [("CharacterID", "Parameter", StoredFilterValueKind.Text)],
             ["HasCharacterWithAppearanceExpression"] = [("CharacterID", "Parameter", StoredFilterValueKind.Text), ("Appearance", "SecondParameter", StoredFilterValueKind.CastRole)],
             ["HasCreatorExpression"] = [("CreatorID", "Parameter", StoredFilterValueKind.Text)],
@@ -183,9 +181,6 @@ public partial class DatabaseFixes
             StoredFilterValueKind.Number => value.Type is JTokenType.Integer or JTokenType.Float
                 ? new JValue(value.Value<double>())
                 : double.TryParse(value.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ? new JValue(number) : JValue.CreateNull(),
-            StoredFilterValueKind.Bool => value.Type is JTokenType.Boolean
-                ? value
-                : bool.TryParse(value.ToString(), out var flag) ? new JValue(flag) : JValue.CreateNull(),
             StoredFilterValueKind.Text => value.Type is JTokenType.String ? value : new JValue(value.ToString()),
             StoredFilterValueKind.YearlySeason => EnumName<YearlySeason>(value),
             StoredFilterValueKind.CastRole => EnumName<CastRoleType>(value),

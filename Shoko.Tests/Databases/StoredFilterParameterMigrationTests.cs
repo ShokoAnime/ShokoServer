@@ -58,18 +58,16 @@ public class StoredFilterParameterMigrationTests
     public void EveryNodeOfATreeIsRewritten()
     {
         const string Stored = "{\"$type\":\"AndExpression\","
-            + "\"Left\":{\"$type\":\"SwitchExpression\",\"Left\":{\"$type\":\"HasCreatorExpression\",\"CreatorID\":\"202\"},\"IsOn\":false,\"Label\":\"Mine\"},"
+            + "\"Left\":{\"$type\":\"ScopeExpression\",\"Left\":{\"$type\":\"HasCreatorExpression\",\"CreatorID\":\"202\"},\"Parameter\":\"Mine\"},"
             + "\"Right\":{\"$type\":\"NotExpression\",\"Left\":{\"$type\":\"InYearExpression\",\"Parameter\":2019}}}";
 
         var json = DatabaseFixes.RewriteStoredFilterParameters(Stored);
         var restored = Load<AndExpression>(json!);
 
-        var frame = Assert.IsType<SwitchExpression>(restored.Left);
-        Assert.False(frame.IsOn);
-        Assert.Equal("Mine", frame.Label);
+        var frame = Assert.IsType<ScopeExpression>(restored.Left);
+        Assert.Equal("Mine", frame.Parameter);
         Assert.Equal("202", Assert.IsType<HasCreatorExpression>(frame.Left).CreatorID);
         Assert.Equal(2019, Assert.IsType<InYearExpression>(Assert.IsType<NotExpression>(restored.Right).Left).Parameter);
-        Assert.DoesNotContain("\"IsOn\"", json);
         Assert.DoesNotContain("\"CreatorID\"", json);
         Assert.Null(DatabaseFixes.RewriteStoredFilterParameters(json!));
     }

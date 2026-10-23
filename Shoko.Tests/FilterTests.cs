@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Expressions.Files;
 using Shoko.Abstractions.Filtering.Expressions.Functions;
 using Shoko.Abstractions.Filtering.Expressions.Info;
@@ -66,27 +67,30 @@ public class FilterTests
     [Theory, MemberData(nameof(GroupFilterable))]
     public void GroupFilterable_WithSwitch_AnswersAsItsStateAndContents(TestFilterable group)
     {
+        Assert.True(new SwitchExpression(new HasTagExpression("comedy"), InclusionFilter.Only, "Funny ones").Evaluate(group, null, DateTime.Now));
+        Assert.False(new SwitchExpression(new HasTagExpression("18 restricted"), InclusionFilter.Only).Evaluate(group, null, DateTime.Now));
+        Assert.False(new SwitchExpression(new HasTagExpression("comedy"), InclusionFilter.False).Evaluate(group, null, DateTime.Now));
+        Assert.True(new SwitchExpression(new HasTagExpression("18 restricted"), InclusionFilter.False).Evaluate(group, null, DateTime.Now));
+        Assert.False(new SwitchExpression(new HasTagExpression("comedy"), InclusionFilter.True).Evaluate(group, null, DateTime.Now));
         Assert.False(new SwitchExpression().Evaluate(group, null, DateTime.Now));
-        Assert.False(new SwitchExpression(new HasTagExpression("comedy"), false).Evaluate(group, null, DateTime.Now));
-        Assert.False(new SwitchExpression(null, true).Evaluate(group, null, DateTime.Now));
-        Assert.True(new SwitchExpression(new HasTagExpression("comedy"), true, "Funny ones").Evaluate(group, null, DateTime.Now));
-        Assert.False(new SwitchExpression(new HasTagExpression("18 restricted"), true).Evaluate(group, null, DateTime.Now));
-        Assert.Null(new SwitchExpression(null, true, string.Empty).Label);
+        Assert.False(new SwitchExpression(null, InclusionFilter.Only).Evaluate(group, null, DateTime.Now));
+        Assert.Null(new SwitchExpression(null, InclusionFilter.Only, string.Empty).Label);
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]
     public void GroupFilterable_WithSwitchedOffOrMissingSide_LeavesItOut(TestFilterable group)
     {
-        var off = new SwitchExpression(new HasTagExpression("comedy"), false);
-        var offAroundUserData = new SwitchExpression(new HasWatchedEpisodesExpression(), false);
+        var off = new SwitchExpression(new HasTagExpression("comedy"), InclusionFilter.True);
+        var offAroundUserData = new SwitchExpression(new HasWatchedEpisodesExpression(), null);
 
         Assert.True(new AndExpression(new HasTagExpression("comedy"), off).Evaluate(group, null, DateTime.Now));
-        Assert.True(new AndExpression(new HasTagExpression("comedy"), new SwitchExpression(null, true)).Evaluate(group, null, DateTime.Now));
+        Assert.True(new AndExpression(new HasTagExpression("comedy"), new SwitchExpression(null, InclusionFilter.Only)).Evaluate(group, null, DateTime.Now));
+        Assert.True(new AndExpression(new HasTagExpression("comedy"), new SwitchExpression(new HasTagExpression("18 restricted"), InclusionFilter.False)).Evaluate(group, null, DateTime.Now));
         Assert.True(new AndExpression(offAroundUserData, new HasTagExpression("comedy")).Evaluate(group, null, DateTime.Now));
         Assert.False(new AndExpression(new HasTagExpression("comedy"), offAroundUserData).UserDependent);
         Assert.False(new OrExpression(new HasTagExpression("18 restricted"), new NotExpression(off)).Evaluate(group, null, DateTime.Now));
         Assert.True(new EqualsExpression(new HasTagExpression("comedy"), off).Evaluate(group, null, DateTime.Now));
-        Assert.True(new AndExpression(new HasTagExpression("comedy"), new ScopeExpression(new SwitchExpression(off, true))).Evaluate(group, null, DateTime.Now));
+        Assert.True(new AndExpression(new HasTagExpression("comedy"), new ScopeExpression(new SwitchExpression(off, InclusionFilter.Only))).Evaluate(group, null, DateTime.Now));
         Assert.False(new NotExpression(off).Evaluate(group, null, DateTime.Now));
         Assert.False(new AndExpression(off, off).Evaluate(group, null, DateTime.Now));
         Assert.True(new AndExpression { Left = new HasTagExpression("comedy") }.Evaluate(group, null, DateTime.Now));

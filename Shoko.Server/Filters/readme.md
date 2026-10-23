@@ -13,8 +13,8 @@ A comparer (the date, number, string and string set ones in `Logic/`) always tak
 wins over `Parameter`, and a missing value from it is never replaced by `Parameter`; a `Right` that does not take part is
 left out: `var right = Right is { IsApplicable: true } ? Right.Evaluate(…) : Parameter`.
 
-The logic expressions leave out a side that is missing or does not take part (`IsApplicable` is false for a
-switched-off or empty `Switch`, and for a logic expression with nothing applicable in it), and let the other side
+The logic expressions leave out a side that is missing or does not take part (`IsApplicable` is false for a `Switch`
+set to keep everything, unset or empty, and for a logic expression with nothing applicable in it), and let the other side
 decide. Evaluated anyway, such as at the top of a filter, a part that does not take part fails. An expression taking
 boolean inputs follows the same rule.
 
