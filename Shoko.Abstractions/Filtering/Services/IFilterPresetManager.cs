@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Filtering.Events;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Models;
 using Shoko.Abstractions.Filtering.Sorting;
@@ -11,6 +12,22 @@ namespace Shoko.Abstractions.Filtering.Services;
 /// </summary>
 public interface IFilterPresetManager
 {
+    /// <summary>
+    ///   Dispatched when a new filter preset is stored, through this manager,
+    ///   the API or the server itself.
+    /// </summary>
+    event EventHandler<FilterPresetEventArgs>? PresetStored;
+
+    /// <summary>
+    ///   Dispatched when a stored filter preset is saved again.
+    /// </summary>
+    event EventHandler<FilterPresetEventArgs>? PresetUpdated;
+
+    /// <summary>
+    ///   Dispatched when a filter preset is deleted.
+    /// </summary>
+    event EventHandler<FilterPresetEventArgs>? PresetDeleted;
+
     /// <summary>
     ///   Get all top-level filter presets.
     /// </summary>

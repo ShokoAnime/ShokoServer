@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Filtering.Events;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Models;
 using Shoko.Abstractions.Filtering.Services;
@@ -8,26 +10,58 @@ using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Filters;
 
-public class FilterPresetManager(FilterPresetRepository filterPresetRepository) : IFilterPresetManager
+public class FilterPresetManager : IFilterPresetManager
 {
+    private readonly FilterPresetRepository _filterPresetRepository;
+
+    private readonly ILogger<FilterPresetManager> _logger;
+
+    public FilterPresetManager(FilterPresetRepository filterPresetRepository, ILogger<FilterPresetManager> logger)
+    {
+        _filterPresetRepository = filterPresetRepository;
+        _logger = logger;
+        filterPresetRepository.PresetStored += (_, preset) => Raise(PresetStored, preset);
+        filterPresetRepository.PresetUpdated += (_, preset) => Raise(PresetUpdated, preset);
+        filterPresetRepository.PresetDeleted += (_, preset) => Raise(PresetDeleted, preset);
+    }
+
+    public event EventHandler<FilterPresetEventArgs>? PresetStored;
+
+    public event EventHandler<FilterPresetEventArgs>? PresetUpdated;
+
+    public event EventHandler<FilterPresetEventArgs>? PresetDeleted;
+
+    private void Raise(EventHandler<FilterPresetEventArgs>? handler, FilterPreset preset)
+    {
+        try
+        {
+            handler?.Invoke(this, new() { Preset = preset, Actor = ActorContext.CurrentActor });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Got an error in a filter preset event.");
+        }
+    }
+
     public IReadOnlyList<IFilterPreset> GetTopLevelPresets()
-        => filterPresetRepository.GetTopLevel();
+        => _filterPresetRepository.GetTopLevel();
 
     public IFilterPreset? GetPresetById(int filterID)
-        => filterPresetRepository.GetByID(filterID);
+        => _filterPresetRepository.GetByID(filterID);
 
     public IReadOnlyList<IFilterPreset> GetPresetsByParentPreset(IFilterPreset filterPreset)
-        => filterPreset.LocalID <= 0 || !filterPreset.IsDirectory ? [] : filterPresetRepository.GetByParentID(filterPreset.LocalID);
+        => filterPreset.LocalID <= 0 || !filterPreset.IsDirectory ? [] : _filterPresetRepository.GetByParentID(filterPreset.LocalID);
 
     public IFilterPreset CreatePreset(FilterPresetData input)
     {
         int? parentFilterId = input.ParentFilterID.HasValue && input.ParentFilterID.Value > 0
             ? input.ParentFilterID.Value
             : null;
-        if (parentFilterId.HasValue && filterPresetRepository.GetByID(parentFilterId.Value) is null)
+        if (parentFilterId.HasValue && _filterPresetRepository.GetByID(parentFilterId.Value) is null)
             throw new KeyNotFoundException($"Parent filter preset with ID {parentFilterId.Value} not found.");
 
         var fp = new FilterPreset
@@ -58,13 +92,13 @@ public class FilterPresetManager(FilterPresetRepository filterPresetRepository) 
             }
         }
 
-        filterPresetRepository.Save(fp);
+        _filterPresetRepository.Save(fp);
         return fp;
     }
 
     public IFilterPreset UpdatePreset(IFilterPreset filter, FilterPresetUpdateData input)
     {
-        var fp = filterPresetRepository.GetByID(filter.LocalID) ??
+        var fp = _filterPresetRepository.GetByID(filter.LocalID) ??
             throw new KeyNotFoundException($"Filter preset with ID '{filter.LocalID}' was not stored in the database.");
 
         var updated = false;
@@ -115,16 +149,16 @@ public class FilterPresetManager(FilterPresetRepository filterPresetRepository) 
         }
 
         if (updated)
-            filterPresetRepository.Save(fp);
+            _filterPresetRepository.Save(fp);
 
         return fp;
     }
 
     public void DeletePreset(IFilterPreset filter)
     {
-        var fp = filterPresetRepository.GetByID(filter.LocalID);
+        var fp = _filterPresetRepository.GetByID(filter.LocalID);
         if (fp is not null)
-            filterPresetRepository.Delete(fp);
+            _filterPresetRepository.Delete(fp);
     }
 
     public IFilterExpressionHelp GetHelpForFilterType<T>() where T : FilterExpression

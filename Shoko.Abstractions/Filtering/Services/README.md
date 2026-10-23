@@ -203,6 +203,11 @@ leaving it alone keeps whatever is stored, and `ExpressionSet`, `SortingSet` and
 `FilterPresetUpdateData` only after you have set it, since the getters report the
 pending value, not the stored one.
 
+`PresetStored`, `PresetUpdated` and `PresetDeleted` follow every write of a
+preset, whether it came through the manager, the API or the server itself, and
+carry `Actor`. `PresetUpdated` fires on every save of a stored preset, changed
+or not.
+
 ### A preset can only hold core expressions
 
 `CreatePreset` and `UpdatePreset` reject any expression or sorting expression

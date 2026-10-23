@@ -201,6 +201,28 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
         Save(gf);
     }
 
+    /// <summary>
+    ///   Raised after a new preset is saved.
+    /// </summary>
+    public event EventHandler<FilterPreset>? PresetStored;
+
+    /// <summary>
+    ///   Raised after a stored preset is saved again.
+    /// </summary>
+    public event EventHandler<FilterPreset>? PresetUpdated;
+
+    /// <summary>
+    ///   Raised after a preset is deleted.
+    /// </summary>
+    public event EventHandler<FilterPreset>? PresetDeleted;
+
+    public override void Save(FilterPreset obj)
+    {
+        var isNew = obj.FilterPresetID == 0;
+        base.Save(obj);
+        (isNew ? PresetStored : PresetUpdated)?.Invoke(this, obj);
+    }
+
     public override void Save(IReadOnlyCollection<FilterPreset> objs)
     {
         foreach (var obj in objs)
@@ -209,11 +231,20 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
         }
     }
 
+    public override void Delete(FilterPreset obj)
+    {
+        if (obj is null)
+            return;
+
+        base.Delete(obj);
+        PresetDeleted?.Invoke(this, obj);
+    }
+
     public override void Delete(IReadOnlyCollection<FilterPreset> objs)
     {
         foreach (var cr in objs)
         {
-            base.Delete(cr);
+            Delete(cr);
         }
     }
 
