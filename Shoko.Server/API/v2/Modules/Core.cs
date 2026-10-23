@@ -89,6 +89,7 @@ public class Core : BaseController
     public object SetPort(ushort port)
     {
         _settings.Web.Port = port;
+        SettingsProvider.SaveSettings();
         return APIStatus.OK();
     }
 
@@ -114,6 +115,7 @@ public class Core : BaseController
         if (imagepath.isdefault)
         {
             _settings.ImagesPath = ApplicationPaths.DefaultImagePath;
+            SettingsProvider.SaveSettings();
             return APIStatus.OK();
         }
 
@@ -122,6 +124,7 @@ public class Core : BaseController
             if (Directory.Exists(imagepath.path))
             {
                 _settings.ImagesPath = imagepath.path;
+                SettingsProvider.SaveSettings();
                 return APIStatus.OK();
             }
 
@@ -213,6 +216,7 @@ public class Core : BaseController
                 _settings.AniDb.ClientPort = cred.port;
             }
 
+            SettingsProvider.SaveSettings();
             return APIStatus.OK();
         }
 
@@ -605,6 +609,7 @@ public class Core : BaseController
         _settings.Logging.RotationCompress = rotator.zip;
         _settings.Logging.RotationDeleteEnabled = rotator.delete;
         _settings.Logging.RotationDeleteDays = rotator.days;
+        SettingsProvider.SaveSettings();
 
         return APIStatus.OK();
     }
