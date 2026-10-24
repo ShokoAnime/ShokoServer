@@ -368,8 +368,11 @@ await avdumpService.ScheduleAvdumpVideos(video);
 | `IsAvdumpInstalled` | `true` implies `InstalledAvdumpVersion` is non-null. |
 | `InstalledAvdumpVersion`, `AvailableAvdumpVersion` | What is installed, and what Shoko knows it could install. |
 | `UpdateAvdump(force)` | Installs or updates the component. Returns whether it did. |
+| `IsAvdumpConfigured` | Whether the AniDB username and the AVDump key are both set; a dump needs both. |
 | `AvdumpVideos(…)` / `AvdumpVideoFiles(…)` | Run a session now, over `IVideo` or `IVideoFile`. |
-| `ScheduleAvdumpVideos(…)` / `ScheduleAvdumpVideoFiles(…)` | Queue the session instead. The returned task completes when the *job is queued*, not when the dump finishes. |
+| `ScheduleAvdumpVideos(…)` / `ScheduleAvdumpVideoFiles(…)` | Queue the session instead, at the front of the queue unless the `prioritize` overload says otherwise. The returned task completes when the *job is queued*, not when the dump finishes. |
+| `GetActiveSessions()`, `GetSessionForVideo(video)` | The queued and running sessions, as `IAnidbAvdumpSession`: progress, creation request counts and times in UTC. |
+| `GetAvdumpInfo(video)` | A video's session, if any, with when it was last dumped successfully and with which AVDump version. |
 | `AvdumpEvent` | The only way to get results out. All four dump methods report through it. |
 
 No returned task carries the dump's outcome: subscribe to `AvdumpEvent`

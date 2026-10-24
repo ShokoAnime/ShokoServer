@@ -132,6 +132,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private readonly AnidbStartSeasonOverrides _startSeasonOverrides;
 
+    private readonly VideoLocalRepository _videoLocalRepository;
+
     public AnidbService(
         ILogger<AnidbService> logger,
         IServiceProvider serviceProvider,
@@ -165,7 +167,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         AniDB_Anime_RelationRepository anidbAnimeRelationRepository,
         IImageManager imageManager,
         SupplementaryMetadataScheduler supplementaryMetadataScheduler,
-        AnidbStartSeasonOverrides startSeasonOverrides
+        AnidbStartSeasonOverrides startSeasonOverrides,
+        VideoLocalRepository videoLocalRepository
     )
     {
         _logger = logger;
@@ -202,6 +205,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _imageManager = imageManager;
         _supplementaryMetadataScheduler = supplementaryMetadataScheduler;
         _startSeasonOverrides = startSeasonOverrides;
+        _videoLocalRepository = videoLocalRepository;
         _entityLock = new(logger);
         _bulkheadPolicy = Policy.BulkheadAsync<AniDB_Anime?>(1, int.MaxValue);
 
@@ -1192,6 +1196,34 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     public string? AvailableAvdumpVersion => AVDumpHelper.AVDumpVersion;
 
     /// <inheritdoc/>
+    public bool IsAvdumpConfigured
+        => _settingsProvider.GetSettings().AniDb is { } anidb && !string.IsNullOrWhiteSpace(anidb.Username) && !string.IsNullOrWhiteSpace(anidb.AVDumpKey);
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IAnidbAvdumpSession> GetActiveSessions()
+        => AVDumpHelper.GetActiveSessions();
+
+    /// <inheritdoc/>
+    public IAnidbAvdumpSession? GetSessionForVideo(IVideo video)
+    {
+        ArgumentNullException.ThrowIfNull(video);
+        return AVDumpHelper.GetSessionForVideo(video.LocalID);
+    }
+
+    /// <inheritdoc/>
+    public AnidbAvdumpVideoInfo GetAvdumpInfo(IVideo video)
+    {
+        ArgumentNullException.ThrowIfNull(video);
+        var videoLocal = video as VideoLocal ?? _videoLocalRepository.GetByID(video.LocalID);
+        return new()
+        {
+            Session = AVDumpHelper.GetSessionForVideo(video.LocalID),
+            LastDumpedAt = videoLocal?.LastAVDumped?.ToUniversalTime(),
+            LastVersion = videoLocal?.LastAVDumpVersion,
+        };
+    }
+
+    /// <inheritdoc/>
     public bool UpdateAvdump(bool force = false)
     {
         if (!force)
@@ -1230,7 +1262,11 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     }
 
     /// <inheritdoc/>
-    public async Task ScheduleAvdumpVideos(params IVideo[] videos)
+    public Task ScheduleAvdumpVideos(params IVideo[] videos)
+        => ScheduleAvdumpVideos(true, videos);
+
+    /// <inheritdoc/>
+    public async Task ScheduleAvdumpVideos(bool prioritize, params IVideo[] videos)
     {
         var videoSet = new HashSet<int>();
         var videoDictionary = new Dictionary<int, string>();
@@ -1244,7 +1280,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
             videoDictionary.Add(video.LocalID, location.Path);
         }
-        await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: true).ConfigureAwait(false);
+        await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: prioritize).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -1267,7 +1303,11 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     }
 
     /// <inheritdoc/>
-    public async Task ScheduleAvdumpVideoFiles(params IVideoFile[] videoFiles)
+    public Task ScheduleAvdumpVideoFiles(params IVideoFile[] videoFiles)
+        => ScheduleAvdumpVideoFiles(true, videoFiles);
+
+    /// <inheritdoc/>
+    public async Task ScheduleAvdumpVideoFiles(bool prioritize, params IVideoFile[] videoFiles)
     {
         var videoSet = new HashSet<int>();
         var videoDictionary = new Dictionary<int, string>();
@@ -1281,7 +1321,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
             videoDictionary.Add(videoFile.VideoID, videoFile.Path);
         }
-        await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: true).ConfigureAwait(false);
+        await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: prioritize).ConfigureAwait(false);
     }
 
     #endregion

@@ -3,14 +3,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
+using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Video;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -23,11 +21,11 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class AVDumpController : BaseController
 {
-    private readonly IQueueScheduler _scheduler;
+    private readonly IAnidbAvdumpService _avdumpService;
     private readonly VideoLocalRepository _videoLocals;
-    public AVDumpController(ISettingsProvider settingsProvider, IQueueScheduler scheduler, VideoLocalRepository videoLocals) : base(settingsProvider)
+    public AVDumpController(ISettingsProvider settingsProvider, IAnidbAvdumpService avdumpService, VideoLocalRepository videoLocals) : base(settingsProvider)
     {
-        _scheduler = scheduler;
+        _avdumpService = avdumpService;
         _videoLocals = videoLocals;
     }
 
@@ -40,9 +38,9 @@ public class AVDumpController : BaseController
     {
         return new()
         {
-            { "Installed", AVDumpHelper.IsAVDumpInstalled },
-            { "InstalledVersion", AVDumpHelper.InstalledAVDumpVersion },
-            { "ExpectedVersion", AVDumpHelper.AVDumpVersion },
+            { "Installed", _avdumpService.IsAvdumpInstalled },
+            { "InstalledVersion", _avdumpService.InstalledAvdumpVersion },
+            { "ExpectedVersion", _avdumpService.AvailableAvdumpVersion },
         };
     }
 
@@ -55,17 +53,7 @@ public class AVDumpController : BaseController
     [Authorize("admin")]
     [HttpPost("Update")]
     public ActionResult<bool> UpdateAVDump([FromQuery] bool force = false)
-    {
-        if (!force)
-        {
-            var expectedVersion = AVDumpHelper.AVDumpVersion;
-            var installedVersion = AVDumpHelper.InstalledAVDumpVersion;
-            if (string.Equals(expectedVersion, installedVersion))
-                return false;
-        }
-
-        return AVDumpHelper.UpdateAVDump();
-    }
+        => _avdumpService.UpdateAvdump(force);
 
     /// <summary>
     /// Enqueue a request to run one or multiple files through AVDump.
@@ -75,14 +63,13 @@ public class AVDumpController : BaseController
     [HttpPost("DumpFiles")]
     public async Task<ActionResult> MultiDump([FromBody] AVDump.Input.DumpFilesBody body)
     {
-        var settings = SettingsProvider.GetSettings();
-        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
-            ModelState.AddModelError("Settings", "Missing AVDump API key");
+        if (!_avdumpService.IsAvdumpConfigured)
+            ModelState.AddModelError("Settings", "Missing AniDB username or AVDump API key");
 
         if (body.FileIDs.Count == 0)
             ModelState.AddModelError(nameof(body.FileIDs), "Provide at least one file id.");
 
-        var fileDictionary = new Dictionary<int, string>();
+        var places = new List<IVideoFile>();
         foreach (var fileID in body.FileIDs)
         {
             var file = _videoLocals.GetByID(fileID);
@@ -92,19 +79,18 @@ public class AVDumpController : BaseController
                 continue;
             }
 
-            var filePath = file.FirstResolvedPlace?.Path;
-            if (string.IsNullOrEmpty(filePath))
+            if (file.FirstResolvedPlace is not { Path.Length: > 0 } place)
             {
                 ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a valid path for file with id {fileID}");
                 continue;
             }
 
-            fileDictionary.Add(fileID, filePath);
+            places.Add(place);
         }
 
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
-        await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = fileDictionary, prioritize: true).ConfigureAwait(false);
+        await _avdumpService.ScheduleAvdumpVideoFiles(true, [.. places]).ConfigureAwait(false);
 
         return Ok();
     }

@@ -13,6 +13,7 @@ using NLog;
 using SharpCompress.Common;
 using SharpCompress.Readers;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Shoko;
@@ -121,10 +122,15 @@ public static partial class AVDumpHelper
     /// <param name="video"></param>
     /// <returns></returns>
     public static AVDumpSession? GetSessionForVideo(VideoLocal video)
-    {
-        // Check if we have an active session for the video (x1).
-        return ActiveSessions.TryGetValue(video.VideoLocalID, out var session) ? session : null;
-    }
+        => GetSessionForVideo(video.VideoLocalID);
+
+    /// <summary>
+    /// Get the active dump session for a video by its ID.
+    /// </summary>
+    /// <param name="videoID">The video ID.</param>
+    /// <returns>The session, or <c>null</c>.</returns>
+    public static AVDumpSession? GetSessionForVideo(int videoID)
+        => ActiveSessions.TryGetValue(videoID, out var session) ? session : null;
 
     /// <summary>
     /// Update the installed AVDump component.
@@ -511,7 +517,7 @@ public static partial class AVDumpHelper
     #endregion
     #region Public Classes
 
-    public class AVDumpSession
+    public class AVDumpSession : IAnidbAvdumpSession
     {
         private static int NextSessionID { get; set; }
 
@@ -542,6 +548,14 @@ public static partial class AVDumpHelper
         public DateTime StartedAt { get; }
 
         public DateTime? EndedAt { get; set; }
+
+        IReadOnlyList<int> IAnidbAvdumpSession.VideoIDs => VideoIDs;
+
+        IReadOnlyList<string> IAnidbAvdumpSession.AbsolutePaths => AbsolutePaths;
+
+        DateTime IAnidbAvdumpSession.StartedAt => StartedAt.ToUniversalTime();
+
+        DateTime? IAnidbAvdumpSession.EndedAt => EndedAt?.ToUniversalTime();
 
         public AVDumpSession(IEnumerable<int> videoIds, IEnumerable<string> paths)
         {

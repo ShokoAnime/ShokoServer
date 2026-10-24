@@ -56,10 +56,10 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
 [Authorize]
 public class FileController(
-    IQueueScheduler _schedulerFactory,
     IMylistService _mylistService,
     IVideoService _videoService,
     IVideoHashingService _videoHashingService,
+    IAnidbAvdumpService _avdumpService,
     IVideoReleaseService _videoReleaseService,
     IUserDataService _userDataService,
     IVideoRelocationService _relocationService,
@@ -1617,24 +1617,21 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var settings = SettingsProvider.GetSettings();
-        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
-            ModelState.AddModelError("Settings", "Missing AVDump API key");
+        if (!_avdumpService.IsAvdumpConfigured)
+            ModelState.AddModelError("Settings", "Missing AniDB username or AVDump API key");
 
-        var filePath = file.FirstResolvedPlace?.Path;
-        if (string.IsNullOrEmpty(filePath))
+        var place = file.FirstResolvedPlace;
+        if (string.IsNullOrEmpty(place?.Path))
             ModelState.AddModelError("File", FileNoPath);
 
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var files = new Dictionary<int, string> { { file.VideoLocalID, filePath! } };
+        // Run now waits for the dump to finish, which the service's run-now methods do not.
         if (immediate)
-            AVDumpHelper.DumpFiles(files, true);
+            AVDumpHelper.DumpFiles(new Dictionary<int, string> { { file.VideoLocalID, place!.Path! } }, true);
         else
-        {
-            await _schedulerFactory.StartJob<AVDumpFilesJob>(a => a.Videos = files, prioritize: priority).ConfigureAwait(false);
-        }
+            await _avdumpService.ScheduleAvdumpVideoFiles(priority, place!).ConfigureAwait(false);
 
         return Ok();
     }
