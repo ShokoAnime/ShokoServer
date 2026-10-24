@@ -52,8 +52,8 @@ public class StartupPluginUpgradeTests : IDisposable
     private static bool IsCompatible(Version abstractionVersion, string runtimeIdentifier)
         => runtimeIdentifier is IPluginManager.AnyRuntimeIdentifier && abstractionVersion <= _serverAbstraction;
 
-    private static InstalledPlugin Installed(string version, bool isPinned = false)
-        => new(_pluginId, "Plugin", Version.Parse(version), true, isPinned);
+    private static InstalledPlugin Installed(string version, bool isPinned = false, bool isBundled = false)
+        => new(_pluginId, "Plugin", Version.Parse(version), true, isPinned, isBundled);
 
     private static PackageReleaseInfo Release(string version, string abstractionVersion = "6.0.0", string checksum = "", Guid? repositoryID = null)
         => new()
@@ -95,14 +95,16 @@ public class StartupPluginUpgradeTests : IDisposable
 
     private static IReadOnlyList<string> SelectVersions(
         IEnumerable<InstalledPlugin> installed,
-        PackageManifestInfo manifest
+        PackageManifestInfo manifest,
+        bool skipBundled = false
     )
         => PluginPackageManager.SelectUpgrades(
                 installed,
                 [manifest],
                 [],
                 IsCompatible,
-                "linux-x64"
+                "linux-x64",
+                skipBundled
             )
             .Select(package => package.Release.Version.ToString())
             .ToList();
@@ -229,6 +231,13 @@ public class StartupPluginUpgradeTests : IDisposable
         var manifest = Manifest(Release("3.0.0", abstractionVersion: "6.1.0"), Release("2.0.0"), Release("1.5.0"));
 
         Assert.Equal(["2.0.0"], SelectVersions([Installed("1.0.0")], manifest));
+    }
+
+    [Fact]
+    public void BundledPluginIsNotUpgradedWhenSkipped()
+    {
+        Assert.Empty(SelectVersions([Installed("1.0.0", isBundled: true)], Manifest(Release("2.0.0")), skipBundled: true));
+        Assert.Equal(["2.0.0"], SelectVersions([Installed("1.0.0", isBundled: true)], Manifest(Release("2.0.0"))));
     }
 
     [Fact]

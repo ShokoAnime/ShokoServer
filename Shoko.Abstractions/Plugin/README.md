@@ -611,6 +611,10 @@ each repository fetched longer than `RepositoryStaleTimeOnStart` ago (5
 minutes by default). The older version stays installed. A new version that fails at start fails like any plugin, so the
 admin can see why and decide; nothing falls back on its own.
 
+`SkipBundledPluginUpgrades` (off by default) has both automatic upgrades, on
+start and while running, leave the plugins the server ships alone, so they only
+change with the server. Installing a release by hand still works.
+
 A version built for a newer server is not a mismatch, only one this server
 cannot load yet: the older version keeps loading in its place, and the newer
 one loads once the server is upgraded. Only installing by hand picks such a

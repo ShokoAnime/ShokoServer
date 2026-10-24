@@ -103,6 +103,18 @@ public partial class PluginPackageManager(
         }
     }
 
+    /// <inheritdoc/>
+    public bool SkipBundledPluginUpgrades
+    {
+        get => configurationProvider.Load().Plugins.Updates.SkipBundledPluginUpgrades;
+        set
+        {
+            var config = configurationProvider.Load(copy: true);
+            config.Plugins.Updates.SkipBundledPluginUpgrades = value;
+            configurationProvider.Save(config);
+        }
+    }
+
     /// <summary>
     ///   Default time before a repository is considered stale (default: 12 hours).
     /// </summary>
@@ -1540,14 +1552,15 @@ public partial class PluginPackageManager(
         // The same choice as the upgrades on start, from the plugins already scanned.
         var installed = _pluginManager.GetPluginInfos()
             .Where(pluginInfo => pluginInfo.IsEnabled && pluginInfo.IsInstalled)
-            .Select(pluginInfo => new InstalledPlugin(pluginInfo.ID, pluginInfo.Name, pluginInfo.Version.Version, pluginInfo.IsEnabled, pluginInfo.IsPinned));
+            .Select(pluginInfo => new InstalledPlugin(pluginInfo.ID, pluginInfo.Name, pluginInfo.Version.Version, pluginInfo.IsEnabled, pluginInfo.IsPinned, IsBundled: !pluginInfo.CanUninstall));
         var manifests = await GetAvailablePackageManifests(allowSync: false, cancellationToken: cancellationToken).ConfigureAwait(false);
         var upgrades = SelectUpgrades(
             installed,
             manifests,
             ListPackageRepositories(),
             _pluginManager.IsAbiAndRuntimeCompatible,
-            _pluginManager.RuntimeIdentifier
+            _pluginManager.RuntimeIdentifier,
+            settings.Plugins.Updates.SkipBundledPluginUpgrades
         );
         foreach (var package in upgrades)
         {
@@ -1673,7 +1686,8 @@ public partial class PluginPackageManager(
             manifests,
             ListPackageRepositories(),
             _pluginManager.IsAbiAndRuntimeCompatible,
-            _pluginManager.RuntimeIdentifier
+            _pluginManager.RuntimeIdentifier,
+            SkipBundledPluginUpgrades
         );
         if (upgrades.Count is 0)
         {
@@ -1703,20 +1717,23 @@ public partial class PluginPackageManager(
     ///   Picks the release to install for each installed plugin: the newest
     ///   one above its newest installed version, with an archive
     ///   <paramref name="isCompatible"/> accepts. A plugin with a pinned
-    ///   version is left alone.
+    ///   version is left alone, and so is one the server ships when
+    ///   <paramref name="skipBundled"/> is set.
     /// </summary>
     /// <param name="installed">The enabled plugin versions on disk.</param>
     /// <param name="manifests">The package manifests.</param>
     /// <param name="repositories">The repositories, to attach to each package.</param>
     /// <param name="isCompatible">Whether an archive's ABI version and runtime can load here.</param>
     /// <param name="runtimeIdentifier">This server's runtime, preferred over a universal archive.</param>
+    /// <param name="skipBundled">Whether to leave alone the plugins the server ships.</param>
     /// <returns>The packages to install, one per plugin at most.</returns>
     internal static IReadOnlyList<PackageInfo> SelectUpgrades(
         IEnumerable<InstalledPlugin> installed,
         IEnumerable<PackageManifestInfo> manifests,
         IReadOnlyList<PackageRepositoryInfo> repositories,
         Func<Version, string, bool> isCompatible,
-        string runtimeIdentifier
+        string runtimeIdentifier,
+        bool skipBundled = false
     )
     {
         var comparer = new SemverVersionComparer();
@@ -1724,7 +1741,7 @@ public partial class PluginPackageManager(
         var upgrades = new List<PackageInfo>();
         foreach (var versions in installed.GroupBy(version => version.ID))
         {
-            if (versions.Any(version => version.IsPinned) || !manifestsByID.TryGetValue(versions.Key, out var manifest))
+            if (versions.Any(version => version.IsPinned || (skipBundled && version.IsBundled)) || !manifestsByID.TryGetValue(versions.Key, out var manifest))
                 continue;
 
             var current = versions.Select(version => version.Version).Max(comparer)!;

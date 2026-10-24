@@ -32,4 +32,5 @@ public interface IInstalledPluginReader
 /// <param name="Version">The installed version.</param>
 /// <param name="IsEnabled">Whether the plugin is enabled.</param>
 /// <param name="IsPinned">Whether this version is pinned.</param>
-public sealed record InstalledPlugin(Guid ID, string Name, Version Version, bool IsEnabled, bool IsPinned);
+/// <param name="IsBundled">Whether this version ships with the server, in its own plugins folder.</param>
+public sealed record InstalledPlugin(Guid ID, string Name, Version Version, bool IsEnabled, bool IsPinned, bool IsBundled = false);

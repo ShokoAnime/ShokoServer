@@ -101,6 +101,15 @@ public class PluginSettings
         public bool IsUpgradeOnStartEnabled { get; set; } = true;
 
         /// <summary>
+        ///   Whether the automatic upgrades, on start and while running, leave
+        ///   the plugins the server ships alone, so they only change with the
+        ///   server. Installing a release by hand still works.
+        /// </summary>
+        [DefaultValue(false)]
+        [EnvironmentVariable("SHOKO_PLUGIN_SKIP_BUNDLED_UPGRADES")]
+        public bool SkipBundledPluginUpgrades { get; set; } = false;
+
+        /// <summary>
         ///   Default time before a repository's packages are considered stale.
         ///   Defaults to 12 hours.
         /// </summary>

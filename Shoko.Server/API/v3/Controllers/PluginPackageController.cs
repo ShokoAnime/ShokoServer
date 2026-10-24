@@ -63,6 +63,7 @@ public class PluginPackageController(
         {
             IsAutoUpgradeEnabled = updates.IsAutoUpgradeEnabled,
             IsUpgradeOnStartEnabled = updates.IsUpgradeOnStartEnabled,
+            SkipBundledPluginUpgrades = updates.SkipBundledPluginUpgrades,
             DefaultRepositoryStaleTime = updates.DefaultRepositoryStaleTime,
             RepositoryStaleTimeOnStart = updates.RepositoryStaleTimeOnStart,
             InactivePluginVersionRetention = updates.InactivePluginVersionRetention,
@@ -97,6 +98,8 @@ public class PluginPackageController(
             updates.IsAutoUpgradeEnabled = body.IsAutoUpgradeEnabled.Value;
         if (body.IsUpgradeOnStartEnabled.HasValue)
             updates.IsUpgradeOnStartEnabled = body.IsUpgradeOnStartEnabled.Value;
+        if (body.SkipBundledPluginUpgrades.HasValue)
+            updates.SkipBundledPluginUpgrades = body.SkipBundledPluginUpgrades.Value;
         if (body.DefaultRepositoryStaleTime.HasValue)
             updates.DefaultRepositoryStaleTime = body.DefaultRepositoryStaleTime.Value;
         if (body.RepositoryStaleTimeOnStart.HasValue)

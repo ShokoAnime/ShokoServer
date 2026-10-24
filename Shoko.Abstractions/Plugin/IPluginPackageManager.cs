@@ -30,6 +30,13 @@ public interface IPluginPackageManager
     bool IsUpgradeOnStartEnabled { get; set; }
 
     /// <summary>
+    ///   Whether the automatic upgrades, on start and while running, leave the
+    ///   plugins the server ships alone, so they only change with the server.
+    ///   Installing a release by hand still works. Defaults to <c>false</c>.
+    /// </summary>
+    bool SkipBundledPluginUpgrades { get; set; }
+
+    /// <summary>
     ///   Default time before a repository's packages are considered stale.
     ///   Defaults to 12 hours.
     /// </summary>

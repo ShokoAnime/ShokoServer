@@ -1741,7 +1741,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         foreach (var (directoryPath, dlls, isSystem) in GetPluginDirectories())
         {
             if (LoadInternalPluginInfo(directoryPath, dlls, isSystem, settings, ref settingsChanged) is { } info)
-                plugins.Add(new(info.ID, info.Name, info.Version.Version, info.IsEnabled, info.IsPinned));
+                plugins.Add(new(info.ID, info.Name, info.Version.Version, info.IsEnabled, info.IsPinned, isSystem));
         }
 
         return plugins;

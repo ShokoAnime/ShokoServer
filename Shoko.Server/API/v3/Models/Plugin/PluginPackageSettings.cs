@@ -19,6 +19,12 @@ public class PluginPackageSettings
     public bool IsUpgradeOnStartEnabled { get; set; }
 
     /// <summary>
+    ///   Whether the automatic upgrades leave the plugins the server ships
+    ///   alone, so they only change with the server.
+    /// </summary>
+    public bool SkipBundledPluginUpgrades { get; set; }
+
+    /// <summary>
     ///   Default time before a repository's packages are considered stale.
     /// </summary>
     public TimeSpan DefaultRepositoryStaleTime { get; set; }
