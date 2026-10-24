@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Services;
@@ -31,6 +32,8 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
 
     private readonly IMetadataLinkingService _linkingService;
 
+    private readonly IMetadataOrderingService _orderingService;
+
     private readonly AniDB_AnimeRepository _anidbAnime;
 
     private readonly ILogger<MetadataEventEmitter> _logger;
@@ -39,12 +42,14 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         IHubContext<AggregateHub> hub,
         IMetadataService metadataService,
         IMetadataLinkingService linkingService,
+        IMetadataOrderingService orderingService,
         AniDB_AnimeRepository anidbAnime,
         ILogger<MetadataEventEmitter> logger
     ) : base(hub)
     {
         _metadataService = metadataService;
         _linkingService = linkingService;
+        _orderingService = orderingService;
         _anidbAnime = anidbAnime;
         _logger = logger;
         _linkingService.LinksChanged += OnLinksChanged;
@@ -60,6 +65,16 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         _metadataService.CollectionAdded += OnCollectionUpdated;
         _metadataService.CollectionUpdated += OnCollectionUpdated;
         _metadataService.CollectionRemoved += OnCollectionUpdated;
+        _metadataService.CustomTagAdded += OnCustomTagAdded;
+        _metadataService.CustomTagUpdated += OnCustomTagUpdated;
+        _metadataService.CustomTagRemoved += OnCustomTagRemoved;
+        _metadataService.SeriesCustomTagsChanged += OnSeriesCustomTagsChanged;
+        _linkingService.AutoLinkingChanged += OnAutoLinkingChanged;
+        _orderingService.OrderingAdded += OnOrderingAdded;
+        _orderingService.OrderingUpdated += OnOrderingUpdated;
+        _orderingService.OrderingRemoved += OnOrderingRemoved;
+        _orderingService.PreferredOrderingChanged += OnPreferredOrderingChanged;
+        _orderingService.EpisodeHiddenChanged += OnEpisodeHiddenChanged;
     }
 
     public void Dispose()
@@ -77,6 +92,16 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         _metadataService.CollectionAdded -= OnCollectionUpdated;
         _metadataService.CollectionUpdated -= OnCollectionUpdated;
         _metadataService.CollectionRemoved -= OnCollectionUpdated;
+        _metadataService.CustomTagAdded -= OnCustomTagAdded;
+        _metadataService.CustomTagUpdated -= OnCustomTagUpdated;
+        _metadataService.CustomTagRemoved -= OnCustomTagRemoved;
+        _metadataService.SeriesCustomTagsChanged -= OnSeriesCustomTagsChanged;
+        _linkingService.AutoLinkingChanged -= OnAutoLinkingChanged;
+        _orderingService.OrderingAdded -= OnOrderingAdded;
+        _orderingService.OrderingUpdated -= OnOrderingUpdated;
+        _orderingService.OrderingRemoved -= OnOrderingRemoved;
+        _orderingService.PreferredOrderingChanged -= OnPreferredOrderingChanged;
+        _orderingService.EpisodeHiddenChanged -= OnEpisodeHiddenChanged;
     }
 
     private async void OnSeriesUpdated(object? sender, SeriesInfoUpdatedEventArgs e)
@@ -168,4 +193,117 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
             _logger.LogError(ex, "An error occurred while sending the 'collection' event.");
         }
     }
+
+    #region Custom Tags
+
+    private void OnCustomTagAdded(object? sender, CustomTagChangedEventArgs e)
+        => SendCustomTag("customTag.added", e);
+
+    private void OnCustomTagUpdated(object? sender, CustomTagChangedEventArgs e)
+        => SendCustomTag("customTag.updated", e);
+
+    private void OnCustomTagRemoved(object? sender, CustomTagChangedEventArgs e)
+        => SendCustomTag("customTag.removed", e);
+
+    private async void SendCustomTag(string subject, CustomTagChangedEventArgs e)
+    {
+        try
+        {
+            await SendAsync(subject, new CustomTagChangedSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the '{Subject}' event.", subject);
+        }
+    }
+
+    private async void OnSeriesCustomTagsChanged(object? sender, SeriesCustomTagsChangedEventArgs e)
+    {
+        try
+        {
+            await SendToAudienceAsync(EventAudience.ForSeries(e.Series, _anidbAnime.GetByAnimeID), "series.customTagsChanged", new SeriesCustomTagsChangedSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'series.customTagsChanged' event.");
+        }
+    }
+
+    #endregion
+
+    #region Auto-Linking
+
+    private async void OnAutoLinkingChanged(object? sender, AutoLinkingChangedEventArgs e)
+    {
+        try
+        {
+            await SendToAudienceAsync(EventAudience.ForSeries(e.Series, _anidbAnime.GetByAnimeID), "autoLinking.changed", new AutoLinkingChangedSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'autoLinking.changed' event.");
+        }
+    }
+
+    #endregion
+
+    #region Orderings
+
+    private void OnOrderingAdded(object? sender, OrderingChangedEventArgs e)
+        => SendOrdering("ordering.added", e);
+
+    private void OnOrderingUpdated(object? sender, OrderingChangedEventArgs e)
+        => SendOrdering("ordering.updated", e);
+
+    private void OnOrderingRemoved(object? sender, OrderingChangedEventArgs e)
+        => SendOrdering("ordering.removed", e);
+
+    private async void SendOrdering(string subject, OrderingChangedEventArgs e)
+    {
+        try
+        {
+            await SendToAudienceAsync(AudienceOf(e.SeriesID), subject, new OrderingChangedSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the '{Subject}' event.", subject);
+        }
+    }
+
+    private async void OnPreferredOrderingChanged(object? sender, PreferredOrderingChangedEventArgs e)
+    {
+        try
+        {
+            await SendToAudienceAsync(AudienceOf(e.SeriesID), "ordering.preferredChanged", new PreferredOrderingChangedSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'ordering.preferredChanged' event.");
+        }
+    }
+
+    private async void OnEpisodeHiddenChanged(object? sender, EpisodeHiddenChangedEventArgs e)
+    {
+        try
+        {
+            await SendToAudienceAsync(AudienceOf(e.EpisodeID), "episode.hiddenChanged", new EpisodeHiddenChangedSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'episode.hiddenChanged' event.");
+        }
+    }
+
+    /// <summary>
+    /// Who may see an entry known only by its ID: the users who may see it,
+    /// or only those without restricted tags when it is not known.
+    /// </summary>
+    /// <param name="entityID">The entry.</param>
+    /// <returns>The audience.</returns>
+    private EventAudience AudienceOf(MetadataGuid entityID)
+        => _metadataService.GetEntry(entityID) is { } entry
+            ? EventAudience.ForEntry(entry, _anidbAnime.GetByAnimeID)
+            : EventAudience.Unrestricted;
+
+    #endregion
 }

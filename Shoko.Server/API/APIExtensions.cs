@@ -74,6 +74,9 @@ public static partial class APIExtensions
         services.AddSingleton<IEventEmitter, UserEventEmitter>();
         services.AddSingleton<IEventEmitter, GroupEventEmitter>();
         services.AddSingleton<IEventEmitter, PluginEventEmitter>();
+        services.AddSingleton<IEventEmitter, FilterEventEmitter>();
+        services.AddSingleton<IEventEmitter, RelocationEventEmitter>();
+        services.AddSingleton<IEventEmitter, ActionEventEmitter>();
         services.AddSingleton<EventEmitterRegistry>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();

@@ -96,6 +96,55 @@ public class MetadataEventEmitterTests
         Assert.Empty(harness.Hub.Sent);
     }
 
+    [Fact]
+    public async Task CustomTagEvents_GoToTheWholeFeed()
+    {
+        var harness = await Harness.Create();
+        var tag = new Mock<IShokoTag>();
+        tag.Setup(t => t.LocalID).Returns(5);
+        tag.Setup(t => t.Name).Returns("Rewatch");
+
+        harness.Metadata.Raise(m => m.CustomTagAdded += null, new CustomTagChangedEventArgs { Tag = tag.Object });
+
+        Assert.Equal(["group:metadata"], harness.Hub.ReceivedBy("metadata:customTag.added"));
+        var model = Assert.IsType<CustomTagChangedSignalRModel>(Assert.Single(Assert.Single(harness.Hub.Sent).Args));
+        Assert.Equal((5, "Rewatch"), (model.TagID, model.Name));
+    }
+
+    [Fact]
+    public async Task OrderingEvents_SkipUsersKeptFromTheSeries()
+    {
+        var harness = await Harness.Create();
+        var seriesID = new MetadataGuid(MetadataSource.Shoko, MetadataEntityType.Series, "7");
+        var series = new Mock<IShokoSeries>();
+        series.Setup(s => s.AnidbAnimeID).Returns(HiddenAnimeID);
+        harness.Metadata.Setup(m => m.GetEntry(seriesID)).Returns(series.Object);
+
+        harness.Ordering.Raise(o => o.OrderingUpdated += null, new OrderingChangedEventArgs
+        {
+            OrderingID = new(MetadataSource.User, MetadataEntityType.Ordering, "1"),
+            SeriesID = seriesID,
+        });
+
+        Assert.Equal([UnrestrictedConnection], harness.Hub.ReceivedBy("metadata:ordering.updated"));
+        var model = Assert.IsType<OrderingChangedSignalRModel>(Assert.Single(Assert.Single(harness.Hub.Sent).Args));
+        Assert.Equal(7, model.ShokoSeriesID);
+    }
+
+    [Fact]
+    public async Task HiddenEpisodeEvents_OfAnUnknownEntry_GoOnlyToUnrestrictedUsers()
+    {
+        var harness = await Harness.Create();
+
+        harness.Ordering.Raise(o => o.EpisodeHiddenChanged += null, new EpisodeHiddenChangedEventArgs
+        {
+            EpisodeID = new(MetadataSource.Shoko, MetadataEntityType.Episode, "9"),
+            IsHidden = true,
+        });
+
+        Assert.Equal([UnrestrictedConnection], harness.Hub.ReceivedBy("metadata:episode.hiddenChanged"));
+    }
+
     private sealed class Harness
     {
         public RecordingHub Hub { get; } = new();
@@ -104,10 +153,12 @@ public class MetadataEventEmitterTests
 
         public Mock<IMetadataLinkingService> Linking { get; } = new();
 
+        public Mock<IMetadataOrderingService> Ordering { get; } = new();
+
         public MetadataEventEmitter Emitter { get; }
 
         private Harness()
-            => Emitter = new(Hub.Typed, Metadata.Object, Linking.Object, AnimeRepository(), NullLogger<MetadataEventEmitter>.Instance);
+            => Emitter = new(Hub.Typed, Metadata.Object, Linking.Object, Ordering.Object, AnimeRepository(), NullLogger<MetadataEventEmitter>.Instance);
 
         public static async Task<Harness> Create()
         {

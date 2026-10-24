@@ -168,6 +168,8 @@ series being removed and re-added.
 the update carrying the name and overview it replaced; a deleted tag's links
 go with it without further events. `SeriesCustomTagsChanged` follows the links,
 with the tags added to and removed from the series. All of them carry `Actor`.
+SignalR clients of the `metadata` feed get them as `customTag.added`,
+`customTag.updated`, `customTag.removed` and `series.customTagsChanged`.
 
 ## Resources
 
@@ -507,7 +509,10 @@ save that changed nothing raises nothing, and a removed ordering comes with
 `Ordering` set to `null`. `PreferredOrderingChanged` follows the choice of a
 series, also when removing the chosen ordering forgets it, and
 `EpisodeHiddenChanged` follows the hidden flag of an episode of any source.
-All of them carry `Actor`.
+All of them carry `Actor`. SignalR clients of the `metadata` feed get them as
+`ordering.added`, `ordering.updated`, `ordering.removed`,
+`ordering.preferredChanged` and `episode.hiddenChanged`, if they may see the
+series.
 
 The TMDB plugin stores its episode groups as global orderings of its shows,
 `tmdb://ordering/<collection ID>`, whose groups keep their season IDs and
