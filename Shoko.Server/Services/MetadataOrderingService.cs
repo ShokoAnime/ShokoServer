@@ -91,6 +91,69 @@ public class MetadataOrderingService(
     /// </summary>
     private int _listening;
 
+    #region Events
+
+    /// <inheritdoc />
+    public event EventHandler<OrderingChangedEventArgs>? OrderingAdded;
+
+    /// <inheritdoc />
+    public event EventHandler<OrderingChangedEventArgs>? OrderingUpdated;
+
+    /// <inheritdoc />
+    public event EventHandler<OrderingChangedEventArgs>? OrderingRemoved;
+
+    /// <inheritdoc />
+    public event EventHandler<PreferredOrderingChangedEventArgs>? PreferredOrderingChanged;
+
+    /// <inheritdoc />
+    public event EventHandler<EpisodeHiddenChangedEventArgs>? EpisodeHiddenChanged;
+
+    /// <summary>
+    ///   Raises an ordering event, keeping a failing handler away from the
+    ///   writer.
+    /// </summary>
+    /// <param name="handler">The event.</param>
+    /// <param name="orderingID">The ordering.</param>
+    /// <param name="seriesID">The series it orders.</param>
+    /// <param name="ordering">The ordering as it is now, or <c>null</c> when it is gone.</param>
+    private void RaiseOrderingEvent(EventHandler<OrderingChangedEventArgs>? handler, MetadataGuid orderingID, MetadataGuid seriesID, IOrdering? ordering)
+        => Raise(handler, new OrderingChangedEventArgs { OrderingID = orderingID, SeriesID = seriesID, Ordering = ordering, Actor = ActorContext.CurrentActor });
+
+    /// <summary>
+    ///   Raises that the ordering chosen for a series changed.
+    /// </summary>
+    /// <param name="seriesID">The series.</param>
+    /// <param name="previousOrderingID">The ordering chosen before, if any.</param>
+    /// <param name="orderingID">The ordering chosen now, if any.</param>
+    private void RaisePreferredOrderingChanged(MetadataGuid seriesID, MetadataGuid? previousOrderingID, MetadataGuid? orderingID)
+        => Raise(PreferredOrderingChanged, new PreferredOrderingChangedEventArgs
+        {
+            SeriesID = seriesID,
+            PreviousOrderingID = previousOrderingID,
+            OrderingID = orderingID,
+            Actor = ActorContext.CurrentActor,
+        });
+
+    /// <summary>
+    ///   Raises an event, logging a failing handler.
+    /// </summary>
+    /// <typeparam name="TEventArgs">The event's arguments.</typeparam>
+    /// <param name="handler">The event.</param>
+    /// <param name="eventArgs">The arguments.</param>
+    private void Raise<TEventArgs>(EventHandler<TEventArgs>? handler, TEventArgs eventArgs)
+    {
+        try
+        {
+            handler?.Invoke(this, eventArgs);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Got an error in an ordering event.");
+        }
+    }
+
+    #endregion
+
     #region Identity
 
     /// <summary>
@@ -843,8 +906,10 @@ public class MetadataOrderingService(
     )
     {
         var removedGroups = new List<MetadataGuid>();
-        var stored = WriteLocked(orderingID, seriesID, type, titles, overviews, groups, mustExist, paramName, removedGroups);
+        var stored = WriteLocked(orderingID, seriesID, type, titles, overviews, groups, mustExist, paramName, removedGroups, out var reason);
         RemoveImageLinks(removedGroups);
+        if (stored is not null && reason is not UpdateReason.None)
+            RaiseOrderingEvent(reason is UpdateReason.Added ? OrderingAdded : OrderingUpdated, orderingID, seriesID, stored);
         return stored;
     }
 
@@ -861,6 +926,7 @@ public class MetadataOrderingService(
     /// <param name="mustExist">Only update the ordering, writing nothing when it is gone.</param>
     /// <param name="paramName">The argument the ordering came in through.</param>
     /// <param name="removedGroups">Gets the groups the write removed.</param>
+    /// <param name="reason">Whether the ordering was added, updated, or left as it was.</param>
     /// <returns>The stored ordering, or <c>null</c> when <paramref name="mustExist"/> is set and it is gone.</returns>
     /// <exception cref="ArgumentNullException">A title or overview, or its value, is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">A group's ID is taken by another ordering of the source, or a text's code is too long.</exception>
@@ -873,10 +939,12 @@ public class MetadataOrderingService(
         IReadOnlyList<GroupToWrite> groups,
         bool mustExist,
         string paramName,
-        List<MetadataGuid> removedGroups
+        List<MetadataGuid> removedGroups,
+        out UpdateReason reason
     )
     {
         var source = orderingID.Source;
+        reason = UpdateReason.None;
         lock (_writeLock)
         {
             var now = DateTime.Now;
@@ -971,6 +1039,7 @@ public class MetadataOrderingService(
             if (!changed)
                 return new(stored!, this);
 
+            reason = stored is null ? UpdateReason.Added : UpdateReason.Updated;
             removedGroups.AddRange(groupsDeleting.Select(group => group.ID));
             logger.LogDebug("Stored the ordering {Ordering} of {Series} with {Count} groups.", orderingID, seriesID, groups.Count);
             return new(row, this);
@@ -986,6 +1055,8 @@ public class MetadataOrderingService(
     private bool Remove(MetadataGuid orderingID)
     {
         List<MetadataGuid> removed;
+        MetadataGuid seriesID;
+        bool wasChosen;
         lock (_writeLock)
         {
             if (orderingRepository.GetByProviderID(orderingID.Source, orderingID.ID) is not { } row)
@@ -998,13 +1069,17 @@ public class MetadataOrderingService(
                 new MetadataRowChanges<Metadata_Ordering_Group>(groupRepository, [], [.. groups]),
                 new MetadataRowChanges<Metadata_Ordering_Entry>(entryRepository, [], [.. entryRepository.GetByOrderingID(row.Source, row.ProviderID)])
             );
-            ForgetChoiceLocked(row.SeriesGuid, orderingID);
+            seriesID = row.SeriesGuid;
+            wasChosen = ForgetChoiceLocked(row.SeriesGuid, orderingID);
             removed = [row.ID, .. groups.Select(group => group.ID)];
             logger.LogDebug("Removed the ordering {Ordering}.", orderingID);
         }
 
         RemoveNetworks([orderingID]);
         RemoveImageLinks(removed);
+        RaiseOrderingEvent(OrderingRemoved, orderingID, seriesID, null);
+        if (wasChosen)
+            RaisePreferredOrderingChanged(seriesID, orderingID, null);
         return true;
     }
 
@@ -1190,16 +1265,29 @@ public class MetadataOrderingService(
         if (!rowState.HasSeries(series.ID))
             throw new ArgumentException($"The series \"{seriesID}\" is not stored, so no ordering can be chosen for it.", nameof(seriesID));
 
+        MetadataGuid? previous;
+        MetadataGuid? chosen;
         lock (_writeLock)
         {
+            previous = rowState.GetPreferredOrdering(series.ID);
             if (orderingID is null || orderingID == DefaultOrderingID(series.ID))
-                return rowState.SetPreferredOrdering(series.ID, null);
+            {
+                chosen = null;
+            }
+            else
+            {
+                if (orderingID.EntityType != MetadataEntityType.Ordering || FindOrdering(orderingID, series) is not { } ordering || ordering.SeriesID != series.ID)
+                    throw new ArgumentException($"\"{orderingID}\" is not an ordering of the series \"{series.ID}\".", nameof(orderingID));
 
-            if (orderingID.EntityType != MetadataEntityType.Ordering || FindOrdering(orderingID, series) is not { } ordering || ordering.SeriesID != series.ID)
-                throw new ArgumentException($"\"{orderingID}\" is not an ordering of the series \"{series.ID}\".", nameof(orderingID));
+                chosen = orderingID;
+            }
 
-            return rowState.SetPreferredOrdering(series.ID, orderingID);
+            if (!rowState.SetPreferredOrdering(series.ID, chosen))
+                return false;
         }
+
+        RaisePreferredOrderingChanged(series.ID, previous, chosen);
+        return true;
     }
 
     /// <summary>
@@ -1277,6 +1365,21 @@ public class MetadataOrderingService(
 
     /// <inheritdoc />
     public bool SetEpisodeHidden(MetadataGuid episodeID, bool hidden)
+    {
+        if (!SetEpisodeHiddenCore(episodeID, hidden))
+            return false;
+
+        Raise(EpisodeHiddenChanged, new EpisodeHiddenChangedEventArgs { EpisodeID = episodeID, IsHidden = hidden, Actor = ActorContext.CurrentActor });
+        return true;
+    }
+
+    /// <summary>
+    ///   Hides or shows an episode of any source on its own row.
+    /// </summary>
+    /// <param name="episodeID">The episode.</param>
+    /// <param name="hidden">Whether to hide it.</param>
+    /// <returns><c>true</c> if the state changed.</returns>
+    private bool SetEpisodeHiddenCore(MetadataGuid episodeID, bool hidden)
     {
         CheckEpisode(episodeID);
         if (episodeID.Source == MetadataSource.Shoko)
@@ -1369,8 +1472,10 @@ public class MetadataOrderingService(
         int count;
         List<MetadataGuid> removed;
         List<MetadataGuid> removedOrderings;
+        MetadataGuid? chosen;
         lock (_writeLock)
         {
+            chosen = rowState.GetPreferredOrdering(seriesID);
             var orderings = orderingRepository.GetBySeries(seriesID);
             if (orderings.Count is 0)
                 return 0;
@@ -1394,6 +1499,10 @@ public class MetadataOrderingService(
 
         RemoveNetworks(removedOrderings);
         RemoveImageLinks(removed);
+        foreach (var orderingID in removedOrderings)
+            RaiseOrderingEvent(OrderingRemoved, orderingID, seriesID, null);
+        if (chosen is not null && removedOrderings.Contains(chosen))
+            RaisePreferredOrderingChanged(seriesID, chosen, null);
         return count;
     }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
 
@@ -20,6 +21,39 @@ namespace Shoko.Abstractions.Metadata.Services;
 /// </remarks>
 public interface IMetadataOrderingService
 {
+    #region Events
+
+    /// <summary>
+    ///   Dispatched when an ordering is stored for the first time, global or
+    ///   a user's own.
+    /// </summary>
+    event EventHandler<OrderingChangedEventArgs>? OrderingAdded;
+
+    /// <summary>
+    ///   Dispatched when a stored ordering changes. Not raised for a save
+    ///   that changed nothing.
+    /// </summary>
+    event EventHandler<OrderingChangedEventArgs>? OrderingUpdated;
+
+    /// <summary>
+    ///   Dispatched when an ordering is removed, by hand, with its source's
+    ///   orderings or with its series.
+    /// </summary>
+    event EventHandler<OrderingChangedEventArgs>? OrderingRemoved;
+
+    /// <summary>
+    ///   Dispatched when the ordering chosen for a series changes, by hand or
+    ///   because the chosen one was removed.
+    /// </summary>
+    event EventHandler<PreferredOrderingChangedEventArgs>? PreferredOrderingChanged;
+
+    /// <summary>
+    ///   Dispatched when an episode of any source is hidden or shown.
+    /// </summary>
+    event EventHandler<EpisodeHiddenChangedEventArgs>? EpisodeHiddenChanged;
+
+    #endregion
+
     #region Reading
 
     /// <summary>

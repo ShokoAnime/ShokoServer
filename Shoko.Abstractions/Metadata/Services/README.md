@@ -483,6 +483,14 @@ entry's own row (Shoko series or episode, AniDB anime or episode, or the
 plugin's in the series store, whose saves keep them), so an entry only a
 resolver serves can have neither.
 
+`OrderingAdded`, `OrderingUpdated` and `OrderingRemoved` follow every write of
+an ordering, global or a user's, with the ordering's and its series' IDs; a
+save that changed nothing raises nothing, and a removed ordering comes with
+`Ordering` set to `null`. `PreferredOrderingChanged` follows the choice of a
+series, also when removing the chosen ordering forgets it, and
+`EpisodeHiddenChanged` follows the hidden flag of an episode of any source.
+All of them carry `Actor`.
+
 The TMDB plugin stores its episode groups as global orderings of its shows,
 `tmdb://ordering/<collection ID>`, whose groups keep their season IDs and
 TMDB's numbers. An
