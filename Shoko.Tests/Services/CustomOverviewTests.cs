@@ -22,18 +22,18 @@ public class CustomOverviewTests
     {
         var manager = Manager();
 
-        Assert.True(manager.SetCustomOverview(Group, "Told by the user."));
-        Assert.True(manager.SetCustomOverview(Group, string.Empty));
-        Assert.False(manager.SetCustomOverview(Group, string.Empty));
+        Assert.True(manager.SetCustomOverviewCore(Group, "Told by the user."));
+        Assert.True(manager.SetCustomOverviewCore(Group, string.Empty));
+        Assert.False(manager.SetCustomOverviewCore(Group, string.Empty));
         Assert.Equal(string.Empty, manager.CustomOverviewOf(Group)?.Value);
         Assert.Single(manager.GetOverviews(Group, new() { Source = MetadataSource.User }));
 
-        Assert.True(manager.SetCustomOverview(Group, null));
-        Assert.False(manager.SetCustomOverview(Group, null));
+        Assert.True(manager.SetCustomOverviewCore(Group, null));
+        Assert.False(manager.SetCustomOverviewCore(Group, null));
         Assert.Null(manager.CustomOverviewOf(Group));
 
         // A blank overview is stored as the user's also when there was none.
-        Assert.True(manager.SetCustomOverview(Group, "  "));
+        Assert.True(manager.SetCustomOverviewCore(Group, "  "));
         Assert.Equal(("  ", MetadataSource.User), (manager.CustomOverviewOf(Group)?.Value, manager.CustomOverviewOf(Group)?.Source));
     }
 }

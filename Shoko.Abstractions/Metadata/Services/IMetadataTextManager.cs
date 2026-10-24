@@ -467,6 +467,39 @@ public interface IMetadataTextManager
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is <c>null</c>.</exception>
     bool RemoveText(IText text);
 
+    /// <summary>
+    ///   Names a Shoko series or episode by hand, over every other title, or
+    ///   hands its name back to its linked entries. A name given before is
+    ///   changed in place, and a change raises the series' or episode's
+    ///   updated event.
+    /// </summary>
+    /// <remarks>
+    ///   A Shoko group is named through <see cref="IShokoGroupManager.UpdateGroup"/>.
+    /// </remarks>
+    /// <param name="entityID">The Shoko series or episode.</param>
+    /// <param name="title">The title, or <c>null</c> or blank to remove it.</param>
+    /// <returns><c>true</c> when the title changed.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="entityID"/> does not name a stored Shoko series or episode.</exception>
+    bool SetCustomTitle(MetadataGuid entityID, string? title);
+
+    /// <summary>
+    ///   Describes a Shoko series or episode by hand, over every other
+    ///   overview, or hands its overview back to its linked entries. One
+    ///   given before is changed in place, a blank one is kept so the entry
+    ///   shows no overview at all, and a change raises the series' or
+    ///   episode's updated event.
+    /// </summary>
+    /// <remarks>
+    ///   A Shoko group is described through <see cref="IShokoGroupManager.UpdateGroup"/>.
+    /// </remarks>
+    /// <param name="entityID">The Shoko series or episode.</param>
+    /// <param name="overview">The overview, or <c>null</c> to remove it.</param>
+    /// <returns><c>true</c> when the overview changed.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="entityID"/> does not name a stored Shoko series or episode.</exception>
+    bool SetCustomOverview(MetadataGuid entityID, string? overview);
+
     #endregion
 
     #region Maintenance

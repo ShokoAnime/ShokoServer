@@ -370,8 +370,7 @@ public class EpisodeController(
 
         try
         {
-            if (((MetadataTextManager)_textManager).SetCustomTitle(((IMetadata)episode).ID, body.Title))
-                ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Updated);
+            _textManager.SetCustomTitle(((IMetadata)episode).ID, body.Title);
         }
         catch (ArgumentException ex)
         {

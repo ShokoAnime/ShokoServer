@@ -266,7 +266,7 @@ public class GroupVisibilityTests
     public void ACustomNamedMixedGroupShowsItsOwnUploadsOnly()
     {
         using var world = new World();
-        Assert.True(world.Manager.SetCustomTitle(((IMetadata)world.MixedGroup).ID, "My Group"));
+        Assert.True(world.Manager.SetCustomTitleCore(((IMetadata)world.MixedGroup).ID, "My Group"));
 
         var view = AnimeGroupView.For(world.MixedGroup, world.User);
         Assert.Equal("My Group", view.Name);

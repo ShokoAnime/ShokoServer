@@ -86,10 +86,10 @@ public class GroupNameTests
         using var world = new World([group], [new AnimeSeries { AnimeSeriesID = 2, AniDB_ID = 3, AnimeGroupID = 1 }], [Anime(3, "Alpha")]);
         Assert.Equal("Alpha", group.GroupName);
 
-        Assert.True(world.Manager.SetCustomTitle(((IMetadata)group).ID, "Named"));
+        Assert.True(world.Manager.SetCustomTitleCore(((IMetadata)group).ID, "Named"));
         Assert.Equal("Named", group.GroupName);
 
-        Assert.True(world.Manager.SetCustomTitle(((IMetadata)group).ID, "   "));
+        Assert.True(world.Manager.SetCustomTitleCore(((IMetadata)group).ID, "   "));
         Assert.Equal("Alpha", group.GroupName);
     }
 
@@ -116,7 +116,7 @@ public class GroupNameTests
         var group = new AnimeGroup { AnimeGroupID = 9 };
         var child = new AnimeGroup { AnimeGroupID = 10, AnimeGroupParentID = 9 };
         using var world = new World([group, child], [], []);
-        world.Manager.SetCustomTitle(((IMetadata)child).ID, "Named Child");
+        world.Manager.SetCustomTitleCore(((IMetadata)child).ID, "Named Child");
 
         Assert.Throws<InvalidOperationException>(() => group.GroupName);
         Assert.Throws<InvalidOperationException>(() => ((IWithTitles)group).DefaultTitle);
@@ -129,7 +129,7 @@ public class GroupNameTests
     {
         var group = new AnimeGroup { AnimeGroupID = 9 };
         using var world = new World([group], [], []);
-        world.Manager.SetCustomTitle(((IMetadata)group).ID, "Named");
+        world.Manager.SetCustomTitleCore(((IMetadata)group).ID, "Named");
 
         Assert.Equal("Named", group.GroupName);
         Assert.Equal("Named", ((IWithTitles)group).DefaultTitle.Value);
@@ -142,7 +142,7 @@ public class GroupNameTests
         using var world = new World([group], [new AnimeSeries { AnimeSeriesID = 2, AniDB_ID = 3, AnimeGroupID = 1 }], [Anime(3, "The Alpha")]);
         Assert.Equal("ALPHA", group.SortName);
 
-        world.Manager.SetCustomTitle(((IMetadata)group).ID, "1st Group");
+        world.Manager.SetCustomTitleCore(((IMetadata)group).ID, "1st Group");
         Assert.Equal("#1ST GROUP", group.SortName);
         Assert.Equal("1st Group", ((IWithTitles)group).Title);
     }

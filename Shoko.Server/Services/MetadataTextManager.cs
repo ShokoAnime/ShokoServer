@@ -1505,7 +1505,7 @@ public class MetadataTextManager : IMetadataTextManager
     /// <param name="value">The name, or <c>null</c> or blank to remove it.</param>
     /// <returns><c>true</c> when the name changed.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
-    internal bool SetCustomTitle(MetadataGuid entityID, string? value)
+    internal bool SetCustomTitleCore(MetadataGuid entityID, string? value)
         => SetCustom(entityID, TextKind.Title, value, false);
 
     /// <summary>
@@ -1521,8 +1521,53 @@ public class MetadataTextManager : IMetadataTextManager
     /// <param name="value">The overview, or <c>null</c> to remove it.</param>
     /// <returns><c>true</c> when the overview changed.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
-    internal bool SetCustomOverview(MetadataGuid entityID, string? value)
+    internal bool SetCustomOverviewCore(MetadataGuid entityID, string? value)
         => SetCustom(entityID, TextKind.Overview, value, true);
+
+    /// <inheritdoc />
+    public bool SetCustomTitle(MetadataGuid entityID, string? title)
+        => SetShokoText(entityID, () => SetCustomTitleCore(entityID, title));
+
+    /// <inheritdoc />
+    public bool SetCustomOverview(MetadataGuid entityID, string? overview)
+        => SetShokoText(entityID, () => SetCustomOverviewCore(entityID, overview));
+
+    /// <summary>
+    ///   Sets a text a user gave a Shoko series or episode, then saves the
+    ///   series or raises the episode's update, as a change of its name does.
+    /// </summary>
+    /// <param name="entityID">The Shoko series or episode.</param>
+    /// <param name="set">Sets the text, telling whether it changed.</param>
+    /// <returns><c>true</c> when the text changed.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="entityID"/> does not name a stored Shoko series or episode.</exception>
+    private bool SetShokoText(MetadataGuid entityID, Func<bool> set)
+    {
+        ArgumentNullException.ThrowIfNull(entityID);
+        if (entityID.Source != MetadataSource.Shoko || !entityID.TryGetNumericID<int>(out var localID))
+            throw new ArgumentException($"\"{entityID}\" does not name a Shoko series or episode.", nameof(entityID));
+
+        if (entityID.EntityType == MetadataEntityType.Series && _metadataService.GetShokoSeriesByID(localID) is AnimeSeries series)
+        {
+            if (!set())
+                return false;
+
+            RepoFactory.AnimeSeries.Save(series);
+            ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
+            return true;
+        }
+
+        if (entityID.EntityType == MetadataEntityType.Episode && _metadataService.GetShokoEpisodeByID(localID) is AnimeEpisode { AnimeSeries: { } episodeSeries } episode)
+        {
+            if (!set())
+                return false;
+
+            ShokoEventHandler.Instance.OnEpisodeUpdated(episodeSeries, episode, UpdateReason.Updated);
+            return true;
+        }
+
+        throw new ArgumentException($"\"{entityID}\" does not name a stored Shoko series or episode.", nameof(entityID));
+    }
 
     /// <summary>
     ///   Sets or removes the text of a kind a user gave a Shoko entry over

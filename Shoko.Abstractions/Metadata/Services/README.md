@@ -286,6 +286,13 @@ The manager checks no source; the conventions are:
   `EnableText`, `SetPreferredTitle`, `SetPreferredOverview` and the unsetting
   members); `shoko` is for text the core makes.
 
+`SetCustomTitle` and `SetCustomOverview` are the short way to name or describe
+a Shoko series or episode by hand, as the API's title override does: the text
+goes under `user`, preferred over every other, a second call changes it in
+place, `null` hands the entry back to its linked entries, and a change raises
+the series' or episode's updated event. Groups are named through
+`IShokoGroupManager.UpdateGroup`.
+
 ## Main titles and synthesized ones
 
 An entry's main title from its own source (`TitleType.Main`) is its default.

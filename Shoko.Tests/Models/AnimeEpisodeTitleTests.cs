@@ -114,7 +114,7 @@ public class AnimeEpisodeTitleTests
         using var scope = ScopeWith([Episode(100)], out var manager, Title("The English One", TitleLanguage.English));
         var episode = new AnimeEpisode { AnimeEpisodeID = 7, AniDB_EpisodeID = 100 };
 
-        Assert.True(manager.SetCustomTitle(((IMetadata)episode).ID, "What The User Called It"));
+        Assert.True(manager.SetCustomTitleCore(((IMetadata)episode).ID, "What The User Called It"));
 
         Assert.Equal("What The User Called It", episode.Title);
         Assert.Equal("What The User Called It", episode.CustomTitle?.Value);
@@ -128,11 +128,11 @@ public class AnimeEpisodeTitleTests
         var episode = new AnimeEpisode { AnimeEpisodeID = 7, AniDB_EpisodeID = 100 };
         var entry = ((IMetadata)episode).ID;
 
-        Assert.True(manager.SetCustomTitle(entry, "What The User Called It"));
+        Assert.True(manager.SetCustomTitleCore(entry, "What The User Called It"));
         Assert.Equal("What The User Called It", episode.Title);
 
         // A blank title removes the user's.
-        Assert.True(manager.SetCustomTitle(entry, "  "));
+        Assert.True(manager.SetCustomTitleCore(entry, "  "));
 
         Assert.Null(episode.CustomTitle);
         Assert.Equal("The English One", episode.Title);

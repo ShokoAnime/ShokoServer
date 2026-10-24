@@ -252,16 +252,16 @@ public class TextInvalidationTests
         Assert.Equal("Old Name", world.Series.Title);
         Assert.DoesNotContain("Picked", groupFilter.Names);
 
-        Assert.True(world.Manager.SetCustomTitle(((IMetadata)world.Series).ID, "Picked"));
+        Assert.True(world.Manager.SetCustomTitleCore(((IMetadata)world.Series).ID, "Picked"));
         Assert.Equal("Picked", world.Series.Title);
         Assert.Equal("Picked", world.Group.GroupName);
         Assert.Contains("Picked", groupFilter.Names);
 
-        Assert.True(world.Manager.SetCustomTitle(((IMetadata)world.Group).ID, "Group Name"));
+        Assert.True(world.Manager.SetCustomTitleCore(((IMetadata)world.Group).ID, "Group Name"));
         Assert.Equal("Group Name", world.Group.GroupName);
         Assert.Contains("Group Name", new FilterableAnimeSeries(world.Series, DateTime.Now).Names);
 
-        Assert.True(world.Manager.SetCustomTitle(((IMetadata)world.Series).ID, null));
+        Assert.True(world.Manager.SetCustomTitleCore(((IMetadata)world.Series).ID, null));
         Assert.Equal("Old Name", world.Series.Title);
     }
 
@@ -324,7 +324,7 @@ public class TextInvalidationTests
         var other = new AnimeGroup { AnimeGroupID = 9 };
         AfterSave(RepoFactory.AnimeGroup, other);
         Assert.DoesNotContain("Named Group", new FilterableAnimeSeries(world.Series, DateTime.Now).Names);
-        world.Manager.SetCustomTitle(((IMetadata)other).ID, "Named Group");
+        world.Manager.SetCustomTitleCore(((IMetadata)other).ID, "Named Group");
         Assert.DoesNotContain("Named Group", new FilterableAnimeSeries(world.Series, DateTime.Now).Names);
 
         world.Series.AnimeGroupID = other.AnimeGroupID;
@@ -332,7 +332,7 @@ public class TextInvalidationTests
 
         Assert.Contains("Named Group", new FilterableAnimeSeries(world.Series, DateTime.Now).Names);
         Assert.Throws<InvalidOperationException>(() => world.Group.GroupName);
-        world.Manager.SetCustomTitle(((IMetadata)other).ID, null);
+        world.Manager.SetCustomTitleCore(((IMetadata)other).ID, null);
         Assert.Equal("Old Name", other.GroupName);
     }
 

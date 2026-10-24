@@ -258,13 +258,13 @@ public class ShokoGroupManager : IShokoGroupManager
         var groupID = ((IMetadata)group).ID;
         if (updateData.HasName)
         {
-            _textManager.SetCustomTitle(groupID, updateData.Name);
+            _textManager.SetCustomTitleCore(groupID, updateData.Name);
             updated = true;
         }
 
         if (updateData.HasOverview)
         {
-            _textManager.SetCustomOverview(groupID, updateData.Overview);
+            _textManager.SetCustomOverviewCore(groupID, updateData.Overview);
             updated = true;
         }
 

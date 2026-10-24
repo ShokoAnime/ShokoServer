@@ -217,12 +217,7 @@ public class SeriesController(
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        if (((MetadataTextManager)_textManager).SetCustomTitle(((IMetadata)series).ID, body.Title))
-        {
-            _animeSeries.Save(series);
-
-            ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
-        }
+        _textManager.SetCustomTitle(((IMetadata)series).ID, body.Title);
 
         return Ok();
     }
