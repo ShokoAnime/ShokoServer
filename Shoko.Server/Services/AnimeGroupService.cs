@@ -150,7 +150,7 @@ public class AnimeGroupService
     {
         foreach (var user in allUsers)
         {
-            _userDataService.UpdateWatchedStats(animeGroup, user, seriesList, newAnimeGroupUsers);
+            _userDataService.UpdateGroupWatchedStats(animeGroup, user, seriesList, newAnimeGroupUsers);
         }
     }
 

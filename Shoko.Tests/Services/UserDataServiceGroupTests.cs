@@ -113,7 +113,7 @@ public class UserDataServiceGroupTests
         }
         : null;
 
-        await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => harness.Service.UpdateWatchedStats(harness.Group, harness.User, [], save))));
+        await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => harness.Service.UpdateGroupWatchedStats(harness.Group, harness.User, [], save))));
 
         var row = Assert.Single(harness.Groups.Object.GetAll());
         Assert.Equal((UserID, GroupID), (row.JMMUserID, row.AnimeGroupID));
@@ -133,8 +133,8 @@ public class UserDataServiceGroupTests
         );
         var series = new[] { harness.SeriesWithID(21), harness.SeriesWithID(22) };
 
-        harness.Service.UpdateWatchedStats(harness.Group, harness.User, series);
-        harness.Service.UpdateWatchedStats(harness.Group, harness.User, series);
+        harness.Service.UpdateGroupWatchedStats(harness.Group, harness.User, series);
+        harness.Service.UpdateGroupWatchedStats(harness.Group, harness.User, series);
 
         var row = Assert.Single(harness.Groups.Object.GetAll());
         Assert.Equal((4, 3, 9, watchedAt), (row.WatchedCount, row.WatchedEpisodeCount, row.UnwatchedEpisodeCount, row.WatchedDate));

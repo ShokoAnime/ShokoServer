@@ -79,6 +79,18 @@ for (var i = 0; i < episodes.Count; i++)
     await userDataService.SetEpisodeWatchedStatus(episodes[i], user, updateStatsNow: i == episodes.Count - 1);
 ```
 
+A write that changes nothing skips the recompute, so when the last entry may
+already be as wanted, pass `false` everywhere and call `UpdateWatchedStats`
+once at the end. It takes a series (then the groups above it) or a group
+(every series in it and its subgroups, then the groups), for one user or,
+with `null`, every user:
+
+```csharp
+foreach (var episode in episodes)
+    await userDataService.SetEpisodeWatchedStatus(episode, user, updateStatsNow: false);
+userDataService.UpdateWatchedStats(series, user);
+```
+
 ---
 
 ## Partial updates

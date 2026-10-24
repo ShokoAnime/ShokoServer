@@ -112,7 +112,7 @@ public partial class DatabaseFixes
     {
         var userDataService = (UserDataService)ISystemService.StaticServices.GetRequiredService<IUserDataService>();
         foreach (var series in RepoFactory.AnimeSeries.GetAll())
-            userDataService.UpdateWatchedStats(series, series.AllAnimeEpisodes);
+            userDataService.UpdateSeriesWatchedStats(series, series.AllAnimeEpisodes);
     }
 
     public static void MigrateAniDB_AnimeUpdates()

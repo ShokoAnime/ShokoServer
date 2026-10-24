@@ -378,13 +378,13 @@ public class UserDataService(
         if (updateStatsNow && toUpdateSeries.Count > 0)
         {
             foreach (var series in toUpdateSeries.Values)
-                UpdateWatchedStats(series, user, videoReason);
+                UpdateSeriesWatchedStats(series, user, videoReason);
             var groups = toUpdateSeries.Values
                 .SelectMany(a => a.AllGroupsAbove)
                 .WhereNotNull()
                 .DistinctBy(a => a.AnimeGroupID);
             foreach (var group in groups)
-                UpdateWatchedStats(group, user);
+                UpdateGroupWatchedStats(group, user);
         }
 
         return new(userData, completionApplied);
@@ -666,12 +666,12 @@ public class UserDataService(
         if (updateStatsNow && shouldSave)
         {
             var series = (AnimeSeries)episode.Series!;
-            UpdateWatchedStats(series, user);
+            UpdateSeriesWatchedStats(series, user);
             var groups = series.AllGroupsAbove
                 .WhereNotNull()
                 .DistinctBy(a => a.AnimeGroupID);
             foreach (var group in groups)
-                UpdateWatchedStats(group, user);
+                UpdateGroupWatchedStats(group, user);
         }
 
         return userData;
@@ -932,7 +932,24 @@ public class UserDataService(
         return userData;
     }
 
-    internal void UpdateWatchedStats(IShokoSeries series, IReadOnlyList<IShokoEpisode> episodes)
+    public void UpdateWatchedStats(IShokoSeries series, IUser? user = null)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+
+        if (user is null)
+            UpdateSeriesWatchedStats(series, series.Episodes);
+        else
+            UpdateSeriesWatchedStats(series, user);
+
+        IReadOnlyList<IUser> users = user is null ? userRepository.GetAll() : [user];
+        foreach (var group in series.AllParentGroups)
+        {
+            foreach (var groupUser in users)
+                UpdateGroupWatchedStats(group, groupUser);
+        }
+    }
+
+    internal void UpdateSeriesWatchedStats(IShokoSeries series, IReadOnlyList<IShokoEpisode> episodes)
     {
         var videoLookup = series.VideoCrossReferences
             .Where(a => !string.IsNullOrEmpty(a?.ED2K)).Select(xref =>
@@ -957,7 +974,7 @@ public class UserDataService(
             UpdateWatchedStatsInternal(series, episodes, user, VideoUserDataSaveReason.None, videoLookup, videoUserDataLookup, episodeUserDataLookup, lockObj);
     }
 
-    private void UpdateWatchedStats(IShokoSeries series, IUser user, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None)
+    private void UpdateSeriesWatchedStats(IShokoSeries series, IUser user, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None)
     {
         var episodes = series.Episodes;
         var videoLookup = series.VideoCrossReferences
@@ -1232,7 +1249,27 @@ public class UserDataService(
         return userData;
     }
 
-    internal void UpdateWatchedStats(
+    public void UpdateWatchedStats(IShokoGroup group, IUser? user = null)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+
+        foreach (var series in group.AllSeries)
+        {
+            if (user is null)
+                UpdateSeriesWatchedStats(series, series.Episodes);
+            else
+                UpdateSeriesWatchedStats(series, user);
+        }
+
+        IReadOnlyList<IUser> users = user is null ? userRepository.GetAll() : [user];
+        foreach (var subGroup in group.AllGroups.Append(group).Concat(group.AllParentGroups).DistinctBy(g => g.LocalID))
+        {
+            foreach (var groupUser in users)
+                UpdateGroupWatchedStats(subGroup, groupUser);
+        }
+    }
+
+    internal void UpdateGroupWatchedStats(
         IShokoGroup group,
         IUser user,
         IReadOnlyList<IShokoSeries>? allSeries = null,

@@ -218,7 +218,7 @@ public class AnimeSeriesService
 
     private void UpdateWatchedStats(AnimeSeries series, IReadOnlyList<AnimeEpisode> eps, string name, ref DateTime start)
     {
-        _userDataService.UpdateWatchedStats(series, eps);
+        _userDataService.UpdateSeriesWatchedStats(series, eps);
         var ts = DateTime.Now - start;
         _logger.LogTrace("Updated WATCHED stats for SERIES {Name} in {Elapsed}ms", name, ts.TotalMilliseconds);
         start = DateTime.Now;

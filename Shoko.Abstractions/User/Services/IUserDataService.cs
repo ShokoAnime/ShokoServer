@@ -836,6 +836,23 @@ public interface IUserDataService
     /// </returns>
     Task<ISeriesUserData> ImportSeriesUserData(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate, string importSource, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None);
 
+    /// <summary>
+    ///   Recomputes the watched stats of the series, and of every group above
+    ///   it, from the episode and video user data. Use it after writes made
+    ///   with <c>updateStatsNow</c> set to <c>false</c>.
+    /// </summary>
+    /// <param name="series">
+    ///   The series to recompute the watched stats for.
+    /// </param>
+    /// <param name="user">
+    ///   Optional. The user to recompute the watched stats for, or
+    ///   <c>null</c> for every user.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="series"/> is <c>null</c>.
+    /// </exception>
+    void UpdateWatchedStats(IShokoSeries series, IUser? user = null);
+
     #endregion
 
     #region Group User Data
@@ -1039,6 +1056,22 @@ public interface IUserDataService
     ///   The task containing the new or updated user data for the group and user.
     /// </returns>
     Task<IGroupUserData> ImportGroupUserData(IShokoGroup group, IUser user, GroupUserDataUpdate userDataUpdate, string importSource);
+
+    /// <summary>
+    ///   Recomputes the watched stats of every series in the group and its
+    ///   subgroups, then of the group, its subgroups and the groups above it.
+    /// </summary>
+    /// <param name="group">
+    ///   The group to recompute the watched stats for.
+    /// </param>
+    /// <param name="user">
+    ///   Optional. The user to recompute the watched stats for, or
+    ///   <c>null</c> for every user.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="group"/> is <c>null</c>.
+    /// </exception>
+    void UpdateWatchedStats(IShokoGroup group, IUser? user = null);
 
     #endregion
 }
