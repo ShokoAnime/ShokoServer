@@ -40,13 +40,12 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class EpisodeController(
     ISettingsProvider settingsProvider,
-    AnimeSeriesService _seriesService,
-    AnimeGroupService _groupService,
     IImageManager _imageManager,
     IUserDataService _userDataService,
     IMetadataLinkingService _linkingService,
     IMetadataRefreshService _metadataRefreshService,
     IMetadataTextManager _textManager,
+    IMetadataOrderingService _orderingService,
     AniDB_AnimeRepository _anidbAnimes,
     AniDB_EpisodeRepository _anidbEpisodes,
     AnimeEpisodeRepository _animeEpisodes,
@@ -387,11 +386,10 @@ public class EpisodeController(
     /// </summary>
     /// <param name="episodeID">Shoko episode ID</param>
     /// <param name="value">The new value to set.</param>
-    /// <param name="updateStats">Update series and group stats.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{episodeID}/SetHidden")]
-    public ActionResult PostEpisodeSetHidden([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool value = true, [FromQuery] bool updateStats = true)
+    public ActionResult PostEpisodeSetHidden([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool value = true)
     {
         var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
@@ -404,19 +402,13 @@ public class EpisodeController(
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        if (episode.IsHidden != value)
+        try
         {
-            episode.IsHidden = value;
-
-            _animeEpisodes.Save(episode);
-
-            if (updateStats)
-            {
-                _seriesService.UpdateStats(series, true, true);
-                _groupService.UpdateStatsFromTopLevel(series.TopLevelAnimeGroup, true, true);
-            }
-
-            ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Updated);
+            _orderingService.SetEpisodeHidden(((IMetadata)episode).ID, value);
+        }
+        catch (ArgumentException ex)
+        {
+            return ValidationProblem(ex.Message, nameof(value));
         }
 
         return Ok();
