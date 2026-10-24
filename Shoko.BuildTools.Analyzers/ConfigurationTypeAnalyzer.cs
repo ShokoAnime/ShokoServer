@@ -703,6 +703,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
             return false;
         if (unwrapped.SpecialType is SpecialType.System_String || unwrapped.TypeKind is TypeKind.Enum)
             return true;
+        if (known.MetadataKeyTypes.Contains(unwrapped, SymbolEqualityComparer.Default))
+            return true;
         // [Serializable] is a metadata flag, not a stored custom attribute. The runtime synthesises
         // the attribute back from the flag, which is what the generator reads, but the .NET
         // targeting packs drop the flag when they emit their reference assemblies, so a type coming

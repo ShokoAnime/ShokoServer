@@ -139,6 +139,12 @@ internal sealed class KnownSymbols
     public INamedTypeSymbol? JsonSchemaIgnoreAttribute { get; }
 
     /// <summary>
+    /// <c>Shoko.Abstractions.Metadata.MetadataSource</c>, <c>MetadataEntityType</c> and
+    /// <c>MetadataGuid</c>, which the schema generator takes as dictionary keys by name.
+    /// </summary>
+    public ImmutableArray<INamedTypeSymbol> MetadataKeyTypes { get; }
+
+    /// <summary>
     /// Types that implement a collection interface but are mapped to something other than a JSON
     /// array or a JSON object by the schema generator, so they must not be treated as collections.
     /// </summary>
@@ -171,6 +177,11 @@ internal sealed class KnownSymbols
         NewtonsoftJsonIgnoreAttribute = compilation.GetTypeByMetadataName("Newtonsoft.Json.JsonIgnoreAttribute");
         SystemTextJsonIgnoreAttribute = compilation.GetTypeByMetadataName("System.Text.Json.Serialization.JsonIgnoreAttribute");
         JsonSchemaIgnoreAttribute = compilation.GetTypeByMetadataName("NJsonSchema.Annotations.JsonSchemaIgnoreAttribute");
+        MetadataKeyTypes = Resolve(
+            compilation,
+            "Shoko.Abstractions.Metadata.MetadataSource",
+            "Shoko.Abstractions.Metadata.MetadataEntityType",
+            "Shoko.Abstractions.Metadata.MetadataGuid");
         NonCollectionBaseTypes = Resolve(
             compilation,
             "Newtonsoft.Json.Linq.JToken",

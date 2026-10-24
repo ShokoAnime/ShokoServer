@@ -167,6 +167,13 @@ public class ConfigurationTypeAnalyzerTests
 
             public class SelectComponent<TValue> where TValue : System.IEquatable<TValue> { }
         }
+
+        namespace Shoko.Abstractions.Metadata
+        {
+            public sealed class MetadataSource { }
+            public sealed class MetadataEntityType { }
+            public sealed class MetadataGuid { }
+        }
         """;
 
     private static Task VerifyAsync(string source, params DiagnosticResult[] expected)
@@ -371,6 +378,7 @@ public class ConfigurationTypeAnalyzerTests
             using System;
             using System.Collections.Generic;
             using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.Metadata;
 
             public enum Colour { Red, Green }
 
@@ -387,6 +395,9 @@ public class ConfigurationTypeAnalyzerTests
                 public Dictionary<Guid, bool> ByGuid { get; set; } = new();
                 public Dictionary<int, string> ByInt { get; set; } = new();
                 public Dictionary<MarkedKey, string> ByMarked { get; set; } = new();
+                public Dictionary<MetadataSource, int> BySource { get; set; } = new();
+                public Dictionary<MetadataEntityType, int> ByEntityType { get; set; } = new();
+                public Dictionary<MetadataGuid, int> ByMetadataGuid { get; set; } = new();
             }
             """);
     }

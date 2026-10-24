@@ -1157,7 +1157,13 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         if (FlagEnums.IsFlagEnum(keyType, out _))
             throw new ArgumentException($"Type \"{keyType.FullName!}\" is a flags enum, which is a list of its members rather than text, and therefore cannot be used as a key in a dictionary inside a configuration.", nameof(keyType));
 
-        if (keyType == typeof(string) || keyType == typeof(MetadataSource) || keyType == typeof(MetadataEntityType) || keyType.GetTypeInfo().IsEnum)
+        if (
+            keyType == typeof(string) ||
+            keyType == typeof(MetadataSource) ||
+            keyType == typeof(MetadataEntityType) ||
+            keyType == typeof(MetadataGuid) ||
+            keyType.GetTypeInfo().IsEnum
+        )
             return;
 
         if (keyType.GetCustomAttribute<SerializableAttribute>() is not null)

@@ -38,9 +38,10 @@ collection cannot hold another collection directly, …`
 
 **Dictionary key is not serializable to text.**
 
-JSON object keys are text, so a dictionary key must be a string, an enum, a type
-marked `[Serializable]` or implementing `ISerializable`. A `[Flags]` enum is
-written as a list of its members, so it is no key.
+JSON object keys are text, so a dictionary key must be a string, an enum,
+`MetadataSource`, `MetadataEntityType`, `MetadataGuid`, a type marked
+`[Serializable]` or implementing `ISerializable`. A `[Flags]` enum is written as
+a list of its members, so it is no key.
 
 ```csharp
 public Dictionary<Point, int> Weights { get; set; } = [];      // reported

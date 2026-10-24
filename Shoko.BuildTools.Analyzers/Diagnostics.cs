@@ -39,11 +39,11 @@ public static class Diagnostics
     public static readonly DiagnosticDescriptor UnusableDictionaryKey = new(
         id: "SHOKO0002",
         title: "Dictionary key is not serializable to text",
-        messageFormat: "Type '{1}' is not serializable to text and therefore cannot be used as a key in a dictionary the UI schema generator walks, but property '{0}' uses it as one. Schema generation throws, leaving the whole type without a schema and without a UI. Use 'string', an enum without [Flags], a type marked with [Serializable], or a type implementing ISerializable.",
+        messageFormat: "Type '{1}' is not serializable to text and therefore cannot be used as a key in a dictionary the UI schema generator walks, but property '{0}' uses it as one. Schema generation throws, leaving the whole type without a schema and without a UI. Use 'string', an enum without [Flags], 'MetadataSource', 'MetadataEntityType', 'MetadataGuid', a type marked with [Serializable], or a type implementing ISerializable.",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "JSON object keys are text. A [Flags] enum is written as a list of its members, so it is no key. The UI schema generator rejects any dictionary key type that is not a string, not an enum, not marked with [Serializable] (or, on the System.Text.Json path, [JsonSerializable]) and does not implement ISerializable, by throwing while building the schema. A key type coming from a reference assembly is not reported, because reference assemblies drop the [Serializable] metadata flag and the analyzer cannot tell.",
+        description: "JSON object keys are text. A [Flags] enum is written as a list of its members, so it is no key. The UI schema generator rejects any dictionary key type that is not a string, not an enum, not one of the metadata identifier types (MetadataSource, MetadataEntityType, MetadataGuid), not marked with [Serializable] (or, on the System.Text.Json path, [JsonSerializable]) and does not implement ISerializable, by throwing while building the schema. A key type coming from a reference assembly is not reported, because reference assemblies drop the [Serializable] metadata flag and the analyzer cannot tell.",
         helpLinkUri: HelpLinkPrefix + "shoko0002");
 
     /// <summary>
