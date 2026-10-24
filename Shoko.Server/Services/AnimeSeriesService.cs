@@ -737,7 +737,7 @@ public class AnimeSeriesService
 
     public IReadOnlyList<AnimeEpisode> GetNextUpEpisodes(AnimeSeries series, int userID, NextUpQueryOptions options)
     {
-        var (firstEpisode, firstVideo) = GetNextUpEpisode(series, userID, new(options));
+        var (firstEpisode, firstVideo) = GetNextUpEpisode(series, userID, options as NextUpQuerySingleOptions ?? new(options));
         if (firstEpisode is null)
             return [];
 

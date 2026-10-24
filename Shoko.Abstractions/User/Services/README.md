@@ -230,6 +230,25 @@ that file; the episode, series and group equivalents return a fresh record
 instead. `Get…ForUser(user)` and `Get…For<Entity>(entity)` give the two cross
 sections.
 
+### Next up
+
+The dashboard's and the series' next-up rules, so a plugin need not copy them:
+
+- `GetActiveEpisode(series, user, includeSpecials, includeOthers)` is the
+  episode whose video the user last left part-way through, with that video and
+  the user's data for it, or `null`.
+- `GetNextUpEpisode(series, user, options)` is the episode to watch next: the
+  first unwatched one, in order, with a video. `NextUpOptions` lets the active
+  episode come first (`IncludeCurrentlyWatching`; otherwise a series with one
+  gives nothing), counts missing or unaired episodes, specials and others, picks
+  up after the last watched episode when rewatching, and with
+  `ExcludeFirstEpisode` leaves out series not started. `Video` is set only when
+  the episode is the active one.
+- `GetNextUpEpisodes(series, user, options)` is that episode and every one
+  after it, as the generated playlists use.
+
+None of them checks whether the user may see the series.
+
 ---
 
 ## `IUserService`

@@ -83,7 +83,8 @@ public class UserDataServiceGroupTests
                 episodeUserDataRepository: null!,
                 seriesUserDataRepository: Series,
                 groupUserDataRepository: Groups.Object,
-                userRepository: null!
+                userRepository: null!,
+                seriesService: null!
             );
         }
 

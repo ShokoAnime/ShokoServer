@@ -88,7 +88,8 @@ public class UserDataServiceVideoTests
                 episodeUserDataRepository: null!,
                 seriesUserDataRepository: null!,
                 groupUserDataRepository: null!,
-                userRepository: null!);
+                userRepository: null!,
+                seriesService: null!);
         }
     }
 

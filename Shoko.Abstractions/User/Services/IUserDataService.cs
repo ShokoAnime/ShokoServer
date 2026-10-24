@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Events;
+using Shoko.Abstractions.User.Models;
 using Shoko.Abstractions.User.Update;
 using Shoko.Abstractions.Video;
 
@@ -852,6 +853,83 @@ public interface IUserDataService
     ///   Thrown when <paramref name="series"/> is <c>null</c>.
     /// </exception>
     void UpdateWatchedStats(IShokoSeries series, IUser? user = null);
+
+    #endregion
+
+    #region Next-up
+
+    /// <summary>
+    ///   Gets the episode the user is watching in the series: the one whose
+    ///   video they last left part-way through.
+    /// </summary>
+    /// <param name="series">
+    ///   The series.
+    /// </param>
+    /// <param name="user">
+    ///   The user.
+    /// </param>
+    /// <param name="includeSpecials">
+    ///   Optional. Whether specials count.
+    /// </param>
+    /// <param name="includeOthers">
+    ///   Optional. Whether other episodes count.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="series"/> or <paramref name="user"/> is
+    ///   <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The episode with its video and the user's data for it, or
+    ///   <c>null</c> when the user left no video of the series part-way
+    ///   through.
+    /// </returns>
+    ActiveEpisode? GetActiveEpisode(IShokoSeries series, IUser user, bool includeSpecials = true, bool includeOthers = false);
+
+    /// <summary>
+    ///   Gets the episode the user should watch next in the series, by the
+    ///   same rules as the dashboard and the series' next-up route: the first
+    ///   unwatched episode in order, or what the options add.
+    /// </summary>
+    /// <param name="series">
+    ///   The series.
+    /// </param>
+    /// <param name="user">
+    ///   The user.
+    /// </param>
+    /// <param name="options">
+    ///   Optional. What the search looks at, or <c>null</c> for the defaults.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="series"/> or <paramref name="user"/> is
+    ///   <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The next episode, or <c>null</c> when there is none.
+    /// </returns>
+    NextUpEpisode? GetNextUpEpisode(IShokoSeries series, IUser user, NextUpOptions? options = null);
+
+    /// <summary>
+    ///   Gets the next-up episode of the series and every episode after it in
+    ///   order, as the generated playlists do.
+    /// </summary>
+    /// <param name="series">
+    ///   The series.
+    /// </param>
+    /// <param name="user">
+    ///   The user.
+    /// </param>
+    /// <param name="options">
+    ///   Optional. What the search looks at, or <c>null</c> for the defaults.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="series"/> or <paramref name="user"/> is
+    ///   <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The episodes from the next-up one on, or an empty list when there is
+    ///   no next-up episode.
+    /// </returns>
+    IReadOnlyList<IShokoEpisode> GetNextUpEpisodes(IShokoSeries series, IUser user, NextUpOptions? options = null);
 
     #endregion
 

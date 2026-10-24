@@ -12,6 +12,7 @@ using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Events;
+using Shoko.Abstractions.User.Models;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
 using Shoko.Abstractions.Video;
@@ -36,7 +37,8 @@ public class UserDataService(
     AnimeEpisode_UserRepository episodeUserDataRepository,
     AnimeSeries_UserRepository seriesUserDataRepository,
     AnimeGroup_UserRepository groupUserDataRepository,
-    JMMUserRepository userRepository
+    JMMUserRepository userRepository,
+    Lazy<AnimeSeriesService> seriesService
 ) : IUserDataService
 {
     // Lazy init. to prevent a circular dependency between this service, the
@@ -1132,6 +1134,53 @@ public class UserDataService(
                 logger.LogError(ex, "An error occurred while trying to send the SeriesUserDataSaved event; {Message}", ex.Message);
             }
         });
+    }
+
+    #endregion
+
+    #region Next-up
+
+    public ActiveEpisode? GetActiveEpisode(IShokoSeries series, IUser user, bool includeSpecials = true, bool includeOthers = false)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentNullException.ThrowIfNull(user);
+
+        var (episode, video, videoUserData) = seriesService.Value.GetActiveEpisode((AnimeSeries)series, user.LocalID, includeSpecials, includeOthers);
+        return episode is not null && video is not null && videoUserData is not null
+            ? new() { Episode = episode, Video = video, VideoUserData = videoUserData }
+            : null;
+    }
+
+    public NextUpEpisode? GetNextUpEpisode(IShokoSeries series, IUser user, NextUpOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentNullException.ThrowIfNull(user);
+
+        var (episode, video) = seriesService.Value.GetNextUpEpisode((AnimeSeries)series, user.LocalID, ToQueryOptions(options));
+        return episode is not null ? new() { Episode = episode, Video = video } : null;
+    }
+
+    public IReadOnlyList<IShokoEpisode> GetNextUpEpisodes(IShokoSeries series, IUser user, NextUpOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentNullException.ThrowIfNull(user);
+
+        return seriesService.Value.GetNextUpEpisodes((AnimeSeries)series, user.LocalID, ToQueryOptions(options));
+    }
+
+    private static AnimeSeriesService.NextUpQuerySingleOptions ToQueryOptions(NextUpOptions? options)
+    {
+        options ??= new();
+        return new()
+        {
+            IncludeCurrentlyWatching = options.IncludeCurrentlyWatching,
+            IncludeMissing = options.IncludeMissing,
+            IncludeUnaired = options.IncludeUnaired,
+            IncludeRewatching = options.IncludeRewatching,
+            IncludeSpecials = options.IncludeSpecials,
+            IncludeOthers = options.IncludeOthers,
+            DisableFirstEpisode = options.ExcludeFirstEpisode,
+        };
     }
 
     #endregion
