@@ -63,6 +63,27 @@ public interface IAnidbService
 
     #endregion
 
+    #region Login
+
+    /// <summary>
+    ///   Tests logging in to the AniDB UDP API with the given credentials,
+    ///   without saving them. The server address and ports come from the
+    ///   settings, and any current session is logged out first.
+    /// </summary>
+    /// <param name="username">The AniDB username.</param>
+    /// <param name="password">The AniDB password.</param>
+    /// <param name="cancellationToken">Cancels the test.</param>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="username"/> or <paramref name="password"/> is
+    ///   <c>null</c> or blank.
+    /// </exception>
+    /// <returns>
+    ///   <c>true</c> when the login worked.
+    /// </returns>
+    Task<bool> TestLogin(string username, string password, CancellationToken cancellationToken = default);
+
+    #endregion
+
     #region URLs
 
     /// <summary>

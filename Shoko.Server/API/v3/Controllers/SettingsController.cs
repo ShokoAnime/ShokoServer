@@ -16,6 +16,7 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Exceptions;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.Resolvers;
@@ -40,7 +41,7 @@ public class SettingsController(
     IConfigurationService configurationService,
     IOptions<MvcNewtonsoftJsonOptions> jsonOptions,
     ILogger<SettingsController> logger,
-    AniDBUDPConnectionHandler udpHandler,
+    Lazy<IAnidbService> anidbService,
     IUserConfigurationService userConfigurationService
 ) : BaseController(settingsProvider)
 {
@@ -50,7 +51,7 @@ public class SettingsController(
 
     private readonly IOptions<MvcNewtonsoftJsonOptions> _jsonOptions = jsonOptions;
 
-    private readonly AniDBUDPConnectionHandler _udpHandler = udpHandler;
+    private readonly Lazy<IAnidbService> _anidbService = anidbService;
 
     private readonly ILogger<SettingsController> _logger = logger;
 
@@ -255,11 +256,7 @@ public class SettingsController(
         if (string.IsNullOrWhiteSpace(password))
             return ValidationProblem("There is no stored password to test with.", nameof(credentials.Password));
 
-        if (!_udpHandler.IsAlive)
-            await _udpHandler.InitAsync(credentials.Username, password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort, cancellationToken);
-        else await _udpHandler.ForceLogoutAsync(cancellationToken);
-
-        if (!await _udpHandler.TestLoginAsync(credentials.Username, password, cancellationToken))
+        if (!await _anidbService.Value.TestLogin(credentials.Username, password, cancellationToken))
         {
             _logger.LogInformation("Failed AniDB Login and Connection");
             return ValidationProblem("Failed to log in.", "Connection");

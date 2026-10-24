@@ -298,6 +298,25 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     #endregion
 
+    #region Login
+
+    /// <inheritdoc/>
+    public async Task<bool> TestLogin(string username, string password, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(username);
+        ArgumentException.ThrowIfNullOrWhiteSpace(password);
+
+        var settings = _settingsProvider.GetSettings();
+        if (!_udpConnectionHandler.IsAlive)
+            await _udpConnectionHandler.InitAsync(username, password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort, cancellationToken).ConfigureAwait(false);
+        else
+            await _udpConnectionHandler.ForceLogoutAsync(cancellationToken).ConfigureAwait(false);
+
+        return await _udpConnectionHandler.TestLoginAsync(username, password, cancellationToken).ConfigureAwait(false);
+    }
+
+    #endregion
+
     #region URLs
 
     public string? AnidbHttpApiBaseUrlOverride

@@ -84,6 +84,10 @@ The ban members below still work, read from the same state, but are obsolete:
 network is up. It is not a ban check; a ban can be in effect while it is
 `true`.
 
+`TestLogin(username, password)` logs in to the UDP API with the given
+credentials, without saving them, using the server and ports from the
+settings. It logs out of any current session first.
+
 ### Searching titles is local
 
 ```csharp
