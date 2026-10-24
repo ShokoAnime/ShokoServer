@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <!--
       Analyzers are loaded into the compiler host (csc, VBCSCompiler, Visual Studio, Rider), which
       may run on .NET Framework. netstandard2.0 is the only target framework every host can load,
