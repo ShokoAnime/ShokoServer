@@ -3,16 +3,15 @@ using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.API.v3.Models.TextManagement;
+using Shoko.Abstractions.Metadata.Text;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-namespace Shoko.Server.API.v3.Helpers;
+namespace Shoko.Server.Services;
 
 /// <summary>
 ///   Works out which step of the chooser picked an entry's text, from the text
-///   chosen and the language settings, for the text management routes.
+///   chosen and the language settings.
 /// </summary>
 /// <remarks>
 ///   The chooser does not record its steps, so they are read back from the
@@ -35,7 +34,7 @@ internal static class TextChoiceExplainer
     /// <param name="settings">The settings, which give the language and source orders.</param>
     /// <param name="seriesDescriptionStep">The step of a Shoko series' description walk, or <c>null</c> for any other choice.</param>
     /// <returns>The choice, with its step.</returns>
-    internal static TextChoice Explain(
+    internal static TextChoiceInfo Explain(
         MetadataGuid entityID,
         TextKind kind,
         IText? chosen,
@@ -49,10 +48,9 @@ internal static class TextChoiceExplainer
         {
             Kind = kind,
             Step = step,
-            Language = language?.GetString(),
-            Source = chosen?.Source,
-            Text = chosen is null ? null : new ManagedText(chosen),
-            Default = defaultText is null ? null : new ManagedText(defaultText),
+            Language = language,
+            Text = chosen,
+            Default = defaultText,
         };
     }
 

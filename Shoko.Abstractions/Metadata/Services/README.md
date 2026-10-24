@@ -350,6 +350,12 @@ the settings' selection walks each preferred language over each ranked source:
 
 Overviews follow steps 1, 2, 4 and 5.
 
+`ExplainChoice(entityID, kind)` says how an entry's preferred title or overview
+was picked: a `TextChoiceInfo` with the chosen text, the entry's default, the
+`TextChoiceStep` that picked it and the configured language it was found in. A
+Shoko series' overview also names the show fallback or AniDB note that
+answered.
+
 ## Entries of each source
 
 - **Plugin sources.** Series, seasons, episodes, films, collections, creators

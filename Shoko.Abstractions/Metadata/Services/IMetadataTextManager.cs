@@ -218,6 +218,17 @@ public interface IMetadataTextManager
     IText? GetPreferredOverview(MetadataGuid entityID);
 
     /// <summary>
+    ///   Explains the title or overview the user would want for an entry:
+    ///   the text chosen, the entry's default, and the step of the chooser
+    ///   that picked it, with the configured language it was found in.
+    /// </summary>
+    /// <param name="entityID">The entry.</param>
+    /// <param name="kind">Titles or overviews.</param>
+    /// <returns>The choice.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
+    TextChoiceInfo ExplainChoice(MetadataGuid entityID, TextKind kind);
+
+    /// <summary>
     ///   Looks up a stored title by its ID.
     /// </summary>
     /// <param name="titleID">The title's <see cref="IText.ID"/>.</param>

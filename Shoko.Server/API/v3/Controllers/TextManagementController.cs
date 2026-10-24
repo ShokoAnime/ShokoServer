@@ -414,15 +414,7 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     {
         if (FindEntity(entitySource, entityType, entityID) is not { } id)
             return NotFound(EntityNotFound);
-        var seriesDescriptionStep = kind is TextKind.Overview ? (textManager as MetadataTextManager)?.SeriesDescriptionStepOf(id) : null;
-        return TextChoiceExplainer.Explain(
-            id,
-            kind,
-            PreferredOf(id, kind),
-            DefaultOf(id, kind),
-            SettingsProvider.GetSettings(),
-            seriesDescriptionStep
-        );
+        return new TextChoice(textManager.ExplainChoice(id, kind));
     }
 
     /// <summary>

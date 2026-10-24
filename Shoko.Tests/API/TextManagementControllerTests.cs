@@ -361,8 +361,14 @@ public class TextManagementControllerTests
         var fixture = new Fixture();
         fixture.Stores(_anime);
         var main = Title(1, "Main", TitleLanguage.Romaji, "x-jat", type: TitleType.Main);
-        fixture.Text.Setup(t => t.GetPreferredTitle(_anime)).Returns(main);
-        fixture.Text.Setup(t => t.GetDefaultTitle(_anime)).Returns(main);
+        fixture.Text.Setup(t => t.ExplainChoice(_anime, TextKind.Title)).Returns(new TextChoiceInfo
+        {
+            Kind = TextKind.Title,
+            Step = TextChoiceStep.LanguageOrder,
+            Language = TitleLanguage.Main,
+            Text = main,
+            Default = main,
+        });
 
         var result = Value(fixture.Controller().GetPreferredTextForEntity(MetadataSource.AniDB, MetadataEntityType.Series, "1"));
 

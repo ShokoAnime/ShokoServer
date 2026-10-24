@@ -318,6 +318,16 @@ public class MetadataTextManager : IMetadataTextManager
     }
 
     /// <inheritdoc />
+    public TextChoiceInfo ExplainChoice(MetadataGuid entityID, TextKind kind)
+    {
+        ArgumentNullException.ThrowIfNull(entityID);
+
+        return kind is TextKind.Title
+            ? TextChoiceExplainer.Explain(entityID, kind, GetPreferredTitle(entityID), GetDefaultTitle(entityID), ISettingsProvider.Instance.GetSettings())
+            : TextChoiceExplainer.Explain(entityID, kind, GetPreferredOverview(entityID), GetDefaultOverview(entityID), ISettingsProvider.Instance.GetSettings(), SeriesDescriptionStepOf(entityID));
+    }
+
+    /// <inheritdoc />
     public ITitle? GetTitleByID(int titleID)
         => _textStore.Cache.Find(TextKind.Title, titleID) is { } found ? (ITitle)_textStore.Cache.ToText(found.Entity, found.Row, found.Row.Value) : null;
 
