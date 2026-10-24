@@ -96,7 +96,8 @@ IAnidbAnimeSearchResult? exact = anidbService.SearchAnimeByID(23);
 ```
 
 Both search the locally cached AniDB title dump, not AniDB, so they make no
-request and cannot get you banned.
+request and cannot get you banned. An empty or blank query lists every entry of
+the dump, by AniDB anime ID.
 
 ### Listing the cached anime
 
@@ -221,7 +222,7 @@ so spell out every flag you need:
 
 | Member | Notes |
 |---|---|
-| `GetAllTags(topLevelOnly)` | Every AniDB tag in the local database. Local read, no network. |
+| `GetAllTags(topLevelOnly)`, `GetTagByID(id)` | Every AniDB tag in the local database, or one. Local reads, no network. |
 | `ScheduleImagesForAnimeByID(id, onlyPosters, forceDownload, prioritize)` | Queues the image records, cross-references and downloads for an anime. |
 | `PurgeAllUnusedAnime()` | Queues one `PurgeAniDBAnimeJob` per AniDB anime no longer linked to a Shoko series, and returns. |
 | `PurgeAnimeByID(id, removeFromMylist)` / `SchedulePurgeOfAnimeByID(...)` | Inline and queued purge of one anime. `removeFromMylist` defaults to `true`, so a careless call removes the user's MyList entries too. |

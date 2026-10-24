@@ -374,9 +374,17 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     /// <inheritdoc/>
     public IReadOnlyList<IAnidbAnimeSearchResult> SearchAnime(string query, bool fuzzy)
-        => _titleHelper.SearchTitle(query, fuzzy)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return _titleHelper.GetAll()
+                .OrderBy(anime => anime.AnimeID)
+                .Select(anime => new AbstractAnidbAnimeSearchResult(new() { Result = anime, Match = anime.DefaultTitle.Value }, _anidbAnimeRepository, _seriesRepository))
+                .ToList<IAnidbAnimeSearchResult>();
+
+        return _titleHelper.SearchTitle(query, fuzzy)
             .Select(a => new AbstractAnidbAnimeSearchResult(a, _anidbAnimeRepository, _seriesRepository))
-            .ToList();
+            .ToList<IAnidbAnimeSearchResult>();
+    }
 
     /// <inheritdoc/>
     public IAnidbAnimeSearchResult? SearchAnimeByID(int anidbID)
@@ -939,6 +947,10 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     #region AniDB Tags
 
+    public IAnidbTag? GetTagByID(int tagID)
+        => tagID <= 0 ? null : _anidbTagRepository.GetByTagID(tagID);
+
+    /// <inheritdoc/>
     public IEnumerable<IAnidbTag> GetAllTags(bool topLevelOnly = false)
     {
         var tags = _anidbTagRepository.GetAll();

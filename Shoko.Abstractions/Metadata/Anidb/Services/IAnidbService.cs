@@ -114,7 +114,10 @@ public interface IAnidbService
     /// <summary>
     /// Searches the locally cached AniDB title database for the given <paramref name="query"/>.
     /// </summary>
-    /// <param name="query">Query to search for.</param>
+    /// <param name="query">
+    ///   Query to search for. An empty or blank one lists every entry of the
+    ///   title dump instead, by AniDB anime ID.
+    /// </param>
     /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
     /// <returns>Search results.</returns>
     IReadOnlyList<IAnidbAnimeSearchResult> SearchAnime(string query, bool fuzzy = false);
@@ -290,6 +293,17 @@ public interface IAnidbService
     ///   All tags or all top-level tags in the local database.
     /// </returns>
     IEnumerable<IAnidbTag> GetAllTags(bool topLevelOnly = false);
+
+    /// <summary>
+    ///   Gets an AniDB tag stored in the local database by its ID.
+    /// </summary>
+    /// <param name="tagID">
+    ///   The AniDB tag ID.
+    /// </param>
+    /// <returns>
+    ///   The tag, or <c>null</c> when it is not stored.
+    /// </returns>
+    IAnidbTag? GetTagByID(int tagID);
 
     #endregion
 
