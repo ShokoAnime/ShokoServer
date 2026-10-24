@@ -150,6 +150,7 @@ public class ReleaseInfo : IReleaseInfo
 
     /// <summary>
     /// When <c>true</c>, no provider will attempt to rescan this release.
+    /// Saving a release without it clears it.
     /// </summary>
     [Required]
     public bool PreventRescan { get; init; }

@@ -346,11 +346,15 @@ of them treat differently. Pass `saveRelease` explicitly either way: the two
 overloads declare opposite defaults for it, `true` without a provider list and
 `false` with one.
 
-`SaveReleaseForVideo` overwrites whatever release the file had. The overload
-taking a `ReleaseInfo` defaults `providerName` to `"User"`, which is what a
-manual link should stay as. It throws `InvalidOperationException` if the release
-carries no usable cross-references, so build those with the helpers described in
-the release README rather than by hand.
+`SaveReleaseForVideo` overwrites whatever release the file had. Saving the very
+release already stored, every field and flag alike, keeps the stored one and
+records only the match attempt; anything different, `IsPublic` or
+`PreventRescan` included, is a new release, saved in full. Read the current
+release and carry a flag over to keep it. The overload taking a `ReleaseInfo`
+defaults `providerName` to `"User"`, which is what a manual link should stay
+as. It throws `InvalidOperationException` if the release carries no usable
+cross-references, so build those with the helpers described in the release
+README rather than by hand.
 
 ### Clearing
 

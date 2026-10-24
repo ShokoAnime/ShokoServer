@@ -129,6 +129,7 @@ public class ReleaseInfo
 
     /// <summary>
     /// When <c>true</c>, no provider will attempt to rescan this release.
+    /// Saving a release without it clears it.
     /// </summary>
     public bool PreventRescan { get; set; }
 

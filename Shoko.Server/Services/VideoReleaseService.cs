@@ -839,6 +839,7 @@ public class VideoReleaseService(
             {
                 matchAttempt.AttemptEndedAt = DateTime.Now;
                 matchAttempt.IsCompleted = matchAttempt.IsCompleted || !release.DeferToNext;
+                existingRelease.DeferToNext = release.DeferToNext;
                 releaseInfoRepository.Save(existingRelease);
                 releaseInfoMatchAttemptRepository.Save(matchAttempt);
                 return existingRelease;
@@ -850,7 +851,6 @@ public class VideoReleaseService(
             if (releaseUriMatches && video is VideoLocal vl0 && vl0.DateTimeImported is not null)
                 lastImportedAt = vl0.DateTimeImported;
 
-            releaseInfo.PreventRescan = releaseInfo.PreventRescan || existingRelease.PreventRescan;
             await ClearReleaseForVideo(video, existingRelease, skipEvents: skipEvents, preparedRelease);
         }
 

@@ -299,6 +299,13 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     public static bool operator !=(StoredReleaseInfo? left, StoredReleaseInfo? right)
         => !(left == right);
 
+    /// <summary>
+    ///   Whether two releases are the same release: every field a provider or
+    ///   user gives it, flags included, with the lists compared as stored.
+    ///   The row's ID, its times and <see cref="DeferToNext"/> do not count.
+    /// </summary>
+    /// <param name="other">The other release.</param>
+    /// <returns><c>true</c> when they are the same release.</returns>
     public bool Equals(StoredReleaseInfo? other)
     {
         if (other is null)
@@ -307,7 +314,33 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         if (ReferenceEquals(this, other))
             return true;
 
-        return GetHashCode() == other.GetHashCode();
+        return string.Equals(ED2K, other.ED2K, StringComparison.Ordinal) &&
+            FileSize == other.FileSize &&
+            string.Equals(ID, other.ID, StringComparison.Ordinal) &&
+            string.Equals(ProviderName, other.ProviderName, StringComparison.Ordinal) &&
+            string.Equals(ReleaseURI, other.ReleaseURI, StringComparison.Ordinal) &&
+            Version == other.Version &&
+            ProvidedFileSize == other.ProvidedFileSize &&
+            string.Equals(Comment, other.Comment, StringComparison.Ordinal) &&
+            string.Equals(OriginalFilename, other.OriginalFilename, StringComparison.Ordinal) &&
+            string.Equals(Metadata, other.Metadata, StringComparison.Ordinal) &&
+            ReleasedAt == other.ReleasedAt &&
+            Source == other.Source &&
+            IsCensored == other.IsCensored &&
+            IsCreditless == other.IsCreditless &&
+            IsChaptered == other.IsChaptered &&
+            IsCorrupted == other.IsCorrupted &&
+            IsDeprecated == other.IsDeprecated &&
+            IsPublic == other.IsPublic &&
+            PreventRescan == other.PreventRescan &&
+            string.Equals(GroupID, other.GroupID, StringComparison.Ordinal) &&
+            string.Equals(GroupSource, other.GroupSource, StringComparison.Ordinal) &&
+            string.Equals(GroupName, other.GroupName, StringComparison.Ordinal) &&
+            string.Equals(GroupShortName, other.GroupShortName, StringComparison.Ordinal) &&
+            string.Equals(EmbeddedCrossReferences, other.EmbeddedCrossReferences, StringComparison.Ordinal) &&
+            string.Equals(EmbeddedHashes, other.EmbeddedHashes, StringComparison.Ordinal) &&
+            string.Equals(EmbeddedAudioLanguages, other.EmbeddedAudioLanguages, StringComparison.Ordinal) &&
+            string.Equals(EmbeddedSubtitleLanguages, other.EmbeddedSubtitleLanguages, StringComparison.Ordinal);
     }
 
     public override bool Equals(object? obj)
@@ -317,36 +350,35 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(
-            HashCode.Combine(
-                ED2K,
-                ID,
-                ProviderName,
-                ReleaseURI,
-                Version,
-                Comment,
-                OriginalFilename,
-                ReleasedAt
-            ),
-            HashCode.Combine(
-                GroupID,
-                GroupSource,
-                GroupName,
-                GroupShortName
-            ),
-            HashCode.Combine(
-                IsCensored,
-                IsCorrupted,
-                IsDeprecated,
-                IsChaptered,
-                Source,
-                FileSize
-            ),
-            Hashes?.Aggregate(0, (a, r) => HashCode.Combine(a, r)),
-            AudioLanguages?.Aggregate(0, (a, r) => HashCode.Combine(a, r)),
-            SubtitleLanguages?.Aggregate(0, (a, r) => HashCode.Combine(a, r)),
-            CrossReferences.Aggregate(0, (a, r) => HashCode.Combine(a, r))
-        );
+        var hash = new HashCode();
+        hash.Add(ED2K, StringComparer.Ordinal);
+        hash.Add(FileSize);
+        hash.Add(ID, StringComparer.Ordinal);
+        hash.Add(ProviderName, StringComparer.Ordinal);
+        hash.Add(ReleaseURI, StringComparer.Ordinal);
+        hash.Add(Version);
+        hash.Add(ProvidedFileSize);
+        hash.Add(Comment, StringComparer.Ordinal);
+        hash.Add(OriginalFilename, StringComparer.Ordinal);
+        hash.Add(Metadata, StringComparer.Ordinal);
+        hash.Add(ReleasedAt);
+        hash.Add(Source);
+        hash.Add(IsCensored);
+        hash.Add(IsCreditless);
+        hash.Add(IsChaptered);
+        hash.Add(IsCorrupted);
+        hash.Add(IsDeprecated);
+        hash.Add(IsPublic);
+        hash.Add(PreventRescan);
+        hash.Add(GroupID, StringComparer.Ordinal);
+        hash.Add(GroupSource, StringComparer.Ordinal);
+        hash.Add(GroupName, StringComparer.Ordinal);
+        hash.Add(GroupShortName, StringComparer.Ordinal);
+        hash.Add(EmbeddedCrossReferences, StringComparer.Ordinal);
+        hash.Add(EmbeddedHashes, StringComparer.Ordinal);
+        hash.Add(EmbeddedAudioLanguages, StringComparer.Ordinal);
+        hash.Add(EmbeddedSubtitleLanguages, StringComparer.Ordinal);
+        return hash.ToHashCode();
     }
 
     #endregion

@@ -113,6 +113,39 @@ public class StoredReleaseInfoEmbeddedTests
 
     #endregion
 
+    #region Comparing releases
+
+    [Fact]
+    public void AReleaseBuiltFromListsEqualsTheStoredOne()
+    {
+        var stored = Stored(CrossReferencesText, HashesText);
+        var built = new StoredReleaseInfo
+        {
+            StoredReleaseInfoID = 7,
+            ED2K = ED2K,
+            CrossReferences = JsonConvert.DeserializeObject<List<EmbeddedCrossReference>>(CrossReferencesText)!,
+            Hashes = JsonConvert.DeserializeObject<List<HashDigest>>(HashesText)!,
+        };
+
+        Assert.True(stored == built);
+        Assert.Equal(stored.GetHashCode(), built.GetHashCode());
+    }
+
+    [Fact]
+    public void AChangedFlagIsANewRelease()
+    {
+        var stored = Stored(CrossReferencesText, HashesText);
+        var unlisted = Stored(CrossReferencesText, HashesText);
+        unlisted.IsPublic = false;
+        var pinned = Stored(CrossReferencesText, HashesText);
+        pinned.PreventRescan = true;
+
+        Assert.False(stored == unlisted);
+        Assert.False(stored == pinned);
+    }
+
+    #endregion
+
     #region Provider IDs
 
     [Fact]

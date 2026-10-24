@@ -136,8 +136,8 @@ public interface IReleaseInfo
 
     /// <summary>
     /// When <c>true</c>, no provider will attempt to rescan this release
-    /// regardless of the backoff schedule. Can be set by a provider or via the
-    /// API.
+    /// regardless of the backoff schedule. Part of the release like any other
+    /// field: a save without it clears it, so carry it over to keep it.
     /// </summary>
     bool PreventRescan { get; }
 
