@@ -75,6 +75,22 @@ public interface IMetadataPeopleStore
     ICharacter? GetCharacter(MetadataGuid id);
 
     /// <summary>
+    ///   Lists the creators of a source, stubs included.
+    /// </summary>
+    /// <param name="source">The source, <c>anidb</c> or a plugin's.</param>
+    /// <returns>The creators, empty for a source that keeps none.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
+    IReadOnlyList<ICreator> GetAllCreators(MetadataSource source);
+
+    /// <summary>
+    ///   Lists the characters of a source, stubs included.
+    /// </summary>
+    /// <param name="source">The source, <c>anidb</c> or a plugin's.</param>
+    /// <returns>The characters, empty for a source that keeps none.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
+    IReadOnlyList<ICharacter> GetAllCharacters(MetadataSource source);
+
+    /// <summary>
     ///   The cast credited on an entry.
     /// </summary>
     /// <param name="entry">The entry.</param>

@@ -603,4 +603,22 @@ public interface IMetadataService
 
     #endregion
 
+    #region People
+
+    /// <summary>
+    ///   Looks up all creators from a given metadata source.
+    /// </summary>
+    /// <param name="source">The metadata source to look up.</param>
+    /// <returns>The creators, stubs included, or an empty collection.</returns>
+    IEnumerable<ICreator> GetAllCreatorsForSource(MetadataSource source);
+
+    /// <summary>
+    ///   Looks up all characters from a given metadata source.
+    /// </summary>
+    /// <param name="source">The metadata source to look up.</param>
+    /// <returns>The characters, stubs included, or an empty collection.</returns>
+    IEnumerable<ICharacter> GetAllCharactersForSource(MetadataSource source);
+
+    #endregion
+
 }

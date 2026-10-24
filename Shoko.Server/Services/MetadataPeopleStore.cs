@@ -145,6 +145,30 @@ public class MetadataPeopleStore(
     }
 
     /// <inheritdoc />
+    public IReadOnlyList<ICreator> GetAllCreators(MetadataSource source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (source == MetadataSource.AniDB)
+            return anidbCreatorRepository.GetAll();
+        if (source.IsCore)
+            return [];
+
+        return creatorRepository.GetBySource(source);
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<ICharacter> GetAllCharacters(MetadataSource source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (source == MetadataSource.AniDB)
+            return anidbCharacterRepository.GetAll();
+        if (source.IsCore)
+            return [];
+
+        return characterRepository.GetBySource(source);
+    }
+
+    /// <inheritdoc />
     public IReadOnlyList<ICast> GetCast(MetadataGuid entry)
     {
         ArgumentNullException.ThrowIfNull(entry);

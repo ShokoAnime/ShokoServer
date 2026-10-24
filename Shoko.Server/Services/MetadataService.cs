@@ -1339,5 +1339,17 @@ public class MetadataService : IMetadataService
         => groupID <= 0 ? null : _groupRepository.GetByID(groupID);
 
     #endregion
+
+    #region People
+
+    /// <inheritdoc />
+    public IEnumerable<ICreator> GetAllCreatorsForSource(MetadataSource source)
+        => _peopleStore.GetAllCreators(source);
+
+    /// <inheritdoc />
+    public IEnumerable<ICharacter> GetAllCharactersForSource(MetadataSource source)
+        => _peopleStore.GetAllCharacters(source);
+
+    #endregion
 }
 
