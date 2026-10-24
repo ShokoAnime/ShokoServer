@@ -18,24 +18,14 @@ namespace Shoko.QueueProcessor.Scheduling;
 /// Thin facade over <see cref="QueueOrchestrator"/> that implements <see cref="IQueueScheduler"/>.
 /// Handles job construction (type name, key, data) and delegates state to the orchestrator.
 /// </summary>
-public sealed class QueueScheduler : IQueueScheduler
+public sealed class QueueScheduler(
+    QueueOrchestrator _orchestrator,
+    IChainScopeRegistry _chainScopeRegistry,
+    IServiceScopeFactory _scopeFactory,
+    IJobActorAccessor? _actorAccessor = null,
+    QueueStateEventHandler? _events = null
+) : IQueueScheduler
 {
-    private readonly QueueOrchestrator _orchestrator;
-    private readonly IChainScopeRegistry _chainScopeRegistry;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly IJobActorAccessor? _actorAccessor;
-    private readonly QueueStateEventHandler? _events;
-
-    public QueueScheduler(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry,
-        IServiceScopeFactory scopeFactory, IJobActorAccessor? actorAccessor = null, QueueStateEventHandler? events = null)
-    {
-        _orchestrator = orchestrator;
-        _chainScopeRegistry = chainScopeRegistry;
-        _scopeFactory = scopeFactory;
-        _actorAccessor = actorAccessor;
-        _events = events;
-    }
-
     public bool IsPaused => _orchestrator.IsPaused;
 
     public Task Enqueue<T>(Action<T>? configure = null, bool prioritize = false,
@@ -278,24 +268,18 @@ public sealed class QueueScheduler : IQueueScheduler
 /// Sequential job chain builder. Builds contexts up-front then submits them to the orchestrator
 /// so that all parent-child relationships are established before any job starts executing.
 /// </summary>
-internal sealed class JobChainBuilder : IJobChainBuilder
+internal sealed class JobChainBuilder(
+    QueueOrchestrator _orchestrator,
+    IChainScopeRegistry _chainScopeRegistry,
+    IServiceScopeFactory _scopeFactory,
+    IJobActorAccessor? actorAccessor = null
+) : IJobChainBuilder
 {
-    private readonly QueueOrchestrator _orchestrator;
-    private readonly IChainScopeRegistry _chainScopeRegistry;
-    private readonly IServiceScopeFactory _scopeFactory;
     private readonly List<EnqueueContext> _entries = [];
     private readonly Guid _chainId = Guid.CreateVersion7();
-    private readonly JobActor? _actor;
 
-    internal JobChainBuilder(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry,
-        IServiceScopeFactory scopeFactory, IJobActorAccessor? actorAccessor = null)
-    {
-        _orchestrator = orchestrator;
-        _chainScopeRegistry = chainScopeRegistry;
-        _scopeFactory = scopeFactory;
-        // Captured once, when the chain is created: every job of the chain runs for the same actor.
-        _actor = actorAccessor?.Capture();
-    }
+    // Captured once, when the chain is created: every job of the chain runs for the same actor.
+    private readonly JobActor? _actor = actorAccessor?.Capture();
 
     public IJobChainBuilder Then<T>(Action<T>? configure = null) where T : class, IQueueJob
     {

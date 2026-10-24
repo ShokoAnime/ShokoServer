@@ -6,28 +6,21 @@ using Shoko.Abstractions.Metadata.Events;
 
 namespace Shoko.Server.API.SignalR.Models;
 
-public class CollectionInfoUpdatedEventSignalRModel
+public class CollectionInfoUpdatedEventSignalRModel(CollectionInfoUpdatedEventArgs eventArgs)
 {
-    public CollectionInfoUpdatedEventSignalRModel(CollectionInfoUpdatedEventArgs eventArgs)
-    {
-        Source = eventArgs.CollectionInfo.Source;
-        Reason = eventArgs.Reason;
-        CollectionID = eventArgs.CollectionInfo.ID.ID;
-    }
-
     /// <summary>
     /// The provider metadata source.
     /// </summary>
-    public MetadataSource Source { get; }
+    public MetadataSource Source { get; } = eventArgs.CollectionInfo.Source;
 
     /// <summary>
     /// The update reason.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public UpdateReason Reason { get; }
+    public UpdateReason Reason { get; } = eventArgs.Reason;
 
     /// <summary>
     /// The provided metadata collection id.
     /// </summary>
-    public string CollectionID { get; }
+    public string CollectionID { get; } = eventArgs.CollectionInfo.ID.ID;
 }

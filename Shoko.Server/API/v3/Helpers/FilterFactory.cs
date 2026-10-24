@@ -19,12 +19,11 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Helpers;
 
-public class FilterFactory
+public class FilterFactory(IHttpContextAccessor context, IFilteringEngine _evaluator)
 {
     private static readonly Dictionary<string, Type> s_expressionTypes;
     private static readonly Dictionary<string, Type> s_sortingTypes;
-    private readonly HttpContext _context;
-    private readonly IFilteringEngine _evaluator;
+    private readonly HttpContext _context = context.HttpContext!;
 
     static FilterFactory()
     {
@@ -36,12 +35,6 @@ public class FilterFactory
         s_sortingTypes = allTypes
             .Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType && typeof(SortingExpression).IsAssignableFrom(a))
             .ToDictionary(a => a.Name.TrimEnd("SortingSelector"));
-    }
-
-    public FilterFactory(IHttpContextAccessor context, IFilteringEngine evaluator)
-    {
-        _context = context.HttpContext!;
-        _evaluator = evaluator;
     }
 
     public Filter GetFilter(FilterPreset groupFilter, bool fullModel = false, bool includeEmpty = false)

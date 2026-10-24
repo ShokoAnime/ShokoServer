@@ -12,24 +12,13 @@ using Shoko.Server.Server;
 
 namespace Shoko.Server.Models.AniDB;
 
-public class AniDB_Studio : IStudio
+public class AniDB_Studio(AniDB_Creator creator) : IStudio
 {
-    private readonly string? _imagePath;
+    private readonly string? _imagePath = creator.ImagePath;
 
-    public int AnidbID { get; private set; }
+    public int AnidbID { get; } = creator.CreatorID;
 
-    public string Name { get; private set; }
-
-    #region Constructor
-
-    public AniDB_Studio(AniDB_Creator creator)
-    {
-        _imagePath = creator.ImagePath;
-        AnidbID = creator.CreatorID;
-        Name = creator.Name;
-    }
-
-    #endregion
+    public string Name { get; } = creator.Name;
 
     #region Methods
 
@@ -84,24 +73,11 @@ public class AniDB_Studio : IStudio
     #endregion
 }
 
-public class AniDB_Studio_For_Anime : AniDB_Studio, IStudio<ISeries>
+public class AniDB_Studio_For_Anime(AniDB_Anime_Staff _xref, AniDB_Creator creator, AniDB_Anime parent) : AniDB_Studio(creator), IStudio<ISeries>
 {
-    private readonly AniDB_Anime_Staff _xref;
+    public int ParentID { get; } = parent.AnimeID;
 
-    public int ParentID { get; private set; }
-
-    public ISeries Parent { get; private set; }
-
-    #region Constructor
-
-    public AniDB_Studio_For_Anime(AniDB_Anime_Staff xref, AniDB_Creator creator, AniDB_Anime parent) : base(creator)
-    {
-        _xref = xref;
-        ParentID = parent.AnimeID;
-        Parent = parent;
-    }
-
-    #endregion
+    public ISeries Parent { get; } = parent;
 
     #region IStudio Implementation
 

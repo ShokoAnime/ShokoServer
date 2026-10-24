@@ -136,17 +136,17 @@ public class AnimeSeriesStatsTests
 
             Service = new AnimeSeriesService(
                 NullLogger<AnimeSeriesService>.Instance,
-                serviceProvider: null!,
-                schedulerFactory: null!,
-                groupService: null!,
-                vlUsers: null!,
-                videoReleaseService: null!,
+                _serviceProvider: null!,
+                _scheduler: null!,
+                _groupService: null!,
+                _vlUsers: null!,
+                _videoReleaseService: null!,
                 userDataService: null!,
-                animeEpisodes: episodeRepository,
-                animeSeries: SeriesRepository.Object,
-                storedReleaseInfos: releaseInfoRepository,
-                anidbGroupStatuses: GroupStatuses(groupStatuses),
-                anidbAnimeStaff: null!);
+                _animeEpisodes: episodeRepository,
+                _animeSeries: SeriesRepository.Object,
+                _storedReleaseInfos: releaseInfoRepository,
+                _anidbGroupStatuses: GroupStatuses(groupStatuses),
+                _anidbAnimeStaff: null!);
         }
 
         /// <summary>

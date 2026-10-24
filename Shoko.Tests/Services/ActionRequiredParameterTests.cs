@@ -34,7 +34,6 @@ public class ActionRequiredParameterTests
             null!,
             null!,
             null!,
-            null!,
             Mock.Of<IPluginManager>(),
             services,
             new ActionUiDefinitionBuilder(NullLoggerFactory.Instance),

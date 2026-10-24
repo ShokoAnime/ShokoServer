@@ -32,53 +32,28 @@ using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 #pragma warning disable CS0618
 namespace Shoko.Server.Services;
 
-public class AnimeSeriesService
+public class AnimeSeriesService(
+    ILogger<AnimeSeriesService> _logger,
+    IServiceProvider _serviceProvider,
+    IQueueScheduler _scheduler,
+    AnimeGroupService _groupService,
+    VideoLocal_UserRepository _vlUsers,
+    IVideoReleaseService _videoReleaseService,
+    IUserDataService userDataService,
+    AnimeEpisodeRepository _animeEpisodes,
+    AnimeSeriesRepository _animeSeries,
+    StoredReleaseInfoRepository _storedReleaseInfos,
+    AniDB_GroupStatusRepository _anidbGroupStatuses,
+    AniDB_Anime_StaffRepository _anidbAnimeStaff
+)
 {
-    private readonly ILogger<AnimeSeriesService> _logger;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly AnimeGroupService _groupService;
-    private readonly IQueueScheduler _scheduler;
-    private readonly IVideoReleaseService _videoReleaseService;
-    private readonly UserDataService _userDataService;
-    private readonly AnimeEpisodeRepository _animeEpisodes;
-    private readonly AnimeSeriesRepository _animeSeries;
-    private readonly StoredReleaseInfoRepository _storedReleaseInfos;
-    private readonly AniDB_GroupStatusRepository _anidbGroupStatuses;
-    private readonly AniDB_Anime_StaffRepository _anidbAnimeStaff;
+    private readonly UserDataService _userDataService = (UserDataService)userDataService;
+
     private IAnidbService? _anidbService;
     private IShokoGroupManager? _groupManager;
     private IMetadataLinkingService? _linkingService;
     private IMetadataService? _metadataService;
     private MetadataOrderingService? _orderingService;
-
-    public AnimeSeriesService(
-        ILogger<AnimeSeriesService> logger,
-        IServiceProvider serviceProvider,
-        IQueueScheduler schedulerFactory,
-        AnimeGroupService groupService,
-        VideoLocal_UserRepository vlUsers,
-        IVideoReleaseService videoReleaseService,
-        IUserDataService userDataService,
-        AnimeEpisodeRepository animeEpisodes,
-        AnimeSeriesRepository animeSeries,
-        StoredReleaseInfoRepository storedReleaseInfos,
-        AniDB_GroupStatusRepository anidbGroupStatuses,
-        AniDB_Anime_StaffRepository anidbAnimeStaff)
-    {
-        _logger = logger;
-        _serviceProvider = serviceProvider;
-        _scheduler = schedulerFactory;
-        _groupService = groupService;
-        _vlUsers = vlUsers;
-        _videoReleaseService = videoReleaseService;
-        _userDataService = (UserDataService)userDataService;
-        _animeEpisodes = animeEpisodes;
-        _animeSeries = animeSeries;
-        _storedReleaseInfos = storedReleaseInfos;
-        _anidbGroupStatuses = anidbGroupStatuses;
-        _anidbAnimeStaff = anidbAnimeStaff;
-    }
 
     public async Task<(bool, Dictionary<AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(AnimeSeries series)
     {
@@ -767,14 +742,9 @@ public class AnimeSeriesService
 
     #endregion
 
-    internal class EpisodeList : List<EpisodeList.StatEpisodes>
+    internal class EpisodeList(AnimeType ept) : List<EpisodeList.StatEpisodes>
     {
-        public EpisodeList(AnimeType ept)
-        {
-            AnimeType = ept;
-        }
-
-        private AnimeType AnimeType { get; set; }
+        private AnimeType AnimeType { get; set; } = ept;
 
         private static readonly Regex _partMatch = new(@"\bpart\s+(\d+)\s+of\s+(\d+)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 

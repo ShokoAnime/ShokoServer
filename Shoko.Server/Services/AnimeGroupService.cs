@@ -9,26 +9,15 @@ using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Services;
 
-public class AnimeGroupService
+public class AnimeGroupService(
+    ILogger<AnimeGroupService> _logger,
+    AnimeGroup_UserRepository _groupUsers,
+    AnimeGroupRepository _groups,
+    IUserDataService userDataService,
+    JMMUserRepository _jmmUsers
+)
 {
-    private readonly ILogger<AnimeGroupService> _logger;
-
-    private readonly AnimeGroup_UserRepository _groupUsers;
-
-    private readonly AnimeGroupRepository _groups;
-
-    private readonly JMMUserRepository _jmmUsers;
-
-    private readonly UserDataService _userDataService;
-
-    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, AnimeGroupRepository groups, IUserDataService userDataService, JMMUserRepository jmmUsers)
-    {
-        _groupUsers = groupUsers;
-        _logger = logger;
-        _groups = groups;
-        _userDataService = (UserDataService)userDataService;
-        _jmmUsers = jmmUsers;
-    }
+    private readonly UserDataService _userDataService = (UserDataService)userDataService;
 
     /// <summary>
     /// Update stats for all child groups and series

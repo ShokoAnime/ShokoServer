@@ -43,7 +43,28 @@ namespace Shoko.Server.Services;
 /// a busy queue delays runs but loses none. Runs by hand are never held back.
 /// A queue-cleared trigger fires each time the queue is cleared.
 /// </remarks>
-public sealed class ScheduledActionService : IScheduledActionService, IScheduledActionRunReporter, IHostedService, IDisposable
+/// <param name="_logger">The logger.</param>
+/// <param name="_source">The action registry.</param>
+/// <param name="_schedules">The schedule rows.</param>
+/// <param name="_scheduledUpdates">The rows the ported jobs kept their last run in.</param>
+/// <param name="_scheduler">The queue.</param>
+/// <param name="_queue">The queue's state.</param>
+/// <param name="_queueEvents">Says when a queue job starts.</param>
+/// <param name="_systemService">Says when the server has started.</param>
+/// <param name="_applicationPaths">Where the settings carry-over is.</param>
+/// <param name="timeProvider">The clock, or <c>null</c> for the system clock.</param>
+public sealed class ScheduledActionService(
+    ILogger<ScheduledActionService> _logger,
+    IScheduledActionSource _source,
+    ScheduledActionRepository _schedules,
+    ScheduledUpdateRepository _scheduledUpdates,
+    IQueueScheduler _scheduler,
+    QueueHandler _queue,
+    QueueStateEventHandler _queueEvents,
+    ISystemService _systemService,
+    IApplicationPaths _applicationPaths,
+    TimeProvider? timeProvider = null
+) : IScheduledActionService, IScheduledActionRunReporter, IHostedService, IDisposable
 {
     #region Constants
 
@@ -108,25 +129,7 @@ public sealed class ScheduledActionService : IScheduledActionService, IScheduled
 
     #region Fields
 
-    private readonly ILogger<ScheduledActionService> _logger;
-
-    private readonly IScheduledActionSource _source;
-
-    private readonly ScheduledActionRepository _schedules;
-
-    private readonly ScheduledUpdateRepository _scheduledUpdates;
-
-    private readonly IQueueScheduler _scheduler;
-
-    private readonly QueueHandler _queue;
-
-    private readonly QueueStateEventHandler _queueEvents;
-
-    private readonly ISystemService _systemService;
-
-    private readonly IApplicationPaths _applicationPaths;
-
-    private readonly TimeProvider _timeProvider;
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     /// <summary>
     /// Guards the rows, the loaded flag and the clock tracking.
@@ -198,48 +201,6 @@ public sealed class ScheduledActionService : IScheduledActionService, IScheduled
     private bool _startupPassDone;
 
     private bool _disposed;
-
-    #endregion
-
-    #region Constructor
-
-    /// <summary>
-    /// Creates the scheduler.
-    /// </summary>
-    /// <param name="logger">The logger.</param>
-    /// <param name="source">The action registry.</param>
-    /// <param name="schedules">The schedule rows.</param>
-    /// <param name="scheduledUpdates">The rows the ported jobs kept their last run in.</param>
-    /// <param name="scheduler">The queue.</param>
-    /// <param name="queue">The queue's state.</param>
-    /// <param name="queueEvents">Says when a queue job starts.</param>
-    /// <param name="systemService">Says when the server has started.</param>
-    /// <param name="applicationPaths">Where the settings carry-over is.</param>
-    /// <param name="timeProvider">The clock, or <c>null</c> for the system clock.</param>
-    public ScheduledActionService(
-        ILogger<ScheduledActionService> logger,
-        IScheduledActionSource source,
-        ScheduledActionRepository schedules,
-        ScheduledUpdateRepository scheduledUpdates,
-        IQueueScheduler scheduler,
-        QueueHandler queue,
-        QueueStateEventHandler queueEvents,
-        ISystemService systemService,
-        IApplicationPaths applicationPaths,
-        TimeProvider? timeProvider = null
-    )
-    {
-        _logger = logger;
-        _source = source;
-        _schedules = schedules;
-        _scheduledUpdates = scheduledUpdates;
-        _scheduler = scheduler;
-        _queue = queue;
-        _queueEvents = queueEvents;
-        _systemService = systemService;
-        _applicationPaths = applicationPaths;
-        _timeProvider = timeProvider ?? TimeProvider.System;
-    }
 
     #endregion
 

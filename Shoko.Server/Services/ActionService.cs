@@ -45,32 +45,30 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services;
 
-public class ActionService : IActionService
+public class ActionService(
+    ILogger<ActionService> _logger,
+    IQueueScheduler _scheduler,
+    IRequestFactory _requestFactory,
+    ISettingsProvider _settingsProvider,
+    IVideoReleaseService _videoReleaseService,
+    IAnidbService _anidbService,
+    HttpXmlUtils _xmlUtils,
+    IPluginManager _pluginManager,
+    IServiceProvider _services,
+    ActionUiDefinitionBuilder _actionUiDefinitionBuilder,
+    IConfigurationService _configurationService,
+    VideoLocalRepository _videoLocals,
+    StoredReleaseInfoRepository _storedReleaseInfos,
+    AniDB_AnimeRepository _anidbAnimes,
+    AniDB_EpisodeRepository _anidbEpisodes,
+    AniDB_CreatorRepository _anidbCreators,
+    AniDB_MessageRepository _anidbMessages,
+    CrossRef_File_EpisodeRepository _crossRefFileEpisodes,
+    AnimeSeriesRepository _animeSeries,
+    AnimeEpisodeRepository _animeEpisodes,
+    AniDB_Anime_RelationRepository _anidbAnimeRelations
+) : IActionService
 {
-    private readonly ILogger<ActionService> _logger;
-
-    private readonly IQueueScheduler _scheduler;
-
-    private readonly IRequestFactory _requestFactory;
-
-    private readonly ISettingsProvider _settingsProvider;
-
-    private readonly IVideoReleaseService _videoReleaseService;
-
-    private readonly IAnidbService _anidbService;
-
-    private readonly HttpXmlUtils _xmlUtils;
-
-    private readonly IPluginPackageManager _pluginPackageManager;
-
-    private readonly IPluginManager _pluginManager;
-
-    private readonly IServiceProvider _services;
-
-    private readonly ActionUiDefinitionBuilder _actionUiDefinitionBuilder;
-
-    private readonly IConfigurationService _configurationService;
-
     /// <summary>
     ///   Registered action types and their metadata. Populated once during
     ///   <see cref="AddParts"/>. A fresh transient instance is resolved from
@@ -100,75 +98,6 @@ public class ActionService : IActionService
     ///   The same registrations keyed by their concrete action type.
     /// </summary>
     private readonly Dictionary<Type, RegisteredAction> _actionsByType = new();
-
-    private readonly VideoLocalRepository _videoLocals;
-
-    private readonly StoredReleaseInfoRepository _storedReleaseInfos;
-
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-
-    private readonly AniDB_EpisodeRepository _anidbEpisodes;
-
-    private readonly AniDB_CreatorRepository _anidbCreators;
-
-    private readonly AniDB_MessageRepository _anidbMessages;
-
-    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisodes;
-
-    private readonly AnimeSeriesRepository _animeSeries;
-
-    private readonly AnimeEpisodeRepository _animeEpisodes;
-
-    private readonly AniDB_Anime_RelationRepository _anidbAnimeRelations;
-
-    public ActionService(
-        ILogger<ActionService> logger,
-        IQueueScheduler schedulerFactory,
-        IRequestFactory requestFactory,
-        ISettingsProvider settingsProvider,
-        IVideoReleaseService videoReleaseService,
-        IAnidbService anidbService,
-        HttpXmlUtils xmlUtils,
-        IPluginPackageManager pluginPackageManager,
-        IPluginManager pluginManager,
-        IServiceProvider services,
-        ActionUiDefinitionBuilder actionUiDefinitionBuilder,
-        IConfigurationService configurationService,
-        VideoLocalRepository videoLocals,
-        StoredReleaseInfoRepository storedReleaseInfos,
-        AniDB_AnimeRepository anidbAnimes,
-        AniDB_EpisodeRepository anidbEpisodes,
-        AniDB_CreatorRepository anidbCreators,
-        AniDB_MessageRepository anidbMessages,
-        CrossRef_File_EpisodeRepository crossRefFileEpisodes,
-        AnimeSeriesRepository animeSeries,
-        AnimeEpisodeRepository animeEpisodes,
-        AniDB_Anime_RelationRepository anidbAnimeRelations
-    )
-    {
-        _logger = logger;
-        _scheduler = schedulerFactory;
-        _requestFactory = requestFactory;
-        _settingsProvider = settingsProvider;
-        _videoReleaseService = videoReleaseService;
-        _anidbService = anidbService;
-        _xmlUtils = xmlUtils;
-        _pluginPackageManager = pluginPackageManager;
-        _pluginManager = pluginManager;
-        _services = services;
-        _actionUiDefinitionBuilder = actionUiDefinitionBuilder;
-        _configurationService = configurationService;
-        _videoLocals = videoLocals;
-        _storedReleaseInfos = storedReleaseInfos;
-        _anidbAnimes = anidbAnimes;
-        _anidbEpisodes = anidbEpisodes;
-        _anidbCreators = anidbCreators;
-        _anidbMessages = anidbMessages;
-        _crossRefFileEpisodes = crossRefFileEpisodes;
-        _animeSeries = animeSeries;
-        _animeEpisodes = animeEpisodes;
-        _anidbAnimeRelations = anidbAnimeRelations;
-    }
 
     #region Action Registry
 

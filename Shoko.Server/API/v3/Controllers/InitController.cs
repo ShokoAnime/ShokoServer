@@ -33,36 +33,17 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
 [DatabaseBlockedExempt]
 [InitFriendly]
-public class InitController : BaseController
+public class InitController(
+    ILogger<InitController> _logger,
+    SystemService _systemService,
+    ISettingsProvider settingsProvider,
+    IConnectivityService _connectivityService,
+    AniDBUDPConnectionHandler _udpHandler,
+    IHttpConnectionHandler _httpHandler,
+    ISystemUpdateService _webUIUpdateService,
+    IPluginManager _pluginManager
+) : BaseController(settingsProvider)
 {
-    private readonly ILogger<InitController> _logger;
-    private readonly SystemService _systemService;
-    private readonly IConnectivityService _connectivityService;
-    private readonly AniDBUDPConnectionHandler _udpHandler;
-    private readonly IHttpConnectionHandler _httpHandler;
-    private readonly ISystemUpdateService _webUIUpdateService;
-    private readonly IPluginManager _pluginManager;
-
-    public InitController(
-        ILogger<InitController> logger,
-        SystemService systemService,
-        ISettingsProvider settingsProvider,
-        IConnectivityService connectivityService,
-        AniDBUDPConnectionHandler udpHandler,
-        IHttpConnectionHandler httpHandler,
-        ISystemUpdateService webUIUpdateService,
-        IPluginManager pluginManager
-    ) : base(settingsProvider)
-    {
-        _logger = logger;
-        _systemService = systemService;
-        _connectivityService = connectivityService;
-        _udpHandler = udpHandler;
-        _httpHandler = httpHandler;
-        _webUIUpdateService = webUIUpdateService;
-        _pluginManager = pluginManager;
-    }
-
     /// <summary>
     /// Return current version of ShokoServer and several modules
     /// This will work after init

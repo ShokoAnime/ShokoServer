@@ -34,61 +34,25 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiV3]
 [Authorize("admin")]
 [Obsolete("Use the scheduled actions instead, at /api/v3/Action/Scheduled, or the actions at /api/v3/Action.")]
-public class LegacyActionController : BaseController
+public class LegacyActionController(
+    ILogger<ActionController> _logger,
+    MetadataEntityRefreshScheduler _entityScheduler,
+    IQueueScheduler _scheduler,
+    IMylistService _mylistService,
+    IVideoReleaseService _videoReleaseService,
+    IVideoService _videoService,
+    ISettingsProvider settingsProvider,
+    ActionService _actionService,
+    AnimeGroupCreator _groupCreator,
+    IShokoGroupManager _groupService,
+    IImageManager _imageManager,
+    VideoLocalRepository _videoLocals,
+    MetadataSourceActions _sourceActions,
+    IMetadataProviderManager _providerManager,
+    IMetadataOrderingService _orderingService,
+    IScheduledActionService _scheduledActions
+) : BaseController(settingsProvider)
 {
-    private readonly ILogger<ActionController> _logger;
-    private readonly AnimeGroupCreator _groupCreator;
-    private readonly ActionService _actionService;
-    private readonly IShokoGroupManager _groupService;
-    private readonly MetadataEntityRefreshScheduler _entityScheduler;
-    private readonly IScheduledActionService _scheduledActions;
-    private readonly IVideoReleaseService _videoReleaseService;
-    private readonly IVideoService _videoService;
-    private readonly IQueueScheduler _scheduler;
-    private readonly MetadataSourceActions _sourceActions;
-    private readonly IMetadataProviderManager _providerManager;
-    private readonly IMetadataOrderingService _orderingService;
-
-    private readonly IMylistService _mylistService;
-    private readonly IImageManager _imageManager;
-    private readonly VideoLocalRepository _videoLocals;
-
-    public LegacyActionController(
-        ILogger<ActionController> logger,
-        MetadataEntityRefreshScheduler entityScheduler,
-        IQueueScheduler scheduler,
-        IMylistService mylistService,
-        IVideoReleaseService videoReleaseService,
-        IVideoService videoService,
-        ISettingsProvider settingsProvider,
-        ActionService actionService,
-        AnimeGroupCreator groupCreator,
-        IShokoGroupManager groupService,
-        IImageManager imageManager,
-        VideoLocalRepository videoLocals,
-        MetadataSourceActions sourceActions,
-        IMetadataProviderManager providerManager,
-        IMetadataOrderingService orderingService,
-        IScheduledActionService scheduledActions
-    ) : base(settingsProvider)
-    {
-        _logger = logger;
-        _entityScheduler = entityScheduler;
-        _videoReleaseService = videoReleaseService;
-        _videoService = videoService;
-        _scheduler = scheduler;
-        _mylistService = mylistService;
-        _actionService = actionService;
-        _groupCreator = groupCreator;
-        _groupService = groupService;
-        _imageManager = imageManager;
-        _videoLocals = videoLocals;
-        _sourceActions = sourceActions;
-        _providerManager = providerManager;
-        _orderingService = orderingService;
-        _scheduledActions = scheduledActions;
-    }
-
     /// <summary>
     /// Run Import. Queues the import's scheduled actions in order: hash unhashed files, scan the managed folders, search for metadata matches,
     /// purge orphaned metadata, download missing images, check for previously ignored files, and check AniDB file updates.

@@ -8,28 +8,19 @@ namespace Shoko.Abstractions.Metadata.Events;
 /// <summary>
 ///   Dispatched when a group update occurs.
 /// </summary>
-public class GroupInfoUpdatedEventArgs : EventArgs
+/// <param name="group">The group.</param>
+/// <param name="reason">The reason for the update.</param>
+public class GroupInfoUpdatedEventArgs(IShokoGroup group, UpdateReason reason) : EventArgs
 {
     /// <summary>
     ///   The reason for the update.
     /// </summary>
-    public UpdateReason Reason { get; init; }
+    public UpdateReason Reason { get; init; } = reason;
 
     /// <summary>
     ///   The group info.
     /// </summary>
-    public IShokoGroup GroupInfo { get; init; }
-
-    /// <summary>
-    ///   Initializes a new instance of the <see cref="GroupInfoUpdatedEventArgs"/> class.
-    /// </summary>
-    /// <param name="group">The group.</param>
-    /// <param name="reason">The reason for the update.</param>
-    public GroupInfoUpdatedEventArgs(IShokoGroup group, UpdateReason reason)
-    {
-        GroupInfo = group;
-        Reason = reason;
-    }
+    public IShokoGroup GroupInfo { get; init; } = group;
 
     /// <summary>
     ///   The API token of whoever made the change, or <c>null</c> when the

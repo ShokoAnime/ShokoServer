@@ -19,16 +19,12 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]"), Tags("Anidb")]
 [ApiV3]
 [Authorize]
-public class AVDumpController : BaseController
+public class AVDumpController(
+    ISettingsProvider settingsProvider,
+    IAnidbAvdumpService _avdumpService,
+    VideoLocalRepository _videoLocals
+) : BaseController(settingsProvider)
 {
-    private readonly IAnidbAvdumpService _avdumpService;
-    private readonly VideoLocalRepository _videoLocals;
-    public AVDumpController(ISettingsProvider settingsProvider, IAnidbAvdumpService avdumpService, VideoLocalRepository videoLocals) : base(settingsProvider)
-    {
-        _avdumpService = avdumpService;
-        _videoLocals = videoLocals;
-    }
-
     /// <summary>
     /// Get status about the AVDump component.
     /// </summary>
