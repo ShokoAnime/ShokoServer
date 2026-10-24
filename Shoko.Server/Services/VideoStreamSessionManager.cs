@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +30,11 @@ public class VideoStreamSessionManager(
 )
 {
     private readonly ConcurrentDictionary<Guid, StreamSession> _sessions = new();
+
+    /// <summary>
+    ///   Whether any stream session is sending data right now.
+    /// </summary>
+    public bool HasActiveResponses => _sessions.Values.Any(session => session.IsInUse);
 
     /// <summary>
     ///   How long to wait for a requested segment to become available before

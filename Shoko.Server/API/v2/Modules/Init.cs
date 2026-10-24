@@ -135,7 +135,7 @@ public class Init : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("inuse")]
-    public bool ApiInUse() => ApiInUseAttribute.IsInUse;
+    public bool ApiInUse() => _systemService.IsInUse;
 
     /// <summary>
     /// Gets the Default user's credentials. Will only return on first run

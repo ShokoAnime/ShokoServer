@@ -41,6 +41,7 @@ using Shoko.Abstractions.Web.Services;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.API;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -1280,6 +1281,10 @@ public class SystemService : ISystemService
     public bool CanRestart { get; private init; }
 
     public bool RestartPending { get; private set; }
+
+    /// <inheritdoc/>
+    public bool IsInUse
+        => ApiInUseAttribute.IsInUse || (_webHost?.Services.GetService<VideoStreamSessionManager>()?.HasActiveResponses ?? false);
 
     /// <inheritdoc/>
     public bool RequestRestart()

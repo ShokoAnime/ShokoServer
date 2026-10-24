@@ -98,6 +98,7 @@ server before the user has finished configuring it.
 | `Shutdown` | The server is going down now. There is a tight time budget before the parent process kills it, so flush and return. |
 | `CanShutdown` / `CanRestart` | Whether a controlled stop or restart is possible at all. |
 | `ShutdownPending` / `RestartPending` | Whether one has already been requested and is under way. |
+| `IsInUse` | Whether a client is streaming a video: a file stream answered within the last five seconds, or a stream session sending data. Wait for `false` before a restart nobody asked for. |
 | `RequestShutdown()` / `RequestRestart()` | Returns `false` when the request was refused. |
 | `WaitForShutdownAsync()` | Awaits the stop. |
 

@@ -200,6 +200,14 @@ public interface ISystemService
     bool RestartPending { get; }
 
     /// <summary>
+    ///   Indicates that a client is streaming a video from the server: a file
+    ///   stream answered within the last five seconds, or a stream session
+    ///   sending data. A plugin that restarts the server when it is idle can
+    ///   wait for it to be <c>false</c>.
+    /// </summary>
+    bool IsInUse { get; }
+
+    /// <summary>
     ///   Request a restart of the server.
     /// </summary>
     /// <returns>
