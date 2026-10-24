@@ -335,6 +335,7 @@ public class VideoRelocationService(
             {
                 currentDefault.IsDefault = false;
                 storedRelocationPresetRepository.Save(currentDefault);
+                RaisePresetUpdated(currentDefault);
             }
 
             preset.IsDefault = true;
@@ -403,25 +404,28 @@ public class VideoRelocationService(
             {
                 currentDefault.IsDefault = false;
                 storedRelocationPresetRepository.Save(currentDefault);
+                RaisePresetUpdated(currentDefault);
             }
 
             storedPreset.IsDefault = true;
             storedRelocationPresetRepository.Save(storedPreset);
+            updated = true;
 
             Task.Run(() => ProvidersUpdated?.Invoke(this, EventArgs.Empty));
         }
 
         if (updated)
-        {
-            Task.Run(() =>
-            {
-                var providerInfo = GetProviderInfo(storedPreset.ProviderID);
-                PresetUpdated?.Invoke(this, new() { RelocationPreset = new RelocationPresetInfo(this, configurationService, storedPreset, providerInfo) });
-            });
-        }
+            RaisePresetUpdated(storedPreset);
 
         return updated;
     }
+
+    private void RaisePresetUpdated(StoredRelocationPreset storedPreset)
+        => Task.Run(() =>
+        {
+            var providerInfo = GetProviderInfo(storedPreset.ProviderID);
+            PresetUpdated?.Invoke(this, new() { RelocationPreset = new RelocationPresetInfo(this, configurationService, storedPreset, providerInfo) });
+        });
 
     public void DeletePreset(IStoredRelocationPreset preset)
     {
