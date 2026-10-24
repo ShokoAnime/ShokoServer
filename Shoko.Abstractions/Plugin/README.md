@@ -652,6 +652,13 @@ plugin, protects that version from the purge (`IsKept`). `KeepPlugin` and
 Unlike pinning, it does not make the version the active one, and the version
 can still be uninstalled, which removes the file with it.
 
+A plugin the server ships, in its own `plugins` folder, cannot be uninstalled.
+An upgrade of one is installed beside it, and the next server release usually
+ships that same version. The server's copy wins a tie between equal versions,
+and at start the installed copy of a version the server ships is removed,
+unless it is pinned or kept. An older installed copy goes through the purge
+like any inactive version.
+
 **Events.** `PackageInstallationStarted` / `Completed` / `Failed`, and
 `RepositorySyncStarted` / `Completed` / `Failed`. The two `Started` args carry a
 settable `Cancel` flag, so a handler can veto an install or a sync;

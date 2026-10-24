@@ -392,12 +392,16 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         if (settingsChanged)
             ISettingsProvider.Instance.SaveSettings();
 
+        RemoveCopiesOfBundledVersions(internalPlugins);
+
         var legacyReplacements = FindLegacyReplacements(internalPlugins);
         foreach (var grouping in internalPlugins.OrderBy(a => a.Priority).GroupBy(a => a.ID))
         {
+            // On a tie, the copy the server ships wins over one installed beside it.
             var orderedInfo = grouping
                 .OrderByDescending(a => a.IsPinned)
                 .ThenByDescending(a => a.Version)
+                .ThenBy(a => a.CanUninstall)
                 .ThenByDescending(a => a.ContainingDirectory is not null)
                 .ThenBy(a => a.ContainingDirectory)
                 .ThenBy(a => a.DLLs[0])
@@ -1566,6 +1570,63 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         return plugins
             .Where(info => info.IsLegacy && builds.ContainsKey(info.DllName))
             .ToDictionary(info => info, info => builds[info.DllName]);
+    }
+
+    #endregion
+
+    #region Setup | Bundled Copies
+
+    /// <summary>
+    ///   Finds the installed copies of a plugin version the server also ships,
+    ///   which the shipped copy replaces: those neither pinned nor kept.
+    /// </summary>
+    /// <param name="plugins">Every plugin version found on disk.</param>
+    /// <returns>The copies to remove.</returns>
+    internal static IReadOnlyList<InternalPluginInfo> FindCopiesOfBundledVersions(IReadOnlyList<InternalPluginInfo> plugins)
+    {
+        var bundled = plugins
+            .Where(info => !info.CanUninstall && !info.IsLegacy && info.ID != CorePlugin.StaticID)
+            .Select(info => (info.ID, info.Version.Version))
+            .ToHashSet();
+        return plugins
+            .Where(info => info.CanUninstall && !info.IsLegacy && !info.IsPinned && !info.IsKept && bundled.Contains((info.ID, info.Version.Version)))
+            .ToList();
+    }
+
+    /// <summary>
+    ///   Removes the installed copies of the plugin versions the server ships,
+    ///   such as an upgrade of a bundled plugin the next server release ships
+    ///   too, and leaves them out of this start. A copy that cannot be removed
+    ///   now is marked for removal on the next start.
+    /// </summary>
+    /// <param name="plugins">Every plugin version found on disk.</param>
+    private void RemoveCopiesOfBundledVersions(List<InternalPluginInfo> plugins)
+    {
+        foreach (var copy in FindCopiesOfBundledVersions(plugins))
+        {
+            plugins.Remove(copy);
+            var path = copy.ContainingDirectory ?? copy.DLLs[0];
+            try
+            {
+                if (copy.ContainingDirectory is not null)
+                    Directory.Delete(copy.ContainingDirectory, recursive: true);
+                else
+                    File.Delete(copy.DLLs[0]);
+                logger.LogInformation("Removed version {Version} of plugin \"{Name}\", as the server ships the same version. ({Path})", copy.Version.Version, copy.Name, path);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger.LogWarning(ex, "Could not remove version {Version} of plugin \"{Name}\", which the server ships too, so it goes on the next start. ({Path})", copy.Version.Version, copy.Name, path);
+                try
+                {
+                    File.WriteAllText(copy.ContainingDirectory is not null ? Path.Join(copy.ContainingDirectory, Remove) : Path.ChangeExtension(copy.DLLs[0], Remove), string.Empty);
+                }
+                catch (Exception markerEx) when (markerEx is IOException or UnauthorizedAccessException)
+                {
+                    logger.LogError(markerEx, "Could not mark version {Version} of plugin \"{Name}\" for removal. ({Path})", copy.Version.Version, copy.Name, path);
+                }
+            }
+        }
     }
 
     #endregion

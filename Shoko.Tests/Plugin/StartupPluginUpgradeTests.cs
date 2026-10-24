@@ -175,7 +175,9 @@ public class StartupPluginUpgradeTests : IDisposable
         string? failureReason = null,
         bool isPinned = false,
         string? cannotLoadReason = null,
-        bool isLegacy = false
+        bool isLegacy = false,
+        bool isBundled = false,
+        bool isKept = false
     )
         => new()
         {
@@ -199,12 +201,13 @@ public class StartupPluginUpgradeTests : IDisposable
             Priority = 0,
             InstalledAt = DateTime.UnixEpoch,
             IsPinned = isPinned,
+            IsKept = isKept,
             IsEnabled = true,
             CanLoad = cannotLoadReason is null,
             CannotLoadReason = cannotLoadReason,
             IsLegacy = isLegacy,
             FailureReason = failureReason,
-            CanUninstall = true,
+            CanUninstall = !isBundled,
             DllName = "Plugin",
             ContainingDirectory = null,
             DLLs = [$"/nonexistent/Plugin-{version}.dll"],
@@ -336,6 +339,22 @@ public class StartupPluginUpgradeTests : IDisposable
 
         Assert.Same(older, toLoad);
         Assert.Equal([newer], passedOver.Keys);
+    }
+
+    [Fact]
+    public void AnInstalledCopyOfABundledVersionIsRemoved_UnlessPinnedOrKept()
+    {
+        var copy = Candidate("2.0.0");
+
+        var copies = PluginManager.FindCopiesOfBundledVersions([
+            Candidate("2.0.0", isBundled: true),
+            copy,
+            Candidate("2.0.0", isPinned: true),
+            Candidate("2.0.0", isKept: true),
+            Candidate("1.0.0"),
+        ]);
+
+        Assert.Same(copy, Assert.Single(copies));
     }
 
     [Fact]
