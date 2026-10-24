@@ -34,9 +34,6 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="settingsProvider">
 ///   The settings provider.
 /// </param>
-/// <param name="scheduler">
-///   The queue scheduler.
-/// </param>
 /// <param name="videoService">
 ///   The video service.
 /// </param>
@@ -55,7 +52,6 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class ManagedFolderController(
     ISettingsProvider settingsProvider,
-    IQueueScheduler scheduler,
     IVideoService videoService,
     ShokoManagedFolderRepository managedFolderRepository,
     VideoLocalRepository videoRepository,
@@ -263,7 +259,7 @@ public class ManagedFolderController(
     {
         if (managedFolderRepository.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found");
-        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipEvents) = (folderID, relativePath, onlyNewFiles, skipEvents), prioritize: priority);
+        await videoService.ScheduleScanForManagedFolder(folder, relativePath, onlyNewFiles, skipEvents, prioritize: priority);
         return Ok();
     }
 
