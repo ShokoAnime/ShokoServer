@@ -11,7 +11,7 @@ using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Metadata;
-using Shoko.Server.Services.Ordering;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.API.v3.Models.Ordering;
 
@@ -150,8 +150,7 @@ public class SeriesOrdering
         SeasonCount = ordering.SeasonCount;
         Networks = [.. ordering.Networks.Select(network => models.Network(network))];
         Images = ordering.GetImages().ToDto();
-        var placement = (ordering as IPlacedOrdering)?.Placement;
-        Groups = includeGroups ? [.. ordering.Seasons.Select(season => new OrderingGroup(season, placement))] : null;
+        Groups = includeGroups ? [.. ordering.Seasons.Select(season => new OrderingGroup(season, MetadataOrderingService.ListGroupEntries(ordering, season)))] : null;
         CreatedAt = ordering.CreatedAt.ToUniversalTime();
         LastUpdatedAt = ordering.LastUpdatedAt.ToUniversalTime();
     }
@@ -210,17 +209,15 @@ public class SeriesOrdering
         /// Builds the model of a group.
         /// </summary>
         /// <param name="season">The group, as a season of its ordering.</param>
-        /// <param name="placement">The ordering's places, when it places its specials.</param>
-        internal OrderingGroup(ISeason season, OrderingPlaces? placement)
+        /// <param name="entries">The entries it lists.</param>
+        internal OrderingGroup(ISeason season, IReadOnlyList<OrderingGroupEntry> entries)
         {
             ID = season.ID.ToString();
             Name = season.Title;
             SeasonNumber = season.SeasonNumber;
             IsSpecial = season.IsSpecial;
             Images = season.GetImages().ToDto();
-            Episodes = placement is not null
-                ? [.. placement.Listed(season.ID).Select(place => new OrderingEpisode(place))]
-                : [.. season.Episodes.Select((episode, index) => new OrderingEpisode(episode.ID, index + 1, season.IsSpecial, null))];
+            Episodes = [.. entries.Select(entry => new OrderingEpisode(entry))];
         }
     }
 
@@ -293,29 +290,18 @@ public class SeriesOrdering
         /// <summary>
         /// Builds the model of an entry of a group.
         /// </summary>
-        /// <param name="place">The entry.</param>
-        internal OrderingEpisode(ListedPlace place)
-            : this(place.EpisodeID, place.EpisodeNumber, place.IsSpecial, place.Airing)
-        { }
-
-        /// <summary>
-        /// Builds the model of an entry of a group.
-        /// </summary>
-        /// <param name="episodeID">The episode.</param>
-        /// <param name="episodeNumber">Its number.</param>
-        /// <param name="isSpecial">Whether it is a special here.</param>
-        /// <param name="airing">Where a placed special airs, on its special group entry.</param>
-        internal OrderingEpisode(MetadataGuid episodeID, int episodeNumber, bool isSpecial, OrderingAiring? airing)
+        /// <param name="entry">The entry.</param>
+        internal OrderingEpisode(OrderingGroupEntry entry)
         {
-            ID = episodeID.ToString();
-            ShokoEpisodeID = episodeID.Source == MetadataSource.Shoko && episodeID.TryGetNumericID<int>(out var localID) ? localID : null;
-            EpisodeNumber = episodeNumber;
-            IsSpecial = isSpecial;
-            AirsBeforeSeasonNumber = airing?.AirsBeforeSeasonNumber;
-            AirsBeforeEpisodeNumber = airing?.AirsBeforeEpisodeNumber;
-            AirsAfterSeasonNumber = airing?.AirsAfterSeasonNumber;
-            AirsAfterEpisodeID = airing?.AirsAfterEpisodeID?.ToString();
-            AirsBeforeEpisodeID = airing?.AirsBeforeEpisodeID?.ToString();
+            ID = entry.EpisodeID.ToString();
+            ShokoEpisodeID = entry.EpisodeID.Source == MetadataSource.Shoko && entry.EpisodeID.TryGetNumericID<int>(out var localID) ? localID : null;
+            EpisodeNumber = entry.EpisodeNumber;
+            IsSpecial = entry.IsSpecial;
+            AirsBeforeSeasonNumber = entry.AirsBeforeSeasonNumber;
+            AirsBeforeEpisodeNumber = entry.AirsBeforeEpisodeNumber;
+            AirsAfterSeasonNumber = entry.AirsAfterSeasonNumber;
+            AirsAfterEpisodeID = entry.AirsAfterEpisodeID?.ToString();
+            AirsBeforeEpisodeID = entry.AirsBeforeEpisodeID?.ToString();
         }
     }
 

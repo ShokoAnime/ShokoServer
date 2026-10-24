@@ -252,10 +252,8 @@ public class PlacedSpecialsTests
     public void TheApiListsAPlacedSpecialInBothGroupsAndOnlyTheSpecialGroupSaysWhereItAirs()
     {
         var (_, series, ordering) = SpecialGroupLast();
-        var placement = ((IPlacedOrdering)ordering).Placement;
-
-        var regular = new SeriesOrdering.OrderingGroup(GroupModel(ordering.Seasons[0]), placement);
-        var specials = new SeriesOrdering.OrderingGroup(GroupModel(ordering.Seasons[2]), placement);
+        var regular = new SeriesOrdering.OrderingGroup(GroupModel(ordering.Seasons[0]), MetadataOrderingService.ListGroupEntries(ordering, ordering.Seasons[0]));
+        var specials = new SeriesOrdering.OrderingGroup(GroupModel(ordering.Seasons[2]), MetadataOrderingService.ListGroupEntries(ordering, ordering.Seasons[2]));
 
         Assert.Equal(
             [("a-e1", 1, false), ("a-sp", 1, true), ("a-e2", 2, false), ("a-e3", 3, false)],
@@ -342,10 +340,8 @@ public class PlacedSpecialsTests
         var world = new World();
         var series = world.Add(MetadataSource.AniDB, "9", new("e1", 1, 1), new("e2", 1, 2), new("s1", 0, 1, "Episode 1.5"));
         var ordering = world.Service.GetDefaultOrdering(series);
-        var placement = ((IPlacedOrdering)ordering).Placement;
-
-        var regular = new SeriesOrdering.OrderingGroup(GroupModel(ordering.Seasons[0]), placement);
-        var specials = new SeriesOrdering.OrderingGroup(GroupModel(ordering.Seasons[1]), placement);
+        var regular = new SeriesOrdering.OrderingGroup(GroupModel(ordering.Seasons[0]), MetadataOrderingService.ListGroupEntries(ordering, ordering.Seasons[0]));
+        var specials = new SeriesOrdering.OrderingGroup(GroupModel(ordering.Seasons[1]), MetadataOrderingService.ListGroupEntries(ordering, ordering.Seasons[1]));
 
         Assert.Equal([("9-e1", 1, false), ("9-s1", 1, true), ("9-e2", 2, false)], regular.Episodes.Select(episode => (MetadataGuid.Parse(episode.ID, null).ID, episode.EpisodeNumber, episode.IsSpecial)));
         Assert.Equal((1, 2), (Assert.Single(specials.Episodes).AirsBeforeSeasonNumber, specials.Episodes[0].AirsBeforeEpisodeNumber));

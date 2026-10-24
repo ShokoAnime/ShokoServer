@@ -468,6 +468,11 @@ season 0: a plugin's series by the `AirsBefore*`/`AirsAfter*` its provider
 gave each season 0 episode, and an AniDB anime or a Shoko series by titles
 such as `Episode 17.5`.
 
+`GetGroupEntries(ordering, group)` lists a group the way the API does, in one
+call: its home episodes with their numbers, and the placed specials airing in
+it, flagged `IsSpecial` with their special group numbers. The special group's
+entries carry where they air.
+
 **Placements by source.** `GetEpisodePlacements` tells where each source
 places a Shoko special among the regular episodes of its series, as one
 `IEpisodePlacement` per source, AniDB's first. AniDB places it by its titles,

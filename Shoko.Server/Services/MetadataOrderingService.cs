@@ -272,6 +272,42 @@ public class MetadataOrderingService(
         => DefaultFor<TSeries, TEpisode>(series);
 
     /// <inheritdoc />
+    public IReadOnlyList<OrderingGroupEntry> GetGroupEntries(IOrdering ordering, ISeason group)
+    {
+        ArgumentNullException.ThrowIfNull(ordering);
+        ArgumentNullException.ThrowIfNull(group);
+        return ListGroupEntries(ordering, group);
+    }
+
+    /// <summary>
+    ///   Every entry a group of an ordering lists, read off its placement
+    ///   when it places its specials, else the group's episodes numbered
+    ///   from 1.
+    /// </summary>
+    /// <param name="ordering">The ordering.</param>
+    /// <param name="group">One of its groups.</param>
+    /// <returns>The entries.</returns>
+    internal static IReadOnlyList<OrderingGroupEntry> ListGroupEntries(IOrdering ordering, ISeason group)
+    {
+        if (ordering is not IPlacedOrdering { Placement: var placement })
+            return [.. group.Episodes.Select((episode, index) => new OrderingGroupEntry { EpisodeID = episode.ID, EpisodeNumber = index + 1, IsSpecial = group.IsSpecial })];
+
+        return [
+            .. placement.Listed(group.ID).Select(place => new OrderingGroupEntry
+            {
+                EpisodeID = place.EpisodeID,
+                EpisodeNumber = place.EpisodeNumber,
+                IsSpecial = place.IsSpecial,
+                AirsBeforeSeasonNumber = place.Airing?.AirsBeforeSeasonNumber,
+                AirsBeforeEpisodeNumber = place.Airing?.AirsBeforeEpisodeNumber,
+                AirsAfterSeasonNumber = place.Airing?.AirsAfterSeasonNumber,
+                AirsAfterEpisodeID = place.Airing?.AirsAfterEpisodeID,
+                AirsBeforeEpisodeID = place.Airing?.AirsBeforeEpisodeID,
+            }),
+        ];
+    }
+
+    /// <inheritdoc />
     public IReadOnlyList<IEpisodeOrderingInformation> GetEpisodeOrderings(IEpisode episode)
     {
         ArgumentNullException.ThrowIfNull(episode);

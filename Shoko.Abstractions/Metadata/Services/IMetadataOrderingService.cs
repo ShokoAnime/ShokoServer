@@ -109,6 +109,18 @@ public interface IMetadataOrderingService
     IReadOnlyList<IEpisodeOrderingInformation> GetEpisodeOrderings(IEpisode episode);
 
     /// <summary>
+    ///   Every entry a group of an ordering lists, in order: its home
+    ///   episodes with their numbers, and the placed specials airing in it,
+    ///   flagged as specials with their special group numbers. The special
+    ///   group's entries say where they air.
+    /// </summary>
+    /// <param name="ordering">The ordering.</param>
+    /// <param name="group">One of its groups, from <see cref="IOrdering.Seasons"/>.</param>
+    /// <returns>The entries, or none when the group is not the ordering's.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="ordering"/> or <paramref name="group"/> is <c>null</c>.</exception>
+    IReadOnlyList<OrderingGroupEntry> GetGroupEntries(IOrdering ordering, ISeason group);
+
+    /// <summary>
     ///   Where each source places a Shoko special among the regular episodes
     ///   of its series: AniDB by its titles, and each linked plugin source by
     ///   its linked episode's place in its series' default ordering. Of two
