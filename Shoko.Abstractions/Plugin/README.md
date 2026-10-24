@@ -606,8 +606,9 @@ newest release above its installed version that has an archive built for this
 server's ABI and runtime, which also repairs a plugin left behind by a contract
 change in the server. Plugins with a pinned version are left alone, and the
 step is skipped when the plugins folder is read-only, a stale repository cannot
-be reached, or it takes longer than 90 seconds. The older version stays
-installed. A new version that fails at start fails like any plugin, so the
+be reached, or it takes longer than 90 seconds. Before it looks, it fetches
+each repository fetched longer than `RepositoryStaleTimeOnStart` ago (5
+minutes by default). The older version stays installed. A new version that fails at start fails like any plugin, so the
 admin can see why and decide; nothing falls back on its own.
 
 A version built for a newer server is not a mismatch, only one this server

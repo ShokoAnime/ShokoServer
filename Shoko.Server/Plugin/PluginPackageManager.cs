@@ -119,6 +119,20 @@ public partial class PluginPackageManager(
         }
     }
 
+    /// <inheritdoc/>
+    public TimeSpan RepositoryStaleTimeOnStart
+    {
+        get => configurationProvider.Load().Plugins.Updates.RepositoryStaleTimeOnStart;
+        set
+        {
+            if (value < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(RepositoryStaleTimeOnStart), "Stale time cannot be lower than zero.");
+            var config = configurationProvider.Load(copy: true);
+            config.Plugins.Updates.RepositoryStaleTimeOnStart = value;
+            configurationProvider.Save(config);
+        }
+    }
+
     /// <summary>
     ///   How long an older plugin version stays installed after a newer one
     ///   was installed, not after the restart that activated it, before

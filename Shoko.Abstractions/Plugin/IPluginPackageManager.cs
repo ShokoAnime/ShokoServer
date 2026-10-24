@@ -36,6 +36,16 @@ public interface IPluginPackageManager
     TimeSpan DefaultRepositoryStaleTime { get; set; }
 
     /// <summary>
+    ///   How long ago a repository must have been fetched for the start-up
+    ///   upgrade to fetch it again, unless its own stale time is shorter.
+    ///   Defaults to 5 minutes.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///   Thrown when set lower than zero.
+    /// </exception>
+    TimeSpan RepositoryStaleTimeOnStart { get; set; }
+
+    /// <summary>
     ///   How long an older plugin version stays installed after a newer one
     ///   was installed, before <see cref="PurgeInactivePluginVersions"/> (the
     ///   daily "Purge Inactive Plugin Versions" scheduled action) marks it for
