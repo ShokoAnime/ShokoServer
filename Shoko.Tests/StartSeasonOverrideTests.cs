@@ -306,8 +306,8 @@ public class StartSeasonOverrideTests
     public void ApiView_ShowsTheOverrideAndTheComputedStart()
     {
         var computed = ThreeSeasons();
-        var overridden = AnidbStartSeason.From(computed, new(1, 2015, YearlySeason.Summer, DateTime.UnixEpoch, DateTime.UnixEpoch, null));
-        var plain = AnidbStartSeason.From(computed, null);
+        var overridden = AnidbStartSeason.From(computed.StartSeason, new(1, 2015, YearlySeason.Summer, DateTime.UnixEpoch, DateTime.UnixEpoch, null));
+        var plain = AnidbStartSeason.From(computed.StartSeason, null);
 
         Assert.Equal((2015, YearlySeason.Summer, true), (overridden.Year, overridden.Season, overridden.IsOverridden));
         Assert.Equal((2015, YearlySeason.Spring), (overridden.Computed!.Year, overridden.Computed.Season));

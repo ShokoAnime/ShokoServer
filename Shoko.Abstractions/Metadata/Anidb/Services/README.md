@@ -172,7 +172,12 @@ AnidbStartSeasonOverride set = anidbService.SetStartSeasonOverride(17860, 2024, 
 AnidbStartSeasonOverride? current = anidbService.GetStartSeasonOverride(17860);
 IReadOnlyList<AnidbStartSeasonOverride> all = anidbService.GetStartSeasonOverrides();
 bool removed = anidbService.RemoveStartSeasonOverride(17860);
+(int Year, YearlySeason Season)? computed = anidbService.GetComputedStartSeason(17860);
 ```
+
+`GetComputedStartSeason` is where the rule alone starts the anime, override or
+not, for showing next to an override; it is `null` for an anime not in the
+local cache or with no dates to go by.
 
 Only the start is overridden. The anime starts in that season and is then in
 every season the rule places it in after it: a later start drops the computed

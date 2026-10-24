@@ -6,7 +6,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
 
 using AbstractOverride = Shoko.Abstractions.Metadata.Anidb.Models.AnidbStartSeasonOverride;
 
@@ -45,18 +44,18 @@ public class AnidbStartSeason
     /// <summary>
     ///   Builds the view of an anime's start season.
     /// </summary>
-    /// <param name="computed">The span the rule works out, if any.</param>
+    /// <param name="computed">The start season the rule works out, if any.</param>
     /// <param name="startOverride">The override, if any.</param>
     /// <returns>The view.</returns>
-    public static AnidbStartSeason From(SeasonCalendar.SeasonSpan? computed, AbstractOverride? startOverride)
+    public static AnidbStartSeason From((int Year, YearlySeason Season)? computed, AbstractOverride? startOverride)
     {
-        var start = startOverride is not null ? (startOverride.Year, startOverride.Season) : computed?.StartSeason;
+        var start = startOverride is not null ? (startOverride.Year, startOverride.Season) : computed;
         return new()
         {
             Year = start?.Year,
             Season = start?.Season,
             IsOverridden = startOverride is not null,
-            Computed = computed is { StartSeason: var season } ? new(season.Year, season.Season) : null,
+            Computed = computed is { } season ? new(season.Year, season.Season) : null,
         };
     }
 

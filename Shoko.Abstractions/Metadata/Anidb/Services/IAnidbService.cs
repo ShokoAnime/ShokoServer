@@ -186,6 +186,18 @@ public interface IAnidbService
     AnidbStartSeasonOverride? GetStartSeasonOverride(int anidbAnimeID);
 
     /// <summary>
+    ///   Gets the season the yearly season rule starts an AniDB anime in,
+    ///   leaving out any override (see
+    ///   <see cref="Containers.IWithYearlySeasons"/>).
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <returns>
+    ///   The year and season, or <c>null</c> when the anime is not in the
+    ///   local cache or has no date to place it by.
+    /// </returns>
+    (int Year, YearlySeason Season)? GetComputedStartSeason(int anidbAnimeID);
+
+    /// <summary>
     ///   Lists every start season override, by AniDB anime ID.
     /// </summary>
     /// <returns>The overrides, by ascending AniDB anime ID.</returns>

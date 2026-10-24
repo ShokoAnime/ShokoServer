@@ -422,6 +422,10 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         => _startSeasonOverrides.Get(anidbAnimeID);
 
     /// <inheritdoc/>
+    public (int Year, YearlySeason Season)? GetComputedStartSeason(int anidbAnimeID)
+        => _anidbAnimeRepository.GetByAnimeID(anidbAnimeID)?.ComputedSeasonSpan?.StartSeason;
+
+    /// <inheritdoc/>
     public IReadOnlyList<AnidbStartSeasonOverride> GetStartSeasonOverrides()
         => _startSeasonOverrides.GetAll();
 

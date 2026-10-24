@@ -1288,7 +1288,7 @@ public class SeriesController(
         if (anime is null && startOverride is null)
             return NotFound(AnidbNotFoundForAnidbID);
 
-        return AnidbStartSeason.From(anime?.ComputedSeasonSpan, startOverride);
+        return AnidbStartSeason.From(_anidbService.GetComputedStartSeason(anidbID), startOverride);
     }
 
     /// <summary>
@@ -1311,7 +1311,7 @@ public class SeriesController(
             return ValidationProblem("The AniDB anime ID must be above 0.", nameof(anidbID));
 
         var startOverride = _anidbService.SetStartSeasonOverride(anidbID, body.Year!.Value, body.Season!.Value);
-        return AnidbStartSeason.From(_anidbAnime.GetByAnimeID(anidbID)?.ComputedSeasonSpan, startOverride);
+        return AnidbStartSeason.From(_anidbService.GetComputedStartSeason(anidbID), startOverride);
     }
 
     /// <summary>
