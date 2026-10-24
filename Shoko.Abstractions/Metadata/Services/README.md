@@ -636,9 +636,9 @@ schedule or from a plugin's install.
 ## Events
 
 `GroupAdded`, `GroupUpdated`, `GroupRemoved`, `SeriesMoved` and
-`GroupsRecreated`, split on `UpdateReason` as the metadata events are. One
-move raises several (`GroupUpdated`, `SeriesMoved`, and `GroupRemoved` for an
-emptied source group), so handlers must tolerate repeats.
+`GroupsRecreated`, split on `UpdateReason` as the metadata events are, each
+carrying `Actor`. One move raises several (`GroupUpdated`, `SeriesMoved`, and
+`GroupRemoved` for an emptied source group), so handlers must tolerate repeats.
 
 ---
 

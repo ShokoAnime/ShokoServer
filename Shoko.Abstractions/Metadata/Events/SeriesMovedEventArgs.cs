@@ -1,5 +1,6 @@
 using System;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Metadata.Events;
 
@@ -35,4 +36,10 @@ public class SeriesMovedEventArgs : EventArgs
         OldGroupID = oldGroupID;
         NewGroupID = newGroupID;
     }
+
+    /// <summary>
+    ///   The API token of whoever made the change, or <c>null</c> when the
+    ///   system did it. Stamped when the event is raised.
+    /// </summary>
+    public ApiToken? Actor { get; init; }
 }

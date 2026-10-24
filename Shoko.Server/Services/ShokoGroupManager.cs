@@ -70,7 +70,7 @@ public class ShokoGroupManager : IShokoGroupManager
     public event EventHandler<GroupInfoUpdatedEventArgs>? GroupUpdated;
     public event EventHandler<GroupInfoUpdatedEventArgs>? GroupRemoved;
     public event EventHandler<SeriesMovedEventArgs>? SeriesMoved;
-    public event EventHandler? GroupsRecreated;
+    public event EventHandler<GroupsRecreatedEventArgs>? GroupsRecreated;
 
     #endregion
 

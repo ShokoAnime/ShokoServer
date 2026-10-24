@@ -35,7 +35,7 @@ public class ShokoEventHandler
 
     public event EventHandler<SeriesMovedEventArgs>? SeriesMoved;
 
-    public event EventHandler? GroupsRecreated;
+    public event EventHandler<GroupsRecreatedEventArgs>? GroupsRecreated;
 
     public event EventHandler<AnidbAvdumpEventArgs>? AvdumpEvent;
 
@@ -132,18 +132,18 @@ public class ShokoEventHandler
     public void OnGroupUpdated(IShokoGroup group, UpdateReason reason)
     {
         ArgumentNullException.ThrowIfNull(group, nameof(group));
-        GroupUpdated?.Invoke(null, new(group, reason));
+        GroupUpdated?.Invoke(null, new(group, reason) { Actor = ActorContext.CurrentActor });
     }
 
     public void OnSeriesMoved(IShokoSeries series, int oldGroupID, int newGroupID)
     {
         ArgumentNullException.ThrowIfNull(series, nameof(series));
-        SeriesMoved?.Invoke(null, new(series, oldGroupID, newGroupID));
+        SeriesMoved?.Invoke(null, new(series, oldGroupID, newGroupID) { Actor = ActorContext.CurrentActor });
     }
 
     public void OnGroupsRecreated()
     {
-        GroupsRecreated?.Invoke(null, EventArgs.Empty);
+        GroupsRecreated?.Invoke(null, new() { Actor = ActorContext.CurrentActor });
     }
 
     public void OnAVDumpMessage(AnidbAvdumpEventType messageType, string? message = null)

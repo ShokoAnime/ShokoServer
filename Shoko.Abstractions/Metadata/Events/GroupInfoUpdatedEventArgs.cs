@@ -1,6 +1,7 @@
 using System;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Metadata.Events;
 
@@ -29,4 +30,10 @@ public class GroupInfoUpdatedEventArgs : EventArgs
         GroupInfo = group;
         Reason = reason;
     }
+
+    /// <summary>
+    ///   The API token of whoever made the change, or <c>null</c> when the
+    ///   system did it. Stamped when the event is raised.
+    /// </summary>
+    public ApiToken? Actor { get; init; }
 }

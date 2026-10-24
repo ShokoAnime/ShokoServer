@@ -41,7 +41,7 @@ public interface IShokoGroupManager
     /// <summary>
     ///   Dispatched when all groups have been recreated.
     /// </summary>
-    event EventHandler? GroupsRecreated;
+    event EventHandler<GroupsRecreatedEventArgs>? GroupsRecreated;
 
     #endregion
 
