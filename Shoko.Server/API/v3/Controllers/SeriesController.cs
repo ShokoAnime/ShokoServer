@@ -65,7 +65,7 @@ public class SeriesController(
     AnimeSeriesService _seriesService,
     AnimeGroupService _groupService,
     AniDBTitleHelper _titleHelper,
-    IQueueScheduler _scheduler,
+    IVideoHashingService _videoHashingService,
     IMetadataService _metadataService,
     IMetadataLinkingService _linkingService,
     IImageManager _imageManager,
@@ -2947,14 +2947,17 @@ public class SeriesController(
             return Forbid(SeriesForbiddenForUser);
         foreach (var file in series.VideoLocals)
         {
-            var filePath = file.FirstResolvedPlace?.Path;
-            if (string.IsNullOrEmpty(filePath))
+            if (file.FirstResolvedPlace is not { Path.Length: > 0 } place)
                 continue;
 
-            await _scheduler.EnqueueWithPriority<HashFileJob>(
-                c => (c.FilePath, c.ForceHash) = (filePath, true),
-                JobPriorities.ForFileSize(file.FileSize, isNew: false, prioritize: true)
-            ).ConfigureAwait(false);
+            try
+            {
+                await _videoHashingService.ScheduleGetHashesForFile(place, useExistingHashes: false, prioritize: true).ConfigureAwait(false);
+            }
+            catch (FileNotFoundException)
+            {
+                // Gone from disk since it was last seen; skip it.
+            }
         }
 
         return Ok();

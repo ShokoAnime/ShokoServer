@@ -59,6 +59,7 @@ public class FileController(
     IQueueScheduler _schedulerFactory,
     IMylistService _mylistService,
     IVideoService _videoService,
+    IVideoHashingService _videoHashingService,
     IVideoReleaseService _videoReleaseService,
     IUserDataService _userDataService,
     IVideoRelocationService _relocationService,
@@ -1675,13 +1676,17 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var filePath = file.FirstResolvedPlace?.Path;
-        if (string.IsNullOrEmpty(filePath))
+        if (file.FirstResolvedPlace is not { Path.Length: > 0 } place)
             return ValidationProblem(FileNoPath, "File");
-        await _schedulerFactory.EnqueueWithPriority<HashFileJob>(
-            c => (c.FilePath, c.ForceHash) = (filePath, true),
-            JobPriorities.ForFileSize(file.FileSize, isNew: false, prioritize: priority)
-        ).ConfigureAwait(false);
+
+        try
+        {
+            await _videoHashingService.ScheduleGetHashesForFile(place, useExistingHashes: false, prioritize: priority).ConfigureAwait(false);
+        }
+        catch (FileNotFoundException)
+        {
+            return ValidationProblem(FileNoPath, "File");
+        }
 
         return Ok();
     }

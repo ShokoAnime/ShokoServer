@@ -66,6 +66,7 @@ public class Common : BaseController
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly ReleaseComparisonService _releaseComparisonService;
     private readonly IScheduledActionService _scheduledActions;
+    private readonly IVideoHashingService _videoHashingService;
 
     public Common(
         IQueueScheduler scheduler,
@@ -79,8 +80,10 @@ public class Common : BaseController
         IVideoService videoService,
         IVideoReleaseService videoReleaseService,
         ReleaseComparisonService releaseComparisonService,
-        IScheduledActionService scheduledActions) : base(settingsProvider)
+        IScheduledActionService scheduledActions,
+        IVideoHashingService videoHashingService) : base(settingsProvider)
     {
+        _videoHashingService = videoHashingService;
         _scheduler = scheduler;
         _actionService = actionService;
         _queueHandler = queueHandler;
@@ -407,10 +410,15 @@ public class Common : BaseController
         {
             return NotFound("videolocal_place not found");
         }
-        await _scheduler.EnqueueWithPriority<HashFileJob>(
-            c => (c.FilePath, c.ForceHash) = (pl.Path, true),
-            JobPriorities.ForFileSize(vl.FileSize, isNew: false, prioritize: true)
-        ).ConfigureAwait(false);
+
+        try
+        {
+            await _videoHashingService.ScheduleGetHashesForFile(pl, useExistingHashes: false, prioritize: true).ConfigureAwait(false);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound("videolocal_place not found");
+        }
 
         return Ok();
     }
@@ -433,10 +441,14 @@ public class Common : BaseController
                     continue;
                 }
 
-                await _scheduler.EnqueueWithPriority<HashFileJob>(
-                    c => (c.FilePath, c.ForceHash) = (pl.Path, true),
-                    JobPriorities.ForFileSize(vl.FileSize, isNew: false, prioritize: true)
-                ).ConfigureAwait(false);
+                try
+                {
+                    await _videoHashingService.ScheduleGetHashesForFile(pl, useExistingHashes: false, prioritize: true).ConfigureAwait(false);
+                }
+                catch (FileNotFoundException)
+                {
+                    // Gone from disk since it was last seen; skip it.
+                }
             }
         }
         catch (Exception ex)
@@ -465,10 +477,14 @@ public class Common : BaseController
                     continue;
                 }
 
-                await _scheduler.EnqueueWithPriority<HashFileJob>(
-                    c => (c.FilePath, c.ForceHash) = (pl.Path, true),
-                    JobPriorities.ForFileSize(vl.FileSize, isNew: false, prioritize: true)
-                ).ConfigureAwait(false);
+                try
+                {
+                    await _videoHashingService.ScheduleGetHashesForFile(pl, useExistingHashes: false, prioritize: true).ConfigureAwait(false);
+                }
+                catch (FileNotFoundException)
+                {
+                    // Gone from disk since it was last seen; skip it.
+                }
             }
         }
         catch (Exception ex)
