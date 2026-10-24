@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata;
@@ -18,7 +21,8 @@ namespace Shoko.Server.Services;
 /// <param name="entryRepository">The tags on entries.</param>
 /// <param name="writer">Writes the changes.</param>
 /// <param name="textStore">Writes the tags, whose names and overviews stay on their rows, and tells the text manager.</param>
-public class MetadataTagStore(Metadata_TagRepository tagRepository, Metadata_Tag_EntryRepository entryRepository, MetadataRowWriter writer, MetadataTextStore textStore)
+/// <param name="logger">Where a handler's failure is logged.</param>
+public class MetadataTagStore(Metadata_TagRepository tagRepository, Metadata_Tag_EntryRepository entryRepository, MetadataRowWriter writer, MetadataTextStore textStore, ILogger<MetadataTagStore>? logger = null)
     : IMetadataTagStore
 {
     /// <summary>
@@ -26,6 +30,18 @@ public class MetadataTagStore(Metadata_TagRepository tagRepository, Metadata_Tag
     ///   and both add the same row.
     /// </summary>
     private readonly object _writeLock = new();
+
+    /// <summary>
+    ///   Where a handler's failure is logged.
+    /// </summary>
+    private readonly ILogger _logger = (ILogger?)logger ?? NullLogger.Instance;
+
+    #region Events
+
+    /// <inheritdoc />
+    public event EventHandler<MetadataEntitiesRemovedEventArgs>? EntitiesRemoved;
+
+    #endregion
 
     #region Reading
 
@@ -159,6 +175,7 @@ public class MetadataTagStore(Metadata_TagRepository tagRepository, Metadata_Tag
         ArgumentNullException.ThrowIfNull(source);
         MetadataEntries.CheckWritableSource(source, nameof(source));
 
+        List<MetadataGuid> removed;
         lock (_writeLock)
         {
             var deleting = tagRepository.GetBySource(source)
@@ -168,8 +185,11 @@ public class MetadataTagStore(Metadata_TagRepository tagRepository, Metadata_Tag
                 return [];
 
             textStore.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Tag>(tagRepository, [], deleting));
-            return [.. deleting.Select(tag => ((ITag)tag).ID)];
+            removed = [.. deleting.Select(tag => ((ITag)tag).ID)];
         }
+
+        MetadataStoreEvents.Raise(EntitiesRemoved, this, new() { EntityIDs = removed }, _logger, nameof(EntitiesRemoved));
+        return removed;
     }
 
     #endregion

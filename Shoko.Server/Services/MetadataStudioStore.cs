@@ -65,6 +65,37 @@ public class MetadataStudioStore(
     /// <inheritdoc />
     public event EventHandler<MetadataEntitiesRemovedEventArgs>? EntitiesRemoved;
 
+    /// <inheritdoc />
+    public event EventHandler<MetadataEntitiesSavedEventArgs>? EntitiesSaved;
+
+    /// <inheritdoc />
+    public event EventHandler<MetadataEntryLinksChangedEventArgs>? StudiosChanged;
+
+    /// <inheritdoc />
+    public event EventHandler<MetadataEntryLinksChangedEventArgs>? NetworksChanged;
+
+    /// <summary>
+    ///   Raises <see cref="EntitiesSaved"/> for studios and networks written.
+    /// </summary>
+    /// <param name="saved">The studios and networks written. Empty raises nothing.</param>
+    private void OnEntitiesSaved(IReadOnlyList<MetadataGuid> saved)
+    {
+        if (saved.Count is 0)
+            return;
+
+        MetadataStoreEvents.Raise(EntitiesSaved, this, new() { EntityIDs = saved }, _logger, nameof(EntitiesSaved));
+    }
+
+    /// <summary>
+    ///   Raises <see cref="StudiosChanged"/> or <see cref="NetworksChanged"/>
+    ///   for an entry whose links changed.
+    /// </summary>
+    /// <param name="handler">The event.</param>
+    /// <param name="entry">The entry.</param>
+    /// <param name="name">The event's name, for the log.</param>
+    private void OnLinksChanged(EventHandler<MetadataEntryLinksChangedEventArgs>? handler, MetadataGuid entry, string name)
+        => MetadataStoreEvents.Raise(handler, this, new() { EntityIDs = [entry] }, _logger, name);
+
     /// <summary>
     ///   Raises <see cref="EntitiesRemoved"/> for studios and networks
     ///   removed, those the core removes outside the store included.
@@ -165,6 +196,7 @@ public class MetadataStudioStore(
     {
         ArgumentNullException.ThrowIfNull(studios);
 
+        List<MetadataGuid> saved;
         lock (_writeLock)
         {
             var now = DateTime.Now;
@@ -180,7 +212,10 @@ public class MetadataStudioStore(
                 row.LastOrphanedAt = IsUsed(row) ? null : now;
             });
             textStore.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Studio>(studioRepository, saving, []));
+            saved = [.. saving.Select(row => ((IMetadata)row).ID)];
         }
+
+        OnEntitiesSaved(saved);
     }
 
     /// <inheritdoc />
@@ -198,6 +233,8 @@ public class MetadataStudioStore(
             MetadataEntries.CheckReference(item.StudioID, entry.Source, MetadataEntityType.Studio, nameof(studios));
 
         List<Metadata_Studio> named;
+        List<MetadataGuid> saved;
+        bool changed;
         lock (_writeLock)
         {
             // A studio not stored yet is stored as a stub first, and a stub with no name takes the one given.
@@ -210,6 +247,7 @@ public class MetadataStudioStore(
                 .ToList();
             if (stubs.Count > 0)
                 textStore.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Studio>(studioRepository, stubs, []));
+            saved = [.. stubs.Select(row => ((IMetadata)row).ID)];
 
             var resolved = items
                 .Select(item => (Item: item, StudioID: studioRepository.GetByProviderID(item.StudioID.Source, item.StudioID.ID)!.Metadata_StudioID))
@@ -229,8 +267,12 @@ public class MetadataStudioStore(
             writer.Write(new MetadataRowChanges<Metadata_Studio_Entry>(entryRepository, saving, deleting));
             RestampStudios([.. saving.Concat(deleting).Select(row => row.StudioID)]);
             named = [.. resolved.Select(studio => studio.StudioID).Distinct().Select(studioRepository.GetByID).OfType<Metadata_Studio>()];
+            changed = saving.Count + deleting.Count > 0;
         }
 
+        OnEntitiesSaved(saved);
+        if (changed)
+            OnLinksChanged(StudiosChanged, entry, nameof(StudiosChanged));
         entityScheduler?.ScheduleDue(named);
     }
 
@@ -240,13 +282,18 @@ public class MetadataStudioStore(
         ArgumentNullException.ThrowIfNull(entry);
         MetadataEntries.CheckWritableSource(entry.Source, nameof(entry));
 
+        int count;
         lock (_writeLock)
         {
             var deleting = entryRepository.GetByEntry(entry);
             writer.Write(new MetadataRowChanges<Metadata_Studio_Entry>(entryRepository, [], deleting));
             RestampStudios([.. deleting.Select(row => row.StudioID)]);
-            return deleting.Count;
+            count = deleting.Count;
         }
+
+        if (count > 0)
+            OnLinksChanged(StudiosChanged, entry, nameof(StudiosChanged));
+        return count;
     }
 
     /// <inheritdoc />
@@ -254,6 +301,7 @@ public class MetadataStudioStore(
     {
         ArgumentNullException.ThrowIfNull(networks);
 
+        List<MetadataGuid> saved;
         lock (_writeLock)
         {
             var now = DateTime.Now;
@@ -268,7 +316,10 @@ public class MetadataStudioStore(
                 row.LastOrphanedAt = IsUsed(row) ? null : now;
             });
             textStore.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Network>(networkRepository, saving, []));
+            saved = [.. saving.Select(row => ((IMetadata)row).ID)];
         }
+
+        OnEntitiesSaved(saved);
     }
 
     /// <inheritdoc />
@@ -300,17 +351,22 @@ public class MetadataStudioStore(
 
         var items = MetadataRows.FirstOfEach(given, network => network.NetworkID);
         List<Metadata_Network> named;
+        IReadOnlyList<MetadataGuid> stubs;
+        bool changed;
         lock (_writeLock)
         {
             // A network not stored yet is stored as a stub first, and a stub with no name takes the one given.
-            AddNetworkStubs(given.Select(item => (item.NetworkID, item.NetworkName)));
+            stubs = AddNetworkStubs(given.Select(item => (item.NetworkID, item.NetworkName)));
             var resolved = items
                 .Select(item => networkRepository.GetByProviderID(item.NetworkID.Source, item.NetworkID.ID)!.Metadata_NetworkID)
                 .ToList();
-            LinkNetworks(entry, resolved);
+            changed = LinkNetworks(entry, resolved);
             named = [.. resolved.Select(networkRepository.GetByID).OfType<Metadata_Network>()];
         }
 
+        OnEntitiesSaved(stubs);
+        if (changed)
+            OnLinksChanged(NetworksChanged, entry, nameof(NetworksChanged));
         entityScheduler?.ScheduleDue(named);
     }
 
@@ -320,8 +376,13 @@ public class MetadataStudioStore(
         ArgumentNullException.ThrowIfNull(entry);
         MetadataEntries.CheckWritableSource(entry.Source, nameof(entry));
 
+        int count;
         lock (_writeLock)
-            return UnlinkNetworks(entry);
+            count = UnlinkNetworks(entry);
+
+        if (count > 0)
+            OnLinksChanged(NetworksChanged, entry, nameof(NetworksChanged));
+        return count;
     }
 
     /// <inheritdoc />
@@ -416,14 +477,18 @@ public class MetadataStudioStore(
 
         IReadOnlyList<MetadataGuid> stubs;
         List<Metadata_Network> named;
+        bool changed;
         lock (_writeLock)
         {
             stubs = AddNetworkStubs(items.Select(network => (network, (string?)null)));
             var resolved = items.Select(network => networkRepository.GetByProviderID(network.Source, network.ID)!.Metadata_NetworkID).ToList();
-            LinkNetworks(orderingID, resolved);
+            changed = LinkNetworks(orderingID, resolved);
             named = [.. resolved.Select(networkRepository.GetByID).OfType<Metadata_Network>()];
         }
 
+        OnEntitiesSaved(stubs);
+        if (changed)
+            OnLinksChanged(NetworksChanged, orderingID, nameof(NetworksChanged));
         entityScheduler?.ScheduleDue(named);
         return stubs;
     }
@@ -438,8 +503,13 @@ public class MetadataStudioStore(
     {
         CheckUserOrdering(orderingID);
 
+        int count;
         lock (_writeLock)
-            return UnlinkNetworks(orderingID);
+            count = UnlinkNetworks(orderingID);
+
+        if (count > 0)
+            OnLinksChanged(NetworksChanged, orderingID, nameof(NetworksChanged));
+        return count;
     }
 
     /// <summary>
@@ -549,7 +619,8 @@ public class MetadataStudioStore(
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <param name="networkIDs">The store's IDs of the networks, in order, each once.</param>
-    private void LinkNetworks(MetadataGuid entry, IReadOnlyList<int> networkIDs)
+    /// <returns><c>true</c> when the entry's networks changed.</returns>
+    private bool LinkNetworks(MetadataGuid entry, IReadOnlyList<int> networkIDs)
     {
         var (saving, deleting) = MetadataRows.Replace(
             networkEntryRepository.GetByEntry(entry),
@@ -565,6 +636,7 @@ public class MetadataStudioStore(
         );
         writer.Write(new MetadataRowChanges<Metadata_Network_Entry>(networkEntryRepository, saving, deleting));
         RestampNetworks([.. saving.Concat(deleting).Select(row => row.NetworkID)]);
+        return saving.Count + deleting.Count > 0;
     }
 
     /// <summary>

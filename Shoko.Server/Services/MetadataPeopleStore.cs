@@ -72,6 +72,22 @@ public class MetadataPeopleStore(
     /// <inheritdoc />
     public event EventHandler<MetadataCreditsChangedEventArgs>? CreditsChanged;
 
+    /// <inheritdoc />
+    public event EventHandler<MetadataEntitiesSavedEventArgs>? EntitiesSaved;
+
+    /// <summary>
+    ///   Raises <see cref="EntitiesSaved"/> for creators and characters
+    ///   written.
+    /// </summary>
+    /// <param name="saved">The creators and characters written. Empty raises nothing.</param>
+    private void OnEntitiesSaved(IReadOnlyList<MetadataGuid> saved)
+    {
+        if (saved.Count is 0)
+            return;
+
+        MetadataStoreEvents.Raise(EntitiesSaved, this, new() { EntityIDs = saved }, _logger, nameof(EntitiesSaved));
+    }
+
     /// <summary>
     ///   Raises <see cref="EntitiesRemoved"/> for creators and characters
     ///   removed, those the core removes outside the store included.
@@ -158,6 +174,7 @@ public class MetadataPeopleStore(
         ArgumentNullException.ThrowIfNull(creators);
 
         var items = creators.ToList();
+        List<MetadataGuid> saved;
         lock (_writeLock)
         {
             var now = DateTime.Now;
@@ -190,7 +207,10 @@ public class MetadataPeopleStore(
                 [],
                 _ => [new MetadataRowChanges<Metadata_Creator>(creatorRepository, saving, [])]
             );
+            saved = [.. saving.Select(row => ((IMetadata)row).ID)];
         }
+
+        OnEntitiesSaved(saved);
     }
 
     /// <inheritdoc />
@@ -199,6 +219,7 @@ public class MetadataPeopleStore(
         ArgumentNullException.ThrowIfNull(characters);
 
         var items = characters.ToList();
+        List<MetadataGuid> saved;
         lock (_writeLock)
         {
             var now = DateTime.Now;
@@ -228,7 +249,10 @@ public class MetadataPeopleStore(
                 [],
                 _ => [new MetadataRowChanges<Metadata_Character>(characterRepository, saving, [])]
             );
+            saved = [.. saving.Select(row => ((IMetadata)row).ID)];
         }
+
+        OnEntitiesSaved(saved);
     }
 
     /// <inheritdoc />

@@ -44,6 +44,16 @@ public interface IMetadataPeopleStore
     /// </remarks>
     event EventHandler<MetadataCreditsChangedEventArgs>? CreditsChanged;
 
+    /// <summary>
+    ///   Raised once per save of creators or characters, of any source, with
+    ///   every one it wrote, changed or not.
+    /// </summary>
+    /// <remarks>
+    ///   Handlers run on the writer's thread after the write; an exception is
+    ///   logged.
+    /// </remarks>
+    event EventHandler<MetadataEntitiesSavedEventArgs>? EntitiesSaved;
+
     #endregion
 
     #region Reading

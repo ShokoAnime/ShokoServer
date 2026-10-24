@@ -33,6 +33,29 @@ public interface IMetadataStudioStore
     /// </remarks>
     event EventHandler<MetadataEntitiesRemovedEventArgs>? EntitiesRemoved;
 
+    /// <summary>
+    ///   Raised once per write that saved studios or networks, of any source,
+    ///   with every one it wrote, the stubs made for links included.
+    /// </summary>
+    /// <remarks>
+    ///   Handlers run on the writer's thread after the write; an exception is
+    ///   logged.
+    /// </remarks>
+    event EventHandler<MetadataEntitiesSavedEventArgs>? EntitiesSaved;
+
+    /// <summary>
+    ///   Raised once per write that changed the studios of an entry, of any
+    ///   source. A write that leaves them as they were raises nothing.
+    /// </summary>
+    event EventHandler<MetadataEntryLinksChangedEventArgs>? StudiosChanged;
+
+    /// <summary>
+    ///   Raised once per write that changed the networks of an entry, of any
+    ///   source, users' orderings included. A write that leaves them as they
+    ///   were raises nothing.
+    /// </summary>
+    event EventHandler<MetadataEntryLinksChangedEventArgs>? NetworksChanged;
+
     #endregion
 
     #region Reading

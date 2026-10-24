@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Events;
 
 namespace Shoko.Abstractions.Metadata.Storage;
 
@@ -15,6 +16,20 @@ namespace Shoko.Abstractions.Metadata.Storage;
 /// </remarks>
 public interface IMetadataTagStore
 {
+    #region Events
+
+    /// <summary>
+    ///   Raised once per write that removed tags, of any source, with every
+    ///   one it removed, such as the purge of unused tags.
+    /// </summary>
+    /// <remarks>
+    ///   Handlers run on the writer's thread after the write; an exception is
+    ///   logged.
+    /// </remarks>
+    event EventHandler<MetadataEntitiesRemovedEventArgs>? EntitiesRemoved;
+
+    #endregion
+
     #region Reading
 
     /// <summary>
