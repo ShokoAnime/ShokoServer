@@ -1018,7 +1018,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("file/watch")]
-    private async Task<ActionResult> MarkFileAsWatched(int id)
+    public async Task<ActionResult> MarkFileAsWatched(int id)
     {
         if (id == 0)
             return BadRequest("missing 'id'");
@@ -1034,7 +1034,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("file/unwatch")]
-    private async Task<ActionResult> MarkFileAsUnwatched(int id)
+    public async Task<ActionResult> MarkFileAsUnwatched(int id)
     {
         if (id == 0)
             return BadRequest("missing 'id'");
@@ -2623,7 +2623,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("group/unwatch")]
-    private async Task<ActionResult> MarkGroupAsUnwatched(int id)
+    public async Task<ActionResult> MarkGroupAsUnwatched(int id)
     {
         var user = HttpContext.GetUser();
         return await MarkWatchedStatusOnGroup(id, user, false);
@@ -2897,7 +2897,7 @@ public class Common : BaseController
     #endregion
 
     [HttpGet("links/serie")]
-    public static Dictionary<string, object> GetLinks(int id)
+    public Dictionary<string, object> GetLinks(int id)
     {
         var links = new Dictionary<string, object>();
 
