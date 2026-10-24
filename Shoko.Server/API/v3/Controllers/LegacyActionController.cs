@@ -43,6 +43,7 @@ public class LegacyActionController : BaseController
     private readonly MetadataEntityRefreshScheduler _entityScheduler;
     private readonly IScheduledActionService _scheduledActions;
     private readonly IVideoReleaseService _videoReleaseService;
+    private readonly IVideoService _videoService;
     private readonly IQueueScheduler _scheduler;
     private readonly MetadataSourceActions _sourceActions;
     private readonly IMetadataProviderManager _providerManager;
@@ -58,6 +59,7 @@ public class LegacyActionController : BaseController
         IQueueScheduler scheduler,
         IMylistService mylistService,
         IVideoReleaseService videoReleaseService,
+        IVideoService videoService,
         ISettingsProvider settingsProvider,
         ActionService actionService,
         AnimeGroupCreator groupCreator,
@@ -73,6 +75,7 @@ public class LegacyActionController : BaseController
         _logger = logger;
         _entityScheduler = entityScheduler;
         _videoReleaseService = videoReleaseService;
+        _videoService = videoService;
         _scheduler = scheduler;
         _mylistService = mylistService;
         _actionService = actionService;
@@ -142,7 +145,7 @@ public class LegacyActionController : BaseController
     [HttpGet("RemoveMissingFiles/{removeFromMylist:bool?}")]
     public async Task<ActionResult> RemoveMissingFiles(bool removeFromMylist = true)
     {
-        await _actionService.RemoveRecordsWithoutPhysicalFiles(removeFromMylist);
+        await _videoService.RemoveMissingVideoFiles(removeFromMylist);
         return Ok();
     }
 

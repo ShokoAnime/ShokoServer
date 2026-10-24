@@ -814,6 +814,14 @@ public class VideoService : IVideoService
         => _videoLocalRepository.GetVideosWithoutEpisode(includeBrokenLinks);
 
     /// <inheritdoc/>
+    public IReadOnlyList<IVideo> GetVideosWithMissingFiles(bool onlyFullyMissing = false)
+        => _videoLocalRepository.GetAll()
+            .Where(video => video.Places is var places && (places.Count is 0 || (onlyFullyMissing
+                ? places.All(place => !_fileSystemHelpers.FileExists(place.Path))
+                : places.Any(place => !_fileSystemHelpers.FileExists(place.Path)))))
+            .ToList();
+
+    /// <inheritdoc/>
     public IVideo? GetVideoByID(int videoID)
         => videoID <= 0 ? null : _videoLocalRepository.GetByID(videoID);
 
@@ -901,6 +909,186 @@ public class VideoService : IVideoService
             }
         }
 
+    }
+
+    public async Task RemoveMissingVideoFiles(bool removeFromMylist = true, IProgress<decimal>? progress = null, CancellationToken token = default)
+    {
+        _logger.LogInformation("Remove Missing Files: Start");
+        var stages = new StagedProgress(progress, 4, 1, 4, 1);
+        stages.Report(0);
+        var seriesToUpdate = new HashSet<AnimeSeries>();
+        try
+        {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+
+            // remove missing files in valid managed folders
+            var filesAll = _videoLocalPlaceRepository.GetAll()
+                .Where(a => a.ManagedFolder is not null)
+                .GroupBy(a => a.ManagedFolder!)
+                .SelectMany(a => a)
+                .ToList();
+            var placeItems = new ItemProgress(stages, filesAll.Count);
+            foreach (var vl in filesAll)
+            {
+                token.ThrowIfCancellationRequested();
+                placeItems.Increment();
+                if (_fileSystemHelpers.FileExists(vl.Path)) continue;
+
+                // delete video local record
+                _logger.LogInformation("Removing Missing File: {ID}", vl.VideoID);
+                // skipEvents covers the secondary events — outward side effects, the
+                // MyList removal among them — rather than first-party ones like the
+                // file-deleted event, which fire either way. So it inverts this flag
+                await RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, skipEvents: !removeFromMylist);
+            }
+
+            stages.NextStage();
+            token.ThrowIfCancellationRequested();
+            var videoLocalsAll = _videoLocalRepository.GetAll().ToList();
+            // remove empty video locals
+            {
+                using var transaction = session.BeginTransaction();
+                _videoLocalRepository.DeleteWithOpenTransaction(session, videoLocalsAll.Where(a => a.IsEmpty()).ToList());
+                transaction.Commit();
+            }
+
+            // Remove duplicate video locals
+            var locals = videoLocalsAll
+                .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
+                .GroupBy(a => a.Hash)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var toRemove = new List<VideoLocal>();
+            var comparer = new VideoLocalComparer();
+
+            foreach (var hash in locals.Keys)
+            {
+                var values = locals[hash].ToList();
+                values.Sort(comparer);
+                var to = values.First();
+                values.Remove(to);
+                foreach (var places in values.Select(from => from.Places).Where(places => places != null && places.Count != 0))
+                {
+                    using var transaction = session.BeginTransaction();
+                    foreach (var place in places)
+                    {
+                        place.VideoID = to.VideoLocalID;
+                        _videoLocalPlaceRepository.SaveWithOpenTransaction(session, place);
+                    }
+
+                    transaction.Commit();
+                }
+
+                toRemove.AddRange(values);
+            }
+
+            {
+                using var transaction = session.BeginTransaction();
+                foreach (var remove in toRemove)
+                {
+                    _videoLocalRepository.DeleteWithOpenTransaction(session, remove);
+                }
+
+                transaction.Commit();
+            }
+
+            // Remove files in invalid managed folders
+            stages.NextStage();
+            var videoItems = new ItemProgress(stages, videoLocalsAll.Count);
+            foreach (var v in videoLocalsAll)
+            {
+                token.ThrowIfCancellationRequested();
+                videoItems.Increment();
+                var places = v.Places;
+                if (places.Count > 0)
+                {
+                    using var transaction = session.BeginTransaction();
+                    foreach (var place in places.Where(place => string.IsNullOrWhiteSpace(place?.Path)))
+                    {
+#pragma warning disable CS0618
+                        _logger.LogInformation("Remove Records With Orphaned Managed Folder: {Filename}", v.FileName);
+#pragma warning restore CS0618
+                        seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
+                        _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
+                    }
+
+                    transaction.Commit();
+                }
+
+                // Remove duplicate places
+                places = v.Places;
+                if (places.Count == 1) continue;
+
+                if (places.Count > 0)
+                {
+                    places = places.DistinctBy(a => a.Path).ToList();
+                    places = v.Places.Except(places).ToList() ?? [];
+                    foreach (var place in places)
+                    {
+                        using var transaction = session.BeginTransaction();
+                        _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
+                        transaction.Commit();
+                    }
+                }
+
+                if (v.Places.Count > 0) continue;
+
+                // delete video local record
+#pragma warning disable CS0618
+                _logger.LogInformation("RemoveOrphanedVideoLocal : {Filename}", v.FileName);
+#pragma warning restore CS0618
+                seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
+
+                if (removeFromMylist)
+                    await ScheduleRemovalFromMylist(v);
+
+                {
+                    using var transaction = session.BeginTransaction();
+                    _videoLocalRepository.DeleteWithOpenTransaction(session, v);
+                    transaction.Commit();
+                }
+            }
+
+            // Clean up failed imports
+            stages.NextStage();
+            token.ThrowIfCancellationRequested();
+            var list = _videoLocalRepository.GetAll()
+                .SelectMany(a => a.EpisodeCrossReferences)
+                .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
+                .ToArray();
+            {
+                using var transaction = session.BeginTransaction();
+                foreach (var xref in list)
+                {
+                    // We don't need to update anything since they don't exist
+                    _crossRefRepository.DeleteWithOpenTransaction(session, xref);
+                }
+
+                transaction.Commit();
+            }
+
+            // clean up orphaned video local places
+            var placesToRemove = _videoLocalPlaceRepository.GetAll().Where(a => a.VideoLocal == null).ToList();
+            {
+                using var transaction = session.BeginTransaction();
+                foreach (var place in placesToRemove)
+                {
+                    // We don't need to update anything since they don't exist
+                    _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
+                }
+
+                transaction.Commit();
+            }
+
+            // NOTE: use 'purge unused releases' if you want to remove the cross-references too.
+        }
+        finally
+        {
+            // update everything we modified
+            await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        }
+
+        stages.Complete();
+        _logger.LogInformation("Remove Missing Files: Finished");
     }
 
     #endregion Video

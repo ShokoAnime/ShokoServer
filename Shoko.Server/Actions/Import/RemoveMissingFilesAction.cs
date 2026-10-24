@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.ScheduledActions;
-using Shoko.Server.Services;
+using Shoko.Abstractions.Video.Services;
 
 namespace Shoko.Server.Actions;
 
@@ -13,7 +13,7 @@ namespace Shoko.Server.Actions;
 ///   type still decides what removal means, so <c>DeleteLocalOnly</c> leaves
 ///   the MyList alone.
 /// </summary>
-public sealed class RemoveMissingFilesAction(ActionService actionService) : IScheduledAction
+public sealed class RemoveMissingFilesAction(IVideoService videoService) : IScheduledAction
 {
     public string Name => "Remove Missing Files";
 
@@ -22,5 +22,5 @@ public sealed class RemoveMissingFilesAction(ActionService actionService) : ISch
     public ActionCategory Category => ActionCategory.Import;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => actionService.RemoveRecordsWithoutPhysicalFiles(removeMylist: true, progress, token);
+        => videoService.RemoveMissingVideoFiles(removeFromMylist: true, progress, token);
 }

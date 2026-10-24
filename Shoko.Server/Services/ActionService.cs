@@ -59,10 +59,6 @@ public class ActionService : IActionService
 
     private readonly IAnidbService _anidbService;
 
-    private readonly IVideoService _videoService;
-
-    private readonly DatabaseFactory _databaseFactory;
-
     private readonly HttpXmlUtils _xmlUtils;
 
     private readonly IPluginPackageManager _pluginPackageManager;
@@ -107,8 +103,6 @@ public class ActionService : IActionService
 
     private readonly VideoLocalRepository _videoLocals;
 
-    private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
-
     private readonly StoredReleaseInfoRepository _storedReleaseInfos;
 
     private readonly AniDB_AnimeRepository _anidbAnimes;
@@ -134,8 +128,6 @@ public class ActionService : IActionService
         ISettingsProvider settingsProvider,
         IVideoReleaseService videoReleaseService,
         IAnidbService anidbService,
-        IVideoService videoService,
-        DatabaseFactory databaseFactory,
         HttpXmlUtils xmlUtils,
         IPluginPackageManager pluginPackageManager,
         IPluginManager pluginManager,
@@ -143,7 +135,6 @@ public class ActionService : IActionService
         ActionUiDefinitionBuilder actionUiDefinitionBuilder,
         IConfigurationService configurationService,
         VideoLocalRepository videoLocals,
-        VideoLocal_PlaceRepository videoLocalPlaces,
         StoredReleaseInfoRepository storedReleaseInfos,
         AniDB_AnimeRepository anidbAnimes,
         AniDB_EpisodeRepository anidbEpisodes,
@@ -161,8 +152,6 @@ public class ActionService : IActionService
         _settingsProvider = settingsProvider;
         _videoReleaseService = videoReleaseService;
         _anidbService = anidbService;
-        _videoService = videoService;
-        _databaseFactory = databaseFactory;
         _xmlUtils = xmlUtils;
         _pluginPackageManager = pluginPackageManager;
         _pluginManager = pluginManager;
@@ -170,7 +159,6 @@ public class ActionService : IActionService
         _actionUiDefinitionBuilder = actionUiDefinitionBuilder;
         _configurationService = configurationService;
         _videoLocals = videoLocals;
-        _videoLocalPlaces = videoLocalPlaces;
         _storedReleaseInfos = storedReleaseInfos;
         _anidbAnimes = anidbAnimes;
         _anidbEpisodes = anidbEpisodes;
@@ -830,201 +818,6 @@ public class ActionService : IActionService
     #endregion
 
     #region Maintenance
-
-    /// <summary>
-    ///   Removes the records of files that are gone from disk, merges
-    ///   duplicate files and drops orphaned rows, then queues a stats refresh
-    ///   of every series touched.
-    /// </summary>
-    /// <remarks>
-    ///   Each file is removed in a transaction of its own, so a cancelled run
-    ///   leaves the rest for the next one. The series touched so far get
-    ///   their stats refresh queued however the run ends.
-    /// </remarks>
-    /// <param name="removeMylist">Whether to remove the files from the AniDB MyList too.</param>
-    /// <param name="progress">Told how far the run is, from 0 to 100.</param>
-    /// <param name="token">Stops the run between two files.</param>
-    /// <returns>A task that completes once the records are removed.</returns>
-    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
-    public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMylist = true, IProgress<decimal>? progress = null, CancellationToken token = default)
-    {
-        _logger.LogInformation("Remove Missing Files: Start");
-        var stages = new StagedProgress(progress, 4, 1, 4, 1);
-        stages.Report(0);
-        var seriesToUpdate = new HashSet<AnimeSeries>();
-        try
-        {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-
-            // remove missing files in valid managed folders
-            var filesAll = _videoLocalPlaces.GetAll()
-                .Where(a => a.ManagedFolder is not null)
-                .GroupBy(a => a.ManagedFolder!)
-                .SelectMany(a => a)
-                .ToList();
-            var placeItems = new ItemProgress(stages, filesAll.Count);
-            foreach (var vl in filesAll)
-            {
-                token.ThrowIfCancellationRequested();
-                placeItems.Increment();
-                if (File.Exists(vl.Path)) continue;
-
-                // delete video local record
-                _logger.LogInformation("Removing Missing File: {ID}", vl.VideoID);
-                // skipEvents covers the secondary events — outward side effects, the
-                // MyList removal among them — rather than first-party ones like the
-                // file-deleted event, which fire either way. So it inverts this flag
-                await ((VideoService)_videoService).RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, skipEvents: !removeMylist);
-            }
-
-            stages.NextStage();
-            token.ThrowIfCancellationRequested();
-            var videoLocalsAll = _videoLocals.GetAll().ToList();
-            // remove empty video locals
-            {
-                using var transaction = session.BeginTransaction();
-                _videoLocals.DeleteWithOpenTransaction(session, videoLocalsAll.Where(a => a.IsEmpty()).ToList());
-                transaction.Commit();
-            }
-
-            // Remove duplicate video locals
-            var locals = videoLocalsAll
-                .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
-                .GroupBy(a => a.Hash)
-                .ToDictionary(g => g.Key, g => g.ToList());
-            var toRemove = new List<VideoLocal>();
-            var comparer = new VideoLocalComparer();
-
-            foreach (var hash in locals.Keys)
-            {
-                var values = locals[hash].ToList();
-                values.Sort(comparer);
-                var to = values.First();
-                values.Remove(to);
-                foreach (var places in values.Select(from => from.Places).Where(places => places != null && places.Count != 0))
-                {
-                    using var transaction = session.BeginTransaction();
-                    foreach (var place in places)
-                    {
-                        place.VideoID = to.VideoLocalID;
-                        _videoLocalPlaces.SaveWithOpenTransaction(session, place);
-                    }
-
-                    transaction.Commit();
-                }
-
-                toRemove.AddRange(values);
-            }
-
-            {
-                using var transaction = session.BeginTransaction();
-                foreach (var remove in toRemove)
-                {
-                    _videoLocals.DeleteWithOpenTransaction(session, remove);
-                }
-
-                transaction.Commit();
-            }
-
-            // Remove files in invalid managed folders
-            stages.NextStage();
-            var videoItems = new ItemProgress(stages, videoLocalsAll.Count);
-            foreach (var v in videoLocalsAll)
-            {
-                token.ThrowIfCancellationRequested();
-                videoItems.Increment();
-                var places = v.Places;
-                if (places.Count > 0)
-                {
-                    using var transaction = session.BeginTransaction();
-                    foreach (var place in places.Where(place => string.IsNullOrWhiteSpace(place?.Path)))
-                    {
-#pragma warning disable CS0618
-                        _logger.LogInformation("Remove Records With Orphaned Managed Folder: {Filename}", v.FileName);
-#pragma warning restore CS0618
-                        seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
-                        _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
-                    }
-
-                    transaction.Commit();
-                }
-
-                // Remove duplicate places
-                places = v.Places;
-                if (places.Count == 1) continue;
-
-                if (places.Count > 0)
-                {
-                    places = places.DistinctBy(a => a.Path).ToList();
-                    places = v.Places.Except(places).ToList() ?? [];
-                    foreach (var place in places)
-                    {
-                        using var transaction = session.BeginTransaction();
-                        _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
-                        transaction.Commit();
-                    }
-                }
-
-                if (v.Places.Count > 0) continue;
-
-                // delete video local record
-#pragma warning disable CS0618
-                _logger.LogInformation("RemoveOrphanedVideoLocal : {Filename}", v.FileName);
-#pragma warning restore CS0618
-                seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
-
-                if (removeMylist)
-                    await ((VideoService)_videoService).ScheduleRemovalFromMylist(v);
-
-                {
-                    using var transaction = session.BeginTransaction();
-                    _videoLocals.DeleteWithOpenTransaction(session, v);
-                    transaction.Commit();
-                }
-            }
-
-            // Clean up failed imports
-            stages.NextStage();
-            token.ThrowIfCancellationRequested();
-            var list = _videoLocals.GetAll()
-                .SelectMany(a => a.EpisodeCrossReferences)
-                .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
-                .ToArray();
-            {
-                using var transaction = session.BeginTransaction();
-                foreach (var xref in list)
-                {
-                    // We don't need to update anything since they don't exist
-                    _crossRefFileEpisodes.DeleteWithOpenTransaction(session, xref);
-                }
-
-                transaction.Commit();
-            }
-
-            // clean up orphaned video local places
-            var placesToRemove = _videoLocalPlaces.GetAll().Where(a => a.VideoLocal == null).ToList();
-            {
-                using var transaction = session.BeginTransaction();
-                foreach (var place in placesToRemove)
-                {
-                    // We don't need to update anything since they don't exist
-                    _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
-                }
-
-                transaction.Commit();
-            }
-
-            // NOTE: use 'purge unused releases' if you want to remove the cross-references too.
-        }
-        finally
-        {
-            // update everything we modified
-            await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
-        }
-
-        stages.Complete();
-        _logger.LogInformation("Remove Missing Files: Finished");
-    }
 
     /// <summary>
     ///   Queues a stats refresh of every series.

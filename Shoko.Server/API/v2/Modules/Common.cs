@@ -264,7 +264,7 @@ public class Common : BaseController
     [HttpGet("remove_missing_files")]
     public async Task<ActionResult> RemoveMissingFiles()
     {
-        await _actionService.RemoveRecordsWithoutPhysicalFiles();
+        await _videoService.RemoveMissingVideoFiles();
         return Ok();
     }
 

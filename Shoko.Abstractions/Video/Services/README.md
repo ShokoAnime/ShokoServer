@@ -104,6 +104,7 @@ The same file copied into two managed folders is one `IVideo` with two
 | `GetVideoByID`, `GetAllVideos` | Straight lookups over the video records |
 | `GetIgnoredVideos` | The videos marked as ignored, read from an index rather than a walk over every video |
 | `GetUnrecognizedVideos(includeBrokenLinks)` | The videos not ignored that no episode is linked to, sorted by path; with `includeBrokenLinks`, also those linked only to episodes or series the collection lacks. A walk over every video |
+| `GetVideosWithMissingFiles(onlyFullyMissing)` | The videos with a file no longer on disk, or with no file at all; with `onlyFullyMissing`, only those with nothing left on disk. Checks the disk for every file |
 | `GetVideoByHash(hash, algorithm)` | Returns a video **only if exactly one** matches; ambiguity gives `null`, not a first hit |
 | `GetVideoByHashAndSize(hash, size, algorithm)` | Same, narrowed by file size. Prefer this one |
 | `GetAllVideoByHash(hash, algorithm[, metadata])` | Every match, for when you want to handle ambiguity yourself |
@@ -181,6 +182,13 @@ equivalent as `true`, so the defaults of the four methods do not agree and
 relying on them is a good way to delete more than you meant to.
 `removeFolders` (default `true`) cleans up parent directories left empty
 afterwards.
+
+`RemoveMissingVideoFiles(removeFromMylist, progress, token)` is the purge the
+"Remove Missing Files" scheduled action runs: it drops the location records of
+files no longer on disk and the videos left with none, merges duplicate videos
+and removes orphaned rows. `GetVideosWithMissingFiles` lists what it would act
+on. Only the missing locations raise `VideoFileDeleted`; the merges and orphan
+clean-up are silent.
 
 ### Events
 

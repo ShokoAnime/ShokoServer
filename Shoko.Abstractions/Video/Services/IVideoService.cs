@@ -268,6 +268,21 @@ public interface IVideoService
     IReadOnlyList<IVideo> GetUnrecognizedVideos(bool includeBrokenLinks = false);
 
     /// <summary>
+    ///   Gets the videos with a file that is no longer on disk, or with no
+    ///   file at all: the ones <see cref="RemoveMissingVideoFiles"/> acts on.
+    ///   It checks the disk for every file, so it is slow on a large
+    ///   collection.
+    /// </summary>
+    /// <param name="onlyFullyMissing">
+    ///   <c>true</c> to get only the videos with no file left on disk, the
+    ///   ones the purge removes whole.
+    /// </param>
+    /// <returns>
+    ///   The videos with missing files.
+    /// </returns>
+    IReadOnlyList<IVideo> GetVideosWithMissingFiles(bool onlyFullyMissing = false);
+
+    /// <summary>
     ///   Looks up a video by its ID.
     /// </summary>
     /// <param name="videoID">
@@ -428,6 +443,34 @@ public interface IVideoService
     ///   A task representing the asynchronous operation.
     /// </returns>
     Task DeleteVideos(IEnumerable<IVideo> videos, bool removeFiles = true, bool removeFolders = true);
+
+    /// <summary>
+    ///   Removes the records of the files no longer on disk, and of the
+    ///   videos left without a file, then merges duplicate videos and drops
+    ///   orphaned rows. The "Remove Missing Files" scheduled action runs it.
+    /// </summary>
+    /// <remarks>
+    ///   Each file is removed on its own, so a cancelled run leaves the rest
+    ///   for the next one. The series touched get their stats refreshed
+    ///   however the run ends.
+    /// </remarks>
+    /// <param name="removeFromMylist">
+    ///   Optional. Set to <c>false</c> to leave the removed videos in the
+    ///   AniDB MyList.
+    /// </param>
+    /// <param name="progress">
+    ///   Optional. Told how far the run is, from 0 to 100.
+    /// </param>
+    /// <param name="token">
+    ///   Optional. Stops the run between two files.
+    /// </param>
+    /// <exception cref="OperationCanceledException">
+    ///   <paramref name="token"/> was cancelled.
+    /// </exception>
+    /// <returns>
+    ///   A task that completes once the records are removed.
+    /// </returns>
+    Task RemoveMissingVideoFiles(bool removeFromMylist = true, IProgress<decimal>? progress = null, CancellationToken token = default);
 
     #endregion
 

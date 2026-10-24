@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
-using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -11,7 +11,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("RemoveMissingFiles")]
 [JobKeyGroup(JobKeyGroup.Legacy)]
 [DisallowConcurrentExecution]
-internal class RemoveMissingFilesJob(ActionService actionService) : BaseJob
+internal class RemoveMissingFilesJob(IVideoService videoService) : BaseJob
 {
     [JobKeyMember]
     public bool RemoveMylist { get; set; }
@@ -29,6 +29,6 @@ internal class RemoveMissingFilesJob(ActionService actionService) : BaseJob
 
     public override async Task Execute()
     {
-        await actionService.RemoveRecordsWithoutPhysicalFiles(RemoveMylist);
+        await videoService.RemoveMissingVideoFiles(RemoveMylist);
     }
 }
