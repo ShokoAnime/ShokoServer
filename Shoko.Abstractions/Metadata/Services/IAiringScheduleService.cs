@@ -249,6 +249,28 @@ public interface IAiringScheduleService
     IAiringChannel? GetChannelByName(string nameOrAlias, AiringChannelType type, string? countryCode = null, bool useAliases = true);
 
     /// <summary>
+    ///   Gets every channel with the given name or alias, in every country and
+    ///   without one. Own names come before aliases, each by type, then by
+    ///   country with the channels without one first.
+    /// </summary>
+    /// <param name="nameOrAlias">
+    ///   The name or alias of the channels.
+    /// </param>
+    /// <param name="type">
+    ///   Optional. If set, only channels of this type are returned.
+    /// </param>
+    /// <param name="useAliases">
+    ///   If <c>false</c>, only own names are matched.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="nameOrAlias"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The channels, or none when no channel answers to the name.
+    /// </returns>
+    IReadOnlyList<IAiringChannel> GetChannelsByName(string nameOrAlias, AiringChannelType? type = null, bool useAliases = true);
+
+    /// <summary>
     ///   Gets every registered channel, optionally of one type only.
     /// </summary>
     /// <param name="type">

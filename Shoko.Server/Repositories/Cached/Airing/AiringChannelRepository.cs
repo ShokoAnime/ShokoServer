@@ -28,6 +28,8 @@ public class AiringChannelRepository(DatabaseFactory databaseFactory) : BaseCach
 
     private PocoIndex<int, AiringChannel, (AiringChannelType Type, string NormalizedName)>? _namesInAnyCountry;
 
+    private PocoIndex<int, AiringChannel, (AiringChannelType Type, string NormalizedName)>? _anyNamesInAnyCountry;
+
     /// <inheritdoc/>
     protected override int SelectKey(AiringChannel entity)
         => entity.AiringChannelID;
@@ -39,6 +41,7 @@ public class AiringChannelRepository(DatabaseFactory databaseFactory) : BaseCach
         _names = Cache.CreateIndex(c => (c.Type, c.CountryCode ?? string.Empty, c.NormalizedName));
         _anyNames = Cache.CreateIndex(c => c.NormalizedNames.Select(name => (c.Type, c.CountryCode ?? string.Empty, name)));
         _namesInAnyCountry = Cache.CreateIndex(c => (c.Type, c.NormalizedName));
+        _anyNamesInAnyCountry = Cache.CreateIndex(c => c.NormalizedNames.Select(name => (c.Type, name)));
     }
 
     /// <summary>
@@ -108,6 +111,26 @@ public class AiringChannelRepository(DatabaseFactory databaseFactory) : BaseCach
             return [];
 
         return _namesInAnyCountry!.GetMultiple((type, AiringScheduleUtility.NormalizeChannelName(name)))
+            .OrderBy(c => c.CountryCode, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Gets every channel of one type whose own name, or one of whose aliases,
+    /// matches the given name, in every country and without one.
+    /// </summary>
+    /// <param name="name">The name of the channel, in any spelling.</param>
+    /// <param name="type">The type of the channel.</param>
+    /// <returns>The channels, ordered by their country, those without one first.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
+    public IReadOnlyList<AiringChannel> GetAllByNameOrAliasInAnyCountry(string name, AiringChannelType type)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        if (string.IsNullOrWhiteSpace(name))
+            return [];
+
+        return _anyNamesInAnyCountry!.GetMultiple((type, AiringScheduleUtility.NormalizeChannelName(name)))
             .OrderBy(c => c.CountryCode, StringComparer.Ordinal)
             .ToList();
     }

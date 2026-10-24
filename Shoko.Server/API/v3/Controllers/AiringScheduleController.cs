@@ -835,7 +835,7 @@ public class AiringScheduleController(
             if (airingScheduleService.GetChannelByName(name, channelType, country, useAliases) is { } channel)
                 return new AiringChannel(channel);
 
-        if (country is null && FindChannelInAnyCountry(name, types, useAliases) is { } regional)
+        if (country is null && airingScheduleService.GetChannelsByName(name, type, useAliases).FirstOrDefault() is { } regional)
             return new AiringChannel(regional);
 
         return NotFound(ChannelNotFoundWithName);
@@ -1064,29 +1064,6 @@ public class AiringScheduleController(
         foreach (var channel in airingScheduleService.GetAllChannels())
             airingScheduleService.SetChannelHidden(channel, hidden.Contains(channel.ChannelID));
         return GetHiddenChannels();
-    }
-
-    /// <summary>
-    /// Finds a channel in any country that answers to a name, own names
-    /// before aliases.
-    /// </summary>
-    /// <param name="name">The name or alias to look up.</param>
-    /// <param name="types">The types to look among.</param>
-    /// <param name="useAliases">Whether a channel's aliases count as its names.</param>
-    /// <returns>The channel, or <c>null</c> when none answers.</returns>
-    private IAiringChannel? FindChannelInAnyCountry(string name, IReadOnlyList<AiringChannelType> types, bool useAliases)
-    {
-        var normalizedName = IAiringScheduleService.NormalizeChannelName(name);
-        if (normalizedName.Length is 0)
-            return null;
-
-        var channels = airingScheduleService.GetAllChannels()
-            .Where(channel => types.Contains(channel.Type))
-            .ToList();
-        return channels.FirstOrDefault(channel => IAiringScheduleService.NormalizeChannelName(channel.Name) == normalizedName)
-            ?? (useAliases
-                ? channels.FirstOrDefault(channel => channel.Aliases.Any(alias => IAiringScheduleService.NormalizeChannelName(alias) == normalizedName))
-                : null);
     }
 
     #endregion

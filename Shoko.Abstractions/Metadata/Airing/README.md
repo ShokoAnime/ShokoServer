@@ -238,6 +238,9 @@ and "Tokyo MX" in `JP` are one, while "ABC" in `JP` and "ABC" in `US` are two.
   new ID; when a channel there already answers to its name, it is merged into
   that one instead. Two channels tying for the name leave the lookup empty and
   the registration new.
+- **Every country.** `GetChannelsByName(nameOrAlias, type, useAliases)` lists
+  every channel answering to a name, in every country and without one, own
+  names before aliases, so "ABC" gives both the `JP` and the `US` station.
 - **Aliases.** One normalised name answers to at most one channel of a type
   and country. Adding an alias that another channel already answers to throws
   `ChannelAliasConflictException`; `SetChannelAliases` replaces the whole list.

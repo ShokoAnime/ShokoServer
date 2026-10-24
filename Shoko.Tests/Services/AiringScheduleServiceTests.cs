@@ -1881,6 +1881,26 @@ public class AiringScheduleServiceTests
 
     #region Channel Countries
 
+    [Fact]
+    public void GetChannelsByName_ListsEveryCountry_OwnNamesBeforeAliases()
+    {
+        using var harness = new Harness();
+        var abcUnitedStates = harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "US");
+        var abcJapan = harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Television, "JP");
+        var asahi = harness.Service.FindOrRegisterChannel("Asahi Broadcasting", AiringChannelType.Television, "GB");
+        harness.Service.AddChannelAliases(asahi, ["abc"]);
+        harness.Service.FindOrRegisterChannel("ABC", AiringChannelType.Streaming);
+
+        var all = harness.Service.GetChannelsByName("abc");
+        var ownNames = harness.Service.GetChannelsByName("abc", AiringChannelType.Television, useAliases: false);
+
+        Assert.Equal(
+            [("ABC", AiringChannelType.Television, "JP"), ("ABC", AiringChannelType.Television, "US"), ("ABC", AiringChannelType.Streaming, null), ("Asahi Broadcasting", AiringChannelType.Television, "GB")],
+            all.Select(channel => (channel.Name, channel.Type, channel.CountryCode))
+        );
+        Assert.Equal([abcJapan.ChannelID, abcUnitedStates.ChannelID], ownNames.Select(channel => channel.ChannelID));
+    }
+
     [Theory]
     [InlineData("Tokyo MX (JP)", true, "Tokyo MX", "JP")]
     [InlineData("Amazon(US)", true, "Amazon", "US")]

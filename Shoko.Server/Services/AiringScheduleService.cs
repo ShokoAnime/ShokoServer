@@ -780,6 +780,19 @@ public partial class AiringScheduleService(
     }
 
     /// <inheritdoc/>
+    public IReadOnlyList<IAiringChannel> GetChannelsByName(string nameOrAlias, AiringChannelType? type = null, bool useAliases = true)
+    {
+        ArgumentNullException.ThrowIfNull(nameOrAlias);
+
+        var types = type is { } single ? [single] : Enum.GetValues<AiringChannelType>();
+        var channels = types.SelectMany(channelType => RepoFactory.AiringChannel.GetAllByNameInAnyCountry(nameOrAlias, channelType));
+        if (useAliases)
+            channels = channels.Concat(types.SelectMany(channelType => RepoFactory.AiringChannel.GetAllByNameOrAliasInAnyCountry(nameOrAlias, channelType)));
+
+        return [.. channels.DistinctBy(channel => channel.AiringChannelID).Select(ToChannelView)];
+    }
+
+    /// <inheritdoc/>
     public IReadOnlyList<IAiringChannel> GetAllChannels(AiringChannelType? type = null)
     {
         return RepoFactory.AiringChannel.GetAll()
