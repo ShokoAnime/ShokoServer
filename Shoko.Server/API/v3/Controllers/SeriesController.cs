@@ -63,7 +63,6 @@ public class SeriesController(
     ISettingsProvider settingsProvider,
     ActionService _actionService,
     AnimeSeriesService _seriesService,
-    AnimeGroupService _groupService,
     AniDBTitleHelper _titleHelper,
     IVideoHashingService _videoHashingService,
     IMetadataService _metadataService,
@@ -1932,9 +1931,6 @@ public class SeriesController(
         if (needRefresh)
             await _metadataRefreshService.RefreshEntry(TmdbShowEntry(body.ID), body.Refresh, RequestedWithImages);
 
-        // Update the group stats when a new link is added.
-        _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, false, false);
-
         return NoContent();
     }
 
@@ -1976,10 +1972,6 @@ public class SeriesController(
                 body?.Purge ?? false,
                 disableAutoLinking: true
             );
-
-        // Update the group stats when a link is removed.
-        _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, false, false);
-
 
         return NoContent();
     }
