@@ -1024,9 +1024,20 @@ public class VideoService : IVideoService
                     places = v.Places.Except(places).ToList() ?? [];
                     foreach (var place in places)
                     {
-                        using var transaction = session.BeginTransaction();
-                        _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
-                        transaction.Commit();
+                        {
+                            using var transaction = session.BeginTransaction();
+                            _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
+                            transaction.Commit();
+                        }
+
+                        try
+                        {
+                            ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder, place, v);
+                        }
+                        catch
+                        {
+                            // ignore
+                        }
                     }
                 }
 

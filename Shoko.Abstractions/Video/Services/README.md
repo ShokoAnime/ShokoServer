@@ -187,8 +187,11 @@ afterwards.
 "Remove Missing Files" scheduled action runs: it drops the location records of
 files no longer on disk and the videos left with none, merges duplicate videos
 and removes orphaned rows. `GetVideosWithMissingFiles` lists what it would act
-on. Only the missing locations raise `VideoFileDeleted`; the merges and orphan
-clean-up are silent.
+on. The missing locations and the second records of a file's path raise
+`VideoFileDeleted`. Records in a managed folder that no longer exists raise
+nothing, as everywhere else, and neither does the repair of rows an old
+database may hold: videos without a hash, duplicate videos of one hash, records
+with no video and links to missing anime or episodes.
 
 ### Events
 
