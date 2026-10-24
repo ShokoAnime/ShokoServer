@@ -137,6 +137,9 @@ public class AniDB_Character : ICharacter, IInlineTextSource
     // Characters come with their anime, and nothing stores when one was last fetched.
     DateTime? ICharacter.LastRefreshedAt => null;
 
+    // AniDB's own entries are written whole with their anime.
+    bool ICharacter.IsStub => false;
+
     FuzzyDateOnly? ICharacter.BirthDay => null;
 
     IEnumerable<ICast<IEpisode>> ICharacter.EpisodeCastRoles =>

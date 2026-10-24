@@ -549,8 +549,8 @@ public class ExampleProvider(ExampleClient client, IMetadataPeopleStore people) 
   for one (`Creator`, `Character`, `Studio` or `Network`).
 
 A source with no such provider keeps its stubs until something saves them.
-Clients see a stub through `IsStub` on the creator, character, studio and
-network models.
+Plugins see a stub through `IsStub` on `ICreator`, `ICharacter`, `IStudio` and
+`INetwork`, and API clients through the same flag on their models.
 
 ## Matching episodes
 

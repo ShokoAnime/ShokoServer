@@ -49,4 +49,11 @@ public interface ICharacter : IMetadata, IWithTitles, IWithOverviews, IWithPrima
     /// All series cast roles with the character.
     /// </summary>
     IEnumerable<ICast<ISeries>> SeriesCastRoles { get; }
+
+    /// <summary>
+    ///   Whether the character is a stub: an entry the core made for a credit
+    ///   before its source wrote it, named only by what that carried. It
+    ///   fills in once the source saves the character.
+    /// </summary>
+    bool IsStub { get; }
 }

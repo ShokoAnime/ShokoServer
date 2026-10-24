@@ -581,9 +581,10 @@ public sealed class MetadataModelBuilder(
     internal static bool IsStub(IMetadata entity)
         => entity switch
         {
-            IMetadataStubRow row => row.IsStub,
-            Metadata_Studio_Entry studio => studio.Studio?.IsStub ?? false,
-            Metadata_Network_Entry network => network.Network?.IsStub ?? false,
+            ICreator creator => creator.IsStub,
+            ICharacter character => character.IsStub,
+            IStudio studio => studio.IsStub,
+            INetwork network => network.IsStub,
             _ => false,
         };
 

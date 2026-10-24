@@ -78,6 +78,8 @@ public class Metadata_Network_Entry : MetadataEntryRow, INetwork, IMetadataStore
 
     string INetwork.Name => Network?.Name ?? string.Empty;
 
+    bool INetwork.IsStub => Network?.IsStub ?? false;
+
     string? INetwork.CountryOfOrigin => Network?.CountryOfOrigin;
 
     DateTime? INetwork.LastRefreshedAt => (Network as INetwork)?.LastRefreshedAt;

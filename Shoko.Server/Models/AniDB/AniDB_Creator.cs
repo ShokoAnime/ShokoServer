@@ -182,6 +182,9 @@ public class AniDB_Creator : ICreator
     // Nothing stores when the creator was last fetched.
     DateTime? ICreator.LastRefreshedAt => null;
 
+    // AniDB's own entries are written whole with their anime.
+    bool ICreator.IsStub => false;
+
     // AniDB gives neither a place of birth nor an adult-only mark.
     string? ICreator.PlaceOfBirth => null;
 

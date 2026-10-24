@@ -29,4 +29,11 @@ public interface INetwork : IMetadata, IWithImages, IWithPrimaryImage
     ///   never did.
     /// </summary>
     DateTime? LastRefreshedAt { get; }
+
+    /// <summary>
+    ///   Whether the network is a stub: an entry the core made for a link
+    ///   before its source wrote it, named only by what that carried. It
+    ///   fills in once the source saves the network.
+    /// </summary>
+    bool IsStub { get; }
 }

@@ -83,6 +83,8 @@ public class Metadata_Studio_Entry : MetadataEntryRow, IStudio<ISeries>, IStudio
 
     string IStudio.Name => Studio?.Name ?? string.Empty;
 
+    bool IStudio.IsStub => Studio?.IsStub ?? false;
+
     string? IStudio.OriginalName => Studio?.OriginalName;
 
     string? IStudio.CountryOfOrigin => Studio?.CountryOfOrigin;

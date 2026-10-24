@@ -65,6 +65,9 @@ public class AniDB_Studio : IStudio
 
     string? IStudio.OriginalName => null;
 
+    // AniDB's own entries are written whole with their anime.
+    bool IStudio.IsStub => false;
+
     StudioType IStudio.StudioType => StudioType.None;
 
     // A view of an AniDB creator, which keeps no country and no last fetch.

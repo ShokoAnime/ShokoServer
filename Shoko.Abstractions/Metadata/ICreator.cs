@@ -82,4 +82,11 @@ public interface ICreator : IMetadata, IWithTitles, IWithOverviews, IWithPrimary
     /// All series crew roles the creator have participated in.
     /// </summary>
     IEnumerable<ICrew<ISeries>> SeriesCrewRoles { get; }
+
+    /// <summary>
+    ///   Whether the creator is a stub: an entry the core made for a credit
+    ///   before its source wrote it, named only by what that carried. It
+    ///   fills in once the source saves the creator.
+    /// </summary>
+    bool IsStub { get; }
 }

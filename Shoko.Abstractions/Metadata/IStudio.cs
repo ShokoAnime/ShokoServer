@@ -53,6 +53,13 @@ public interface IStudio : IMetadata, IWithPrimaryImage
     /// All locally known works by the studio.
     /// </summary>
     IEnumerable<IMetadata> Works { get; }
+
+    /// <summary>
+    ///   Whether the studio is a stub: an entry the core made for a link
+    ///   before its source wrote it, named only by what that carried. It
+    ///   fills in once the source saves the studio.
+    /// </summary>
+    bool IsStub { get; }
 }
 
 /// <summary>
