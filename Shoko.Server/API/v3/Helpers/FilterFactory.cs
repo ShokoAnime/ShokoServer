@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Filtering.Models;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -339,48 +340,7 @@ public class FilterFactory
     public FilterPreset? GetFilterPreset(Filter.Input.CreateOrUpdateFilterBody filter, ModelStateDictionary? modelState = null, FilterPreset? existing = null)
     {
         existing ??= new FilterPreset();
-
-        if (existing.Locked)
-            modelState?.AddModelError("IsLocked", "Filter is locked.");
-
-        // Defer to `null` if the id is `0`.
-        if (filter.ParentID is 0)
-            filter.ParentID = null;
-
-        if (filter.ParentID.HasValue)
-        {
-            var parentFilter = RepoFactory.FilterPreset.GetByID(filter.ParentID.Value);
-            if (parentFilter == null)
-            {
-                modelState?.AddModelError(nameof(filter.ParentID), $"Unable to find parent filter with id {filter.ParentID.Value}");
-            }
-            else
-            {
-                if (parentFilter.Locked)
-                    modelState?.AddModelError(nameof(filter.ParentID), "Unable to add a sub-filter to a filter that is locked.");
-
-                if (!parentFilter.IsDirectory)
-                    modelState?.AddModelError(nameof(filter.ParentID), "Unable to add a sub-filter to a filter that is not a directorty filter.");
-            }
-        }
-
-        if (filter.IsDirectory)
-        {
-            if (filter.Expression != null)
-                modelState?.AddModelError(nameof(filter.Expression), "Directory filters cannot have any conditions applied to them.");
-
-            if (filter.Sorting != null)
-                modelState?.AddModelError(nameof(filter.Sorting), "Directory filters cannot have custom sorting applied to them.");
-        }
-        else
-        {
-            var subFilters = existing.FilterPresetID != 0 ? RepoFactory.FilterPreset.GetByParentID(existing.FilterPresetID) : [];
-            if (subFilters.Count > 0)
-                modelState?.AddModelError(nameof(filter.IsDirectory), "Cannot turn a directory filter with sub-filters into a normal filter without first removing the sub-filters");
-        }
-
-        // Return now if we encountered any validation errors.
-        if (modelState is { IsValid: false })
+        if (!ValidateFilterBody(filter, modelState, existing))
             return null;
 
         existing.ParentFilterPresetID = filter.ParentID;
@@ -395,5 +355,116 @@ public class FilterFactory
         }
 
         return existing;
+    }
+
+    /// <summary>
+    /// Validates a body for a new filter preset and turns it into the data to
+    /// create it with.
+    /// </summary>
+    /// <param name="filter">The body.</param>
+    /// <param name="modelState">Collects the validation errors.</param>
+    /// <returns>The data, or <c>null</c> when the body is invalid.</returns>
+    public FilterPresetData? GetFilterPresetData(Filter.Input.CreateOrUpdateFilterBody filter, ModelStateDictionary modelState)
+    {
+        if (!ValidateFilterBody(filter, modelState, null))
+            return null;
+
+        return new()
+        {
+            Name = filter.Name ?? string.Empty,
+            ParentFilterID = filter.ParentID,
+            IsDirectory = filter.IsDirectory,
+            IsHidden = filter.IsHidden,
+            ApplyAtSeriesLevel = filter.ApplyAtSeriesLevel,
+            Expression = !filter.IsDirectory && filter.Expression != null ? GetExpressionTree<bool>(filter.Expression) : null,
+            Sorting = !filter.IsDirectory && filter.Sorting != null ? GetSortingCriteria(filter.Sorting) : null,
+        };
+    }
+
+    /// <summary>
+    /// Validates a body for a stored filter preset and turns it into the
+    /// update to apply to it.
+    /// </summary>
+    /// <param name="filter">The body.</param>
+    /// <param name="modelState">Collects the validation errors.</param>
+    /// <param name="existing">The stored preset.</param>
+    /// <returns>The update, or <c>null</c> when the body is invalid.</returns>
+    public FilterPresetUpdateData? GetFilterPresetUpdateData(Filter.Input.CreateOrUpdateFilterBody filter, ModelStateDictionary modelState, FilterPreset existing)
+    {
+        if (!ValidateFilterBody(filter, modelState, existing))
+            return null;
+
+        var update = new FilterPresetUpdateData
+        {
+            Name = filter.Name ?? string.Empty,
+            ParentFilterID = filter.ParentID,
+            IsHidden = filter.IsHidden,
+            ApplyAtSeriesLevel = filter.ApplyAtSeriesLevel,
+        };
+        if (!existing.IsDirectory)
+        {
+            if (filter.Expression != null) update.Expression = GetExpressionTree<bool>(filter.Expression);
+            if (filter.Sorting != null) update.Sorting = GetSortingCriteria(filter.Sorting);
+        }
+
+        return update;
+    }
+
+    /// <summary>
+    /// Applies the API's rules for a filter preset body: no locked preset or
+    /// parent, a parent that is a directory, no conditions or sorting on a
+    /// directory, and no stored preset becoming a directory or stopping being
+    /// one.
+    /// </summary>
+    /// <param name="filter">The body.</param>
+    /// <param name="modelState">Collects the validation errors.</param>
+    /// <param name="existing">The preset the body is for, if any.</param>
+    /// <returns><c>true</c> when the body is valid.</returns>
+    private static bool ValidateFilterBody(Filter.Input.CreateOrUpdateFilterBody filter, ModelStateDictionary? modelState, FilterPreset? existing)
+    {
+        var isValid = true;
+        void AddError(string key, string message)
+        {
+            isValid = false;
+            modelState?.AddModelError(key, message);
+        }
+
+        if (existing is { Locked: true })
+            AddError("IsLocked", "Filter is locked.");
+
+        // Defer to `null` if the id is `0`.
+        if (filter.ParentID is 0)
+            filter.ParentID = null;
+
+        if (filter.ParentID.HasValue)
+        {
+            var parentFilter = RepoFactory.FilterPreset.GetByID(filter.ParentID.Value);
+            if (parentFilter == null)
+            {
+                AddError(nameof(filter.ParentID), $"Unable to find parent filter with id {filter.ParentID.Value}");
+            }
+            else
+            {
+                if (parentFilter.Locked)
+                    AddError(nameof(filter.ParentID), "Unable to add a sub-filter to a filter that is locked.");
+
+                if (!parentFilter.IsDirectory)
+                    AddError(nameof(filter.ParentID), "Unable to add a sub-filter to a filter that is not a directorty filter.");
+            }
+        }
+
+        if (existing is { FilterPresetID: > 0 } && filter.IsDirectory != existing.IsDirectory)
+            AddError(nameof(filter.IsDirectory), "A filter can not become a directory filter, or stop being one, after it is created.");
+
+        if (filter.IsDirectory)
+        {
+            if (filter.Expression != null)
+                AddError(nameof(filter.Expression), "Directory filters cannot have any conditions applied to them.");
+
+            if (filter.Sorting != null)
+                AddError(nameof(filter.Sorting), "Directory filters cannot have custom sorting applied to them.");
+        }
+
+        return isValid;
     }
 }

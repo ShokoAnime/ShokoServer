@@ -317,7 +317,8 @@ public class Filter : BaseModel
             /// </summary>
             /// <remarks>
             /// A directory filter cannot have any conditions and/or sorting
-            /// attached to it. And changing an existing filter
+            /// attached to it. It is set when the filter is created and can
+            /// not be changed after; an update must keep the stored value.
             /// </remarks>
             public bool IsDirectory { get; set; }
 

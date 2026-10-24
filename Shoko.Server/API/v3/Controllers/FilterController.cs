@@ -34,7 +34,8 @@ public class FilterController(
     IMetadataFilteringService filteringService,
     AnimeGroupRepository animeGroupRepository,
     AnimeSeriesRepository animeSeriesRepository,
-    FilterPresetRepository filterPresetRepository
+    FilterPresetRepository filterPresetRepository,
+    IFilterPresetManager filterPresetManager
 ) : BaseController(settingsProvider)
 {
     internal const string FilterNotFound = "No Filter entry for the given filterID";
@@ -90,12 +91,12 @@ public class FilterController(
     {
         try
         {
-            var filterPreset = factory.GetFilterPreset(body, ModelState);
-            if (!ModelState.IsValid)
+            var data = factory.GetFilterPresetData(body, ModelState);
+            if (data is null || !ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            filterPresetRepository.Save(filterPreset!);
-            return factory.GetFilter(filterPreset!, true);
+            var filterPreset = (FilterPreset)filterPresetManager.CreatePreset(data);
+            return factory.GetFilter(filterPreset, true);
         }
         catch (ArgumentException e)
         {
@@ -140,12 +141,12 @@ public class FilterController(
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            filterPreset = factory.GetFilterPreset(body, ModelState, filterPreset);
-            if (!ModelState.IsValid)
+            var update = factory.GetFilterPresetUpdateData(body, ModelState, filterPreset);
+            if (update is null || !ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            filterPresetRepository.Save(filterPreset!);
-            return factory.GetFilter(filterPreset!, true);
+            filterPreset = (FilterPreset)filterPresetManager.UpdatePreset(filterPreset, update);
+            return factory.GetFilter(filterPreset, true);
         }
         catch (ArgumentException e)
         {
@@ -168,12 +169,12 @@ public class FilterController(
 
         try
         {
-            filterPreset = factory.GetFilterPreset(body, ModelState, filterPreset);
-            if (!ModelState.IsValid)
+            var update = factory.GetFilterPresetUpdateData(body, ModelState, filterPreset);
+            if (update is null || !ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            filterPresetRepository.Save(filterPreset!);
-            return factory.GetFilter(filterPreset!, true);
+            filterPreset = (FilterPreset)filterPresetManager.UpdatePreset(filterPreset, update);
+            return factory.GetFilter(filterPreset, true);
         }
         catch (ArgumentException e)
         {
@@ -193,7 +194,7 @@ public class FilterController(
         if (filterPresetRepository.GetByID(filterID) is not { } filterPreset)
             return NotFound(FilterNotFound);
 
-        filterPresetRepository.Delete(filterPreset);
+        filterPresetManager.DeletePreset(filterPreset);
 
         return NoContent();
     }
