@@ -157,11 +157,15 @@ public class ImageManager(
     }
 
     /// <inheritdoc/>
+    public event EventHandler<ImageTemplateUrlChangedEventArgs>? TemplateUrlChanged;
+
+    /// <inheritdoc/>
     public void SetTemplateUrlForSource(MetadataSource imageSource, string? templateUrl)
     {
         if (imageSource.IsLocal)
             throw new InvalidOperationException($"{nameof(imageSource)} cannot be a local source (Shoko, User or Locally Generated).");
 
+        string? previous;
         if (templateUrl is not null)
         {
             ValidateTemplateUrl(templateUrl);
@@ -169,6 +173,7 @@ public class ImageManager(
             lock (applicationPaths)
             {
                 var config = configurationProvider.Load();
+                previous = config.Image.ImageTemplateUrls.FirstOrDefault(template => template.ImageSource == imageSource)?.TemplateUrl;
                 config.Image.ImageTemplateUrls.RemoveAll(template => template.ImageSource == imageSource);
                 config.Image.ImageTemplateUrls.Add(new ImageTemplateUrlConfiguration()
                 {
@@ -185,12 +190,32 @@ public class ImageManager(
             lock (applicationPaths)
             {
                 var config = configurationProvider.Load();
+                previous = config.Image.ImageTemplateUrls.FirstOrDefault(template => template.ImageSource == imageSource)?.TemplateUrl;
                 config.Image.ImageTemplateUrls.RemoveAll(template => template.ImageSource == imageSource);
                 configurationProvider.Save(config);
 
                 // Worked out again, so the source falls back to its default.
                 _cachedUrls = null;
             }
+        }
+
+        if (string.Equals(previous, templateUrl, StringComparison.Ordinal))
+            return;
+
+        try
+        {
+            TemplateUrlChanged?.Invoke(this, new()
+            {
+                Source = imageSource,
+                PreviousTemplateUrl = previous,
+                TemplateUrl = templateUrl,
+                TemplateUrlInEffect = GetTemplateUrlForSource(imageSource),
+                Actor = ActorContext.CurrentActor,
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Got an error in a TemplateUrlChanged event.");
         }
     }
 

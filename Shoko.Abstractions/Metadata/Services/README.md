@@ -729,7 +729,9 @@ on every download. The core registers AniDB's template; any other source
 needs `RegisterTemplateUrl` on every start before its first `AddImage`,
 which otherwise throws `MissingImageSourceTemplateUrlException`. The default
 lives in memory; a user's own template (`SetTemplateUrlForSource`) takes
-precedence, and clearing it goes back to yours.
+precedence, and clearing it goes back to yours. `TemplateUrlChanged` follows
+a change of the user's own template, with the one before, the one after, the
+one now in effect and the `Actor`; registering a default raises nothing.
 
 ```csharp
 imageManager.RegisterTemplateUrl(MySources.Artwork, "https://assets.example.com/art/{0}");

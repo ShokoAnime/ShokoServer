@@ -26,6 +26,13 @@ public interface IImageManager
     #region Image Sources
 
     /// <summary>
+    ///   Dispatched when <see cref="SetTemplateUrlForSource"/> changes the
+    ///   user's own template URL for a source. A registered default changing
+    ///   raises nothing.
+    /// </summary>
+    event EventHandler<ImageTemplateUrlChangedEventArgs>? TemplateUrlChanged;
+
+    /// <summary>
     ///   Gets the template URL in effect for every image source that is not
     ///   local: the user's own where one is set, else the default the core or
     ///   a plugin registered, else <c>null</c>.

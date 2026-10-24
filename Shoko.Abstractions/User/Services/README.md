@@ -307,10 +307,11 @@ ordering, preferred ordering and hidden episode events of
 events of `IVideoService` (hashed, relocated, deleted) and `VideoUpdated`;
 `ReleaseSaved` and `ReleaseDeleted`; the filter preset events;
 `TriggersChanged`, `RunStarted` and `RunCompleted` of the scheduled actions;
-the user and API token events here; configuration `Saved`; and the plugin
-installed, uninstalled, enabled and disabled events. In a handler, read the
-actor from the event args, not from `IActorContext`: many events run on a
-thread-pool task, after the request has ended.
+`TemplateUrlChanged` of `IImageManager`; the user and API token events here;
+configuration `Saved`; and the plugin installed, uninstalled, enabled and
+disabled events. In a handler, read the actor from the event args, not from
+`IActorContext`: many events run on a thread-pool task, after the request has
+ended.
 
 The actor follows the async flow only until the scope that set it is disposed.
 A timer or loop started from a request should run for the system
