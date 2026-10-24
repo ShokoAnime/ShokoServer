@@ -273,8 +273,9 @@ Accounts, authentication and API tokens. The members a plugin reaches for:
   `expiresAt` always creates a new one. The `InvalidateApi…` methods revoke.
 - **Token events.** `ApiTokenGenerated` fires when a token is created, never
   when an existing one is handed back. `ApiTokenInvalidated` fires once per
-  token the `InvalidateApi…` methods or `DeleteUser` remove; expired tokens
-  cleaned up on their own raise nothing. The token's key is ignored by every
+  token the `InvalidateApi…` methods or `DeleteUser` remove, and for the other
+  permanent tokens of a device that `GenerateApiTokenForUser` drops; expired
+  tokens cleaned up on their own raise nothing. The token's key is ignored by every
   serializer, so logging the args is safe.
 - **Authentication.** `AuthenticateUser(username, password)` returns the user or
   `null`. It throttles by username on its own, but see below.

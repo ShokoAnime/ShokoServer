@@ -53,6 +53,22 @@ public class UserServiceApiTokenEventTests
     }
 
     [Fact]
+    public async Task Generate_RaisesForTheOtherPermanentTokensOfTheDeviceItDrops()
+    {
+        var harness = new Harness();
+        var user = harness.Users[0];
+        harness.Tokens.Cache.Update(new() { AuthID = 101, UserID = user.JMMUserID, DeviceName = "desktop", Token = "kept" });
+        harness.Tokens.Cache.Update(new() { AuthID = 102, UserID = user.JMMUserID, DeviceName = "Desktop", Token = "dropped" });
+        harness.Tokens.Cache.Update(new() { AuthID = 103, UserID = user.JMMUserID, DeviceName = "desktop", Token = "" });
+
+        var token = await harness.Service.GenerateApiTokenForUser(user, "desktop");
+
+        Assert.Equal("kept", token.Token);
+        Assert.Equal("dropped", Assert.Single(harness.Invalidated).ApiToken.Token);
+        Assert.Empty(harness.Generated);
+    }
+
+    [Fact]
     public async Task InvalidateToken_RaisesForTheRemovedToken()
     {
         var harness = new Harness();
@@ -123,6 +139,8 @@ public class UserServiceApiTokenEventTests
 
         public readonly UserService Service;
 
+        public readonly AuthTokensRepository Tokens;
+
         public Harness()
         {
             var nextID = 1;
@@ -133,6 +151,7 @@ public class UserServiceApiTokenEventTests
                     t.AuthID = nextID++;
                 tokens.Object.Cache.Update(t);
             });
+            Tokens = tokens.Object;
 
             Service = new UserService(
                 NullLogger<UserService>.Instance,

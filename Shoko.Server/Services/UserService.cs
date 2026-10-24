@@ -356,7 +356,8 @@ public class UserService(
         if (user.LocalID is <= 0 || _userRepository.GetByID(user.LocalID) is not { } otherUser)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
 
-        var token = _authTokensRepository.CreateNewApiKey(otherUser, deviceName, out var created);
+        var token = _authTokensRepository.CreateNewApiKey(otherUser, deviceName, out var created, out var removedDuplicates);
+        OnApiTokensInvalidated(otherUser, removedDuplicates);
         var apiToken = new ApiToken(otherUser, deviceName, token.Token, token.ExpiresAt);
         if (created)
             OnApiTokenGenerated(apiToken);

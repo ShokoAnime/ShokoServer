@@ -37,9 +37,12 @@ public interface IUserService
     event EventHandler<ApiTokenChangedEventArgs>? ApiTokenGenerated;
 
     /// <summary>
-    ///   Dispatched once per token removed by the <c>InvalidateApi*</c> methods
-    ///   or by <see cref="DeleteUser"/>. Expired tokens cleaned up on their
-    ///   own, and tokens dropped by a password reset at start-up, do not raise it.
+    ///   Dispatched once per token removed by the <c>InvalidateApi*</c> methods,
+    ///   by <see cref="DeleteUser"/>, or by
+    ///   <see cref="GenerateApiTokenForUser(IUser, string)"/> dropping other
+    ///   permanent tokens of the same device. Expired tokens cleaned up on
+    ///   their own, and tokens dropped by a password reset at start-up, do not
+    ///   raise it.
     /// </summary>
     event EventHandler<ApiTokenChangedEventArgs>? ApiTokenInvalidated;
 

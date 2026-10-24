@@ -70,9 +70,19 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         => _userIDs!.GetMultiple(userID);
 
     public AuthTokens CreateNewApiKey(JMMUser user, string device)
-        => CreateNewApiKey(user, device, out _);
+        => CreateNewApiKey(user, device, out _, out _);
 
-    public AuthTokens CreateNewApiKey(JMMUser user, string device, out bool created)
+    /// <summary>
+    ///   Hands back the user's permanent token for the device, or creates one,
+    ///   removing any other permanent tokens of the device and tokens with no
+    ///   key.
+    /// </summary>
+    /// <param name="user">The user.</param>
+    /// <param name="device">The device name, matched ignoring case.</param>
+    /// <param name="created">Whether a new token was created.</param>
+    /// <param name="removedDuplicates">The other permanent tokens of the device that were removed.</param>
+    /// <returns>The token.</returns>
+    public AuthTokens CreateNewApiKey(JMMUser user, string device, out bool created, out IReadOnlyList<AuthTokens> removedDuplicates)
     {
         created = false;
         var allTokensForUser = _userIDs!.GetMultiple(user.JMMUserID);
@@ -82,8 +92,8 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         var invalidTokens = allTokensForUser
             .Where(a => string.IsNullOrEmpty(a.Token))
             .ToList();
-        if (existingTokens.Count > 1)
-            invalidTokens.AddRange(existingTokens.Skip(1));
+        removedDuplicates = existingTokens.Skip(1).ToList();
+        invalidTokens.AddRange(removedDuplicates);
 
         Delete(invalidTokens);
 
