@@ -267,11 +267,14 @@ raised, from `IActorContext.Current`, which it sets itself:
   key), looked up again when it runs: a token revoked since runs the job for
   the system. Jobs queued from a job inherit its actor.
 
-The events stamped are `LinksChanged`, the series, season, episode and movie
-added/updated/removed events of `IMetadataService`, the file events of
-`IVideoService` (hashed, relocated, deleted), `ReleaseSaved` and
-`ReleaseDeleted`, the user and API token events here, configuration `Saved`,
-and the plugin installed, uninstalled, enabled and disabled events. In a
+The events stamped are `LinksChanged` and `AutoLinkingChanged`; the series,
+season, episode, movie and collection added/updated/removed events of
+`IMetadataService`, its custom tag events and `SeriesCustomTagsChanged`; the
+group events of `IShokoGroupManager`; the file events of `IVideoService`
+(hashed, relocated, deleted) and `VideoUpdated`; `ReleaseSaved` and
+`ReleaseDeleted`; the filter preset events; `TriggersChanged` of the scheduled
+actions; the user and API token events here; configuration `Saved`; and the
+plugin installed, uninstalled, enabled and disabled events. In a
 handler, read the actor from the event args, not from `IActorContext`: many
 events run on a thread-pool task, after the request has ended.
 
