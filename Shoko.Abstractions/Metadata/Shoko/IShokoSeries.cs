@@ -43,27 +43,29 @@ public interface IShokoSeries : ISeries<IShokoSeries, IShokoEpisode>
     new IReadOnlyList<IShokoTagForSeries> Tags { get; }
 
     /// <summary>
-    ///   The number of missing normal episodes and specials for the Shoko
-    ///   series.
+    ///   The number of aired regular episodes of the Shoko series with no
+    ///   file, counting only those a release group has released when AniDB
+    ///   lists any. Specials are not counted, and the episodes making up one
+    ///   work of a movie or OVA, such as a split film's parts, count as one.
     /// </summary>
     int MissingEpisodeCount { get; }
 
     /// <summary>
-    ///   The number of missing normal episodes and specials for the Shoko
-    ///   series which have been released by a release group we're collecting.
+    ///   The <see cref="MissingEpisodeCount"/> of only the episodes released
+    ///   by an AniDB release group the collection has files of this anime
+    ///   from.
     /// </summary>
     int MissingCollectingEpisodeCount { get; }
 
     /// <summary>
-    ///   The number of hidden missing normal episodes and specials for the
-    ///   Shoko series.
+    ///   The <see cref="MissingEpisodeCount"/> of the hidden episodes, which
+    ///   that count leaves out.
     /// </summary>
     int HiddenMissingEpisodeCount { get; }
 
     /// <summary>
-    ///   The number of hidden missing normal episodes and specials for the
-    ///   Shoko series which have been released by a release group we're
-    ///   collecting.
+    ///   The <see cref="MissingCollectingEpisodeCount"/> of the hidden
+    ///   episodes, which that count leaves out.
     /// </summary>
     int HiddenMissingCollectingEpisodeCount { get; }
 
