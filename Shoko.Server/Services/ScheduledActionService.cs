@@ -43,7 +43,7 @@ namespace Shoko.Server.Services;
 /// a busy queue delays runs but loses none. Runs by hand are never held back.
 /// A queue-cleared trigger fires each time the queue is cleared.
 /// </remarks>
-public sealed class ScheduledActionService : IScheduledActionService, IHostedService, IDisposable
+public sealed class ScheduledActionService : IScheduledActionService, IScheduledActionRunReporter, IHostedService, IDisposable
 {
     #region Constants
 
@@ -1255,10 +1255,60 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
 
     #endregion
 
+    #region IScheduledActionRunReporter
+
+    /// <inheritdoc/>
+    public DateTime ReportRunStarted(Guid actionId)
+    {
+        var startedAt = UtcNow;
+        try
+        {
+            if (FindAction(actionId) is { } action)
+                RunStarted?.Invoke(this, new() { Action = ToInfo(action, GetExecuting()), StartedAt = startedAt, Actor = ActorContext.CurrentActor });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Got an error in a RunStarted event.");
+        }
+
+        return startedAt;
+    }
+
+    /// <inheritdoc/>
+    public void ReportRunCompleted(Guid actionId, DateTime startedAt, Exception? exception)
+    {
+        try
+        {
+            if (FindAction(actionId) is { } action)
+            {
+                RunCompleted?.Invoke(this, new()
+                {
+                    Action = ToInfo(action, GetExecuting()),
+                    StartedAt = startedAt,
+                    CompletedAt = UtcNow,
+                    Exception = exception,
+                    Actor = ActorContext.CurrentActor,
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Got an error in a RunCompleted event.");
+        }
+    }
+
+    #endregion
+
     #region IScheduledActionService
 
     /// <inheritdoc/>
     public event EventHandler<ScheduledActionTriggersChangedEventArgs>? TriggersChanged;
+
+    /// <inheritdoc/>
+    public event EventHandler<ScheduledActionRunStartedEventArgs>? RunStarted;
+
+    /// <inheritdoc/>
+    public event EventHandler<ScheduledActionRunCompletedEventArgs>? RunCompleted;
 
     /// <inheritdoc/>
     public IReadOnlyList<ScheduledActionInfo> GetScheduledActions()

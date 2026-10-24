@@ -583,6 +583,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IScheduledActionSource>(sp => sp.GetRequiredService<ScheduledActionRegistry>());
             services.AddSingleton<ScheduledActionService>();
             services.AddSingleton<IScheduledActionService>(sp => sp.GetRequiredService<ScheduledActionService>());
+            services.AddSingleton<IScheduledActionRunReporter>(sp => sp.GetRequiredService<ScheduledActionService>());
             services.AddHostedService(sp => sp.GetRequiredService<ScheduledActionService>());
             services.AddSingleton<AnimeSeriesService>();
             services.AddSingleton<AnimeGroupService>();

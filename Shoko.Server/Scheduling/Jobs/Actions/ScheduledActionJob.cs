@@ -19,6 +19,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 /// </summary>
 /// <param name="services">The job's own container, which the action is resolved from.</param>
 /// <param name="registry">The scheduled actions.</param>
+/// <param name="runs">Told when the action starts and ends, for the run events.</param>
 /// <param name="cancellation">The job's cancellation, which also makes it cancellable.</param>
 /// <param name="progress">The job's progress.</param>
 [LongRunning]
@@ -29,6 +30,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 public class ScheduledActionJob(
     IServiceProvider services,
     ScheduledActionRegistry registry,
+    IScheduledActionRunReporter runs,
     IJobCancellationAccessor cancellation,
     IJobProgressAccessor progress
 ) : BaseJob
@@ -78,10 +80,20 @@ public class ScheduledActionJob(
         }
 
         _logger.LogInformation("Running scheduled action \"{ActionName}\" ({ActionId})", definition.Name, ActionId);
-        await action.Execute(progress.Progress, cancellation.Token);
+        var startedAt = runs.ReportRunStarted(ActionId);
+        try
+        {
+            await action.Execute(progress.Progress, cancellation.Token);
+        }
+        catch (Exception ex)
+        {
+            runs.ReportRunCompleted(ActionId, startedAt, ex);
+            throw;
+        }
 
         // A run that ended well is done, whether the action reported it or not.
         progress.Progress.Report(100);
+        runs.ReportRunCompleted(ActionId, startedAt, null);
         _logger.LogInformation("Finished scheduled action \"{ActionName}\" ({ActionId})", definition.Name, ActionId);
     }
 

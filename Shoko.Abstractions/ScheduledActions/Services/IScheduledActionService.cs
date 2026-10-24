@@ -27,6 +27,18 @@ public interface IScheduledActionService
     event EventHandler<ScheduledActionTriggersChangedEventArgs>? TriggersChanged;
 
     /// <summary>
+    ///   Dispatched when a run starts the action, after it agreed to run. A
+    ///   run the action refuses in the queue raises neither run event.
+    /// </summary>
+    event EventHandler<ScheduledActionRunStartedEventArgs>? RunStarted;
+
+    /// <summary>
+    ///   Dispatched when a started run ends, with what the action threw, if
+    ///   anything.
+    /// </summary>
+    event EventHandler<ScheduledActionRunCompletedEventArgs>? RunCompleted;
+
+    /// <summary>
     ///   Lists every scheduled action, by category, category name and name.
     /// </summary>
     /// <exception cref="InvalidOperationException">

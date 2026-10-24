@@ -247,6 +247,7 @@ Inject it as a DI singleton.
 | `InvokeAsync(Guid, token)` | Queues a run now, not held back by the minimum; does nothing while a run is waiting or running. Returns the refusal, if any. |
 | `Cancel(Guid)` | Takes a waiting run out of the queue, or asks a running one to stop. |
 | `TriggersChanged` | Raised after `SetTriggers` or `ResetTriggers`, with the action as it was and as it is, and `Actor`. |
+| `RunStarted` / `RunCompleted` | Raised when a run starts the action, after it agreed to run, and when that run ends, with its start and end in UTC, what the action threw (`IsCancelled` for a cancellation), and `Actor`, whoever queued it by hand. A run refused in the queue raises neither. |
 
 Every member throws `InvalidOperationException` before the server has started,
 and the ones taking an ID throw `KeyNotFoundException` for an ID no scheduled

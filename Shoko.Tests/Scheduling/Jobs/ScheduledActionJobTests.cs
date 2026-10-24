@@ -33,6 +33,8 @@ public sealed class ScheduledActionJobTests : IDisposable
     {
         public bool Refuse { get; set; }
 
+        public Exception? Throw { get; set; }
+
         public int Runs { get; set; }
 
         public CancellationToken Token { get; set; }
@@ -59,7 +61,7 @@ public sealed class ScheduledActionJobTests : IDisposable
             recorder.Scope = scope;
             progress.Report(0);
             progress.Report(50);
-            return Task.CompletedTask;
+            return recorder.Throw is { } exception ? Task.FromException(exception) : Task.CompletedTask;
         }
     }
 
@@ -83,6 +85,10 @@ public sealed class ScheduledActionJobTests : IDisposable
 
     private readonly CancellationTokenSource _cancellation = new();
 
+    private readonly Mock<IScheduledActionRunReporter> _runs = new();
+
+    private static readonly DateTime _startedAt = new(2026, 10, 24, 12, 0, 0, DateTimeKind.Utc);
+
     private readonly ScheduledActionRegistry _registry;
 
     private readonly ServiceProvider _services;
@@ -97,6 +103,7 @@ public sealed class ScheduledActionJobTests : IDisposable
         _services = services.BuildServiceProvider();
         _registry = new(Mock.Of<IQueueScheduler>(), Mock.Of<IPluginManager>(), _services);
         _registry.AddParts([(Guid.NewGuid(), typeof(ReportingAction))]);
+        _runs.Setup(runs => runs.ReportRunStarted(It.IsAny<Guid>())).Returns(_startedAt);
     }
 
     public void Dispose()
@@ -110,6 +117,7 @@ public sealed class ScheduledActionJobTests : IDisposable
         var job = new ScheduledActionJob(
             jobServices ?? _services,
             _registry,
+            _runs.Object,
             Mock.Of<IJobCancellationAccessor>(accessor => accessor.Token == _cancellation.Token),
             Mock.Of<IJobProgressAccessor>(accessor => accessor.Progress == _progress)
         )
@@ -158,6 +166,32 @@ public sealed class ScheduledActionJobTests : IDisposable
 
         Assert.Equal(0, _recorder.Runs);
         Assert.Empty(_progress.Values);
+        _runs.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ARun_ReportsItsStartAndItsEnd()
+    {
+        var job = Job();
+
+        await job.Execute();
+
+        _runs.Verify(runs => runs.ReportRunStarted(job.ActionId), Times.Once);
+        _runs.Verify(runs => runs.ReportRunCompleted(job.ActionId, _startedAt, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task AFailedRun_ReportsWhatTheActionThrew_AndRethrows()
+    {
+        var failure = new InvalidOperationException("Broken.");
+        _recorder.Throw = failure;
+        var job = Job();
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(job.Execute);
+
+        Assert.Same(failure, thrown);
+        _runs.Verify(runs => runs.ReportRunCompleted(job.ActionId, _startedAt, failure), Times.Once);
+        Assert.DoesNotContain(100m, _progress.Values);
     }
 
     [Fact]
