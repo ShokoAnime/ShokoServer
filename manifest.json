@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.553",
+      "tag": "v6.0.0-dev.553",
+      "commit": "0fd71bd23f42c61c1023f982a88b0c2656fa235a",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.553/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-25T21:05:13Z",
+      "releaseNotes": "\n`fix` (`buildtools`): **Leave the plugin metadata to `shoko-build` when it drives the build**:\n\n- The targets stamped identity, tags, dependencies and git data a second time, and the server kept their tags, without the discovered ones\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.6.1**.\n"
+    },
+    {
       "version": "6.0.0.552",
       "tag": "v6.0.0-dev.552",
       "commit": "90c30afef532b36cba15204558287b4588755f62",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.524/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-14T08:33:45Z",
       "releaseNotes": "\n`fix` (`abstractions`): **Map the remaining language codes seen in end-user logs** ([#1461](https://github.com/ShokoAnime/ShokoServer/pull/1461)):\n\n* fix(abstractions): map the remaining language codes seen in end-user logs\n\n- Added 34 ISO 639 languages to `TitleLanguage`, appended after `Pali` so stored values keep their numbers, with `GetTitleLanguage`, `GetDescription` and `GetString` mappings.\n- `mo` resolves to `Romanian` and `Spanish (Catalan|Galician|Basque)` to their own languages.\n- `Undefined`, `Keine Angabe`, `unknown`, `instrumental`, `map`, `sh` and `hbs` stay `Unknown` and are no longer reported.\n- Added `frs`, `kaa`, `rom` and `ace` to the `MediaInfoUtility` language table and spaced the `Hiri Motu`, `Sichuan Yi` and `South Ndebele` names.\n- Re-ran `RepairRegionTaggedStreamLanguages` in a new schema version on all three backends, so streams stored with an empty language code for the new table entries get one. It skips null streams.\n\n* refactor(abstractions): drop GetDescription cases that match the enum name\n\nThe default arm already returns the enum name.\n"
-    },
-    {
-      "version": "6.0.0.523",
-      "tag": "v6.0.0-dev.523",
-      "commit": "0a276d3081e6536d23670f5ad62b74d83d32055e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.523/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-13T23:45:10Z",
-      "releaseNotes": "\n`chore` (`plugin`): **Drop the taglines from the WebAOM and LegacyPlex thumbnails**.\n"
     }
   ]
 }
