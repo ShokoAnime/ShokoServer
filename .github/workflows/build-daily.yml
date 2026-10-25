@@ -212,7 +212,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.402'
+          dotnet-version: '10.x'
 
       # One cache entry per plugin, carried across runs: a release is downloaded
       # once, and a run that cannot reach it falls back to the one before.
@@ -248,7 +248,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.402'
+          dotnet-version: '10.x'
 
       - name: Cache MediaInfo
         uses: actions/cache@v6
@@ -274,7 +274,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dotnet: [ '10.0.402' ]
+        dotnet: [ '10.x' ]
         package:
           - Shoko.Abstractions
           - Shoko.QueueProcessor
@@ -322,7 +322,7 @@ jobs:
     strategy:
       matrix:
         rid: ['linux-x64', 'linux-arm64', 'osx-arm64']
-        dotnet: ['10.0.402']
+        dotnet: ['10.x']
         build_type: ['Standalone']
         include:
           - build_type: 'Standalone'
@@ -401,7 +401,7 @@ jobs:
     strategy:
       matrix:
         rid: ['linux-x64', 'linux-arm64', 'osx-arm64']
-        dotnet: ['10.0.402']
+        dotnet: ['10.x']
 
     name: Build Tray Service — Framework (${{ matrix.rid }}) (Daily)
 
@@ -473,7 +473,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: ['10.0.402']
+        dotnet: ['10.x']
         build_type: ['Standalone', 'Framework']
         include:
           - build_props: '--self-contained true'
@@ -551,7 +551,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: ['10.0.402']
+        dotnet: ['10.x']
 
     name: Build Tray Service — Installer (Daily)
 
