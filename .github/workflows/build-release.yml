@@ -396,7 +396,7 @@ jobs:
           name: mediainfo
           path: .cache/mediainfo
 
-      - run: dotnet publish -c Release -r win-x64 --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true
+      - run: dotnet publish -c Release -r win-x64 --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true # %2c is comma, blame windows/pwsh
 
       - name: Archive Release
         shell: pwsh
@@ -462,7 +462,7 @@ jobs:
           name: mediainfo
           path: .cache/mediainfo
 
-      - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true
+      - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=stable%2ccommit=${{ github.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true # %2c is comma, blame windows/pwsh
 
       - name: Archive Release
         shell: pwsh

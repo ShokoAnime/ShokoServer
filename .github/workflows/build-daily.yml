@@ -531,7 +531,7 @@ jobs:
           path: .cache/mediainfo
 
       - name: Run dotnet publish
-        run: dotnet publish -c Release -r win-x64 -f net10.0 ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true
+        run: dotnet publish -c Release -r win-x64 -f net10.0 ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true # %2c is comma, blame windows/pwsh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -603,7 +603,7 @@ jobs:
           path: .cache/mediainfo
 
       - name: Run dotnet publish
-        run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true
+        run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" -p:ShokoBundleReleasedPlugins=true -p:ShokoReleasedPluginsOffline=true # %2c is comma, blame windows/pwsh
 
       - name: Build Installer
         run: iscc /O".\\" ".\\Installer\\ShokoServer.iss"

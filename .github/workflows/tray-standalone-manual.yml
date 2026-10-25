@@ -135,7 +135,7 @@ jobs:
           name: mediainfo
           path: .cache/mediainfo
 
-      - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh -p:ShokoBundleReleasedPlugins=true
+      - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" -p:ShokoBundleReleasedPlugins=true # %2c is comma, blame windows/pwsh
 
       - uses: actions/upload-artifact@v7
         with:
