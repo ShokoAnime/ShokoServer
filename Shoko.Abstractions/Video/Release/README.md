@@ -197,6 +197,11 @@ and your queued jobs wait. The AniDB provider does both: it is not configured
 without AniDB credentials, and the `AniDB UDP` suspension holds it during a
 ban.
 
+A search runs one job per video, so an import can queue hundreds of yours at
+once. Set `MaxConcurrentJobs` to cap how many run at the same time, such as
+one for a provider calling a slow or paid service. A job class of your own
+keeps the limit its attributes set.
+
 **Do not rename or move the provider class.** Its ID is derived as a v5 UUID
 over `"ReleaseProvider={type.FullName}"` in the plugin's own ID namespace, so
 changing the class name or its namespace produces a different ID. The user's

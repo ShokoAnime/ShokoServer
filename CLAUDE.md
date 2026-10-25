@@ -496,6 +496,8 @@ If no release provider returns a match, the provider chain completes without cre
 | `AVDumpFilesJob` | 1 (16) | AVDump resource limits |
 | `RefreshMetadataJob<T>`, `SearchMetadataJob<T>`, `DownloadMetadataImagesJob<T>` | The provider's `MaxConcurrentJobs` (TMDB: 4) | One pool per provider job type |
 | `DownloadContributedImagesJob<T>` | The contributor's `MaxConcurrentJobs` (default 2) | One pool per image contributor |
-| `RefreshAiringScheduleJob<T>`, `SweepAiringScheduleProviderJob<T>` | 2 (8) and 1 (4) | One pool per airing schedule provider |
+| `ProcessReleaseProviderJob<T>` | The provider's `MaxConcurrentJobs` (no limit by default) | One pool per release provider |
+| `RefreshAiringScheduleJob<T>` | The provider's `MaxConcurrentJobs` (default 1) | One pool per airing schedule provider |
+| `SweepAiringScheduleProviderJob<T>` | 1 (4) | One sweep chunk per provider at a time |
 | `DownloadImageJob` | 4 | Image download throughput |
 | `ValidateAllImagesJob` | 1 (1) | Sequential validation |

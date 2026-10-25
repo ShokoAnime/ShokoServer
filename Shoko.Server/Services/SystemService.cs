@@ -716,9 +716,11 @@ public class SystemService : ISystemService
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, SuspensionAcquisitionFilter>();
 
-            // Each metadata provider's job types follow the limit it declared.
+            // Each provider's job types follow the limit it declared.
             services.AddSingleton<IJobConcurrencyProvider, MetadataProviderJobConcurrency>();
             services.AddSingleton<IJobConcurrencyProvider, MetadataImageContributorJobConcurrency>();
+            services.AddSingleton<IJobConcurrencyProvider, ReleaseProviderJobConcurrency>();
+            services.AddSingleton<IJobConcurrencyProvider, AiringScheduleProviderJobConcurrency>();
 
             // Names the clients whose expired handlers are still referenced and so never disposed.
             services.AddHostedService<ExpiredHttpHandlerMonitor>();

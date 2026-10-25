@@ -82,8 +82,6 @@ public partial class AiringScheduleService(
 
     private readonly ConcurrentDictionary<int, AiringScheduleProfile> _profiles = [];
 
-    private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _refreshLimits = [];
-
     private readonly ConcurrentDictionary<string, List<TaskCompletionSource<AiringScheduleProviderRefresh>>> _refreshWaiters = [];
 
     private ConcurrentDictionary<Guid, int>? _airingIDs;

@@ -291,10 +291,6 @@ public partial class AiringScheduleService
         if (entity is null)
             return Publish(key, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Skipped, null));
 
-        // The job type's attributes can't follow the provider's own cap, so it
-        // is honoured here instead.
-        var limit = _refreshLimits.GetOrAdd(providerID, _ => new SemaphoreSlim(Math.Max(1, info.Provider.MaxConcurrentRefreshes)));
-        await limit.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var refreshed = entity switch
@@ -340,10 +336,6 @@ public partial class AiringScheduleService
             else
                 logger.LogError(ex, "Provider {ProviderName} failed to refresh {EntityType} {EntitySource}:{EntityID}.", info.Name, type, source, id);
             return Publish(key, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Failed, ex.Message));
-        }
-        finally
-        {
-            limit.Release();
         }
     }
 

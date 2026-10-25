@@ -65,5 +65,11 @@ public class ReleaseProviderInfo
     ///   <c>false</c>, or <c>null</c>.
     /// </summary>
     public string? NotConfiguredReason { get => Provider.IsConfigured ? null : Provider.NotConfiguredReason; }
+
+    /// <summary>
+    ///   How many of the core's jobs for the provider may run at once, or
+    ///   <c>null</c> for no limit of its own.
+    /// </summary>
+    public int? MaxConcurrentJobs { get => Provider.MaxConcurrentJobs; }
 }
 

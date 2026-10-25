@@ -86,6 +86,12 @@ public class AiringScheduleProviderInfo
     public required TimeSpan SweepInterval { get; set; }
 
     /// <summary>
+    ///   How many of the core's refresh jobs for the provider may run at once,
+    ///   read from <see cref="IAiringScheduleProvider.MaxConcurrentJobs"/>.
+    /// </summary>
+    public int MaxConcurrentJobs => Math.Max(1, Provider.MaxConcurrentJobs ?? 1);
+
+    /// <summary>
     ///   Whether or not the provider is enabled for automatic usage. A provider
     ///   with no enabled kinds is disabled.
     /// </summary>

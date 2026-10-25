@@ -58,6 +58,11 @@ public class ReleaseInfoProvider(ReleaseProviderInfo info, ProviderAvailability 
     public ProviderAvailabilityStatus Availability { get; init; } = new(availability);
 
     /// <summary>
+    /// How many of the provider's jobs may run at once, if it sets a limit.
+    /// </summary>
+    public int? MaxConcurrentJobs { get; init; } = info.MaxConcurrentJobs;
+
+    /// <summary>
     /// Information about the configuration the release info provider uses.
     /// </summary>
     public ConfigurationInfo? Configuration { get; init; } = info.ConfigurationInfo is null ? null : new(info.ConfigurationInfo);

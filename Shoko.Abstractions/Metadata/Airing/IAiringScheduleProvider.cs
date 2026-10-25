@@ -90,10 +90,15 @@ public interface IAiringScheduleProvider
         => episode.Series is { } series ? RefreshAsync(series, cancellationToken) : Task.FromResult(false);
 
     /// <summary>
-    ///   Optional. How many refreshes the service runs in parallel for this
-    ///   provider. Defaults to one at a time.
+    ///   How many of the core's refresh jobs for you may run at once, or
+    ///   <c>null</c> for one at a time.
     /// </summary>
-    int MaxConcurrentRefreshes { get => 1; }
+    /// <remarks>
+    ///   Your refreshes run as a job type of your own, and this becomes its
+    ///   limit. Your sweep runs one chunk at a time whatever this is. Read when
+    ///   the queue sets up its pools. The default is <c>null</c>.
+    /// </remarks>
+    int? MaxConcurrentJobs { get => null; }
 
     /// <summary>
     ///   Optional. The embedded resource of your provider's icon, shown beside

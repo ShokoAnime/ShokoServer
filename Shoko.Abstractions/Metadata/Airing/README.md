@@ -103,7 +103,8 @@ every write throws `ArgumentException`. Inside the provider, pass `this`.
   [sweep](#core-driven-sweeps-isweepingairingscheduleprovider).
 - **Configuration**: implement `IAiringScheduleProvider<TConfiguration>` to
   get a settings page, as for a release provider.
-- **`MaxConcurrentRefreshes`** caps your parallel refreshes (default one).
+- **`MaxConcurrentJobs`** caps how many of your refresh jobs run at once
+  (default one). Your sweep runs one chunk at a time.
 - **Suspensions**: your refreshes and sweep chunks are job types of your
   provider's own, so naming your provider in an `ISuspensionProvider`'s
   `HeldProviderTypes` holds them back while it is suspended. See

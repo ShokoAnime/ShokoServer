@@ -91,6 +91,12 @@ public class AiringScheduleProvider(AiringScheduleProviderInfo info)
     public TimeSpan SweepInterval { get; init; } = info.SweepInterval;
 
     /// <summary>
+    /// How many of the provider's refresh jobs may run at once.
+    /// </summary>
+    [Required]
+    public int MaxConcurrentJobs { get; init; } = info.MaxConcurrentJobs;
+
+    /// <summary>
     /// Information about the configuration the airing schedule provider uses.
     /// </summary>
     public ConfigurationInfo? Configuration { get; init; } = info.ConfigurationInfo is null ? null : new(info.ConfigurationInfo);

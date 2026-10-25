@@ -1,9 +1,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Shoko.Abstractions.Connectivity.Suspensions.Attributes;
 using Shoko.Abstractions.Video.Release;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Providers.AniDB.Release;
+using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -34,6 +38,35 @@ public class ReleaseProviderJobsTests
             => Task.FromResult<ReleaseInfo?>(null);
     }
 
+    /// <summary>
+    /// A release provider limiting its jobs to one at a time.
+    /// </summary>
+    public sealed class LimitedReleaseProvider : IReleaseInfoProvider
+    {
+        public string Name => "Limited";
+
+        public int? MaxConcurrentJobs => 1;
+
+        public Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoContext context, CancellationToken cancellationToken)
+            => Task.FromResult<ReleaseInfo?>(null);
+
+        public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
+            => Task.FromResult<ReleaseInfo?>(null);
+    }
+
+    private static ReleaseProviderInfo Info(IReleaseInfoProvider provider) => new()
+    {
+        ID = Guid.NewGuid(),
+        Version = new(1, 0),
+        Name = provider.Name,
+        Description = string.Empty,
+        Provider = provider,
+        ConfigurationInfo = null,
+        PluginInfo = null!,
+        Enabled = true,
+        Priority = 0,
+    };
+
     #endregion
 
     #region Tests
@@ -62,6 +95,21 @@ public class ReleaseProviderJobsTests
 
         // The filter attaches to a pool through the attribute, which the subclass inherits.
         Assert.Contains(typeof(AnidbProcessFileJob).GetCustomAttributes(inherit: true), attribute => attribute is ProviderJobAttribute);
+    }
+
+    [Fact]
+    public void EachProviderJobFollowsTheLimitItsProviderDeclared()
+    {
+        var releaseService = new Mock<IVideoReleaseService>();
+        releaseService.Setup(service => service.GetAvailableProviders(false))
+            .Returns([Info(new LimitedReleaseProvider()), Info(new FakeReleaseProvider())]);
+        var services = new ServiceCollection();
+        services.AddSingleton(releaseService.Object);
+        var concurrency = new ReleaseProviderJobConcurrency(services.BuildServiceProvider());
+
+        Assert.Equal(1, concurrency.GetConcurrencyLimit(typeof(ProcessReleaseProviderJob<LimitedReleaseProvider>)));
+        Assert.Null(concurrency.GetConcurrencyLimit(typeof(ProcessReleaseProviderJob<FakeReleaseProvider>)));
+        Assert.Null(concurrency.GetConcurrencyLimit(typeof(PurgeMetadataJob)));
     }
 
     #endregion

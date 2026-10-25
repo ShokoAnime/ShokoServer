@@ -48,6 +48,18 @@ public interface IReleaseInfoProvider
     string? NotConfiguredReason { get => null; }
 
     /// <summary>
+    ///   How many of the core's jobs for you may run at once, or
+    ///   <c>null</c> for no limit of your own.
+    /// </summary>
+    /// <remarks>
+    ///   A release search runs one job per video, as a job type of your own,
+    ///   and this becomes its limit. A job class of your own keeps the limit
+    ///   its attributes set. Read when the queue sets up its pools. The
+    ///   default is <c>null</c>.
+    /// </remarks>
+    int? MaxConcurrentJobs { get => null; }
+
+    /// <summary>
     ///   Gets the release information for the specified video, if available
     ///   from the provider.
     /// </summary>

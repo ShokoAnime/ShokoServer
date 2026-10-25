@@ -21,14 +21,13 @@ namespace Shoko.Server.Scheduling.Jobs.Airing;
 /// <remarks>
 /// One job type per provider, so a suspended provider holds back only its own
 /// refreshes, and one job per entity, so ten refresh clicks collapse into one.
-/// The provider's own <see cref="IAiringScheduleProvider.MaxConcurrentRefreshes"/>
-/// is honoured by the service.
+/// The provider's own <see cref="IAiringScheduleProvider.MaxConcurrentJobs"/>
+/// limits the job type.
 /// </remarks>
 /// <typeparam name="TProvider">The provider to refresh with.</typeparam>
 [DatabaseRequired]
 [NetworkRequired]
 [ProviderJob]
-[LimitConcurrency(2, 8)]
 [JobKeyGroup(JobKeyGroup.Airing)]
 public class RefreshAiringScheduleJob<TProvider>(IAiringScheduleService airingScheduleService) : BaseJob, IRefreshAiringScheduleJob
     where TProvider : class, IAiringScheduleProvider
