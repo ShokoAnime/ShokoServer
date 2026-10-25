@@ -25,8 +25,16 @@
     <ShokoBuildToolsTasksAssembly Condition="'$(ShokoBuildToolsTasksAssembly)' == ''">$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll</ShokoBuildToolsTasksAssembly>
   </PropertyGroup>
 
+  <!--
+    A build shoko-build drives (it sets ShokoBuildAssemblyInfoFile) gets the
+    runtime identifier, the plugin's identity, tags, dependencies and git
+    metadata from shoko-build's own generated file. Stamping them here too would
+    write each key twice, and the server keeps the first: shoko-build's tags,
+    which add the discovered ones to PluginTags, would lose to these.
+  -->
+
   <!-- RuntimeIdentifier — explicit RID or "any" for portable libraries -->
-  <ItemGroup>
+  <ItemGroup Condition="'$(ShokoBuildAssemblyInfoFile)' == ''">
     <AssemblyMetadata Include="RuntimeIdentifier" Value="$(RuntimeIdentifier)" Condition="'$(RuntimeIdentifier)' != ''" />
     <AssemblyMetadata Include="RuntimeIdentifier" Value="any" Condition="'$(RuntimeIdentifier)' == ''" />
   </ItemGroup>
@@ -55,7 +63,7 @@
 
   <!-- Manifest metadata — generate .cs from manifest.json -->
   <Target Name="_ShokoStampManifestMetadata" BeforeTargets="CoreGenerateAssemblyInfo" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)"
-          Condition="Exists('$(MSBuildProjectDirectory)\manifest.json') or Exists('$(MSBuildProjectDirectory)\..\manifest.json')">
+          Condition="'$(ShokoBuildAssemblyInfoFile)' == '' And (Exists('$(MSBuildProjectDirectory)\manifest.json') or Exists('$(MSBuildProjectDirectory)\..\manifest.json'))">
     <ReadPluginManifest ProjectDir="$(MSBuildProjectDirectory)"
                         OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.ManifestInfo.cs"
                         PluginID="$(PluginID)"
@@ -71,7 +79,7 @@
 
   <!-- Source-based identity — fallback when no manifest.json exists -->
   <Target Name="_ShokoReadPluginIdentityFromSource" BeforeTargets="CoreGenerateAssemblyInfo" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)"
-          Condition="!Exists('$(MSBuildProjectDirectory)\manifest.json') And !Exists('$(MSBuildProjectDirectory)\..\manifest.json')">
+          Condition="'$(ShokoBuildAssemblyInfoFile)' == '' And !Exists('$(MSBuildProjectDirectory)\manifest.json') And !Exists('$(MSBuildProjectDirectory)\..\manifest.json')">
     <ReadPluginIdentityFromSource ProjectDir="$(MSBuildProjectDirectory)"
                                   OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.PluginIdentity.cs"
                                   NuGetPackageRoot="$(NuGetPackageRoot)"
@@ -130,7 +138,8 @@
   </Target>
 
   <!-- Git metadata — C# task runs git and writes .cs file -->
-  <Target Name="_ShokoStampGitMetadata" BeforeTargets="CoreGenerateAssemblyInfo" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)">
+  <Target Name="_ShokoStampGitMetadata" BeforeTargets="CoreGenerateAssemblyInfo" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)"
+          Condition="'$(ShokoBuildAssemblyInfoFile)' == ''">
     <StampGitMetadata ProjectDir="$(MSBuildProjectDirectory)"
                       OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.GitInfo.cs" />
     <ItemGroup>
