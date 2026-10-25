@@ -23,6 +23,10 @@ The plugin's identity and tags come from its `manifest.json`, or from its source
 
 `Include` is the plugin's ID, `Version` a range (`>=1.0.0`, `^1.0.0`, `~1.0.0` or `1.0.0`), and `Optional` `true` or `false`, `false` when left out. The `PluginDependencies` property, the same list as one string, replaces the items. A manifest's top-level `dependencies` are not read. A bad item stops the build, naming it. See [Plugin metadata](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#plugin-metadata) and [Dependencies](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#dependencies) in the guide.
 
+## Generated plugin class and images
+
+A project setting `PluginGenerateClass` to `true` gets its `IPlugin` class generated: a `partial` class `Plugin` in its `RootNamespace` (or `PluginClassName`), whose ID, name and description come from the stamped identity. Add a main configuration or behaviour in a partial class of your own; with no other code, it is a meta plugin that only brings in its `PluginDependency` items. `PluginIcon` and `PluginThumbnail` name the image files to embed for the server to show. See [Generated plugin class](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#generated-plugin-class) and [Plugin images](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#plugin-images) in the guide.
+
 ## Documentation
 
 - [Build tools guide](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md)

@@ -23,6 +23,11 @@ constructed and started is in the [plugin overview](../README.md).
 
 ## `IPlugin`
 
+A plugin whose class only states its identity can have it generated from its
+project instead; see
+[Generated plugin class](../../Shoko.BuildTools/README.md#generated-plugin-class).
+Written by hand, it looks like this:
+
 ```csharp
 public class MyPlugin : IPlugin
 {
@@ -162,9 +167,13 @@ over an embedded resource:
 | thumbnail | `thumbnail.*` | `<dll name>.thumbnail.*` |
 | icon | `icon.*` | `<dll name>.icon.*` |
 
-An embedded resource, named by `EmbeddedThumbnailResourceName` or
-`EmbeddedIconResourceName`, must be rooted in the plugin's assembly name, and is
-written out beside the plugin the first time it is read. Any format the image
+An embedded resource must be rooted in the plugin's assembly name, and is
+written out beside the plugin the first time it is read. The simplest way is
+the project's `PluginIcon` and `PluginThumbnail` properties, which
+`Shoko.BuildTools.Targets` embeds and names for the server; see
+[Plugin images](../../Shoko.BuildTools/README.md#plugin-images). Otherwise
+`EmbeddedThumbnailResourceName` and `EmbeddedIconResourceName` name them, and
+the stamped names win when both are there. Any format the image
 system takes is accepted: PNG, JPEG, WebP, GIF, BMP, TIFF and SVG.
 
 They are served from `/api/v3/Plugin/{pluginID}/Thumbnail` and
@@ -735,8 +744,8 @@ it leaves behind with it, unless asked not to.
 
 A **meta plugin** is a plugin with no code of its own, which only brings in the
 plugins it depends on. `Shoko.BuildTools.Targets` builds one from a project
-setting `ShokoMetaPlugin`; see the
-[build tools guide](../../Shoko.BuildTools/README.md#meta-plugins).
+setting `PluginGenerateClass` with no other code; see the
+[build tools guide](../../Shoko.BuildTools/README.md#generated-plugin-class).
 
 **Events.** `PackageInstallationStarted` / `Completed` / `Failed`, and
 `RepositorySyncStarted` / `Completed` / `Failed`. The two `Started` args carry a

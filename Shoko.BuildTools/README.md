@@ -178,6 +178,55 @@ from a property, such as `Version=">=$(ExampleLibraryVersion)"`.
 A manifest has no top-level `dependencies`: a build that finds them there
 warns and ignores them.
 
+### Generated plugin class
+
+Most plugins' `IPlugin` class only states their ID, name and description,
+which the project already holds. Set `PluginGenerateClass` and the class is
+generated instead, so the project is the one place the plugin's identity is
+written:
+
+```xml
+<PropertyGroup Label="Plugin">
+  <PluginGenerateClass>true</PluginGenerateClass>
+  <PluginID>1a2b3c4d-0000-0000-0000-000000000000</PluginID>
+  <PluginName>Example Plugin</PluginName>
+  <PluginOverview>Does a useful thing.</PluginOverview>
+  <PluginTags>example</PluginTags>
+  <PluginIcon>Assets/icon.svg</PluginIcon>
+  <PluginThumbnail>Assets/thumbnail.svg</PluginThumbnail>
+</PropertyGroup>
+```
+
+`Shoko.BuildTools.Targets` writes a `partial` class, `Plugin` in the project's
+`RootNamespace` (`PluginClassName` names it otherwise), whose `ID`, `Name` and
+`Description` come from what the build stamps into the assembly. The rest of
+the plugin refers to it as usual, as in `PluginPaths<Plugin>`. To add a main
+configuration or behaviour, write the rest of the class:
+
+```csharp
+public partial class Plugin : IPlugin<ExampleConfiguration>
+{
+    public void Setup(IServiceProvider serviceProvider) { … }
+}
+```
+
+A **meta plugin** is a generated class with no other code: a plugin that only
+brings in the plugins it depends on, such as a set meant to be installed
+together. Installing it installs them as dependencies, they are enabled while
+it is, and uninstalling it removes the ones nothing else needs. Optional
+dependencies are listed by the server but not installed unless asked for.
+
+### Plugin images
+
+`PluginIcon` and `PluginThumbnail` name the image files to show for the
+plugin: a square icon, readable at 24 pixels, and a wide thumbnail. The build
+embeds them under names rooted in the assembly and stamps those names into it,
+which the server reads, with or without a generated class. They replace
+`EmbeddedResource` items paired with `EmbeddedIconResourceName` and
+`EmbeddedThumbnailResourceName` in the plugin's class, which the server still
+reads when nothing is stamped. SVG is preferred; PNG, JPEG, WebP, GIF, BMP and
+TIFF work too.
+
 ### Dependency list
 
 `--dependencies` and the `PluginDependencies` property take the same
@@ -333,8 +382,8 @@ deprecated `image_url` is read as the thumbnail when there is no
 another manifest instead of describing a plugin. A release can also carry
 `source_revision` and `release_notes`.
 
-A plugin can embed its thumbnail and icon in its assembly instead
-(`IPlugin.EmbeddedThumbnailResourceName` and `EmbeddedIconResourceName`).
+A plugin can embed its thumbnail and icon in its assembly instead; see
+[Plugin images](#plugin-images).
 
 ### Examples
 

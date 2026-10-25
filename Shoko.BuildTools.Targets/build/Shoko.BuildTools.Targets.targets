@@ -9,6 +9,11 @@
 
       <PluginDependency Include="<plugin id>" Version=">=1.0.0" Optional="true" />
 
+    A project setting PluginGenerateClass to true gets its IPlugin class
+    generated: a partial class named PluginClassName (Plugin by default) in
+    RootNamespace, reading its identity from the assembly. PluginIcon and
+    PluginThumbnail name the image files to embed for the server to show.
+
     A build that imports these targets from source rather than from the
     package points ShokoBuildToolsTasksAssembly at the tasks it built, names
     the targets that put them there in ShokoBuildToolsPrepareTargets, and
@@ -34,6 +39,10 @@
   <UsingTask TaskName="Shoko.BuildTools.Tasks.ReadPluginIdentityFromSource" AssemblyFile="$(ShokoBuildToolsTasksAssembly)"
              Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
   <UsingTask TaskName="Shoko.BuildTools.Tasks.ReadPluginIdentityFromSource" AssemblyFile="$(ShokoBuildToolsTasksAssembly)" TaskFactory="TaskHostFactory"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' == 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.GeneratePluginClass" AssemblyFile="$(ShokoBuildToolsTasksAssembly)"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.GeneratePluginClass" AssemblyFile="$(ShokoBuildToolsTasksAssembly)" TaskFactory="TaskHostFactory"
              Condition="'$(ShokoBuildToolsUseTaskHost)' == 'true'" />
   <UsingTask TaskName="Shoko.BuildTools.Tasks.AppendReleaseChannel" AssemblyFile="$(ShokoBuildToolsTasksAssembly)"
              Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
@@ -75,6 +84,38 @@
                         PluginDependencyItems="@(PluginDependency)" />
     <ItemGroup>
       <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.PluginIdentity.cs" Condition="Exists('$(IntermediateOutputPath)Shoko.BuildTools.PluginIdentity.cs')" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Generated plugin class — the IPlugin class, from the project's Plugin* properties -->
+  <PropertyGroup>
+    <PluginClassName Condition="'$(PluginClassName)' == ''">Plugin</PluginClassName>
+  </PropertyGroup>
+
+  <Target Name="_ShokoGeneratePluginClass" BeforeTargets="CoreGenerateAssemblyInfo" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)"
+          Condition="'$(PluginGenerateClass)' == 'true'">
+    <GeneratePluginClass OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.PluginClass.cs"
+                         Namespace="$(RootNamespace)"
+                         ClassName="$(PluginClassName)" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.PluginClass.cs" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Plugin images — embedded under names rooted in the assembly, which the server reads from the stamped metadata -->
+  <Target Name="_ShokoEmbedPluginImages" BeforeTargets="PrepareForBuild"
+          Condition="'$(PluginIcon)' != '' or '$(PluginThumbnail)' != ''">
+    <PropertyGroup>
+      <_ShokoPluginIconResource Condition="'$(PluginIcon)' != ''">$(AssemblyName).PluginIcon$([System.IO.Path]::GetExtension('$(PluginIcon)'))</_ShokoPluginIconResource>
+      <_ShokoPluginThumbnailResource Condition="'$(PluginThumbnail)' != ''">$(AssemblyName).PluginThumbnail$([System.IO.Path]::GetExtension('$(PluginThumbnail)'))</_ShokoPluginThumbnailResource>
+    </PropertyGroup>
+    <Error Condition="'$(PluginIcon)' != '' and !Exists('$(PluginIcon)')" Text="PluginIcon '$(PluginIcon)' does not exist." />
+    <Error Condition="'$(PluginThumbnail)' != '' and !Exists('$(PluginThumbnail)')" Text="PluginThumbnail '$(PluginThumbnail)' does not exist." />
+    <ItemGroup>
+      <EmbeddedResource Include="$(PluginIcon)" LogicalName="$(_ShokoPluginIconResource)" Condition="'$(PluginIcon)' != ''" />
+      <AssemblyMetadata Include="PackageIcon" Value="$(_ShokoPluginIconResource)" Condition="'$(PluginIcon)' != ''" />
+      <EmbeddedResource Include="$(PluginThumbnail)" LogicalName="$(_ShokoPluginThumbnailResource)" Condition="'$(PluginThumbnail)' != ''" />
+      <AssemblyMetadata Include="PackageThumbnail" Value="$(_ShokoPluginThumbnailResource)" Condition="'$(PluginThumbnail)' != ''" />
     </ItemGroup>
   </Target>
 

@@ -2228,8 +2228,15 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         logger.LogWarning("Skipping {DllName} because it has the same ID as the core plugin.", dllPath);
                         continue;
                     }
-                    var thumbnailImage = PackageImageLoader.ReadEmbedded(assembly, assemblyName, instance.EmbeddedThumbnailResourceName, ThumbnailKind, dllPath, logger);
-                    var iconImage = PackageImageLoader.ReadEmbedded(assembly, assemblyName, instance.EmbeddedIconResourceName, IconKind, dllPath, logger);
+                    // The names the build stamped, from the project's PluginThumbnail and PluginIcon, win over the plugin's own.
+                    var thumbnailResourceName = metadataAttributeDict.GetValueOrDefault(PackageThumbnail) is { Length: > 0 } stampedThumbnail
+                        ? stampedThumbnail
+                        : instance.EmbeddedThumbnailResourceName;
+                    var iconResourceName = metadataAttributeDict.GetValueOrDefault(PackageIcon) is { Length: > 0 } stampedIcon
+                        ? stampedIcon
+                        : instance.EmbeddedIconResourceName;
+                    var thumbnailImage = PackageImageLoader.ReadEmbedded(assembly, assemblyName, thumbnailResourceName, ThumbnailKind, dllPath, logger);
+                    var iconImage = PackageImageLoader.ReadEmbedded(assembly, assemblyName, iconResourceName, IconKind, dllPath, logger);
 
                     return new()
                     {
@@ -2299,6 +2306,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     private const string PackageProjectUrl = "PackageProjectUrl";
 
     private const string PackageTags = "PackageTags";
+
+    private const string PackageThumbnail = "PackageThumbnail";
+
+    private const string PackageIcon = "PackageIcon";
 
     private const string NewRuntimeIdentifier = "RuntimeIdentifier";
 
