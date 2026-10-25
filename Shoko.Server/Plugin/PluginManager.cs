@@ -792,6 +792,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             services.GetRequiredService<ScheduledActionRegistry>().AddParts(GetTypes<IScheduledAction>()
                 .Select(type => (GetPluginInfo(type.Assembly)!.ID, type))));
 
+        AddParts("registering its scheduled action providers", () =>
+            services.GetRequiredService<ScheduledActionRegistry>().AddProviders(CreateExports<IScheduledActionProvider>()));
+
         AddParts("registering its stream transforms and playback observers", () =>
         {
             if (services.GetRequiredService<IVideoStreamPipelineService>() is VideoStreamPipelineService videoStreamPipelineService)

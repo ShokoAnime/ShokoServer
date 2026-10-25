@@ -1755,6 +1755,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(201,   1, "ALTER TABLE `StoredReleaseInfo` MODIFY COLUMN `AudioLanguages` VARCHAR(1024) NULL;"),
         new(201,   2, "ALTER TABLE `StoredReleaseInfo` MODIFY COLUMN `SubtitleLanguages` VARCHAR(1024) NULL;"),
         new(202,   1, DatabaseFixes.MigrateStoredFilterParameters),
+        new(203,   1, "ALTER TABLE `ScheduledAction` ADD COLUMN `PluginID` VARCHAR(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL;"),
     ];
 
     #endregion

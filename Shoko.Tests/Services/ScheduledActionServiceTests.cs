@@ -11,6 +11,7 @@ using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.ScheduledActions;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
@@ -131,6 +132,31 @@ public sealed class ScheduledActionServiceTests : IDisposable
 
         public int RunsOf(Guid actionId) => Runs.GetValueOrDefault(actionId);
 
+        public event EventHandler<ScheduledActionSourceChangedEventArgs>? Changed;
+
+        public IReadOnlyList<IScheduledActionProvider> Providers => [];
+
+        /// <summary>
+        /// Adds an action while the server runs, as a provider would.
+        /// </summary>
+        public Guid AddLate(IReadOnlyList<ActionTrigger> defaults, Action<Guid>? before = null)
+        {
+            var id = Add(defaults);
+            before?.Invoke(id);
+            Changed?.Invoke(this, new([Find(id).Definition], [], []));
+            return id;
+        }
+
+        /// <summary>
+        /// Removes an action while the server runs, as a provider would.
+        /// </summary>
+        public void Remove(Guid actionId)
+        {
+            var action = Find(actionId);
+            _actions.Remove(action);
+            Changed?.Invoke(this, new([], [], [action.Definition]));
+        }
+
         public IReadOnlyList<ScheduledActionDefinition> GetActions() => _actions.Select(action => action.Definition).ToList();
 
         public ScheduledActionDefinition? GetAction(Type actionType) => _actions.FirstOrDefault(action => action.ActionType == actionType)?.Definition;
@@ -230,7 +256,7 @@ public sealed class ScheduledActionServiceTests : IDisposable
     /// A scheduler over the shared rows and queue, as a fresh start of the
     /// server would build it.
     /// </summary>
-    private ScheduledActionService Service()
+    private ScheduledActionService Service(IPluginManager? pluginManager = null)
         => new(
             _logger,
             _source,
@@ -241,7 +267,8 @@ public sealed class ScheduledActionServiceTests : IDisposable
             _queue.Events,
             _systemService.Object,
             _applicationPaths.Object,
-            _clock
+            _clock,
+            pluginManager
         );
 
     /// <summary>
@@ -319,6 +346,119 @@ public sealed class ScheduledActionServiceTests : IDisposable
         var info = service.GetScheduledAction(action)!;
         Assert.Equal(Now, info.LastRunAt);
         Assert.Equal(Now.AddHours(1), info.NextRunAt);
+    }
+
+    [Fact]
+    public async Task AnActionAddedWhileRunning_CountsFromWhenItWasAdded_EvenWhenItsRowIsOverdue()
+    {
+        var token = TestContext.Current.CancellationToken;
+        _source.Add([]);
+        using var service = Service();
+        await service.StartSchedulingAsync(token);
+        await service.StartAsync(token);
+        ScheduledActionsChangedEventArgs? changed = null;
+        service.ActionsChanged += (_, e) => changed = e;
+
+        var action = _source.AddLate([ActionTrigger.Every(TimeSpan.FromHours(1))], id => SeedRow(id, Now.AddDays(-3)));
+        await service.TickAsync(token);
+
+        Assert.Equal(action, Assert.Single(changed!.Added).ID);
+        Assert.Equal(0, _source.RunsOf(action));
+        Assert.Equal(Now.AddHours(1), service.GetScheduledAction(action)!.NextRunAt);
+
+        _clock.Advance(TimeSpan.FromMinutes(61));
+        await service.TickAsync(token);
+        Assert.Equal(1, _source.RunsOf(action));
+    }
+
+    [Fact]
+    public async Task AnUninstalledPluginsRows_GoWithItsData_AndOldRowsLearnTheirPlugin()
+    {
+        var action = _source.Add([ActionTrigger.Every(TimeSpan.FromHours(1))]);
+        _schedules.Object.Save(new ScheduledAction { ActionID = action, CreatedAt = Now.AddDays(-1) });
+        var other = Guid.NewGuid();
+        _schedules.Object.Save(new ScheduledAction { ActionID = Guid.NewGuid(), PluginID = other, CreatedAt = Now });
+        using var service = Service();
+        await service.StartSchedulingAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(Guid.Empty, _schedules.Object.GetByActionID(action)!.PluginID);
+
+        _schedules.Object.DeleteByPluginID(other);
+        Assert.NotNull(_schedules.Object.GetByActionID(action));
+        Assert.Single(_schedules.Object.GetAll());
+    }
+
+    [Fact]
+    public async Task TheRowsOfActionsGoneForAMonth_GoUnlessTheirPluginIsOnlyUnloaded()
+    {
+        var (gone, unloaded, loaded, unknown) = (Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var plugins = new Mock<IPluginManager>();
+        plugins.Setup(manager => manager.GetPluginInfos(It.IsAny<Guid>())).Returns([]);
+        plugins.Setup(manager => manager.GetPluginInfos(unloaded)).Returns([InstalledPlugin(unloaded, active: false)]);
+        plugins.Setup(manager => manager.GetPluginInfos(loaded)).Returns([InstalledPlugin(loaded, active: true)]);
+        Guid Row(Guid? pluginID, int daysAgo)
+        {
+            var id = Guid.NewGuid();
+            _schedules.Object.Save(new ScheduledAction { ActionID = id, PluginID = pluginID, CreatedAt = Now.AddDays(-daysAgo), LastRunAt = Now.AddDays(-daysAgo) });
+            return id;
+        }
+
+        var (ofGone, ofUnloaded, ofLoaded, ofUnknown, recent) = (Row(gone, 31), Row(unloaded, 31), Row(loaded, 31), Row(null, 31), Row(gone, 29));
+        using var service = Service(plugins.Object);
+        await service.StartSchedulingAsync(TestContext.Current.CancellationToken);
+
+        Assert.Null(_schedules.Object.GetByActionID(ofGone));
+        Assert.Null(_schedules.Object.GetByActionID(ofLoaded));
+        Assert.NotNull(_schedules.Object.GetByActionID(ofUnloaded));
+        Assert.NotNull(_schedules.Object.GetByActionID(ofUnknown));
+        Assert.NotNull(_schedules.Object.GetByActionID(recent));
+    }
+
+    private static LocalPluginInfo InstalledPlugin(Guid id, bool active) => new()
+    {
+        ID = id,
+        Name = "Plugin",
+        Description = string.Empty,
+        Version = PluginTestDoubles.InstalledPluginInfo(typeof(PluginTestDoubles.TestPlugin), id).Version,
+        Authors = null,
+        RepositoryUrl = null,
+        HomepageUrl = null,
+        Tags = [],
+        Thumbnail = null,
+        Icon = null,
+        InstalledAt = DateTime.UnixEpoch,
+        IsEnabled = active,
+        IsActive = active,
+        CanLoad = true,
+        CanUninstall = true,
+        Plugin = null,
+        PluginType = null,
+        ServiceRegistrationType = null,
+        ApplicationRegistrationType = null,
+        ContainingDirectory = null,
+        DLLs = ["Plugin.dll"],
+        Types = [],
+        Dependencies = [],
+    };
+
+    [Fact]
+    public async Task AnActionRemovedWhileRunning_IsNoLongerRun_AndLosesItsRow()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var action = _source.Add([ActionTrigger.Every(TimeSpan.FromHours(1))]);
+        using var service = Service();
+        await service.StartSchedulingAsync(token);
+        await service.StartAsync(token);
+        ScheduledActionsChangedEventArgs? changed = null;
+        service.ActionsChanged += (_, e) => changed = e;
+
+        _source.Remove(action);
+        _clock.Advance(TimeSpan.FromHours(2));
+        await service.TickAsync(token);
+
+        Assert.Equal(action, Assert.Single(changed!.Removed).ID);
+        Assert.Equal(0, _source.RunsOf(action));
+        Assert.Null(_schedules.Object.GetByActionID(action));
     }
 
     [Fact]

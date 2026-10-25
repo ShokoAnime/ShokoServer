@@ -13,6 +13,7 @@ public class ScheduledActionMap : ClassMap<ScheduledAction>
         Id(x => x.ScheduledActionID);
 
         Map(x => x.ActionID).Not.Nullable().Unique();
+        Map(x => x.PluginID).Nullable();
         Map(x => x.Triggers).Nullable();
         Map(x => x.LastRunAt).Nullable();
         Map(x => x.LastScheduledRunAt).Nullable();

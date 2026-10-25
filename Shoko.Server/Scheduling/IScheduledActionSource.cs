@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.ScheduledActions;
 
 namespace Shoko.Server.Scheduling;
 
@@ -12,6 +13,17 @@ namespace Shoko.Server.Scheduling;
 /// </summary>
 public interface IScheduledActionSource
 {
+    /// <summary>
+    /// Raised after a provider's actions were added, updated or removed while
+    /// the server runs, outside any lock.
+    /// </summary>
+    event EventHandler<ScheduledActionSourceChangedEventArgs>? Changed;
+
+    /// <summary>
+    /// The registered scheduled action providers.
+    /// </summary>
+    IReadOnlyList<IScheduledActionProvider> Providers { get; }
+
     /// <summary>
     /// Lists the registered scheduled actions.
     /// </summary>

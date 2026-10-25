@@ -5,13 +5,16 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Actions;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
 using Xunit;
@@ -154,7 +157,7 @@ public class ScheduledActionRegistryTests
             services.AddSingleton(Scheduler.Object);
             foreach (var type in actionTypes)
                 services.AddTransient(type);
-            Registry = new(Scheduler.Object, Mock.Of<IPluginManager>(), services.BuildServiceProvider());
+            Registry = new(Scheduler.Object, Mock.Of<IPluginManager>(), services.BuildServiceProvider(), NullLogger<ScheduledActionRegistry>.Instance);
             Registry.AddParts(actionTypes.Select(type => (PluginID, type)));
         }
 
@@ -304,6 +307,88 @@ public class ScheduledActionRegistryTests
             .ToList();
 
         Assert.Empty(settable);
+    }
+
+    #endregion
+
+    #region Providers
+
+    /// <summary>
+    /// A provider whose actions the test changes.
+    /// </summary>
+    private sealed class FakeProvider : IScheduledActionProvider
+    {
+        public List<ScheduledActionDescriptor> Actions { get; } = [];
+
+        public List<string> Executed { get; } = [];
+
+        public event EventHandler? ActionsChanged;
+
+        public IReadOnlyList<ScheduledActionDescriptor> GetActions() => [.. Actions];
+
+        public Task Execute(string key, IProgress<decimal> progress, CancellationToken token)
+        {
+            Executed.Add(key);
+            return Task.CompletedTask;
+        }
+
+        public void Change() => ActionsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static ScheduledActionDescriptor Descriptor(string key, string? name = null) => new() { Key = key, Name = name ?? key };
+
+    [Fact]
+    public async Task AProvidersActions_AreListedUnderIDsOfTheProviderAndKey_AndRunThroughIt()
+    {
+        var harness = new Harness();
+        var provider = new FakeProvider();
+        provider.Actions.Add(Descriptor("nightly-scan"));
+
+        harness.Registry.AddProviders([provider]);
+
+        var id = UuidUtility.GetV5($"ScheduledActionProvider={typeof(FakeProvider).FullName},Action=nightly-scan", Guid.Empty);
+        Assert.Equal(id, Assert.Single(harness.Registry.GetActions()).ID);
+        Assert.Same(provider, Assert.Single(harness.Registry.Providers));
+        await harness.Registry.CreateInstance(id).Execute(new Progress<decimal>(), TestContext.Current.CancellationToken);
+        Assert.Equal(["nightly-scan"], provider.Executed);
+    }
+
+    [Fact]
+    public void AProviderChangingItsActions_AddsUpdatesAndRemovesThem_AndSaysSo()
+    {
+        var harness = new Harness();
+        var provider = new FakeProvider();
+        provider.Actions.AddRange([Descriptor("kept"), Descriptor("renamed"), Descriptor("dropped")]);
+        harness.Registry.AddProviders([provider]);
+        ScheduledActionSourceChangedEventArgs? changed = null;
+        harness.Registry.Changed += (_, e) => changed = e;
+
+        provider.Actions.Clear();
+        provider.Actions.AddRange([Descriptor("kept"), Descriptor("renamed", "Renamed"), Descriptor("new")]);
+        provider.Change();
+
+        Assert.NotNull(changed);
+        Assert.Equal(["new"], changed.Added.Select(action => action.Name));
+        Assert.Equal(["Renamed"], changed.Updated.Select(action => action.Name));
+        Assert.Equal(["dropped"], changed.Removed.Select(action => action.Name));
+        Assert.Equal(["Renamed", "kept", "new"], harness.Registry.GetActions().Select(action => action.Name).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void AnInvalidKey_FailsTheStart_ButIsOnlyLeftOutLater()
+    {
+        var provider = new FakeProvider();
+        provider.Actions.Add(Descriptor("Not Kebab"));
+        Assert.Throws<InvalidOperationException>(() => new Harness().Registry.AddProviders([provider]));
+
+        var harness = new Harness();
+        var later = new FakeProvider();
+        later.Actions.Add(Descriptor("fine"));
+        harness.Registry.AddProviders([later]);
+        later.Actions.AddRange([Descriptor("Not Kebab"), Descriptor("fine")]);
+        later.Change();
+
+        Assert.Equal(["fine"], harness.Registry.GetActions().Select(action => action.Name));
     }
 
     #endregion

@@ -93,6 +93,44 @@ scheduled actions, which takes the server's startup down with it, for:
 - default daily, weekly or monthly triggers that run closer together than the
   minimum.
 
+### Actions that come and go: `IScheduledActionProvider`
+
+When the actions are not known when you write the plugin, such as one per
+schedule an admin sets up in your settings, export an `IScheduledActionProvider`
+instead of a class per action. Its `GetActions()` lists the actions there are
+now, each a `ScheduledActionDescriptor` with a `Key` and the members a class
+declares (`Name`, `Description`, `Category`, `RequiresConfirmation`,
+`ConfirmationMessage`, `DefaultTriggers`, `MinimumInterval`,
+`ScheduleCountsManualRuns`). The core runs one through `Validate(key, token)` and
+`Execute(key, progress, token)`.
+
+- **IDs.** An action's ID is a UUIDv5 of
+  `"ScheduledActionProvider={provider class's full name},Action={key}"` under
+  your plugin's ID. Keys are lowercase kebab-case, at most 64 characters, and
+  stable: base them on something that does not change with a rename, such as
+  the ID of the setting the action stands for.
+- **Changes.** Raise `ActionsChanged` once `GetActions()` answers with the new
+  list; the core reads the whole list again and goes by it, so a missed or
+  reordered event never leaves it out of step. An added action counts its schedule from when it was added, even
+  when it comes back with an old last run, so it never runs at once on
+  coming back. A removed action leaves the schedule, a run already going
+  finishes, and a run still waiting skips itself; its triggers and last runs
+  are removed with it, so the same key coming back starts over. Triggers an
+  admin set are never replaced by new defaults.
+- **A plugin that is away.** While your plugin is disabled, fails or is not
+  loaded, nothing is reported removed, so its actions keep their triggers and
+  last runs for its return, as a class's do. Uninstalling it with its data
+  removes them. The rows of actions that are gone (not registered, and
+  neither created nor run in 30 days) are removed at start-up when their
+  plugin is no longer installed, or is loaded and no longer has them.
+- **Failures.** At start-up an invalid action fails the start, as for a class
+  (above), and so do a key given twice and a key that is not kebab-case.
+  Later, an invalid action is logged and left out, and the others go on.
+
+`IScheduledActionService.Providers` lists the registered providers, and its
+`ActionsChanged` event, also the `action:actions.changed` feed event, says
+what came, went or changed.
+
 ### A run
 
 A trigger, or an admin by hand, queues a run. The run's queue job resolves a

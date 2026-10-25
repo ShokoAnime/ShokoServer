@@ -101,7 +101,7 @@ public sealed class ScheduledActionJobTests : IDisposable
         services.AddTransient<ReportingAction>();
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         _services = services.BuildServiceProvider();
-        _registry = new(Mock.Of<IQueueScheduler>(), Mock.Of<IPluginManager>(), _services);
+        _registry = new(Mock.Of<IQueueScheduler>(), Mock.Of<IPluginManager>(), _services, NullLogger<ScheduledActionRegistry>.Instance);
         _registry.AddParts([(Guid.NewGuid(), typeof(ReportingAction))]);
         _runs.Setup(runs => runs.ReportRunStarted(It.IsAny<Guid>())).Returns(_startedAt);
     }

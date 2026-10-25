@@ -1736,6 +1736,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(199,   1, "ALTER TABLE StoredReleaseInfo ALTER COLUMN AudioLanguages NVARCHAR(1024) NULL;"),
         new(199,   2, "ALTER TABLE StoredReleaseInfo ALTER COLUMN SubtitleLanguages NVARCHAR(1024) NULL;"),
         new(200,   1, DatabaseFixes.MigrateStoredFilterParameters),
+        new(201,   1, "ALTER TABLE ScheduledAction ADD PluginID NVARCHAR(40) COLLATE Latin1_General_100_BIN2 NULL;"),
     ];
 
     #endregion

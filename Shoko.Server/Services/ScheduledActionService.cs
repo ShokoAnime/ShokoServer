@@ -22,6 +22,7 @@ using Shoko.QueueProcessor.Events;
 using Shoko.Server.Actions;
 using Shoko.Server.API;
 using Shoko.Server.Models.Internal;
+using Shoko.Server.Plugin;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
@@ -53,6 +54,7 @@ namespace Shoko.Server.Services;
 /// <param name="_systemService">Says when the server has started.</param>
 /// <param name="_applicationPaths">Where the settings carry-over is.</param>
 /// <param name="timeProvider">The clock, or <c>null</c> for the system clock.</param>
+/// <param name="_pluginManager">Says when a plugin was uninstalled with its data, whose rows go then.</param>
 public sealed class ScheduledActionService(
     ILogger<ScheduledActionService> _logger,
     IScheduledActionSource _source,
@@ -63,7 +65,8 @@ public sealed class ScheduledActionService(
     QueueStateEventHandler _queueEvents,
     ISystemService _systemService,
     IApplicationPaths _applicationPaths,
-    TimeProvider? timeProvider = null
+    TimeProvider? timeProvider = null,
+    IPluginManager? _pluginManager = null
 ) : IScheduledActionService, IScheduledActionRunReporter, IHostedService, IDisposable
 {
     #region Constants
@@ -74,6 +77,12 @@ public sealed class ScheduledActionService(
     /// noticed within it.
     /// </summary>
     internal static readonly TimeSpan MaximumSleep = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// How long the row of an action that is gone is kept, from its creation
+    /// and its last run, before <see cref="RemoveStaleRows"/> may remove it.
+    /// </summary>
+    internal static readonly TimeSpan StaleRowAge = TimeSpan.FromDays(30);
 
     /// <summary>
     /// The shortest the scheduler sleeps, so a timer that fires a hair early
@@ -188,6 +197,13 @@ public sealed class ScheduledActionService(
     /// </summary>
     private Task _queueClearedFiring = Task.CompletedTask;
 
+    /// <summary>
+    /// When each action a provider added while the server ran was added: its
+    /// schedule counts from no earlier, so one coming back overdue does not
+    /// run at once.
+    /// </summary>
+    private readonly ConcurrentDictionary<Guid, DateTime> _addedAt = new();
+
     private ITimer? _timer;
 
     private bool _loaded;
@@ -211,6 +227,9 @@ public sealed class ScheduledActionService(
     {
         _queueEvents.ExecutingJobsChanged += OnExecutingJobsChanged;
         _queueEvents.QueueItemsRemoved += OnQueueItemsRemoved;
+        _source.Changed += OnSourceChanged;
+        if (_pluginManager is PluginManager manager)
+            manager.PluginDataPurged += OnPluginDataPurged;
         _systemService.Started += OnServerStarted;
         if (_systemService.IsStarted)
             OnServerStarted(this, EventArgs.Empty);
@@ -223,6 +242,9 @@ public sealed class ScheduledActionService(
     {
         _queueEvents.ExecutingJobsChanged -= OnExecutingJobsChanged;
         _queueEvents.QueueItemsRemoved -= OnQueueItemsRemoved;
+        _source.Changed -= OnSourceChanged;
+        if (_pluginManager is PluginManager manager)
+            manager.PluginDataPurged -= OnPluginDataPurged;
         _systemService.Started -= OnServerStarted;
         lock (_lock)
         {
@@ -243,8 +265,89 @@ public sealed class ScheduledActionService(
         _disposed = true;
         _queueEvents.ExecutingJobsChanged -= OnExecutingJobsChanged;
         _queueEvents.QueueItemsRemoved -= OnQueueItemsRemoved;
+        _source.Changed -= OnSourceChanged;
+        if (_pluginManager is PluginManager manager)
+            manager.PluginDataPurged -= OnPluginDataPurged;
         _systemService.Started -= OnServerStarted;
         _timer?.Dispose();
+    }
+
+    /// <summary>
+    /// Follows the actions a provider added, updated or removed: an added one
+    /// gets its row and counts from now, a removed one loses its row, the job
+    /// keys are mapped again, the timer is set anew, and the change is
+    /// announced. Before the schedule is
+    /// loaded there is nothing to follow, as loading reads every action.
+    /// </summary>
+    /// <param name="sender">The registry.</param>
+    /// <param name="eventArgs">What changed.</param>
+    private void OnSourceChanged(object? sender, ScheduledActionSourceChangedEventArgs eventArgs)
+    {
+        try
+        {
+            lock (_lock)
+            {
+                if (!_loaded)
+                    return;
+
+                var now = UtcNow;
+                foreach (var action in eventArgs.Added)
+                {
+                    _addedAt[action.ID] = now;
+                    var row = _schedules.GetByActionID(action.ID);
+                    if (row is null)
+                        _schedules.Save(new ScheduledAction { ActionID = action.ID, PluginID = action.PluginID, CreatedAt = now });
+                    else if (row.PluginID != action.PluginID)
+                    {
+                        row.PluginID = action.PluginID;
+                        _schedules.Save(row);
+                    }
+                }
+
+                // The provider says the action is gone, so its triggers and last runs go too.
+                foreach (var action in eventArgs.Removed)
+                {
+                    _addedAt.TryRemove(action.ID, out _);
+                    if (_schedules.GetByActionID(action.ID) is { } row)
+                        _schedules.Delete(row);
+                }
+
+                _runKeys = _source.GetActions()
+                    .GroupBy(action => action.JobKey)
+                    .ToDictionary(group => group.Key, group => group.ToArray());
+            }
+
+            Arm();
+            var executing = GetExecuting();
+            ActionsChanged?.Invoke(this, new()
+            {
+                Added = [.. eventArgs.Added.Select(action => ToInfo(action, executing))],
+                Updated = [.. eventArgs.Updated.Select(action => ToInfo(action, executing))],
+                Removed = [.. eventArgs.Removed.Select(action => ToInfo(action, executing))],
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not follow the scheduled actions a provider changed");
+        }
+    }
+
+    /// <summary>
+    /// Deletes the rows of every action of a plugin uninstalled with its data.
+    /// </summary>
+    /// <param name="sender">The plugin manager.</param>
+    /// <param name="pluginID">The plugin's ID.</param>
+    private void OnPluginDataPurged(object? sender, Guid pluginID)
+    {
+        try
+        {
+            lock (_lock)
+                _schedules.DeleteByPluginID(pluginID);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not remove the schedules of the uninstalled plugin {PluginID}", pluginID);
+        }
     }
 
     private void OnServerStarted(object? sender, EventArgs eventArgs)
@@ -766,7 +869,12 @@ public sealed class ScheduledActionService(
                 if (row is null)
                 {
                     var legacyLastRun = GetLegacyLastRun(port.LastRun);
-                    row = new() { ActionID = action.ID, CreatedAt = now, LastRunAt = legacyLastRun, LastScheduledRunAt = legacyLastRun };
+                    row = new() { ActionID = action.ID, PluginID = action.PluginID, CreatedAt = now, LastRunAt = legacyLastRun, LastScheduledRunAt = legacyLastRun };
+                    changed = true;
+                }
+                else if (row.PluginID != action.PluginID)
+                {
+                    row.PluginID = action.PluginID;
                     changed = true;
                 }
 
@@ -793,6 +901,8 @@ public sealed class ScheduledActionService(
                     _schedules.Save(row);
             }
 
+            RemoveStaleRows(now);
+
             // Only once it is saved, so a boot that fails before this keeps it.
             SettingsMigrations.ClearUpdateFrequencyCarryOver(_applicationPaths.DataPath);
             SettingsMigrations.ClearStartupTriggerCarryOver(_applicationPaths.DataPath);
@@ -814,6 +924,38 @@ public sealed class ScheduledActionService(
             }
 
             _loaded = true;
+        }
+    }
+
+    /// <summary>
+    /// Removes the rows of actions that are gone for good: not registered now,
+    /// neither created nor run in the last <see cref="StaleRowAge"/>, and of a
+    /// plugin that is no longer installed, or that is loaded and so would have
+    /// registered the action. The rows of a plugin installed but not loaded,
+    /// such as a disabled or failed one, are kept for its return, and so are
+    /// the rows whose plugin is not known. Called under the lock.
+    /// </summary>
+    /// <param name="now">The time now, in UTC.</param>
+    private void RemoveStaleRows(DateTime now)
+    {
+        if (_pluginManager is null)
+            return;
+
+        var registered = _source.GetActions().Select(action => action.ID).ToHashSet();
+        var cutoff = now - StaleRowAge;
+        foreach (var row in _schedules.GetAll().ToList())
+        {
+            if (registered.Contains(row.ActionID) || row.PluginID is not { } pluginID)
+                continue;
+            if (DateTime.SpecifyKind(row.CreatedAt, DateTimeKind.Utc) > cutoff || (row.LastRunAt is { } lastRunAt && DateTime.SpecifyKind(lastRunAt, DateTimeKind.Utc) > cutoff))
+                continue;
+
+            var installed = _pluginManager.GetPluginInfos(pluginID).Where(info => info.IsInstalled).ToList();
+            if (installed.Count > 0 && !installed.Any(info => info.IsActive))
+                continue;
+
+            _schedules.Delete(row);
+            _logger.LogInformation("Removed the schedule of the scheduled action {ActionId}, which is gone and has not run in {Age}", row.ActionID, StaleRowAge);
         }
     }
 
@@ -950,7 +1092,11 @@ public sealed class ScheduledActionService(
     {
         lock (_lock)
         {
-            var row = _schedules.GetByActionID(actionId) ?? new() { ActionID = actionId, CreatedAt = at };
+            // A run that ends after its action was removed leaves no row behind.
+            if (FindAction(actionId) is not { } action)
+                return;
+
+            var row = _schedules.GetByActionID(actionId) ?? new() { ActionID = actionId, PluginID = action.PluginID, CreatedAt = at };
             var changed = false;
             if (row.LastRunAt is not { } lastRunAt || DateTime.SpecifyKind(lastRunAt, DateTimeKind.Utc) < at)
             {
@@ -1112,6 +1258,8 @@ public sealed class ScheduledActionService(
     {
         var now = UtcNow;
         var anchor = DateTime.SpecifyKind(GetCountedRun(action, row) ?? row?.CreatedAt ?? now, DateTimeKind.Utc);
+        if (_addedAt.TryGetValue(action.ID, out var addedAt) && addedAt > anchor)
+            anchor = addedAt;
         if (anchor <= now)
             return anchor;
 
@@ -1272,6 +1420,12 @@ public sealed class ScheduledActionService(
     public event EventHandler<ScheduledActionRunCompletedEventArgs>? RunCompleted;
 
     /// <inheritdoc/>
+    public event EventHandler<ScheduledActionsChangedEventArgs>? ActionsChanged;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IScheduledActionProvider> Providers => _source.Providers;
+
+    /// <inheritdoc/>
     public IReadOnlyList<ScheduledActionInfo> GetScheduledActions()
     {
         EnsureLoaded();
@@ -1364,7 +1518,7 @@ public sealed class ScheduledActionService(
         var previous = ToInfo(action, GetExecuting());
         lock (_lock)
         {
-            var row = _schedules.GetByActionID(actionId) ?? new() { ActionID = actionId, CreatedAt = UtcNow };
+            var row = _schedules.GetByActionID(actionId) ?? new() { ActionID = actionId, PluginID = action.PluginID, CreatedAt = UtcNow };
             row.Triggers = triggers is null ? null : SerializeTriggers(triggers);
             _schedules.Save(row);
         }

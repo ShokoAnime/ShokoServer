@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Utilities;
@@ -36,4 +37,14 @@ public class ScheduledActionRepository(DatabaseFactory databaseFactory) : BaseCa
     /// <returns>The schedule, or <c>null</c> when the scheduler never saw the action.</returns>
     public ScheduledAction? GetByActionID(Guid actionID)
         => _actionIDs!.GetOne(actionID);
+
+    /// <summary>
+    /// Deletes the schedules of every action of a plugin.
+    /// </summary>
+    /// <param name="pluginID">The plugin's ID.</param>
+    public virtual void DeleteByPluginID(Guid pluginID)
+    {
+        foreach (var schedule in GetAll().Where(schedule => schedule.PluginID == pluginID).ToList())
+            Delete(schedule);
+    }
 }

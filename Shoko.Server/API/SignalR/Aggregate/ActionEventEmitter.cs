@@ -12,8 +12,9 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 /// <summary>
 /// The <c>action</c> feed, for admins only: the scheduled actions' triggers
 /// being set or reset, as <c>action:triggers.changed</c> with the action as it
-/// is now, and their runs starting and ending, as <c>action:run.started</c> and
-/// <c>action:run.completed</c>.
+/// is now, their runs starting and ending, as <c>action:run.started</c> and
+/// <c>action:run.completed</c>, and actions coming, going or changing while the
+/// server runs, as <c>action:actions.changed</c>.
 /// </summary>
 public class ActionEventEmitter : BaseEventEmitter, IDisposable
 {
@@ -30,6 +31,7 @@ public class ActionEventEmitter : BaseEventEmitter, IDisposable
         _scheduledActions.TriggersChanged += OnTriggersChanged;
         _scheduledActions.RunStarted += OnRunStarted;
         _scheduledActions.RunCompleted += OnRunCompleted;
+        _scheduledActions.ActionsChanged += OnActionsChanged;
     }
 
     public void Dispose()
@@ -37,6 +39,7 @@ public class ActionEventEmitter : BaseEventEmitter, IDisposable
         _scheduledActions.TriggersChanged -= OnTriggersChanged;
         _scheduledActions.RunStarted -= OnRunStarted;
         _scheduledActions.RunCompleted -= OnRunCompleted;
+        _scheduledActions.ActionsChanged -= OnActionsChanged;
     }
 
     /// <inheritdoc/>
@@ -52,6 +55,18 @@ public class ActionEventEmitter : BaseEventEmitter, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while sending the 'triggers.changed' event.");
+        }
+    }
+
+    private async void OnActionsChanged(object? sender, ScheduledActionsChangedEventArgs e)
+    {
+        try
+        {
+            await SendAsync("actions.changed", new ScheduledActionsChangedSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'actions.changed' event.");
         }
     }
 

@@ -39,6 +39,18 @@ public interface IScheduledActionService
     event EventHandler<ScheduledActionRunCompletedEventArgs>? RunCompleted;
 
     /// <summary>
+    ///   Dispatched when scheduled actions came, went or changed while the
+    ///   server runs, through an <see cref="IScheduledActionProvider"/>.
+    /// </summary>
+    event EventHandler<ScheduledActionsChangedEventArgs>? ActionsChanged;
+
+    /// <summary>
+    ///   Gets a read-only list of the scheduled action providers registered
+    ///   with the service.
+    /// </summary>
+    IReadOnlyList<IScheduledActionProvider> Providers { get; }
+
+    /// <summary>
     ///   Lists every scheduled action, by category, category name and name.
     /// </summary>
     /// <exception cref="InvalidOperationException">

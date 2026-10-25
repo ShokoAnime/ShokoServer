@@ -22,6 +22,13 @@ public class ScheduledAction
     public Guid ActionID { get; set; }
 
     /// <summary>
+    /// The ID of the plugin the action belongs to, so uninstalling the plugin
+    /// with its data removes the row, or <c>null</c> for a row written before
+    /// the scheduler kept it and not seen since.
+    /// </summary>
+    public Guid? PluginID { get; set; }
+
+    /// <summary>
     /// The triggers the admin set, as JSON, or <c>null</c> when the action's
     /// own defaults are in effect. An empty list means it never runs on its own.
     /// </summary>
