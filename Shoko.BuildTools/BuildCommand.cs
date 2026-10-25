@@ -117,10 +117,13 @@ internal static class BuildCommand
                 pluginId = parsedId;
             }
 
-            var pluginName = Stated(metadataInput.Name, "--name", project, "PluginName")?.Value ?? manifest?.Name;
-            var pluginOverview = Stated(metadataInput.Overview, "--overview", project, "PluginOverview")?.Value ?? manifest?.Overview;
-            var tags = Stated(metadataInput.Tags, "--tags", project, "PluginTags") is { } statedTags
-                ? statedTags.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
+            var statedName = Stated(metadataInput.Name, "--name", project, "PluginName");
+            var pluginName = statedName?.Value.Trim() ?? manifest?.Name;
+            var statedOverview = Stated(metadataInput.Overview, "--overview", project, "PluginOverview");
+            var pluginOverview = statedOverview?.Value.Trim() ?? manifest?.Overview;
+            var statedTags = Stated(metadataInput.Tags, "--tags", project, "PluginTags");
+            var tags = statedTags is { } stated
+                ? stated.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
                 : manifest?.Tags?.ToList();
 
             List<PluginDependencyEntry> dependencies;
@@ -401,6 +404,9 @@ internal static class BuildCommand
             // ── Save manifest once after all RIDs ─────────────────────
             if (manifest is not null && manifestFullPath is not null && completed.Count > 0)
             {
+                // The project is the truth for the plugin's identity: what it states replaces the manifest's.
+                SyncIdentity(manifest, statedName, pluginName, statedOverview, pluginOverview, statedTags, tags);
+
                 if (pruneCount.HasValue)
                 {
                     var pruned = ManifestManager.PruneReleases(manifest, pruneCount.Value, pruneMethod);
@@ -530,6 +536,47 @@ internal static class BuildCommand
     ///   property <paramref name="propertyName" />, with which of the two it
     ///   came from. Null when neither is set.
     /// </summary>
+    /// <summary>
+    ///   Writes the name, overview and tags the project or the flags state
+    ///   into the manifest, so it matches what the build stamped, and says
+    ///   what changed. What nothing states is left as the manifest has it.
+    /// </summary>
+    /// <param name="manifest">The manifest to update.</param>
+    /// <param name="statedName">The stated name, if any.</param>
+    /// <param name="name">The name stamped.</param>
+    /// <param name="statedOverview">The stated overview, if any.</param>
+    /// <param name="overview">The overview stamped.</param>
+    /// <param name="statedTags">The stated tags, if any.</param>
+    /// <param name="tags">The tags stamped, the discovered ones included.</param>
+    internal static void SyncIdentity(
+        Manifest manifest,
+        (string Value, string Source)? statedName,
+        string? name,
+        (string Value, string Source)? statedOverview,
+        string? overview,
+        (string Value, string Source)? statedTags,
+        IReadOnlyList<string>? tags
+    )
+    {
+        if (statedName is { } nameSource && name is { Length: > 0 } && manifest.Name != name)
+        {
+            Console.WriteLine($"Manifest name: '{manifest.Name}' to '{name}' (from {nameSource.Source}).");
+            manifest.Name = name;
+        }
+
+        if (statedOverview is { } overviewSource && manifest.Overview != overview)
+        {
+            Console.WriteLine($"Manifest overview updated (from {overviewSource.Source}).");
+            manifest.Overview = overview;
+        }
+
+        if (statedTags is { } tagsSource && !(manifest.Tags ?? []).SequenceEqual(tags ?? []))
+        {
+            Console.WriteLine($"Manifest tags: [{string.Join(", ", manifest.Tags ?? [])}] to [{string.Join(", ", tags ?? [])}] (from {tagsSource.Source}).");
+            manifest.Tags = [.. tags ?? []];
+        }
+    }
+
     private static (string Value, string Source)? Stated(string? flagValue, string flagName, Project project, string propertyName)
     {
         if (!string.IsNullOrWhiteSpace(flagValue))

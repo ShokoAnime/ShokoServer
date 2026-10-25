@@ -129,7 +129,11 @@ precedence first:
 | `--dependencies` | `PluginDependencies`, then `PluginDependency` items | |
 
 A stated value replaces the manifest's, and lists are never merged. The
-dependencies stated are what the release entry records.
+project is the truth: the name, overview and tags it states are also written
+into the manifest the build updates, the discovered tags included, so a
+release manifest always matches what the plugin says about itself. Change
+them in the project, not in the manifest. The dependencies stated are what
+the release entry records.
 `Shoko.BuildTools.Targets` reads the same properties and items, so a plain
 `dotnet build` takes them too. The properties go in the plugin's `.csproj`
 like any other:
@@ -142,7 +146,9 @@ like any other:
 ```
 
 When there is a manifest, `--id` has to match its `id`: the manifest is
-updated with this build's release, so it must describe the same plugin.
+updated with this build's release, so it must describe the same plugin. Unlike
+the rest of the identity, the `id` is never written over: a mismatch almost
+always means the build points at another plugin's manifest.
 The targets package never writes the manifest and has no such check.
 
 ### Dependencies
