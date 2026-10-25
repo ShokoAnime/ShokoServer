@@ -78,6 +78,7 @@ public partial class PluginManager
         ApplyDemand(internalPlugins, settings.Plugins.EnabledPlugins);
 
         var legacyReplacements = FindLegacyReplacements(internalPlugins);
+        var picks = new List<(List<InternalPluginInfo> OrderedInfo, InternalPluginInfo? ToLoad, string? FailureReason, Dictionary<InternalPluginInfo, string> PassedOver)>();
         foreach (var grouping in internalPlugins.OrderBy(a => a.Priority).GroupBy(a => a.ID))
         {
             // On a tie, the copy the server ships wins over one installed beside it.
@@ -97,6 +98,17 @@ public partial class PluginManager
                 passedOver[toLoad] = reason;
                 (toLoad, failureReason) = (null, null);
             }
+
+            picks.Add((orderedInfo, toLoad, failureReason, passedOver));
+        }
+
+        // Every load context exists before any plugin loads, so a plugin's
+        // dependencies are found whichever loads first.
+        CreateLoadContexts(picks.Where(pick => pick.FailureReason is null).Select(pick => pick.ToLoad).OfType<InternalPluginInfo>());
+
+        foreach (var pick in picks)
+        {
+            var (orderedInfo, toLoad, failureReason, passedOver) = pick;
             foreach (var internalPluginInfo in orderedInfo)
             {
                 if (internalPluginInfo != toLoad)
@@ -149,7 +161,11 @@ public partial class PluginManager
                 {
                     try
                     {
-                        var assembly = mainDllPath is null ? Assembly.GetCallingAssembly() : Assembly.LoadFrom(mainDllPath);
+                        var assembly = mainDllPath is null
+                            ? Assembly.GetCallingAssembly()
+                            : _loadContexts.TryGetValue(internalPluginInfo.ID, out var loadContext)
+                                ? loadContext.LoadFromAssemblyPath(mainDllPath)
+                                : Assembly.LoadFrom(mainDllPath);
                         types = assembly.GetExportedTypes();
                         pluginType = types.First(a => a.GetInterfaces().Contains(typeof(IPlugin)));
                         serviceRegistrationType = types.FirstOrDefault(a => a.GetInterfaces().Contains(typeof(IPluginServiceRegistration)));
@@ -208,6 +224,29 @@ public partial class PluginManager
 
         ApplyDependencyGraph(_pluginTypes, _dependencyRefusals, logger);
         _pluginsLoaded = true;
+    }
+
+    /// <summary>
+    ///   Creates the load context of every plugin version about to load,
+    ///   apart from the core's, which lives in the server's own.
+    /// </summary>
+    /// <param name="toLoad">The plugin versions about to load.</param>
+    private void CreateLoadContexts(IEnumerable<InternalPluginInfo> toLoad)
+    {
+        foreach (var info in toLoad)
+        {
+            if (info.ID == CorePlugin.StaticID || info.DLLs is not [{ } mainDllPath, ..])
+                continue;
+
+            _loadContexts[info.ID] = new(
+                info.ID,
+                info.Name,
+                mainDllPath,
+                [.. info.Dependencies.Select(dependency => dependency.PluginID)],
+                id => _loadContexts.GetValueOrDefault(id),
+                () => _loadContexts.Values
+            );
+        }
     }
 
     #endregion

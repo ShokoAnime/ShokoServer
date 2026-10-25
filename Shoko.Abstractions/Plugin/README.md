@@ -782,6 +782,34 @@ change as the user installs and removes things. To plan an install, use
 `IPluginPackageManager.PlanInstall`, which counts installed versions that are
 not loaded yet.
 
+### Libraries and load contexts
+
+Each plugin loads in a load context of its own, so the libraries it ships are
+its own: two plugins can bundle two versions of the same package (say, two
+JavaScript engines) and each runs with its own. An assembly is looked for in
+this order:
+
+1. **The server's.** Every assembly the server ships (the framework,
+   `Shoko.Abstractions`, `Newtonsoft.Json`, EF Core and the rest) is shared, so
+   reference those with `ExcludeAssets="runtime"`; a copy you ship is never
+   used.
+2. **What your dependencies export.** A plugin you depend on (a
+   `PluginDependency`, optional or not, directly or through another) exports
+   its own code: its main assembly and the projects it was built with, as its
+   `.deps.json` lists them (`"type": "project"`). Those come from that plugin,
+   so a contract it defines, such as its `*.Abstractions` package, is the same
+   type on both sides, even when you ship a copy of it.
+3. **Your own files**, through your `.deps.json`, or beside your DLL without
+   one. The packages you ship are private to you.
+4. **The packages your dependencies ship**, when you do not ship them.
+5. **What any other loaded plugin exports**, as a last resort for a plugin
+   that uses another's types without declaring the dependency.
+
+So declare every plugin whose types you use as a dependency, and do not pass a
+package's types between plugins unless one of them owns the package as a
+project: two plugins shipping the same package each have their own copy, and
+an object from one is not an instance of the other's type.
+
 ---
 
 For writing the plugin itself, start at the [plugin overview](../README.md).

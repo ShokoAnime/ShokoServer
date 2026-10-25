@@ -142,7 +142,7 @@ public class RestartReasonTests(DatabaseMigrationFixture fixture)
 
     /// <summary>
     /// Gets one of the <see cref="TestPlugins"/>, checking the server loaded it the way it loads
-    /// every enabled plugin: active, and in the default load context.
+    /// every enabled plugin: active, and in a load context of its own.
     /// </summary>
     /// <param name="pluginAssembly">The name of the plugin's main assembly.</param>
     /// <returns>The plugin.</returns>
@@ -153,7 +153,7 @@ public class RestartReasonTests(DatabaseMigrationFixture fixture)
         Assert.NotNull(pluginInfo);
         Assert.True(pluginInfo.IsActive);
         Assert.Equal(pluginAssembly, pluginInfo.PluginType?.Assembly.GetName().Name);
-        Assert.Same(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(pluginInfo.PluginType!.Assembly));
+        Assert.IsType<PluginLoadContext>(AssemblyLoadContext.GetLoadContext(pluginInfo.PluginType!.Assembly));
         return pluginInfo;
     }
 

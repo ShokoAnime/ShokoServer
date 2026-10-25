@@ -76,6 +76,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     /// </summary>
     private readonly Dictionary<LocalPluginInfo, PluginLoadState> _dependencyRefusals = [];
 
+    /// <summary>
+    ///   The load context of each loaded plugin, by its ID. The core has none:
+    ///   it lives in the server's own.
+    /// </summary>
+    private readonly Dictionary<Guid, PluginLoadContext> _loadContexts = [];
+
     private bool _pluginsLoaded;
 
     private SemverVersionComparer? _semverComparer;
