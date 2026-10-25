@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.554",
+      "tag": "v6.0.0-dev.554",
+      "commit": "2da34db93d6a0a5606dba19dc6d8138c31ed1a4e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.554/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-25T21:26:34Z",
+      "releaseNotes": "\n`fix` (`api`): **Send a browser's unanswered page into the web UI**:\n\n- A page outside the mount path that the rest of the pipeline answers `404` is redirected to the same path under it\n- Until the server has started, such a page is redirected at once, as the not-running check would answer it\n- Requests not accepting `text/html` and the `/api`, `/plugin` and `/signalr` paths keep their answers\n"
+    },
+    {
       "version": "6.0.0.553",
       "tag": "v6.0.0-dev.553",
       "commit": "0fd71bd23f42c61c1023f982a88b0c2656fa235a",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.525/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-15T05:13:18Z",
       "releaseNotes": "\n`fix`: **List a series on the dashboard after its first progress save**:\n\nA video user data save without a watched change never recomputed the\nseries stats, so `AnimeSeries_User.LastVideoUpdate` stayed unset for a\nseries the user had not finished an episode of yet, and the dashboard's\ncontinue watching and next up lists left it out until the series stats\nwere rebuilt.\n\n- Bumped `LastVideoUpdate` on the series user data after such a save,\n  creating the row when missing, instead of running the full recompute\n\n`refactor`: **Move the TMDB plugin to its own repository**:\n\nThe plugin now lives in `ShokoAnime/Shoko.Plugin.Tmdb`, with its tests and\nits API key stamping, and is released on its own.\n\n- Removed `Shoko.Plugin.Tmdb`, its tests and fixtures, and `ReplaceTmdbApiKey.ps1` with its workflow steps\n- Dropped it from `BundledPlugins.targets`, the solution and the tests that listed its assemblies\n\n`refactor`: **Move the WebAOM plugin to its own repository**:\n\nThe plugin now lives in `ShokoAnime/Shoko.Plugin.WebAOM`, with its tests,\nand is released on its own.\n\n- Removed `Shoko.Plugin.WebAOM` and the renamer's tests\n- Dropped it from `BundledPlugins.targets`, the solution and the tests that listed its assembly\n- Checked the carry-over of the renamer's settings against stand-ins instead of the plugin\n\n`repo`: **Bundle the released plugins, cached per plugin across runs**:\n\nThe offline importer, TMDB and WebAOM are released from their own\nrepositories; official builds bundle the latest stable release of each.\n\n- Added `ReleasedPlugins.targets`, which reads each plugin's published manifest, checks the archive's SHA-256 and caches it like `MediaInfo.targets`, off unless `ShokoBundleReleasedPlugins` is set\n- Fetched each plugin in its own CI job with its own cache entry, and built the server and the Docker images from that cache offline\n- Let a sandboxed source build bundle them from a cache it fills itself with `ShokoReleasedPluginsOffline`\n"
-    },
-    {
-      "version": "6.0.0.524",
-      "tag": "v6.0.0-dev.524",
-      "commit": "16ed0f0b8b574775f924cfe1134f74fbb1a993db",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.524/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-14T08:33:45Z",
-      "releaseNotes": "\n`fix` (`abstractions`): **Map the remaining language codes seen in end-user logs** ([#1461](https://github.com/ShokoAnime/ShokoServer/pull/1461)):\n\n* fix(abstractions): map the remaining language codes seen in end-user logs\n\n- Added 34 ISO 639 languages to `TitleLanguage`, appended after `Pali` so stored values keep their numbers, with `GetTitleLanguage`, `GetDescription` and `GetString` mappings.\n- `mo` resolves to `Romanian` and `Spanish (Catalan|Galician|Basque)` to their own languages.\n- `Undefined`, `Keine Angabe`, `unknown`, `instrumental`, `map`, `sh` and `hbs` stay `Unknown` and are no longer reported.\n- Added `frs`, `kaa`, `rom` and `ace` to the `MediaInfoUtility` language table and spaced the `Hiri Motu`, `Sichuan Yi` and `South Ndebele` names.\n- Re-ran `RepairRegionTaggedStreamLanguages` in a new schema version on all three backends, so streams stored with an empty language code for the new table entries get one. It skips null streams.\n\n* refactor(abstractions): drop GetDescription cases that match the enum name\n\nThe default arm already returns the enum name.\n"
     }
   ]
 }
