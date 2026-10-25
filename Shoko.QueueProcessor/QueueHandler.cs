@@ -13,7 +13,7 @@ using Shoko.QueueProcessor.Workers;
 namespace Shoko.QueueProcessor;
 
 /// <summary>
-/// High-level façade used by API controllers and SignalR emitters.
+/// High-level facade used by API controllers and SignalR emitters.
 /// Replaces <c>Shoko.Server.Scheduling.QueueHandler</c>.
 /// </summary>
 public class QueueHandler

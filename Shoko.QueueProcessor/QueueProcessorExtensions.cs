@@ -127,7 +127,7 @@ public static class QueueProcessorExtensions
             options.DefaultPoolMaxWorkers,
             options.LimitedConcurrencyOverrides));
 
-        // ── Scheduler façade ─────────────────────────────────────────────────
+        // ── Scheduler facade ─────────────────────────────────────────────────
         services.AddSingleton<IQueueScheduler, QueueScheduler>();
         services.AddSingleton<IJobFactory, JobFactory>();
         services.AddSingleton<QueueHandler>();
