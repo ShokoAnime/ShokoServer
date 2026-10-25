@@ -20,6 +20,13 @@ public class UpdatePluginInfoBody
     public bool? IsKept { get; set; }
 
     /// <summary>
+    ///   Mark or unmark the plugin version as installed as a dependency. A
+    ///   plugin with every installed version marked follows its dependents and
+    ///   is uninstalled once nothing needs it.
+    /// </summary>
+    public bool? IsDependency { get; set; }
+
+    /// <summary>
     ///   When <c>true</c>, bypass safety checks for the operation. Used to
     ///   force-disable a plugin that other enabled plugins depend on, or
     ///   force-uninstall a plugin with dependents. The dependents show at once

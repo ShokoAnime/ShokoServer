@@ -321,7 +321,7 @@ public class PluginController(
             : NotFound("Plugin not found");
 
     /// <summary>
-    ///   Enable, disable, pin, unpin, keep or unkeep a plugin by ID.
+    ///   Enable, disable, pin, unpin, keep, unkeep, mark or unmark a plugin by ID.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
@@ -382,6 +382,12 @@ public class PluginController(
                 pluginInfo = pluginManager.KeepPlugin(pluginInfo);
             else
                 pluginInfo = pluginManager.UnkeepPlugin(pluginInfo);
+
+        if (body.IsDependency.HasValue)
+            if (body.IsDependency.Value)
+                pluginInfo = pluginManager.MarkAsDependency(pluginInfo);
+            else
+                pluginInfo = pluginManager.UnmarkAsDependency(pluginInfo);
 
         return new PluginInfo(pluginInfo);
     }
@@ -450,7 +456,7 @@ public class PluginController(
     }
 
     /// <summary>
-    ///   Enable, disable, pin, unpin, keep or unkeep a plugin by ID using JSON Patch.
+    ///   Enable, disable, pin, unpin, keep, unkeep, mark or unmark a plugin by ID using JSON Patch.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
@@ -496,6 +502,11 @@ public class PluginController(
     /// <param name="force">
     ///   Whether to also uninstall any dependent plugins.
     /// </param>
+    /// <param name="keepOrphans">
+    ///   Keep the plugins installed as dependencies that nothing needs once
+    ///   this one is gone. By default they are uninstalled with it, apart from
+    ///   their pinned and kept versions.
+    /// </param>
     /// <returns>
     ///   No content.
     /// </returns>
@@ -504,7 +515,8 @@ public class PluginController(
         [FromRoute] Guid pluginID,
         [FromQuery] bool purgeConfiguration = false,
         [FromQuery] bool purgeData = false,
-        [FromQuery] bool force = false
+        [FromQuery] bool force = false,
+        [FromQuery] bool keepOrphans = false
     )
     {
         if (purgeData && !HttpContext.User.IsInRole("admin"))
@@ -513,6 +525,7 @@ public class PluginController(
         if (pluginManager.GetPluginInfo(pluginID) is not { } pluginInfo)
             return NotFound("Plugin not found");
 
+        var orphansBefore = keepOrphans ? null : GetOrphanIDs();
         var cascade = dependencyResolver.GetUninstallCascade(pluginInfo);
         if (cascade.Count > 0 && !force)
         {
@@ -531,6 +544,7 @@ public class PluginController(
         }
 
         pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration, purgeData);
+        UninstallNewOrphans(orphansBefore);
 
         return NoContent();
     }
@@ -677,6 +691,12 @@ public class PluginController(
             else
                 pluginInfo = pluginManager.UnkeepPlugin(pluginInfo);
 
+        if (body.IsDependency.HasValue)
+            if (body.IsDependency.Value)
+                pluginInfo = pluginManager.MarkAsDependency(pluginInfo);
+            else
+                pluginInfo = pluginManager.UnmarkAsDependency(pluginInfo);
+
         return new PluginInfo(pluginInfo);
     }
 
@@ -734,6 +754,11 @@ public class PluginController(
     /// <param name="force">
     ///   Whether to also uninstall any dependent plugins.
     /// </param>
+    /// <param name="keepOrphans">
+    ///   Keep the plugins installed as dependencies that nothing needs once
+    ///   this one is gone. By default they are uninstalled with it, apart from
+    ///   their pinned and kept versions.
+    /// </param>
     /// <returns>
     ///   No content.
     /// </returns>
@@ -743,7 +768,8 @@ public class PluginController(
         [FromRoute] Version pluginVersion,
         [FromQuery] bool purgeConfiguration = false,
         [FromQuery] bool purgeData = false,
-        [FromQuery] bool force = false
+        [FromQuery] bool force = false,
+        [FromQuery] bool keepOrphans = false
     )
     {
         if (purgeData && !HttpContext.User.IsInRole("admin"))
@@ -752,6 +778,7 @@ public class PluginController(
         if (pluginManager.GetPluginInfo(pluginID, pluginVersion) is not { } pluginInfo)
             return NotFound("Plugin not found");
 
+        var orphansBefore = keepOrphans ? null : GetOrphanIDs();
         var cascade = dependencyResolver.GetUninstallCascade(pluginInfo);
         if (cascade.Count > 0 && !force)
         {
@@ -769,6 +796,7 @@ public class PluginController(
         }
 
         pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration, purgeData);
+        UninstallNewOrphans(orphansBefore);
 
         return NoContent();
     }
@@ -808,6 +836,11 @@ public class PluginController(
     /// <param name="force">
     ///   Whether to also uninstall any dependent plugins.
     /// </param>
+    /// <param name="keepOrphans">
+    ///   Keep the plugins installed as dependencies that nothing needs once
+    ///   this one is gone. By default they are uninstalled with it, apart from
+    ///   their pinned and kept versions.
+    /// </param>
     /// <returns>
     ///   No content.
     /// </returns>
@@ -816,7 +849,8 @@ public class PluginController(
         [FromRoute] Guid pluginID,
         [FromQuery] bool purgeConfiguration = false,
         [FromQuery] bool purgeData = false,
-        [FromQuery] bool force = false
+        [FromQuery] bool force = false,
+        [FromQuery] bool keepOrphans = false
     )
     {
         if (purgeData && !HttpContext.User.IsInRole("admin"))
@@ -824,6 +858,8 @@ public class PluginController(
 
         if (pluginManager.GetPluginInfos(pluginID) is not { Count: > 0 } pluginInfos)
             return NotFound("Plugin not found");
+
+        var orphansBefore = keepOrphans ? null : GetOrphanIDs();
 
         // Check cascade for the active version (others are already disabled)
         var activePlugin = pluginInfos.FirstOrDefault(p => p.IsActive);
@@ -848,7 +884,60 @@ public class PluginController(
 
         foreach (var pluginInfo in pluginInfos)
             pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration, purgeData);
+        UninstallNewOrphans(orphansBefore);
 
         return NoContent();
     }
+
+    #region Orphans
+
+    /// <summary>
+    ///   Gets the installed versions of the orphaned plugins: those installed
+    ///   as dependencies that no plugin installed on purpose needs anymore.
+    /// </summary>
+    /// <returns>
+    ///   A list of <see cref="PluginInfo"/> for the orphaned plugin versions.
+    /// </returns>
+    [HttpGet("Orphans")]
+    public ActionResult<List<PluginInfo>> GetOrphanedPlugins()
+        => pluginManager.GetOrphanedPlugins()
+            .Select(pluginInfo => new PluginInfo(pluginInfo))
+            .ToList();
+
+    /// <summary>
+    ///   Uninstalls the orphaned plugins, apart from their pinned and kept
+    ///   versions.
+    /// </summary>
+    /// <returns>
+    ///   A list of <see cref="PluginInfo"/> for the uninstalled plugin versions.
+    /// </returns>
+    [HttpDelete("Orphans")]
+    public ActionResult<List<PluginInfo>> UninstallOrphanedPlugins()
+        => pluginManager.UninstallOrphanedPlugins()
+            .Select(pluginInfo => new PluginInfo(pluginInfo))
+            .ToList();
+
+    /// <summary>
+    ///   The IDs of the orphaned plugins now.
+    /// </summary>
+    private HashSet<Guid> GetOrphanIDs()
+        => pluginManager.GetOrphanedPlugins().Select(pluginInfo => pluginInfo.ID).ToHashSet();
+
+    /// <summary>
+    ///   Uninstalls the plugins orphaned since <paramref name="orphansBefore"/>
+    ///   was taken, leaving the orphans that were there before alone.
+    /// </summary>
+    /// <param name="orphansBefore">The orphans before, or <c>null</c> to keep every orphan.</param>
+    private void UninstallNewOrphans(HashSet<Guid>? orphansBefore)
+    {
+        if (orphansBefore is null)
+            return;
+
+        var newOrphans = GetOrphanIDs();
+        newOrphans.ExceptWith(orphansBefore);
+        if (newOrphans.Count > 0)
+            pluginManager.UninstallOrphanedPlugins(newOrphans);
+    }
+
+    #endregion
 }

@@ -87,6 +87,14 @@ public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IReadOnl
     public string? ReleaseNotes { get; init; } = releaseInfo.ReleaseNotes;
 
     /// <summary>
+    ///   The plugins this release depends on.
+    /// </summary>
+    [Required]
+    public IReadOnlyList<PluginDependency> Dependencies { get; init; } = releaseInfo.Dependencies
+        .Select(dependency => new PluginDependency(dependency))
+        .ToList();
+
+    /// <summary>
     ///   Available archives for different runtime environments and
     ///   architectures.
     /// </summary>

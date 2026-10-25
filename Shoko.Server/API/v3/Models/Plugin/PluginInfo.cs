@@ -140,6 +140,20 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public bool IsKept { get; set; } = pluginInfo.IsKept;
 
     /// <summary>
+    ///   Indicates a <c>.dependency</c> file marks this version as installed
+    ///   as a dependency of another plugin.
+    /// </summary>
+    [Required]
+    public bool IsDependency { get; set; } = pluginInfo.IsDependency;
+
+    /// <summary>
+    ///   Indicates the plugin has no enabled state of its own: it is installed
+    ///   as a dependency and enabled while an enabled plugin depends on it.
+    /// </summary>
+    [Required]
+    public bool IsEnabledOnDemand { get; init; } = pluginInfo.IsEnabledOnDemand;
+
+    /// <summary>
     ///   Indicates the plugin is currently loaded in the current session.
     /// </summary>
     [Required]

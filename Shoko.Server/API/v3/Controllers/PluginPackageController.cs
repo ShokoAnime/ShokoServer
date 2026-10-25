@@ -4,8 +4,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
@@ -19,6 +21,8 @@ using Shoko.Server.Utilities;
 
 using AbstractPackageInfo = Shoko.Abstractions.Plugin.Models.PackageInfo;
 using AbstractPackageUpdateInfo = Shoko.Abstractions.Plugin.Models.PackageUpdateInfo;
+using LocalPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
+using PackageInstallPlan = Shoko.Server.API.v3.Models.Plugin.PackageInstallPlan;
 using PackageUpdateInfo = Shoko.Server.API.v3.Models.Plugin.PackageUpdateInfo;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 
@@ -32,7 +36,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="applicationPaths">Application paths.</param>
 /// <param name="packageManager">Plugin installation manager.</param>
 /// <param name="pluginManager">Plugin manager.</param>
-/// <param name="dependencyResolver">Plugin dependency resolver.</param>
+/// <param name="logger">Logger.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/Plugin/Package")]
 [ApiV3]
@@ -44,7 +48,7 @@ public class PluginPackageController(
     IApplicationPaths applicationPaths,
     IPluginPackageManager packageManager,
     IPluginManager pluginManager,
-    IPluginDependencyResolver dependencyResolver
+    ILogger<PluginPackageController> logger
 ) : BaseController(settingsProvider)
 {
     #region Settings
@@ -395,7 +399,49 @@ public class PluginPackageController(
     #region Package Installation
 
     /// <summary>
-    ///   Installs a package ID.
+    ///   Gets what installing a package takes: the packages to install,
+    ///   dependencies first, and why it cannot be done, if it cannot. Nothing
+    ///   is downloaded.
+    /// </summary>
+    /// <param name="packageID">
+    ///   The package ID.
+    /// </param>
+    /// <param name="runtimeIdentifier">
+    ///   The specific runtime identifier (e.g., "linux-x64", "win-x64", "any").
+    /// </param>
+    /// <param name="abstractionVersion">
+    ///   The specific abstraction version to install.
+    /// </param>
+    /// <param name="releaseVersion">
+    ///   The specific release version to install.
+    /// </param>
+    /// <param name="includeOptionalDependencies">
+    ///   Also plan the optional dependencies that are not installed yet.
+    /// </param>
+    /// <returns>
+    ///   The <see cref="PackageInstallPlan"/>.
+    /// </returns>
+    [HttpGet("{packageID}/Install")]
+    public async Task<ActionResult<PackageInstallPlan>> GetInstallPlanByID(
+        [FromRoute] Guid packageID,
+        [FromQuery] string? runtimeIdentifier = null,
+        [FromQuery] string? abstractionVersion = null,
+        [FromQuery] string? releaseVersion = null,
+        [FromQuery] bool includeOptionalDependencies = false
+    )
+    {
+        var (error, package) = await SelectPackage(packageID, runtimeIdentifier, abstractionVersion, releaseVersion).ConfigureAwait(false);
+        if (package is null)
+            return error!;
+
+        var plan = await packageManager.PlanInstall(package, includeOptionalDependencies).ConfigureAwait(false);
+        return new PackageInstallPlan(plan, pluginManager);
+    }
+
+    /// <summary>
+    ///   Installs a package, along with every dependency it needs that is not
+    ///   installed yet. The dependencies are marked as installed as
+    ///   dependencies. Get the plan first to see what will be installed.
     /// </summary>
     /// <param name="packageID">
     ///   The package ID.
@@ -410,11 +456,15 @@ public class PluginPackageController(
     ///   The specific release version to install.
     /// </param>
     /// <param name="autoResolveDependencies">
-    ///   When <c>true</c>, automatically install missing dependencies before
-    ///   installing the requested package. Default is <c>false</c>.
+    ///   Install the dependencies that are not installed yet. Default is
+    ///   <c>true</c>. When <c>false</c>, a package needing any is refused.
+    /// </param>
+    /// <param name="includeOptionalDependencies">
+    ///   Also install the optional dependencies that are not installed yet.
     /// </param>
     /// <returns>
-    ///   The installed <see cref="PluginInfo"/> if successful.
+    ///   The installed <see cref="PluginInfo"/> if successful, or
+    ///   <c>424 Failed Dependency</c> when the dependencies cannot be met.
     /// </returns>
     [HttpPost("{packageID}/Install")]
     public async Task<ActionResult<PluginInfo>> InstallPackageByID(
@@ -422,13 +472,46 @@ public class PluginPackageController(
         [FromQuery] string? runtimeIdentifier = null,
         [FromQuery] string? abstractionVersion = null,
         [FromQuery] string? releaseVersion = null,
-        [FromQuery] bool autoResolveDependencies = false
+        [FromQuery] bool autoResolveDependencies = true,
+        [FromQuery] bool includeOptionalDependencies = false
     )
+    {
+        var (error, package) = await SelectPackage(packageID, runtimeIdentifier, abstractionVersion, releaseVersion).ConfigureAwait(false);
+        if (package is null)
+            return error!;
+
+        var plan = await packageManager.PlanInstall(package, includeOptionalDependencies).ConfigureAwait(false);
+        if (!plan.CanInstall || (!autoResolveDependencies && plan.Steps.Count > 1))
+            return StatusCode(StatusCodes.Status424FailedDependency);
+
+        IReadOnlyList<LocalPluginInfo> installed;
+        try
+        {
+            installed = await packageManager.InstallPackages(plan).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.LogError(ex, "Failed to install package {PackageName}.", package.Manifest.Name);
+            return StatusCode(500, "Failed to install package");
+        }
+
+        return new PluginInfo(installed[^1]);
+    }
+
+    /// <summary>
+    ///   Picks the package release and archive to install.
+    /// </summary>
+    /// <param name="packageID">The package ID.</param>
+    /// <param name="runtimeIdentifier">The specific runtime identifier, if any.</param>
+    /// <param name="abstractionVersion">The specific abstraction version, if any.</param>
+    /// <param name="releaseVersion">The specific release version, if any.</param>
+    /// <returns>The package, or the error to answer with.</returns>
+    private async Task<(ActionResult? Error, AbstractPackageInfo? Package)> SelectPackage(Guid packageID, string? runtimeIdentifier, string? abstractionVersion, string? releaseVersion)
     {
         var manifests = await packageManager.GetAvailablePackageManifests(allowSync: false).ConfigureAwait(false);
         var manifest = manifests.FirstOrDefault(m => m.PackageID == packageID);
         if (manifest is null)
-            return NotFound("Package not found");
+            return (NotFound("Package not found"), null);
 
         var parsedReleaseVersion = (Version?)null;
         if (releaseVersion is { Length: > 0 } && !SemanticVersionConverter.TryParseVersion(releaseVersion, out parsedReleaseVersion))
@@ -441,7 +524,7 @@ public class PluginPackageController(
             parsedAbstractionVersion = new(parsedAbstractionVersion.Major, parsedAbstractionVersion.Minor, parsedAbstractionVersion.Build);
 
         if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
+            return (ValidationProblem(ModelState), null);
 
         var packages = packageManager.FilterPackageManifests(
             [manifest],
@@ -455,47 +538,9 @@ public class PluginPackageController(
         if (parsedReleaseVersion is not null)
             packages = packages.Where(p => p.Release.Version == parsedReleaseVersion);
         if (packages.FirstOrDefault() is not { } package)
-            return ValidationProblem("Package not found or no compatible version available");
+            return (ValidationProblem("Package not found or no compatible version available"), null);
 
-        // Resolve dependencies before installing.
-        var resolution = dependencyResolver.ResolveDependencies(package.Release.Dependencies);
-        if (!resolution.CanResolve)
-        {
-            if (!autoResolveDependencies)
-            {
-                return StatusCode(424, new
-                {
-                    Message = "Package has missing dependencies. Set 'autoResolveDependencies=true' to install them automatically, or install them manually first.",
-                    resolution,
-                });
-            }
-
-            // Auto-resolve: install each missing dependency
-            foreach (var missingDep in resolution.MissingDependencies)
-            {
-                var depManifest = manifests.FirstOrDefault(m => m.PackageID == missingDep.PluginID);
-                if (depManifest is null)
-                    continue;
-
-                var depPackages = packageManager.FilterPackageManifests(
-                    [depManifest],
-                    onlyCompatible: true,
-                    onlyLatest: true
-                );
-                if (depPackages.FirstOrDefault() is not { } depPackage)
-                    continue;
-
-                var depPluginInfo = await packageManager.InstallPackage(depPackage).ConfigureAwait(false);
-                if (depPluginInfo is null)
-                    return StatusCode(500, $"Failed to install dependency '{depManifest.Name}'");
-            }
-        }
-
-        var pluginInfo = await packageManager.InstallPackage(package).ConfigureAwait(false);
-        if (pluginInfo is null)
-            return StatusCode(500, "Failed to install package");
-
-        return new PluginInfo(pluginInfo);
+        return (null, package);
     }
 
     #endregion
