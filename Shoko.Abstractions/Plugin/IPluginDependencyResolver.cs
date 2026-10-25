@@ -102,8 +102,9 @@ public interface IPluginDependencyResolver
     #region Lifecycle Validation
 
     /// <summary>
-    ///   Validate that a plugin can be enabled. All required dependencies must
-    ///   be installed and active.
+    ///   Validate that a plugin can be enabled. Every required dependency must
+    ///   have an installed version in range that loads on the next start: one
+    ///   enabled, or enabled on demand, which enabling the plugin provides.
     /// </summary>
     /// <param name="plugin">The plugin to validate.</param>
     /// <returns>

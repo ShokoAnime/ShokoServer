@@ -589,8 +589,12 @@ flattens them into `PackageInfo` entries, by default dropping releases this
 server could not load and keeping only the newest per package.
 `GetLocalPackages()` and `GetInstalledPackages()` cover what is already here.
 
-**Installing and updating.** `InstallPackage(packageInfo)` returns the resulting
-`LocalPluginInfo`, or `null`. `GetAvailableUpdates(...)` reports
+**Installing and updating.** `InstallPackage(packageInfo)` installs one package
+on its own and returns the resulting `LocalPluginInfo`, or `null`. To bring its
+dependencies along, plan first: `PlanInstall(packageInfo, includeOptional)`
+returns a `PackageInstallPlan` (see
+[Dependencies](#installing-with-dependencies)), and `InstallPackages(plan)`
+carries it out. `GetAvailableUpdates(...)` reports
 `PackageUpdateInfo` entries pairing `Current` with `Latest`, optionally
 including inactive and pinned plugins. `CheckForUpdates` runs the check now,
 `ScheduleCheckForUpdates` queues it, and both can force a sync and perform the
@@ -663,6 +667,77 @@ and at start the installed copy of a version the server ships is removed,
 unless it is pinned or kept. An older installed copy goes through the purge
 like any inactive version.
 
+### Installing with dependencies
+
+`PlanInstall(packageInfo, includeOptional)` works out what installing a package
+takes, without downloading anything. Each required dependency is satisfied by
+an installed version in its range, loaded or not, and otherwise by the newest
+release in its range with an archive this server can load. When two
+repositories list the same version, the dependent's own repository wins. The
+dependencies of what it picks are planned in turn.
+
+The `PackageInstallPlan` lists the `Steps`, dependencies first and the package
+asked for last, each with the plugins needing it (`RequiredBy`). `Problems`
+says why it cannot be carried out, and `CanInstall` is `true` when there are
+none:
+
+- a dependency in no enabled repository, or with no release in range this
+  server can load;
+- an installed dependency pinned at a version outside the range, or disabled;
+- two plugins in the plan needing ranges of one plugin that do not overlap;
+- a dependency cycle.
+
+Optional dependencies are left out unless `includeOptional` is set, and the
+ones left out are listed in `OptionalDependencies`, with the package that would
+be installed for each.
+
+`InstallPackages(plan)` carries a plan out, all or nothing: if one package
+fails, the versions the call installed are uninstalled again.
+
+Automatic upgrades, on start and while running, follow the same rules. An
+upgrade a plugin depending on it does not accept (its version range) is held
+back, and a release needing plugins the old one did not installs them with it,
+or is skipped when they cannot be installed.
+
+### Plugins installed as dependencies
+
+A version installed for another plugin is marked with a `.dependency` file in
+its directory, or `<name>.dependency` next to a single-DLL plugin
+(`LocalPluginInfo.IsDependency`). The file holds which plugins needed it and
+when, for the record; only whether it exists matters. A plugin is installed as
+a dependency while every installed version is marked
+(`IPluginManager.IsInstalledAsDependency`), so one version installed on purpose
+makes the whole plugin one installed on purpose. Plugins installed before the
+marker existed, copied in by hand, or shipped with the server have no marker.
+
+Whether an install marks the new version:
+
+| Installed by | Marked when |
+|---|---|
+| `InstallPackage`, or the package a plan was made for | Never |
+| A plan, as a dependency | The plugin is not installed yet, or every installed version is marked |
+| An automatic upgrade | Every installed version is marked |
+
+`MarkAsDependency` and `UnmarkAsDependency` change the mark of one version, as
+pinning does, and an admin may create or delete the file by hand.
+
+A plugin installed as a dependency has no enabled state of its own
+(`LocalPluginInfo.IsEnabledOnDemand`): it is enabled while an enabled plugin
+depends on it, required or optional, directly or through other dependencies.
+Disabling the plugin that needs it disables it too. Enabling or disabling it
+gives it a state of its own, which then wins.
+
+A plugin installed as a dependency that no plugin installed on purpose needs is
+an orphan. `IPluginManager.GetOrphanedPlugins()` lists them and
+`UninstallOrphanedPlugins(pluginIDs)` uninstalls them, apart from their pinned
+and kept versions. Uninstalling a plugin through the API uninstalls the orphans
+it leaves behind with it, unless asked not to.
+
+A **meta plugin** is a plugin with no code of its own, which only brings in the
+plugins it depends on. `Shoko.BuildTools.Targets` builds one from a project
+setting `ShokoMetaPlugin`; see the
+[build tools guide](../../Shoko.BuildTools/README.md#meta-plugins).
+
 **Events.** `PackageInstallationStarted` / `Completed` / `Failed`, and
 `RepositorySyncStarted` / `Completed` / `Failed`. The two `Started` args carry a
 settable `Cancel` flag, so a handler can veto an install or a sync;
@@ -685,15 +760,19 @@ and returns a `DependencyResolutionResult`: `CanResolve` for the overall answer,
 the matching `Plugin`, and a human-readable `Message` when it failed), and
 `MissingDependencies` for the required ones that came up short.
 
-`ValidateEnable(plugin)` returns the same result shape for the enable check.
+`ValidateEnable(plugin)` returns the same result shape for the enable check,
+which looks at the next start instead: a dependency counts when an installed
+version in range is enabled, or enabled on demand.
 `ValidateDisable(plugin)` returns the enabled plugins that depend on it, empty
 when disabling is safe. `GetDependents(plugin)` returns the plugins that depend
 on it, and `GetUninstallCascade(plugin)` the full transitive set, excluding the
 plugin itself. `IsVersionSatisfied(versionRange, candidate)` is the range check
 on its own.
 
-Resolution only ever considers the currently installed and enabled plugins, so
-the answers change as the user installs and removes things.
+Resolution only ever considers the plugins loaded in this run, so the answers
+change as the user installs and removes things. To plan an install, use
+`IPluginPackageManager.PlanInstall`, which counts installed versions that are
+not loaded yet.
 
 ---
 

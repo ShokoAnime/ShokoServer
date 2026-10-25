@@ -81,7 +81,39 @@ public class PluginDependencyResolver : IPluginDependencyResolver
     #region Lifecycle Validation
 
     public DependencyResolutionResult ValidateEnable(LocalPluginInfo plugin)
-        => ResolveDependencies(plugin.Dependencies);
+    {
+        // Enabling applies on the next start, so a dependency counts when it will load then: an
+        // installed version in range that is enabled, or enabled on demand, which this enables.
+        var allPlugins = _pluginManager.GetPluginInfos();
+        var resolved = new List<ResolvedDependency>(plugin.Dependencies.Count);
+        foreach (var dependency in plugin.Dependencies)
+        {
+            var installed = allPlugins.Where(p => p.ID == dependency.PluginID && p.IsInstalled).ToList();
+            var matching = installed
+                .Where(p => (p.IsEnabled || p.IsEnabledOnDemand) && IsVersionSatisfied(dependency.VersionRange, p.Version.Version))
+                .OrderByDescending(p => p.IsActive)
+                .FirstOrDefault();
+            resolved.Add(new()
+            {
+                Dependency = dependency,
+                IsResolved = matching is not null,
+                Plugin = matching,
+                Message = matching is not null
+                    ? null
+                    : installed.FirstOrDefault() is { } other
+                        ? installed.Any(p => IsVersionSatisfied(dependency.VersionRange, p.Version.Version))
+                            ? $"Plugin '{other.Name}' ({other.ID}) is installed but disabled."
+                            : $"Plugin '{other.Name}' ({other.ID}) is installed, but no installed version satisfies '{dependency.VersionRange}'."
+                        : $"No installed plugin found matching ID '{dependency.PluginID}' with version '{dependency.VersionRange}'.",
+            });
+        }
+
+        return new()
+        {
+            CanResolve = resolved.Where(r => !r.Dependency.IsOptional).All(r => r.IsResolved),
+            Dependencies = resolved,
+        };
+    }
 
     public IReadOnlyList<LocalPluginInfo> ValidateDisable(LocalPluginInfo plugin)
         => GetDependents(plugin);

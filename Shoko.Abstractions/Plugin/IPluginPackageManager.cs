@@ -119,6 +119,55 @@ public interface IPluginPackageManager
     /// </exception>
     Task<LocalPluginInfo?> InstallPackage(PackageInfo packageInfo, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    ///   Works out what installing a package takes: every required dependency
+    ///   not installed yet, picked from the enabled repositories, and their own
+    ///   dependencies. An installed version in range satisfies a dependency,
+    ///   loaded or not. Nothing is downloaded.
+    /// </summary>
+    /// <param name="packageInfo">
+    ///   The package and version to install.
+    /// </param>
+    /// <param name="includeOptional">
+    ///   Optional. Also plan the optional dependencies not installed yet.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   Optional. Cancellation token.
+    /// </param>
+    /// <returns>
+    ///   The plan, with the reasons it cannot be carried out, if any.
+    /// </returns>
+    Task<PackageInstallPlan> PlanInstall(PackageInfo packageInfo, bool includeOptional = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Carries out an install plan, all or nothing: the dependencies first,
+    ///   marked as installed as dependencies, then the package asked for. If
+    ///   one fails, the versions this call installed are uninstalled again.
+    /// </summary>
+    /// <param name="plan">
+    ///   The plan, from <see cref="PlanInstall"/>.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   Optional. Cancellation token.
+    /// </param>
+    /// <returns>
+    ///   The installed plugin versions, in the order of the plan's steps.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when the plan cannot be carried out, or a step failed.
+    /// </exception>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown if the install was cancelled by the
+    ///   <paramref name="cancellationToken"/>.
+    /// </exception>
+    /// <exception cref="InvalidChecksumException">
+    ///   Thrown when a package's checksum verification fails.
+    /// </exception>
+    /// <exception cref="HttpRequestException">
+    ///   Thrown when a package could not be downloaded.
+    /// </exception>
+    Task<IReadOnlyList<LocalPluginInfo>> InstallPackages(PackageInstallPlan plan, CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Package Discovery & Listing

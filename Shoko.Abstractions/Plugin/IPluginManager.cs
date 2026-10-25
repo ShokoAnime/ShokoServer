@@ -260,6 +260,68 @@ public interface IPluginManager
     LocalPluginInfo UnkeepPlugin(LocalPluginInfo pluginInfo);
 
     /// <summary>
+    ///   Marks the plugin version as installed as a dependency, by writing its
+    ///   <c>.dependency</c> file. Once every installed version is marked, the
+    ///   plugin loses an enabled state of its own and follows its dependents.
+    /// </summary>
+    /// <param name="pluginInfo">
+    ///   The plugin info to mark.
+    /// </param>
+    /// <returns>
+    ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
+    /// </returns>
+    LocalPluginInfo MarkAsDependency(LocalPluginInfo pluginInfo);
+
+    /// <summary>
+    ///   Marks the plugin version as installed on purpose, by removing its
+    ///   <c>.dependency</c> file, which makes the whole plugin one installed on
+    ///   purpose. A plugin enabled on demand keeps the state it has now.
+    /// </summary>
+    /// <param name="pluginInfo">
+    ///   The plugin info to unmark.
+    /// </param>
+    /// <returns>
+    ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
+    /// </returns>
+    LocalPluginInfo UnmarkAsDependency(LocalPluginInfo pluginInfo);
+
+    /// <summary>
+    ///   Checks if a plugin is only installed as a dependency: every installed
+    ///   version of it is marked with <see cref="LocalPluginInfo.IsDependency"/>.
+    /// </summary>
+    /// <param name="pluginID">
+    ///   The plugin ID.
+    /// </param>
+    /// <returns>
+    ///   <c>true</c> if at least one version is installed and every installed
+    ///   version is marked.
+    /// </returns>
+    bool IsInstalledAsDependency(Guid pluginID);
+
+    /// <summary>
+    ///   Gets the installed versions of every orphaned plugin: one installed
+    ///   as a dependency that no plugin installed on purpose needs, directly
+    ///   or through other dependencies, required or optional.
+    /// </summary>
+    /// <returns>
+    ///   The installed versions of the orphaned plugins.
+    /// </returns>
+    IReadOnlyList<LocalPluginInfo> GetOrphanedPlugins();
+
+    /// <summary>
+    ///   Uninstalls the orphaned plugins, leaving their pinned and kept
+    ///   versions alone. See <see cref="GetOrphanedPlugins"/>.
+    /// </summary>
+    /// <param name="pluginIDs">
+    ///   Optional. Only the orphans among these plugins. All of them when
+    ///   <c>null</c>.
+    /// </param>
+    /// <returns>
+    ///   The plugin versions uninstalled.
+    /// </returns>
+    IReadOnlyList<LocalPluginInfo> UninstallOrphanedPlugins(IReadOnlySet<Guid>? pluginIDs = null);
+
+    /// <summary>
     ///   Disables and uninstalls the plugin. The plugin will still be active in
     ///   the current session.
     /// </summary>

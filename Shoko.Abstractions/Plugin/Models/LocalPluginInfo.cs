@@ -112,6 +112,22 @@ public sealed class LocalPluginInfo
     public bool IsKept { get; internal set; }
 
     /// <summary>
+    ///   Indicates a <c>.dependency</c> file, in the plugin's directory or
+    ///   next to a single-DLL plugin, says this version was installed as a
+    ///   dependency of another plugin. The plugin is only installed as a
+    ///   dependency while every installed version has one; see
+    ///   <see cref="IPluginManager.IsInstalledAsDependency"/>.
+    /// </summary>
+    public bool IsDependency { get; internal set; }
+
+    /// <summary>
+    ///   Indicates the plugin has no enabled state of its own: it is installed
+    ///   as a dependency, and is enabled while an enabled plugin depends on
+    ///   it. Enabling or disabling it gives it a state of its own.
+    /// </summary>
+    public bool IsEnabledOnDemand { get; internal set; }
+
+    /// <summary>
     ///   Indicates the plugin is currently loaded in the current session.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Plugin), nameof(PluginType))]

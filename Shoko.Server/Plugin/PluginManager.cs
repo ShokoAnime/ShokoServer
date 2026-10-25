@@ -7,7 +7,6 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -61,6 +60,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     private const string Pinned = ".pinned";
 
     private const string Keep = ".keep";
+
+    private const string Dependency = ".dependency";
 
     private readonly List<Type> _exportedTypes = [];
 
@@ -212,9 +213,22 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         public bool IsKept { get; init; }
 
         /// <summary>
-        ///   Indicates the plugin is enabled and should be loaded.
+        ///   Indicates the plugin is enabled and should be loaded. Set again
+        ///   by <see cref="ApplyDemand"/> for a plugin enabled on demand.
         /// </summary>
-        public required bool IsEnabled { get; init; }
+        public required bool IsEnabled { get; set; }
+
+        /// <summary>
+        ///   Indicates a <c>.dependency</c> file marks the version as installed
+        ///   as a dependency.
+        /// </summary>
+        public bool IsDependency { get; init; }
+
+        /// <summary>
+        ///   Indicates the plugin has no enabled state of its own and follows
+        ///   its dependents. Set by <see cref="ApplyDemand"/>.
+        /// </summary>
+        public bool IsEnabledOnDemand { get; set; }
 
         /// <summary>
         ///   Indicates the plugin can be loaded by the current runtime. Missing
@@ -313,6 +327,18 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             ? Path.ChangeExtension(dll, Remove)
             : Path.Join(directory, Remove);
 
+    /// <summary>
+    ///   Gets the <c>.dependency</c> file marking a plugin version as installed
+    ///   as a dependency, named the way <see cref="GetKeepFile"/> is.
+    /// </summary>
+    /// <param name="directory">The plugin's directory, if it has one.</param>
+    /// <param name="dll">The plugin's main DLL.</param>
+    /// <returns>The path of the <c>.dependency</c> file.</returns>
+    internal static string GetDependencyFile(string? directory, string dll)
+        => string.IsNullOrEmpty(directory)
+            ? Path.ChangeExtension(dll, Dependency)
+            : Path.Join(directory, Dependency);
+
     private class IsolatedLoadContext : AssemblyLoadContext
     {
         private readonly AssemblyDependencyResolver? _resolver;
@@ -394,6 +420,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         RemoveCopiesOfBundledVersions(internalPlugins);
 
+        // Before a version is picked, so a plugin installed as a dependency loads while something needs it.
+        ApplyDemand(internalPlugins, settings.Plugins.EnabledPlugins);
+
         var legacyReplacements = FindLegacyReplacements(internalPlugins);
         foreach (var grouping in internalPlugins.OrderBy(a => a.Priority).GroupBy(a => a.ID))
         {
@@ -432,6 +461,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         LoadOrder = _pluginTypes.Count,
                         InstalledAt = internalPluginInfo.InstalledAt,
                         IsKept = internalPluginInfo.IsKept,
+                        IsDependency = internalPluginInfo.IsDependency,
+                        IsEnabledOnDemand = internalPluginInfo.IsEnabledOnDemand,
                         IsEnabled = false,
                         IsPinned = internalPluginInfo.IsPinned,
                         IsActive = false,
@@ -495,6 +526,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     LoadOrder = _pluginTypes.Count,
                     InstalledAt = internalPluginInfo.InstalledAt,
                     IsKept = internalPluginInfo.IsKept,
+                    IsDependency = internalPluginInfo.IsDependency,
+                    IsEnabledOnDemand = internalPluginInfo.IsEnabledOnDemand,
                     IsEnabled = true,
                     IsPinned = internalPluginInfo.IsPinned,
                     IsActive = false,
@@ -1056,6 +1089,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 LoadOrder = localPluginInfo.LoadOrder,
                 InstalledAt = localPluginInfo.InstalledAt,
                 IsKept = localPluginInfo.IsKept,
+                IsDependency = localPluginInfo.IsDependency,
+                IsEnabledOnDemand = localPluginInfo.IsEnabledOnDemand,
                 IsEnabled = true,
                 IsPinned = localPluginInfo.IsPinned,
                 IsActive = true,
@@ -1737,14 +1772,28 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         // A copy, so plugins seen for the first time are not written to the settings before the scan.
         var settings = ISettingsProvider.Instance.GetSettings(copy: true);
         var settingsChanged = false;
-        var plugins = new List<InstalledPlugin>();
+        var infos = new List<(InternalPluginInfo Info, bool IsSystem)>();
         foreach (var (directoryPath, dlls, isSystem) in GetPluginDirectories())
         {
             if (LoadInternalPluginInfo(directoryPath, dlls, isSystem, settings, ref settingsChanged) is { } info)
-                plugins.Add(new(info.ID, info.Name, info.Version.Version, info.IsEnabled, info.IsPinned, isSystem));
+                infos.Add((info, isSystem));
         }
 
-        return plugins;
+        // As the scan does, so a plugin installed as a dependency counts as enabled while something needs it.
+        ApplyDemand(infos.Select(tuple => tuple.Info).ToList(), settings.Plugins.EnabledPlugins);
+        return infos
+            .Select(tuple => new InstalledPlugin(
+                tuple.Info.ID,
+                tuple.Info.Name,
+                tuple.Info.Version.Version,
+                tuple.Info.IsEnabled,
+                tuple.Info.IsPinned,
+                tuple.IsSystem,
+                tuple.Info.IsDependency,
+                tuple.Info.Dependencies,
+                tuple.Info.IsEnabledOnDemand
+            ))
+            .ToList();
     }
 
     /// <inheritdoc/>
@@ -1757,7 +1806,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var settingsChanged = false;
         var dlls = Directory.GetFiles(directoryPath, "*.dll", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System });
         return LoadInternalPluginInfo(directoryPath, dlls, false, settings, ref settingsChanged) is { } info
-            ? new(info.ID, info.Name, info.Version.Version, info.IsEnabled, info.IsPinned)
+            ? new(info.ID, info.Name, info.Version.Version, info.IsEnabled, info.IsPinned, IsDependency: info.IsDependency, Dependencies: info.Dependencies)
             : null;
     }
 
@@ -1895,8 +1944,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         ? packageTags.Select(tag => tag.ToLowerInvariant()).Distinct().ToArray()
                         : [];
 
-                    // TryAdd, because if it made it this far, then it's missing or true.
-                    if (settings.Plugins.EnabledPlugins.TryAdd(name, true))
+                    // A version installed as a dependency gets no enabled state of its own, so it can follow
+                    // its dependents. Otherwise TryAdd, because if it made it this far, then it's missing or true.
+                    var isDependency = File.Exists(GetDependencyFile(dirPath, dllPath));
+                    if (!isDependency && settings.Plugins.EnabledPlugins.TryAdd(name, true))
                         settingsChanged = true;
 
                     if (isLegacyNamespace)
@@ -1924,7 +1975,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
                             IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
-                            IsEnabled = settings.Plugins.EnabledPlugins[name],
+                            IsDependency = isDependency,
+                            IsEnabled = settings.Plugins.EnabledPlugins.GetValueOrDefault(name),
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
                             CanLoad = false,
@@ -1982,7 +2034,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
                             IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
-                            IsEnabled = settings.Plugins.EnabledPlugins[name],
+                            IsDependency = isDependency,
+                            IsEnabled = settings.Plugins.EnabledPlugins.GetValueOrDefault(name),
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
                             CanLoad = false,
@@ -2025,7 +2078,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
                             IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
-                            IsEnabled = settings.Plugins.EnabledPlugins[name],
+                            IsDependency = isDependency,
+                            IsEnabled = settings.Plugins.EnabledPlugins.GetValueOrDefault(name),
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
                             CanLoad = false,
@@ -2066,7 +2120,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
                             IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
-                            IsEnabled = settings.Plugins.EnabledPlugins[name],
+                            IsDependency = isDependency,
+                            IsEnabled = settings.Plugins.EnabledPlugins.GetValueOrDefault(name),
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
                             CanLoad = false,
@@ -2142,7 +2197,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                                 : File.Exists(Path.Join(dirPath, Pinned)),
                             IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
-                            IsEnabled = settings.Plugins.EnabledPlugins[name],
+                            IsDependency = isDependency,
+                            IsEnabled = settings.Plugins.EnabledPlugins.GetValueOrDefault(name),
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.IndexOf(name),
                             CanLoad = true,
@@ -2191,7 +2247,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
                             : File.Exists(Path.Join(dirPath, Pinned)),
                         IsKept = File.Exists(GetKeepFile(dirPath, dllPath)),
-                        IsEnabled = settings.Plugins.EnabledPlugins[name],
+                        IsDependency = isDependency,
+                        IsEnabled = settings.Plugins.EnabledPlugins.GetValueOrDefault(name),
                         ContainingDirectory = dirPath,
                         Priority = settings.Plugins.Priority.IndexOf(name),
                         CanLoad = version.RuntimeIdentifier is IPluginManager.AnyRuntimeIdentifier || version.RuntimeIdentifier == RuntimeIdentifier,
@@ -2542,7 +2599,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     private void OnStateChanged()
     {
         lock (_pluginTypes)
+        {
+            ReapplyDemand();
             ReapplyDependencyGraph(_pluginTypes, _dependencyRefusals, logger);
+        }
 
         try
         {
@@ -2900,6 +2960,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             LoadOrder = _pluginTypes.Count,
             InstalledAt = internalPluginInfo.InstalledAt,
             IsKept = internalPluginInfo.IsKept,
+            IsDependency = internalPluginInfo.IsDependency,
+            IsEnabledOnDemand = internalPluginInfo.IsEnabledOnDemand,
             IsEnabled = internalPluginInfo.IsEnabled,
             IsPinned = internalPluginInfo.IsPinned,
             IsActive = existingPluginInfo?.IsActive ?? false,

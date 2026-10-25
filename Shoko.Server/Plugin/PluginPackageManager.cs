@@ -312,7 +312,59 @@ public partial class PluginPackageManager(
     /// <exception cref="InvalidChecksumException">
     ///   Thrown when package checksum verification fails.
     /// </exception>
-    public async Task<LocalPluginInfo?> InstallPackage(PackageInfo packageInfo, CancellationToken cancellationToken = default)
+    public Task<LocalPluginInfo?> InstallPackage(PackageInfo packageInfo, CancellationToken cancellationToken = default)
+        => InstallPackage(packageInfo, InstallReason.Explicit, [], cancellationToken);
+
+    /// <summary>
+    ///   Why a package is installed, which decides whether the installed
+    ///   version is marked as installed as a dependency.
+    /// </summary>
+    internal enum InstallReason : byte
+    {
+        /// <summary>
+        ///   Asked for by the admin. Never marked.
+        /// </summary>
+        Explicit = 1,
+
+        /// <summary>
+        ///   Needed by another plugin. Marked unless the plugin is already
+        ///   installed on purpose.
+        /// </summary>
+        Dependency = 2,
+
+        /// <summary>
+        ///   An upgrade of an installed plugin. Marked while every installed
+        ///   version is marked.
+        /// </summary>
+        Upgrade = 3,
+    }
+
+    /// <summary>
+    ///   Decides whether a newly installed version is marked as installed as a
+    ///   dependency, from why it is installed and the plugin's other installed
+    ///   versions.
+    /// </summary>
+    /// <param name="reason">Why the version is installed.</param>
+    /// <param name="otherVersionsMarked">Whether each other installed version of the plugin is marked.</param>
+    /// <returns><c>true</c> if the version is marked.</returns>
+    internal static bool ShouldMarkAsDependency(InstallReason reason, IReadOnlyCollection<bool> otherVersionsMarked)
+        => reason switch
+        {
+            InstallReason.Dependency => otherVersionsMarked.All(marked => marked),
+            InstallReason.Upgrade => otherVersionsMarked.Count > 0 && otherVersionsMarked.All(marked => marked),
+            _ => false,
+        };
+
+    /// <summary>
+    ///   Installs a package for a reason, marking the installed version as
+    ///   installed as a dependency when the reason calls for it.
+    /// </summary>
+    /// <param name="packageInfo">The package and version to install.</param>
+    /// <param name="reason">Why it is installed.</param>
+    /// <param name="requiredBy">The plugins needing it, written to its marker.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The installed version, or <c>null</c> if the installation failed.</returns>
+    private async Task<LocalPluginInfo?> InstallPackage(PackageInfo packageInfo, InstallReason reason, IReadOnlyList<Guid> requiredBy, CancellationToken cancellationToken)
     {
         var eventArgs = new PackageInstallationStartedEventArgs() { Package = packageInfo, StartedAt = DateTime.UtcNow };
 
@@ -385,6 +437,18 @@ public partial class PluginPackageManager(
         {
             await DownloadAndExtractPackage(packageInfo, cancellationToken).ConfigureAwait(false);
 
+            // Before the version is read, so a version installed as a dependency gets no enabled state of its own.
+            var versions = _pluginManager.GetPluginInfos(packageInfo.Manifest.PackageID).Where(info => info.IsInstalled).ToList();
+            var registered = versions.FirstOrDefault(info => string.Equals(info.ContainingDirectory, extractPath, StringComparison.Ordinal));
+            var markAsDependency = ShouldMarkAsDependency(reason, versions.Where(info => info != registered).Select(info => info.IsDependency).ToList());
+            if (registered is null)
+            {
+                if (markAsDependency)
+                    PluginManager.WriteDependencyMarker(extractPath, string.Empty, requiredBy);
+                else
+                    PluginManager.RemoveDependencyMarker(extractPath, string.Empty);
+            }
+
             var pluginInfo = _pluginManager.LoadFromPath(extractPath);
             if (pluginInfo is null)
             {
@@ -392,6 +456,10 @@ public partial class PluginPackageManager(
 
                 return null;
             }
+
+            // A version installed before keeps its folder, so its marker changes the way the admin's would.
+            if (registered is not null && pluginInfo.IsDependency != markAsDependency)
+                pluginInfo = markAsDependency ? _pluginManager.MarkAsDependency(pluginInfo) : _pluginManager.UnmarkAsDependency(pluginInfo);
 
             _installedPackages.Add(new PackageInfo
             {
@@ -465,6 +533,97 @@ public partial class PluginPackageManager(
             throw;
         }
     }
+
+    /// <inheritdoc/>
+    public async Task<PackageInstallPlan> PlanInstall(PackageInfo packageInfo, bool includeOptional = false, CancellationToken cancellationToken = default)
+    {
+        var manifests = await GetAvailablePackageManifests(allowSync: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return PackageInstallPlanner.Plan(
+            packageInfo,
+            GetInstalledPlugins(),
+            manifests,
+            ListPackageRepositories(),
+            _pluginManager.IsAbiAndRuntimeCompatible,
+            _pluginManager.RuntimeIdentifier,
+            includeOptional
+        );
+    }
+
+    /// <inheritdoc/>
+    public Task<IReadOnlyList<LocalPluginInfo>> InstallPackages(PackageInstallPlan plan, CancellationToken cancellationToken = default)
+        => InstallPackages(plan, InstallReason.Explicit, cancellationToken);
+
+    /// <summary>
+    ///   Carries out an install plan, all or nothing, installing the package
+    ///   asked for for a reason.
+    /// </summary>
+    /// <param name="plan">The plan.</param>
+    /// <param name="reason">Why the package asked for is installed.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The installed plugin versions, in the order of the plan's steps.</returns>
+    private async Task<IReadOnlyList<LocalPluginInfo>> InstallPackages(PackageInstallPlan plan, InstallReason reason, CancellationToken cancellationToken)
+    {
+        if (!plan.CanInstall)
+            throw new InvalidOperationException($"Unable to install package {plan.Package.Manifest.Name}: {string.Join(" ", plan.Problems.Select(problem => $"{problem.Name ?? problem.PluginID.ToString()}: {problem.Reason}"))}");
+
+        var installed = new List<LocalPluginInfo>(plan.Steps.Count);
+        var added = new List<LocalPluginInfo>();
+        try
+        {
+            foreach (var step in plan.Steps)
+            {
+                var extractPath = GetExtractPath(step.Package);
+                var existed = _pluginManager.GetPluginInfos(step.Package.Manifest.PackageID)
+                    .Any(info => info.IsInstalled && string.Equals(info.ContainingDirectory, extractPath, StringComparison.Ordinal));
+                var stepReason = step.IsDependency ? InstallReason.Dependency : reason;
+                var pluginInfo = await InstallPackage(step.Package, stepReason, step.RequiredBy, cancellationToken).ConfigureAwait(false)
+                    ?? throw new InvalidOperationException($"Failed to install package {step.Package.Manifest.Name} version {step.Package.Release.Version}.");
+                installed.Add(pluginInfo);
+                if (!existed)
+                    added.Add(pluginInfo);
+            }
+        }
+        catch
+        {
+            // All or nothing: what this call added goes again, newest first.
+            for (var i = added.Count - 1; i >= 0; i--)
+            {
+                try
+                {
+                    _pluginManager.UninstallPlugin(added[i]);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to uninstall version {Version} of plugin {PluginName} after a failed install.", added[i].Version.Version, added[i].Name);
+                }
+            }
+
+            throw;
+        }
+
+        return installed;
+    }
+
+    /// <summary>
+    ///   The installed plugin versions, the way the planner and the upgrades
+    ///   read them.
+    /// </summary>
+    /// <returns>Every installed plugin version.</returns>
+    private List<InstalledPlugin> GetInstalledPlugins()
+        => _pluginManager.GetPluginInfos()
+            .Where(pluginInfo => pluginInfo.IsInstalled)
+            .Select(pluginInfo => new InstalledPlugin(
+                pluginInfo.ID,
+                pluginInfo.Name,
+                pluginInfo.Version.Version,
+                pluginInfo.IsEnabled,
+                pluginInfo.IsPinned,
+                IsBundled: !pluginInfo.CanUninstall,
+                IsDependency: pluginInfo.IsDependency,
+                Dependencies: pluginInfo.Dependencies,
+                IsEnabledOnDemand: pluginInfo.IsEnabledOnDemand
+            ))
+            .ToList();
 
     /// <summary>
     ///   Gets the directory a package is extracted to.
@@ -1559,9 +1718,7 @@ public partial class PluginPackageManager(
             return;
 
         // The same choice as the upgrades on start, from the plugins already scanned.
-        var installed = _pluginManager.GetPluginInfos()
-            .Where(pluginInfo => pluginInfo.IsEnabled && pluginInfo.IsInstalled)
-            .Select(pluginInfo => new InstalledPlugin(pluginInfo.ID, pluginInfo.Name, pluginInfo.Version.Version, pluginInfo.IsEnabled, pluginInfo.IsPinned, IsBundled: !pluginInfo.CanUninstall));
+        var installed = GetInstalledPlugins().Where(plugin => plugin.IsEnabled).ToList();
         var manifests = await GetAvailablePackageManifests(allowSync: false, cancellationToken: cancellationToken).ConfigureAwait(false);
         var upgrades = SelectUpgrades(
             installed,
@@ -1577,7 +1734,20 @@ public partial class PluginPackageManager(
             _logger.LogInformation("Auto-upgrading plugin {PluginName} to {NewVersion}", package.Manifest.Name, package.Release.Version);
             try
             {
-                await InstallPackage(package, cancellationToken).ConfigureAwait(false);
+                // A release may need plugins the old one did not, which are installed with it.
+                var plan = PackageInstallPlanner.Plan(package, GetInstalledPlugins(), manifests, ListPackageRepositories(), _pluginManager.IsAbiAndRuntimeCompatible, _pluginManager.RuntimeIdentifier);
+                if (!plan.CanInstall)
+                {
+                    _logger.LogWarning(
+                        "Not auto-upgrading plugin {PluginName} to {NewVersion}: {Problems}",
+                        package.Manifest.Name,
+                        package.Release.Version,
+                        string.Join(" ", plan.Problems.Select(problem => $"{problem.Name ?? problem.PluginID.ToString()}: {problem.Reason}"))
+                    );
+                    continue;
+                }
+
+                await InstallPackages(plan, InstallReason.Upgrade, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -1661,9 +1831,8 @@ public partial class PluginPackageManager(
             return [];
         }
 
-        var installed = InstalledPluginReader.ReadInstalledPlugins()
-            .Where(plugin => plugin.IsEnabled)
-            .ToList();
+        var allInstalled = InstalledPluginReader.ReadInstalledPlugins().ToList();
+        var installed = allInstalled.Where(plugin => plugin.IsEnabled).ToList();
         if (installed.Count is 0)
             return [];
 
@@ -1708,10 +1877,30 @@ public partial class PluginPackageManager(
         var done = new List<PackageInfo>();
         foreach (var packageInfo in upgrades)
         {
+            // A release may need plugins the old one did not, which are installed with it.
+            var plan = PackageInstallPlanner.Plan(packageInfo, allInstalled, manifests, ListPackageRepositories(), _pluginManager.IsAbiAndRuntimeCompatible, _pluginManager.RuntimeIdentifier);
+            if (!plan.CanInstall)
+            {
+                _logger.LogWarning(
+                    "Not upgrading plugin {PluginName} to version {Version} on start: {Problems}",
+                    packageInfo.Manifest.Name,
+                    packageInfo.Release.Version,
+                    string.Join(" ", plan.Problems.Select(problem => $"{problem.Name ?? problem.PluginID.ToString()}: {problem.Reason}"))
+                );
+                continue;
+            }
+
             try
             {
-                await InstallPackageBeforeStart(packageInfo, cancellationToken).ConfigureAwait(false);
-                done.Add(packageInfo);
+                foreach (var step in plan.Steps)
+                {
+                    var reason = step.IsDependency ? InstallReason.Dependency : InstallReason.Upgrade;
+                    var otherVersionsMarked = allInstalled.Where(plugin => plugin.ID == step.Package.Manifest.PackageID).Select(plugin => plugin.IsDependency).ToList();
+                    var markAsDependency = ShouldMarkAsDependency(reason, otherVersionsMarked);
+                    if (await InstallPackageBeforeStart(step.Package, markAsDependency, step.RequiredBy, cancellationToken).ConfigureAwait(false) is { } read)
+                        allInstalled.Add(read);
+                    done.Add(step.Package);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -1724,7 +1913,8 @@ public partial class PluginPackageManager(
 
     /// <summary>
     ///   Picks the release to install for each installed plugin: the newest
-    ///   one above its newest installed version, with an archive
+    ///   one above its newest installed version that every other installed
+    ///   plugin depending on it accepts, with an archive
     ///   <paramref name="isCompatible"/> accepts. A plugin with a pinned
     ///   version is left alone, and so is one the server ships when
     ///   <paramref name="skipBundled"/> is set.
@@ -1747,17 +1937,29 @@ public partial class PluginPackageManager(
     {
         var comparer = new SemverVersionComparer();
         var manifestsByID = manifests.ToDictionary(manifest => manifest.PackageID);
+        var installedList = installed.ToList();
         var upgrades = new List<PackageInfo>();
-        foreach (var versions in installed.GroupBy(version => version.ID))
+        foreach (var versions in installedList.GroupBy(version => version.ID))
         {
             if (versions.Any(version => version.IsPinned || (skipBundled && version.IsBundled)) || !manifestsByID.TryGetValue(versions.Key, out var manifest))
                 continue;
 
+            // An upgrade the plugins depending on it do not accept would refuse them on the next start.
+            var ranges = installedList
+                .Where(other => other.ID != versions.Key)
+                .SelectMany(other => other.Dependencies ?? [])
+                .Where(dependency => dependency.PluginID == versions.Key)
+                .Select(dependency => dependency.VersionRange)
+                .Distinct()
+                .ToList();
             var current = versions.Select(version => version.Version).Max(comparer)!;
             foreach (var release in manifest.Releases.OrderByDescending(release => release.Version, comparer))
             {
                 if (comparer.Compare(NormalizeVersion(release.Version), current) <= 0)
                     break;
+
+                if (ranges.Any(range => !PluginVersionRange.IsSatisfied(range, NormalizeVersion(release.Version))))
+                    continue;
 
                 var archive = release.Archives
                     .Where(archive => isCompatible(archive.AbstractionVersion, archive.RuntimeIdentifier))
@@ -1788,7 +1990,7 @@ public partial class PluginPackageManager(
     /// </summary>
     /// <param name="version">The version.</param>
     /// <returns>The normalized version.</returns>
-    private static Version NormalizeVersion(Version version)
+    internal static Version NormalizeVersion(Version version)
         => version.Revision > 0
             ? new(version.Major, version.Minor, Math.Max(version.Build, 0), version.Revision)
             : new(version.Major, version.Minor, Math.Max(version.Build, 0));
@@ -1799,14 +2001,17 @@ public partial class PluginPackageManager(
     ///   already loaded when the scan comes to it.
     /// </summary>
     /// <param name="packageInfo">The package to install.</param>
+    /// <param name="markAsDependency">Whether to mark the version as installed as a dependency.</param>
+    /// <param name="requiredBy">The plugins needing it, written to its marker.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The installed version, as the plugin scan reads it.</returns>
     /// <exception cref="OperationCanceledException">
     ///   Thrown if the <paramref name="cancellationToken"/> cancelled it.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     ///   Thrown when the package holds a different plugin than its manifest says.
     /// </exception>
-    private async Task InstallPackageBeforeStart(PackageInfo packageInfo, CancellationToken cancellationToken)
+    private async Task<InstalledPlugin?> InstallPackageBeforeStart(PackageInfo packageInfo, bool markAsDependency, IReadOnlyList<Guid> requiredBy, CancellationToken cancellationToken)
     {
         _logger.LogInformation(
             "Upgrading plugin {PackageName} to version {PackageVersion} before it loads. (Id={PackageId}, RuntimeId={PackageRuntimeId})",
@@ -1821,10 +2026,15 @@ public partial class PluginPackageManager(
         try
         {
             await DownloadAndExtractPackage(packageInfo, cancellationToken).ConfigureAwait(false);
+            if (markAsDependency)
+                PluginManager.WriteDependencyMarker(extractPath, string.Empty, requiredBy);
+            else
+                PluginManager.RemoveDependencyMarker(extractPath, string.Empty);
             if (InstalledPluginReader.ReadPlugin(extractPath) is not { } installed)
                 throw new InvalidOperationException("The package holds no plugin.");
             if (installed.ID != packageInfo.Manifest.PackageID)
                 throw new InvalidOperationException($"The package holds plugin {installed.ID}, not {packageInfo.Manifest.PackageID}.");
+            return installed;
         }
         catch when (!existed)
         {
