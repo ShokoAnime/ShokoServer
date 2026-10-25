@@ -20,7 +20,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '10.0.402'
 
       # These suites are self-contained: no database, no network, and no native
       # dependencies, so they need none of the setup the integration tests do.

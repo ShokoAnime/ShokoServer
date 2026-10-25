@@ -63,7 +63,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '10.0.402'
 
       - name: Cache MediaInfo
         uses: actions/cache@v6
@@ -92,7 +92,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '10.x' ]
+        dotnet: [ '10.0.402' ]
 
     name: Shoko Tray Service build
 
