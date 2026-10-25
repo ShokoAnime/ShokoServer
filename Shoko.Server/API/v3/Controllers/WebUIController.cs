@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
@@ -29,7 +30,9 @@ using Shoko.Server.Repositories.Cached;
 using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
 using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
+using WebUIActiveProvider = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIActiveProvider;
 using WebUIGroupExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIGroupExtra;
+using WebUIProviderSelection = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIProviderSelection;
 using WebUISeriesExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesExtra;
 using WebUISeriesFileSummary = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary;
 using WebUITheme = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUITheme;
@@ -361,6 +364,64 @@ public partial class WebUIController(
     }
 
     #region Web Web UI
+
+    /// <summary>
+    /// Get the web UI the server serves: where it is mounted, the pages
+    /// other applications may link to, and its installed release.
+    ///
+    /// You don't need to be authenticated to use this endpoint.
+    /// </summary>
+    /// <returns>The active web UI.</returns>
+    [AllowAnonymous]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet]
+    public ActionResult<WebUIActiveProvider> GetActiveProvider()
+        => new WebUIActiveProvider(webUIService.ActiveProvider, webUIService.IsEnabled);
+
+    /// <summary>
+    /// Get every web UI the server can serve, and which one it serves.
+    /// </summary>
+    /// <returns>The web UIs and the selection.</returns>
+    [Authorize(Roles = "admin,init")]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Provider")]
+    public ActionResult<WebUIProviderSelection> GetProviders()
+        => new WebUIProviderSelection(webUIService);
+
+    /// <summary>
+    /// Change which web UI the server serves, or whether it serves one at
+    /// all. Applies at once.
+    /// </summary>
+    /// <param name="patchDocument">The changes to the selection.</param>
+    /// <returns>The web UIs and the selection.</returns>
+    [Authorize(Roles = "admin,init")]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpPatch("Provider")]
+    public ActionResult<WebUIProviderSelection> PatchProviders([FromBody] JsonPatchDocument<Input.WebUIProviderSelectionBody> patchDocument)
+    {
+        var body = new Input.WebUIProviderSelectionBody
+        {
+            IsEnabled = webUIService.IsEnabled,
+            SelectedProviderID = webUIService.GetAvailableProviders().FirstOrDefault(info => info.IsSelected)?.ID,
+        };
+        patchDocument.ApplyTo(body, ModelState);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        WebUIProviderInfo? selected = null;
+        if (body.SelectedProviderID is { } providerID && (selected = webUIService.GetProviderInfo(providerID)) is null)
+        {
+            ModelState.AddModelError(nameof(body.SelectedProviderID), $"No web UI with ID {providerID} is available.");
+            return ValidationProblem(ModelState);
+        }
+
+        webUIService.SelectProvider(selected);
+        webUIService.IsEnabled = body.IsEnabled;
+        return new WebUIProviderSelection(webUIService);
+    }
 
     /// <summary>
     /// Install a fresh copy of the web UI for the selected

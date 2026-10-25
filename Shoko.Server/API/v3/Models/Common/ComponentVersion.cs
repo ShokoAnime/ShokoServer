@@ -13,10 +13,16 @@ public class ComponentVersion
     public string? Version { get; set; }
 
     /// <summary>
-    /// Minimum Shoko Server version compatible with the Web UI.
+    /// Minimum Shoko Server version compatible with the web UI release.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? MinimumServerVersion { get; set; }
+
+    /// <summary>
+    /// Maximum Shoko Server version compatible with the web UI release.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? MaximumServerVersion { get; set; }
 
     /// <summary>
     /// Commit SHA.
@@ -48,4 +54,16 @@ public class ComponentVersion
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Indicates the web UI release ships with the server or its plugin.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public bool? IsBundled { get; set; }
+
+    /// <summary>
+    /// Why the web UI release cannot be used, if it cannot.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? IncompatibleReason { get; set; }
 }

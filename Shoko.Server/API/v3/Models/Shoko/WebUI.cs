@@ -11,6 +11,9 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Web;
+using Shoko.Abstractions.Web.Enums;
+using Shoko.Abstractions.Web.Services;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
@@ -1011,6 +1014,95 @@ public class WebUI
         }
     }
 
+    /// <summary>
+    /// A web UI the server can serve.
+    /// </summary>
+    public class WebUIProvider(WebUIProviderInfo info)
+    {
+        /// <summary>
+        /// The ID of the web UI.
+        /// </summary>
+        public Guid ID { get; } = info.ID;
+
+        /// <summary>
+        /// The name of the web UI.
+        /// </summary>
+        public string Name { get; } = info.Name;
+
+        /// <summary>
+        /// What the web UI is for.
+        /// </summary>
+        public string Description { get; } = info.Description;
+
+        /// <summary>
+        /// The version of the web UI's provider.
+        /// </summary>
+        public string Version { get; } = info.Version.ToSemanticVersioningString();
+
+        /// <summary>
+        /// The ID of the plugin the web UI ships in.
+        /// </summary>
+        public Guid PluginID { get; } = info.PluginInfo.ID;
+
+        /// <summary>
+        /// The path the web UI is served from, such as <c>/webui</c>, or
+        /// <c>/</c> for the root.
+        /// </summary>
+        public string MountPath { get; } = info.MountPath;
+
+        /// <summary>
+        /// Indicates the web UI is the one served, or kept up to date while
+        /// serving is off.
+        /// </summary>
+        public bool IsActive { get; } = info.IsActive;
+
+        /// <summary>
+        /// Indicates the admin picked the web UI. When none is picked, one is
+        /// picked automatically.
+        /// </summary>
+        public bool IsSelected { get; } = info.IsSelected;
+
+        /// <summary>
+        /// Templates for the web UI's pages, relative to the
+        /// <see cref="MountPath"/>. A page type missing from it has no page in
+        /// this web UI.
+        /// </summary>
+        public IReadOnlyDictionary<WebUILinkType, string> Links { get; } = info.Links;
+
+        /// <summary>
+        /// The installed release of the web UI's files, if any.
+        /// </summary>
+        public ComponentVersion? Release { get; } = info.CurrentRelease?.ToDto();
+    }
+
+    /// <summary>
+    /// The web UI the server serves.
+    /// </summary>
+    public class WebUIActiveProvider(WebUIProviderInfo info, bool isEnabled) : WebUIProvider(info)
+    {
+        /// <summary>
+        /// Indicates the server serves the web UI. When <c>false</c>, the
+        /// server runs without a web UI.
+        /// </summary>
+        public bool IsEnabled { get; } = isEnabled;
+    }
+
+    /// <summary>
+    /// The web UIs the server can serve, and which one it serves.
+    /// </summary>
+    public class WebUIProviderSelection(IWebUIService webUIService)
+    {
+        /// <summary>
+        /// Indicates the server serves a web UI.
+        /// </summary>
+        public bool IsEnabled { get; } = webUIService.IsEnabled;
+
+        /// <summary>
+        /// Every available web UI, the server's own first.
+        /// </summary>
+        public IReadOnlyList<WebUIProvider> Providers { get; } = webUIService.GetAvailableProviders().Select(info => new WebUIProvider(info)).ToList();
+    }
+
     public class Input
     {
         public class WebUIGroupViewBody
@@ -1061,6 +1153,23 @@ public class WebUI
             /// If false, the theme will be added as a permanent option in the Web UI.
             /// </summary>
             public bool Preview { get; set; } = false;
+        }
+
+        /// <summary>
+        /// Which web UI to serve.
+        /// </summary>
+        public class WebUIProviderSelectionBody
+        {
+            /// <summary>
+            /// Serve a web UI.
+            /// </summary>
+            public bool IsEnabled { get; set; }
+
+            /// <summary>
+            /// The ID of the web UI to serve, or <c>null</c> to pick one
+            /// automatically.
+            /// </summary>
+            public Guid? SelectedProviderID { get; set; }
         }
     }
 }

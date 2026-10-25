@@ -61,6 +61,9 @@ public static class APIv3_Extensions
             Tag = componentVersion.ReleaseTag,
             Version = componentVersion.Version.ToSemanticVersioningString(),
             MinimumServerVersion = componentVersion.MinimumServerVersion?.ToSemanticVersioningString(),
+            MaximumServerVersion = componentVersion.MaximumServerVersion?.ToSemanticVersioningString(),
+            IsBundled = componentVersion.IsBundled,
+            IncompatibleReason = componentVersion.IncompatibleReason,
         };
 
     public static IEnumerable<IImage> InLanguage(this IEnumerable<IImage> imageList, IReadOnlySet<TitleLanguage>? language = null)
