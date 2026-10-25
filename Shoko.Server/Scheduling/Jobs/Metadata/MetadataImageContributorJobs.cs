@@ -6,7 +6,7 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 
 /// <summary>
 ///   The core's job type for each image contributor: one closed type per
-///   contributor, so each runs in a pool of its own.
+///   contributor, so each has a limit of its own.
 /// </summary>
 public static class MetadataImageContributorJobs
 {

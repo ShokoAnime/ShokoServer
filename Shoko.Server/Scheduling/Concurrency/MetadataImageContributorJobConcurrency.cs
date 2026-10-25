@@ -10,8 +10,8 @@ using Shoko.Server.Services;
 namespace Shoko.Server.Scheduling.Concurrency;
 
 /// <summary>
-///   Gives each image contributor's job type a pool of its own, of the size
-///   the contributor declared in
+///   Limits each image contributor's job type to what the contributor
+///   declared in
 ///   <see cref="Abstractions.Metadata.Providers.MetadataImageContributorInfo.MaxConcurrentJobs"/>.
 /// </summary>
 /// <remarks>

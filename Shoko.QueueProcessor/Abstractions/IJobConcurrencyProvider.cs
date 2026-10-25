@@ -10,8 +10,11 @@ namespace Shoko.QueueProcessor.Abstractions;
 /// Registered in DI; every registration is asked in turn and the first answer wins. A job type
 /// with a <see cref="Concurrency.LimitConcurrencyAttribute"/> or
 /// <see cref="Concurrency.DisallowConcurrentExecutionAttribute"/> keeps the attribute's limit.
-/// The limit is read when the pools are built and again whenever the orchestrator checks whether
-/// a job may start, so it may become known after the container is built.
+/// The limit caps the type inside the pool it runs in, the <c>"Default"</c> pool unless an
+/// attribute gives it another, and never opens a pool of its own. It is read whenever the
+/// orchestrator checks whether a job may start, so it may become known after the container is
+/// built. An admin's override in <see cref="QueueProcessorOptions.LimitedConcurrencyOverrides"/>
+/// may lower it.
 /// </remarks>
 public interface IJobConcurrencyProvider
 {

@@ -180,27 +180,30 @@ public class GenericJobTypeTests
     }
 
     [Fact]
-    public void AProvidedLimitGivesTheClosedTypeAPoolOfItsOwn()
-    {
-        var limits = new FixedLimits(new() { [typeof(PerProviderJob<ProviderA>)] = 1 });
-        var pools = new PoolDiscovery(NullLogger<PoolDiscovery>.Instance, 10, 4)
-            .Discover([typeof(PerProviderJob<ProviderA>), typeof(PerProviderJob<ProviderB>)], [], [limits]);
-
-        var own = Assert.Single(pools, pool => pool.Name == JobTypeNames.Key(typeof(PerProviderJob<ProviderA>)));
-        Assert.Equal(1, own.MaxWorkers);
-        Assert.Contains(typeof(PerProviderJob<ProviderB>), Assert.Single(pools, pool => pool.Name == "Default").HandledTypes);
-    }
-
-    [Fact]
-    public void ProvidersOfTheSameSimpleNameKeepTheirOwnPoolsAndLimits()
+    public void AProvidedLimitCapsTheClosedTypeInTheDefaultPool()
     {
         var own = typeof(PerProviderJob<ProviderA>);
         var other = typeof(PerProviderJob<OtherPlugin.ProviderA>);
         var limits = new FixedLimits(new() { [own] = 4, [other] = 1 });
-        var pools = new PoolDiscovery(NullLogger<PoolDiscovery>.Instance, 10, 4).Discover([own, other], [], [limits]);
+        var pools = new PoolDiscovery(NullLogger<PoolDiscovery>.Instance, 10, 4).Discover([own, other], []);
+        var registry = ConcurrencyRegistry.Build([own, other], limitProviders: [limits]);
 
-        Assert.Equal(4, Assert.Single(pools, pool => pool.HandledTypes.Contains(own)).MaxWorkers);
-        Assert.Equal(1, Assert.Single(pools, pool => pool.HandledTypes.Contains(other)).MaxWorkers);
+        var pool = Assert.Single(pools);
+        Assert.Equal("Default", pool.Name);
+        Assert.Contains(own, pool.HandledTypes);
+        Assert.Contains(other, pool.HandledTypes);
+        Assert.Equal(4, registry.GetTypeLimit(own));
+        Assert.Equal(1, registry.GetTypeLimit(other));
+    }
+
+    [Fact]
+    public void AnOverrideLowersAProvidedLimit()
+    {
+        var type = typeof(PerProviderJob<ProviderA>);
+        var limits = new FixedLimits(new() { [type] = 4 });
+        var registry = ConcurrencyRegistry.Build([type], new Dictionary<string, int> { [JobTypeNames.Key(type)] = 2 }, limitProviders: [limits]);
+
+        Assert.Equal(2, registry.GetTypeLimit(type));
     }
 
     #endregion

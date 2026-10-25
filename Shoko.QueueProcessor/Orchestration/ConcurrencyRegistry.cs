@@ -28,18 +28,23 @@ public class ConcurrencyRegistry
 
     private readonly int _globalMax;
 
+    // The admin's lowered limits by type key, applied to provided limits as they are read.
+    private readonly IDictionary<string, int> _overrides;
+
     public ConcurrencyRegistry(
         IReadOnlyDictionary<Type, int> typeLimits,
         IReadOnlyDictionary<Type, string?> typeGroups,
         IReadOnlyDictionary<string, int> groupLimits,
         IReadOnlyList<IJobConcurrencyProvider>? limitProviders = null,
-        int globalMax = int.MaxValue)
+        int globalMax = int.MaxValue,
+        IDictionary<string, int>? overrides = null)
     {
         _typeLimits = typeLimits;
         _typeGroups = typeGroups;
         _groupLimits = groupLimits;
         _limitProviders = limitProviders ?? [];
         _globalMax = globalMax;
+        _overrides = overrides ?? new Dictionary<string, int>();
     }
 
     /// <summary>Returns the per-type concurrency limit, or <c>int.MaxValue</c> if unlimited.</summary>
@@ -48,7 +53,12 @@ public class ConcurrencyRegistry
         if (_typeLimits.TryGetValue(jobType, out var limit))
             return limit;
 
-        return GetProvidedLimit(_limitProviders, jobType) is { } provided ? Math.Min(provided, _globalMax) : int.MaxValue;
+        if (GetProvidedLimit(_limitProviders, jobType) is not { } provided)
+            return int.MaxValue;
+
+        if (_overrides.TryGetValue(JobTypeNames.Key(jobType), out var lowered) && lowered > 0)
+            provided = Math.Min(provided, lowered);
+        return Math.Min(provided, _globalMax);
     }
 
     /// <summary>
@@ -154,6 +164,6 @@ public class ConcurrencyRegistry
                 groupLimits[group] = 1;
         }
 
-        return new ConcurrencyRegistry(typeLimits, typeGroups, groupLimits, limitProviders, globalMax);
+        return new ConcurrencyRegistry(typeLimits, typeGroups, groupLimits, limitProviders, globalMax, overrides);
     }
 }

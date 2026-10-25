@@ -21,7 +21,7 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 ///   for.
 /// </summary>
 /// <remarks>
-///   One job type per contributor, so each runs in a pool of its own. It walks
+///   One job type per contributor, so each has a limit of its own. It walks
 ///   the entry as the owner's image job does, under the same locks, and hands
 ///   each enabled entity's images to <see cref="MetadataImageReconciler"/>
 ///   under the contributor's own source and image settings. An entry that is

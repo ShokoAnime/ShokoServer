@@ -467,8 +467,8 @@ setting (two weeks unless changed).
   (why, and until when if known). Only the held providers' jobs wait, and the
   status shows through `ISuspensionService.GetForSource`. See
   [Suspensions](../../Connectivity/Services/README.md#suspensions).
-- **Concurrency.** `MaxConcurrentJobs` caps each of your job types, in a pool
-  of its own, read once at registration.
+- **Concurrency.** `MaxConcurrentJobs` caps each of your job types, read once
+  at registration. Your jobs share the queue's default pool with the rest.
 
 The actions a person can run are `Refresh Linked Metadata`,
 `Auto-Search Metadata Links` and `Download Linked Metadata Images - Force` on a
@@ -645,8 +645,8 @@ provider's image job covers the entry. The job resolves the entry when it
 runs, skips one that is gone, and links your candidates under your `Source`
 by your source's image settings.
 
-Each contributor's jobs run in a pool of `MaxConcurrentJobs` (two when
-`null`). Every pair starts on; an admin turns pairs off through
+At most `MaxConcurrentJobs` of a contributor's jobs run at once (two when
+`null`), in the queue's default pool. Every pair starts on; an admin turns pairs off through
 `IMetadataImageContributorManager` or
 `PUT /api/v3/Metadata/ImageContributor/{contributorID}`, which queues
 `ClearContributedImagesJob` to remove your links there. The core refuses a

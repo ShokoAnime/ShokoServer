@@ -225,6 +225,7 @@ Timer-based `IHostedService` on a fixed interval the admin cannot change; the co
 - `[DisallowConcurrencyGroup("name")]` — mutual exclusion across jobs sharing a group name.
 - `[LongRunning]` — exempts the job from the watchdog timeout.
 - `[RetryPolicy]` — per-type override of the retry backoff (max attempts, base delay, delay cap).
+- `IJobConcurrencyProvider` — a limit for job types that cannot carry an attribute (the closed provider jobs); it caps the type inside its pool, the default one, and never opens a pool of its own.
 
 **Acquisition filter attributes** — block dispatch until the condition is met:
 - `[DatabaseRequired]` — waits until the DB is initialized.
@@ -494,10 +495,10 @@ If no release provider returns a match, the provider chain completes without cre
 | `AnidbProcessFileJob` | 4, and group-limited (`AniDB_UDP`) | AniDB UDP rate limit |
 | `GetAniDBAnimeJob` | group-limited (`AniDB_HTTP`) | AniDB HTTP bulkhead |
 | `AVDumpFilesJob` | 1 (16) | AVDump resource limits |
-| `RefreshMetadataJob<T>`, `SearchMetadataJob<T>`, `DownloadMetadataImagesJob<T>` | The provider's `MaxConcurrentJobs` (TMDB: 4) | One pool per provider job type |
-| `DownloadContributedImagesJob<T>` | The contributor's `MaxConcurrentJobs` (default 2) | One pool per image contributor |
-| `ProcessReleaseProviderJob<T>` | The provider's `MaxConcurrentJobs` (no limit by default) | One pool per release provider |
-| `RefreshAiringScheduleJob<T>` | The provider's `MaxConcurrentJobs` (default 1) | One pool per airing schedule provider |
+| `RefreshMetadataJob<T>`, `SearchMetadataJob<T>`, `DownloadMetadataImagesJob<T>` | The provider's `MaxConcurrentJobs` (TMDB: 4) | Capped per provider job type in the default pool |
+| `DownloadContributedImagesJob<T>` | The contributor's `MaxConcurrentJobs` (default 2) | Capped per contributor in the default pool |
+| `ProcessReleaseProviderJob<T>` | The provider's `MaxConcurrentJobs` (no limit by default) | Capped per release provider in the default pool |
+| `RefreshAiringScheduleJob<T>` | The provider's `MaxConcurrentJobs` (default 1) | Capped per airing schedule provider in the default pool |
 | `SweepAiringScheduleProviderJob<T>` | 1 (4) | One sweep chunk per provider at a time |
 | `DownloadImageJob` | 4 | Image download throughput |
 | `ValidateAllImagesJob` | 1 (1) | Sequential validation |

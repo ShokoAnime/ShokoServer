@@ -30,7 +30,8 @@ namespace Shoko.QueueProcessor.Orchestration;
 ///     → pool named after the type, max workers = N
 ///   </item>
 ///   <item>
-///     No concurrency attributes → assigned to the <c>"Default"</c> pool
+///     No concurrency attributes → assigned to the <c>"Default"</c> pool, where a limit an
+///     <see cref="IJobConcurrencyProvider"/> gives still caps the type
 ///   </item>
 /// </list>
 /// </para>
@@ -62,18 +63,12 @@ public class PoolDiscovery
     /// </summary>
     /// <param name="jobTypes">The registered job types.</param>
     /// <param name="acquisitionFilters">The acquisition filters to attach.</param>
-    /// <param name="limitProviders">
-    /// Asked for the limit of a type with no concurrency attribute; a type one of them limits gets
-    /// a pool of its own, as <see cref="LimitConcurrencyAttribute"/> would give it.
-    /// </param>
     /// <returns>The pools, the <c>"Default"</c> pool always among them.</returns>
     /// <exception cref="InvalidOperationException">A type's <see cref="JobPriorityAttribute"/> is invalid.</exception>
     public IReadOnlyList<WorkerPool> Discover(
         IEnumerable<Type> jobTypes,
-        IEnumerable<IAcquisitionFilter> acquisitionFilters,
-        IEnumerable<IJobConcurrencyProvider>? limitProviders = null)
+        IEnumerable<IAcquisitionFilter> acquisitionFilters)
     {
-        var providers = limitProviders?.ToList() ?? [];
         var filters = acquisitionFilters.ToList();
 
         // Group jobs by their pool name
@@ -89,8 +84,6 @@ public class PoolDiscovery
             var disallowAttr = type.GetCustomAttribute<DisallowConcurrentExecutionAttribute>();
 
             var limit = disallowAttr != null ? 1 : limitAttr?.MaxConcurrentJobs ?? 0;
-            if (limit is 0 && groupAttr is null && ConcurrencyRegistry.GetProvidedLimit(providers, type) is { } provided)
-                limit = provided;
 
             // Apply override
             if (_overrides.TryGetValue(JobTypeNames.Key(type), out var ov) && ov > 0)

@@ -441,7 +441,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 JobTypeNames.Short(overlong)
             );
 
-        // One job type per image contributor too, so each gets a pool of its own.
+        // One job type per image contributor too, so each gets a limit of its own.
         foreach (var contributorType in providerTypes)
             if (MetadataImageContributorJobs.GetOverlongJobType(contributorType) is { } overlong)
                 logger.LogWarning(
