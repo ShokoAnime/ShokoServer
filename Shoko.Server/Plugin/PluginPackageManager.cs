@@ -1364,6 +1364,15 @@ public partial class PluginPackageManager(
                     ReleasedAt = remoteRelease.ReleasedAt,
                     Channel = remoteRelease.Channel,
                     ReleaseNotes = remoteRelease.ReleaseNotes,
+                    // A dependency without a range accepts any version.
+                    Dependencies = remoteRelease.Dependencies
+                        .Select(remoteDependency => new PluginDependency
+                        {
+                            PluginID = remoteDependency.PluginID,
+                            VersionRange = remoteDependency.VersionRange is { Length: > 0 } range ? range : ">=0.0.0",
+                            IsOptional = remoteDependency.IsOptional,
+                        })
+                        .ToList(),
                     Archives = remoteRelease.Archives
                         .Select(remoteArchive => new PackageArchiveInfo
                         {
