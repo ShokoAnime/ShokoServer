@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.API.FileProviders;
 using Shoko.Server.Services;
 
@@ -13,19 +15,22 @@ namespace Shoko.Server.API;
 
 /// <summary>
 ///   Serves the active web UI, for every request no route took: the files
-///   from its mount path, a redirect from <c>/</c> to it, and a redirect from
-///   the Shoko Web UI's path when another web UI is served elsewhere. Follows
-///   <see cref="WebUIService"/> as it changes, without a restart.
+///   from its mount path, a redirect from <c>/</c> to it, a redirect from
+///   the Shoko Web UI's path when another web UI is served elsewhere, and a
+///   redirect into it for a page outside it that nothing else answered.
+///   Follows <see cref="WebUIService"/> as it changes, without a restart.
 /// </summary>
 /// <param name="_next">The next middleware.</param>
 /// <param name="_environment">The host environment, for the static file middleware.</param>
 /// <param name="_loggerFactory">The logger factory, for the static file middleware.</param>
 /// <param name="_webUIService">The web UI service.</param>
+/// <param name="_systemService">The system service, for whether the server has started.</param>
 public sealed class WebUIMiddleware(
     RequestDelegate _next,
     IWebHostEnvironment _environment,
     ILoggerFactory _loggerFactory,
-    WebUIService _webUIService
+    WebUIService _webUIService,
+    ISystemService _systemService
 )
 {
     /// <summary>
@@ -72,8 +77,47 @@ public sealed class WebUIMiddleware(
             return Task.CompletedTask;
         }
 
-        return snapshot.ServeFile(context);
+        if (state.MountPath is "/" || IsUnderMountPath(request.Path, state.MountPath) || !AcceptsHtml(request))
+            return snapshot.ServeFile(context);
+
+        // Until the server has started, nothing past this answers a page, and the web UI is where
+        // setup and a failed start are dealt with.
+        if (!_systemService.IsStarted)
+        {
+            context.Response.Redirect(IntoMountPath(request, state.MountPath));
+            return Task.CompletedTask;
+        }
+
+        return ServeOrRedirectAsync(context, snapshot, state.MountPath);
     }
+
+    /// <summary>
+    ///   Lets the rest of the pipeline answer a page outside the mount path,
+    ///   plugin middleware included, and sends a browser that got nothing but
+    ///   a <c>404</c> into the web UI at the same path, where its own routes
+    ///   decide.
+    /// </summary>
+    /// <param name="context">The request.</param>
+    /// <param name="snapshot">The current snapshot.</param>
+    /// <param name="mountPath">The web UI's mount path.</param>
+    /// <returns>A task that completes when the request is answered.</returns>
+    private static async Task ServeOrRedirectAsync(HttpContext context, Snapshot snapshot, string mountPath)
+    {
+        await snapshot.ServeFile(context);
+        if (context.Response.StatusCode is not StatusCodes.Status404NotFound || context.Response.HasStarted)
+            return;
+
+        context.Response.Redirect(IntoMountPath(context.Request, mountPath));
+    }
+
+    /// <summary>
+    ///   The same path and query under the mount path.
+    /// </summary>
+    /// <param name="request">The request.</param>
+    /// <param name="mountPath">The web UI's mount path.</param>
+    /// <returns>The location to redirect to.</returns>
+    private static string IntoMountPath(HttpRequest request, string mountPath)
+        => new PathString(mountPath).Add(request.Path) + request.QueryString;
 
     /// <summary>
     ///   Makes the static file middleware serving a state's web UI from its
@@ -101,6 +145,24 @@ public sealed class WebUIMiddleware(
         };
         return new StaticFileMiddleware(_next, _environment, Options.Create(options), _loggerFactory).Invoke;
     }
+
+    /// <summary>
+    ///   Checks if a path is the mount path or under it.
+    /// </summary>
+    /// <param name="path">The request's path.</param>
+    /// <param name="mountPath">The web UI's mount path.</param>
+    /// <returns><c>true</c> if the web UI's files answer the path.</returns>
+    private static bool IsUnderMountPath(PathString path, string mountPath)
+        => path.StartsWithSegments(mountPath, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///   Checks if a request is a browser's navigation, which asks for HTML,
+    ///   so a script or an API client keeps getting its plain <c>404</c>.
+    /// </summary>
+    /// <param name="request">The request.</param>
+    /// <returns><c>true</c> if the request accepts <c>text/html</c>.</returns>
+    private static bool AcceptsHtml(HttpRequest request)
+        => request.Headers.Accept.Any(value => value?.Contains("text/html", StringComparison.OrdinalIgnoreCase) is true);
 
     /// <summary>
     ///   Checks if a request is for a path no web UI may answer, which stays
