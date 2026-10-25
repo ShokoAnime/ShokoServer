@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using ImageMagick;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Plugin;
@@ -16,6 +18,9 @@ namespace Shoko.Tests.Plugin;
 public class BundledPluginImageTests
 {
     #region Helpers
+
+    private static string? ReadStampedResourceName(Type pluginType, string key)
+        => pluginType.Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(attribute => attribute.Key == key)?.Value;
 
     private static string ReadMimeType(Type pluginType, string? resourceName)
     {
@@ -38,8 +43,8 @@ public class BundledPluginImageTests
     {
         var plugin = (IPlugin)Activator.CreateInstance(pluginType)!;
 
-        Assert.Equal("image/svg+xml", ReadMimeType(pluginType, plugin.EmbeddedThumbnailResourceName));
-        Assert.Equal("image/svg+xml", ReadMimeType(pluginType, plugin.EmbeddedIconResourceName));
+        Assert.Equal("image/svg+xml", ReadMimeType(pluginType, ReadStampedResourceName(pluginType, "PackageThumbnail") ?? plugin.EmbeddedThumbnailResourceName));
+        Assert.Equal("image/svg+xml", ReadMimeType(pluginType, ReadStampedResourceName(pluginType, "PackageIcon") ?? plugin.EmbeddedIconResourceName));
     }
 
     [Theory]

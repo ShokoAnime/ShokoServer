@@ -16,6 +16,15 @@
         <NoWarn>$(NoWarn);1591</NoWarn>
     </PropertyGroup>
 
+    <PropertyGroup Label="Plugin">
+        <PluginGenerateClass>true</PluginGenerateClass>
+        <PluginID>d5b194ef-6f9d-455b-beb3-b23af899bb21</PluginID>
+        <PluginName>Legacy Plex Sync Support</PluginName>
+        <PluginOverview>The legacy Plex webhook and watched state sync. Bundled with the server.</PluginOverview>
+        <PluginIcon>Assets/icon.svg</PluginIcon>
+        <PluginThumbnail>Assets/thumbnail.svg</PluginThumbnail>
+    </PropertyGroup>
+
     <ItemGroup>
         <InternalsVisibleTo Include="Shoko.Tests" />
     </ItemGroup>
@@ -43,16 +52,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- The plugin's thumbnail and icon, read by the server through the
-             plugin. -->
-        <EmbeddedResource Include="Assets\thumbnail.svg" LogicalName="Shoko.Plugin.LegacyPlex.Assets.thumbnail.svg" />
-        <EmbeddedResource Include="Assets\icon.svg" LogicalName="Shoko.Plugin.LegacyPlex.Assets.icon.svg" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <!-- Injects the embedded plugin identity metadata the server reads during
-             discovery. With no `manifest.json` beside this file, the ID, name and
-             description are read from the literals in `Plugin.cs`. -->
-        <PackageReference Include="Shoko.BuildTools.Targets" Version="0.5.0" PrivateAssets="All" ExcludeAssets="runtime" />
+        <!-- Stamps the plugin identity from the project, generates the plugin
+             class and embeds its images. -->
+        <PackageReference Include="Shoko.BuildTools.Targets" Version="0.6.0" PrivateAssets="All" ExcludeAssets="runtime" />
     </ItemGroup>
 </Project>
