@@ -1,9 +1,14 @@
 # Web Services
 
-One interface lives here: `IWebThemeService`, the service behind the Web UI's
-theme picker, which a plugin **consumes** from DI. Its models are next door in
-`Shoko.Abstractions/Web`: `IWebThemeDefinition` (a theme as the server sees it)
-and `WebThemeDefinitionData` (the JSON shape authors write).
+Two services live here, both **consumed** from DI:
+
+- `IWebUIService` picks the web UI the server serves and keeps its
+  releases up to date. A plugin **implements** `IWebUIProvider` to offer a
+  web UI of its own; see [Web UIs](#web-uis).
+- `IWebThemeService` is the service behind the Web UI's theme picker. Its models
+  are next door in `Shoko.Abstractions/Web`: `IWebThemeDefinition` (a theme as
+  the server sees it) and `WebThemeDefinitionData` (the JSON shape authors
+  write).
 
 This page also covers where a plugin's own web surface goes, in
 [Routes a plugin serves](#routes-a-plugin-serves).
@@ -131,6 +136,114 @@ public static void RegisterServices(IApplicationBuilder application, IApplicatio
     });
 }
 ```
+
+---
+
+## Web UIs
+
+The server serves one web UI at a time, the **active web UI**, from the
+path the web UI asks for. The server ships a web UI of its own, the Shoko Web
+UI, always served from `/webui`. A plugin offers another by
+exporting an `IWebUIProvider`, found like every other provider.
+
+### Writing a web UI
+
+The provider **is** an `IFileProvider`: the server mounts it with the standard
+static file middleware, so ETags, ranges and content types are handled for you.
+Answer every path of your web UI from `GetFileInfo`, including the fallback to
+your index for client-side routes. A file you build or rewrite in memory, such
+as an index with your paths filled in, can be a `MemoryFileInfo`
+(`Shoko.Abstractions.Web`).
+
+```csharp
+public class MyWebUI(PluginPaths<MyPlugin> paths) : IWebUIProvider<MyWebUIConfiguration>
+{
+    private readonly PhysicalFileProvider _files = new(Path.Combine(paths.DataPath, "web"));
+
+    public string Name => "My Web UI";
+
+    public string MountPath => "/my-web-ui";
+
+    public IReadOnlyDictionary<WebUILinkType, string> Links { get; } = new Dictionary<WebUILinkType, string>
+    {
+        [WebUILinkType.Series] = "/series/{seriesID}",
+        [WebUILinkType.Video] = "/video/{videoID}",
+    };
+
+    public IFileInfo GetFileInfo(string subpath)
+        => _files.GetFileInfo(subpath) is { Exists: true } file ? file : _files.GetFileInfo("/index.html");
+
+    public IDirectoryContents GetDirectoryContents(string subpath) => _files.GetDirectoryContents(subpath);
+
+    public IChangeToken Watch(string filter) => NullChangeToken.Singleton;
+
+    // CurrentRelease, BundledRelease, ReleaseInstalled, GetReleases and InstallRelease below.
+}
+```
+
+- **`MountPath`** is yours to pick, as long as it is not under `/api`,
+  `/plugin`, `/signalr` or the Swagger UI's path; your plugin fails to start
+  otherwise. A route the server or a plugin maps always wins over a file of the
+  web UI, so even a web UI at `/` cannot hide them. Asking for the Shoko Web
+  UI's path, `/webui`, takes its place, bookmarks included. Anywhere else, the
+  Shoko Web UI's path redirects to yours. The server reads it on every
+  request, so you may change it while running, such as from your
+  configuration; a path it may not have is refused with a warning, and the
+  last allowed one is kept.
+- **`Links`** are templates relative to `MountPath`, with the placeholders each
+  `WebUILinkType` names. Applications such as media server plugins read them
+  from `GET /api/v3/WebUI` to link into your pages. Leave a type out when your
+  web UI has no such page.
+- **Releases** are the files of your web UI, on a cadence of their own. List
+  them in `GetReleases`, newest first, with the one your plugin ships marked
+  `IsBundled` and also returned by `BundledRelease`, which the server reads at
+  start-up and so must not need the network. Install one in `InstallRelease`
+  and raise `ReleaseInstalled` once it is in place. Install into a new folder
+  and switch to it, so a request never sees half a release. Set
+  `IncompatibleReason` on a release your plugin cannot serve, such as one
+  needing an API your plugin no longer has; the server adds its own for
+  releases outside `MinimumServerVersion` and `MaximumServerVersion`.
+- **First-run setup** happens in the active web UI, so your web UI must be able
+  to set up a new server from the release your plugin ships.
+- **Configuration** goes through the generic form, as for every other provider:
+  `IWebUIProvider<TConfiguration>` with a `TConfiguration` implementing
+  `IWebUIProviderConfiguration`. Its page is rendered next to the web UI.
+
+### Which web UI is served
+
+The admin picks the web UI, through `IWebUIService.SelectProvider` or
+`PATCH /api/v3/WebUI/Provider`, and turns serving on or off through
+`IsEnabled`. Both apply at once, without a restart. While a web UI is served
+away from `/`, a request for `/` that no route took is redirected to it.
+Without a pick, the first plugin web UI in load order is served, else the Shoko
+Web UI. A picked web UI that is gone or failed falls back the same way.
+
+`ActiveProvider` is never `null`. While serving is off, it is still the web UI
+whose releases the service lists and installs. Each `WebUIProviderInfo` says
+whether it is the active one (`IsActive`) and whether the admin picked it
+(`IsSelected`); a picked web UI whose plugin failed is selected but not active,
+and when none is selected, the pick is automatic. `ActiveProviderChanged` is
+raised whenever another web UI becomes active, serving is turned on or off, or
+the active web UI's mount path changes. A web UI becoming active gets the same
+care as at start-up: its bundled release is installed when nothing is.
+
+Open browser tabs keep running the web UI they loaded until they reload. A web
+UI with a service worker at a shared path should check its own version when it
+starts, so a cached copy does not outlive a switch.
+
+### Keeping it up to date
+
+The service asks the active web UI for releases and applies the server's rules
+on top: the release channel (`ReleaseChannel.Auto` is the installed release's,
+else the server's), compatibility, and the notes since the installed release.
+When the server starts it installs, for the active web UI:
+
+1. the bundled release, when nothing is installed;
+2. the newest compatible release, when the installed one became incompatible,
+   such as after your plugin was upgraded;
+3. the bundled release, when it is newer than the installed one on the same
+   channel and `Web.AutoReplaceWebUIWithIncluded` is on. A `Debug` release is
+   never replaced this way.
 
 ---
 

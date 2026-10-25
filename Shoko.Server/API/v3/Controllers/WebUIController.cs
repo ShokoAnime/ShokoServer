@@ -15,8 +15,9 @@ using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Web;
 using Shoko.Abstractions.Web.Attributes;
+using Shoko.Abstractions.Web.Enums;
 using Shoko.Abstractions.Web.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -47,8 +48,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public partial class WebUIController(
     ISettingsProvider settingsProvider,
-    IApplicationPaths applicationPaths,
     ISystemUpdateService updateService,
+    IWebUIService webUIService,
     IWebThemeService themeService,
     WebUIFactory webUIFactory,
     ILogger<WebUIController> logger,
@@ -359,10 +360,12 @@ public partial class WebUIController(
         return new WebUISeriesFileSummary(series, type, includeEpisodeDetails, includeLocationDetails, includeMissingFutureEpisodes, includeMissingUnknownEpisodes, groupBy);
     }
 
+    #region Web Web UI
+
     /// <summary>
-    /// Install a fresh copy of the web ui for the selected
+    /// Install a fresh copy of the web UI for the selected
     /// <paramref name="channel"/>. Will only install if it detects that no
-    /// previous version is installed.
+    /// previous release is installed.
     ///
     /// You don't need to be authenticated to use this endpoint.
     /// </summary>
@@ -376,42 +379,10 @@ public partial class WebUIController(
     [HttpPost("Install")]
     public async Task<ActionResult> InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] string? version = null, [FromQuery] bool allowIncompatible = false)
     {
-        var indexLocation = Path.Join(applicationPaths.WebPath, "index.html");
-        if (System.IO.File.Exists(indexLocation))
-        {
-            var index = System.IO.File.ReadAllText(indexLocation);
-            var token = "install-web-ui";
-            if (!index.Contains(token))
-                return ValidationProblem("Unable to install web UI when a web UI is already installed.", "Request");
-        }
+        if (webUIService.ActiveProvider.CurrentRelease is not null)
+            return ValidationProblem("Unable to install web UI when a web UI is already installed.", "Request");
 
-        try
-        {
-            if (!string.IsNullOrEmpty(version))
-            {
-                var history = await updateService.GetWebComponentHistory(channel).ConfigureAwait(false);
-                var match = history.FirstOrDefault(v =>
-                    v.Version.ToSemanticVersioningString() == version || v.ReleaseTag == version || (v.SourceRevision is { Length: > 0 } && v.SourceRevision == version));
-                if (match is null)
-                    return BadRequest($"Version '{version}' not found in the release history.");
-                await updateService.InstallWebComponentVersion(match).ConfigureAwait(false);
-            }
-            else
-            {
-                await updateService.UpdateWebComponent(channel, allowIncompatible).ConfigureAwait(false);
-            }
-        }
-        catch (WebException ex)
-        {
-            if (ex.Status != WebExceptionStatus.Success)
-            {
-                logger.LogError(ex, "An error occurred while trying to install the Web UI.");
-                return Problem("Unable to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect.");
-            }
-            throw;
-        }
-
-        return Redirect("/");
+        return await InstallOrUpdate(channel, version, allowIncompatible, "install") ?? Redirect("/");
     }
 
     /// <inheritdoc cref="InstallWebUI"/>
@@ -424,7 +395,7 @@ public partial class WebUIController(
         => InstallWebUI(channel, null, allowIncompatible);
 
     /// <summary>
-    /// Update an existing version of the web ui to the latest for the selected
+    /// Update the installed web UI to the latest release for the selected
     /// <paramref name="channel"/>, or to a specific <paramref name="version"/>.
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
@@ -435,49 +406,7 @@ public partial class WebUIController(
     [InitFriendly]
     [HttpPost("Update")]
     public async Task<ActionResult> UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] string? version = null, [FromQuery] bool allowIncompatible = false)
-    {
-        try
-        {
-            if (!string.IsNullOrEmpty(version))
-            {
-                var history = await updateService.GetWebComponentHistory(channel).ConfigureAwait(false);
-                var match = history.FirstOrDefault(v =>
-                    v.Version.ToSemanticVersioningString() == version || v.ReleaseTag == version || (v.SourceRevision is { Length: > 0 } && v.SourceRevision == version));
-                if (match is null)
-                    return BadRequest($"Version '{version}' not found in the release history.");
-                await updateService.InstallWebComponentVersion(match).ConfigureAwait(false);
-            }
-            else
-            {
-                await updateService.UpdateWebComponent(channel, allowIncompatible).ConfigureAwait(false);
-            }
-        }
-        catch (WebException ex)
-        {
-            if (ex.Status != WebExceptionStatus.Success)
-            {
-                logger.LogError(ex, "An error occurred while trying to update the Web UI.");
-                return Problem("Unable to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect.");
-            }
-            throw;
-        }
-
-        return NoContent();
-    }
-
-    /// <summary>
-    /// Let the server know that a manual update of the web UI has been
-    /// performed by the user to trigger the post-update event.
-    /// </summary>
-    /// <returns></returns>
-    [DatabaseBlockedExempt]
-    [InitFriendly]
-    [HttpPost("Update/ReportManualUpdate")]
-    public ActionResult UpdateWebUIManualRefresh()
-    {
-        updateService.ReactToManualWebComponentUpdate();
-        return NoContent();
-    }
+        => await InstallOrUpdate(channel, version, allowIncompatible, "update") ?? NoContent();
 
     /// <inheritdoc cref="UpdateWebUI"/>
     [DatabaseBlockedExempt]
@@ -488,7 +417,47 @@ public partial class WebUIController(
         => UpdateWebUI(channel, null, allowIncompatible);
 
     /// <summary>
-    /// Get the full release history for the web UI from the manifest.
+    /// Installs a release of the active web UI: the given version, or
+    /// the latest on the channel.
+    /// </summary>
+    /// <param name="channel">The release channel to use.</param>
+    /// <param name="version">Optional specific version, tag or commit to install.</param>
+    /// <param name="allowIncompatible">Allow an incompatible release.</param>
+    /// <param name="doing">What is being done, for the log.</param>
+    /// <returns>An error to answer with, or <c>null</c> when the release was installed.</returns>
+    private async Task<ActionResult?> InstallOrUpdate(ReleaseChannel channel, string? version, bool allowIncompatible, string doing)
+    {
+        try
+        {
+            WebUIInstallResult result;
+            if (!string.IsNullOrEmpty(version))
+            {
+                var history = await webUIService.GetReleases(channel).ConfigureAwait(false);
+                var match = history.FirstOrDefault(v =>
+                    v.Version.ToSemanticVersioningString() == version || v.ReleaseTag == version || (v.SourceRevision is { Length: > 0 } && v.SourceRevision == version));
+                if (match is null)
+                    return BadRequest($"Version '{version}' not found in the release history.");
+                result = await webUIService.InstallRelease(match).ConfigureAwait(false);
+            }
+            else
+            {
+                result = await webUIService.Update(channel, allowIncompatible).ConfigureAwait(false);
+            }
+
+            if (result is WebUIInstallResult.Failed)
+                return Problem($"Unable to {doing} the web UI. Check the server log for details.", null, (int)HttpStatusCode.InternalServerError, $"Unable to {doing}.");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or WebException { Status: not WebExceptionStatus.Success })
+        {
+            logger.LogError(ex, "An error occurred while trying to {Doing} the Web UI.", doing);
+            return Problem("Unable to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect.");
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Get the full release history for the active web UI.
     /// </summary>
     /// <param name="channel">Optional filter to a specific release channel.</param>
     /// <param name="version">Optional filter to a specific version.</param>
@@ -500,7 +469,7 @@ public partial class WebUIController(
     {
         try
         {
-            var history = await updateService.GetWebComponentHistory(channel).ConfigureAwait(false);
+            var history = await webUIService.GetReleases(channel).ConfigureAwait(false);
             if (!string.IsNullOrEmpty(version))
             {
                 var match = history.FirstOrDefault(v =>
@@ -511,18 +480,17 @@ public partial class WebUIController(
             }
             return Ok(history.Select(v => v.ToDto()).ToList());
         }
-        catch (WebException ex)
+        catch (Exception ex) when (ex is HttpRequestException or WebException { Status: not WebExceptionStatus.Success })
         {
-            if (ex.Status != WebExceptionStatus.Success)
-                return StatusCode((int)HttpStatusCode.BadGateway, "Unable to fetch release manifest. Check your connection.");
-            throw;
+            return StatusCode((int)HttpStatusCode.BadGateway, "Unable to fetch release manifest. Check your connection.");
         }
     }
 
     /// <summary>
-    /// Check for latest version for the selected <paramref name="channel"/> and
-    /// return a <see cref="ComponentVersion"/> containing the version
-    /// information.
+    /// Check for latest release of the active web UI for the selected
+    /// <paramref name="channel"/> and return a <see cref="ComponentVersion"/>
+    /// containing the version information. Without a release to use, it is
+    /// the installed one.
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
     /// <param name="force">Bypass the cache and search for a new version online.</param>
@@ -535,16 +503,18 @@ public partial class WebUIController(
     {
         try
         {
-            var version = await updateService.GetLatestWebComponentVersion(channel, force, allowIncompatible).ConfigureAwait(false);
-            return version.ToDto();
+            var release = await webUIService.GetLatestRelease(channel, force, allowIncompatible).ConfigureAwait(false) ?? webUIService.ActiveProvider.CurrentRelease;
+            if (release is null)
+                return BadRequest("Unable to locate the latest release to use.");
+            return release.ToDto();
         }
-        catch (WebException ex)
+        catch (Exception ex) when (ex is HttpRequestException or WebException { Status: not WebExceptionStatus.Success })
         {
-            if (ex.Status != WebExceptionStatus.Success)
-                return StatusCode((int)HttpStatusCode.BadGateway, "Unable to check for an update. Check your connection.");
-            throw;
+            return StatusCode((int)HttpStatusCode.BadGateway, "Unable to check for an update. Check your connection.");
         }
     }
+
+    #endregion
 
     /// <summary>
     /// Get the full release history for the server from the manifest.

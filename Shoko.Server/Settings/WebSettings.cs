@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Enums;
 
@@ -35,56 +34,6 @@ public class WebSettings
     public bool AutoReplaceWebUIWithIncluded { get; set; } = true;
 
     /// <summary>
-    /// Enable the Web UI. Disabling this will run the server in "headless"
-    /// mode.
-    /// </summary>
-    [Display(Name = "Enable Web UI")]
-    [RequiresRestart]
-    [EnvironmentVariable("SHOKO_WEBUI_ENABLED")]
-    [DefaultValue(true)]
-    public bool EnableWebUI { get; set; } = true;
-
-    /// <summary>
-    /// The public path prefix for where to mount the Web UI.
-    /// </summary>
-    [Display(Name = "Web UI Prefix")]
-    [RequiresRestart]
-    [EnvironmentVariable("SHOKO_WEBUI_PREFIX")]
-    [DefaultValue("webui")]
-    public string WebUIPrefix { get; set; } = "webui";
-
-    /// <summary>
-    /// The public path formatted from <see cref="WebUIPrefix"/> for where to
-    /// mount the Web UI.
-    /// </summary>
-    [JsonIgnore]
-    public string WebUIPublicPath
-    {
-        get
-        {
-            var publicPath = WebUIPrefix;
-            if (!publicPath.StartsWith('/'))
-                publicPath = $"/{publicPath}";
-            if (publicPath.EndsWith('/'))
-                publicPath = publicPath[..^1];
-            return publicPath;
-        }
-    }
-
-    /// <summary>
-    /// A relative path from the <see cref="IApplicationPaths.DataPath"/>
-    /// to where the Web UI is installed, or an absolute path if you have it
-    /// somewhere else. Will be used to populate the
-    /// <see cref="IApplicationPaths.WebPath"/> field.
-    /// </summary>
-    [Visibility(Size = DisplayElementSize.Full)]
-    [Display(Name = "Web UI Path")]
-    [RequiresRestart]
-    [EnvironmentVariable("SHOKO_WEBUI_PATH")]
-    [DefaultValue("webui")]
-    public string WebUIPath { get; set; } = "webui";
-
-    /// <summary>
     /// Enable the Swagger UI.
     /// </summary>
     [Display(Name = "Enable Swagger UI")]
@@ -101,17 +50,6 @@ public class WebSettings
     [EnvironmentVariable("SHOKO_SWAGGER_PREFIX")]
     [DefaultValue("swagger")]
     public string SwaggerUIPrefix { get; set; } = "swagger";
-
-    /// <summary>
-    ///   Enable the built-in index redirect available at <c>/</c>, redirecting
-    ///   the user to the <seealso cref="WebUIPrefix"/>.
-    /// </summary>
-    [Visibility(Advanced = true)]
-    [Display(Name = "Enable Index Redirect")]
-    [RequiresRestart]
-    [EnvironmentVariable("SHOKO_API_INDEX_REDIRECT_ENABLED")]
-    [DefaultValue(true)]
-    public bool EnableIndexRedirect { get; set; } = true;
 
     /// <summary>
     ///   The origins web pages may call the API from, such as a web client

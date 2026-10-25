@@ -152,7 +152,8 @@ The interfaces that tie a configuration to an extension point say only what
 it is for, not whether it is listed: `IHashProviderConfiguration`,
 `IReleaseInfoProviderConfiguration`, `IRelocationProviderConfiguration` (also a
 base configuration), `IVideoStreamTransformConfiguration`,
-`IAiringScheduleProviderConfiguration` and `IMetadataProviderConfiguration`.
+`IAiringScheduleProviderConfiguration`, `IMetadataProviderConfiguration` and
+`IWebUIProviderConfiguration`.
 Their pages are rendered next to the provider, and one that should also have a
 settings entry of its own adds `IVisibleConfiguration`.
 `IUserConfiguration` is a base configuration describing a configuration kept

@@ -22,13 +22,11 @@ using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using Newtonsoft.Json;
 using Sentry;
-using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Web.SignalR;
 using Shoko.Server.API.ActionConstraints;
 using Shoko.Server.API.ActionFilters;
@@ -574,35 +572,9 @@ public static partial class APIExtensions
             app.UseDeveloperExceptionPage();
 #endif
 
-        // Create web ui directory and add the boot-strapper.
-        var webUIDir = new DirectoryInfo(ApplicationPaths.Instance.WebPath);
-        var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ApplicationPath, "webui"));
-        var webUIUpdateService = app.ApplicationServices.GetRequiredService<ISystemUpdateService>();
-        if (!webUIDir.Exists)
-        {
-            if (backupDir.Exists)
-                CopyFilesRecursively(backupDir, webUIDir);
-            else
-                webUIDir.Create();
-        }
-        else if (
-            backupDir.Exists &&
-            webSettings.AutoReplaceWebUIWithIncluded &&
-            webUIUpdateService.LoadIncludedWebComponentVersionInformation() is { } includedVersion &&
-            (
-                webUIUpdateService.LoadWebComponentVersionInformation() is not { } currentVersion ||
-                (
-                    new SemverVersionComparer().Compare(includedVersion.Version, currentVersion.Version) > 0 &&
-                    (
-                        (includedVersion.Channel is not ReleaseChannel.Debug && currentVersion.Channel is not ReleaseChannel.Debug) ||
-                        (includedVersion.Channel is ReleaseChannel.Debug && currentVersion.Channel is ReleaseChannel.Debug)
-                    )
-                )
-            )
-        )
-        {
-            CopyFilesRecursively(backupDir, webUIDir);
-        }
+        // Bring the active web UI's files in line before they are served.
+        var webUIService = app.ApplicationServices.GetRequiredService<WebUIService>();
+        webUIService.ApplyStartPolicy();
 
         if (webSettings.EnableSwaggerUI)
         {
@@ -674,29 +646,11 @@ public static partial class APIExtensions
                 });
         }
 
-        if (webSettings.EnableWebUI)
-        {
-            var httpContextAccessor = app.ApplicationServices.GetRequiredService<IHttpContextAccessor>();
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = new WebUiFileProvider(webUIUpdateService, httpContextAccessor, webSettings.WebUIPublicPath, webUIDir.FullName),
-                RequestPath = webSettings.WebUIPublicPath,
-                ServeUnknownFileTypes = true,
-                DefaultContentType = "text/html",
-                OnPrepareResponse = ctx =>
-                {
-                    // We set the cache headers only for index.html file because it doesn't have a different hash when changed.
-                    // The served index is an in-memory copy without a physical path, so match it by name.
-                    if (string.Equals(ctx.File.Name, "index.html", StringComparison.OrdinalIgnoreCase))
-                    {
-                        ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-                        ctx.Context.Response.Headers.Append("Expires", "0");
-                    }
-                }
-            });
-        }
-
         app.UseRouting();
+
+        // After routing, so a route always wins over a file of the web UI, even one served from the root.
+        // Always in place, as serving can be turned on, and the web UI switched, while running.
+        app.UseMiddleware<WebUIMiddleware>();
 
         // Between routing and the endpoints, so it adds its headers to every endpoint's answer, and before
         // the not-running check, so a preflight is answered in setup and failure mode too.
@@ -746,23 +700,6 @@ public static partial class APIExtensions
         app.UseMvc();
 
         return app;
-    }
-
-    private static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
-    {
-        if (target.Exists)
-            target.Delete(recursive: true);
-
-        target.Create();
-        foreach (var dir in source.GetDirectories())
-        {
-            CopyFilesRecursively(dir, target.CreateSubdirectory(dir.Name));
-        }
-
-        foreach (var file in source.GetFiles())
-        {
-            file.CopyTo(Path.Combine(target.FullName, file.Name));
-        }
     }
 
     private static string LongestCommonPathPrefix(IEnumerable<string> paths)

@@ -129,11 +129,6 @@ public class PluginPaths<TPlugin> where TPlugin : class, IPlugin
     public string DataPath => _applicationPaths.DataPath;
 
     /// <summary>
-    /// The Web UI's folder.
-    /// </summary>
-    public string WebPath => _applicationPaths.WebPath;
-
-    /// <summary>
     /// The server's image folder.
     /// </summary>
     public string ImagesPath => _applicationPaths.ImagesPath;

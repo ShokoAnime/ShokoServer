@@ -11,6 +11,7 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Image.Options;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Web;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.Extensions;
@@ -50,7 +51,7 @@ public static class APIv3_Extensions
             Version = componentVersion.Version.ToSemanticVersioningString(),
         };
 
-    public static ComponentVersion ToDto(this WebReleaseVersionInformation componentVersion)
+    public static ComponentVersion ToDto(this WebUIReleaseInformation componentVersion)
         => new()
         {
             Commit = componentVersion.SourceRevision,

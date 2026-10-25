@@ -84,6 +84,12 @@ public interface IAiringScheduleProviderConfiguration : IConfiguration { }
 public interface IMetadataProviderConfiguration : IConfiguration { }
 
 /// <summary>
+/// Interface for signaling that the configuration is tied to a web UI
+/// provider.
+/// </summary>
+public interface IWebUIProviderConfiguration : IConfiguration { }
+
+/// <summary>
 /// Interface for allowing plugins to apply migrations to their configuration
 /// before loading it from disk.
 /// </summary>

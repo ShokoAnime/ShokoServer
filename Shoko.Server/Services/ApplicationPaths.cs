@@ -20,12 +20,6 @@ public class ApplicationPaths : IApplicationPaths
     public string ApplicationPath
         => _applicationPath ??= Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
-    private string? _webPath = null;
-
-    /// <inheritdoc/>
-    public string WebPath
-        => _webPath ??= Path.Combine(DataPath, ISettingsProvider.Instance.GetSettings().Web.WebUIPath);
-
     private static string? _dataPath = null;
 
     /// <inheritdoc/>

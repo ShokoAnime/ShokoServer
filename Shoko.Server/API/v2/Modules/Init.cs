@@ -12,7 +12,7 @@ using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Web.Attributes;
-using Shoko.Server.API.Annotations;
+using Shoko.Abstractions.Web.Services;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Providers.AniDB.UDP;
@@ -35,13 +35,13 @@ public class Init : BaseController
     private readonly IServerSettings _settings;
 
     private readonly ISystemService _systemService;
-    private readonly ISystemUpdateService _webUIUpdateService;
+    private readonly IWebUIService _webUIService;
 
-    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider, ISystemService systemService, ISystemUpdateService webUIUpdateService) : base(settingsProvider)
+    public Init(ILogger<Init> logger, ISettingsProvider settingsProvider, ISystemService systemService, IWebUIService webUIService) : base(settingsProvider)
     {
         _logger = logger;
         _systemService = systemService;
-        _webUIUpdateService = webUIUpdateService;
+        _webUIService = webUIService;
         _settings = settingsProvider.GetSettings();
     }
 
@@ -95,7 +95,7 @@ public class Init : BaseController
         };
         list.Add(version);
 
-        var webuiVersion = _webUIUpdateService.LoadWebComponentVersionInformation();
+        var webuiVersion = _webUIService.ActiveProvider.CurrentRelease;
         if (webuiVersion != null)
         {
             version = new ComponentVersion

@@ -13,12 +13,6 @@ public interface IApplicationPaths
     string ApplicationPath { get; }
 
     /// <summary>
-    /// Gets the path to the Web UI resources directory.
-    /// </summary>
-    /// <value>The Web UI directory path.</value>
-    string WebPath { get; }
-
-    /// <summary>
     /// Gets the path to the data directory.
     /// </summary>
     /// <value>The data directory path.</value>

@@ -132,7 +132,6 @@ take the one handed to `RegisterServices`, rather than building paths from
 | `CachePath` | Caches anyone may empty at any time, `cache`, one folder per plugin ID. |
 | `ImagesPath` | The image cache. |
 | `StreamCachePath` | Transcode and rendition cache, `transcodes`. |
-| `WebPath` | Web UI resources. |
 | `ThemesPath` | Web UI themes, `themes`. |
 | `LogsPath` | Log files, `logs`. |
 
@@ -198,7 +197,7 @@ It has the same property names as `IApplicationPaths`. Three are the plugin's
 own, named by its ID and created the first time they are read:
 `ConfigurationsPath` (`configuration/<plugin-id>`), `DatabasePath`
 (`data/<plugin-id>`) and `CachePath` (`cache/<plugin-id>`). `ApplicationPath`,
-`DataPath`, `WebPath`, `ImagesPath`, `StreamCachePath`, `ThemesPath` and
+`DataPath`, `ImagesPath`, `StreamCachePath`, `ThemesPath` and
 `LogsPath` are the server's. There is no `PluginsPath`: `InstallPath` is the
 plugin's own install folder, or the folder holding its dll when it is a single
 file, and a plugin only reads from it. `PluginID` is the plugin's ID.

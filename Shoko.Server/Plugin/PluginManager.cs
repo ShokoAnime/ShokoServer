@@ -36,6 +36,7 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Video.Streaming;
+using Shoko.Abstractions.Web;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
@@ -1187,6 +1188,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (services.GetRequiredService<IVideoRelocationService>() is VideoRelocationService relocationService)
                 relocationService.AddParts(CreateExports<IRelocationProvider>());
         });
+
+        AddParts("registering its web UIs", () =>
+            services.GetRequiredService<WebUIService>().AddParts(
+                CreateExports<IWebUIProvider>(),
+                (pluginInfo, ex) => MarkFailed(pluginInfo, "registering its web UI", ex)
+            ));
 
         AddParts("registering its suspension providers", () =>
         {

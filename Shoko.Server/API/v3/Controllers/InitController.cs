@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Core;
-using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Web.Attributes;
+using Shoko.Abstractions.Web.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Databases;
@@ -40,7 +40,7 @@ public class InitController(
     IConnectivityService _connectivityService,
     AniDBUDPConnectionHandler _udpHandler,
     IHttpConnectionHandler _httpHandler,
-    ISystemUpdateService _webUIUpdateService,
+    IWebUIService _webUIService,
     IPluginManager _pluginManager
 ) : BaseController(settingsProvider)
 {
@@ -71,7 +71,7 @@ public class InitController(
         }
         catch { }
 
-        var webuiVersion = _webUIUpdateService.LoadWebComponentVersionInformation();
+        var webuiVersion = _webUIService.ActiveProvider.CurrentRelease;
         if (webuiVersion != null)
         {
             versionSet.WebUI = new()

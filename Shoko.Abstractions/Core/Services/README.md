@@ -195,25 +195,16 @@ without throwing, which matters in unit tests, where nothing sets it.
 
 ## `ISystemUpdateService`
 
-This checks release manifests for the server and the WebUI, and installs WebUI
-versions. It is driven by the settings UI and the `/api/v3` update endpoints;
-a plugin has little reason to call it. The read side:
+This checks the server's release manifest. It is driven by the settings UI and
+the `/api/v3` update endpoints; a plugin has little reason to call it.
 
 - `GetLatestServerVersion(channel, force)` and `GetServerHistory(channel, force)`
-  return `ReleaseVersionInformation` off the server manifest.
-- `GetLatestWebComponentVersion(...)` and `GetWebComponentHistory(...)` do the
-  same for the WebUI, as `WebReleaseVersionInformation`.
-- `LoadWebComponentVersionInformation()` and
-  `LoadIncludedWebComponentVersionInformation()` read what is installed and what
-  shipped in the box.
+  return `ReleaseVersionInformation` off the server manifest, cached unless you
+  pass `force: true`.
+- `ServerManifestUrl` is settable.
 
-Both manifest URLs are settable (`ServerManifestUrl`, `WebComponentManifestUrl`),
-and both `GetLatest*`/`Get*History` calls are cached unless you pass `force: true`.
-
-The write side (`InstallWebComponentVersion`, `UpdateWebComponent`,
-`ReactToManualWebComponentUpdate`) replaces the user's WebUI installation, which
-a plugin should not do behind the user's back. `WebComponentUpdated` fires after
-an install.
+The web UI's releases are `IWebUIService`'s, in
+[Web Services](../../Web/Services/README.md#web-uis).
 
 `ReleaseChannel.Auto` matches the running server's own channel, and is almost
 always what you want; the explicit members are `Debug`, `Stable` and `Dev`.

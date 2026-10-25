@@ -12,6 +12,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Databases;
+using Shoko.Server.Plugin;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Settings;
@@ -96,6 +97,7 @@ public static partial class SettingsMigrations
         { 28, MigrateTmdbDownloadSwitchesToKinds },
         { 29, (settings, _) => MigrateImageSourceSettingsToMetadata(settings) },
         { 30, (settings, paths) => MigrateWebUISettingsToUserConfiguration(settings, paths.DataPath) },
+        { 31, MigrateWebUISettingsToWebUIService },
     };
 
     /// <summary>
@@ -776,6 +778,49 @@ public static partial class SettingsMigrations
         var path = WebUISettingsCarryOverPath(dataPath);
         if (File.Exists(path))
             File.Delete(path);
+    }
+
+    /// <summary>
+    ///   Where the web UI service keeps its settings.
+    /// </summary>
+    /// <param name="applicationPaths">The application paths.</param>
+    /// <returns>The file, <c>webui-service.json</c> in the core's configuration folder.</returns>
+    internal static string WebUIServiceSettingsPath(IApplicationPaths applicationPaths)
+        => Path.Join(PluginPathRules.GetConfigurationsPath(applicationPaths, CorePlugin.StaticID), "webui-service.json");
+
+    /// <summary>
+    ///   Takes the web UI settings the web UI service replaced out of the
+    ///   <c>Web</c> section, as migration 31. A web UI turned off stays off,
+    ///   through the service's own <c>IsEnabled</c>.
+    /// </summary>
+    /// <remarks>
+    ///   The index redirect, prefix and install path settings are dropped:
+    ///   the redirect always applies and the Shoko Web UI is always at
+    ///   <c>/webui</c>. With the keys gone, a second run changes nothing.
+    /// </remarks>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <param name="applicationPaths">The application paths, for the service's file.</param>
+    /// <returns>The settings JSON without the replaced keys.</returns>
+    internal static string MigrateWebUISettingsToWebUIService(string settings, IApplicationPaths applicationPaths)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings["Web"] is not JObject web)
+            return settings;
+
+        var enabled = web.Property("EnableWebUI")?.Value;
+        foreach (var key in new[] { "EnableWebUI", "EnableIndexRedirect", "WebUIPrefix", "WebUIPath" })
+            web.Property(key)?.Remove();
+
+        if (enabled is { Type: JTokenType.Boolean } && !enabled.Value<bool>())
+        {
+            var path = WebUIServiceSettingsPath(applicationPaths);
+            var serviceSettings = File.Exists(path) ? JObject.Parse(File.ReadAllText(path)) : [];
+            serviceSettings["IsEnabled"] = false;
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, serviceSettings.ToString());
+        }
+
+        return currentSettings.ToString();
     }
 
     #endregion

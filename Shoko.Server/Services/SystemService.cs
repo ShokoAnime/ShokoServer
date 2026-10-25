@@ -42,6 +42,7 @@ using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.API;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.FileProviders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -591,6 +592,10 @@ public class SystemService : ISystemService
             services.AddSingleton<IShokoGroupManager>(sp => sp.GetRequiredService<ShokoGroupManager>());
             services.AddSingleton<IWebThemeService, WebThemeService>();
             services.AddSingleton<ISystemUpdateService, SystemUpdateService>();
+            services.AddSingleton<ReleaseManifestReader>();
+            services.AddSingleton<CoreWebUIProvider>();
+            services.AddSingleton<WebUIService>();
+            services.AddSingleton<IWebUIService>(sp => sp.GetRequiredService<WebUIService>());
             services.AddSingleton<MetadataProviderManager>();
             services.AddSingleton<IMetadataProviderManager>(sp => sp.GetRequiredService<MetadataProviderManager>());
             services.AddSingleton<MetadataProviderScheduler>();
