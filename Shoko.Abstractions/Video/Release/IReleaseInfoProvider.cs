@@ -26,6 +26,28 @@ public interface IReleaseInfoProvider
     Version Version { get => GetType().Assembly.GetName().Version ?? new Version(0, 0, 0, 0); }
 
     /// <summary>
+    ///   Whether you have what you need to answer, such as an API key or
+    ///   credentials.
+    /// </summary>
+    /// <remarks>
+    ///   Read every time the core is about to use you. While it is
+    ///   <c>false</c>, release searches pass you by and none of your jobs
+    ///   are queued, until you are configured. The default is <c>true</c>.
+    /// </remarks>
+    bool IsConfigured { get => true; }
+
+    /// <summary>
+    ///   What you are missing while <see cref="IsConfigured"/> is
+    ///   <c>false</c>, in words a person can read, such as "No API key is
+    ///   set.", or <c>null</c> to give no reason.
+    /// </summary>
+    /// <remarks>
+    ///   Shown in the provider's availability. Not read while you are
+    ///   configured. The default is <c>null</c>.
+    /// </remarks>
+    string? NotConfiguredReason { get => null; }
+
+    /// <summary>
     ///   Gets the release information for the specified video, if available
     ///   from the provider.
     /// </summary>

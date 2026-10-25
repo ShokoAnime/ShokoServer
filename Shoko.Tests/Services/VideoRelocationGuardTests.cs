@@ -77,7 +77,8 @@ public class VideoRelocationGuardTests
                 storedRelocationPresetRepository: null!,
                 fileNameHash: null!,
                 managedFolders: null!,
-                fileSystemHelpers: FileSystem.Object);
+                fileSystemHelpers: FileSystem.Object,
+                suspensionService: null!);
         }
 
         /// <summary>Asserts that nothing was written to, moved on, or removed from disk.</summary>

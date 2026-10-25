@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Shoko.Abstractions.Connectivity;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Release;
@@ -129,6 +130,19 @@ public interface IVideoReleaseService
     ///   The provider info.
     /// </returns>
     ReleaseProviderInfo GetProviderInfo<TProvider>() where TProvider : class, IReleaseInfoProvider;
+
+    /// <summary>
+    ///   Works out whether a release provider can be used now: not while an
+    ///   admin turned it off, while it is not configured, or while a
+    ///   suspension holds it back. Searches and queued jobs pass by a
+    ///   provider that cannot be used; a suspended one's queued jobs wait.
+    /// </summary>
+    /// <param name="provider">The provider.</param>
+    /// <returns>The provider's availability.</returns>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="provider"/> is <c>null</c>.
+    /// </exception>
+    ProviderAvailability GetAvailability(ReleaseProviderInfo provider);
 
     /// <summary>
     ///   Gets a read-only list of all stored release provider names.

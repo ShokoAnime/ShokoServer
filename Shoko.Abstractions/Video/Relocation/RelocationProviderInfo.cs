@@ -30,6 +30,18 @@ public class RelocationProviderInfo
     public required string Description { get; init; }
 
     /// <summary>
+    ///   Whether the provider has what it needs to answer, such as an API key
+    ///   or credentials.
+    /// </summary>
+    public bool IsConfigured { get => Provider.IsConfigured; }
+
+    /// <summary>
+    ///   What the provider is missing while <see cref="IsConfigured"/> is
+    ///   <c>false</c>, or <c>null</c>.
+    /// </summary>
+    public string? NotConfiguredReason { get => Provider.IsConfigured ? null : Provider.NotConfiguredReason; }
+
+    /// <summary>
     ///   This should be true if the renamer supports operating on unrecognized
     ///   files.
     /// </summary>

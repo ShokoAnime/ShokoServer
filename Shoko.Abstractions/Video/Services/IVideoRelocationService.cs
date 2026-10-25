@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Shoko.Abstractions.Connectivity;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Events;
@@ -96,6 +97,19 @@ public interface IVideoRelocationService
     ///   The provider info.
     /// </returns>
     RelocationProviderInfo GetProviderInfo<TProvider>() where TProvider : IRelocationProvider;
+
+    /// <summary>
+    ///   Works out whether a relocation provider can be used now: not while it
+    ///   is not configured, or while a suspension holds it back. Relocating
+    ///   with a provider that cannot be used answers with an error instead of
+    ///   calling it.
+    /// </summary>
+    /// <param name="provider">The provider.</param>
+    /// <returns>The provider's availability.</returns>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="provider"/> is <c>null</c>.
+    /// </exception>
+    ProviderAvailability GetAvailability(RelocationProviderInfo provider);
 
     #endregion
 

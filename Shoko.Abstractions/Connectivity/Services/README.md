@@ -104,8 +104,11 @@ Use `HEAD` (`ConnectivityCheckType.Head`) where the endpoint supports it.
 A service you talk to may refuse work for a while: it rate limits you, bans
 you, answers with server errors, or rejects your key. Say so through the
 suspension contract, in `Connectivity/Suspensions/`, and the core holds back
-the queued jobs of the metadata, release and airing schedule providers you
-name, shows the status to clients and lets an admin lift what can be lifted.
+the metadata, release, relocation and airing schedule providers you name
+(their queued jobs wait, and the release and relocation services refuse to use
+them directly, see `ProviderAvailability`), shows the status to clients and
+lets an admin lift what can be lifted. `ISuspensionService.GetHolding` lists
+the suspensions holding a provider type back.
 
 Export one `ISuspensionProvider` per status (a service with two channels that
 are limited on their own exports two):

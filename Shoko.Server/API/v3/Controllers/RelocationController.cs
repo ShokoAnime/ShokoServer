@@ -127,11 +127,11 @@ public class RelocationController(
         => pluginID.HasValue
             ? pluginManager.GetPluginInfo(pluginID.Value) is { IsActive: true } pluginInfo
                 ? relocationService.GetProviderInfo(pluginInfo.Plugin)
-                    .Select(providerInfo => new RelocationProvider(providerInfo))
+                    .Select(providerInfo => new RelocationProvider(providerInfo, relocationService.GetAvailability(providerInfo)))
                     .ToList()
                 : []
             : relocationService.GetAvailableProviders()
-                .Select(providerInfo => new RelocationProvider(providerInfo))
+                .Select(providerInfo => new RelocationProvider(providerInfo, relocationService.GetAvailability(providerInfo)))
                 .ToList();
 
     /// <summary>
@@ -151,7 +151,7 @@ public class RelocationController(
         if (relocationService.GetProviderInfo(providerID) is not { } value)
             return NotFound("Renamer not found");
 
-        return new RelocationProvider(value);
+        return new RelocationProvider(value, relocationService.GetAvailability(value));
     }
 
     #endregion
@@ -624,7 +624,7 @@ public class RelocationController(
         if (presetInfo.ProviderInfo is not { } providerInfo)
             return NotFound("Relocation provider not found for relocation preset.");
 
-        return new RelocationProvider(providerInfo);
+        return new RelocationProvider(providerInfo, relocationService.GetAvailability(providerInfo));
     }
 
     #region Presets | Preview

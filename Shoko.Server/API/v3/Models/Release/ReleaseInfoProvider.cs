@@ -1,8 +1,10 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using Shoko.Abstractions.Connectivity;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.API.v3.Models.Plugin;
+using Shoko.Server.API.v3.Models.Suspension;
 
 namespace Shoko.Server.API.v3.Models.Release;
 
@@ -10,7 +12,8 @@ namespace Shoko.Server.API.v3.Models.Release;
 /// A release info provider.
 /// </summary>
 /// <param name="info">Internal release info provider.</param>
-public class ReleaseInfoProvider(ReleaseProviderInfo info)
+/// <param name="availability">Whether the provider can be used now.</param>
+public class ReleaseInfoProvider(ReleaseProviderInfo info, ProviderAvailability availability)
 {
     /// <summary>
     /// The unique ID of the provider.
@@ -47,6 +50,12 @@ public class ReleaseInfoProvider(ReleaseProviderInfo info)
     /// </summary>
     [Required]
     public bool IsEnabled { get; init; } = info.Enabled;
+
+    /// <summary>
+    /// Whether the provider can be used now, and if not, what stops it.
+    /// </summary>
+    [Required]
+    public ProviderAvailabilityStatus Availability { get; init; } = new(availability);
 
     /// <summary>
     /// Information about the configuration the release info provider uses.

@@ -231,7 +231,7 @@ Timer-based `IHostedService` on a fixed interval the admin cannot change; the co
 - `[NetworkRequired]` — waits until network connectivity is confirmed.
 - `[AniDBUdpRateLimited]` — respects AniDB UDP rate limits.
 - `[AniDBHttpRateLimited]` — respects AniDB HTTP rate limits.
-- The jobs of every metadata, release or airing schedule provider a suspended `ISuspensionProvider` lists in `HeldProviderTypes` are held back (`SuspensionAcquisitionFilter`, fed by `ISuspensionService`, attached to the pools of the jobs marked `[ProviderJob]`); the TMDB plugin suspends this way for a 429 or its 5XX circuit breaker.
+- The jobs of every metadata, release or airing schedule provider a suspended `ISuspensionProvider` lists in `HeldProviderTypes` are held back (`SuspensionAcquisitionFilter`, fed by `ISuspensionService`, attached to the pools of the jobs marked `[ProviderJob]`); the TMDB plugin suspends this way for a 429 or its 5XX circuit breaker, and the core's `AniDB UDP` suspension holds the AniDB release provider during a ban. The release and relocation services also refuse to use a held provider directly, and one whose `IsConfigured` is `false` (the AniDB release provider without credentials): `IVideoReleaseService.GetAvailability` / `IVideoRelocationService.GetAvailability` give the `ProviderAvailability` (disabled, not configured, suspended or available), shown on the APIv3 provider models.
 
 **`IJobFactory`** (`Shoko.QueueProcessor/JobFactory.cs`): DI-resolved single-shot execution via `Execute<T>()`. Used internally by the worker and by tests or services that need to run a job inline.
 

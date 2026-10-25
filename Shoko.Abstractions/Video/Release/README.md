@@ -186,6 +186,17 @@ To react to a release being saved, replaced or removed, subscribe to the events
 on `IVideoReleaseService`: `ReleaseSaved`, `ReleaseDeleted` and
 `SearchCompleted`.
 
+The core only uses a provider while it is available
+(`IVideoReleaseService.GetAvailability`): enabled by the admin, configured,
+and not held back by a suspension. Return `false` from `IsConfigured` while you
+lack what you need, such as credentials, with a `NotConfiguredReason` a person
+can act on: searches pass you by and none of your jobs are queued until you
+are configured. A suspension provider naming your type in `HeldProviderTypes`
+holds you back while it is suspended: searches started directly pass you by,
+and your queued jobs wait. The AniDB provider does both: it is not configured
+without AniDB credentials, and the `AniDB UDP` suspension holds it during a
+ban.
+
 **Do not rename or move the provider class.** Its ID is derived as a v5 UUID
 over `"ReleaseProvider={type.FullName}"` in the plugin's own ID namespace, so
 changing the class name or its namespace produces a different ID. The user's

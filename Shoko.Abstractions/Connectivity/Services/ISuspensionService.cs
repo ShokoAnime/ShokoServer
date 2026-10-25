@@ -109,6 +109,20 @@ public interface ISuspensionService
     IReadOnlyList<SuspensionStatus> GetForSource(MetadataSource source);
 
     /// <summary>
+    ///   The statuses of the suspended providers holding back a provider type,
+    ///   as named in their <see cref="SuspensionProviderInfo.HeldProviderTypes"/>.
+    /// </summary>
+    /// <param name="providerType">
+    ///   The type of the metadata, release, relocation or airing schedule
+    ///   provider.
+    /// </param>
+    /// <returns>The statuses, which is empty while nothing holds it back.</returns>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="providerType"/> is <c>null</c>.
+    /// </exception>
+    IReadOnlyList<SuspensionStatus> GetHolding(Type providerType);
+
+    /// <summary>
     ///   Lifts a liftable suspension for an admin: asks its provider to lift
     ///   it, then removes it.
     /// </summary>

@@ -290,17 +290,13 @@ public sealed class SuspensionService : ISuspensionService, IDisposable
             return [.. Entries.Where(entry => entry.Info.HeldProviderTypes.Any(providerTypes.Contains)).Select(entry => entry.Status)];
     }
 
-    /// <summary>
-    ///   The statuses of the suspended providers holding back a provider type.
-    /// </summary>
-    /// <param name="heldType">The type of the metadata or release provider.</param>
-    /// <returns>The statuses, which is empty while nothing holds it back.</returns>
-    internal IReadOnlyList<SuspensionStatus> GetHolding(Type heldType)
+    /// <inheritdoc />
+    public IReadOnlyList<SuspensionStatus> GetHolding(Type providerType)
     {
-        ArgumentNullException.ThrowIfNull(heldType);
+        ArgumentNullException.ThrowIfNull(providerType);
 
         lock (_lock)
-            return [.. Entries.Where(entry => entry.Status.IsSuspended && entry.Info.HeldProviderTypes.Contains(heldType)).Select(entry => entry.Status)];
+            return [.. Entries.Where(entry => entry.Status.IsSuspended && entry.Info.HeldProviderTypes.Contains(providerType)).Select(entry => entry.Status)];
     }
 
     /// <inheritdoc />

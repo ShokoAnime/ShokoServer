@@ -53,5 +53,17 @@ public class ReleaseProviderInfo
     /// The priority of the provider during automatic usage.
     /// </summary>
     public required int Priority { get; set; }
+
+    /// <summary>
+    ///   Whether the provider has what it needs to answer, such as an API key
+    ///   or credentials.
+    /// </summary>
+    public bool IsConfigured { get => Provider.IsConfigured; }
+
+    /// <summary>
+    ///   What the provider is missing while <see cref="IsConfigured"/> is
+    ///   <c>false</c>, or <c>null</c>.
+    /// </summary>
+    public string? NotConfiguredReason { get => Provider.IsConfigured ? null : Provider.NotConfiguredReason; }
 }
 

@@ -13,6 +13,8 @@ using Polly;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Connectivity;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
@@ -49,7 +51,8 @@ public class VideoRelocationService(
     StoredRelocationPresetRepository storedRelocationPresetRepository,
     FileNameHashRepository fileNameHash,
     ShokoManagedFolderRepository managedFolders,
-    IFileSystemHelpers fileSystemHelpers
+    IFileSystemHelpers fileSystemHelpers,
+    Lazy<ISuspensionService> suspensionService
 ) : IVideoRelocationService, IRelocationPresetManager
 {
     private Dictionary<Guid, RelocationProviderInfo> _relocationProviderInfos = [];
@@ -222,6 +225,20 @@ public class VideoRelocationService(
 
         return GetProviderInfo(GetID(typeof(TProvider)))
             ?? throw new ArgumentException($"Unregistered provider: '{typeof(TProvider).Name}'", nameof(TProvider));
+    }
+
+    /// <inheritdoc />
+    public ProviderAvailability GetAvailability(RelocationProviderInfo provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+
+        return ProviderAvailabilities.Get(
+            provider.Name,
+            true,
+            provider.Provider.IsConfigured,
+            provider.Provider.NotConfiguredReason,
+            suspensionService.Value.GetHolding(provider.Provider.GetType())
+        );
     }
 
     public RelocationProviderInfo? GetProviderInfo(Guid providerID)
@@ -760,6 +777,9 @@ public class VideoRelocationService(
 
         if (relocationService.GetProviderInfo(preset.ProviderID) is not { } providerInfo)
             return RelocationResponse.FromError($"No relocation provider with ID \"{preset.ProviderID}\" is unavailable or unknown.");
+
+        if (relocationService.GetAvailability(providerInfo) is { IsAvailable: false } availability)
+            return RelocationResponse.FromError(availability.Reason ?? $"{providerInfo.Name} cannot be used now.");
 
         var videoLocal = place.Video;
         var xrefs = videoLocal.CrossReferences;

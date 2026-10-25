@@ -18,6 +18,7 @@ using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Providers.AniDB.Release;
 
@@ -31,13 +32,15 @@ namespace Shoko.Server.Providers.AniDB.Release;
 /// <param name="banStateService">The AniDB ban state service.</param>
 /// <param name="fileNameHashRepository">The file name hash repository.</param>
 /// <param name="videoRepository">The video repository.</param>
+/// <param name="settingsProvider">The settings provider, for the AniDB credentials.</param>
 public partial class AnidbReleaseProvider(
     ILogger<AnidbReleaseProvider> logger,
     ConfigurationProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings> configurationProvider,
     IRequestFactory requestFactory,
     AniDbBanStateService banStateService,
     FileNameHashRepository fileNameHashRepository,
-    VideoLocalRepository videoRepository
+    VideoLocalRepository videoRepository,
+    ISettingsProvider settingsProvider
 ) : IReleaseInfoProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings>
 {
     /// <summary>
@@ -63,6 +66,14 @@ public partial class AnidbReleaseProvider(
         The built-in AniDB release provider, using the AniDB UDP API through the
         internal UDP connection handler.
     """;
+
+    /// <inheritdoc />
+    public bool IsConfigured
+        => settingsProvider.GetSettings().AniDb is { Username.Length: > 0, Password.Length: > 0 };
+
+    /// <inheritdoc />
+    public string? NotConfiguredReason
+        => "No AniDB username or password is set.";
 
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoContext request, CancellationToken cancellationToken)

@@ -51,6 +51,14 @@ Auto-relocation is skipped entirely, without ever reaching a provider, when
 folder, when no providers are registered, or when the file is unrecognised and
 no registered provider sets `SupportsUnrecognized`.
 
+A provider is only called while it is available
+(`IVideoRelocationService.GetAvailability`). Return `false` from
+`IsConfigured` while you lack what you need, such as an API key, with a
+`NotConfiguredReason` a person can act on; a suspension provider naming your
+type in `HeldProviderTypes` holds you back the same way while it is suspended.
+Either way the relocation answers with an error that says why, and the file
+stays where it is.
+
 ---
 
 ## Drop folders

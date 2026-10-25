@@ -1,8 +1,10 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using Shoko.Abstractions.Connectivity;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.API.v3.Models.Plugin;
+using Shoko.Server.API.v3.Models.Suspension;
 
 namespace Shoko.Server.API.v3.Models.Relocation;
 
@@ -12,7 +14,10 @@ namespace Shoko.Server.API.v3.Models.Relocation;
 /// <param name="info">
 ///   Internal release info provider.
 /// </param>
-public class RelocationProvider(RelocationProviderInfo info)
+/// <param name="availability">
+///   Whether the provider can be used now.
+/// </param>
+public class RelocationProvider(RelocationProviderInfo info, ProviderAvailability availability)
 {
     /// <summary>
     ///   The unique ID of the provider.
@@ -66,6 +71,12 @@ public class RelocationProvider(RelocationProviderInfo info)
     /// </summary>
     [Required]
     public bool SupportsRenaming { get; init; } = info.SupportsRenaming;
+
+    /// <summary>
+    ///   Whether the provider can be used now, and if not, what stops it.
+    /// </summary>
+    [Required]
+    public ProviderAvailabilityStatus Availability { get; init; } = new(availability);
 
     /// <summary>
     ///   Information about the configuration the release info provider uses.

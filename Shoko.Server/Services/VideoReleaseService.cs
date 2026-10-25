@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Connectivity;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -57,7 +59,8 @@ public class VideoReleaseService(
     AniDB_EpisodeRepository anidbEpisodeRepository,
     AnimeEpisodeRepository animeEpisodeRepository,
     CrossRef_File_EpisodeRepository xrefRepository,
-    AnimeMetadataOrchestrator animeMetadataOrchestrator
+    AnimeMetadataOrchestrator animeMetadataOrchestrator,
+    Lazy<ISuspensionService> suspensionService
 ) : IVideoReleaseService
 {
     // The user data service, the anime series service and this one form a
@@ -544,12 +547,43 @@ public class VideoReleaseService(
         return eventArgs;
     }
 
-    private bool IsProviderCurrentlyUsable(ReleaseProviderInfo provider)
-        => !_providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) || !schedulerFactory.IsJobTypeBlocked(jobType);
+    /// <inheritdoc />
+    public ProviderAvailability GetAvailability(ReleaseProviderInfo provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
 
-    // A provider without a job type, whose job's stored name is too long for the queue, is never queued.
+        return ProviderAvailabilities.Get(
+            provider.Name,
+            provider.Enabled,
+            provider.Provider.IsConfigured,
+            provider.Provider.NotConfiguredReason,
+            suspensionService.Value.GetHolding(provider.Provider.GetType())
+        );
+    }
+
+    // A search started now passes by a provider that is not configured, held
+    // back by a suspension, or whose job type the queue blocks.
+    private bool IsProviderCurrentlyUsable(ReleaseProviderInfo provider)
+        => IsProviderConfigured(provider) &&
+            suspensionService.Value.GetHolding(provider.Provider.GetType()).Count is 0 &&
+            (!_providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) || !schedulerFactory.IsJobTypeBlocked(jobType));
+
+    // A provider without a job type, whose job's stored name is too long for
+    // the queue, is never queued, nor is one that is not configured. A
+    // suspended one is, and its job waits.
     private bool IsProviderQueueable(ReleaseProviderInfo provider)
-        => _providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) && !schedulerFactory.IsJobTypeBlocked(jobType);
+        => IsProviderConfigured(provider) &&
+            _providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) &&
+            !schedulerFactory.IsJobTypeBlocked(jobType);
+
+    private bool IsProviderConfigured(ReleaseProviderInfo provider)
+    {
+        if (provider.Provider.IsConfigured)
+            return true;
+
+        logger.LogTrace("Passing by release provider {ProviderName}, as it is not configured. (Provider={ProviderID})", provider.Name, provider.ID);
+        return false;
+    }
 
     private static void SetProviderJobProps(IQueueJob job, int videoLocalID, int MatchAttemptID, bool skipEvents)
     {

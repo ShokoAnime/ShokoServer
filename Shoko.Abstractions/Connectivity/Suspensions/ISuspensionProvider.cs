@@ -28,8 +28,9 @@ public interface ISuspensionProvider
     string? Description { get; }
 
     /// <summary>
-    ///   The types of the metadata, release and airing schedule providers
-    ///   whose queued jobs wait while this provider is suspended. Read once,
+    ///   The types of the metadata, release, relocation and airing schedule
+    ///   providers held back while this provider is suspended: their queued
+    ///   jobs wait, and the services refuse to use them directly. Read once,
     ///   at registration.
     /// </summary>
     IReadOnlyList<Type> HeldProviderTypes { get; }

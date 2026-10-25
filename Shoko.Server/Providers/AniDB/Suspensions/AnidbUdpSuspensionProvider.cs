@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Connectivity.Suspensions;
+using Shoko.Server.Providers.AniDB.Release;
 
 namespace Shoko.Server.Providers.AniDB.Suspensions;
 
@@ -22,7 +23,7 @@ public sealed class AnidbUdpSuspensionProvider(AniDbBanStateService banStates) :
     public string? Description => "The AniDB UDP API, used to identify files and keep the MyList.";
 
     /// <inheritdoc />
-    public IReadOnlyList<Type> HeldProviderTypes => [];
+    public IReadOnlyList<Type> HeldProviderTypes => [typeof(AnidbReleaseProvider)];
 
     /// <summary>
     ///   Lifts the ban; nothing else is liftable.

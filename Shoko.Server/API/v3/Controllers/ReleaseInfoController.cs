@@ -65,11 +65,11 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
         => pluginID.HasValue
             ? pluginManager.GetPluginInfo(pluginID.Value) is { IsActive: true } pluginInfo
                 ? videoReleaseService.GetProviderInfo(pluginInfo.Plugin)
-                    .Select(providerInfo => new ReleaseInfoProvider(providerInfo))
+                    .Select(providerInfo => new ReleaseInfoProvider(providerInfo, videoReleaseService.GetAvailability(providerInfo)))
                     .ToList()
                 : []
             : videoReleaseService.GetAvailableProviders()
-                .Select(providerInfo => new ReleaseInfoProvider(providerInfo))
+                .Select(providerInfo => new ReleaseInfoProvider(providerInfo, videoReleaseService.GetAvailability(providerInfo)))
                 .ToList();
 
     /// <summary>
@@ -128,7 +128,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
         if (videoReleaseService.GetProviderInfo(providerID) is not { } providerInfo)
             return NotFound($"Release Provider '{providerID}' not found!");
 
-        return new ReleaseInfoProvider(providerInfo);
+        return new ReleaseInfoProvider(providerInfo, videoReleaseService.GetAvailability(providerInfo));
     }
 
     /// <summary>
