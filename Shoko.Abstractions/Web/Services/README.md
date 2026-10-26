@@ -26,7 +26,7 @@ serves lives under `plugin/<namespace>`, in three places:
 |---|---|
 | API endpoints | `/api/plugin/<namespace>/<your paths>` |
 | Pages and static assets | `/plugin/<namespace>/<your paths>` |
-| SignalR hubs | `/signalr/plugin/<namespace>/<your paths>` |
+| WebSocket endpoints: SignalR hubs and any other | `/signalr/plugin/<namespace>/<your paths>` |
 
 Use the same namespace in all three, so a client that knows one of your paths
 can find the others. For a plugin whose namespace is `Template`:
@@ -40,6 +40,20 @@ public class StatusController : ControllerBase { … }
 
 A hub would go at `/signalr/plugin/Template/<hub>`, and pages or assets
 under `/plugin/Template/`.
+
+**Every WebSocket goes under `/signalr`, whatever it speaks.** `/signalr` is
+where Shoko's sockets live, so it is the path an admin's reverse proxy
+upgrades to WebSocket, and the one development proxies forward sockets for. A
+plugin's socket that speaks something other than SignalR, JSON-RPC for a
+language server or a protocol of its own, still goes under
+`/signalr/plugin/<namespace>/`: SignalR is the WebSocket stack .NET ships and
+Microsoft recommends, and the one the server's own hubs use, so its name
+stands for "the server's sockets", as "to google" stands for searching the
+web. Plain HTTP routes stay under `/api`, even when they belong to the same
+feature as a socket. The core's `EnableSignalR` setting (`Web.EnableSignalR`
+in the server settings) only decides whether the core's own hubs are mounted;
+a plugin's sockets are its own to map, and SignalR stays configured either
+way.
 
 ### Mapping a SignalR hub
 
