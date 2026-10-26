@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.556",
+      "tag": "v6.0.0-dev.556",
+      "commit": "0574ac99faaa1f0efcc0a8494982e1ebf0d112a7",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.556/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-26T11:03:58Z",
+      "releaseNotes": "\n`docs`: **Put every websocket under `/signalr`, whatever it speaks**: (_Skip CI_)\n\n- A plugin's sockets go under `/signalr/plugin/<namespace>/`, SignalR or not, since that is the path proxies upgrade\n- Plain HTTP routes stay under `/api`; `EnableSignalR` only mounts the core's own hubs\n\n`feat` (`abstractions`): **Let a code editor name its script kind and definitions file**:\n\n- Added `ScriptKind` (`script`, `module` or `function-body`) and `DefinitionsPath` to `CodeEditorAttribute` and `UiCodeEditorElement`\n- Both follow the editor's language: `DefinitionsPath` names a `.d.ts`, JSON Schema, Lua definitions or XML Schema served by the plugin, and data languages ignore `ScriptKind`\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.115**.\n"
+    },
+    {
       "version": "6.0.0.555",
       "tag": "v6.0.0-dev.555",
       "commit": "9d754fa78abff8a001a1eafe515d39160fef5301",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.527/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-15T06:18:01Z",
       "releaseNotes": "\n`fix`: **Carry the server settings over in `AddParts` only when they were loaded**.\n"
-    },
-    {
-      "version": "6.0.0.526",
-      "tag": "v6.0.0-dev.526",
-      "commit": "c20b2fa344bb1d6b7061b68ec2d1e6fc25900615",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.526/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-15T06:06:53Z",
-      "releaseNotes": "\n`feat` (`abstractions`): **Let a plugin declare its main configuration**:\n\n- Added `IPluginConfiguration` and `IPlugin<TConfiguration>`\n- `AddParts` attaches it as `LocalPluginInfo.ConfigurationInfo`\n- `/api/v3/Plugin` returns it as `Configuration`\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.106**.\n"
     }
   ]
 }
