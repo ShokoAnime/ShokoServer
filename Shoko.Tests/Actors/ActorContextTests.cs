@@ -32,6 +32,15 @@ public class ActorContextTests
         return new ApiToken(user.Object, device, Guid.NewGuid().ToString(), null);
     }
 
+    [Fact]
+    public void ATokenWrittenAsTextNeverCarriesItsKey()
+    {
+        var token = Token();
+
+        Assert.DoesNotContain(token.Token, token.ToString(), StringComparison.Ordinal);
+        Assert.Contains(token.Device, token.ToString(), StringComparison.Ordinal);
+    }
+
     #region Scopes
 
     [Fact]
