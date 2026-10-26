@@ -268,6 +268,12 @@ internal sealed class UiCodeEditorElementBuilder : UiElementBuilder
 
     /// <summary>Whether to reformat the content when it is first loaded.</summary>
     public required bool AutoFormatOnLoad { get; init; }
+
+    /// <summary>How the editor reads a script: as a plain script, a module or a function body.</summary>
+    public CodeEditorScriptKind ScriptKind { get; init; }
+
+    /// <summary>The server path of the definitions file the editor loads for its language, if any.</summary>
+    public string? DefinitionsPath { get; init; }
 }
 
 /// <summary>

@@ -238,6 +238,8 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         {
             Language = codeEditorBuilder?.Language ?? CodeEditorLanguage.PlainText,
             AutoFormatOnLoad = codeEditorBuilder?.AutoFormatOnLoad ?? false,
+            ScriptKind = codeEditorBuilder?.ScriptKind ?? CodeEditorScriptKind.Script,
+            DefinitionsPath = codeEditorBuilder?.DefinitionsPath,
         };
 
     private UiElement BuildSectionContainer(WalkState state, JsonSchema resolved, bool isRoot, string label)

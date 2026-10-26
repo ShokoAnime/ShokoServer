@@ -677,7 +677,13 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         }
         else if (info.GetAttribute<CodeEditorAttribute>(false) is { } codeBlockAttribute)
         {
-            builder.Element = new UiCodeEditorElementBuilder { Language = codeBlockAttribute.Language, AutoFormatOnLoad = codeBlockAttribute.AutoFormatOnLoad };
+            builder.Element = new UiCodeEditorElementBuilder
+            {
+                Language = codeBlockAttribute.Language,
+                AutoFormatOnLoad = codeBlockAttribute.AutoFormatOnLoad,
+                ScriptKind = codeBlockAttribute.ScriptKind,
+                DefinitionsPath = string.IsNullOrWhiteSpace(codeBlockAttribute.DefinitionsPath) ? null : codeBlockAttribute.DefinitionsPath,
+            };
         }
         else if (info.GetAttribute<TextAreaAttribute>(false) is not null)
         {

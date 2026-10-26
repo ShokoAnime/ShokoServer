@@ -93,7 +93,7 @@ public class TwinBody
 
     /// <summary>Some code.</summary>
     [Display(Order = 9)]
-    [CodeEditor(CodeEditorLanguage.Json, AutoFormatOnLoad = true)]
+    [CodeEditor(CodeEditorLanguage.JavaScript, AutoFormatOnLoad = true, ScriptKind = CodeEditorScriptKind.FunctionBody, DefinitionsPath = "/api/plugin/Twin/script.d.ts")]
     public string Script { get; set; } = "{}";
 
     /// <summary>The endpoints to talk to.</summary>

@@ -249,7 +249,7 @@ reacts while the user edits, and the patterns worth copying:
 | `[Badge("Advanced", Theme = ...)]` | Member | A coloured label next to the field. |
 | `[EnvironmentVariable("MY_TOKEN")]` | Member | Seeds the value from an environment variable. `AllowOverride` decides whether the user may still change it. |
 | `[RequiresRestart]` | Member | Marks the change as needing a restart. Surfaces through `IConfigurationService.RestartPendingFor`, the `RequiresRestart` event, and the one `Configuration` reason in `ISystemService.RestartReasons`, which stands while any configuration has such a change. |
-| `[TextArea]`, `[CodeEditor(CodeEditorLanguage)]` | Member | Multi-line and syntax-highlighted editors. |
+| `[TextArea]`, `[CodeEditor(CodeEditorLanguage)]` | Member | Multi-line and syntax-highlighted editors. A code editor may also name its `ScriptKind` and a `DefinitionsPath` for completion and checking. |
 | `[Select]`, `[List]`, `[Record]` | Member | Dropdowns, list editors and record editors. |
 | `[CustomAction]` | Method | A button on the settings page. |
 | `[ConfigurationAction(ConfigurationActionType)]` | Method | A reactive handler, run as the user edits rather than on a button press. |

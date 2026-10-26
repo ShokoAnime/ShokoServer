@@ -106,7 +106,9 @@ public class UiDefinitionBuilderTests
 
         // A code editor has to survive as a concrete element, not as a generic
         // string with a hint attached.
-        Find<UiCodeEditorElement>(BuildFor(typeof(NewtonsoftTwinConfiguration), "Twin").Root, "Script");
+        var script = Find<UiCodeEditorElement>(BuildFor(typeof(NewtonsoftTwinConfiguration), "Twin").Root, "Script");
+        Assert.Equal(CodeEditorScriptKind.FunctionBody, script.ScriptKind);
+        Assert.Equal("/api/plugin/Twin/script.d.ts", script.DefinitionsPath);
         // `UiSettingsExtensions.Enabled` is a `Dictionary<string, bool>`.
         var record = Find<UiRecordElement>(definition.Root, "Enabled");
         Assert.IsType<UiBooleanElement>(record.Item);
