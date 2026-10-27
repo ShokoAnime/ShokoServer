@@ -170,6 +170,8 @@ optional and stamped as `PackageNamespace`.
 
 - It is kebab-case, `^[a-z][a-z0-9]*(-[a-z0-9]+)*$`, and 2 to 32 characters
   long.
+- Whichever source gives it, `--namespace`, the property or the manifest, the
+  build sees it as the `PluginNamespace` property, for targets that read it.
 - `shoko`, `core` and `plugin` are reserved.
 - A namespace breaking either rule stops the build, naming where it came
   from.

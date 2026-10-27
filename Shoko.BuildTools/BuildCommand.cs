@@ -255,6 +255,11 @@ internal static class BuildCommand
                     ["EnableDynamicLoading"] = "true",
                 };
 
+                // The namespace the flag, the project or the manifest gave, so
+                // targets reading `PluginNamespace` during the build see it too.
+                if (pluginNamespace is not null)
+                    ridProperties["PluginNamespace"] = pluginNamespace;
+
                 // "any" is not a RID; a portable build passes none at all.
                 if (!portable)
                     ridProperties["RuntimeIdentifier"] = rid;
