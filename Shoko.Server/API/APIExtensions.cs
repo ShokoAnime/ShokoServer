@@ -323,18 +323,32 @@ public static partial class APIExtensions
         return options;
     }
 
-    private static string GetTypeName(Type type) =>
-        GetTypeName(type.ToString()!.Replace("+", "."));
+    /// <summary>
+    /// Names a type's schema. A generic type is its name, <c>Of</c>, its
+    /// arguments joined by <c>And</c>, and <c>End</c> where an argument
+    /// closes before another follows: <c>ListResultOfEpisode</c>,
+    /// <c>DictionaryOfStringAndListResultOfEpisode</c>,
+    /// <c>PairOfListOfEpisodeEndAndString</c>. Read word by word, <c>And</c>
+    /// and <c>End</c> belong to the innermost open generic, and the end of
+    /// the name closes every one still open.
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>The schema's name.</returns>
+    internal static string GetTypeName(Type type)
+        => GetTypeName(type, false);
 
-    private static string GetTypeName(string fullName)
+    private static string GetTypeName(Type type, bool closed)
     {
-        if (!fullName.Contains('`'))
-            return ConvertTypeName(fullName);
+        if (!type.IsGenericType || type.IsGenericTypeDefinition)
+            return ConvertTypeName(GenericArityRegex().Replace((type.FullName ?? type.Name).Replace('+', '.'), string.Empty));
 
-        var firstPart = fullName[..fullName.IndexOf('`')];
-        var secondPart = fullName[(fullName.IndexOf('`') + 3)..^1];
-        return ConvertTypeName(firstPart) + "_" + GetTypeName(secondPart) + "_";
+        var definition = type.GetGenericTypeDefinition();
+        var name = GenericArityRegex().Replace((definition.FullName ?? definition.Name).Replace('+', '.'), string.Empty);
+        var arguments = type.GetGenericArguments();
+        var parts = arguments.Select((argument, index) => GetTypeName(argument, closed || index < arguments.Length - 1));
+        return ConvertTypeName(name) + "Of" + string.Join("And", parts) + (closed ? "End" : string.Empty);
     }
+
 
     private static string ConvertTypeName(string fullName)
     {
@@ -781,4 +795,7 @@ public static partial class APIExtensions
 
     [GeneratedRegex(@"(?:[^ ]+\.)?v(?<version>\d+(?:\.\d+)?)?\.(?:Models?\.|DTOs?\.)|(?:[^ ]+\.)?API\.(?:Controllers?\.)?(?:v(?<version>\d+(?:\.\d+)?)\.(?:Models?\.|DTOs?\.)?)?", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript)]
     private static partial Regex PluginApiVersionRegex();
+
+    [GeneratedRegex(@"`\d+")]
+    private static partial Regex GenericArityRegex();
 }
