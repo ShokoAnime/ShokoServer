@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.559",
+      "tag": "v6.0.0-dev.559",
+      "commit": "a0202a5dd739b73299660700a55a996b97551564",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.559/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-27T12:34:57Z",
+      "releaseNotes": "\n`fix` (`plugin`): **Keep a plugin's namespace once it is created**.\n"
+    },
+    {
       "version": "6.0.0.558",
       "tag": "v6.0.0-dev.558",
       "commit": "e686d7aa0b541aec6a6a135bc1d46402c0188aba",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.530/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-15T09:41:31Z",
       "releaseNotes": "\n`fix`: **Read the released plugins' manifests on every online build**:\n\nThe cached manifest was reused for a day, so a daily build right after a plugin release bundled the old one.\n"
-    },
-    {
-      "version": "6.0.0.529",
-      "tag": "v6.0.0-dev.529",
-      "commit": "a8b7dd6bed519a2e93cb4eaf5fedc228451ad070",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.529/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-15T09:02:40Z",
-      "releaseNotes": "\n`docs`: **Correct five doc comments and a README line found by the plugin docs**:\n\n- `RecurringJobRegistry` named a nonexistent `IPlugin.Load`\n- Scheduled action minimum intervals and opt-ins in the README\n- `PluginEventEmitter` sends only install and uninstall\n- Image providers can be asked for networks\n- Only `DownloadAlternateOrdering` in `MetadataRefreshOptions` is nullable\n\n`refactor` (`abstractions`): **Make configuration visibility opt-in instead of opt-out**:\n\n- Replaced `IHiddenConfiguration` with `IVisibleConfiguration`\n- Provider and plugin configuration interfaces no longer imply hidden\n- `ConfigurationInfo.IsHidden` is `true` unless the type opts in\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.107**.\n\n`fix` (`api`): **Leave the plugin out of the configuration nested in `/api/v3/Plugin`**:\n\n`PluginInfo` and `ConfigurationInfo` built each other without end.\n\n`refactor` (`scheduling`): **Run airing schedule jobs as one closed type per provider**:\n\n- Made `RefreshAiringScheduleJob<TProvider>` and `SweepAiringScheduleProviderJob<TProvider>` provider jobs (`[ProviderJob]`), so a suspension holding an airing provider holds its refreshes and sweeps\n- Added `AiringScheduleProviderJobs`; `PluginManager` registers the closed types and one `AiringScheduleSweepWatchdogThreshold` per sweep type\n- Dropped the `ProviderID` job member; old queued rows of the removed types are dropped at start by the queue\n\n`fix`: **Save the validated configuration after a migration on load**:\n\nSaving the raw migrated JSON failed validation when an environment variable overrode one of its values, which stopped the server from starting.\n"
     }
   ]
 }
