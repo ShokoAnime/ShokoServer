@@ -89,8 +89,8 @@ public class GeneratePluginClass : Microsoft.Build.Utilities.Task
         sb.AppendLine("}");
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(OutputPath))!);
-        File.WriteAllText(OutputPath, sb.ToString());
-        Log.LogMessage(MessageImportance.Normal, "Generated: {0}", OutputPath);
+        var written = GeneratedFile.Write(OutputPath, sb.ToString());
+        Log.LogMessage(MessageImportance.Normal, written ? "Generated: {0}" : "Unchanged: {0}", OutputPath);
         return true;
     }
 

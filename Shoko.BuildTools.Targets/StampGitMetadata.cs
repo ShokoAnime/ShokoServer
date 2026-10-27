@@ -40,8 +40,8 @@ public class StampGitMetadata : Microsoft.Build.Utilities.Task
             if (!string.IsNullOrEmpty(releaseTag))
                 sb.AppendLine($"[assembly: AssemblyMetadata(\"ReleaseTag\", \"{Escape(releaseTag)}\")]");
 
-            File.WriteAllText(OutputPath, sb.ToString());
-            Log.LogMessage(MessageImportance.Normal, "Generated git metadata: {0}", OutputPath);
+            var written = GeneratedFile.Write(OutputPath, sb.ToString());
+            Log.LogMessage(MessageImportance.Normal, written ? "Generated git metadata: {0}" : "Unchanged: {0}", OutputPath);
             return true;
         }
         catch (Exception ex)

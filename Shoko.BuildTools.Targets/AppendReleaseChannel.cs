@@ -41,8 +41,8 @@ public class AppendReleaseChannel : Microsoft.Build.Utilities.Task
             sb.AppendLine();
             sb.AppendLine($"[assembly: AssemblyMetadata(\"ReleaseChannel\", \"{Escape(channel)}\")]");
 
-            File.WriteAllText(OutputPath, sb.ToString());
-            Log.LogMessage(MessageImportance.Normal, "Generated release channel metadata: {0}", OutputPath);
+            var written = GeneratedFile.Write(OutputPath, sb.ToString());
+            Log.LogMessage(MessageImportance.Normal, written ? "Generated release channel metadata: {0}" : "Unchanged: {0}", OutputPath);
             return true;
         }
         catch (Exception ex)

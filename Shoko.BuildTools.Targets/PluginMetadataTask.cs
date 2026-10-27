@@ -166,8 +166,8 @@ public abstract class PluginMetadataTask : Microsoft.Build.Utilities.Task
         if (dependencies is { Count: > 0 })
             sb.AppendLine($"[assembly: AssemblyMetadata(\"PackageDependencies\", \"{Escape(PluginDependencyList.Format(dependencies))}\")]");
 
-        File.WriteAllText(OutputPath, sb.ToString());
-        Log.LogMessage(MessageImportance.Normal, "Generated: {0}", OutputPath);
+        var written = GeneratedFile.Write(OutputPath, sb.ToString());
+        Log.LogMessage(MessageImportance.Normal, written ? "Generated: {0}" : "Unchanged: {0}", OutputPath);
         return true;
     }
 
