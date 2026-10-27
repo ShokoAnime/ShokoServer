@@ -670,6 +670,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 ID = pluginInstance.ID,
                 Name = pluginInstance.Name,
                 Description = pluginInstance.Description?.CleanDescription() ?? string.Empty,
+                Namespace = localPluginInfo.Namespace,
                 Version = localPluginInfo.Version,
                 Authors = localPluginInfo.Authors,
                 RepositoryUrl = localPluginInfo.RepositoryUrl,
