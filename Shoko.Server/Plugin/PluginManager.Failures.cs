@@ -282,6 +282,50 @@ public partial class PluginManager
     }
 
     /// <summary>
+    ///   Checks the namespace stamped into a plugin against
+    ///   <see cref="PluginNamespaceRules"/>.
+    /// </summary>
+    /// <param name="stamped">The stamped namespace, if any.</param>
+    /// <returns>
+    ///   The namespace when the plugin claims a valid one, and why the plugin
+    ///   fails when it claims one that is not.
+    /// </returns>
+    internal static (string? Namespace, string? FailureReason) CheckNamespace(string? stamped)
+    {
+        if (string.IsNullOrEmpty(stamped))
+            return (null, null);
+
+        return PluginNamespaceRules.Validate(stamped) is { } error
+            ? (null, $"The plugin claims the namespace \"{stamped}\", which is not valid: {error}. Update the plugin, or disable or uninstall it.")
+            : (stamped, null);
+    }
+
+    /// <summary>
+    ///   Fails every plugin the scan picked to load that claims the namespace
+    ///   of another one, naming the others, so the admin keeps one of them.
+    /// </summary>
+    internal void FailPluginsClaimingTheSameNamespace()
+    {
+        var claims = _pluginTypes
+            .Where(pluginInfo => pluginInfo is { IsEnabled: true, Namespace: not null } && pluginInfo.ID != CorePlugin.StaticID)
+            .GroupBy(pluginInfo => pluginInfo.Namespace!, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1);
+        foreach (var group in claims)
+        {
+            foreach (var pluginInfo in group)
+            {
+                var others = group.Where(other => other != pluginInfo).Select(other => $"\"{other.Name}\" ({other.ID})").ToList();
+                var named = others.Count is 1
+                    ? $"plugin {others[0]} also claims"
+                    : $"plugins {string.Join(", ", others.Take(others.Count - 1))} and {others[^1]} also claim";
+                var reason = $"The plugin claims the namespace \"{group.Key}\", which {named}. Disable, replace or uninstall all but one of them.";
+                logger.LogError("Not starting plugin \"{Name}\". {Reason} ({Version})", pluginInfo.Name, reason, pluginInfo.Version);
+                MarkFailed(pluginInfo, reason);
+            }
+        }
+    }
+
+    /// <summary>
     ///   Writes down that a plugin took the start down in a way that leaves
     ///   no web server to say so, so the next start leaves it out and says
     ///   why. Nothing is thrown: this runs while the start is already failing.

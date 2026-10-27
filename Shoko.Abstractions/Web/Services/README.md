@@ -17,10 +17,11 @@ This page also covers where a plugin's own web surface goes, in
 
 ## Routes a plugin serves
 
-A plugin that serves anything over HTTP picks one **namespace**: a short,
-URL-safe name that is its own, usually the plugin's name. The casing is up to
-you; for reference, core's own APIv3 uses PascalCase. Everything the plugin
-serves lives under `plugin/<namespace>`, in three places:
+A plugin that serves anything over HTTP uses one **namespace**: a short,
+URL-safe name that is its own. The namespace the plugin reserves as
+`PluginNamespace` (see [Namespace](../../README.md#namespace)) makes a good
+one, since no other loaded plugin can claim it. Everything the plugin serves lives
+under `plugin/<namespace>`, in three places:
 
 | What | Path |
 |---|---|
@@ -29,17 +30,17 @@ serves lives under `plugin/<namespace>`, in three places:
 | WebSocket endpoints: SignalR hubs and any other | `/signalr/plugin/<namespace>/<your paths>` |
 
 Use the same namespace in all three, so a client that knows one of your paths
-can find the others. For a plugin whose namespace is `Template`:
+can find the others. For a plugin whose namespace is `template`:
 
 ```csharp
 [ApiController]
 [Authorize]
-[Route("api/plugin/Template/[controller]")]
+[Route("api/plugin/template/[controller]")]
 public class StatusController : ControllerBase { … }
 ```
 
-A hub would go at `/signalr/plugin/Template/<hub>`, and pages or assets
-under `/plugin/Template/`.
+A hub would go at `/signalr/plugin/template/<hub>`, and pages or assets
+under `/plugin/template/`.
 
 **Every WebSocket goes under `/signalr`, whatever it speaks.** `/signalr` is
 where Shoko's sockets live, so it is the path an admin's reverse proxy
@@ -70,7 +71,7 @@ public static void RegisterServices(IApplicationBuilder application, IApplicatio
 {
     application.UseEndpoints(endpoints =>
     {
-        endpoints.MapHub<TemplateHub>("/signalr/plugin/Template/events").RequireAuthorization();
+        endpoints.MapHub<TemplateHub>("/signalr/plugin/template/events").RequireAuthorization();
     });
 }
 ```
@@ -135,13 +136,13 @@ public static void RegisterServices(IApplicationBuilder application, IApplicatio
     application.UseEndpoints(endpoints =>
     {
         // Listed as is.
-        endpoints.MapGet("/api/plugin/Template/status", (bool? verbose) => GetStatus(verbose))
+        endpoints.MapGet("/api/plugin/template/status", (bool? verbose) => GetStatus(verbose))
             .WithTags("Template")
             .WithSummary("Gets the plugin's status.")
             .RequireAuthorization();
 
         // A plain request delegate, listed through the group name.
-        endpoints.MapPost("/api/plugin/Template/raw", HandleRawAsync)
+        endpoints.MapPost("/api/plugin/template/raw", HandleRawAsync)
             .WithGroupName("Template")
             .WithMetadata(new AcceptsMetadata(["application/json"], typeof(RawRequest)))
             .WithMetadata(new ProducesResponseTypeMetadata(StatusCodes.Status200OK, typeof(RawResponse), ["application/json"]))

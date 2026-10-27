@@ -160,6 +160,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         public required string Description { get; init; }
 
         /// <summary>
+        ///   The namespace the plugin claims, if it claims a valid one.
+        /// </summary>
+        public string? Namespace { get; init; }
+
+        /// <summary>
         ///   The version of the plugin.
         /// </summary>
         public required VersionInformation Version { get; init; }

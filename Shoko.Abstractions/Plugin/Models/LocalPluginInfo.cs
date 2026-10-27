@@ -29,6 +29,23 @@ public sealed class LocalPluginInfo
     public required string Description { get; init; }
 
     /// <summary>
+    ///   A short, unique name the plugin reserves for itself, or <c>null</c>
+    ///   when it claims none. Other plugins and conventions may key off it;
+    ///   for example, a frontend plugin might prefix the parts a plugin adds
+    ///   to it with this name.
+    /// </summary>
+    /// <remarks>
+    ///   Stamped into the plugin's assembly as <c>PackageNamespace</c> by the
+    ///   build tools, from the project's <c>PluginNamespace</c> or the
+    ///   manifest's <c>namespace</c>. It is kebab-case
+    ///   (<c>^[a-z][a-z0-9]*(-[a-z0-9]+)*$</c>), 2 to 32 characters long, and
+    ///   not <c>shoko</c>, <c>core</c> or <c>plugin</c>. A plugin breaking
+    ///   these rules, or claiming the namespace of another loaded plugin,
+    ///   fails the start, and the value is then left out.
+    /// </remarks>
+    public string? Namespace { get; init; }
+
+    /// <summary>
     ///   The version of the plugin.
     /// </summary>
     public required VersionInformation Version { get; init; }

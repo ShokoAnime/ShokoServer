@@ -382,9 +382,10 @@ The targets package injects the metadata at build time:
 ```
 
 The metadata is a set of `AssemblyMetadataAttribute` entries (`PackageID`,
-`PackageName`, `PackageOverview`, `PackageDependencies`, `RepositoryUrl`,
-`PackageProjectUrl`, `PackageTags`, `RuntimeIdentifier`, `ReleaseChannel`,
-`ReleaseTag`, `ReleaseDate`, `SourceRevision`) read during discovery.
+`PackageName`, `PackageOverview`, `PackageNamespace`, `PackageDependencies`,
+`RepositoryUrl`, `PackageProjectUrl`, `PackageTags`, `RuntimeIdentifier`,
+`ReleaseChannel`, `ReleaseTag`, `ReleaseDate`, `SourceRevision`) read during
+discovery.
 
 Without it the plugin still loads, using the `ID`, `Name` and `Description` of
 its `IPlugin`, but it cannot declare dependencies on other plugins, which are
@@ -393,6 +394,30 @@ read from `PackageDependencies` only.
 **`PackageID`, once present, wins and must agree with `IPlugin.ID`.** A plugin
 whose embedded `PackageID` differs from the `ID` its `IPlugin` returns is
 skipped with a warning. So is any plugin claiming the core plugin's ID.
+
+### Namespace
+
+A plugin may reserve a **namespace**: a short, unique name for itself, which
+other plugins and conventions may key off. For example, a scripting plugin
+might let other plugins add script modules named after their namespace
+(`<namespace>:<name>`), and a plugin might serve its routes under
+`/api/plugin/<namespace>`. Set it in the project, or as `namespace` in the
+manifest:
+
+```xml
+<PropertyGroup>
+  <PluginNamespace>example</PluginNamespace>
+</PropertyGroup>
+```
+
+The build tools stamp it as `PackageNamespace`, and the server exposes it as
+`LocalPluginInfo.Namespace`, `null` for a plugin that claims none. It is
+optional, kebab-case (`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`) and 2 to 32 characters
+long, and `shoko`, `core` and `plugin` are reserved: `shoko` is the core's
+own, and the other two are kept from any plugin. A namespace breaking
+these rules stops the build, and fails the plugin when the server starts. Two
+loaded plugins claiming the same namespace both fail the start, each naming
+the other, until the admin disables, replaces or uninstalls one of them.
 
 ---
 

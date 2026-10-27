@@ -29,6 +29,13 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public string Name { get; init; } = pluginInfo.Name;
 
     /// <summary>
+    ///   A short, unique name the plugin reserves for itself, which other
+    ///   plugins and conventions may key off, or <c>null</c> when it claims
+    ///   none.
+    /// </summary>
+    public string? Namespace { get; init; } = pluginInfo.Namespace;
+
+    /// <summary>
     ///   The description of the plugin.
     /// </summary>
     [Required]

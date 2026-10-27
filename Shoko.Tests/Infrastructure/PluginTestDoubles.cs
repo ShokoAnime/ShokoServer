@@ -84,6 +84,22 @@ public static class PluginTestDoubles
     public static LocalPluginInfo InactivePluginInfo(LocalPluginInfo pluginInfo)
         => LocalPlugin(pluginInfo.PluginType!, pluginInfo.ID, pluginInfo.DLLs[0], pluginInfo.CanUninstall, pluginInfo.Name, active: false);
 
+    /// <summary>
+    ///   An enabled plugin entry the scan picked to load, not loaded yet,
+    ///   claiming the given namespace.
+    /// </summary>
+    /// <param name="id">The plugin ID.</param>
+    /// <param name="name">The plugin name.</param>
+    /// <param name="namespace">The namespace it claims, if any.</param>
+    /// <returns>The plugin entry.</returns>
+    public static LocalPluginInfo PickedPluginInfo(Guid id, string name, string? pluginNamespace)
+    {
+        var pluginInfo = LocalPlugin(typeof(TestPlugin), id, "SomePlugin.dll", canUninstall: true, name, active: false, pluginNamespace: pluginNamespace);
+        pluginInfo.IsEnabled = true;
+        pluginInfo.CanLoad = true;
+        return pluginInfo;
+    }
+
     private static LocalPluginInfo LocalPlugin(
         Type pluginType,
         Guid id,
@@ -96,13 +112,15 @@ public static class PluginTestDoubles
         string description = "",
         IReadOnlyList<string>? tags = null,
         string? authors = null,
-        PackageImageInfo? icon = null
+        PackageImageInfo? icon = null,
+        string? pluginNamespace = null
     )
         => new()
         {
             ID = id,
             Name = name,
             Description = description,
+            Namespace = pluginNamespace,
             Version = Version(),
             Authors = authors,
             RepositoryUrl = null,

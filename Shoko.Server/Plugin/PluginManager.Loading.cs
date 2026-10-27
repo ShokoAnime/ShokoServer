@@ -263,7 +263,7 @@ public partial class PluginManager
         }
     }
 
-    private InternalPluginInfo? LoadInternalPluginInfo(string? dirPath, string[] dlls, bool isSystem, IServerSettings settings, ref bool settingsChanged)
+    internal InternalPluginInfo? LoadInternalPluginInfo(string? dirPath, string[] dlls, bool isSystem, IServerSettings settings, ref bool settingsChanged)
     {
         var selfResolvingPluginPath = dirPath is not null ? FindSelfResolvingPlugin(dlls) : dlls.FirstOrDefault(dll => Path.Exists(Path.ChangeExtension(dll, ".deps.json")));
         var dllsToLoad = dirPath is not null && selfResolvingPluginPath is not null ? [selfResolvingPluginPath] : dlls;
@@ -354,6 +354,7 @@ public partial class PluginManager
                         : (Guid?)null;
                     var embeddedName = metadataAttributeDict.TryGetValue(PackageName, out var pn) ? pn : null;
                     var embeddedDescription = metadataAttributeDict.TryGetValue(PackageOverview, out var pd) ? pd : null;
+                    var (pluginNamespace, namespaceFailure) = CheckNamespace(metadataAttributeDict.GetValueOrDefault(PackageNamespace));
                     if (embeddedId is null)
                     {
                         logger.LogWarning(
@@ -379,6 +380,7 @@ public partial class PluginManager
                             ID = embeddedId ?? UuidUtility.GetV5($"{name}@{version}"),
                             DllName = name,
                             Name = embeddedName ?? name,
+                            Namespace = pluginNamespace,
                             Description = embeddedDescription is not null
                                 ? $"{abiMismatch}\n\n{embeddedDescription}"
                                 : abiMismatch,
@@ -423,6 +425,7 @@ public partial class PluginManager
                             ID = embeddedId ?? UuidUtility.GetV5($"{name}@{version}"),
                             DllName = name,
                             Name = embeddedName ?? name,
+                            Namespace = pluginNamespace,
                             Description = embeddedDescription is not null
                                 ? $"{InvalidDependenciesMessage}\n\n{embeddedDescription}"
                                 : InvalidDependenciesMessage,
@@ -465,6 +468,7 @@ public partial class PluginManager
                             ID = embeddedId ?? UuidUtility.GetV5($"{name}@{version}"),
                             DllName = name,
                             Name = embeddedName ?? name,
+                            Namespace = pluginNamespace,
                             Description = embeddedDescription is not null
                                 ? $"{typeLoadReason}\n\n{embeddedDescription}"
                                 : typeLoadReason,
@@ -544,6 +548,7 @@ public partial class PluginManager
                             ID = embeddedId ?? UuidUtility.GetV5($"{name}@{version}"),
                             DllName = name,
                             Name = embeddedName ?? name,
+                            Namespace = pluginNamespace,
                             Description = embeddedDescription?.CleanDescription() ?? string.Empty,
                             Version = version,
                             Authors = authors,
@@ -601,6 +606,7 @@ public partial class PluginManager
                         ID = embeddedId ?? instance.ID,
                         DllName = name,
                         Name = embeddedName ?? instance.Name,
+                        Namespace = pluginNamespace,
                         Description = (embeddedDescription ?? instance.Description)?.CleanDescription() ?? string.Empty,
                         Version = version,
                         Authors = authors,
@@ -620,6 +626,7 @@ public partial class PluginManager
                         CannotLoadReason = version.RuntimeIdentifier is IPluginManager.AnyRuntimeIdentifier || version.RuntimeIdentifier == RuntimeIdentifier
                             ? null
                             : $"The plugin is built for the \"{version.RuntimeIdentifier}\" runtime, not this server's \"{RuntimeIdentifier}\".",
+                        FailureReason = namespaceFailure,
                         CanUninstall = !isSystem,
                         DLLs = [dllPath, .. dlls.Except([dllPath])],
                         Thumbnail = thumbnailImage,
@@ -660,6 +667,8 @@ public partial class PluginManager
     private const string PackageName = "PackageName";
 
     private const string PackageOverview = "PackageOverview";
+
+    private const string PackageNamespace = "PackageNamespace";
 
     private const string PackageDependencies = "PackageDependencies";
 

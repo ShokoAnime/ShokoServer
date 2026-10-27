@@ -38,6 +38,7 @@ public partial class PluginManager
             {
                 ID = CorePlugin.StaticID,
                 Name = "Shoko Core",
+                Namespace = "shoko",
                 DllName = Path.GetFileNameWithoutExtension(Assembly.GetCallingAssembly().Location!),
                 Description = string.Empty,
                 Version =  systemService.Version,
@@ -119,6 +120,7 @@ public partial class PluginManager
                         ID = internalPluginInfo.ID,
                         Name = internalPluginInfo.Name,
                         Description = internalPluginInfo.Description,
+                        Namespace = internalPluginInfo.Namespace,
                         Version = internalPluginInfo.Version,
                         Authors = internalPluginInfo.Authors,
                         RepositoryUrl = internalPluginInfo.RepositoryUrl,
@@ -188,6 +190,7 @@ public partial class PluginManager
                     ID = internalPluginInfo.ID,
                     Name = internalPluginInfo.Name,
                     Description = internalPluginInfo.Description,
+                    Namespace = internalPluginInfo.Namespace,
                     Version = internalPluginInfo.Version,
                     Authors = internalPluginInfo.Authors,
                     RepositoryUrl = internalPluginInfo.RepositoryUrl,
@@ -220,6 +223,7 @@ public partial class PluginManager
         }
 
         // Before the dependency graph, so what depends on a plugin failed here is refused with it.
+        FailPluginsClaimingTheSameNamespace();
         FailPluginsNotFittingTheirDependencies();
 
         ApplyDependencyGraph(_pluginTypes, _dependencyRefusals, logger);
