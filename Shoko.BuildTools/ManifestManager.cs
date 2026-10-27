@@ -32,6 +32,13 @@ internal sealed class Manifest
     [JsonPropertyName("overview")]
     public string? Overview { get; set; }
 
+    /// <summary>
+    ///   A short, unique name the plugin reserves for itself, which other
+    ///   plugins and conventions may key off, if it claims one. See <see cref="PluginNamespaceRules" />.
+    /// </summary>
+    [JsonPropertyName("namespace")]
+    public string? Namespace { get; set; }
+
     [JsonPropertyName("authors")]
     public string? Authors { get; set; }
 

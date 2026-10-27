@@ -49,4 +49,20 @@ public class AssemblyInfoGeneratorTests : IDisposable
             $"[assembly: AssemblyMetadata(\"PackageDependencies\", \"{first:D}@^1.2.0,{second:D}@>=2.0:optional\")]",
             File.ReadAllText(_path));
     }
+
+    [Fact]
+    public void StampsTheNamespace()
+    {
+        AssemblyInfoGenerator.WriteAssemblyInfo(_path, "any", "", "", "", [], null, pluginNamespace: "example");
+
+        Assert.Contains("[assembly: AssemblyMetadata(\"PackageNamespace\", \"example\")]", File.ReadAllText(_path));
+    }
+
+    [Fact]
+    public void StampsNoNamespaceWithoutOne()
+    {
+        AssemblyInfoGenerator.WriteAssemblyInfo(_path, "any", "", "", "", [], null);
+
+        Assert.DoesNotContain("PackageNamespace", File.ReadAllText(_path));
+    }
 }

@@ -4,8 +4,8 @@ using Shoko.BuildTools;
 // Our args: --manifest|-m <path>, --prune|-p <count>, --prune-method <channel|global>,
 //           --url <download-url>, --output <zip-path>, --channel <stable|dev|debug>,
 //           --tag|-t <tag>, --release-notes <text>, --release-notes-path <path>,
-//           --id <guid>, --name <name>, --overview <text>, --tags <list>,
-//           --dependencies <list>
+//           --id <guid>, --name <name>, --overview <text>, --namespace <name>,
+//           --tags <list>, --dependencies <list>
 // Everything else is forwarded to dotnet build.
 
 var argsList = args.ToList();
@@ -21,6 +21,7 @@ var releaseNotesPath = (string?)null;
 var pluginId = (string?)null;
 var pluginName = (string?)null;
 var pluginOverview = (string?)null;
+var pluginNamespace = (string?)null;
 var pluginTags = (string?)null;
 var pluginDependencies = (string?)null;
 var forwardArgs = new List<string>();
@@ -85,6 +86,10 @@ for (var i = 0; i < argsList.Count; i++)
     else if (arg is "--overview" && i + 1 < argsList.Count)
     {
         pluginOverview = argsList[++i];
+    }
+    else if (arg is "--namespace" && i + 1 < argsList.Count)
+    {
+        pluginNamespace = argsList[++i];
     }
     else if (arg is "--tags" && i + 1 < argsList.Count)
     {
@@ -161,7 +166,7 @@ var exitCode = await BuildCommand.RunAsync(
     channel,
     releaseTag,
     releaseNotes,
-    new PluginMetadataInput(pluginId, pluginName, pluginOverview, pluginTags, pluginDependencies),
+    new PluginMetadataInput(pluginId, pluginName, pluginOverview, pluginNamespace, pluginTags, pluginDependencies),
     [.. forwardArgs]
 );
 

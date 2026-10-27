@@ -37,6 +37,20 @@
       "description": "Describes what the package does at a high level.",
       "type": "string"
     },
+    "namespace": {
+      "description": "Optional short, unique name the plugin reserves for itself, which other plugins and conventions may key off. Kebab-case, 2 to 32 characters; 'shoko', 'core' and 'plugin' are reserved. Two loaded plugins claiming the same one keep the server from starting.",
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 32,
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "not": {
+        "enum": [
+          "shoko",
+          "core",
+          "plugin"
+        ]
+      }
+    },
     "authors": {
       "description": "The author(s) of the package and plugin releases contained within it.",
       "type": "string"
@@ -105,6 +119,9 @@
         "description": "Ignored for reference manifests."
       },
       "overview": {
+        "description": "Ignored for reference manifests."
+      },
+      "namespace": {
         "description": "Ignored for reference manifests."
       },
       "authors": {

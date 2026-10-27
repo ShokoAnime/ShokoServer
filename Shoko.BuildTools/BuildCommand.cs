@@ -121,6 +121,14 @@ internal static class BuildCommand
             var pluginName = statedName?.Value.Trim() ?? manifest?.Name;
             var statedOverview = Stated(metadataInput.Overview, "--overview", project, "PluginOverview");
             var pluginOverview = statedOverview?.Value.Trim() ?? manifest?.Overview;
+            var statedNamespace = Stated(metadataInput.Namespace, "--namespace", project, "PluginNamespace");
+            var pluginNamespace = statedNamespace?.Value ?? (string.IsNullOrWhiteSpace(manifest?.Namespace) ? null : manifest.Namespace);
+            if (pluginNamespace is not null && PluginNamespaceRules.Validate(pluginNamespace) is { } namespaceError)
+            {
+                Console.Error.WriteLine($"The plugin namespace '{pluginNamespace}' from {statedNamespace?.Source ?? manifestFullPath} is not valid: {namespaceError}.");
+                return 1;
+            }
+
             var statedTags = Stated(metadataInput.Tags, "--tags", project, "PluginTags");
             var tags = statedTags is { } stated
                 ? stated.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
@@ -277,7 +285,8 @@ internal static class BuildCommand
                     tags,
                     pluginId,
                     pluginName,
-                    pluginOverview);
+                    pluginOverview,
+                    pluginNamespace);
 
                 ridProject.SetProperty("ShokoBuildAssemblyInfoFile", assemblyInfoFile);
                 ridProject.Xml.AddImport(targetsFile);
@@ -405,7 +414,7 @@ internal static class BuildCommand
             if (manifest is not null && manifestFullPath is not null && completed.Count > 0)
             {
                 // The project is the truth for the plugin's identity: what it states replaces the manifest's.
-                SyncIdentity(manifest, statedName, pluginName, statedOverview, pluginOverview, statedTags, tags);
+                SyncIdentity(manifest, statedName, pluginName, statedOverview, pluginOverview, statedNamespace, pluginNamespace, statedTags, tags);
 
                 if (pruneCount.HasValue)
                 {
@@ -537,15 +546,17 @@ internal static class BuildCommand
     ///   came from. Null when neither is set.
     /// </summary>
     /// <summary>
-    ///   Writes the name, overview and tags the project or the flags state
-    ///   into the manifest, so it matches what the build stamped, and says
-    ///   what changed. What nothing states is left as the manifest has it.
+    ///   Writes the name, overview, namespace and tags the project or the
+    ///   flags state into the manifest, so it matches what the build stamped,
+    ///   and says what changed. What nothing states is left as the manifest has it.
     /// </summary>
     /// <param name="manifest">The manifest to update.</param>
     /// <param name="statedName">The stated name, if any.</param>
     /// <param name="name">The name stamped.</param>
     /// <param name="statedOverview">The stated overview, if any.</param>
     /// <param name="overview">The overview stamped.</param>
+    /// <param name="statedNamespace">The stated namespace, if any.</param>
+    /// <param name="namespace">The namespace stamped.</param>
     /// <param name="statedTags">The stated tags, if any.</param>
     /// <param name="tags">The tags stamped, the discovered ones included.</param>
     internal static void SyncIdentity(
@@ -554,6 +565,8 @@ internal static class BuildCommand
         string? name,
         (string Value, string Source)? statedOverview,
         string? overview,
+        (string Value, string Source)? statedNamespace,
+        string? pluginNamespace,
         (string Value, string Source)? statedTags,
         IReadOnlyList<string>? tags
     )
@@ -568,6 +581,12 @@ internal static class BuildCommand
         {
             Console.WriteLine($"Manifest overview updated (from {overviewSource.Source}).");
             manifest.Overview = overview;
+        }
+
+        if (statedNamespace is { } namespaceSource && manifest.Namespace != pluginNamespace)
+        {
+            Console.WriteLine($"Manifest namespace: '{manifest.Namespace}' to '{pluginNamespace}' (from {namespaceSource.Source}).");
+            manifest.Namespace = pluginNamespace;
         }
 
         if (statedTags is { } tagsSource && !(manifest.Tags ?? []).SequenceEqual(tags ?? []))
@@ -817,4 +836,4 @@ internal static class BuildCommand
 ///   Plugin metadata from the command line, as typed. Each value replaces
 ///   the matching MSBuild property and manifest field.
 /// </summary>
-internal sealed record PluginMetadataInput(string? ID, string? Name, string? Overview, string? Tags, string? Dependencies);
+internal sealed record PluginMetadataInput(string? ID, string? Name, string? Overview, string? Namespace, string? Tags, string? Dependencies);

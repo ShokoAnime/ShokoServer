@@ -22,7 +22,7 @@ The plugin's identity and tags come from the command line, then the project, the
 </ItemGroup>
 ```
 
-They are stamped into the assembly and recorded in the release entry the build adds. `--dependencies` and the `PluginDependencies` property take the same list as one string and replace the items. The other fields are `--id`, `--name`, `--overview` and `--tags`, or the `PluginID`, `PluginName`, `PluginOverview` and `PluginTags` properties. See [Plugin metadata](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#plugin-metadata) and [Dependencies](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#dependencies) in the guide.
+They are stamped into the assembly and recorded in the release entry the build adds. `--dependencies` and the `PluginDependencies` property take the same list as one string and replace the items. The other fields are `--id`, `--name`, `--overview`, `--namespace` and `--tags`, or the `PluginID`, `PluginName`, `PluginOverview`, `PluginNamespace` and `PluginTags` properties. The namespace is optional: a short, unique kebab-case name of 2 to 32 characters the plugin reserves for itself, which other plugins and conventions may key off, of which `shoko`, `core` and `plugin` are reserved; a bad one stops the build. See [Plugin metadata](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#plugin-metadata) and [Dependencies](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#dependencies) in the guide.
 
 ## Documentation
 

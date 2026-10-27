@@ -11,7 +11,7 @@ namespace Shoko.Tests.BuildTools;
 public class ManifestIdentitySyncTests
 {
     private static Manifest Manifest()
-        => new() { ID = Guid.NewGuid(), Name = "Old Name", Overview = "Old overview.", Tags = ["old"] };
+        => new() { ID = Guid.NewGuid(), Name = "Old Name", Overview = "Old overview.", Namespace = "old-name", Tags = ["old"] };
 
     [Fact]
     public void StatedIdentity_ReplacesTheManifests()
@@ -24,12 +24,15 @@ public class ManifestIdentitySyncTests
             "New Name",
             ("New overview.", "PluginOverview"),
             "New overview.",
+            ("new-name", "PluginNamespace"),
+            "new-name",
             ("new,tags", "PluginTags"),
             ["discovered", "new", "tags"]
         );
 
         Assert.Equal("New Name", manifest.Name);
         Assert.Equal("New overview.", manifest.Overview);
+        Assert.Equal("new-name", manifest.Namespace);
         Assert.Equal(["discovered", "new", "tags"], manifest.Tags);
     }
 
@@ -38,10 +41,11 @@ public class ManifestIdentitySyncTests
     {
         var manifest = Manifest();
 
-        BuildCommand.SyncIdentity(manifest, null, "Old Name", null, "Old overview.", null, ["old", "discovered"]);
+        BuildCommand.SyncIdentity(manifest, null, "Old Name", null, "Old overview.", null, "old-name", null, ["old", "discovered"]);
 
         Assert.Equal("Old Name", manifest.Name);
         Assert.Equal("Old overview.", manifest.Overview);
+        Assert.Equal("old-name", manifest.Namespace);
         Assert.Equal(["old"], manifest.Tags);
     }
 }

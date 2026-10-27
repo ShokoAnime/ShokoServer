@@ -14,7 +14,8 @@ auto-discovery of service interfaces, and manifest management.
    `IHostedService` → `hosted-service`, etc.) and prepends them to the tags.
 3. **Generates** a C# assembly metadata file with:
    - Runtime identifier, release date, source revision, release tag
-   - Package identity (`PackageID`, `PackageName`, `PackageOverview`)
+   - Package identity (`PackageID`, `PackageName`, `PackageOverview`, and
+     `PackageNamespace` when the plugin claims one)
    - Dependencies serialized as `<guid>@<range>[:optional|:required][,<guid>@<range>[:optional|:required]]*` (`PackageDependencies`)
    - Tags as a single `PackageTags` attribute
 4. **Loads** the `.csproj` in-memory via the MSBuild API, sets
@@ -61,6 +62,7 @@ shoko-build [options] [-- <msbuild-args>]
 | `--id <guid>` | | Plugin ID. See [Plugin metadata](#plugin-metadata). |
 | `--name <name>` | | Plugin name, replacing the manifest's. |
 | `--overview <text>` | | Plugin overview, replacing the manifest's. |
+| `--namespace <name>` | | Plugin namespace, replacing the manifest's. See [Plugin namespace](#plugin-namespace). |
 | `--tags <list>` | | Comma-separated tags, replacing the manifest's. Auto-detected tags are still added. |
 | `--dependencies <list>` | | Plugin dependencies, replacing the project's. See [Dependencies](#dependencies). |
 
@@ -125,11 +127,12 @@ precedence first:
 | `--id` | `PluginID` | `id` |
 | `--name` | `PluginName` | `name` |
 | `--overview` | `PluginOverview` | `overview` |
+| `--namespace` | `PluginNamespace` | `namespace` |
 | `--tags` | `PluginTags` | `tags` |
 | `--dependencies` | `PluginDependencies`, then `PluginDependency` items | |
 
 A stated value replaces the manifest's, and lists are never merged. The
-project is the truth: the name, overview and tags it states are also written
+project is the truth: the name, overview, namespace and tags it states are also written
 into the manifest the build updates, the discovered tags included, so a
 release manifest always matches what the plugin says about itself. Change
 them in the project, not in the manifest. The dependencies stated are what
@@ -150,6 +153,30 @@ updated with this build's release, so it must describe the same plugin. Unlike
 the rest of the identity, the `id` is never written over: a mismatch almost
 always means the build points at another plugin's manifest.
 The targets package never writes the manifest and has no such check.
+
+### Plugin namespace
+
+A plugin may reserve a namespace: a short, unique name for itself, which
+other plugins and conventions may key off. For example, a scripting plugin
+might let other plugins add script modules named after their namespace
+(`<namespace>:<name>`). It is
+optional and stamped as `PackageNamespace`.
+
+```xml
+<PropertyGroup>
+  <PluginNamespace>example</PluginNamespace>
+</PropertyGroup>
+```
+
+- It is kebab-case, `^[a-z][a-z0-9]*(-[a-z0-9]+)*$`, and 2 to 32 characters
+  long.
+- `shoko`, `core` and `plugin` are reserved.
+- A namespace breaking either rule stops the build, naming where it came
+  from.
+- The server checks the same rules, and fails a plugin breaking them as it
+  starts. Two loaded plugins claiming the same namespace both fail the
+  start, each naming the other, until one is disabled, replaced or
+  uninstalled.
 
 ### Dependencies
 
@@ -479,11 +506,12 @@ Its targets run before `CoreGenerateAssemblyInfo` and stamp the assembly with:
 
 - `RuntimeIdentifier`: the build's runtime identifier, or `any` without one.
 - The plugin's identity and tags (`PackageID`, `PackageName`,
-  `PackageOverview`, `PackageTags`). They come from `manifest.json` in the
-  project's directory or its parent. Without a manifest, the ID, name and
+  `PackageOverview`, `PackageNamespace`, `PackageTags`). They come from
+  `manifest.json` in the project's directory or its parent. Without a manifest, the ID, name and
   description are read from the plugin class's source with Roslyn, following
   an ID derived from a type name through `UuidUtility.GetV5`. Either way, the
-  `PluginID`, `PluginName`, `PluginOverview` and `PluginTags` properties win,
+  `PluginID`, `PluginName`, `PluginOverview`, `PluginNamespace` and
+  `PluginTags` properties win,
   as described in [Plugin metadata](#plugin-metadata).
 - The plugin's dependencies (`PackageDependencies`), from the project's
   `PluginDependency` items or its `PluginDependencies` property, as described
