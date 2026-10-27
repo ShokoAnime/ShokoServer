@@ -34,6 +34,11 @@ public abstract class PluginMetadataTask : Microsoft.Build.Utilities.Task
     public string? PluginOverview { get; set; }
 
     /// <summary>
+    ///   <c>$(PluginNamespace)</c>. Must follow <see cref="PluginNamespaceRules" />.
+    /// </summary>
+    public string? PluginNamespace { get; set; }
+
+    /// <summary>
     ///   <c>$(PluginTags)</c>, comma-separated.
     /// </summary>
     public string? PluginTags { get; set; }
@@ -62,6 +67,8 @@ public abstract class PluginMetadataTask : Microsoft.Build.Utilities.Task
         Guid? id,
         string? name,
         string? overview,
+        string? pluginNamespace,
+        string namespaceSource,
         IReadOnlyList<string>? tags,
         IReadOnlyList<PluginDependencyEntry>? dependencies,
         string dependencySource)
@@ -82,6 +89,18 @@ public abstract class PluginMetadataTask : Microsoft.Build.Utilities.Task
 
         if (!string.IsNullOrWhiteSpace(PluginOverview))
             overview = PluginOverview.Trim();
+
+        if (!string.IsNullOrWhiteSpace(PluginNamespace))
+        {
+            pluginNamespace = PluginNamespace.Trim();
+            namespaceSource = "PluginNamespace";
+        }
+
+        if (!string.IsNullOrWhiteSpace(pluginNamespace) && PluginNamespaceRules.Validate(pluginNamespace) is { } namespaceError)
+        {
+            Log.LogError("The plugin namespace '{0}' from {1} is not valid: {2}.", pluginNamespace, namespaceSource, namespaceError);
+            return false;
+        }
 
         if (!string.IsNullOrWhiteSpace(PluginTags))
             tags = PluginTags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -137,6 +156,9 @@ public abstract class PluginMetadataTask : Microsoft.Build.Utilities.Task
 
         if (!string.IsNullOrEmpty(overview))
             sb.AppendLine($"[assembly: AssemblyMetadata(\"PackageOverview\", \"{Escape(overview)}\")]");
+
+        if (!string.IsNullOrWhiteSpace(pluginNamespace))
+            sb.AppendLine($"[assembly: AssemblyMetadata(\"PackageNamespace\", \"{pluginNamespace}\")]");
 
         if (tags is { Count: > 0 })
             sb.AppendLine($"[assembly: AssemblyMetadata(\"PackageTags\", \"{Escape(string.Join(",", tags))}\")]");

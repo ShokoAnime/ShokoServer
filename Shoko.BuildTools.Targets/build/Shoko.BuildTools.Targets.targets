@@ -2,8 +2,8 @@
   <!--
     Shoko.BuildTools.Targets — Auto-imported targets for Shoko plugins.
     Injects assembly metadata from manifest.json and git at build time.
-    PluginID, PluginName, PluginOverview and PluginTags override what the
-    manifest or the source says. The dependencies come from the project alone,
+    PluginID, PluginName, PluginOverview, PluginNamespace and PluginTags
+    override what the manifest or the source says. The dependencies come from the project alone,
     as PluginDependency items or the PluginDependencies property, which wins
     when both are set:
 
@@ -69,6 +69,7 @@
                         PluginID="$(PluginID)"
                         PluginName="$(PluginName)"
                         PluginOverview="$(PluginOverview)"
+                        PluginNamespace="$(PluginNamespace)"
                         PluginTags="$(PluginTags)"
                         PluginDependencies="$(PluginDependencies)"
                         PluginDependencyItems="@(PluginDependency)" />
@@ -87,6 +88,7 @@
                                   PluginID="$(PluginID)"
                                   PluginName="$(PluginName)"
                                   PluginOverview="$(PluginOverview)"
+                                  PluginNamespace="$(PluginNamespace)"
                                   PluginTags="$(PluginTags)"
                                   PluginDependencies="$(PluginDependencies)"
                         PluginDependencyItems="@(PluginDependency)" />

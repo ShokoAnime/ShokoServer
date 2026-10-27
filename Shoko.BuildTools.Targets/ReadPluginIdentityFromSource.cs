@@ -102,7 +102,7 @@ public class ReadPluginIdentityFromSource : PluginMetadataTask
             if (pluginClassFullName is null)
                 Log.LogMessage(MessageImportance.Low, "No IPlugin implementation found in source files.");
 
-            return WriteMetadata(nameof(ReadPluginIdentityFromSource), pluginId, pluginName, pluginDescription, null, null, "PluginDependencies");
+            return WriteMetadata(nameof(ReadPluginIdentityFromSource), pluginId, pluginName, pluginDescription, null, "PluginNamespace", null, null, "PluginDependencies");
         }
         catch (Exception ex)
         {

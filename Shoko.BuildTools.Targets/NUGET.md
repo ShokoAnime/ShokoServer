@@ -12,7 +12,7 @@ Nothing else is needed; the targets run as part of `dotnet build`. To also pack 
 
 ## Plugin metadata
 
-The plugin's identity and tags come from its `manifest.json`, or from its source without one, unless the project states them as `PluginID`, `PluginName`, `PluginOverview` and `PluginTags` properties. Its dependencies, the plugins the server loads before it, belong in the project, one `PluginDependency` item per plugin:
+The plugin's identity and tags come from its `manifest.json`, or from its source without one, unless the project states them as `PluginID`, `PluginName`, `PluginOverview`, `PluginNamespace` and `PluginTags` properties. The namespace is optional: a short, unique kebab-case name of 2 to 32 characters (`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`) the plugin reserves for itself, which other plugins and conventions may key off, stamped as `PackageNamespace`; `shoko`, `core` and `plugin` are reserved, and a bad one stops the build. Its dependencies, the plugins the server loads before it, belong in the project, one `PluginDependency` item per plugin:
 
 ```xml
 <ItemGroup>

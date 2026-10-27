@@ -6,7 +6,8 @@ namespace Shoko.BuildTools.Tasks;
 /// <summary>
 ///   MSBuild task that reads a plugin's manifest.json and writes a .cs file
 ///   with assembly metadata attributes for PackageID, PackageName,
-///   PackageOverview, tags, and the dependencies the project states.
+///   PackageOverview, PackageNamespace, tags, and the dependencies the
+///   project states.
 /// </summary>
 public class ReadPluginManifest : PluginMetadataTask
 {
@@ -47,6 +48,10 @@ public class ReadPluginManifest : PluginMetadataTask
                 ? descEl.GetString()
                 : null;
 
+            var pluginNamespace = root.TryGetProperty("namespace", out var namespaceEl) && namespaceEl.ValueKind == JsonValueKind.String
+                ? namespaceEl.GetString()
+                : null;
+
             var tags = root.TryGetProperty("tags", out var tagsEl) && tagsEl.ValueKind == JsonValueKind.Array
                 ? tagsEl.EnumerateArray().Select(t => t.GetString()).OfType<string>().Where(t => t.Length > 0).ToList()
                 : null;
@@ -54,7 +59,7 @@ public class ReadPluginManifest : PluginMetadataTask
             if (root.TryGetProperty("dependencies", out _))
                 Log.LogWarning("{0} lists top-level dependencies, which a build does not read. State them in the project as PluginDependency items.", manifestPath);
 
-            return WriteMetadata(nameof(ReadPluginManifest), id, name, overview, tags, null, "PluginDependencies");
+            return WriteMetadata(nameof(ReadPluginManifest), id, name, overview, pluginNamespace, manifestPath, tags, null, "PluginDependencies");
         }
         catch (Exception ex)
         {

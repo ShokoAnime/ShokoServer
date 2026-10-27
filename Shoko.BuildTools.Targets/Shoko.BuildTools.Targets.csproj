@@ -43,6 +43,10 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Shoko.Tests" />
+  </ItemGroup>
+
   <!-- Packs the assemblies copied next to the tasks, without their satellite resources. -->
   <Target Name="_ShokoPackTaskDependencies" DependsOnTargets="ResolveReferences">
     <ItemGroup>
