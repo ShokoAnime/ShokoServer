@@ -23,26 +23,60 @@ public class FolderController : BaseController
 {
     private readonly ILogger<FolderController> _logger;
 
-    private static readonly HashSet<string> _excludedFormats =
-    [
-        "msdos", // fat32 - might be overkill, but the esp (u)efi partition is usually formatted as such.
-        "ramfs",
+    /// <summary>
+    /// The formats of the kernel's own and the desktop's pseudo file systems, as .NET reports
+    /// them, with the older names some runtimes report kept beside the current ones.
+    /// </summary>
+    private static readonly HashSet<string> _excludedFormats = new(StringComparer.Ordinal)
+    {
+        "autofs",
+        "binfmt_misc",
+        "bpf",
+        "bpf_fs",
+        "cgroup",
+        "cgroup2",
+        "cgroup2fs",
         "configfs",
+        "debugfs",
+        "devpts",
+        "devtmpfs",
+        "efivarfs",
+        "fuse.gvfsd-fuse",
+        "fuse.portal",
         "fusectl",
-        "tracefs",
         "hugetlbfs",
         "mqueue",
-        "debugfs",
-        "binfmt_misc",
-        "devpts",
-        "pstorefs",
-        "bpf_fs",
-        "cgroup2fs",
-        "securityfs",
         "proc",
-        "tmpfs",
+        "pstore",
+        "pstorefs",
+        "ramfs",
+        "securityfs",
         "sysfs",
-    ];
+        "tmpfs",
+        "tracefs",
+    };
+
+    /// <summary>
+    /// Where Unix-like systems keep the kernel's views, devices and the boot and EFI partitions;
+    /// never where a library lives. Matched by path, so a FAT-formatted drive elsewhere still lists.
+    /// </summary>
+    private static readonly string[] _excludedUnixRoots = ["/proc", "/sys", "/dev", "/boot", "/efi"];
+
+    /// <summary>
+    /// Whether a mount point is part of the system rather than storage a library could live on.
+    /// </summary>
+    /// <param name="path">The mount point's path.</param>
+    /// <param name="format">The file system's format, as .NET reports it.</param>
+    /// <returns><see langword="true"/> to leave the mount point out of the list.</returns>
+    internal static bool IsSystemMountPoint(string path, string format)
+    {
+        if (_excludedFormats.Contains(format))
+            return true;
+        if (!path.StartsWith('/'))
+            return false;
+        var trimmed = path.Length > 1 ? path.TrimEnd('/') : path;
+        return _excludedUnixRoots.Any(root => trimmed == root || trimmed.StartsWith(root + '/', StringComparison.Ordinal));
+    }
 
     public FolderController(ILogger<FolderController> logger, ISettingsProvider settingsProvider) : base(settingsProvider)
     {
@@ -81,7 +115,7 @@ public class FolderController : BaseController
                     return null;
                 }
 
-                if (_excludedFormats.Contains(driveFormat))
+                if (IsSystemMountPoint(fullName, driveFormat))
                     return null;
 
                 MountPointSizes? sizes = null;
@@ -111,6 +145,7 @@ public class FolderController : BaseController
                 };
             })
             .WhereNotNull()
+            .DistinctBy(mountPoint => mountPoint.Path)
             .OrderBy(mountPoint => mountPoint.Path)
             .ToList();
     }
