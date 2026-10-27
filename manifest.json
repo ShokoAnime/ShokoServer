@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.557",
+      "tag": "v6.0.0-dev.557",
+      "commit": "37c03e700516816db1844e63025123535388e44e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.557/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-27T09:11:54Z",
+      "releaseNotes": "\n`fix` (`api`): **Leave the system's own mount points out of `/api/v3/Folder/MountPoints`**:\n\n- Matched the formats .NET reports today (`cgroup2`, `bpf`, `pstore`, `devtmpfs`, `autofs`, `efivarfs`, the desktop's `fuse.portal` and `fuse.gvfsd-fuse`), keeping the older names\n- Left out `/proc`, `/sys`, `/dev`, `/boot` and `/efi` by path, so FAT drives elsewhere still list\n- Dropped duplicate paths\n"
+    },
+    {
       "version": "6.0.0.556",
       "tag": "v6.0.0-dev.556",
       "commit": "0574ac99faaa1f0efcc0a8494982e1ebf0d112a7",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.528/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-15T07:14:44Z",
       "releaseNotes": "\n`fix`: **Load the server settings in the main configuration tests instead of in `AddParts`**:\n\nReverted d449d1c37. A real start always loads them before `AddParts`, so only the test lacked them.\n"
-    },
-    {
-      "version": "6.0.0.527",
-      "tag": "v6.0.0-dev.527",
-      "commit": "d449d1c374034d161a08a42d7de06331971bc3e2",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.527/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-15T06:18:01Z",
-      "releaseNotes": "\n`fix`: **Carry the server settings over in `AddParts` only when they were loaded**.\n"
     }
   ]
 }
