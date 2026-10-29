@@ -16,6 +16,13 @@ internal static class AssemblyInfoGenerator
     private const string DependenciesKey = "PackageDependencies";
 
     /// <summary>
+    ///   Assembly metadata key <c>Shoko.BuildTools.Targets</c> stamps a
+    ///   meta plugin with: one whose only code is its generated plugin
+    ///   class.
+    /// </summary>
+    private const string IsMetaKey = "PackageIsMeta";
+
+    /// <summary>
     ///   Write a generated .cs file with assembly-level metadata attributes.
     /// </summary>
     public static void WriteAssemblyInfo(
@@ -128,6 +135,7 @@ internal static class AssemblyInfoGenerator
             AbstractionVersion = abstractionVersion is not null ? new Version(abstractionVersion.Major, abstractionVersion.Minor, abstractionVersion.Build) : new Version(0, 0, 0),
             Dependencies = dependencies,
             Tags = metadata["Tag"].ToList(),
+            IsMeta = bool.TryParse(metadata[IsMetaKey].FirstOrDefault(), out var isMeta) ? isMeta : null,
             // Every value, not the first: the disagreement check needs them all.
             RuntimeIdentifiers = metadata["RuntimeIdentifier"].ToList(),
         };
@@ -255,6 +263,12 @@ internal sealed class AssemblyMetadata
     public Version AbstractionVersion { get; init; } = new(0, 0, 0);
     public IReadOnlyList<PluginDependencyEntry> Dependencies { get; init; } = [];
     public IReadOnlyList<string> Tags { get; init; } = [];
+
+    /// <summary>
+    ///   Whether the plugin is a meta plugin, one that only brings in its
+    ///   dependencies, or <c>null</c> when the build did not say.
+    /// </summary>
+    public bool? IsMeta { get; init; }
 
     /// <summary>
     ///   Every <c>RuntimeIdentifier</c> the assembly is stamped with. More

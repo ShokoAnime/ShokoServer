@@ -405,6 +405,7 @@ internal static class BuildCommand
                         metadata.AbstractionVersion,
                         rid,
                         metadata.Dependencies,
+                        metadata.IsMeta,
                         archiveUrl,
                         checksum,
                         resolvedChannel,
@@ -433,6 +434,7 @@ internal static class BuildCommand
                     }
                 }
 
+                ManifestManager.SyncIsMeta(manifest);
                 ManifestManager.Save(manifest, manifestFullPath);
                 Console.WriteLine($"Updated manifest: {manifestFullPath}");
             }

@@ -71,6 +71,13 @@ internal sealed class Manifest
     [JsonPropertyName("icon_url")]
     public string? IconUrl { get; set; }
 
+    /// <summary>
+    ///   Whether the package is a meta plugin, worked out from its releases
+    ///   by <see cref="ManifestManager.SyncIsMeta" />.
+    /// </summary>
+    [JsonPropertyName("is_meta")]
+    public bool? IsMeta { get; set; }
+
     [JsonPropertyName("releases")]
     public List<ManifestRelease>? Releases { get; set; }
 
@@ -102,6 +109,14 @@ internal sealed class ManifestRelease
 
     [JsonPropertyName("release_notes")]
     public string? ReleaseNotes { get; set; }
+
+    /// <summary>
+    ///   Whether the release is a meta plugin, one whose only code is its
+    ///   generated plugin class, so it only brings in its dependencies.
+    ///   Read from the built assembly; <c>null</c> when it was not stamped.
+    /// </summary>
+    [JsonPropertyName("is_meta")]
+    public bool? IsMeta { get; set; }
 
     [JsonPropertyName("dependencies")]
     public List<ManifestDependency>? Dependencies { get; set; }
@@ -199,6 +214,7 @@ internal static class ManifestManager
         Version abstractionVersion,
         string runtimeIdentifier,
         IReadOnlyList<PluginDependencyEntry> dependencies,
+        bool? isMeta = null,
         string? archiveUrl = null,
         string? checksum = null,
         ReleaseChannel? channel = null,
@@ -224,6 +240,7 @@ internal static class ManifestManager
                 ReleasedAt = DateTime.UtcNow,
                 Channel = channel ?? (version.Revision > 0 ? ReleaseChannel.Dev : ReleaseChannel.Stable),
                 ReleaseNotes = releaseNotes,
+                IsMeta = isMeta,
                 Archives = [],
                 Dependencies = dependencies.Select(d => new ManifestDependency
                 {
@@ -244,6 +261,8 @@ internal static class ManifestManager
             // release does not blank the notes the first one set.
             if (releaseNotes is not null)
                 release.ReleaseNotes = releaseNotes;
+            if (isMeta is not null)
+                release.IsMeta = isMeta;
         }
 
         // Add or update archive for this runtime
@@ -267,6 +286,23 @@ internal static class ManifestManager
                 Checksum = checksum,
             });
         }
+    }
+
+    /// <summary>
+    ///   Set the package's <c>is_meta</c> from its releases: <c>false</c> when
+    ///   any release is not a meta plugin, <c>true</c> when every release is
+    ///   one, and left out when no release says either way.
+    /// </summary>
+    /// <param name="manifest">The manifest to update.</param>
+    public static void SyncIsMeta(Manifest manifest)
+    {
+        var releases = manifest.Releases ?? [];
+        if (releases.Any(release => release.IsMeta is false))
+            manifest.IsMeta = false;
+        else if (releases.Count > 0 && releases.All(release => release.IsMeta is true))
+            manifest.IsMeta = true;
+        else
+            manifest.IsMeta = null;
     }
 
     /// <summary>

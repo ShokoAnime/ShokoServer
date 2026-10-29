@@ -24,7 +24,8 @@ auto-discovery of service interfaces, and manifest management.
 5. **Packs** the build output into a `.zip` archive.
 6. **Computes** a SHA256 checksum of the zip.
 7. **Updates** `manifest.json` — creates or updates a release entry with the
-   archive URL, checksum, runtime, ABI version, and dependencies.
+   archive URL, checksum, runtime, ABI version, dependencies, and whether the
+   release is a meta plugin (`is_meta`, read from the built assembly).
 8. **Prunes** old releases if `--prune` is set (per-channel or globally), naming
    every dropped version and its channel on stdout.
 
@@ -251,6 +252,19 @@ together. Installing it installs them as dependencies, they are enabled while
 it is, and uninstalling it removes the ones nothing else needs. Optional
 dependencies are listed by the server but not installed unless asked for.
 
+The targets detect a meta plugin as they build it and stamp the result as
+`PackageIsMeta` (`true` or `false`): the project sets
+`PluginGenerateClass` and compiles no source of its own, only files generated
+into its intermediate (`obj`) folder. A project with
+`EnableDefaultCompileItems` set to `false` and no sources counts too. No
+property sets it by hand. `shoko-build` reads it back from the built assembly
+into the release entry's `is_meta`, and sets the manifest's own `is_meta`:
+`true` when every release is a meta plugin, `false` when any is not, and left
+out when no release says either way. The server shows them as `IsMeta` on the
+plugin, the package and the package release, so a client can group the
+dependencies under their meta plugin before anything is installed. A plugin
+built without the targets has no mark, and each reads as `null`.
+
 ### Plugin images
 
 `PluginIcon` and `PluginThumbnail` name the image files to show for the
@@ -415,7 +429,9 @@ Besides the fields above, a manifest may give `homepage_url`, a wide
 deprecated `image_url` is read as the thumbnail when there is no
 `thumbnail_url`. A manifest with `"type": "manifest"` and a `url` points at
 another manifest instead of describing a plugin. A release can also carry
-`source_revision` and `release_notes`.
+`source_revision`, `release_notes` and `is_meta`, which `shoko-build`
+writes when the build stamped it, and sums up in the manifest's own `is_meta`
+(see [Generated plugin class](#generated-plugin-class)).
 
 A plugin can embed its thumbnail and icon in its assembly instead; see
 [Plugin images](#plugin-images).
@@ -518,6 +534,10 @@ Its targets run before `CoreGenerateAssemblyInfo` and stamp the assembly with:
 - The plugin's dependencies (`PackageDependencies`), from the project's
   `PluginDependency` items or its `PluginDependencies` property, as described
   in [Dependencies](#dependencies).
+- `PackageIsMeta`: whether the plugin is a meta plugin, detected just
+  before compiling, as described in
+  [Generated plugin class](#generated-plugin-class). Stamped under
+  `shoko-build` too, which never writes it itself.
 - `ReleaseChannel`, only when the `ReleaseChannel` property is set. An
   unrecognised name fails the build.
 - `ReleaseDate`, `SourceRevision` and `ReleaseTag` from the repository, the

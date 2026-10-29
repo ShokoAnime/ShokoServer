@@ -90,6 +90,10 @@
       },
       "uniqueItems": true
     },
+    "is_meta": {
+      "description": "Whether the package is a meta plugin, one that only brings in its dependencies. Written by shoko-build from the releases: true when every release is one, false when any is not, and left out when no release says either way.",
+      "type": "boolean"
+    },
     "releases": {
       "description": "Available releases/versions of the plugin.",
       "type": "array",
@@ -128,6 +132,9 @@
         "description": "Ignored for reference manifests."
       },
       "tags": {
+        "description": "Ignored for reference manifests."
+      },
+      "is_meta": {
         "description": "Ignored for reference manifests."
       },
       "releases": {
@@ -216,6 +223,10 @@
         "release_notes": {
           "description": "Release notes, or null if not available for this release.",
           "type": "string"
+        },
+        "is_meta": {
+          "description": "Whether the release is a meta plugin, one whose only code is its generated plugin class, so it only brings in its dependencies. Written by shoko-build from what the build detected; left out when the build did not say.",
+          "type": "boolean"
         },
         "dependencies": {
           "description": "The plugins this release depends on, which the server resolves when it installs the release. The build records the dependencies the project states.",
