@@ -87,6 +87,12 @@ public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IReadOnl
     public string? ReleaseNotes { get; init; } = releaseInfo.ReleaseNotes;
 
     /// <summary>
+    ///   Whether the release is a meta plugin, one that only brings in its
+    ///   dependencies, or <c>null</c> when the manifest does not say.
+    /// </summary>
+    public bool? IsMeta { get; init; } = releaseInfo.IsMeta;
+
+    /// <summary>
     ///   The plugins this release depends on.
     /// </summary>
     [Required]

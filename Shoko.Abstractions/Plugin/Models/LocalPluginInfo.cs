@@ -46,6 +46,17 @@ public sealed class LocalPluginInfo
     public string? Namespace { get; init; }
 
     /// <summary>
+    ///   Whether the plugin is a meta plugin, one whose only code is its
+    ///   generated plugin class, so it only brings in its dependencies, or
+    ///   <c>null</c> when its build did not say.
+    /// </summary>
+    /// <remarks>
+    ///   Detected by the build tools and stamped into the plugin's assembly
+    ///   as <c>PackageIsMeta</c>; no project sets it by hand.
+    /// </remarks>
+    public bool? IsMeta { get; init; }
+
+    /// <summary>
     ///   The version of the plugin.
     /// </summary>
     public required VersionInformation Version { get; init; }

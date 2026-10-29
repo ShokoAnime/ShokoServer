@@ -407,6 +407,7 @@ public partial class PluginManager
             Name = internalPluginInfo.Name,
             Description = internalPluginInfo.Description,
             Namespace = internalPluginInfo.Namespace,
+            IsMeta = internalPluginInfo.IsMeta,
             Version = internalPluginInfo.Version,
             Authors = internalPluginInfo.Authors,
             RepositoryUrl = internalPluginInfo.RepositoryUrl,

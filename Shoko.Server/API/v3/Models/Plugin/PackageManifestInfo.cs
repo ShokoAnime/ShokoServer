@@ -46,6 +46,12 @@ public class PackageManifestInfo(AbstractPackageManifestInfo manifestInfo, IRead
     public IReadOnlyList<string> Tags { get; init; } = manifestInfo.Tags;
 
     /// <summary>
+    ///   Whether the package is a meta plugin, one that only brings in its
+    ///   dependencies, or <c>null</c> when the manifest does not say.
+    /// </summary>
+    public bool? IsMeta { get; init; } = manifestInfo.IsMeta;
+
+    /// <summary>
     ///   The thumbnail for the plugin, if it's available.
     /// </summary>
     public PackageImageInfo? Thumbnail { get; init; } = manifestInfo.Thumbnail is null

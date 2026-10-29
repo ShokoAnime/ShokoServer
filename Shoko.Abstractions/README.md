@@ -382,7 +382,7 @@ The targets package injects the metadata at build time:
 ```
 
 The metadata is a set of `AssemblyMetadataAttribute` entries (`PackageID`,
-`PackageName`, `PackageOverview`, `PackageNamespace`, `PackageDependencies`,
+`PackageName`, `PackageOverview`, `PackageNamespace`, `PackageIsMeta`, `PackageDependencies`,
 `RepositoryUrl`, `PackageProjectUrl`, `PackageTags`, `RuntimeIdentifier`,
 `ReleaseChannel`, `ReleaseTag`, `ReleaseDate`, `SourceRevision`) read during
 discovery.
@@ -418,6 +418,16 @@ own, and the other two are kept from any plugin. A namespace breaking
 these rules stops the build, and fails the plugin when the server starts. Two
 loaded plugins claiming the same namespace both fail the start, each naming
 the other, until the admin disables, replaces or uninstalls one of them.
+
+### Meta plugins
+
+A plugin whose only code is its generated plugin class (`PluginGenerateClass`)
+only brings in the plugins it depends on. The build tools detect that and
+stamp it as `PackageIsMeta`, with no property to set, and record it in the
+release entry as `is_meta`, and on the manifest once every release agrees.
+The server exposes it as `LocalPluginInfo.IsMeta`, `PackageManifestInfo.IsMeta`
+and `PackageReleaseInfo.IsMeta`, so a client can show its dependencies under
+it; each is `null` for a plugin built without the mark.
 
 ---
 

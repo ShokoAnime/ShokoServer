@@ -77,6 +77,14 @@ public sealed class RemotePackageReleaseInfo
     public IReadOnlyList<RemotePackageArchiveInfo> Archives { get; init; } = [];
 
     /// <summary>
+    ///   Whether the release is a meta plugin, one that only brings in its
+    ///   dependencies, or <c>null</c> when the manifest does not say.
+    /// </summary>
+    [JsonPropertyName("is_meta")]
+    [JsonProperty("is_meta")]
+    public bool? IsMeta { get; init; }
+
+    /// <summary>
     ///   The plugins this release depends on.
     /// </summary>
     [JsonPropertyName("dependencies")]

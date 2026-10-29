@@ -165,6 +165,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         public string? Namespace { get; init; }
 
         /// <summary>
+        ///   Whether the plugin is a meta plugin, if its build said.
+        /// </summary>
+        public bool? IsMeta { get; init; }
+
+        /// <summary>
         ///   The version of the plugin.
         /// </summary>
         public required VersionInformation Version { get; init; }
@@ -671,6 +676,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 Name = pluginInstance.Name,
                 Description = pluginInstance.Description?.CleanDescription() ?? string.Empty,
                 Namespace = localPluginInfo.Namespace,
+                IsMeta = localPluginInfo.IsMeta,
                 Version = localPluginInfo.Version,
                 Authors = localPluginInfo.Authors,
                 RepositoryUrl = localPluginInfo.RepositoryUrl,

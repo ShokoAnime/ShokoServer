@@ -127,6 +127,14 @@ public sealed class RemotePackageManifestInfo
     public string? IconUrl { get; set; }
 
     /// <summary>
+    /// Whether the package is a meta plugin, one that only brings in its
+    /// dependencies, or <c>null</c> when the manifest does not say.
+    /// </summary>
+    [JsonPropertyName("is_meta")]
+    [JsonProperty("is_meta")]
+    public bool? IsMeta { get; set; }
+
+    /// <summary>
     /// Available releases from the manifest.
     /// </summary>
     [JsonPropertyName("releases")]

@@ -36,6 +36,13 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public string? Namespace { get; init; } = pluginInfo.Namespace;
 
     /// <summary>
+    ///   Whether the plugin is a meta plugin, one whose only code is its
+    ///   generated plugin class, so it only brings in its dependencies, or
+    ///   <c>null</c> when its build did not say.
+    /// </summary>
+    public bool? IsMeta { get; init; } = pluginInfo.IsMeta;
+
+    /// <summary>
     ///   The description of the plugin.
     /// </summary>
     [Required]

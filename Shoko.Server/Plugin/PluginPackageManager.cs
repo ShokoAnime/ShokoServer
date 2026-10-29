@@ -254,6 +254,7 @@ public partial class PluginPackageManager(
                         Tag = plugin.Version.ReleaseTag,
                         SourceRevision = plugin.Version.SourceRevision,
                         ReleaseNotes = null,
+                        IsMeta = plugin.IsMeta,
                         Archives = [
                             new()
                             {
@@ -273,6 +274,7 @@ public partial class PluginPackageManager(
                         RepositoryUrl = plugin.RepositoryUrl,
                         HomepageUrl = plugin.HomepageUrl,
                         Tags = plugin.Tags,
+                        IsMeta = plugin.IsMeta,
                         Thumbnail = plugin.Thumbnail,
                         Icon = plugin.Icon,
                         Releases = [release],
@@ -835,6 +837,7 @@ public partial class PluginPackageManager(
                 Thumbnail = list.FirstOrDefault(m => m.Thumbnail is not null)?.Thumbnail,
                 Icon = list.FirstOrDefault(m => m.Icon is not null)?.Icon,
                 Name = list[0].Name,
+                IsMeta = list.Select(m => m.IsMeta).FirstOrDefault(isMeta => isMeta is not null),
                 Releases = list.SelectMany(m => m.Releases)
                     .OrderByDescending(m => m.Version, new SemverVersionComparer())
                     .ThenByDescending(m => m.ReleasedAt)
@@ -1507,6 +1510,7 @@ public partial class PluginPackageManager(
             Authors = manifestInfo.Authors,
             RepositoryUrl = manifestInfo.RepositoryUrl,
             HomepageUrl = manifestInfo.HomepageUrl,
+            IsMeta = manifestInfo.IsMeta,
             Tags = manifestInfo.Tags
                 .Select(tag => tag.ToLowerInvariant())
                 .Distinct()
@@ -1523,6 +1527,7 @@ public partial class PluginPackageManager(
                     ReleasedAt = remoteRelease.ReleasedAt,
                     Channel = remoteRelease.Channel,
                     ReleaseNotes = remoteRelease.ReleaseNotes,
+                    IsMeta = remoteRelease.IsMeta,
                     // A dependency without a range accepts any version.
                     Dependencies = remoteRelease.Dependencies
                         .Select(remoteDependency => new PluginDependency

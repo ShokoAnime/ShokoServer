@@ -355,6 +355,7 @@ public partial class PluginManager
                     var embeddedName = metadataAttributeDict.TryGetValue(PackageName, out var pn) ? pn : null;
                     var embeddedDescription = metadataAttributeDict.TryGetValue(PackageOverview, out var pd) ? pd : null;
                     var (pluginNamespace, namespaceFailure) = CheckNamespace(metadataAttributeDict.GetValueOrDefault(PackageNamespace));
+                    var isMeta = bool.TryParse(metadataAttributeDict.GetValueOrDefault(PackageIsMeta), out var parsedIsMeta) ? parsedIsMeta : (bool?)null;
                     if (embeddedId is null)
                     {
                         logger.LogWarning(
@@ -381,6 +382,7 @@ public partial class PluginManager
                             DllName = name,
                             Name = embeddedName ?? name,
                             Namespace = pluginNamespace,
+                            IsMeta = isMeta,
                             Description = embeddedDescription is not null
                                 ? $"{abiMismatch}\n\n{embeddedDescription}"
                                 : abiMismatch,
@@ -426,6 +428,7 @@ public partial class PluginManager
                             DllName = name,
                             Name = embeddedName ?? name,
                             Namespace = pluginNamespace,
+                            IsMeta = isMeta,
                             Description = embeddedDescription is not null
                                 ? $"{InvalidDependenciesMessage}\n\n{embeddedDescription}"
                                 : InvalidDependenciesMessage,
@@ -469,6 +472,7 @@ public partial class PluginManager
                             DllName = name,
                             Name = embeddedName ?? name,
                             Namespace = pluginNamespace,
+                            IsMeta = isMeta,
                             Description = embeddedDescription is not null
                                 ? $"{typeLoadReason}\n\n{embeddedDescription}"
                                 : typeLoadReason,
@@ -549,6 +553,7 @@ public partial class PluginManager
                             DllName = name,
                             Name = embeddedName ?? name,
                             Namespace = pluginNamespace,
+                            IsMeta = isMeta,
                             Description = embeddedDescription?.CleanDescription() ?? string.Empty,
                             Version = version,
                             Authors = authors,
@@ -607,6 +612,7 @@ public partial class PluginManager
                         DllName = name,
                         Name = embeddedName ?? instance.Name,
                         Namespace = pluginNamespace,
+                        IsMeta = isMeta,
                         Description = (embeddedDescription ?? instance.Description)?.CleanDescription() ?? string.Empty,
                         Version = version,
                         Authors = authors,
@@ -669,6 +675,8 @@ public partial class PluginManager
     private const string PackageOverview = "PackageOverview";
 
     private const string PackageNamespace = "PackageNamespace";
+
+    private const string PackageIsMeta = "PackageIsMeta";
 
     private const string PackageDependencies = "PackageDependencies";
 
