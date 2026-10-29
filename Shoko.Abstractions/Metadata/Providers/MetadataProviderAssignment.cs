@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace Shoko.Abstractions.Metadata.Providers;
 
@@ -13,4 +14,4 @@ namespace Shoko.Abstractions.Metadata.Providers;
 /// </remarks>
 /// <param name="ProviderID">The provider's ID.</param>
 /// <param name="IsEnabled">Whether it may answer.</param>
-public sealed record MetadataProviderAssignment(Guid ProviderID, bool IsEnabled);
+public sealed record MetadataProviderAssignment([property: Key] Guid ProviderID, bool IsEnabled);

@@ -601,26 +601,32 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             element.ItemElementType = ResolveInnerElementType(element.ItemClass, element.Item);
             builder.Element = element;
 
-            var hasPrimaryKey = builder.IsPrimaryKey || element.ItemClass?.PrimaryKey is not null || element.Item is { IsPrimaryKey: true };
-            switch (element.ListType)
+            // A row is labelled by its [Key] member, or by a TitleComponent it holds.
+            var hasPrimaryKey = builder.IsPrimaryKey || element.ItemClass?.PrimaryKey is not null || element.Item is { IsPrimaryKey: true }
+                || HoldsTitle(ItemTypeOf(contextualType.Type));
+            // An automatic list of class items is drawn inline (as UiDefinitionBuilder resolves it), so it needs a key too.
+            var listType = element.ListType is DisplayListType.Auto && element.ItemElementType is DisplayElementType.SectionContainer
+                ? DisplayListType.ComplexInline
+                : element.ListType;
+            switch (listType)
             {
                 case DisplayListType.ComplexDropdown:
                     if (element.ItemElementType is not DisplayElementType.SectionContainer)
                         throw new NotSupportedException("Dropdown lists are not supported for non-class list items.");
                     if (!hasPrimaryKey)
-                        throw new NotSupportedException("Dropdown lists must have a primary key set.");
+                        throw new NotSupportedException($"Dropdown lists must have a primary key set: {info.MemberInfo.ReflectedType?.Name}.{propertyName} has items with no [Key] member.");
                     break;
                 case DisplayListType.ComplexTab:
                     if (element.ItemElementType is not DisplayElementType.SectionContainer)
                         throw new NotSupportedException("Tab lists are not supported for non-class list items.");
                     if (!hasPrimaryKey)
-                        throw new NotSupportedException("Tab lists must have a primary key set.");
+                        throw new NotSupportedException($"Tab lists must have a primary key set: {info.MemberInfo.ReflectedType?.Name}.{propertyName} has items with no [Key] member.");
                     break;
                 case DisplayListType.ComplexInline:
                     if (element.ItemElementType is not DisplayElementType.SectionContainer)
                         throw new NotSupportedException("Inline lists are not supported for non-class list items.");
                     if (!hasPrimaryKey)
-                        throw new NotSupportedException("Inline lists must have a primary key set.");
+                        throw new NotSupportedException($"Inline lists must have a primary key set: {info.MemberInfo.ReflectedType?.Name}.{propertyName} has items with no [Key] member.");
                     break;
                 case DisplayListType.EnumCheckbox:
                     if (element.ItemElementType is not DisplayElementType.Enum)
@@ -1311,4 +1317,12 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     }
 
     #endregion
+
+    private static Type? ItemTypeOf(Type type)
+        => type.IsArray ? type.GetElementType()
+            : type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>) ? type.GetGenericArguments()[0]
+            : type.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>))?.GetGenericArguments()[0];
+
+    private static bool HoldsTitle(Type? type)
+        => type is not null && type.GetProperties().Any(x => x.PropertyType == typeof(TitleComponent));
 }

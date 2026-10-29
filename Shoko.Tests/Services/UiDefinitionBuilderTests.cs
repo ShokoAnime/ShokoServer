@@ -595,6 +595,7 @@ public class UiDefinitionBuilderTests
     public class LiveBranch
     {
         /// <summary>A member.</summary>
+        [Key]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>Reacts to an edit.</summary>
@@ -609,6 +610,7 @@ public class UiDefinitionBuilderTests
     public class RecursiveNode
     {
         /// <summary>The node's name.</summary>
+        [Key]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>The node's items.</summary>

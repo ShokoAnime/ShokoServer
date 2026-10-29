@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Shoko.Abstractions.Metadata.Airing;
 
 /// <summary>
@@ -11,4 +13,4 @@ namespace Shoko.Abstractions.Metadata.Airing;
 ///   Optional. The preferred language, as a language code. <c>null</c> matches
 ///   any language of the kind.
 /// </param>
-public sealed record AiringTrackPreference(AiringKind Kind, string? LanguageCode = null);
+public sealed record AiringTrackPreference([property: Key] AiringKind Kind, string? LanguageCode = null);

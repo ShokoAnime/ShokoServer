@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Config;
 
 namespace Shoko.Tests.Services;
@@ -48,6 +49,10 @@ public class WrappedNestedCollectionConfiguration : INewtonsoftJsonConfiguration
 /// <summary>A row holding the inner collection.</summary>
 public class NestedCollectionRow
 {
+    /// <summary>The row's name.</summary>
+    [Key]
+    public string Name { get; set; } = string.Empty;
+
     /// <summary>The inner collection.</summary>
     public List<string> Values { get; set; } = [];
 }

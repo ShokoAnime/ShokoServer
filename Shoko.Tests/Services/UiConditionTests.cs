@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Abstractions.UI.Attributes;
@@ -129,6 +130,7 @@ public class UiConditionTests
     public class NestedConfiguration
     {
         /// <summary>Where the work happens.</summary>
+        [Key]
         public NestedMode Mode { get; set; }
     }
 

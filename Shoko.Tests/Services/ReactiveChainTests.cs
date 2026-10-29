@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -178,6 +179,7 @@ public class ReactiveChainTests
     public class ChainBranch
     {
         /// <summary>A member.</summary>
+        [Key]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>Runs first, being nearest the edit.</summary>

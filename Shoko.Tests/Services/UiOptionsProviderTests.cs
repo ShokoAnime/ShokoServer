@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -302,6 +303,7 @@ public class UiOptionsProviderTests
     public class OptionsRow
     {
         /// <summary>A name, listed from the prefix.</summary>
+        [Key]
         public string Name { get; set; } = string.Empty;
 
         /// <summary>The prefix.</summary>
