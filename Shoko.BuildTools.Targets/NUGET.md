@@ -25,7 +25,7 @@ The plugin's identity and tags come from its `manifest.json`, or from its source
 
 ## Generated plugin class and images
 
-A project setting `PluginGenerateClass` to `true` gets its `IPlugin` class generated: a `partial` class `Plugin` in its `RootNamespace` (or `PluginClassName`), whose ID, name and description come from the stamped identity. Add a main configuration or behaviour in a partial class of your own; with no other code, it is a meta plugin that only brings in its `PluginDependency` items. `PluginIcon` and `PluginThumbnail` name the image files to embed for the server to show. See [Generated plugin class](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#generated-plugin-class) and [Plugin images](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#plugin-images) in the guide.
+A project setting `PluginGenerateClass` to `true` gets its `IPlugin` class generated: a `partial` class `Plugin` in its `RootNamespace` (or `PluginClassName`), whose ID, name and description come from the stamped identity. Add a main configuration or behaviour in a partial class of your own; with no other code, it is a meta plugin that only brings in its `PluginDependency` items. The targets detect that, with no property to set, and stamp `PackageIsMeta` as `true` or `false`, which the server shows as `IsMeta`. `PluginIcon` and `PluginThumbnail` name the image files to embed for the server to show. See [Generated plugin class](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#generated-plugin-class) and [Plugin images](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#plugin-images) in the guide.
 
 ## Documentation
 

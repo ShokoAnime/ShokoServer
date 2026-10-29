@@ -11,7 +11,9 @@
 
     A project setting PluginGenerateClass to true gets its IPlugin class
     generated: a partial class named PluginClassName (Plugin by default) in
-    RootNamespace, reading its identity from the assembly. PluginIcon and
+    RootNamespace, reading its identity from the assembly. With no other
+    code it is a meta plugin, which is detected and stamped as
+    PackageIsMeta. PluginIcon and
     PluginThumbnail name the image files to embed for the server to show.
 
     A build that imports these targets from source rather than from the
@@ -59,6 +61,10 @@
   <UsingTask TaskName="Shoko.BuildTools.Tasks.StampGitMetadata" AssemblyFile="$(ShokoBuildToolsTasksAssembly)"
              Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
   <UsingTask TaskName="Shoko.BuildTools.Tasks.StampGitMetadata" AssemblyFile="$(ShokoBuildToolsTasksAssembly)" TaskFactory="TaskHostFactory"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' == 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.DetectMetaPlugin" AssemblyFile="$(ShokoBuildToolsTasksAssembly)"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.DetectMetaPlugin" AssemblyFile="$(ShokoBuildToolsTasksAssembly)" TaskFactory="TaskHostFactory"
              Condition="'$(ShokoBuildToolsUseTaskHost)' == 'true'" />
 
   <!-- Manifest metadata — generate .cs from manifest.json -->
@@ -109,6 +115,28 @@
                          ClassName="$(PluginClassName)" />
     <ItemGroup>
       <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.PluginClass.cs" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Meta plugin: one whose only code is its generated plugin class, so it
+    only brings in its dependencies. Detected from the compile items just
+    before they are compiled, so it runs under shoko-build too, which never
+    stamps this key itself. Not a property a project can set.
+  -->
+  <Target Name="_ShokoDetectMetaPlugin" BeforeTargets="CoreCompile" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)">
+    <PropertyGroup>
+      <_ShokoGeneratesPluginClass>false</_ShokoGeneratesPluginClass>
+      <_ShokoGeneratesPluginClass Condition="'$(PluginGenerateClass)' == 'true'">true</_ShokoGeneratesPluginClass>
+    </PropertyGroup>
+    <DetectMetaPlugin ProjectDir="$(MSBuildProjectDirectory)"
+                          OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.MetaPlugin.cs"
+                          GenerateClass="$(_ShokoGeneratesPluginClass)"
+                          CompileItems="@(Compile)"
+                          GeneratedFolders="$(BaseIntermediateOutputPath);$(IntermediateOutputPath)"
+                          GeneratedFiles="$(ShokoBuildAssemblyInfoFile)" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.MetaPlugin.cs" />
     </ItemGroup>
   </Target>
 
