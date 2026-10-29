@@ -106,19 +106,20 @@ and should not be used for new code unless DI is not an option and only as a las
 
 **Middleware order** (configured in `Shoko.Server/API/APIExtensions.cs`, `UseAPI()`):
 
-1. Sentry exception handling (if not opted out)
-2. `DeveloperExceptionPage` (DEBUG / `AlwaysUseDeveloperExceptions`)
-3. Swagger UI (if enabled) — configurable path via `WebSettings.SwaggerUIPrefix`
-4. `UseRouting`
-5. `WebUIMiddleware` — serves the active web UI for requests no route took (after routing, so a mapped route always wins, and never under `/api`, `/plugin` or `/signalr`): a `StaticFileMiddleware` for the active `IWebUIProvider` at its mount path, rebuilt whenever `WebUIService`'s serving state changes, plus the redirects from `/` and from the core web UI's path when another web UI is mounted elsewhere, and of a browser's page outside the mount path into it at the same path: at once until the server has started, otherwise once the rest of the pipeline, plugin middleware included, answered it `404`. A request that does not accept `text/html` keeps its `404`. Always registered; the selection, `IsEnabled` (in `WebUIServiceSettings`) and mount paths apply live
-6. `UseCors` — any method and header; any origin unless `Web.AllowedOrigins` (set by `SHOKO_CORS_ORIGINS`) lists some. Before the endpoints, so every answer gets its headers, and before the not-running check, so preflights work in setup and failure mode
-7. `ServerNotRunningMiddleware` — returns 503 until the server is started, exempted via `[InitFriendly]`
-8. `UseAuthentication` — custom "ShokoServer" scheme
-9. `ActorContextMiddleware` — makes the request's API token the current actor (`IActorContext`) until the request ends
-10. `UseAuthorization` — policies: `"admin"` (IsAdmin == 1), `"init"` (setup user only)
-11. `UseEndpoints` — `MapControllers`, plus the SignalR hubs when `EnableSignalR` is on: `/signalr/logging`, `/signalr/aggregate`
-12. Plugin middleware registration
-13. `UseMvc` (legacy, `EnableEndpointRouting = false`)
+1. `UseForwardedHeaders` — only when `Web.TrustedProxies` (set by `SHOKO_TRUSTED_PROXIES`) lists IP addresses or CIDR ranges (`TrustedProxies`): a request from a listed peer takes the `X-Forwarded-Host`, `X-Forwarded-Proto` and `X-Forwarded-For` it sent, through every listed proxy in a chain; nothing else is trusted, loopback included. First, so everything after it, the web UI's host routing among them, sees the forwarded host, scheme and client address
+2. Sentry exception handling (if not opted out)
+3. `DeveloperExceptionPage` (DEBUG / `AlwaysUseDeveloperExceptions`)
+4. Swagger UI (if enabled) — configurable path via `WebSettings.SwaggerUIPrefix`
+5. `UseRouting`
+6. `WebUIMiddleware` — serves the web UI of the request's host for requests no route took (after routing, so a mapped route always wins, and never under `/api`, `/plugin` or `/signalr`): the `ServingState` of the host's override in `WebUIServiceSettings.HostOverrides`, else the default one, picks the `IWebUIProvider`, served by a `StaticFileMiddleware` at its mount path, made anew for each new serving state, plus the redirects from `/` and from the core web UI's path when another web UI is mounted elsewhere, and of a browser's page outside the mount path into it at the same path: at once until the server has started, otherwise once the rest of the pipeline, plugin middleware included, answered it `404`. A request that does not accept `text/html` keeps its `404`. Always registered; the selection, the host overrides, `IsEnabled` (in `WebUIServiceSettings`) and mount paths apply live
+7. `UseCors` — any method and header; any origin unless `Web.AllowedOrigins` (set by `SHOKO_CORS_ORIGINS`) lists some. Before the endpoints, so every answer gets its headers, and before the not-running check, so preflights work in setup and failure mode
+8. `ServerNotRunningMiddleware` — returns 503 until the server is started, exempted via `[InitFriendly]`
+9. `UseAuthentication` — custom "ShokoServer" scheme
+10. `ActorContextMiddleware` — makes the request's API token the current actor (`IActorContext`) until the request ends
+11. `UseAuthorization` — policies: `"admin"` (IsAdmin == 1), `"init"` (setup user only)
+12. `UseEndpoints` — `MapControllers`, plus the SignalR hubs when `EnableSignalR` is on: `/signalr/logging`, `/signalr/aggregate`
+13. Plugin middleware registration
+14. `UseMvc` (legacy, `EnableEndpointRouting = false`)
 
 **Global action filters** (registered on all MVC controllers):
 - `DatabaseBlockedFilter` — returns 400 if DB is blocked, exempted via `[DatabaseBlockedExempt]`
@@ -252,7 +253,7 @@ Installing a package brings its dependencies along. `PackageInstallPlanner` plan
 
 Plugins can also implement `IPluginApplicationRegistration` to register custom middleware via `RegisterServices(IApplicationBuilder, IApplicationPaths)` — invoked during `UseAPI()` after `UseEndpoints` and before `UseMvc`.
 
-The server serves one web UI at a time. A plugin offers one by exporting an `IWebUIProvider` (`Shoko.Abstractions/Web/`): an `IFileProvider` with its own mount path, link templates and releases, configured through `IWebUIProvider<TConfiguration>`. `WebUIService` (`IWebUIService`) picks the active web UI (the admin's pick in `WebUIServiceSettings`, else the first plugin web UI in load order, else the core's `CoreWebUIProvider`, the Shoko Web UI, always at `/webui` from the `webui` folder of the data path) and keeps it as a `ServingState`, worked out again when the selection or the server settings are saved or a provider's mount path changes, raising `ActiveProviderChanged`; it installs the active web UI's bundled release when needed (`ApplyStartPolicy`, at start and on a switch), and lists and installs its releases for `/api/v3/WebUI`. `GET /api/v3/WebUI` tells other applications where the web UI is and how to link into it.
+The server serves one web UI to each host. A plugin offers one by exporting an `IWebUIProvider` (`Shoko.Abstractions/Web/`): an `IFileProvider` with its own mount path, link templates and releases, configured through `IWebUIProvider<TConfiguration>`. `WebUIService` (`IWebUIService`) picks the default web UI, the `ActiveProvider` (the admin's pick in `WebUIServiceSettings`, else the first plugin web UI in load order, else the core's `CoreWebUIProvider`, the Shoko Web UI, always at `/webui` from the `webui` folder of the data path), and the web UI of each host override (`HostOverrides`, a host name with an optional port → a provider ID, validated on save by `WebUIHosts`; an entry with a port beats one without, names compare ignoring case, and a host without an entry, or whose web UI is gone or failed, gets the default). It keeps a `ServingState` for every web UI in use in a `ServingTable`, worked out again when the selection, the overrides or the server settings are saved or a provider's mount path changes, raising `ActiveProviderChanged` once per changed host (`Host` is `null` for the default); it installs the bundled release of every web UI in use when needed (`ApplyStartPolicy`, at start and when one comes into use), and lists and installs releases for `/api/v3/WebUI`. `GET /api/v3/WebUI` tells other applications where the web UI of the request's host is and how to link into it, and the release routes act on that web UI too; `/api/v3/WebUI/Provider` reads and sets the default, the host overrides and `IsEnabled`. Behind a reverse proxy, the host is the forwarded one only from a peer listed in `Web.TrustedProxies`.
 
 Plugin controllers are registered via `AddPluginControllers` during API setup. Plugins add SignalR feeds with `services.AddEventEmitter<TFeed>()`. Every WebSocket endpoint lives under `/signalr`, a plugin's at `/signalr/plugin/<namespace>/…`, whatever dialect it speaks (SignalR, JSON-RPC, a protocol of its own), since that is the path reverse and development proxies upgrade; plain HTTP routes stay under `/api/plugin/<namespace>/…` (`Shoko.Abstractions/Web/Services/README.md`).
 

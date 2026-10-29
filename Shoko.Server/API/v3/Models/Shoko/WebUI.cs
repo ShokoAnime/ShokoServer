@@ -1051,14 +1051,14 @@ public class WebUI
         public string MountPath { get; } = info.MountPath;
 
         /// <summary>
-        /// Indicates the web UI is the one served, or kept up to date while
-        /// serving is off.
+        /// Indicates the web UI is in use, by default or for a host, whether
+        /// served or kept up to date while serving is off.
         /// </summary>
         public bool IsActive { get; } = info.IsActive;
 
         /// <summary>
-        /// Indicates the admin picked the web UI. When none is picked, one is
-        /// picked automatically.
+        /// Indicates the admin picked the web UI as the default. When none is
+        /// picked, one is picked automatically.
         /// </summary>
         public bool IsSelected { get; } = info.IsSelected;
 
@@ -1076,7 +1076,7 @@ public class WebUI
     }
 
     /// <summary>
-    /// The web UI the server serves.
+    /// The web UI the server serves for a host.
     /// </summary>
     public class WebUIActiveProvider(WebUIProviderInfo info, bool isEnabled) : WebUIProvider(info)
     {
@@ -1088,7 +1088,8 @@ public class WebUI
     }
 
     /// <summary>
-    /// The web UIs the server can serve, and which one it serves.
+    /// The web UIs the server can serve, which one it serves by default, and
+    /// the web UIs served for some hosts instead.
     /// </summary>
     public class WebUIProviderSelection(IWebUIService webUIService)
     {
@@ -1101,6 +1102,40 @@ public class WebUI
         /// Every available web UI, the server's own first.
         /// </summary>
         public IReadOnlyList<WebUIProvider> Providers { get; } = webUIService.GetAvailableProviders().Select(info => new WebUIProvider(info)).ToList();
+
+        /// <summary>
+        /// The web UIs served for some hosts instead of the default one.
+        /// </summary>
+        public IReadOnlyList<WebUIHostOverride> HostOverrides { get; } = webUIService.HostOverrides.Select(entry => new WebUIHostOverride(entry)).ToList();
+    }
+
+    /// <summary>
+    /// A web UI served for a host instead of the default one.
+    /// </summary>
+    public class WebUIHostOverride
+    {
+        /// <summary>
+        /// The host: a host name or IP address with an optional port, such as
+        /// <c>media.example.com</c> or <c>192.168.1.10:8111</c>, and an IPv6
+        /// address in brackets. Compared ignoring case; an entry with a port
+        /// beats one without.
+        /// </summary>
+        [Required]
+        public string Host { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The ID of the web UI to serve for the host.
+        /// </summary>
+        [Required]
+        public Guid ProviderID { get; set; }
+
+        public WebUIHostOverride() { }
+
+        public WebUIHostOverride(Abstractions.Web.WebUIHostOverride entry)
+        {
+            Host = entry.Host;
+            ProviderID = entry.ProviderID;
+        }
     }
 
     public class Input
@@ -1166,10 +1201,15 @@ public class WebUI
             public bool IsEnabled { get; set; }
 
             /// <summary>
-            /// The ID of the web UI to serve, or <c>null</c> to pick one
-            /// automatically.
+            /// The ID of the web UI to serve by default, or <c>null</c> to pick
+            /// one automatically.
             /// </summary>
             public Guid? SelectedProviderID { get; set; }
+
+            /// <summary>
+            /// The web UIs to serve for some hosts instead of the default one.
+            /// </summary>
+            public List<WebUIHostOverride>? HostOverrides { get; set; }
         }
     }
 }

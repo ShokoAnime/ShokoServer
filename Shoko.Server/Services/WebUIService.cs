@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
@@ -28,8 +29,8 @@ using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 namespace Shoko.Server.Services;
 
 /// <summary>
-///   Picks the web UI the server serves and keeps its releases up to
-///   date.
+///   Picks the web UIs the server serves, by default and for each host
+///   override, and keeps their releases up to date.
 /// </summary>
 public class WebUIService(
     ILogger<WebUIService> logger,
@@ -55,7 +56,7 @@ public class WebUIService(
 
     private IReadOnlyList<WebUIProviderInfo>? _providerInfos;
 
-    private ServingState? _state;
+    private ServingTable? _table;
 
     private bool _watching;
 
@@ -132,20 +133,60 @@ public class WebUIService(
     #region Web UIs
 
     /// <summary>
-    ///   What is served now: the active web UI, whether serving is on, and the
-    ///   path it is mounted at, with the path its provider gave, to notice
-    ///   when that changes.
+    ///   What is served for one web UI in use: the web UI, whether serving is
+    ///   on, and the path it is mounted at, with the path its provider gave,
+    ///   to notice when that changes.
     /// </summary>
-    /// <param name="Active">The active web UI.</param>
-    /// <param name="IsEnabled">Whether the active web UI is served.</param>
-    /// <param name="MountPath">The active web UI's mount path.</param>
-    /// <param name="ActiveProviderMountPath">The mount path the active provider gave.</param>
+    /// <param name="Active">The web UI.</param>
+    /// <param name="IsEnabled">Whether the web UI is served.</param>
+    /// <param name="MountPath">The web UI's mount path.</param>
+    /// <param name="ActiveProviderMountPath">The mount path the web UI's provider gave.</param>
     internal sealed record ServingState(
         WebUIProviderInfo Active,
         bool IsEnabled,
         string MountPath,
         string? ActiveProviderMountPath
     );
+
+    /// <summary>
+    ///   What is served for every host: the default web UI, and the web UIs of
+    ///   the host overrides. A web UI serving several hosts has one state.
+    /// </summary>
+    /// <param name="Default">The state of the web UI serving every host without an override.</param>
+    /// <param name="Hosts">The states of the host overrides, by key from <see cref="WebUIHosts.TryParse"/>.</param>
+    internal sealed record ServingTable(ServingState Default, IReadOnlyDictionary<string, ServingState> Hosts)
+    {
+        /// <summary>
+        ///   The state of every web UI in use, the default one first.
+        /// </summary>
+        public IReadOnlyList<ServingState> States { get; } = Hosts.Values.Prepend(Default).Distinct().ToList();
+
+        /// <summary>
+        ///   Gets the state serving a request's host.
+        /// </summary>
+        /// <param name="host">The request's host.</param>
+        /// <returns>The state of the host's override, or the default one.</returns>
+        public ServingState Resolve(HostString host)
+            => WebUIHosts.Resolve(Hosts, host, Default);
+
+        /// <summary>
+        ///   Gets the state serving a host override's key.
+        /// </summary>
+        /// <param name="key">The key, or <c>null</c> for the default.</param>
+        /// <returns>The state of the key's override, or the default one.</returns>
+        public ServingState Resolve(string? key)
+            => key is not null && Hosts.TryGetValue(key, out var state) ? state : Default;
+
+        /// <summary>
+        ///   Checks if another table serves every host with the same states.
+        /// </summary>
+        /// <param name="other">The other table.</param>
+        /// <returns><c>true</c> if nothing changed between them.</returns>
+        public bool ServesTheSameAs(ServingTable other)
+            => ReferenceEquals(Default, other.Default) &&
+                Hosts.Count == other.Hosts.Count &&
+                Hosts.All(pair => other.Hosts.TryGetValue(pair.Key, out var state) && ReferenceEquals(pair.Value, state));
+    }
 
     /// <inheritdoc />
     public bool IsEnabled
@@ -165,7 +206,11 @@ public class WebUIService(
 
     /// <inheritdoc />
     public WebUIProviderInfo ActiveProvider
-        => GetState().Active;
+        => GetTable().Default.Active;
+
+    /// <inheritdoc />
+    public WebUIProviderInfo GetActiveProvider(string? host)
+        => GetState(string.IsNullOrWhiteSpace(host) ? default : new HostString(host.Trim())).Active;
 
     /// <inheritdoc />
     public void SelectProvider(WebUIProviderInfo? webUI)
@@ -180,34 +225,69 @@ public class WebUIService(
     }
 
     /// <inheritdoc />
+    public IReadOnlyList<WebUIHostOverride> HostOverrides
+        => configurationProvider.Load().HostOverrides
+            .Select(entry => new WebUIHostOverride { Host = entry.Host, ProviderID = entry.ProviderID })
+            .ToList();
+
+    /// <inheritdoc />
+    public void SetHostOverrides(IReadOnlyList<WebUIHostOverride> overrides)
+    {
+        var errors = WebUIHosts.Validate(overrides, providerID => GetProviderInfo(providerID) is not null);
+        if (errors.Count > 0)
+            throw new ArgumentException(string.Join(" ", errors.Values), nameof(overrides));
+
+        var settings = configurationProvider.Load(copy: true);
+        settings.HostOverrides = overrides
+            .Select(entry => new WebUIHostOverride { Host = entry.Host.Trim(), ProviderID = entry.ProviderID })
+            .ToList();
+        configurationProvider.Save(settings);
+        Refresh();
+    }
+
+    /// <inheritdoc />
     public event EventHandler<WebUIActiveProviderChangedEventArgs>? ActiveProviderChanged;
 
     /// <summary>
-    ///   Gets what is served now. Cheap enough for every request: it only
-    ///   works it out again when a provider gives another mount path, the
-    ///   active web UI's plugin failed, or after the selection or the settings
+    ///   Gets what is served by default, for every host without an override.
+    /// </summary>
+    /// <returns>The default serving state.</returns>
+    internal ServingState GetState()
+        => GetTable().Default;
+
+    /// <summary>
+    ///   Gets what is served for a request's host.
+    /// </summary>
+    /// <param name="host">The request's host, after any trusted proxy's forwarding.</param>
+    /// <returns>The serving state of the host's override, or the default one.</returns>
+    internal ServingState GetState(HostString host)
+        => GetTable().Resolve(host);
+
+    /// <summary>
+    ///   Gets what is served for every host. Cheap enough for every request: it
+    ///   only works it out again when a provider gives another mount path, a
+    ///   served web UI's plugin failed, or after the selection or the settings
     ///   were saved.
     /// </summary>
-    /// <returns>The serving state.</returns>
-    internal ServingState GetState()
+    /// <returns>The serving table.</returns>
+    private ServingTable GetTable()
     {
-        var state = _state;
-        if (state is not null &&
-            !state.Active.PluginInfo.HasFailed &&
-            ReadMountPath(state.Active) == state.ActiveProviderMountPath)
-            return state;
+        var table = _table;
+        if (table is not null && table.States.All(state => !state.Active.PluginInfo.HasFailed && ReadMountPath(state.Active) == state.ActiveProviderMountPath))
+            return table;
 
         return Refresh();
     }
 
     /// <summary>
-    ///   Works out what is served now: the selected web UI if it is there and
-    ///   did not fail, else the first plugin web UI, else the server's own.
-    ///   A change of web UI moves the release events over and brings the new
-    ///   one's files in line in the background.
+    ///   Works out what is served for every host: by default the selected web
+    ///   UI if it is there and did not fail, else the first plugin web UI, else
+    ///   the server's own, and for each host override its web UI if it is there
+    ///   and did not fail. A web UI coming into use gets its release events
+    ///   followed and its files brought in line in the background.
     /// </summary>
-    /// <returns>The serving state.</returns>
-    private ServingState Refresh()
+    /// <returns>The serving table.</returns>
+    private ServingTable Refresh()
     {
         lock (_lock)
         {
@@ -215,60 +295,107 @@ public class WebUIService(
 
             var providerInfos = GetProviderInfosLocked();
             var core = providerInfos.First(info => info.Provider == coreProvider);
-            var selectedID = configurationProvider.Load().SelectedProviderID;
+            var settings = configurationProvider.Load();
+            var selectedID = settings.SelectedProviderID;
             var usable = providerInfos.Where(info => !info.PluginInfo.HasFailed).ToList();
-            var active = (selectedID is { } id ? usable.FirstOrDefault(info => info.ID == id) : null)
+            var defaultActive = (selectedID is { } id ? usable.FirstOrDefault(info => info.ID == id) : null)
                 ?? usable.FirstOrDefault(info => info.Provider != coreProvider)
                 ?? core;
 
+            var warnings = new List<string>();
+            var hostProviders = new Dictionary<string, WebUIProviderInfo>(StringComparer.Ordinal);
+            foreach (var entry in settings.HostOverrides)
+            {
+                if (!WebUIHosts.TryParse(entry.Host, out var key, out var reason))
+                    warnings.Add($"The web UI host override for \"{entry.Host}\" is ignored: {reason}");
+                else if (usable.FirstOrDefault(info => info.ID == entry.ProviderID) is not { } webUI)
+                    warnings.Add($"The web UI {entry.ProviderID} for \"{entry.Host}\" is not available. Serving the default web UI there instead.");
+                else
+                    hostProviders.TryAdd(key, webUI);
+            }
+
+            var inUse = hostProviders.Values.Prepend(defaultActive).Distinct().ToList();
             foreach (var info in providerInfos)
             {
-                info.IsActive = info == active;
+                info.IsActive = inUse.Contains(info);
                 info.IsSelected = info.ID == selectedID;
             }
 
-            var activeProviderMountPath = UpdateMountPath(active);
-            var isEnabled = configurationProvider.Load().IsEnabled;
-            var previous = _state;
-            var state = new ServingState(active, isEnabled, active.MountPath, activeProviderMountPath);
-            if (state == previous)
-                return previous;
-
-            _state = state;
-            if (previous?.Active != active)
+            var isEnabled = settings.IsEnabled;
+            var previous = _table;
+            var states = new Dictionary<WebUIProviderInfo, ServingState>();
+            foreach (var info in inUse)
             {
-                if (previous is not null)
-                    previous.Active.Provider.ReleaseInstalled -= OnActiveProviderReleaseInstalled;
-                active.Provider.ReleaseInstalled += OnActiveProviderReleaseInstalled;
-                if (selectedID is { } missingID && active.ID != missingID)
-                    logger.LogWarning("The selected web UI {ProviderID} is not available. Serving {Name} instead.", missingID, active.Name);
+                var providerMountPath = UpdateMountPath(info);
+                var state = new ServingState(info, isEnabled, info.MountPath, providerMountPath);
+                var previousState = previous?.States.FirstOrDefault(other => other.Active == info);
+                states[info] = previousState == state ? previousState : state;
             }
 
-            if (previous is null || previous.Active != active || previous.MountPath != state.MountPath || previous.IsEnabled != isEnabled)
+            var table = new ServingTable(
+                states[defaultActive],
+                hostProviders.ToDictionary(pair => pair.Key, pair => states[pair.Value], StringComparer.Ordinal)
+            );
+            if (previous is not null && table.ServesTheSameAs(previous))
+                return previous;
+
+            _table = table;
+            foreach (var warning in warnings)
+                logger.LogWarning("{Warning}", warning);
+
+            var previousInUse = previous?.States.Select(state => state.Active).ToList() ?? [];
+            foreach (var info in previousInUse.Except(inUse))
+                info.Provider.ReleaseInstalled -= OnProviderReleaseInstalled;
+            var added = inUse.Except(previousInUse).ToList();
+            foreach (var info in added)
+                info.Provider.ReleaseInstalled += OnProviderReleaseInstalled;
+
+            if (previous?.Default.Active != defaultActive && selectedID is { } missingID && defaultActive.ID != missingID)
+                logger.LogWarning("The selected web UI {ProviderID} is not available. Serving {Name} instead.", missingID, defaultActive.Name);
+
+            // The default first, then every host whose web UI changed, the ones whose override went among them.
+            var changes = new List<WebUIActiveProviderChangedEventArgs>();
+            foreach (var key in table.Hosts.Keys.Concat(previous?.Hosts.Keys ?? []).Distinct().Prepend(null))
             {
-                if (isEnabled)
-                    logger.LogInformation("Serving the web UI {Name} from {Path}.", active.Name, active.MountPath);
+                var state = table.Resolve(key);
+                var previousState = previous?.Resolve(key);
+                if (previousState is not null && previousState.Active == state.Active && previousState.IsEnabled == isEnabled && previousState.MountPath == state.MountPath)
+                    continue;
+
+                if (key is not null && previous is null && state == table.Default)
+                    continue;
+
+                if (!isEnabled)
+                {
+                    if (key is null)
+                        logger.LogInformation("Not serving a web UI. {Name} is kept up to date.", state.Active.Name);
+                }
+                else if (key is null)
+                {
+                    logger.LogInformation("Serving the web UI {Name} from {Path}.", state.Active.Name, state.MountPath);
+                }
                 else
-                    logger.LogInformation("Not serving a web UI. {Name} is kept up to date.", active.Name);
+                {
+                    logger.LogInformation("Serving the web UI {Name} from {Path} for {Host}.", state.Active.Name, state.MountPath, key);
+                }
+
+                changes.Add(new() { Provider = state.Active, IsEnabled = isEnabled, Host = key });
             }
 
             if (previous is null)
-                return state;
+                return table;
 
-            // The new web UI may have nothing installed yet; the start-up rules apply to it now.
-            if (previous.Active != active)
+            // A web UI coming into use may have nothing installed yet; the start-up rules apply to it now.
+            if (added.Count > 0)
             {
                 using (DetachedFlow.Suppress())
-                    _ = Task.Run(ApplyStartPolicy);
+                    _ = Task.Run(() => added.ForEach(ApplyStartPolicy));
             }
 
-            if (previous.Active != active || previous.IsEnabled != isEnabled || previous.MountPath != state.MountPath)
-            {
-                var eventArgs = new WebUIActiveProviderChangedEventArgs { Provider = active, IsEnabled = isEnabled };
-                _ = Task.Run(() => ActiveProviderChanged?.Invoke(this, eventArgs));
-            }
+            if (changes.Count > 0)
+                _ = Task.Run(() => changes.ForEach(eventArgs => ActiveProviderChanged?.Invoke(this, eventArgs)));
 
-            return state;
+            return table;
         }
     }
 
@@ -358,16 +485,21 @@ public class WebUIService(
     /// <inheritdoc />
     public event EventHandler<WebUIReleaseInstalledEventArgs>? ReleaseInstalled;
 
-    private void OnActiveProviderReleaseInstalled(object? sender, EventArgs eventArgs)
+    private void OnProviderReleaseInstalled(object? sender, EventArgs eventArgs)
     {
         var webUI = GetAvailableProviders().FirstOrDefault(info => info.Provider == sender) ?? ActiveProvider;
         ReleaseInstalled?.Invoke(this, new() { Provider = webUI, Release = webUI.Provider.CurrentRelease });
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<WebUIReleaseInformation>> GetReleases(ReleaseChannel? channel = null, bool force = false, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<WebUIReleaseInformation>> GetReleases(
+        ReleaseChannel? channel = null,
+        bool force = false,
+        WebUIProviderInfo? webUI = null,
+        CancellationToken cancellationToken = default
+    )
     {
-        var webUI = ActiveProvider;
+        webUI ??= ActiveProvider;
         if (channel is ReleaseChannel.Auto)
             channel = GetChannel(webUI);
 
@@ -382,14 +514,15 @@ public class WebUIService(
         ReleaseChannel channel = ReleaseChannel.Auto,
         bool force = false,
         bool allowIncompatible = false,
+        WebUIProviderInfo? webUI = null,
         CancellationToken cancellationToken = default
     )
     {
-        var webUI = ActiveProvider;
+        webUI ??= ActiveProvider;
         if (channel is ReleaseChannel.Auto)
             channel = GetChannel(webUI);
 
-        var releases = await GetReleases(channel, force, cancellationToken);
+        var releases = await GetReleases(channel, force, webUI, cancellationToken);
         var nextIndex = releases.FindIndex(release => allowIncompatible || release.IncompatibleReason is null);
         if (nextIndex is -1)
             return null;
@@ -427,16 +560,22 @@ public class WebUIService(
     }
 
     /// <inheritdoc />
-    public Task<WebUIInstallResult> InstallRelease(WebUIReleaseInformation release, CancellationToken cancellationToken = default)
-        => ActiveProvider.Provider.InstallRelease(release, cancellationToken);
+    public Task<WebUIInstallResult> InstallRelease(WebUIReleaseInformation release, WebUIProviderInfo? webUI = null, CancellationToken cancellationToken = default)
+        => (webUI ?? ActiveProvider).Provider.InstallRelease(release, cancellationToken);
 
     /// <inheritdoc />
-    public async Task<WebUIInstallResult> Update(ReleaseChannel channel = ReleaseChannel.Auto, bool allowIncompatible = false, CancellationToken cancellationToken = default)
+    public async Task<WebUIInstallResult> Update(
+        ReleaseChannel channel = ReleaseChannel.Auto,
+        bool allowIncompatible = false,
+        WebUIProviderInfo? webUI = null,
+        CancellationToken cancellationToken = default
+    )
     {
-        if (await GetLatestRelease(channel, allowIncompatible: allowIncompatible, cancellationToken: cancellationToken) is not { } latest)
+        webUI ??= ActiveProvider;
+        if (await GetLatestRelease(channel, allowIncompatible: allowIncompatible, webUI: webUI, cancellationToken: cancellationToken) is not { } latest)
             return WebUIInstallResult.Failed;
 
-        return await InstallRelease(latest, cancellationToken);
+        return await InstallRelease(latest, webUI, cancellationToken);
     }
 
     #endregion
@@ -444,15 +583,25 @@ public class WebUIService(
     #region Start Policy
 
     /// <summary>
-    ///   Installs the active webUI's bundled release before it is served
-    ///   when nothing is installed, the installed release cannot be used, or
-    ///   the bundled one is newer and the setting allows it. A debug build is
-    ///   only replaced by a newer one. An unusable release without a usable
-    ///   bundled one is replaced in the background.
+    ///   Brings the files of every web UI in use in line before they are
+    ///   served, the default one's and each host override's.
     /// </summary>
     public void ApplyStartPolicy()
     {
-        var webUI = ActiveProvider;
+        foreach (var state in GetTable().States)
+            ApplyStartPolicy(state.Active);
+    }
+
+    /// <summary>
+    ///   Installs a web UI's bundled release before it is served when
+    ///   nothing is installed, the installed release cannot be used, or the
+    ///   bundled one is newer and the setting allows it. A debug build is only
+    ///   replaced by a newer one. An unusable release without a usable bundled
+    ///   one is replaced in the background.
+    /// </summary>
+    /// <param name="webUI">The web UI.</param>
+    private void ApplyStartPolicy(WebUIProviderInfo webUI)
+    {
         var current = webUI.Provider.CurrentRelease;
         var bundled = webUI.Provider.BundledRelease is { } release ? WithServerCompatibility(release) : null;
         string? reason = null;
@@ -492,7 +641,7 @@ public class WebUIService(
                 {
                     try
                     {
-                        if (await Update(current.Channel) is WebUIInstallResult.Failed)
+                        if (await Update(current.Channel, webUI: webUI) is WebUIInstallResult.Failed)
                             logger.LogWarning("No release of {Name} that this server can use was found.", webUI.Name);
                     }
                     catch (Exception ex)

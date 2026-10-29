@@ -170,6 +170,68 @@ public sealed class WebUIServiceTests : IDisposable
 
     #endregion
 
+    #region Host Overrides
+
+    [Fact]
+    public async Task HostOverride_ServesItsWebUIForItsHostOnly()
+    {
+        var webUI = new FakeWebUI("/noren");
+        var service = Create(webUI);
+        var changed = new TaskCompletionSource<WebUIActiveProviderChangedEventArgs>();
+        service.ActiveProviderChanged += (_, eventArgs) => changed.TrySetResult(eventArgs);
+
+        service.SetHostOverrides([new() { Host = "Core.Example.com", ProviderID = service.GetProviderInfo<CoreWebUIProvider>().ID }]);
+
+        Assert.IsType<CoreWebUIProvider>(service.GetState(new HostString("core.example.com:8111")).Active.Provider);
+        Assert.Same(webUI, service.GetState(new HostString("other.example.com")).Active.Provider);
+        Assert.Same(webUI, service.ActiveProvider.Provider);
+        Assert.All(service.GetAvailableProviders(), info => Assert.True(info.IsActive));
+        var eventArgs = await changed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.Equal("core.example.com", eventArgs.Host);
+        Assert.IsType<CoreWebUIProvider>(eventArgs.Provider.Provider);
+    }
+
+    [Fact]
+    public void HostOverride_WithFailedWebUI_ServesTheDefault()
+    {
+        var webUI = new FakeWebUI("/noren");
+        var service = Create(webUI);
+        service.SelectProvider(service.GetProviderInfo<CoreWebUIProvider>());
+        service.SetHostOverrides([new() { Host = "noren.example.com", ProviderID = service.GetProviderInfo(webUI).ID }]);
+        Assert.Same(webUI, service.GetState(new HostString("noren.example.com")).Active.Provider);
+
+        _pluginInfo.FailureReason = "It broke.";
+
+        Assert.IsType<CoreWebUIProvider>(service.GetState(new HostString("noren.example.com")).Active.Provider);
+    }
+
+    [Fact]
+    public void HostOverride_ForUnknownWebUI_IsRefused()
+    {
+        var service = Create(new FakeWebUI("/noren"));
+
+        Assert.Throws<ArgumentException>(() => service.SetHostOverrides([new() { Host = "example.com", ProviderID = Guid.NewGuid() }]));
+        Assert.Empty(service.HostOverrides);
+    }
+
+    [Fact]
+    public void StartPolicy_CoversHostOverrideWebUIs()
+    {
+        var webUI = new FakeWebUI("/noren") { BundledRelease = Release(1, 0, isBundled: true) };
+        var ids = Create(webUI);
+        _serviceSettings = new()
+        {
+            SelectedProviderID = ids.GetProviderInfo<CoreWebUIProvider>().ID,
+            HostOverrides = [new() { Host = "noren.example.com", ProviderID = ids.GetProviderInfo(webUI).ID }],
+        };
+
+        Create(webUI).ApplyStartPolicy();
+
+        Assert.Single(webUI.Installed);
+    }
+
+    #endregion
+
     #region Start Policy
 
     [Fact]

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -14,11 +15,11 @@ using Shoko.Server.Services;
 namespace Shoko.Server.API;
 
 /// <summary>
-///   Serves the active web UI, for every request no route took: the files
-///   from its mount path, a redirect from <c>/</c> to it, a redirect from
-///   the Shoko Web UI's path when another web UI is served elsewhere, and a
-///   redirect into it for a page outside it that nothing else answered.
-///   Follows <see cref="WebUIService"/> as it changes, without a restart.
+///   Serves the web UI of the request's host, for every request no route
+///   took: the files from its mount path, a redirect from <c>/</c> to it, a
+///   redirect from the Shoko Web UI's path when another web UI is served
+///   elsewhere, and a redirect into it for a page outside it that nothing
+///   else answered. Follows <see cref="WebUIService"/> as it changes.
 /// </summary>
 /// <param name="_next">The next middleware.</param>
 /// <param name="_environment">The host environment, for the static file middleware.</param>
@@ -34,17 +35,13 @@ public sealed class WebUIMiddleware(
 )
 {
     /// <summary>
-    ///   The static file middleware for one serving state, swapped whole when
-    ///   the state changes, so a request never mixes two of them.
+    ///   The static file middleware of each serving state, made anew for a new
+    ///   state, so a request never mixes two of them.
     /// </summary>
-    /// <param name="State">The serving state it was made for.</param>
-    /// <param name="ServeFile">Serves a file of the active web UI, or passes the request on.</param>
-    private sealed record Snapshot(WebUIService.ServingState State, RequestDelegate ServeFile);
-
-    private Snapshot? _snapshot;
+    private readonly ConditionalWeakTable<WebUIService.ServingState, RequestDelegate> _fileServers = new();
 
     /// <summary>
-    ///   Answers the request with the active web UI, or passes it on.
+    ///   Answers the request with its host's web UI, or passes it on.
     /// </summary>
     /// <param name="context">The request.</param>
     /// <returns>A task that completes when the request is answered.</returns>
@@ -54,13 +51,11 @@ public sealed class WebUIMiddleware(
         if (context.GetEndpoint() is not null || !(HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method)) || IsReservedPath(request.Path))
             return _next(context);
 
-        var state = _webUIService.GetState();
+        var state = _webUIService.GetState(request.Host);
         if (!state.IsEnabled)
             return _next(context);
 
-        var snapshot = _snapshot;
-        if (snapshot is null || !ReferenceEquals(snapshot.State, state))
-            _snapshot = snapshot = new(state, CreateFileServer(state));
+        var serveFile = _fileServers.GetValue(state, CreateFileServer);
 
         if (state.MountPath is not "/" && request.Path.Value is null or "" or "/")
         {
@@ -78,7 +73,7 @@ public sealed class WebUIMiddleware(
         }
 
         if (state.MountPath is "/" || IsUnderMountPath(request.Path, state.MountPath) || !AcceptsHtml(request))
-            return snapshot.ServeFile(context);
+            return serveFile(context);
 
         // Until the server has started, nothing past this answers a page, and the web UI is where
         // setup and a failed start are dealt with.
@@ -88,7 +83,7 @@ public sealed class WebUIMiddleware(
             return Task.CompletedTask;
         }
 
-        return ServeOrRedirectAsync(context, snapshot, state.MountPath);
+        return ServeOrRedirectAsync(context, serveFile, state.MountPath);
     }
 
     /// <summary>
@@ -98,12 +93,12 @@ public sealed class WebUIMiddleware(
     ///   decide.
     /// </summary>
     /// <param name="context">The request.</param>
-    /// <param name="snapshot">The current snapshot.</param>
+    /// <param name="serveFile">Serves a file of the web UI, or passes the request on.</param>
     /// <param name="mountPath">The web UI's mount path.</param>
     /// <returns>A task that completes when the request is answered.</returns>
-    private static async Task ServeOrRedirectAsync(HttpContext context, Snapshot snapshot, string mountPath)
+    private static async Task ServeOrRedirectAsync(HttpContext context, RequestDelegate serveFile, string mountPath)
     {
-        await snapshot.ServeFile(context);
+        await serveFile(context);
         if (context.Response.StatusCode is not StatusCodes.Status404NotFound || context.Response.HasStarted)
             return;
 

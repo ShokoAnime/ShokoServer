@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using Newtonsoft.Json;
@@ -556,6 +557,15 @@ public static partial class APIExtensions
     {
         var settings = ISettingsProvider.Instance.GetSettings();
         var webSettings = settings.Web;
+
+        // First, so everything after it sees the host, scheme and client address a trusted proxy forwarded.
+        var trustedProxies = TrustedProxies.Parse(webSettings.TrustedProxies, out var invalidProxies);
+        if (invalidProxies.Count > 0)
+            app.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(TrustedProxies))
+                .LogWarning("Ignoring the trusted proxies that are not an IP address or CIDR range: {Proxies}", invalidProxies);
+        if (trustedProxies.Count > 0)
+            app.UseForwardedHeaders(TrustedProxies.CreateOptions(trustedProxies));
+
         if (!settings.SentryOptOut)
         {
             app.Use(async (context, next) =>

@@ -52,15 +52,16 @@ public class WebUIProviderInfo
     public WebUIReleaseInformation? CurrentRelease { get => Provider.CurrentRelease; }
 
     /// <summary>
-    ///   Indicates the web UI is the one served, or kept up to date while
-    ///   serving is off: the <see cref="Services.IWebUIService.ActiveProvider"/>.
+    ///   Indicates the web UI is in use, served or kept up to date while
+    ///   serving is off: the <see cref="Services.IWebUIService.ActiveProvider"/>
+    ///   or the web UI of a host override.
     /// </summary>
     public bool IsActive { get; internal set; }
 
     /// <summary>
-    ///   Indicates the admin picked the web UI. It may not be the active one
-    ///   when its plugin failed. When none is picked, one is picked
-    ///   automatically.
+    ///   Indicates the admin picked the web UI as the default. It may not be
+    ///   the default one when its plugin failed. When none is picked, one is
+    ///   picked automatically.
     /// </summary>
     public bool IsSelected { get; internal set; }
 

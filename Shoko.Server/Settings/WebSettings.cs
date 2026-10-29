@@ -65,6 +65,19 @@ public class WebSettings
     public List<string> AllowedOrigins { get; set; } = [];
 
     /// <summary>
+    ///   The reverse proxies whose forwarded headers are trusted, as IP
+    ///   addresses or CIDR ranges, such as <c>10.0.0.0/8</c>. A request from
+    ///   one takes the host, scheme and client address the proxy forwarded,
+    ///   which picks the web UI of a host. Empty trusts none.
+    /// </summary>
+    [Visibility(Advanced = true)]
+    [Display(Name = "Trusted Proxies")]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_TRUSTED_PROXIES")]
+    [List(UniqueItems = true)]
+    public List<string> TrustedProxies { get; set; } = [];
+
+    /// <summary>
     ///   Enable the built-in SignalR hubs available at <c>/signalr</c>.
     /// </summary>
     [Visibility(Advanced = true)]

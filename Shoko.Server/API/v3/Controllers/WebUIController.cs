@@ -26,12 +26,14 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Services;
 
 using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
 using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 using WebUIActiveProvider = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIActiveProvider;
 using WebUIGroupExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIGroupExtra;
+using WebUIHostOverride = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIHostOverride;
 using WebUIProviderSelection = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIProviderSelection;
 using WebUISeriesExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesExtra;
 using WebUISeriesFileSummary = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary;
@@ -366,21 +368,23 @@ public partial class WebUIController(
     #region Web Web UI
 
     /// <summary>
-    /// Get the web UI the server serves: where it is mounted, the pages
-    /// other applications may link to, and its installed release.
+    /// Get the web UI the server serves for the request's host: where it is
+    /// mounted, the pages other applications may link to, and its installed
+    /// release.
     ///
     /// You don't need to be authenticated to use this endpoint.
     /// </summary>
-    /// <returns>The active web UI.</returns>
+    /// <returns>The web UI served for the request's host.</returns>
     [AllowAnonymous]
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet]
     public ActionResult<WebUIActiveProvider> GetActiveProvider()
-        => new WebUIActiveProvider(webUIService.ActiveProvider, webUIService.IsEnabled);
+        => new WebUIActiveProvider(GetRequestWebUI(), webUIService.IsEnabled);
 
     /// <summary>
-    /// Get every web UI the server can serve, and which one it serves.
+    /// Get every web UI the server can serve, which one it serves by
+    /// default, and the web UIs served for some hosts instead.
     /// </summary>
     /// <returns>The web UIs and the selection.</returns>
     [Authorize(Roles = "admin,init")]
@@ -391,8 +395,9 @@ public partial class WebUIController(
         => new WebUIProviderSelection(webUIService);
 
     /// <summary>
-    /// Change which web UI the server serves, or whether it serves one at
-    /// all. Applies at once.
+    /// Change which web UI the server serves by default, the web UIs served
+    /// for some hosts instead, or whether it serves one at all. Applies at
+    /// once.
     /// </summary>
     /// <param name="patchDocument">The changes to the selection.</param>
     /// <returns>The web UIs and the selection.</returns>
@@ -406,6 +411,7 @@ public partial class WebUIController(
         {
             IsEnabled = webUIService.IsEnabled,
             SelectedProviderID = webUIService.GetAvailableProviders().FirstOrDefault(info => info.IsSelected)?.ID,
+            HostOverrides = webUIService.HostOverrides.Select(entry => new WebUIHostOverride(entry)).ToList(),
         };
         patchDocument.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
@@ -413,12 +419,18 @@ public partial class WebUIController(
 
         WebUIProviderInfo? selected = null;
         if (body.SelectedProviderID is { } providerID && (selected = webUIService.GetProviderInfo(providerID)) is null)
-        {
             ModelState.AddModelError(nameof(body.SelectedProviderID), $"No web UI with ID {providerID} is available.");
+
+        var hostOverrides = (body.HostOverrides ?? [])
+            .Select(entry => new Abstractions.Web.WebUIHostOverride { Host = entry.Host ?? string.Empty, ProviderID = entry.ProviderID })
+            .ToList();
+        foreach (var (index, error) in WebUIHosts.Validate(hostOverrides, id => webUIService.GetProviderInfo(id) is not null))
+            ModelState.AddModelError($"{nameof(body.HostOverrides)}[{index}]", error);
+        if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
-        }
 
         webUIService.SelectProvider(selected);
+        webUIService.SetHostOverrides(hostOverrides);
         webUIService.IsEnabled = body.IsEnabled;
         return new WebUIProviderSelection(webUIService);
     }
@@ -440,7 +452,7 @@ public partial class WebUIController(
     [HttpPost("Install")]
     public async Task<ActionResult> InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] string? version = null, [FromQuery] bool allowIncompatible = false)
     {
-        if (webUIService.ActiveProvider.CurrentRelease is not null)
+        if (GetRequestWebUI().CurrentRelease is not null)
             return ValidationProblem("Unable to install web UI when a web UI is already installed.", "Request");
 
         return await InstallOrUpdate(channel, version, allowIncompatible, "install") ?? Redirect("/");
@@ -478,8 +490,8 @@ public partial class WebUIController(
         => UpdateWebUI(channel, null, allowIncompatible);
 
     /// <summary>
-    /// Installs a release of the active web UI: the given version, or
-    /// the latest on the channel.
+    /// Installs a release of the web UI served for the request's host: the
+    /// given version, or the latest on the channel.
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
     /// <param name="version">Optional specific version, tag or commit to install.</param>
@@ -490,19 +502,20 @@ public partial class WebUIController(
     {
         try
         {
+            var webUI = GetRequestWebUI();
             WebUIInstallResult result;
             if (!string.IsNullOrEmpty(version))
             {
-                var history = await webUIService.GetReleases(channel).ConfigureAwait(false);
+                var history = await webUIService.GetReleases(channel, webUI: webUI).ConfigureAwait(false);
                 var match = history.FirstOrDefault(v =>
                     v.Version.ToSemanticVersioningString() == version || v.ReleaseTag == version || (v.SourceRevision is { Length: > 0 } && v.SourceRevision == version));
                 if (match is null)
                     return BadRequest($"Version '{version}' not found in the release history.");
-                result = await webUIService.InstallRelease(match).ConfigureAwait(false);
+                result = await webUIService.InstallRelease(match, webUI).ConfigureAwait(false);
             }
             else
             {
-                result = await webUIService.Update(channel, allowIncompatible).ConfigureAwait(false);
+                result = await webUIService.Update(channel, allowIncompatible, webUI).ConfigureAwait(false);
             }
 
             if (result is WebUIInstallResult.Failed)
@@ -518,7 +531,8 @@ public partial class WebUIController(
     }
 
     /// <summary>
-    /// Get the full release history for the active web UI.
+    /// Get the full release history for the web UI served for the request's
+    /// host.
     /// </summary>
     /// <param name="channel">Optional filter to a specific release channel.</param>
     /// <param name="version">Optional filter to a specific version.</param>
@@ -530,7 +544,7 @@ public partial class WebUIController(
     {
         try
         {
-            var history = await webUIService.GetReleases(channel).ConfigureAwait(false);
+            var history = await webUIService.GetReleases(channel, webUI: GetRequestWebUI()).ConfigureAwait(false);
             if (!string.IsNullOrEmpty(version))
             {
                 var match = history.FirstOrDefault(v =>
@@ -548,7 +562,8 @@ public partial class WebUIController(
     }
 
     /// <summary>
-    /// Check for latest release of the active web UI for the selected
+    /// Check for latest release of the web UI served for the request's host
+    /// for the selected
     /// <paramref name="channel"/> and return a <see cref="ComponentVersion"/>
     /// containing the version information. Without a release to use, it is
     /// the installed one.
@@ -564,7 +579,8 @@ public partial class WebUIController(
     {
         try
         {
-            var release = await webUIService.GetLatestRelease(channel, force, allowIncompatible).ConfigureAwait(false) ?? webUIService.ActiveProvider.CurrentRelease;
+            var webUI = GetRequestWebUI();
+            var release = await webUIService.GetLatestRelease(channel, force, allowIncompatible, webUI).ConfigureAwait(false) ?? webUI.CurrentRelease;
             if (release is null)
                 return BadRequest("Unable to locate the latest release to use.");
             return release.ToDto();
@@ -574,6 +590,14 @@ public partial class WebUIController(
             return StatusCode((int)HttpStatusCode.BadGateway, "Unable to check for an update. Check your connection.");
         }
     }
+
+    /// <summary>
+    /// The web UI served for the request's host, after any trusted proxy's
+    /// forwarding.
+    /// </summary>
+    /// <returns>The web UI.</returns>
+    private WebUIProviderInfo GetRequestWebUI()
+        => webUIService.GetActiveProvider(Request.Host.Value);
 
     #endregion
 

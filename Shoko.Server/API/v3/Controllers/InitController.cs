@@ -71,7 +71,7 @@ public class InitController(
         }
         catch { }
 
-        var webuiVersion = _webUIService.ActiveProvider.CurrentRelease;
+        var webuiVersion = _webUIService.GetActiveProvider(HttpContext?.Request.Host.Value).CurrentRelease;
         if (webuiVersion != null)
         {
             versionSet.WebUI = new()

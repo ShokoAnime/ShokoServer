@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
+using Shoko.Abstractions.Web;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Settings;
@@ -23,9 +25,15 @@ public class WebUIServiceSettings : INewtonsoftJsonConfiguration
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
-    /// The ID of the web UI to serve, or <c>null</c> to pick one
+    /// The ID of the web UI to serve by default, or <c>null</c> to pick one
     /// automatically.
     /// </summary>
     [EnvironmentVariable("SHOKO_WEBUI_PROVIDER")]
     public Guid? SelectedProviderID { get; set; }
+
+    /// <summary>
+    /// The web UIs served for some hosts instead of the default one, which
+    /// serves every other host.
+    /// </summary>
+    public List<WebUIHostOverride> HostOverrides { get; set; } = [];
 }
