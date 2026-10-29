@@ -32,7 +32,7 @@ public class SimpleNameSerializationBinder : DefaultSerializationBinder
 
     private Type? FindType(string name)
     {
-        var types = ReflectionUtils.ScannableAssemblies().SelectMany(a => a.GetTypes())
+        var types = ReflectionUtils.ScannableTypes()
             .Where(a => a.Name.Equals(name) && (_baseType == null || _baseType.IsAssignableFrom(a))).ToArray();
         if (types.Length > 1) _logger.Warn($"SimpleNameSerializationBinder found multiple types that match {name}");
         return types.FirstOrDefault();

@@ -18,8 +18,7 @@ public class DatabaseRequiredAcquisitionFilter : IAcquisitionFilter
     {
         _systemService = systemService;
         _systemService.DatabaseBlockedChanged += ServerOnDBSetupCompleted;
-        _types = ReflectionUtils.ScannableAssemblies()
-            .SelectMany(a => a.GetTypes())
+        _types = ReflectionUtils.ScannableTypes()
             .Concat(jobTypeRegistry.JobTypes.Where(type => type.IsConstructedGenericType))
             .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract && !a.ContainsGenericParameters &&
                         a.IsDefined(typeof(DatabaseRequiredAttribute), true))

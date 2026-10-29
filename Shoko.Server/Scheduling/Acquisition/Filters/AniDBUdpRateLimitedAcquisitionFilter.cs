@@ -22,8 +22,7 @@ public class AniDBUdpRateLimitedAcquisitionFilter : IAcquisitionFilter
         _systemService = systemService;
         _connectionHandler.AniDBStateUpdate += OnAniDBStateUpdate;
         _systemService.AboutToStart += OnProvidersReady;
-        _types = ReflectionUtils.ScannableAssemblies()
-            .SelectMany(a => a.GetTypes())
+        _types = ReflectionUtils.ScannableTypes()
             .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
                         a.GetCustomAttributes(inherit: true).OfType<AniDBUdpRateLimitedAttribute>().Any())
             .ToArray();

@@ -29,7 +29,7 @@ public class TypeStringConverter : TypeConverter, IUserType
         object value)
     {
         var s = value as string ?? throw new ArgumentException("Can only convert from string");
-        return Type.GetType(s) ?? ReflectionUtils.ScannableAssemblies().SelectMany(a => a.GetTypes()).FirstOrDefault(a => a.Name.Equals(s) || Equals(a.FullName, s));
+        return Type.GetType(s) ?? ReflectionUtils.ScannableTypes().FirstOrDefault(a => a.Name.Equals(s) || Equals(a.FullName, s));
     }
 
     /// <summary>

@@ -45,8 +45,7 @@ public static class SubtitleHelper
     {
         try
         {
-            return ReflectionUtils.ScannableAssemblies()
-                .SelectMany(x => x.GetTypes())
+            return ReflectionUtils.ScannableTypes()
                 .Where(x => typeof(ISubtitles).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract)
                 .Select(type => (ISubtitles)Activator.CreateInstance(type)!)
                 .ToList();

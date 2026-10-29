@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Plugin;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services;
 
@@ -218,7 +219,7 @@ internal sealed class ExpiredHttpHandlerMonitor(
             var typeName = name.Split('<')[0];
             var owners = pluginManager.GetPluginInfos()
                 .Where(plugin => plugin.IsActive && plugin.PluginType is not null)
-                .Where(plugin => GetLoadableTypes(plugin.PluginType!.Assembly).Any(type => type.Name.Split('`')[0] == typeName))
+                .Where(plugin => ReflectionUtils.LoadableTypes(plugin.PluginType!.Assembly).Any(type => type.Name.Split('`')[0] == typeName))
                 .Select(plugin => plugin.Name)
                 .Distinct()
                 .ToList();
@@ -232,23 +233,6 @@ internal sealed class ExpiredHttpHandlerMonitor(
 
         _owners[name] = owner;
         return owner;
-    }
-
-    /// <summary>
-    /// Gets the types of an assembly that could be loaded.
-    /// </summary>
-    /// <param name="assembly">The assembly.</param>
-    /// <returns>The loaded types.</returns>
-    private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
-    {
-        try
-        {
-            return assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            return ex.Types.OfType<Type>();
-        }
     }
 
     /// <summary>

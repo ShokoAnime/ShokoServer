@@ -19,8 +19,7 @@ public class AniDBHttpRateLimitedAcquisitionFilter : IAcquisitionFilter
         _banState = banStateService.Http;
         _banState.BanOccurred += OnBanChanged;
         _banState.BanExpired += OnBanChanged;
-        _types = ReflectionUtils.ScannableAssemblies()
-            .SelectMany(a => a.GetTypes())
+        _types = ReflectionUtils.ScannableTypes()
             .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
                         a.GetCustomAttributes(inherit: true).OfType<AniDBHttpRateLimitedAttribute>().Any())
             .ToArray();

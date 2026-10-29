@@ -36,14 +36,12 @@ public static class AniDBStartup
 
         // Register Requests
         var requestType = typeof(IRequest);
-        var types = ReflectionUtils.ScannableAssemblies()
-            .SelectMany(s => s.GetTypes())
+        var types = ReflectionUtils.ScannableTypes()
             .Where(p => requestType.IsAssignableFrom(p) && !p.IsAbstract && p.IsClass);
 
         /* Possibly negate the need for IRequest (non-generic)
         var requestType = typeof(IRequest<>);
-        var types = ReflectionUtils.ScannableAssemblies()
-            .SelectMany(s => s.GetTypes())
+        var types = ReflectionUtils.ScannableTypes()
             .Where(p => p.IsGenericType && requestType.IsAssignableFrom(p.GetGenericTypeDefinition()) && !p.IsAbstract && p.IsClass)
          */
 

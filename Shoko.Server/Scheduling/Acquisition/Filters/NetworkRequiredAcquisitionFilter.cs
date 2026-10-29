@@ -6,6 +6,7 @@ using Shoko.Abstractions.Connectivity.Services;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
 
@@ -27,11 +28,7 @@ public class NetworkRequiredAcquisitionFilter : IAcquisitionFilter
         _connectivityService.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
         // Use OfType<NetworkRequiredAttribute>() rather than IsDefined so that subclasses
         // of NetworkRequiredAttribute (e.g. AniDBHttpRateLimitedAttribute) are also matched.
-        // Skipping runtime-emitted assemblies: `GetTypes()` throws on one still being written to,
-        // and no job type is ever emitted at runtime.
-        _types = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => !a.IsDynamic)
-            .SelectMany(a => a.GetTypes())
+        _types = ReflectionUtils.ScannableTypes()
             .Concat(jobTypeRegistry?.JobTypes.Where(type => type.IsConstructedGenericType) ?? [])
             .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract && !a.ContainsGenericParameters &&
                         a.GetCustomAttributes(inherit: true).OfType<NetworkRequiredAttribute>().Any())

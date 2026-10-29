@@ -27,7 +27,7 @@ public class FilterFactory(IHttpContextAccessor context, IFilteringEngine _evalu
 
     static FilterFactory()
     {
-        var allTypes = ReflectionUtils.ScannableAssemblies().SelectMany(a => a.GetTypes()).ToList();
+        var allTypes = ReflectionUtils.ScannableTypes().ToList();
         s_expressionTypes = allTypes
             .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) &&
                         !typeof(SortingExpression).IsAssignableFrom(a))

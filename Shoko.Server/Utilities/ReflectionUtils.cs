@@ -19,6 +19,33 @@ internal class ReflectionUtils
     public static IEnumerable<Assembly> ScannableAssemblies()
         => AppDomain.CurrentDomain.GetAssemblies().Where(assembly => !assembly.IsDynamic);
 
+    /// <summary>
+    /// The types of the scannable assemblies that load.
+    /// </summary>
+    /// <remarks>
+    /// Skips a type that cannot load, such as one of a plugin the server refused whose dependency
+    /// is missing, so one plugin cannot stop the server from starting.
+    /// </remarks>
+    public static IEnumerable<Type> ScannableTypes()
+        => ScannableAssemblies().SelectMany(LoadableTypes);
+
+    /// <summary>
+    /// The types of an assembly that load, skipping those that cannot.
+    /// </summary>
+    /// <param name="assembly">The assembly.</param>
+    /// <returns>The types.</returns>
+    public static IEnumerable<Type> LoadableTypes(Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            return ex.Types.OfType<Type>();
+        }
+    }
+
     public delegate T ObjectActivator<T>(params object[] args);
 
     public delegate T ObjectMethodActivator<T>(object instance, params object[] args);

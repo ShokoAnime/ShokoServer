@@ -49,7 +49,7 @@ public class NHibernateDependencyInjector : EmptyInterceptor
         // s_allTypes independently — a static field written from this instance method needs
         // its own synchronization, same reasoning as the ConcurrentDictionary swap above.
         var allTypes = LazyInitializer.EnsureInitialized(ref s_allTypes, static () => new ConcurrentDictionary<string, Type>(
-            ReflectionUtils.ScannableAssemblies().SelectMany(a => a.GetTypes()).DistinctBy(a => a.FullName).ToDictionary(a => a.FullName!, a => a)));
+            ReflectionUtils.ScannableTypes().DistinctBy(a => a.FullName).ToDictionary(a => a.FullName!, a => a)));
         if (!allTypes.TryGetValue(clazz, out var type)) return null;
         if (!s_typeHasValidConstructors.TryGetValue(clazz, out var hasParameters))
         {

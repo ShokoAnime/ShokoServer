@@ -115,8 +115,7 @@ internal static class ExpressionDiscovery
     /// <returns>The help of each expression.</returns>
     /// <exception cref="InvalidOperationException">An expression offers more than one value list for a parameter.</exception>
     public static IReadOnlyList<IFilterExpressionHelp> GetExpressionHelp(FilterExpressionGroup? group = null)
-        => ReflectionUtils.ScannableAssemblies()
-            .SelectMany(a => a.GetTypes())
+        => ReflectionUtils.ScannableTypes()
             .Where(a =>
                 a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType &&
                 typeof(FilterExpression).IsAssignableFrom(a) &&
@@ -318,8 +317,7 @@ internal static class ExpressionDiscovery
         };
 
     public static IReadOnlyList<ISortingExpressionHelp> GetSortingExpressionHelp()
-        => ReflectionUtils.ScannableAssemblies()
-            .SelectMany(a => a.GetTypes())
+        => ReflectionUtils.ScannableTypes()
             .Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType &&
                 typeof(SortingExpression).IsAssignableFrom(a)
             )
