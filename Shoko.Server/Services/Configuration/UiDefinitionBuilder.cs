@@ -206,6 +206,15 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         return DisplayElementType.Auto;
     }
 
+    /// <summary>
+    ///   An integer bound as a <see cref="long"/>, clamped into its range. A
+    ///   bound of <see cref="long.MaxValue"/> set through
+    ///   <see cref="System.ComponentModel.DataAnnotations.RangeAttribute"/>
+    ///   arrives as a <see cref="double"/> that rounds up past it.
+    /// </summary>
+    private static long ToInt64Bound(decimal bound)
+        => bound >= long.MaxValue ? long.MaxValue : bound <= long.MinValue ? long.MinValue : (long)bound;
+
     private static UiElement BuildPrimitive(JsonSchema resolved)
     {
         if (resolved.Type.HasFlag(JsonObjectType.Boolean))
@@ -213,8 +222,8 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         if (resolved.Type.HasFlag(JsonObjectType.Integer))
             return new UiIntegerElement
             {
-                Minimum = resolved.Minimum is { } min ? (long)min : null,
-                Maximum = resolved.Maximum is { } max ? (long)max : null,
+                Minimum = resolved.Minimum is { } min ? ToInt64Bound(min) : null,
+                Maximum = resolved.Maximum is { } max ? ToInt64Bound(max) : null,
             };
         if (resolved.Type.HasFlag(JsonObjectType.Number))
             return new UiFloatElement

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.UI;
@@ -116,6 +117,28 @@ public class UiDefinitionBuilderTests
         // Every leaf has a non-empty label; the client should never fall back to
         // the property name itself.
         Assert.All(Keyed(definition.Root), x => Assert.NotEqual(string.Empty, x.Element.Label));
+    }
+
+    /// <summary>
+    ///   A configuration with an integer bounded at <see cref="long.MaxValue"/>,
+    ///   which <see cref="RangeAttribute"/> keeps as a <see cref="double"/> that
+    ///   rounds up past it.
+    /// </summary>
+    public class WideIntegerConfiguration : INewtonsoftJsonConfiguration
+    {
+        /// <summary>
+        ///   A count with no practical upper bound.
+        /// </summary>
+        [Range(1, long.MaxValue)]
+        public long Count { get; set; } = 1;
+    }
+
+    [Fact]
+    public void IntegerBounds_PastLong_AreClampedToIt()
+    {
+        var count = Find<UiIntegerElement>(BuildFor(typeof(WideIntegerConfiguration), "Wide").Root, "Count");
+        Assert.Equal(1, count.Minimum);
+        Assert.Equal(long.MaxValue, count.Maximum);
     }
 
     [Fact]
