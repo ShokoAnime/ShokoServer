@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Connectivity.Suspensions.Attributes;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
@@ -158,6 +159,12 @@ public class ProcessReleaseProviderJob<TProvider>(
             _matchAttempt.ProviderID = _providerInfo.ID;
             _matchAttempt.ProviderName = _providerInfo.Name;
             await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, skipEvents: SkipEvents);
+        }
+        catch (MetadataProviderUnavailableException)
+        {
+            // The provider's source cannot be reached for now: leave the attempt open and let
+            // the queue retry the job with its backoff, instead of ending the search.
+            throw;
         }
         catch (Exception ex)
         {

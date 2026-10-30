@@ -134,7 +134,9 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>> where T
                 var errorMessage = $"{(int)status} {status}";
                 Logger.LogTrace("Waiting. AniDB returned {StatusCode} {Status}", (int)status, status);
                 Handler.StartBackoffTimer(300, errorMessage);
-                break;
+                // The request was not carried out, so there is nothing to parse; the caller
+                // sends it again after the backoff.
+                throw new AniDBUDPUnavailableException(status, response, Command, TimeSpan.FromSeconds(300));
             }
             // 506 INVALID SESSION
             // 598 UNKNOWN COMMAND

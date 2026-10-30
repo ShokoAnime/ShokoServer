@@ -9,6 +9,8 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Hashing;
@@ -130,6 +132,12 @@ public partial class AnidbReleaseProvider(
         {
             logger.LogError(ex, "Unable to lookup release for Hash={Hash} & Size={Size} due to being AniDB UDP banned.", hash, size);
             return null;
+        }
+        catch (AniDBUDPUnavailableException ex)
+        {
+            // AniDB is busy or out of service for now, not missing the file, so the search
+            // is tried again later rather than ending without a release.
+            throw new MetadataProviderUnavailableException(MetadataSource.AniDB, $"AniDB answered {(int)ex.ReturnCode} {ex.ReturnCode}.", ex.RetryAfter, ex);
         }
 
         video ??= videoRepository.GetByEd2kAndSize(hash, size);
