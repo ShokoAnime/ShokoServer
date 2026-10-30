@@ -13,7 +13,8 @@ namespace Shoko.Server.Plugin;
 /// <summary>
 ///   Plugin dependencies: the load order and refusals they impose, and the
 ///   plugins installed as dependencies, with the <c>.dependency</c> marker,
-///   the enabled state that follows their dependents, and orphans.
+///   the enabled state that follows their dependents, orphans, and the plans
+///   for uninstalling and disabling (<see cref="PluginChangePlanner"/>).
 /// </summary>
 public partial class PluginManager
 {
@@ -362,7 +363,7 @@ public partial class PluginManager
         }
     }
 
-    private static string GetDllName(LocalPluginInfo pluginInfo)
+    internal static string GetDllName(LocalPluginInfo pluginInfo)
         => Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
 
     #endregion
@@ -538,6 +539,24 @@ public partial class PluginManager
         if (uninstalled.Count > 0)
             OnStateChanged();
         return uninstalled;
+    }
+
+    #endregion
+
+    #region Plans
+
+    /// <inheritdoc/>
+    public PluginChangePlan PlanUninstall(LocalPluginInfo pluginInfo, bool allVersions = false, bool keepOrphans = false)
+    {
+        lock (_pluginTypes)
+            return PluginChangePlanner.PlanUninstall([.. _pluginTypes], ISettingsProvider.Instance.GetSettings().Plugins.EnabledPlugins, pluginInfo, allVersions, keepOrphans);
+    }
+
+    /// <inheritdoc/>
+    public PluginChangePlan PlanDisable(LocalPluginInfo pluginInfo, bool keepDependencies = false)
+    {
+        lock (_pluginTypes)
+            return PluginChangePlanner.PlanDisable([.. _pluginTypes], ISettingsProvider.Instance.GetSettings().Plugins.EnabledPlugins, pluginInfo, keepDependencies);
     }
 
     #endregion

@@ -889,6 +889,100 @@ public class PluginController(
         return NoContent();
     }
 
+    #region Plans
+
+    /// <summary>
+    ///   Shows what uninstalling the active or highest version of a plugin
+    ///   would do, without doing it, as <c>DELETE</c> on the plugin would:
+    ///   what is uninstalled, its dependents included when forced, which
+    ///   orphans go with it and which stay, what is disabled or stops loading,
+    ///   and which of its dependencies stay and why.
+    /// </summary>
+    /// <param name="pluginID">
+    ///   The plugin ID.
+    /// </param>
+    /// <param name="keepOrphans">
+    ///   Keep the plugins orphaned by the uninstall.
+    /// </param>
+    /// <returns>
+    ///   The <see cref="Models.Plugin.PluginChangePlan"/>.
+    /// </returns>
+    [HttpGet("{pluginID}/Plan/Uninstall")]
+    public ActionResult<Models.Plugin.PluginChangePlan> GetUninstallPlanByID([FromRoute] Guid pluginID, [FromQuery] bool keepOrphans = false)
+        => pluginManager.GetPluginInfo(pluginID) is { } pluginInfo
+            ? new Models.Plugin.PluginChangePlan(pluginManager.PlanUninstall(pluginInfo, keepOrphans: keepOrphans))
+            : NotFound("Plugin not found");
+
+    /// <summary>
+    ///   Shows what uninstalling a specific version of a plugin would do,
+    ///   without doing it, as <c>DELETE</c> on the version would.
+    /// </summary>
+    /// <param name="pluginID">
+    ///   The plugin ID.
+    /// </param>
+    /// <param name="pluginVersion">
+    ///   The plugin version.
+    /// </param>
+    /// <param name="keepOrphans">
+    ///   Keep the plugins orphaned by the uninstall.
+    /// </param>
+    /// <returns>
+    ///   The <see cref="Models.Plugin.PluginChangePlan"/>.
+    /// </returns>
+    [HttpGet("{pluginID}/{pluginVersion}/Plan/Uninstall")]
+    public ActionResult<Models.Plugin.PluginChangePlan> GetUninstallPlanByIDAndVersion(
+        [FromRoute] Guid pluginID,
+        [FromRoute] Version pluginVersion,
+        [FromQuery] bool keepOrphans = false
+    )
+        => pluginManager.GetPluginInfo(pluginID, pluginVersion) is { } pluginInfo
+            ? new Models.Plugin.PluginChangePlan(pluginManager.PlanUninstall(pluginInfo, keepOrphans: keepOrphans))
+            : NotFound("Plugin not found");
+
+    /// <summary>
+    ///   Shows what uninstalling every version of a plugin would do, without
+    ///   doing it, as <c>DELETE</c> on all of its versions would.
+    /// </summary>
+    /// <param name="pluginID">
+    ///   The plugin ID.
+    /// </param>
+    /// <param name="keepOrphans">
+    ///   Keep the plugins orphaned by the uninstall.
+    /// </param>
+    /// <returns>
+    ///   The <see cref="Models.Plugin.PluginChangePlan"/>.
+    /// </returns>
+    [HttpGet("{pluginID}/All/Plan/Uninstall")]
+    public ActionResult<Models.Plugin.PluginChangePlan> GetUninstallAllPlanByID([FromRoute] Guid pluginID, [FromQuery] bool keepOrphans = false)
+        => pluginManager.GetPluginInfos(pluginID) is { Count: > 0 } pluginInfos
+            ? new Models.Plugin.PluginChangePlan(pluginManager.PlanUninstall(pluginInfos.FirstOrDefault(p => p.IsActive) ?? pluginInfos[0], allVersions: true, keepOrphans: keepOrphans))
+            : NotFound("Plugin not found");
+
+    /// <summary>
+    ///   Shows what disabling a plugin would do, without doing it: whether it
+    ///   is disabled at all (a plugin enabled on demand stays enabled while
+    ///   something needs it), what is disabled with it, what stops loading,
+    ///   and which of its dependencies stay enabled and why.
+    /// </summary>
+    /// <param name="pluginID">
+    ///   The plugin ID.
+    /// </param>
+    /// <param name="keepDependencies">
+    ///   Plan as if the plugin's direct dependencies were first marked as
+    ///   installed on purpose (<c>IsDependency</c> set to <c>false</c>), so
+    ///   they keep the state they have rather than following the plugin.
+    /// </param>
+    /// <returns>
+    ///   The <see cref="Models.Plugin.PluginChangePlan"/>.
+    /// </returns>
+    [HttpGet("{pluginID}/Plan/Disable")]
+    public ActionResult<Models.Plugin.PluginChangePlan> GetDisablePlanByID([FromRoute] Guid pluginID, [FromQuery] bool keepDependencies = false)
+        => pluginManager.GetPluginInfo(pluginID) is { } pluginInfo
+            ? new Models.Plugin.PluginChangePlan(pluginManager.PlanDisable(pluginInfo, keepDependencies))
+            : NotFound("Plugin not found");
+
+    #endregion
+
     #region Orphans
 
     /// <summary>

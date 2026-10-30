@@ -347,6 +347,51 @@ public interface IPluginManager
     /// </returns>
     LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = false, bool purgeData = false);
 
+    /// <summary>
+    ///   Works out what uninstalling a plugin would do, without doing it: the
+    ///   versions uninstalled, the dependents uninstalled when it is forced,
+    ///   the orphans uninstalled with it and the ones kept, the plugins enabled
+    ///   on demand that are disabled, the ones that stop loading, and which of
+    ///   its dependencies stay and why. It follows what uninstalling through
+    ///   <see cref="UninstallPlugin"/> and then
+    ///   <see cref="UninstallOrphanedPlugins"/> for the new orphans does.
+    /// </summary>
+    /// <param name="pluginInfo">
+    ///   The plugin version to uninstall.
+    /// </param>
+    /// <param name="allVersions">
+    ///   Uninstall every installed version of the plugin, not only this one.
+    /// </param>
+    /// <param name="keepOrphans">
+    ///   Keep the plugins orphaned by the uninstall, rather than uninstalling
+    ///   them with it.
+    /// </param>
+    /// <returns>
+    ///   The plan.
+    /// </returns>
+    PluginChangePlan PlanUninstall(LocalPluginInfo pluginInfo, bool allVersions = false, bool keepOrphans = false);
+
+    /// <summary>
+    ///   Works out what disabling a plugin would do, without doing it: whether
+    ///   it is disabled at all (a plugin enabled on demand stays enabled while
+    ///   something needs it), the plugins enabled on demand that are disabled
+    ///   with it, the ones that stop loading, and which of its dependencies
+    ///   stay enabled and why. It follows what <see cref="DisablePlugin"/>
+    ///   does.
+    /// </summary>
+    /// <param name="pluginInfo">
+    ///   The plugin to disable.
+    /// </param>
+    /// <param name="keepDependencies">
+    ///   Plan as if the plugin's direct dependencies were first marked as
+    ///   installed on purpose with <see cref="UnmarkAsDependency"/>, so they
+    ///   keep the state they have rather than following the plugin.
+    /// </param>
+    /// <returns>
+    ///   The plan.
+    /// </returns>
+    PluginChangePlan PlanDisable(LocalPluginInfo pluginInfo, bool keepDependencies = false);
+
     #endregion
 
     #region Types & Exports
