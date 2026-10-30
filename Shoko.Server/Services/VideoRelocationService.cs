@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -61,7 +62,8 @@ public class VideoRelocationService(
 
     private VideoService _videoLocalPlaceService => __videoLocalPlaceService ??= (VideoService)serviceProvider.GetRequiredService<IVideoService>();
 
-    private readonly Dictionary<Type, MethodInfo?> _genericGetNewPaths = [];
+    // Shared by every relocation running at once, so it must take concurrent writes.
+    private readonly ConcurrentDictionary<Type, MethodInfo?> _genericGetNewPaths = new();
 
     private readonly object _lock = new();
 
@@ -828,8 +830,7 @@ public class VideoRelocationService(
                 return RelocationResponse.FromError("Preset is missing it's required configuration.");
 
             var instanceInterface = providerInfo.Provider.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRelocationProvider<>))!;
-            if (!_genericGetNewPaths.TryGetValue(instanceInterface, out var method))
-                _genericGetNewPaths.TryAdd(instanceInterface, method = instanceInterface.GetMethod(nameof(IRelocationProvider.GetPath), BindingFlags.Instance | BindingFlags.Public));
+            var method = _genericGetNewPaths.GetOrAdd(instanceInterface, type => type.GetMethod(nameof(IRelocationProvider.GetPath), BindingFlags.Instance | BindingFlags.Public));
             if (method == null)
                 return RelocationResponse.FromError($"Unable to find \"{nameof(IRelocationProvider.GetPath)}\" method on relocation provider \"{instanceInterface.FullName}\".");
 
