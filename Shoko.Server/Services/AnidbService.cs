@@ -20,6 +20,7 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
@@ -1048,12 +1049,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
         var imageXref = _imageManager.GetImageCrossReferencesForEntity(entity, new() { ImageSource = MetadataSource.AniDB, ImageType = ImageEntityType.Primary, XrefSource = MetadataSource.AniDB })
             .FirstOrDefault(xref => xref.ImageID == image.ID)
-            ?? _imageManager.AddImageCrossReference(entity, image, new ImageCrossReferenceData
-            {
-                Source = MetadataSource.AniDB,
-                ImageType = ImageEntityType.Primary,
-                IsDesired = isDesired,
-            });
+            ?? AddOrGetImageCrossReference(entity, image, isDesired);
 
         _imageManager.UpdateImageCrossReference(imageXref, new ImageCrossReferenceUpdateData
         {
@@ -1062,6 +1058,27 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
         if (isDesired)
             await _imageManager.ScheduleDownloadOfImage(image, forceDownload).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///   Links an AniDB image to an entry as its primary image, or takes the
+    ///   link another job made for it at the same moment.
+    /// </summary>
+    private IImageCrossReference AddOrGetImageCrossReference(IWithImages entity, IImage image, bool isDesired)
+    {
+        try
+        {
+            return _imageManager.AddImageCrossReference(entity, image, new ImageCrossReferenceData
+            {
+                Source = MetadataSource.AniDB,
+                ImageType = ImageEntityType.Primary,
+                IsDesired = isDesired,
+            });
+        }
+        catch (ImageCrossReferenceExistsException ex)
+        {
+            return ex.CrossReference;
+        }
     }
 
     #endregion

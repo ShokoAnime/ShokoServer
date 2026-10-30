@@ -1576,27 +1576,37 @@ public class ImageManager(
 
     #region Cross References | Add
 
+    private readonly object _crossReferenceLock = new();
+
     /// <inheritdoc/>
     public IImageCrossReference AddImageCrossReference(IWithImages entity, IImage image, ImageCrossReferenceData imageCrossReferenceData)
     {
         if (imageRepository.GetByID(image.ID) is not { } localImage)
             throw new ArgumentException("Invalid image given to AddImageCrossReference", nameof(image));
 
-        var xrefs = xrefRepository.GetByEntity(entity.ID);
-        var existing = xrefs
-            .FirstOrDefault(xref => xref.ImageID == image.ID && xref.ImageType == imageCrossReferenceData.ImageType && xref.Source == imageCrossReferenceData.Source);
-        if (existing is not null)
-            throw new ImageCrossReferenceExistsException()
-            {
-                CrossReference = existing,
-                Image = image,
-                Entity = entity,
-            };
+        // The check and the insert go together, so two jobs linking the same image to the
+        // same entry at once (several AniDB jobs sharing a creator image) find the first
+        // link instead of both inserting and breaking the unique index.
+        ShokoImage_Entity xref;
+        lock (_crossReferenceLock)
+        {
+            var xrefs = xrefRepository.GetByEntity(entity.ID);
+            var existing = xrefs
+                .FirstOrDefault(xref => xref.ImageID == image.ID && xref.ImageType == imageCrossReferenceData.ImageType && xref.Source == imageCrossReferenceData.Source);
+            if (existing is not null)
+                throw new ImageCrossReferenceExistsException()
+                {
+                    CrossReference = existing,
+                    Image = image,
+                    Entity = entity,
+                };
 
-        var xref = new ShokoImage_Entity(image, entity, imageCrossReferenceData, xrefs.Count);
-        localImage.LastUpdatedAt = xref.LastUpdatedAt;
+            xref = new ShokoImage_Entity(image, entity, imageCrossReferenceData, xrefs.Count);
+            localImage.LastUpdatedAt = xref.LastUpdatedAt;
 
-        xrefRepository.Save(xref);
+            xrefRepository.Save(xref);
+        }
+
         imageRepository.Save(localImage);
 
         if (imageCrossReferenceData.IsPreferred is true)
