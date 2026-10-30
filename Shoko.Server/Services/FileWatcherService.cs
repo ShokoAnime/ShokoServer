@@ -148,7 +148,14 @@ public class FileWatcherService
 
         Task.Run(async () =>
         {
-            await _videoService!.NotifyVideoFileChangeDetected(path);
+            try
+            {
+                await _videoService!.NotifyVideoFileChangeDetected(path);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Could not process the file found at {Path}", path);
+            }
         });
     }
 

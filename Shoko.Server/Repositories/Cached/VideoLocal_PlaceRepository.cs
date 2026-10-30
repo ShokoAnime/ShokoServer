@@ -27,6 +27,31 @@ public class VideoLocal_PlaceRepository(DatabaseFactory databaseFactory) : BaseC
             throw new InvalidStateException("Attempting to save a VideoLocal_Place with a FilePath and ManagedFolderID that already exists in the database");
     }
 
+    private readonly object _newLocationLock = new();
+
+    /// <summary>
+    ///   Saves a location. A new one for a path that already has a location
+    ///   in its managed folder, from the file watcher and a hashing job
+    ///   finding the same file at once, takes over that location's ID, so it
+    ///   updates the stored row instead of adding a second one.
+    /// </summary>
+    /// <param name="obj">The location.</param>
+    public override void Save(VideoLocal_Place obj)
+    {
+        if (obj.ID is not 0)
+        {
+            base.Save(obj);
+            return;
+        }
+
+        lock (_newLocationLock)
+        {
+            if (!string.IsNullOrEmpty(obj.RelativePath) && GetByRelativePathAndManagedFolderID(obj.RelativePath, obj.ManagedFolderID) is { } existing)
+                obj.ID = existing.ID;
+            base.Save(obj);
+        }
+    }
+
     protected override int SelectKey(VideoLocal_Place entity)
         => entity.ID;
 
