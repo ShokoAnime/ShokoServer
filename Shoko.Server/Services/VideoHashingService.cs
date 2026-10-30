@@ -49,6 +49,8 @@ public class VideoHashingService(
     FileNameHashRepository fileNameHashRepository
 ) : IVideoHashingService
 {
+    private static readonly object _videoSaveLock = new();
+
     private VideoService? __videoService;
 
     private VideoService _videoService => __videoService ??= (VideoService)serviceProvider.GetRequiredService<IVideoService>();
@@ -491,36 +493,44 @@ public class VideoHashingService(
         if (ed2k is not { Type: ED2K, Value.Length: 32 })
             throw new InvalidOperationException($"Could not get ED2K hash for {originalPath}");
 
-        if (videoRepository.GetByEd2k(ed2k.Value) is { } otherVideo && video.VideoLocalID != otherVideo.VideoLocalID)
+        // Finding the video by its ED2K and saving it go together, so two hashing jobs
+        // finishing for the same content at once share one video record instead of both
+        // inserting one and breaking the unique hash index.
+        VideoLocal originalVideo;
+        bool ed2kChanged;
+        lock (_videoSaveLock)
         {
-            logger.LogTrace("Found existing video with ED2K hash {ED2K}: {VideoID}→{OtherVideoID}", ed2k.Value, video.VideoLocalID, otherVideo.VideoLocalID);
-            video = otherVideo;
-        }
-
-        var originalVideo = video;
-        var ed2kChanged = !isNewVideo && ed2k.Value != video.Hash;
-        if (ed2kChanged)
-        {
-            var now = DateTime.Now;
-            logger.LogTrace("ED2K hash changed for {VideoID}: {OldED2K}→{NewED2K}", video.VideoLocalID, video.Hash, ed2k.Value);
-
-            video = new VideoLocal
+            if (videoRepository.GetByEd2k(ed2k.Value) is { } otherVideo && video.VideoLocalID != otherVideo.VideoLocalID)
             {
-                DateTimeUpdated = now,
-                DateTimeCreated = now,
-#pragma warning disable CS0618 // Type or member is obsolete
-                FileName = Path.GetFileName(resolvedPath),
-#pragma warning restore CS0618 // Type or member is obsolete
-            };
-            isNewVideo = true;
-        }
+                logger.LogTrace("Found existing video with ED2K hash {ED2K}: {VideoID}→{OtherVideoID}", ed2k.Value, video.VideoLocalID, otherVideo.VideoLocalID);
+                video = otherVideo;
+            }
 
-        // Store the hashes
-        logger.LogTrace("Saving Video: Filename: {FileName}, Hash: {Hash}", originalPath, video.Hash);
-        video.Hash = ed2k.Value;
-        video.FileSize = fileSize;
-        video.DateTimeUpdated = DateTime.Now;
-        videoRepository.Save(video, false);
+            originalVideo = video;
+            ed2kChanged = !isNewVideo && ed2k.Value != video.Hash;
+            if (ed2kChanged)
+            {
+                var now = DateTime.Now;
+                logger.LogTrace("ED2K hash changed for {VideoID}: {OldED2K}→{NewED2K}", video.VideoLocalID, video.Hash, ed2k.Value);
+
+                video = new VideoLocal
+                {
+                    DateTimeUpdated = now,
+                    DateTimeCreated = now,
+#pragma warning disable CS0618 // Type or member is obsolete
+                    FileName = Path.GetFileName(resolvedPath),
+#pragma warning restore CS0618 // Type or member is obsolete
+                };
+                isNewVideo = true;
+            }
+
+            // Store the hashes
+            logger.LogTrace("Saving Video: Filename: {FileName}, Hash: {Hash}", originalPath, video.Hash);
+            video.Hash = ed2k.Value;
+            video.FileSize = fileSize;
+            video.DateTimeUpdated = DateTime.Now;
+            videoRepository.Save(video, false);
+        }
 
         // Save the hashes
         var newHashes = hashes
