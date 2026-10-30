@@ -281,8 +281,8 @@ public class WebUIService(
 
     /// <summary>
     ///   Works out what is served for every host: by default the selected web
-    ///   UI if it is there and did not fail, else the first plugin web UI, else
-    ///   the server's own, and for each host override its web UI if it is there
+    ///   UI if it is there and did not fail, else the first plugin web UI that
+    ///   is a default candidate, else the server's own, and for each host override its web UI if it is there
     ///   and did not fail. A web UI coming into use gets its release events
     ///   followed and its files brought in line in the background.
     /// </summary>
@@ -299,7 +299,7 @@ public class WebUIService(
             var selectedID = settings.SelectedProviderID;
             var usable = providerInfos.Where(info => !info.PluginInfo.HasFailed).ToList();
             var defaultActive = (selectedID is { } id ? usable.FirstOrDefault(info => info.ID == id) : null)
-                ?? usable.FirstOrDefault(info => info.Provider != coreProvider)
+                ?? usable.FirstOrDefault(info => info.Provider != coreProvider && info.Provider.IsDefaultCandidate)
                 ?? core;
 
             var warnings = new List<string>();

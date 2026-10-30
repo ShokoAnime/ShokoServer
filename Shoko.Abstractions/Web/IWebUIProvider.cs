@@ -31,6 +31,21 @@ public interface IWebUIProvider : IFileProvider
     Version Version { get => GetType().Assembly.GetName().Version ?? new Version(0, 0, 0, 0); }
 
     /// <summary>
+    ///   Optional. Whether this web UI may become the default one on its own,
+    ///   when the admin has not picked one: the first in load order that opts
+    ///   in is served, and without any, the Shoko Web UI. Opting in says the
+    ///   web UI is willing to be the only one on a brand-new server, so it
+    ///   takes on the first-run setup from the release that ships it. A web UI
+    ///   meant for one purpose, such as a kiosk view or an admin panel, leaves
+    ///   it <c>false</c>, and is served only when picked or for a host override.
+    ///   Read whenever the server works out which web UI to serve (at start,
+    ///   when the selection, the host overrides or the server settings are
+    ///   saved, or when a web UI's <see cref="MountPath"/> changes), not on
+    ///   every request as <see cref="MountPath"/> is.
+    /// </summary>
+    bool IsDefaultCandidate { get => false; }
+
+    /// <summary>
     ///   The path the web UI is served from, such as <c>/webui</c>, or
     ///   <c>/</c> for the root. It may not be under <c>/api</c>, <c>/plugin</c>,
     ///   <c>/signalr</c> or the Swagger UI's path.

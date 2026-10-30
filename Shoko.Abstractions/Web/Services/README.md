@@ -231,8 +231,15 @@ The admin picks the default web UI, through `IWebUIService.SelectProvider` or
 `PATCH /api/v3/WebUI/Provider`, and turns serving on or off through
 `IsEnabled`. Both apply at once, without a restart. While a web UI is served
 away from `/`, a request for `/` that no route took is redirected to it.
-Without a pick, the first plugin web UI in load order is served, else the Shoko
-Web UI. A picked web UI that is gone or failed falls back the same way.
+Without a pick, the first plugin web UI in load order that opts in through
+`IWebUIProvider.IsDefaultCandidate` is served, else the Shoko Web UI. Opting in
+means the web UI is willing to be the only one on a brand-new server, first-run
+setup included; one that does not is served only when picked or for a host
+override. The flag is read when the server works out what to serve (at start,
+when the selection, host overrides or settings are saved, or when a mount path
+changes), not on every request as `MountPath` is. Two that opt in are ordered
+by the plugin load order. A picked web UI that is gone or failed falls back the
+same way.
 
 `HostOverrides`, set through `SetHostOverrides` or the same route, serve
 another web UI to the requests for a host, such as `media.example.com` or

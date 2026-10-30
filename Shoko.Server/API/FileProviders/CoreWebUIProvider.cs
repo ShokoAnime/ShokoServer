@@ -127,6 +127,14 @@ public class CoreWebUIProvider : IWebUIProvider
     /// <inheritdoc />
     public string? Description => "The web UI that ships with the server.";
 
+    /// <inheritdoc/>
+    /// <remarks>
+    ///   Always: the Shoko Web UI handles first-run setup on a brand-new
+    ///   server. The service serves it as the fallback whatever this says,
+    ///   since it sorts first in load order and would otherwise always win.
+    /// </remarks>
+    public bool IsDefaultCandidate => true;
+
     /// <inheritdoc />
     public string MountPath => WebUIPath;
 

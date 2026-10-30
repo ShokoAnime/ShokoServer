@@ -87,11 +87,22 @@ public sealed class WebUIServiceTests : IDisposable
     #region Active Web UI
 
     [Fact]
-    public void PluginWebUI_IsServedAutomatically()
+    public void PluginWebUI_OptingIn_IsServedAutomatically()
     {
         var webUI = new FakeWebUI("/noren");
 
         Assert.Same(webUI, Create(webUI).ActiveProvider.Provider);
+    }
+
+    [Fact]
+    public void PluginWebUI_NotOptingIn_LeavesTheCoreWebUI()
+    {
+        var webUI = new FakeWebUI("/kiosk") { IsDefaultCandidate = false };
+        var service = Create(webUI);
+
+        Assert.IsType<CoreWebUIProvider>(service.ActiveProvider.Provider);
+        service.SelectProvider(service.GetProviderInfo(webUI));
+        Assert.Same(webUI, service.ActiveProvider.Provider);
     }
 
     [Fact]
@@ -355,6 +366,8 @@ public sealed class WebUIServiceTests : IDisposable
         public string Name => "Fake Web UI";
 
         public string MountPath { get; set; } = mountPath;
+
+        public bool IsDefaultCandidate { get; set; } = true;
 
         public IReadOnlyDictionary<WebUILinkType, string> Links { get; } = new Dictionary<WebUILinkType, string>();
 

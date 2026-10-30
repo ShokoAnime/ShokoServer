@@ -48,7 +48,8 @@ public interface IWebUIService
 
     /// <summary>
     ///   Picks the web UI to serve by default, which applies at once. Without
-    ///   a pick, the first plugin web UI in load order is served, else the
+    ///   a pick, the first plugin web UI in load order that is a
+    ///   <see cref="IWebUIProvider.IsDefaultCandidate"/> is served, else the
     ///   server's own; a picked web UI that is gone or failed falls back the
     ///   same way. See <see cref="WebUIProviderInfo.IsSelected"/> and
     ///   <see cref="WebUIProviderInfo.IsActive"/>.
