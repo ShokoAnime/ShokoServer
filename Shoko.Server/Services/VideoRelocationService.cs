@@ -1365,6 +1365,14 @@ public class VideoRelocationService(
 
     private void DispatchFileRelocatedEvent(IManagedFolder oldFolder, IManagedFolder newFolder, string oldPath, string newPath, IVideoFile vlp)
     {
+        // The move itself succeeded; a video removed meanwhile, such as by deduplication,
+        // leaves nothing to describe the file with.
+        if (vlp is VideoLocal_Place { VideoLocal: null })
+        {
+            logger.LogDebug("Not dispatching the relocated event for file location {LocationID}, as its video is gone.", vlp.ID);
+            return;
+        }
+
         var vl = vlp.Video!;
         var xrefs = vl.CrossReferences;
         var episodes = xrefs
