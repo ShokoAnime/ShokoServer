@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Abstractions.Metadata.Text.Options;
@@ -23,21 +22,4 @@ public sealed record OverviewSelection
     ///   first step in that language. Defaults to <c>true</c>.
     /// </summary>
     public bool UsePreferences { get; init; } = true;
-}
-
-/// <summary>
-///   One step of an <see cref="OverviewSelection"/>: a source's first
-///   overview in a language.
-/// </summary>
-public sealed record OverviewSelectionStep
-{
-    /// <summary>
-    ///   The source to read, or <c>null</c> for any source.
-    /// </summary>
-    public MetadataSource? Source { get; init; }
-
-    /// <summary>
-    ///   The language wanted.
-    /// </summary>
-    public required TitleLanguage Language { get; init; }
 }
