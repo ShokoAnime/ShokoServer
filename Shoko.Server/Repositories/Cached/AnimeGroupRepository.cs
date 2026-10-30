@@ -9,6 +9,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
@@ -113,6 +114,24 @@ public class AnimeGroupRepository(
         _shapes.Clear();
         foreach (var group in Cache.GetAll())
             _shapes[group.AnimeGroupID] = GroupShape.Of(group);
+    }
+
+    /// <summary>
+    ///   Removes, on every start, the groups holding no series, directly or
+    ///   through their subgroups. An empty group cannot name itself, and
+    ///   fails whatever sorts or logs it.
+    /// </summary>
+    public override void RegenerateDb()
+    {
+        SystemService.StartupMessage = $"Database - Validating - {nameof(AnimeGroup)} Removing empty groups...";
+        var empty = Cache.GetAll().Where(group => group.AllSeries.Count == 0).ToList();
+        if (empty.Count == 0)
+            return;
+
+        // One batch: every group leaves the cache before any parent is updated, so a parent
+        // removed with its children is never saved on their behalf.
+        Delete(empty);
+        _logger.LogInformation("Removed {Count} groups holding no series: {GroupIDs}", empty.Count, string.Join(", ", empty.Select(group => group.AnimeGroupID)));
     }
 
     public override void Save(AnimeGroup obj)
