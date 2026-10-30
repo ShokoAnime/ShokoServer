@@ -39,8 +39,9 @@ public class ScanForMissingReleaseInfoJob(
 
     public override async Task Execute()
     {
+        // A release without a hash or a file size names no file to rescan.
         var allReleases = releaseInfoRepository.GetAll()
-            .Where(r => !r.PreventRescan)
+            .Where(r => !r.PreventRescan && r.FileSize > 0 && !string.IsNullOrEmpty(r.ED2K))
             .ToList();
 
         _logger.LogInformation("Evaluating {Count} releases for possible rescan.", allReleases.Count);

@@ -280,12 +280,17 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
             .ToList();
 
     /// <summary>
-    /// returns all the VideoLocal records associate with an AniDB_Anime Record
+    /// returns all the VideoLocal records associate with an AniDB_Anime Record,
+    /// each once, even when it is linked to several of the anime's episodes. A
+    /// cross-reference without a hash or a file size names no file and is
+    /// skipped.
     /// </summary>
     /// <param name="animeID">AniDB Anime ID</param>
     /// <returns></returns>
     public IReadOnlyList<VideoLocal> GetByAniDBAnimeID(int animeID)
         => animeID is not > 0 ? [] : RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
+            .Where(xref => xref.FileSize > 0 && !string.IsNullOrEmpty(xref.Hash))
+            .DistinctBy(xref => (xref.Hash, xref.FileSize))
             .Select(xref => GetByEd2kAndSize(xref.Hash, xref.FileSize))
             .WhereNotNull()
             .ToList();
