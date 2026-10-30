@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.563",
+      "tag": "v6.0.0-dev.563",
+      "commit": "480e2ba93faa3c87c58ff11e262910c94102ce48",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.563/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-30T10:36:48Z",
+      "releaseNotes": "\n`chore` (`abstractions`): **Move each type to a file of its own**.\n\n`feat` (`plugin`): **Plan an uninstall or a disable before doing it**:\n\n- Added `IPluginManager.PlanUninstall` and `PlanDisable`, worked out on a copy of the state by the same orphan, demand and dependents rules the actions follow\n- Added `GET /api/v3/Plugin/{pluginID}/Plan/Uninstall`, `…/{pluginVersion}/Plan/Uninstall`, `…/All/Plan/Uninstall` and `…/Plan/Disable`, the last with `keepDependencies`\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.118**.\n"
+    },
+    {
       "version": "6.0.0.562",
       "tag": "v6.0.0-dev.562",
       "commit": "8007b51437d51eeea487638f1527adfbba5d37a4",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.534/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-20T02:33:06Z",
       "releaseNotes": "\n`fix` (`tray`): **Start the server off the UI thread**:\n\n`StartAsync` resumed its awaits on the Avalonia UI thread, which was blocked\nwaiting for it, so the start hung whenever the plugin update check before the\nscan had to sync a repository.\n\nCloses #1463\n"
-    },
-    {
-      "version": "6.0.0.533",
-      "tag": "v6.0.0-dev.533",
-      "commit": "3c153793d0c1a3d4e1582f7db75cf91282564027",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.533/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-18T23:50:19Z",
-      "releaseNotes": "\n`fix` (`api`): **Read quoted line breaks in cross-reference CSV imports**:\n\n`Quote` wrapped fields holding a line break, but `Read` split the file\nline by line, so such a field broke its row on import. A quoted field now\ncarries on into the next line, and an unclosed quote is a line error.\n\n`fix` (`metadata`): **Read AniDB people and studios through the stores**:\n\n- `IMetadataPeopleStore` and `IMetadataStudioStore` answered nothing for `anidb` IDs; they now read the AniDB tables\n- Writes still refuse `anidb`\n\n`feat` (`metadata`): **Add removal and credit events to the people and studio stores**:\n\n- `EntitiesRemoved` on `IMetadataPeopleStore` and `IMetadataStudioStore`, from `RemoveOrphaned` and the AniDB refresh\n- `CreditsChanged` on `IMetadataPeopleStore`, when an entry's cast or crew changed\n\n`fix` (`anidb`): **List an AniDB studio's works from its studio roles**:\n\n`AniDB_Studio.GetAnime()` read the voice-actor join, so every AniDB studio had no works.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.109**.\n"
     }
   ]
 }
