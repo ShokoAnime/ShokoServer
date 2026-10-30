@@ -46,7 +46,8 @@ public class AnimeSeriesRepository(DatabaseFactory databaseFactory) : BaseCached
 
         logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}",
             obj.AnimeGroupID);
-        var oldGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+        // A series stored without a group (ID 0) has none to update.
+        var oldGroup = obj.AnimeGroupID > 0 ? RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID) : null;
         if (oldGroup != null)
         {
             RepoFactory.AnimeGroup.Save(oldGroup, true);
@@ -187,7 +188,9 @@ public class AnimeSeriesRepository(DatabaseFactory databaseFactory) : BaseCached
                 if (oldSeries.AnimeGroupID != obj.AnimeGroupID)
                 {
                     logger.Trace($"Saving Series {animeID} | Group ID is different. Moving to new group");
-                    oldGroup = RepoFactory.AnimeGroup.GetByID(oldSeries.AnimeGroupID);
+                    // A row stored without a group (ID 0) has no old group, and saving it
+                    // with one is how the start-up check repairs it.
+                    oldGroup = oldSeries.AnimeGroupID > 0 ? RepoFactory.AnimeGroup.GetByID(oldSeries.AnimeGroupID) : null;
                     if (obj.AnimeGroupID is not 0 && obj.AnimeGroupID == AnimeGroupCreator.TemporaryGroupID)
                     {
                         isMigrating = true;
