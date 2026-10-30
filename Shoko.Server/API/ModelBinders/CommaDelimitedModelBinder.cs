@@ -29,12 +29,33 @@ public class CommaDelimitedModelBinder : IModelBinder
 
         var items = valueProviderResult
             .SelectMany(value => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)).ToArray();
-        object? result;
 
+        // A value the element type does not know is the caller's mistake, so it fails the
+        // binding (a 400 naming the value) rather than escaping as an exception.
+        var values = new object?[items.Length];
+        for (var i = 0; i < items.Length; i++)
+        {
+            try
+            {
+                values[i] = converter.ConvertFromString(items[i]);
+            }
+            catch (Exception e) when (e is FormatException or NotSupportedException or ArgumentException)
+            {
+                bindingContext.ModelState.TryAddModelError(bindingContext.ModelName, $"\"{items[i]}\" is not a valid {elementType.Name}.");
+            }
+        }
+
+        if (!bindingContext.ModelState.IsValid)
+        {
+            bindingContext.Result = ModelBindingResult.Failed();
+            return Task.CompletedTask;
+        }
+
+        object? result;
         if (bindingContext.ModelType.IsArray)
         {
-            var array = Array.CreateInstance(elementType, items.Length);
-            Array.Copy(items.Select(converter.ConvertFromString).ToArray(), array, items.Length);
+            var array = Array.CreateInstance(elementType, values.Length);
+            Array.Copy(values, array, values.Length);
             result = array;
         }
         else
@@ -58,18 +79,8 @@ public class CommaDelimitedModelBinder : IModelBinder
                 return Task.CompletedTask;
             }
 
-            foreach (var item in items)
-            {
-                try
-                {
-                    var value = converter.ConvertFromString(item);
-                    addMethod.Invoke(result, [value]);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogDebug(e, "Error converting value to {Name}", elementType.FullName);
-                }
-            }
+            foreach (var value in values)
+                addMethod.Invoke(result, [value]);
         }
 
         bindingContext.Result = ModelBindingResult.Success(result);
