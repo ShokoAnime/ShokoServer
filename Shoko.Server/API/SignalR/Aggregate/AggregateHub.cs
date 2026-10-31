@@ -80,6 +80,18 @@ public class AggregateHub : Hub
         return ListJoinedFeeds();
     }
 
+    /// <summary>
+    ///   Sends the caller a feed's initial messages again, as the
+    ///   <c>&lt;feed&gt;:connected</c> message it got on joining, so a part of
+    ///   the client that starts listening later gets its own starting state.
+    ///   Answers whether it was sent: only to a connection on the feed.
+    /// </summary>
+    [HubMethodName("feed.resend_initial")]
+    public Task<bool> ResendInitialMessages(string feed, DateTime? lastConnectedAt = null)
+        => _allFeeds.TryGetValue(feed, out var emitter)
+            ? emitter.ResendInitialMessagesAsync(Context.ConnectionId, lastConnectedAt)
+            : Task.FromResult(false);
+
     [HubMethodName("feed.join_many")]
     public async Task<IReadOnlyList<string>> JoinFeeds(string[] feeds, DateTime? lastConnectedAt = null)
     {

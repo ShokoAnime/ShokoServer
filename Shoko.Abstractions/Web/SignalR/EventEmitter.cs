@@ -78,12 +78,26 @@ public abstract class EventEmitter : IEventEmitter
         }
 
         await hub.Groups.AddToGroupAsync(connectionId, Name);
+        await SendInitialMessagesAsync(hub, connectionId, user, lastConnectedAt);
+        return true;
+    }
 
+    /// <inheritdoc />
+    public async Task<bool> ResendInitialMessagesAsync(string connectionId, DateTime? lastConnectedAt = null)
+    {
+        var hub = _hub ?? throw new InvalidOperationException($"The feed '{Name}' is not attached to a hub.");
+        if (!_connections.TryGetValue(connectionId, out var user))
+            return false;
+
+        await SendInitialMessagesAsync(hub, connectionId, user, lastConnectedAt);
+        return true;
+    }
+
+    private async Task SendInitialMessagesAsync(IHubContext hub, string connectionId, IUser user, DateTime? lastConnectedAt)
+    {
         var messages = GetInitialMessagesForUser(connectionId, user, lastConnectedAt) ?? GetInitialMessages();
         if (messages.Length > 0)
             await hub.Clients.Client(connectionId).SendCoreAsync(GetMessageName("connected"), messages);
-
-        return true;
     }
 
     /// <inheritdoc />

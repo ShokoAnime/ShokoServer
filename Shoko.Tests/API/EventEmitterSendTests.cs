@@ -54,11 +54,37 @@ public class EventEmitterSendTests
         Assert.Equal(["c3"], hub.Sent.Single(message => !ReferenceEquals(message.Args, shared)).ConnectionIDs);
     }
 
+    [Fact]
+    public async Task ResendInitialMessages_SendsOnlyToAConnectionOnTheFeed()
+    {
+        var hub = new RecordingHub();
+        var feed = new StatefulFeed(hub.Untyped);
+        await feed.ConnectAsync("a1", User(1));
+        hub.Sent.Clear();
+
+        Assert.True(await feed.ResendInitialMessagesAsync("a1"));
+        Assert.False(await feed.ResendInitialMessagesAsync("unknown"));
+
+        var message = Assert.Single(hub.Sent);
+        Assert.Equal(["a1"], message.ConnectionIDs);
+        Assert.Equal(["state"], message.Args);
+    }
+
     private static IUser User(int userID)
     {
         var user = new Mock<IUser>();
         user.Setup(u => u.LocalID).Returns(userID);
         return user.Object;
+    }
+
+    private sealed class StatefulFeed : EventEmitter
+    {
+        public StatefulFeed(IHubContext hub)
+            => Attach(hub);
+
+        public override string Name => "stateful";
+
+        protected override object[] GetInitialMessages() => ["state"];
     }
 
     private sealed class TestFeed : EventEmitter

@@ -52,6 +52,18 @@ public interface IEventEmitter
     Task<bool> ConnectAsync(string connectionId, IUser user, DateTime? lastConnectedAt = null);
 
     /// <summary>
+    /// Sends a connection that has already joined the feed its initial
+    /// messages again, as the <c>connected</c> message it got on joining, so
+    /// a client handing the one connection to several parts of itself can
+    /// give a part that starts listening later its own starting state.
+    /// </summary>
+    /// <param name="connectionId">The SignalR connection ID.</param>
+    /// <param name="lastConnectedAt">When the client last had this state, if it knows, so the feed can send only what changed since.</param>
+    /// <returns><c>true</c> if the connection is on the feed and was sent its initial messages; otherwise <c>false</c>.</returns>
+    /// <exception cref="InvalidOperationException">The feed was not attached to a hub yet.</exception>
+    Task<bool> ResendInitialMessagesAsync(string connectionId, DateTime? lastConnectedAt = null);
+
+    /// <summary>
     /// Removes a connection from the feed. The hub calls it when a client
     /// leaves the feed or disconnects.
     /// </summary>
