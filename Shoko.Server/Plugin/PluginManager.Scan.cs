@@ -106,7 +106,8 @@ public partial class PluginManager
 
         // Every load context exists before any plugin loads, so a plugin's
         // dependencies are found whichever loads first.
-        CreateLoadContexts(picks.Where(pick => pick.FailureReason is null).Select(pick => pick.ToLoad).OfType<InternalPluginInfo>());
+        var toLoadInfo = picks.Where(pick => pick.FailureReason is null).Select(pick => pick.ToLoad).OfType<InternalPluginInfo>().ToList();
+        CreateLoadContexts(toLoadInfo, FindUnsharedDependencies(toLoadInfo, FindDependencyMismatch, logger));
 
         foreach (var pick in picks)
         {
@@ -238,7 +239,8 @@ public partial class PluginManager
     ///   apart from the core's, which lives in the server's own.
     /// </summary>
     /// <param name="toLoad">The plugin versions about to load.</param>
-    private void CreateLoadContexts(IEnumerable<InternalPluginInfo> toLoad)
+    /// <param name="unshared">The optional dependencies each plugin is not given.</param>
+    private void CreateLoadContexts(IEnumerable<InternalPluginInfo> toLoad, IReadOnlyDictionary<Guid, HashSet<Guid>> unshared)
     {
         foreach (var info in toLoad)
         {
@@ -250,10 +252,65 @@ public partial class PluginManager
                 info.Name,
                 mainDllPath,
                 [.. info.Dependencies.Select(dependency => dependency.PluginID)],
+                unshared.GetValueOrDefault(info.ID) ?? [],
                 id => _loadContexts.GetValueOrDefault(id),
                 () => _loadContexts.Values
             );
         }
+    }
+
+    /// <summary>
+    ///   Finds the optional dependencies each plugin about to load is not
+    ///   given: one whose version is outside the plugin's range, or that does
+    ///   not have what the plugin refers to. The plugin still loads, as if the
+    ///   dependency were not installed, so it falls back to its own copy of
+    ///   the dependency's contracts. Required dependencies are left to the
+    ///   dependency checks after the scan.
+    /// </summary>
+    /// <param name="toLoad">The plugin versions about to load.</param>
+    /// <param name="findMismatch">Why a plugin does not fit a dependency, or <c>null</c> when it does.</param>
+    /// <param name="logger">The logger to write what is not shared to.</param>
+    /// <returns>The IDs of the dependencies not given to each plugin, by plugin ID.</returns>
+    internal static Dictionary<Guid, HashSet<Guid>> FindUnsharedDependencies(
+        IReadOnlyList<InternalPluginInfo> toLoad,
+        Func<InternalPluginInfo, InternalPluginInfo, string?> findMismatch,
+        ILogger logger
+    )
+    {
+        var byId = toLoad.ToDictionary(info => info.ID);
+        var unshared = new Dictionary<Guid, HashSet<Guid>>();
+        foreach (var info in toLoad)
+        {
+            foreach (var dependency in info.Dependencies)
+            {
+                if (!dependency.IsOptional || dependency.PluginID == CorePlugin.StaticID || !byId.TryGetValue(dependency.PluginID, out var target))
+                    continue;
+
+                if (!PluginVersionRange.IsSatisfied(dependency.VersionRange, target.Version.Version))
+                    logger.LogInformation(
+                        "Not giving plugin \"{Name}\" its optional dependency \"{Dependency}\" because version {Version} does not satisfy \"{Range}\".",
+                        info.Name,
+                        target.Name,
+                        target.Version.Version,
+                        dependency.VersionRange
+                    );
+                else if (findMismatch(info, target) is { } reason)
+                    logger.LogWarning(
+                        "Not giving plugin \"{Name}\" its optional dependency \"{Dependency}\". {Reason}",
+                        info.Name,
+                        target.Name,
+                        reason
+                    );
+                else
+                    continue;
+
+                if (!unshared.TryGetValue(info.ID, out var ids))
+                    unshared[info.ID] = ids = [];
+                ids.Add(target.ID);
+            }
+        }
+
+        return unshared;
     }
 
     #endregion

@@ -22,6 +22,8 @@ namespace Shoko.Server.Plugin;
 ///     <item>among the packages its dependencies ship;</item>
 ///     <item>among the assemblies any other loaded plugin exports.</item>
 ///   </list>
+///   An optional dependency the plugin is not given, as one outside its range,
+///   is left out of every step, as if the two did not know about each other.
 /// </remarks>
 internal sealed class PluginLoadContext : AssemblyLoadContext
 {
@@ -40,6 +42,8 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
 
     private readonly Func<IEnumerable<PluginLoadContext>> _allContexts;
 
+    private readonly IReadOnlySet<Guid> _unsharedIDs;
+
     private IReadOnlyList<PluginLoadContext>? _dependencies;
 
     #endregion
@@ -53,6 +57,7 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
     /// <param name="name">The plugin's name, for the context's name.</param>
     /// <param name="mainDllPath">The plugin's main DLL.</param>
     /// <param name="dependencyIDs">The IDs of the plugins it depends on, optional ones included.</param>
+    /// <param name="unsharedIDs">The IDs of the optional dependencies it is not given.</param>
     /// <param name="findContext">Finds the load context of another plugin by its ID.</param>
     /// <param name="allContexts">Lists the load contexts of every loaded plugin.</param>
     public PluginLoadContext(
@@ -60,12 +65,14 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
         string name,
         string mainDllPath,
         IReadOnlyList<Guid> dependencyIDs,
+        IReadOnlySet<Guid> unsharedIDs,
         Func<Guid, PluginLoadContext?> findContext,
         Func<IEnumerable<PluginLoadContext>> allContexts
     ) : base($"Plugin {name} ({pluginID})", isCollectible: false)
     {
         PluginID = pluginID;
-        DependencyIDs = dependencyIDs;
+        DependencyIDs = [.. dependencyIDs.Where(id => !unsharedIDs.Contains(id))];
+        _unsharedIDs = unsharedIDs;
         _directory = Path.GetDirectoryName(mainDllPath)!;
         _findContext = findContext;
         _allContexts = allContexts;
@@ -85,7 +92,7 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
     public Guid PluginID { get; }
 
     /// <summary>
-    ///   The IDs of the plugins it depends on.
+    ///   The IDs of the plugins it depends on and is given.
     /// </summary>
     public IReadOnlyList<Guid> DependencyIDs { get; }
 
@@ -136,7 +143,7 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
 
         foreach (var context in _allContexts())
         {
-            if (context != this && context.ExportedAssemblies.Contains(name))
+            if (context != this && !_unsharedIDs.Contains(context.PluginID) && context.ExportedAssemblies.Contains(name))
                 return context.LoadFromAssemblyName(assemblyName);
         }
 
@@ -178,7 +185,7 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
             return dependencies;
 
         var found = new List<PluginLoadContext>();
-        var seen = new HashSet<Guid> { PluginID };
+        var seen = new HashSet<Guid>(_unsharedIDs) { PluginID };
         var queue = new Queue<Guid>(DependencyIDs);
         while (queue.TryDequeue(out var id))
         {

@@ -245,10 +245,9 @@ public partial class PluginManager
 
     /// <summary>
     ///   Fails every enabled plugin that refers to types or members a plugin
-    ///   it depends on does not have, the way a plugin built for another
-    ///   server is failed. Only the assemblies the dependency alone ships are
-    ///   looked at: one the server, the runtime or the plugin itself also
-    ///   has is not the dependency's to answer for.
+    ///   it requires does not have, the way a plugin built for another server
+    ///   is failed. An optional dependency that does not fit was already left
+    ///   out of the plugin's load context (<see cref="FindUnsharedDependencies"/>).
     /// </summary>
     private void FailPluginsNotFittingTheirDependencies()
     {
@@ -258,20 +257,15 @@ public partial class PluginManager
             if (!pluginInfo.CanLoad || pluginInfo.ID == CorePlugin.StaticID)
                 continue;
 
-            var ownAssemblies = pluginInfo.DLLs.Select(Path.GetFileNameWithoutExtension).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var dependency in pluginInfo.Dependencies)
             {
+                if (dependency.IsOptional)
+                    continue;
+
                 if (enabled.FirstOrDefault(other => other.ID == dependency.PluginID) is not { CanLoad: true } target || target.ID == CorePlugin.StaticID)
                     continue;
 
-                var surfaces = ReadSurfaces(target.DLLs.Where(dll =>
-                    Path.GetFileNameWithoutExtension(dll) is var name && !ownAssemblies.Contains(name) && !GetHostProvidedAssemblies().Contains(name)));
-                var reason = FindContractMismatch(
-                    pluginInfo.DLLs,
-                    surfaces,
-                    $"The plugin was built for a different version of plugin \"{target.Name}\" ({target.Version.Version}) and refers to what it does not have"
-                );
-                if (reason is null)
+                if (FindDependencyMismatch(pluginInfo.DLLs, target.Name, target.Version.Version, target.DLLs) is not { } reason)
                     continue;
 
                 logger.LogError("Not starting plugin \"{Name}\". {Reason} ({Version})", pluginInfo.Name, reason, pluginInfo.Version);
@@ -279,6 +273,35 @@ public partial class PluginManager
                 break;
             }
         }
+    }
+
+    /// <summary>
+    ///   Checks a plugin's DLLs for references to types and members a plugin
+    ///   it depends on does not have. Only the assemblies the plugin gets from
+    ///   the dependency are looked at: the ones the dependency exports, which
+    ///   it shares even when the plugin ships its own copy, and the others it
+    ///   ships that neither the plugin, the server nor the runtime has.
+    /// </summary>
+    /// <param name="plugin">The plugin.</param>
+    /// <param name="dependency">The dependency.</param>
+    /// <returns>Why the plugin does not fit, or <c>null</c> when nothing is missing.</returns>
+    private string? FindDependencyMismatch(InternalPluginInfo plugin, InternalPluginInfo dependency)
+        => FindDependencyMismatch(plugin.DLLs, dependency.Name, dependency.Version.Version, dependency.DLLs);
+
+    private string? FindDependencyMismatch(IReadOnlyList<string> dlls, string dependencyName, Version dependencyVersion, IReadOnlyList<string> dependencyDlls)
+    {
+        if (dependencyDlls is not [var mainDllPath, ..])
+            return null;
+
+        var own = dlls.Select(Path.GetFileNameWithoutExtension).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var exported = PluginLoadContext.ReadExportedAssemblies(mainDllPath, Path.ChangeExtension(mainDllPath, ".deps.json"));
+        var surfaces = ReadSurfaces(dependencyDlls.Where(dll =>
+            Path.GetFileNameWithoutExtension(dll) is var name && !GetHostProvidedAssemblies().Contains(name) && (exported.Contains(name) || !own.Contains(name))));
+        return FindContractMismatch(
+            dlls,
+            surfaces,
+            $"The plugin was built for a different version of plugin \"{dependencyName}\" ({dependencyVersion}) and refers to what it does not have"
+        );
     }
 
     /// <summary>
