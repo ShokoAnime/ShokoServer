@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.565",
+      "tag": "v6.0.0-dev.565",
+      "commit": "4bffbb34a9bb976344c8c0c07f2eb6991692404f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.565/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-31T11:43:07Z",
+      "releaseNotes": "\n`fix`: **Announce expired API tokens when they are removed**:\n\n- `CleanupExpiredTokensJob` and the lazy delete in `AuthTokensRepository.GetByToken` removed expired tokens without raising `IUserService.ApiTokenInvalidated`, so nothing listening heard about expiry\n- The cleanup now goes through `UserService.InvalidateExpiredApiTokens`, which raises the event per user; `GetByToken` treats an expired token as unknown and leaves its removal to the cleanup, off the authentication path\n"
+    },
+    {
       "version": "6.0.0.564",
       "tag": "v6.0.0-dev.564",
       "commit": "b06f99922b14b84765a743379b02bdd97ab39817",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.536/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-20T07:58:39Z",
       "releaseNotes": "\n`refactor`: **Keep only what each side uses in the dependency list copies**:\n\n- The server's copy dropped `Format`, which only the build tools write with, and each copy's note named the copies the others keep, each with what its side uses\n\n`refactor` (`buildtools`): **Read plugin dependencies from the project, as `PluginDependency` items**:\n\n- `shoko-build` and `Shoko.BuildTools.Targets` read `<PluginDependency Include=\"<id>\" Version=\"...\" Optional=\"...\" />` items below `--dependencies` and the `PluginDependencies` property, and stopped reading a manifest's top-level `dependencies`, warning when one still lists them\n- The property beside items warned that it wins, and a bad item stopped the build naming it\n- The schema dropped the top-level field, and the README and both NuGet readmes documented the items as where a plugin's dependencies belong\n\n`chore` (`buildtools`): **Bump build tools version to v0.6.0**.\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.4.0**.\n"
-    },
-    {
-      "version": "6.0.0.535",
-      "tag": "v6.0.0-dev.535",
-      "commit": "f9289552c4e7699183623a29456f598c0ccb5677",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.535/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-20T04:52:57Z",
-      "releaseNotes": "\n`fix` (`airing`): **List airings that share a time in episode order**:\n\nAirings at the same time were ordered by link, channel and key, so a batch\nrelease came out scrambled (`#10` before `#2`, or by GUID in the lists).\n\n- Added `AiringEpisodeOrder` (anime, episode type, episode number) as the\n  first tie-break after the time in `GetAiringsInRange`, the calendar days\n  and the series and schedule airing lists\n"
     }
   ]
 }
