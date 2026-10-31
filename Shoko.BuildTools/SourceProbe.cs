@@ -37,13 +37,15 @@ internal static class SourceProbe
 
     /// <summary>
     ///   Scan the project's source files for Shoko service interface
-    ///   implementations and return the set of auto-detected tags.
+    ///   implementations and return the set of auto-detected tags. The
+    ///   files are found relative to the project's own folder, wherever the
+    ///   build was started from.
     /// </summary>
     public static IReadOnlyList<string> DiscoverTags(
         Project project,
-        string projectDir,
         IReadOnlySet<string>? existingTags = null)
     {
+        var projectDir = project.DirectoryPath;
         var discovered = new List<string>();
         var existing = existingTags ?? new HashSet<string>();
 

@@ -26,13 +26,14 @@ internal static class BuildCommand
     {
         try
         {
-            var projectDir = Directory.GetCurrentDirectory();
+            // Where the build was started from; the project's own folder is project.DirectoryPath.
+            var workingDir = Directory.GetCurrentDirectory();
             var manifestFullPath = manifestPath is not null
-                ? Path.GetFullPath(manifestPath, projectDir)
-                : LookForManifestNearby(projectDir);
+                ? Path.GetFullPath(manifestPath, workingDir)
+                : LookForManifestNearby(workingDir);
 
             // ── Discover the project to build ─────────────────────────
-            var projectFile = ResolveProjectFile(projectDir, forwardArgs);
+            var projectFile = ResolveProjectFile(workingDir, forwardArgs);
             if (projectFile is null)
             {
                 Console.Error.WriteLine("No project file (.csproj) found.");
@@ -212,7 +213,7 @@ internal static class BuildCommand
 
             // ── Source probe: auto-detect tags ────────────────────────
             var existingTagSet = tags?.ToHashSet() ?? [];
-            var autoTags = SourceProbe.DiscoverTags(project, projectDir, existingTagSet);
+            var autoTags = SourceProbe.DiscoverTags(project, existingTagSet);
 
             if (autoTags.Count > 0)
             {
@@ -237,7 +238,8 @@ internal static class BuildCommand
             }
 
             // ── Generate and write targets file (shared across RIDs) ──
-            var objDir = Path.Combine(projectDir, "obj", "Shoko.BuildTools");
+            // Next to the project, wherever the build was started from.
+            var objDir = Path.Combine(project.DirectoryPath, "obj", "Shoko.BuildTools");
             Directory.CreateDirectory(objDir);
             var targetsFile = Path.Combine(objDir, "Shoko.BuildTools.targets");
             await WriteTargetsFileAsync(targetsFile);
@@ -315,7 +317,7 @@ internal static class BuildCommand
                 }
 
                 // ── Post-build: pack zip, checksum, update manifest ───
-                var builtDll = FindBuiltDll(projectDir, instance);
+                var builtDll = FindBuiltDll(instance.Directory, instance);
                 if (builtDll is null)
                 {
                     Console.Error.WriteLine($"No plugin DLL found for {rid}.");
@@ -366,7 +368,7 @@ internal static class BuildCommand
                     ["abstraction"] = abstractionStr,
                     ["tag"] = releaseTagOrVersion,
                 };
-                var zipPath = Path.GetFullPath(Substitute(outputZip, subst), projectDir);
+                var zipPath = Path.GetFullPath(Substitute(outputZip, subst), workingDir);
 
                 // Pack the build output into a zip
                 var binDir = Path.GetDirectoryName(builtDll)!;
