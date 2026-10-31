@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
@@ -409,6 +410,33 @@ public class UserService(
 
     public Task<bool> InvalidateApiToken(ApiToken token)
         => InvalidateApiToken(token.Token);
+
+    /// <summary>
+    ///   Removes every expired API token, and raises
+    ///   <see cref="ApiTokenInvalidated"/> for each, as for any other token
+    ///   taken away.
+    /// </summary>
+    /// <param name="cancellationToken">Stops between users.</param>
+    /// <returns>How many tokens were removed.</returns>
+    internal int InvalidateExpiredApiTokens(CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.Now;
+        var expired = _authTokensRepository.GetAll()
+            .Where(token => token.ExpiresAt.HasValue && token.ExpiresAt.Value < now)
+            .ToList();
+        var removed = 0;
+        foreach (var group in expired.GroupBy(token => token.UserID))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var tokens = group.ToList();
+            _authTokensRepository.Delete(tokens);
+            removed += tokens.Count;
+            if (_userRepository.GetByID(group.Key) is { } user)
+                OnApiTokensInvalidated(user, tokens);
+        }
+
+        return removed;
+    }
 
     public Task<bool> InvalidateApiToken(string token)
     {

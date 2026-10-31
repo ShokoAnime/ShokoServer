@@ -36,12 +36,11 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
             Delete(tokens);
         }
 
-        // Lazy-invalidate the token upon read if it hasn't been cleaned up yet.
+        // An expired token is unknown from the moment it expires. It is removed, and its
+        // removal announced, by the expired token cleanup (`UserService.InvalidateExpiredApiTokens`),
+        // not here on the authentication path.
         if (auth is { ExpiresAt: not null } && auth.ExpiresAt.Value < DateTime.Now)
-        {
-            Delete(auth);
             return null;
-        }
 
         return auth;
     }

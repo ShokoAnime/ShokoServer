@@ -125,6 +125,34 @@ public class UserServiceApiTokenEventTests
         Assert.Same(user, invalidated.ApiToken.User);
     }
 
+    [Fact]
+    public void InvalidateExpired_RaisesForEachExpiredToken_AndKeepsTheRest()
+    {
+        var harness = new Harness();
+        var past = DateTime.Now.AddMinutes(-1);
+        harness.Tokens.Cache.Update(new() { AuthID = 201, UserID = 1, DeviceName = "web", Token = "11111111-1111-4111-8111-111111111111", ExpiresAt = past });
+        harness.Tokens.Cache.Update(new() { AuthID = 202, UserID = 2, DeviceName = "web", Token = "22222222-2222-4222-8222-222222222222", ExpiresAt = past });
+        harness.Tokens.Cache.Update(new() { AuthID = 203, UserID = 1, DeviceName = "web", Token = "33333333-3333-4333-8333-333333333333", ExpiresAt = DateTime.Now.AddDays(1) });
+
+        Assert.Equal(2, harness.Service.InvalidateExpiredApiTokens(TestContext.Current.CancellationToken));
+
+        Assert.Equal([1, 2], harness.Invalidated.Select(e => e.ApiToken.User.LocalID).Order());
+        Assert.Equal(203, Assert.Single(harness.Tokens.GetAll()).AuthID);
+    }
+
+    [Fact]
+    public void ReadingAnExpiredToken_FindsNothing_AndLeavesItForTheCleanup()
+    {
+        var harness = new Harness();
+        const string token = "44444444-4444-4444-8444-444444444444";
+        harness.Tokens.Cache.Update(new() { AuthID = 301, UserID = 1, DeviceName = "web", Token = token, ExpiresAt = DateTime.Now.AddMinutes(-1) });
+
+        Assert.Null(harness.Tokens.GetByToken(token));
+
+        Assert.Single(harness.Tokens.GetAll());
+        Assert.Empty(harness.Invalidated);
+    }
+
     internal sealed class Harness
     {
         public readonly List<JMMUser> Users =
