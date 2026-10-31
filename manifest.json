@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.567",
+      "tag": "v6.0.0-dev.567",
+      "commit": "959df0f41c013cb08b44026789522b5944d475b8",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.567/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-31T13:44:28Z",
+      "releaseNotes": "\n`fix` (`buildtools`): **Find a project's sources from its own folder in `shoko-build`**:\n\n- `shoko-build` resolved the project's source files, its generated targets file and its fallback output paths against the working directory, so a build started outside the project's folder (`shoko-build ./Plugin/Plugin.csproj` from a repository root) found no sources and stamped none of the auto-detected tags\n\n`chore` (`buildtools`): **Bump build tools version to v0.8.3**.\n"
+    },
+    {
       "version": "6.0.0.566",
       "tag": "v6.0.0-dev.566",
       "commit": "6b552a6ff88d02af88b051920d45fac2c3d517bb",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.538/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-20T09:31:12Z",
       "releaseNotes": "\n`repo`: **Add AniDB, TMDB attribution and third-party notices** ([#1462](https://github.com/ShokoAnime/ShokoServer/pull/1462)):\n\nCo-authored-by: revam <7761729+revam@users.noreply.github.com>\n"
-    },
-    {
-      "version": "6.0.0.537",
-      "tag": "v6.0.0-dev.537",
-      "commit": "20919ee978fb7fbdd3d6ede66ce531d6c8a2d201",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.537/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-20T08:31:33Z",
-      "releaseNotes": "\n`fix` (`buildtools`): **Default `EnableDynamicLoading` in `Shoko.BuildTools.Targets`**:\n\n- A `build/Shoko.BuildTools.Targets.props` set `EnableDynamicLoading` to `true` when the project leaves it unset, so a plain `dotnet build` copies a plugin's own NuGet dependencies as `shoko-build` does\n- The README and the package's readme said so, and how a project that is not a plugin opts out\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.5.0**.\n"
     }
   ]
 }
