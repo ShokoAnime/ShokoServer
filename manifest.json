@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.566",
+      "tag": "v6.0.0-dev.566",
+      "commit": "6b552a6ff88d02af88b051920d45fac2c3d517bb",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.566/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-31T13:02:22Z",
+      "releaseNotes": "\n`feat` (`signalr`): **Let a client ask a feed for its initial state again**:\n\n- Added `feed.resend_initial` to the aggregate hub and `IEventEmitter.ResendInitialMessagesAsync`, which send a connection already on a feed its `<feed>:connected` messages again, so a client sharing one connection among several listeners can give a late one its own starting state\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.120**.\n"
+    },
+    {
       "version": "6.0.0.565",
       "tag": "v6.0.0-dev.565",
       "commit": "4bffbb34a9bb976344c8c0c07f2eb6991692404f",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.537/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-20T08:31:33Z",
       "releaseNotes": "\n`fix` (`buildtools`): **Default `EnableDynamicLoading` in `Shoko.BuildTools.Targets`**:\n\n- A `build/Shoko.BuildTools.Targets.props` set `EnableDynamicLoading` to `true` when the project leaves it unset, so a plain `dotnet build` copies a plugin's own NuGet dependencies as `shoko-build` does\n- The README and the package's readme said so, and how a project that is not a plugin opts out\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.5.0**.\n"
-    },
-    {
-      "version": "6.0.0.536",
-      "tag": "v6.0.0-dev.536",
-      "commit": "dbbeecba67d16effd0624d6ea6e50b177dcdc979",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.536/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-20T07:58:39Z",
-      "releaseNotes": "\n`refactor`: **Keep only what each side uses in the dependency list copies**:\n\n- The server's copy dropped `Format`, which only the build tools write with, and each copy's note named the copies the others keep, each with what its side uses\n\n`refactor` (`buildtools`): **Read plugin dependencies from the project, as `PluginDependency` items**:\n\n- `shoko-build` and `Shoko.BuildTools.Targets` read `<PluginDependency Include=\"<id>\" Version=\"...\" Optional=\"...\" />` items below `--dependencies` and the `PluginDependencies` property, and stopped reading a manifest's top-level `dependencies`, warning when one still lists them\n- The property beside items warned that it wins, and a bad item stopped the build naming it\n- The schema dropped the top-level field, and the README and both NuGet readmes documented the items as where a plugin's dependencies belong\n\n`chore` (`buildtools`): **Bump build tools version to v0.6.0**.\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.4.0**.\n"
     }
   ]
 }
