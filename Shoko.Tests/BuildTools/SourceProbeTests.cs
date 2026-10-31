@@ -32,7 +32,9 @@ public class SourceProbeTests : IDisposable
         // workflow runs `shoko-build ./Plugin/Plugin.csproj` from its root.
         var projectDir = Directory.CreateDirectory(Path.Combine(_root, "Plugin")).FullName;
         var projectFile = Path.Combine(projectDir, "Plugin.csproj");
-        File.WriteAllText(projectFile, """<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>""");
+        // A plain project naming its one source file: no SDK, whose own assemblies would have to load
+        // into the test host, and a relative path, as the SDK's default items are.
+        File.WriteAllText(projectFile, """<Project><ItemGroup><Compile Include="Renamer.cs" /></ItemGroup></Project>""");
         File.WriteAllText(Path.Combine(projectDir, "Renamer.cs"), "public class Renamer(int value) : IRelocationProvider<Settings> { }");
 
         using var collection = new ProjectCollection();
