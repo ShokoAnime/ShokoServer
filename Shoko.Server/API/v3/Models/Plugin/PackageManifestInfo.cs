@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 
@@ -78,4 +79,12 @@ public class PackageManifestInfo(AbstractPackageManifestInfo manifestInfo, IRead
     /// </summary>
     [Required]
     public DateTime LastFetchedAt { get; init; } = manifestInfo.LastFetchedAt;
+
+    /// <summary>
+    ///   Free-form data about the package from its manifest, passed through as
+    ///   is for frontends; the server never reads it. Left out when the
+    ///   manifest has none.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public JObject? Extensions { get; init; } = manifestInfo.Extensions;
 }

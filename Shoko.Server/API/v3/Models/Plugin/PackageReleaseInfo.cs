@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
@@ -101,6 +102,14 @@ public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IReadOnl
         .ToList();
 
     /// <summary>
+    ///   Why archives the manifest listed for this release were left out,
+    ///   such as one offered over plain http by a manifest served over
+    ///   https. Empty when every archive was kept.
+    /// </summary>
+    [Required]
+    public IReadOnlyList<string> Refusals { get; init; } = releaseInfo.Refusals;
+
+    /// <summary>
     ///   Available archives for different runtime environments and
     ///   architectures.
     /// </summary>
@@ -108,4 +117,12 @@ public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IReadOnl
     public IReadOnlyList<PackageArchiveInfo>? Archives { get; init; } = !includeArchives ? null : releaseInfo.Archives
         .Select(a => new PackageArchiveInfo(releaseInfo, a, pluginInfoList, pluginManager))
         .ToList();
+
+    /// <summary>
+    ///   Free-form data about the release from its manifest, passed through as
+    ///   is for frontends; the server never reads it. Left out when the
+    ///   manifest has none.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public JObject? Extensions { get; init; } = releaseInfo.Extensions;
 }

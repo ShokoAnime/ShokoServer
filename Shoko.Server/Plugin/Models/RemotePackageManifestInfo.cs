@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 
 using JsonConverter = System.Text.Json.Serialization.JsonConverterAttribute;
 using NewtonsoftJsonConverter = Newtonsoft.Json.JsonConverterAttribute;
@@ -140,6 +141,13 @@ public sealed class RemotePackageManifestInfo
     [JsonPropertyName("releases")]
     [JsonProperty("releases")]
     public IReadOnlyList<RemotePackageReleaseInfo>? Releases { get; set; }
+
+    /// <summary>
+    ///   Free-form data about the package, kept as is and never read.
+    /// </summary>
+    [JsonProperty("extensions")]
+    public JObject? Extensions { get; init; }
+
 }
 
 /// <summary>

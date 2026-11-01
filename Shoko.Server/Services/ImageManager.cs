@@ -424,6 +424,10 @@ public class ImageManager(
     /// <inheritdoc/>
     public IImage? GetImageByID(Guid imageID, bool primaryImage = false)
     {
+        // The repository refuses the empty ID; no image has it.
+        if (imageID == Guid.Empty)
+            return null;
+
         var image = imageRepository.GetByID(imageID);
         if (image is not null && primaryImage && image.ID != image.PrimaryID)
             image = imageRepository.GetByID(image.PrimaryID);

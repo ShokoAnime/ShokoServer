@@ -184,7 +184,6 @@ public class UserServiceApiTokenEventTests
             Service = new UserService(
                 NullLogger<UserService>.Instance,
                 null!,
-                null!,
                 Writable<JMMUserRepository, JMMUser>(u => u.JMMUserID, Users).Object,
                 tokens.Object,
                 null!,

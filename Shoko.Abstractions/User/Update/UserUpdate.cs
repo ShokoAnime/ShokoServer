@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
 using Shoko.Abstractions.Metadata.Anidb;
 
 namespace Shoko.Abstractions.User.Update;
@@ -36,52 +35,6 @@ public class UserUpdate
     public bool? IsAnidbUser { get; set; }
 
     /// <summary>
-    ///   Indicates that the user avatar image has been set or unset in this update.
-    /// </summary>
-    public bool HasSetAvatarImage { get; private set; }
-
-    /// <summary>
-    ///   Indicates this update contains an avatar image to-be set.
-    /// </summary>
-    public bool HasAvatarImage { get => AvatarImage is not null || AvatarImageAsStream is not null; }
-
-    private byte[]? _avatarImage;
-
-    private Stream? _avatarImageAsStream;
-
-    /// <summary>
-    ///   The avatar image to set, as an array of bytes. Can be encoded as a
-    ///   Base64 Data URL instead of a raw byte array. Set either this or
-    ///   <see cref="AvatarImageAsStream"/> to <c>null</c> to unset the avatar
-    ///   image.
-    /// </summary>
-    public byte[]? AvatarImage
-    {
-        get => _avatarImage;
-        set
-        {
-            HasSetAvatarImage = true;
-            _avatarImage = value;
-            _avatarImageAsStream = null;
-        }
-    }
-
-    /// <summary>
-    ///   The avatar image to set, as a stream of bytes. Set this or 
-    ///   <see cref="AvatarImage"/> to <c>null</c> to unset the avatar image.
-    /// </summary>
-    public Stream? AvatarImageAsStream
-    {
-        get => _avatarImageAsStream;
-        set
-        {
-            HasSetAvatarImage = true;
-            _avatarImage = null;
-            _avatarImageAsStream = value;
-        }
-    }
-
-    /// <summary>
     ///   The user's new restricted tags.
     /// </summary>
     public List<IAnidbTag>? RestrictedTags { get; set; }
@@ -100,6 +53,5 @@ public class UserUpdate
         Username = user.Username;
         IsAdmin = user.IsAdmin;
         IsAnidbUser = user.IsAnidbUser;
-        _avatarImageAsStream = user.PrimaryImage?.GetStream();
     }
 }

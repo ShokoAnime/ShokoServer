@@ -762,6 +762,7 @@ public partial class PluginPackageManager(
         }
 
         using var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        ThrowIfRefusedDowngradingRedirect(response);
         response.EnsureSuccessStatusCode();
 
         if (cancellationToken.IsCancellationRequested)
@@ -877,6 +878,7 @@ public partial class PluginPackageManager(
                 HomepageUrl = list[0].HomepageUrl,
                 Thumbnail = list.FirstOrDefault(m => m.Thumbnail is not null)?.Thumbnail,
                 Icon = list.FirstOrDefault(m => m.Icon is not null)?.Icon,
+                Extensions = list.FirstOrDefault(m => m.Extensions is not null)?.Extensions,
                 Name = list[0].Name,
                 IsMeta = list.Select(m => m.IsMeta).FirstOrDefault(isMeta => isMeta is not null),
                 Releases = list.SelectMany(m => m.Releases)
@@ -1288,9 +1290,9 @@ public partial class PluginPackageManager(
             var remoteManifests = await GetRemoteManifestAsync(httpClient, repositoryInfo.Url, allowArray: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             var lastFetchedAt = DateTime.UtcNow;
             var manifests = new List<PackageManifestInfo>();
-            foreach (var (remoteManifest, fetchedAt) in remoteManifests)
+            foreach (var (remoteManifest, fetchedAt, source) in remoteManifests)
             {
-                var manifest = await ConvertRemoteToLocalAsync(remoteManifest, repositoryInfo.ID, fetchedAt, cancellationToken).ConfigureAwait(false);
+                var manifest = await ConvertRemoteToLocalAsync(remoteManifest, source, repositoryInfo.ID, fetchedAt, cancellationToken).ConfigureAwait(false);
                 if (manifest is not null)
                     manifests.Add(manifest);
             }
@@ -1343,7 +1345,15 @@ public partial class PluginPackageManager(
             try
             {
                 manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
-                if (manifest is { IsReference: true })
+                if (manifest is { IsReference: true } && IsDowngrade(manifestUrl, manifest.ManifestUrl))
+                {
+                    _logger.LogWarning(
+                        "Left out the linked manifest at {ManifestUrl}: the manifest at {Source} is served over https, so it may not link one served over plain http.",
+                        manifest.ManifestUrl,
+                        manifestUrl
+                    );
+                }
+                else if (manifest is { IsReference: true })
                 {
                     var subManifests = await GetRemoteManifestAsync(httpClient, manifest.ManifestUrl, allowArray: false, cancellationToken: cancellationToken).ConfigureAwait(false);
                     foreach (var subManifest in subManifests)
@@ -1368,12 +1378,12 @@ public partial class PluginPackageManager(
         }
     }
 
-    private async Task<IReadOnlyList<(RemotePackageManifestInfo Manifest, DateTime fetchedAt)>> GetRemoteManifestAsync(HttpClient httpClient, string manifestUrl, bool allowArray, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<(RemotePackageManifestInfo Manifest, DateTime fetchedAt, string Source)>> GetRemoteManifestAsync(HttpClient httpClient, string manifestUrl, bool allowArray, CancellationToken cancellationToken)
     {
         // Only a referenced manifest falls back on its cached copy: when the
         // repository's own manifest fails, the last synced state stays as is.
         var (document, lastFetchedAt) = await FetchManifestAsync(httpClient, manifestUrl, allowStaleCache: !allowArray, cancellationToken).ConfigureAwait(false);
-        var manifests = new List<(RemotePackageManifestInfo Manifest, DateTime fetchedAt)>();
+        var manifests = new List<(RemotePackageManifestInfo Manifest, DateTime fetchedAt, string Source)>();
         // Keyed by package *and* source, not by package alone. One package
         // legitimately appears more than once in a repository - a stable
         // manifest and a dev manifest are the same package at two addresses,
@@ -1421,7 +1431,7 @@ public partial class PluginPackageManager(
                 return;
             }
 
-            manifests.Add((manifest, fetchedAt));
+            manifests.Add((manifest, fetchedAt, source));
         }
     }
 
@@ -1460,6 +1470,7 @@ public partial class PluginPackageManager(
             if (cacheExists && response.StatusCode is HttpStatusCode.NotModified)
                 return ReadCachedManifest(jsonPath);
 
+            ThrowIfRefusedDowngradingRedirect(response);
             response.EnsureSuccessStatusCode();
             var contentType = response.Content.Headers.ContentType?.MediaType;
             if (contentType is not ("application/json" or "text/plain" or "text/json"))
@@ -1564,7 +1575,7 @@ public partial class PluginPackageManager(
             _ => exception.Message.TrimEnd('.'),
         };
 
-    private async Task<PackageManifestInfo?> ConvertRemoteToLocalAsync(RemotePackageManifestInfo manifestInfo, Guid repositoryId, DateTime lastFetchedAt, CancellationToken cancellationToken)
+    private async Task<PackageManifestInfo?> ConvertRemoteToLocalAsync(RemotePackageManifestInfo manifestInfo, string source, Guid repositoryId, DateTime lastFetchedAt, CancellationToken cancellationToken)
     {
         if (manifestInfo.IsReference)
             return null;
@@ -1573,8 +1584,22 @@ public partial class PluginPackageManager(
 #pragma warning disable CS0618
         var thumbnailUrl = manifestInfo.ThumbnailUrl ?? manifestInfo.ImageUrl;
 #pragma warning restore CS0618
-        var thumbnail = await DownloadAndCacheImageAsync(thumbnailUrl, manifestInfo.PackageID, cancellationToken).ConfigureAwait(false);
-        var icon = await DownloadAndCacheImageAsync(manifestInfo.IconUrl, manifestInfo.PackageID, cancellationToken).ConfigureAwait(false);
+        var thumbnail = await DownloadAndCacheImageAsync(KeepUnlessDowngrade(thumbnailUrl), manifestInfo.PackageID, cancellationToken).ConfigureAwait(false);
+        var icon = await DownloadAndCacheImageAsync(KeepUnlessDowngrade(manifestInfo.IconUrl), manifestInfo.PackageID, cancellationToken).ConfigureAwait(false);
+
+        string? KeepUnlessDowngrade(string? imageUrl)
+        {
+            if (!IsDowngrade(source, imageUrl))
+                return imageUrl;
+
+            _logger.LogWarning(
+                "Left out the image at {ImageUrl} of package {PackageId}: its manifest at {Source} is served over https, so it may not point to plain http.",
+                imageUrl,
+                manifestInfo.PackageID,
+                source
+            );
+            return null;
+        }
 
         return new PackageManifestInfo
         {
@@ -1591,6 +1616,7 @@ public partial class PluginPackageManager(
                 .ToArray(),
             Thumbnail = thumbnail,
             Icon = icon,
+            Extensions = manifestInfo.Extensions,
             Releases = manifestInfo.Releases
                 .Select(remoteRelease => new PackageReleaseInfo
                 {
@@ -1602,6 +1628,7 @@ public partial class PluginPackageManager(
                     Channel = remoteRelease.Channel,
                     ReleaseNotes = remoteRelease.ReleaseNotes,
                     IsMeta = remoteRelease.IsMeta,
+                    Extensions = remoteRelease.Extensions,
                     // A dependency without a range accepts any version.
                     Dependencies = remoteRelease.Dependencies
                         .Select(remoteDependency => new PluginDependency
@@ -1612,18 +1639,67 @@ public partial class PluginPackageManager(
                         })
                         .ToList(),
                     Archives = remoteRelease.Archives
+                        .Where(remoteArchive => !IsDowngrade(source, remoteArchive.ArchiveUrl))
                         .Select(remoteArchive => new PackageArchiveInfo
                         {
                             RuntimeIdentifier = remoteArchive.RuntimeIdentifier,
                             AbstractionVersion = remoteArchive.AbstractionVersion,
                             ArchiveUrl = remoteArchive.ArchiveUrl,
                             ArchiveChecksum = remoteArchive.ArchiveChecksum,
+                            Extensions = remoteArchive.Extensions,
                         })
+                        .ToList(),
+                    Refusals = remoteRelease.Archives
+                        .Where(remoteArchive => IsDowngrade(source, remoteArchive.ArchiveUrl))
+                        .Select(remoteArchive => RefuseDowngradingArchive(remoteRelease.Version, remoteArchive.ArchiveUrl))
                         .ToList(),
                 })
                 .ToList(),
             LastFetchedAt = lastFetchedAt,
         };
+    }
+
+    /// <summary>
+    ///   Words and logs why an archive offered over plain http by a manifest
+    ///   served over https was left out.
+    /// </summary>
+    /// <param name="version">The release's version.</param>
+    /// <param name="archiveUrl">The archive's address.</param>
+    /// <returns>The reason, for <see cref="PackageReleaseInfo.Refusals"/>.</returns>
+    private string RefuseDowngradingArchive(Version version, string archiveUrl)
+    {
+        _logger.LogWarning("Left out an archive of version {Version} at {ArchiveUrl}: its manifest is served over https, so it may not be downloaded over plain http.", version, archiveUrl);
+        return $"The archive at {archiveUrl} is offered over plain http by a manifest served over https.";
+    }
+
+    /// <summary>
+    ///   Whether fetching an address a manifest names would be less secure
+    ///   than fetching the manifest was: an absolute address that is not
+    ///   https in a manifest that was. A relative address takes the
+    ///   manifest's own scheme, and a manifest served over http may name
+    ///   either.
+    /// </summary>
+    /// <param name="manifestUrl">Where the manifest was fetched from.</param>
+    /// <param name="url">The address it names, if any.</param>
+    /// <returns><c>true</c> when the address is refused.</returns>
+    internal static bool IsDowngrade(string manifestUrl, string? url)
+        => !string.IsNullOrEmpty(url)
+            && Uri.TryCreate(manifestUrl, UriKind.Absolute, out var manifestUri) && manifestUri.Scheme == Uri.UriSchemeHttps
+            && Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme != Uri.UriSchemeHttps;
+
+    /// <summary>
+    ///   Throws a clear reason when an https address answered with a redirect
+    ///   to plain http, which the client refuses to follow, instead of
+    ///   leaving the bare redirect status to explain it.
+    /// </summary>
+    /// <param name="response">The response.</param>
+    private static void ThrowIfRefusedDowngradingRedirect(HttpResponseMessage response)
+    {
+        if ((int)response.StatusCode is >= 300 and < 400
+            && response.RequestMessage?.RequestUri is { Scheme: "https" } requested
+            && response.Headers.Location is { } location
+            && new Uri(requested, location) is { Scheme: not "https" } target)
+            throw new HttpRequestException($"{requested} redirected to {target}, which is not followed: a download over https may not continue over plain http.", null, response.StatusCode);
     }
 
     /// <summary>
@@ -1677,6 +1753,7 @@ public partial class PluginPackageManager(
         {
             var httpClient = httpClientFactory.CreateClient("Default");
             using var response = await httpClient.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            ThrowIfRefusedDowngradingRedirect(response);
             response.EnsureSuccessStatusCode();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;

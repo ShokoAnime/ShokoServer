@@ -133,8 +133,11 @@ played since does not count as a second watch.
 
 The other update classes cover their own levels: `EpisodeUserDataUpdate`,
 `SeriesUserDataUpdate`, `GroupUserDataUpdate` and `UserUpdate`, with the same
-kind of flag (spelled `HasSet…` on the rating and avatar properties). Values are
+kind of flag (spelled `HasSet…` on the rating properties). Values are
 validated on assignment, so a bad one throws where it is set, not at save time.
+A user's avatar and banner are images: set them through `IImageManager`
+(`UploadImage`, then `SetPreferredImageForEntity` with `ImageEntityType.Primary`
+or `ImageEntityType.Backdrop`), not through `UserUpdate`.
 
 ---
 

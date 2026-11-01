@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Shoko.Abstractions.Plugin.Models;
 
@@ -39,4 +40,13 @@ public sealed class PackageArchiveInfo
     [JsonPropertyName("checksum")]
     [JsonProperty("checksum")]
     public required string ArchiveChecksum { get; init; }
+
+    /// <summary>
+    ///   Free-form data about the archive from its manifest's
+    ///   <c>extensions</c>, for frontends and tooling. Passed through as is;
+    ///   the server never reads it.
+    /// </summary>
+    [JsonProperty("extensions", NullValueHandling = NullValueHandling.Ignore)]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public JObject? Extensions { get; init; }
 }

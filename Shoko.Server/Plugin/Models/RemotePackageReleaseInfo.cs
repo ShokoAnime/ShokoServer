@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Core;
 
 namespace Shoko.Server.Plugin.Models;
@@ -90,4 +91,10 @@ public sealed class RemotePackageReleaseInfo
     [JsonPropertyName("dependencies")]
     [JsonProperty("dependencies")]
     public IReadOnlyList<RemotePackageDependencyInfo> Dependencies { get; init; } = [];
+
+    /// <summary>
+    ///   Free-form data about the release, kept as is and never read.
+    /// </summary>
+    [JsonProperty("extensions")]
+    public JObject? Extensions { get; init; }
 }

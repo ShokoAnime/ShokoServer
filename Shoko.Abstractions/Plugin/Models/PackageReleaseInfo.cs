@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Core;
 
 namespace Shoko.Abstractions.Plugin.Models;
@@ -86,4 +87,22 @@ public sealed class PackageReleaseInfo
     [JsonPropertyName("dependencies")]
     [JsonProperty("dependencies")]
     public IReadOnlyList<PluginDependency> Dependencies { get; init; } = [];
+
+    /// <summary>
+    ///   Why archives the manifest listed for this release were left out,
+    ///   such as one offered over plain http by a manifest served over
+    ///   https. Empty when every archive was kept.
+    /// </summary>
+    [JsonPropertyName("refusals")]
+    [JsonProperty("refusals")]
+    public IReadOnlyList<string> Refusals { get; init; } = [];
+
+    /// <summary>
+    ///   Free-form data about the release from its manifest's
+    ///   <c>extensions</c>, for frontends and tooling. Passed through as is;
+    ///   the server never reads it.
+    /// </summary>
+    [JsonProperty("extensions", NullValueHandling = NullValueHandling.Ignore)]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public JObject? Extensions { get; init; }
 }

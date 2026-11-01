@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Shoko.Abstractions.Plugin.Models;
 
@@ -99,4 +100,13 @@ public sealed class PackageManifestInfo
     [JsonPropertyName("last_fetched_at")]
     [JsonProperty("last_fetched_at")]
     public DateTime LastFetchedAt { get; init; }
+
+    /// <summary>
+    ///   Free-form data about the package from its manifest's
+    ///   <c>extensions</c>, for frontends and tooling. Passed through as is;
+    ///   the server never reads it.
+    /// </summary>
+    [JsonProperty("extensions", NullValueHandling = NullValueHandling.Ignore)]
+    [System.Text.Json.Serialization.JsonIgnore]
+    public JObject? Extensions { get; init; }
 }
