@@ -18,7 +18,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
-
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>

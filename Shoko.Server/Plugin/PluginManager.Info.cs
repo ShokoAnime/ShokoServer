@@ -10,7 +10,6 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
-using Shoko.Server.Server;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Plugin;

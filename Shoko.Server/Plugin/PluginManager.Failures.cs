@@ -8,11 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Core.Services;
-using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Server;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Plugin;

@@ -27,7 +27,6 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 using AbstractAnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
-using AbstractEpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 

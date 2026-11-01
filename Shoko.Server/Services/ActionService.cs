@@ -27,7 +27,6 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Actions;
-using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Providers.AniDB;

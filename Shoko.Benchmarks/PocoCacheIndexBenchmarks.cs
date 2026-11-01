@@ -1,5 +1,5 @@
-using BenchmarkDotNet.Attributes;
 using System.Diagnostics.CodeAnalysis;
+using BenchmarkDotNet.Attributes;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Utilities;

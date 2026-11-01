@@ -1,5 +1,4 @@
 using System;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Metadata.Events;

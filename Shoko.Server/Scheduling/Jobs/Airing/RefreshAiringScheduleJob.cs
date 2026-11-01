@@ -8,7 +8,6 @@ using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
-using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Airing;

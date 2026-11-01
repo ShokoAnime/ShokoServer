@@ -5,7 +5,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Settings;
-using Shoko.Tests.Infrastructure;
 using Xunit;
 
 namespace Shoko.Tests.Plugin;

@@ -15,8 +15,6 @@ using Shoko.Abstractions.Metadata.Text;
 using Shoko.Abstractions.Metadata.Text.Options;
 using Shoko.Server.API.Resolvers;
 using Shoko.Server.API.v3.Controllers;
-using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.API.v3.Models.TextManagement;
 using Shoko.Server.API.v3.Models.TextManagement.Input;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;

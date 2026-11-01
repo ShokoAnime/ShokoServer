@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Metadata.Stub;

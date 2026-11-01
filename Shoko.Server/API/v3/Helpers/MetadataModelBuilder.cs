@@ -12,7 +12,6 @@ using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Metadata;
-using Shoko.Server.Models.Metadata;
 
 using AbstractResource = Shoko.Abstractions.Metadata.Resource;
 using Resource = Shoko.Server.API.v3.Models.Common.Resource;

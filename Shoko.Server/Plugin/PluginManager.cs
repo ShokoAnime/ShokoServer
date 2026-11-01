@@ -16,7 +16,6 @@ using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Connectivity.Suspensions;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
-using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Providers;
@@ -41,7 +40,6 @@ using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Watchdog;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Configuration;
 

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
 
