@@ -6,6 +6,7 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Scheduling;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories.Direct;
@@ -13,6 +14,7 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
@@ -22,7 +24,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
 [JobPriority(Default = 30, Prioritized = 80)]
-public class GetAniDBMessageJob(IRequestFactory requestFactory, IQueueScheduler scheduler, ISettingsProvider settingsProvider, AniDB_MessageRepository anidbMessages, AniDB_NotifyQueueRepository anidbNotifyQueues) : BaseJob
+public class GetAniDBMessageJob(IRequestFactory requestFactory, IQueueScheduler scheduler, ISettingsProvider settingsProvider, AniDB_MessageRepository anidbMessages, AniDB_NotifyQueueRepository anidbNotifyQueues, AnidbNotifyService notifyService) : BaseJob
 {
     public int MessageID { get; set; }
 
@@ -55,7 +57,7 @@ public class GetAniDBMessageJob(IRequestFactory requestFactory, IQueueScheduler 
         };
 
         // set flag if its a file moved system message
-        if (message.Type == AniDBMessageType.System && message.Title.ToLower().StartsWith("file moved:"))
+        if (message.Type == AniDBMessageType.System && message.Title.StartsWith(AniDB_Message.FileMovedTitlePrefix, StringComparison.OrdinalIgnoreCase))
         {
             message.IsFileMoved = true;
         }
@@ -63,19 +65,27 @@ public class GetAniDBMessageJob(IRequestFactory requestFactory, IQueueScheduler 
         // save to db and remove from queue
         anidbMessages.Save(message);
         anidbNotifyQueues.DeleteForTypeID(AniDBNotifyType.Message, MessageID);
+        notifyService.RaiseReceived(message);
 
         var settings = settingsProvider.GetSettings();
-        await scheduler.StartJob<AcknowledgeAniDBNotifyJob>(
-            r =>
-            {
-                r.NotifyType = AniDBNotifyType.Message;
-                r.NotifyID = MessageID;
-            }
-        );
+        if (settings.AniDb.Notification_AcknowledgeOnFetch)
+        {
+            await scheduler.StartJob<AcknowledgeAniDBNotifyJob>(
+                r =>
+                {
+                    r.NotifyType = AniDBNotifyType.Message;
+                    r.NotifyID = MessageID;
+                }
+            );
+        }
 
         if (message.IsFileMoved && settings.AniDb.Notification_HandleMovedFiles)
         {
-            await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = message.MessageID);
+            await scheduler.StartJob<ProcessFileMovedMessageJob>(c =>
+            {
+                c.MessageID = message.MessageID;
+                c.IsAutomatic = true;
+            });
         }
     }
 

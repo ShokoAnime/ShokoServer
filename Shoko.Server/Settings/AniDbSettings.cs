@@ -126,6 +126,15 @@ public class AniDbSettings
     public bool Notification_HandleMovedFiles { get; set; } = false;
 
     /// <summary>
+    /// Acknowledge messages to AniDB, marking them read there, as soon as
+    /// they are fetched. Off by default, which leaves that to whoever reads
+    /// them.
+    /// </summary>
+    [SectionName("Update")]
+    [Display(Name = "Acknowledge Messages on Fetch")]
+    public bool Notification_AcknowledgeOnFetch { get; set; } = false;
+
+    /// <summary>
     /// The base URL or URL template for the image CDN to use.
     /// </summary>
     [Visibility(Size = DisplayElementSize.Large)]

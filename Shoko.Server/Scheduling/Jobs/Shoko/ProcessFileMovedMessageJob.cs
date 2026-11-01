@@ -8,19 +8,26 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
 [JobPriority(Default = 30, Prioritized = 80)]
-public class ProcessFileMovedMessageJob(IVideoReleaseService videoReleaseService, AniDB_MessageRepository anidbMessages, StoredReleaseInfoRepository storedReleaseInfos, VideoLocalRepository videoLocals) : BaseJob
+public class ProcessFileMovedMessageJob(IVideoReleaseService videoReleaseService, AniDB_MessageRepository anidbMessages, StoredReleaseInfoRepository storedReleaseInfos, VideoLocalRepository videoLocals, AnidbNotifyService notifyService) : BaseJob
 {
     public override string TypeName => "Handle Moved File Message";
 
     public override string Title => "Handling Moved File Message";
 
     public int MessageID { get; set; }
+
+    /// <summary>
+    ///   Whether the server queued the job itself, because handling moved
+    ///   files is turned on, rather than someone asking.
+    /// </summary>
+    public bool IsAutomatic { get; set; }
 
     public override async Task Execute()
     {
@@ -36,7 +43,7 @@ public class ProcessFileMovedMessageJob(IVideoReleaseService videoReleaseService
         }
 
         // title should be in the format "file moved: <fileID>"
-        if (!int.TryParse(message.Title[12..].Trim(), out var fileId))
+        if (message.MovedFileID is not { } fileId)
         {
             throw new Exception("Could not parse file ID from message title");
         }
@@ -70,7 +77,9 @@ public class ProcessFileMovedMessageJob(IVideoReleaseService videoReleaseService
                 if (msg == null) return;
 
                 msg.IsFileMoveHandled = true;
+                msg.IsFileMoveHandledAutomatically = IsAutomatic;
                 anidbMessages.Save(msg);
+                notifyService.RaiseHandled(msg);
             }
         });
     }

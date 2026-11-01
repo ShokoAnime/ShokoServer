@@ -97,7 +97,13 @@ public enum AniDBMessageFlags
     /// <summary>
     /// Has the file move been handled
     /// </summary>
-    FileMoveHandled = 8
+    FileMoveHandled = 8,
+
+    /// <summary>
+    /// The file move was handled without anyone asking, because handling
+    /// moved files is turned on
+    /// </summary>
+    FileMoveHandledAutomatically = 16,
 }
 
 // TODO: Simplify these values to not be power of 2 and instead be increments of 1. We don't need flag support anymore.

@@ -10,6 +10,7 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
@@ -18,7 +19,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
 [JobPriority(Default = 0, Prioritized = 50)]
-public class AcknowledgeAniDBNotifyJob(IRequestFactory requestFactory, AniDB_MessageRepository anidbMessages) : BaseJob
+public class AcknowledgeAniDBNotifyJob(IRequestFactory requestFactory, AniDB_MessageRepository anidbMessages, AnidbNotifyService notifyService) : BaseJob
 {
     public int NotifyID { get; set; }
 
@@ -49,6 +50,7 @@ public class AcknowledgeAniDBNotifyJob(IRequestFactory requestFactory, AniDB_Mes
             {
                 message.IsReadOnAniDB = true;
                 anidbMessages.Save(message);
+                notifyService.RaiseReadStateChanged(message);
             }
         }
     }

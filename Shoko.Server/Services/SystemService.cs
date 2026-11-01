@@ -774,6 +774,8 @@ public class SystemService : ISystemService
             services.AddSingleton<IAiringCalendarService, AiringCalendarService>();
             services.AddSingleton<IAnidbService>(sp => sp.GetRequiredService<AnidbService>());
             services.AddSingleton<IAnidbAvdumpService>(sp => sp.GetRequiredService<AnidbService>());
+            services.AddSingleton<AnidbNotifyService>();
+            services.AddSingleton<IAnidbNotifyService>(sp => sp.GetRequiredService<AnidbNotifyService>());
             services.AddSingleton<MylistCache>();
             services.AddSingleton<MylistGenericsCache>();
             services.AddSingleton<IMylistService, MylistService>();

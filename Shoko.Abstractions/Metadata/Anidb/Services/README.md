@@ -1,6 +1,6 @@
 # AniDB Services
 
-Three services a plugin consumes to talk to AniDB. Nothing here is
+Four services a plugin consumes to talk to AniDB. Nothing here is
 implemented by a plugin or discovered by reflection; the core registers them,
 so take them through a constructor:
 
@@ -16,6 +16,7 @@ public class MyJob(IAnidbService anidbService, IMylistService mylistService)
 | `IAnidbService` | Ban state, the local title search, the cached anime list, start season overrides, refreshing an anime, tags, images, purging. |
 | `IMylistService` | Everything to do with the user's AniDB MyList: read, add, update, remove, sync. |
 | `IAnidbAvdumpService` | Driving AVDump over local files. The same object as `IAnidbService`. |
+| `IAnidbNotifyService` | The AniDB user's inbox: the messages the server fetched, acting on them, reading and acknowledging them. |
 
 ---
 
@@ -383,6 +384,36 @@ await avdumpService.ScheduleAvdumpVideos(video);
 
 No returned task carries the dump's outcome: subscribe to `AvdumpEvent`
 before starting a session.
+
+---
+
+## `IAnidbNotifyService`
+
+The server polls AniDB for unread messages and keeps each one it fetches.
+This service reads them and acts on them.
+
+```csharp
+notifyService.MessageReceived += (_, e) =>
+{
+    if (e.Message is { Kind: AnidbMessageKind.FileMoved, IsHandled: false })
+        ShowActOnItButton(e.Message);
+};
+await notifyService.HandleMessage(message);
+```
+
+| Member | Notes |
+|---|---|
+| `GetMessages(read, handled, kind)`, `GetMessage(id)` | The fetched messages as `IAnidbMessage`, newest first. |
+| `MessageReceived` | A message was fetched for the first time. |
+| `HandleMessage(message)` | Acts on a message. Only `FileMoved` has handling: a new release search for the moved file. Other kinds throw. |
+| `MessageHandled` | Raised once the handling is done, whether asked for or automatic (`IsHandledAutomatically`). |
+| `IsAutoHandleEnabled` | The "Handle Moved Files" setting: moved files are handled as soon as their message arrives. Settable; setting it saves the server settings. |
+| `MarkMessageRead(message, read)` | Read or unread on this server only. |
+| `AcknowledgeMessage(message)` | Sends the acknowledgement to AniDB, which marks it read there (`IsReadOnAnidb`). |
+| `IsAutoAcknowledgeEnabled` | Whether messages are acknowledged as soon as they are fetched. Off by default, so a message stays unread on AniDB until `AcknowledgeMessage` is called. Settable, like `IsAutoHandleEnabled`. |
+| `MessageReadStateChanged` | Raised for both kinds of read. |
+
+AniDB's notices (file notifications for subscribed anime) are not fetched yet.
 
 ---
 
