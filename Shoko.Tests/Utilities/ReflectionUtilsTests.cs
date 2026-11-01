@@ -32,10 +32,10 @@ public class ReflectionUtilsTests
         var loaded = Assert.Single(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.FullName == pending.FullName);
 
         // Read the way the server's scans read their types, it throws.
-        Assert.ThrowsAny<Exception>(() => Scan([loaded]));
+        Assert.ThrowsAny<Exception>(() => Scan([loaded], assembly => assembly.GetTypes()));
 
         Assert.DoesNotContain(ReflectionUtils.ScannableAssemblies(), assembly => assembly.FullName == pending.FullName);
-        Assert.NotEmpty(Scan(ReflectionUtils.ScannableAssemblies()));
+        Assert.NotEmpty(Scan(ReflectionUtils.ScannableAssemblies(), ReflectionUtils.LoadableTypes));
 
         GC.KeepAlive(building);
     }
@@ -45,10 +45,11 @@ public class ReflectionUtilsTests
     /// from, and its attributes.
     /// </summary>
     /// <param name="assemblies">The assemblies to scan.</param>
+    /// <param name="loadTypes">How the types of an assembly are read; <see cref="Assembly.GetTypes"/> throws on one that cannot load fully.</param>
     /// <returns>The filter expressions found.</returns>
-    private static IReadOnlyList<Type> Scan(IEnumerable<Assembly> assemblies)
+    private static IReadOnlyList<Type> Scan(IEnumerable<Assembly> assemblies, Func<Assembly, IEnumerable<Type>> loadTypes)
         => assemblies
-            .SelectMany(assembly => assembly.GetTypes())
+            .SelectMany(loadTypes)
             .Where(type => !type.IsAbstract && typeof(FilterExpression).IsAssignableFrom(type) && !type.IsDefined(typeof(ObsoleteAttribute), true))
             .ToList();
 }
