@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
@@ -46,7 +45,7 @@ public class Filter : Filters
         if (evaluatedResults == null)
         {
             var evaluator = ctx.RequestServices.GetRequiredService<IFilteringEngine>();
-            evaluatedResults = evaluator.EvaluateFilterWithGrouping(gf, ctx.GetUser(), cancellationToken: CancellationToken.None).ToList();
+            evaluatedResults = evaluator.EvaluateFilterWithGrouping(gf, ctx.GetUser()).ToList();
         }
 
         if (evaluatedResults.Count == 0)
