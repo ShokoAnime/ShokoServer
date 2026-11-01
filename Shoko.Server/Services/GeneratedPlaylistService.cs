@@ -432,7 +432,6 @@ public class GeneratedPlaylistService(
                     if (video.Episodes.Any(x => x.LocalID == episode.LocalID))
                         continue;
                     modelState?.AddModelError($"{fieldName}[{index}]", $"Video ID \"{video.LocalID}\" does not belong to episode ID \"{episode.AnidbEpisodeID}\".");
-                    continue;
                 }
             }
 

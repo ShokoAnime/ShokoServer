@@ -1,4 +1,5 @@
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Shoko.Abstractions.Core.Services;
@@ -27,7 +28,7 @@ public class ServerNotRunningMiddleware(RequestDelegate next, ISystemService sys
                         : ExistingInstance;
 
                 context.Response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
-                await context.Response.WriteAsync(message);
+                await context.Response.WriteAsync(message, CancellationToken.None);
                 return;
             }
         }

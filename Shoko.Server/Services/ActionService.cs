@@ -876,7 +876,7 @@ public class ActionService(
         {
             token.ThrowIfCancellationRequested();
             if (++index % 10 == 1 || index == localAnimeSet.Count)
-                _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files — {CurrentCount}/{AllAnimeCount}", localAnimeSet.Count, index + 1, localAnimeSet.Count);
+                _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files — {CurrentCount}/{TotalCount}", localAnimeSet.Count, index + 1, localAnimeSet.Count);
 
             var rawXml = await _xmlUtils.LoadAnimeHTTPFromFile(animeID);
             if (rawXml is null)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -26,7 +27,7 @@ internal static class PluginNamespaceRules
     /// </summary>
     public static readonly IReadOnlyList<string> Reserved = ["shoko", "core", "plugin"];
 
-    private static readonly Regex _pattern = new("^[a-z][a-z0-9]*(-[a-z0-9]+)*$", RegexOptions.CultureInvariant);
+    private static readonly Regex _pattern = new("^[a-z][a-z0-9]*(-[a-z0-9]+)*$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(5));
 
     /// <summary>
     ///   Checks a namespace against the rules.

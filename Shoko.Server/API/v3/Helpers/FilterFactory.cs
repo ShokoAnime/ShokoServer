@@ -63,7 +63,7 @@ public class FilterFactory(IHttpContextAccessor context, IFilteringEngine _evalu
         filter.Size = filter.IsDirectory
             ? RepoFactory.FilterPreset.GetByParentID(groupFilter.FilterPresetID).Count
             // Only count top level groups
-            : _evaluator.EvaluateFilterWithGrouping(groupFilter, user).Count(a =>
+            : _evaluator.EvaluateFilterWithGrouping(groupFilter, user, cancellationToken: _context.RequestAborted).Count(a =>
             {
                 var group = RepoFactory.AnimeGroup.GetByID(a.Key);
                 return group is { AnimeGroupParentID: null } && (includeEmpty || AnimeGroupView.For(group, user).AllSeries

@@ -45,7 +45,7 @@ internal static class PluginDatabaseBackups
         var backupFile = Path.Join(backupDirectory, $"{name}_{now:yyyyMMddHHmmss}{extension}");
         write(backupFile);
 
-        var pattern = new Regex($"^{Regex.Escape(name)}_\\d{{14}}{Regex.Escape(extension)}$", RegexOptions.CultureInvariant);
+        var pattern = new Regex($"^{Regex.Escape(name)}_\\d{{14}}{Regex.Escape(extension)}$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(5));
         var stale = Directory.EnumerateFiles(backupDirectory)
             .Where(file => pattern.IsMatch(Path.GetFileName(file)))
             .OrderByDescending(file => Path.GetFileName(file), StringComparer.Ordinal)

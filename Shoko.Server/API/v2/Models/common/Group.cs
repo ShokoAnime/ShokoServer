@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
@@ -52,7 +53,7 @@ public class Group : BaseDirectory
         {
             var filter = RepoFactory.FilterPreset.GetByID(filterID);
             var evaluator = ctx.RequestServices.GetRequiredService<IFilteringEngine>();
-            evaluatedSeriesIDs = evaluator.EvaluateFilterWithGrouping(filter!, ctx.GetUser()).FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList();
+            evaluatedSeriesIDs = evaluator.EvaluateFilterWithGrouping(filter!, ctx.GetUser(), cancellationToken: CancellationToken.None).FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList();
         }
 
         var allAnime = evaluatedSeriesIDs is not null

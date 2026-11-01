@@ -35,7 +35,7 @@ public static class TagFilter
         Invert = 1L << 31 // without L Invert is still intiger and it returns after bitshift -2147483648
     }
 
-    public static readonly HashSet<string> TagBlacklistAniDBHelpers = new()
+    internal static readonly HashSet<string> TagBlacklistAniDBHelpers = new()
     {
         // AniDB tags that don't help with anything
         "asia",
@@ -85,7 +85,7 @@ public static class TagFilter
         "unsorted"
     };
 
-    public static readonly HashSet<string> TagBlacklistGenre = new()
+    internal static readonly HashSet<string> TagBlacklistGenre = new()
     {
         // tags that generally define what a series is about or the theme of it
         "18 restricted",
@@ -133,7 +133,7 @@ public static class TagFilter
         "violence"
     };
 
-    public static readonly HashSet<string> TagBlacklistProgramming = new()
+    internal static readonly HashSet<string> TagBlacklistProgramming = new()
     {
         // Tags that involve how or where it aired, or any awards it got
         "animax taishou",
@@ -165,7 +165,7 @@ public static class TagFilter
         "wakate animator ikusei project"
     };
 
-    public static readonly HashSet<string> TagBlacklistSetting = new()
+    internal static readonly HashSet<string> TagBlacklistSetting = new()
     {
         // Tags that involve the setting, a time or place in which the story occurs.
         // I've seen more that fall under this that AniDB hasn't listed
@@ -303,7 +303,7 @@ public static class TagFilter
         "yokohama"
     };
 
-    public static readonly HashSet<string> TagBlackListSource = new()
+    internal static readonly HashSet<string> TagBlackListSource = new()
     {
         // tags containing the source of series
         "4-koma",
@@ -487,7 +487,7 @@ public static class TagFilter
         return false;
     }
 
-    public static readonly HashSet<string> TagBlackListArtStyle = new()
+    internal static readonly HashSet<string> TagBlackListArtStyle = new()
     {
         // tags that focus on art style
         "3d cg animation",
@@ -529,7 +529,7 @@ public static class TagFilter
         "widescreen transition"
     };
 
-    public static readonly HashSet<string> TagBlackListUsefulHelpers = new()
+    internal static readonly HashSet<string> TagBlackListUsefulHelpers = new()
     {
         // tags that focus on episode attributes
         "crossover episode",
@@ -549,7 +549,7 @@ public static class TagFilter
         "subtle op ed sequence change"
     };
 
-    public static readonly HashSet<string> TagBlackListPlotSpoilers = new()
+    internal static readonly HashSet<string> TagBlackListPlotSpoilers = new()
     {
         // tags that could contain story-line spoilers
         "branching story",

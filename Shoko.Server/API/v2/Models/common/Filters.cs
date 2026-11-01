@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Threading;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Filtering.Services;
@@ -48,7 +49,7 @@ public class Filters : BaseDirectory
         if (evaluatedResults == null)
         {
             var evaluator = ctx.RequestServices.GetRequiredService<IFilteringEngine>();
-            evaluatedResults = evaluator.BatchPrepareFiltersWithGrouping(gfs, ctx.GetUser());
+            evaluatedResults = evaluator.BatchPrepareFiltersWithGrouping(gfs, ctx.GetUser(), cancellationToken: CancellationToken.None);
             gfs = gfs.Where(a => evaluatedResults[a].Any()).ToList();
         }
 
