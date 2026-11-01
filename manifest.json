@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.569",
+      "tag": "v6.0.0-dev.569",
+      "commit": "565b066fce965e930303af55887edbb8bfa16c4a",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.569/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-01T15:38:08Z",
+      "releaseNotes": "\n`fix` (`plugin`): **Leave unfit optional dependencies out of a plugin's load context**:\n\n- An optional dependency outside the plugin's range, or missing what the plugin refers to, is no longer shared with it, instead of failing the start\n- The contract check now also looks at assemblies the dependency exports when the plugin ships its own copy\n\n`fix` (`plugin`): **Read a plugin whose types use another plugin's contract**:\n\n- The scan's plugin reader now finds an assembly another installed plugin exports when the plugin being read does not ship it\n- A plugin with a public type holding an enum from a dependency's contract no longer fails as missing dependencies\n\n`refactor` (`signalr`): **Carry the hubs' authorization on the hub classes**:\n\n- `AggregateHub` and `LoggingHub` now declare their authorization as attributes instead of in `UseAPI`\n- `LoggingHub` is `[InitFriendly]` and `[DatabaseBlockedExempt]`, so the logs can be followed in setup and failure mode\n\n`feat` (`abstractions`): **Keep the startup messages until a while after start**:\n\n- Added `ISystemService.StartupMessages`, every message shown while starting with its time, kept through a failed start and cleared about 10 seconds after the server has started\n- `StartupMessageChangedEventArgs` now carries the `StartupMessageEntry`, recorded in order as the event may reach its handlers out of order\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.121**.\n\n`docs` (`plugin`): **Document the DLL list overload of `FindDependencyMismatch`**.\n\n`misc`: **Update build-daily.yml for Trusted Publishing on Nuget**.\n\n`misc`: **Update build-daily.yml for tag creation**.\n\n`misc`: **Refactor NuGet publishing to use OIDC token for stable**:\n\nUpdated NuGet publishing workflow to use OIDC for API key issuance and adjusted permissions.\n"
+    },
+    {
       "version": "6.0.0.568",
       "tag": "v6.0.0-dev.568",
       "commit": "58a75d862eb5acf027e959ec63154ae61b0586df",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.540/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-21T00:03:00Z",
       "releaseNotes": "\n`docs`: **Ask for plugin icons readable at 24 pixels, not 16**:\n\nNo client draws a plugin icon below 24 pixels; the Web UI draws source\nicons at that size.\n"
-    },
-    {
-      "version": "6.0.0.539",
-      "tag": "v6.0.0-dev.539",
-      "commit": "909cd68dd81c96bd8a5c1aaf2472b0409aaee3e7",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.539/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-20T12:42:04Z",
-      "releaseNotes": "\n`repo` (`deps`): **Bump `Shoko.BuildTools.Targets` to `0.5.0` in `Shoko.Plugin.LegacyPlex`**:\n\nDropped the plugin's own `EnableDynamicLoading`, which the targets now default.\n\n`fix` (`plugin`): **Let a build for this server replace a legacy plugin, and refuse an older major ABI**:\n\nA legacy plugin has no ID of its own, so installing its 6.x build left\nthe 5.x one behind as a second plugin that still failed the start.\n\n- Replaced an enabled legacy plugin with an installed build of the same\n  assembly for this server\n- Refused a plugin built for an older major version of\n  `Shoko.Abstractions` when loading it, which only the installer\n  checked before; it fails the start like a legacy plugin does\n- Said in both reasons what the admin can do about it\n"
     }
   ]
 }
