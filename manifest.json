@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.573",
+      "tag": "v6.0.0-dev.573",
+      "commit": "5b519e033ac77582f65db5655c4a57088bdb3b06",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.573/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-01T18:00:19Z",
+      "releaseNotes": "\n`fix`: **Opt out of cancellation explicitly where it must not apply**:\n\nResolved `S8949` and the last high-severity `S6680` without changing behavior.\n\n- Passed `CancellationToken.None` to fire-and-forget event raises, shutdown calls and `finally` enqueues in `SystemService`, `PluginPackageManager`, `AnidbService`, `VideoService`, `MylistService`, `ScheduledActionService`, `ImageManager` and `AniDBUDPConnectionHandler`, where a cancelled token would drop the event or abort the work\n- Passed the in-scope token to `StartJob`, `EnqueueWithPriority` and `EvaluateFilterWithTuples` in `ActionService`, `ImageManager` and `MetadataFilteringService`, where the method already checks cancellation before the call\n- Bounded the loop in `MylistService.ValidatePlan` by a counter and moved the data check into its body (`S6680`)\n\n`merge`: **Merge pull request #1470 from ShokoAnime/fix/sonar-batch-2**:\n\nfix: resolve sonarcloud S8949 and S6680 (batch 2)\n"
+    },
+    {
       "version": "6.0.0.572",
       "tag": "v6.0.0-dev.572",
       "commit": "cba0dbe9925fb62d60082b2cbc38dcaa11c3206c",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.544/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-22T11:38:56Z",
       "releaseNotes": "\n`refactor` (`filters`): **Replace `IsSwitchedOff` with `IsApplicable`, leaving missing inputs out too**:\n\n- A gate with a missing input now acts as its other input, as with a switched-off one, so saved single-input gates match the editor's preview\n- An empty `Not`, `Scope` or gate drops out of its parent\n- Wrote the rule into the filters readme\n"
-    },
-    {
-      "version": "6.0.0.543",
-      "tag": "v6.0.0-dev.543",
-      "commit": "02b79c88b73ae54d9c763cce2f055e405235edf3",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.543/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-22T10:42:42Z",
-      "releaseNotes": "\n`fix` (`filters`): **Let a set `Right` win over `Parameter` in the string comparers**:\n\n- The string and string set comparers used `Parameter` when both were set, unlike the number and date ones\n- Wrote the rule into the filters readme\n"
     }
   ]
 }
