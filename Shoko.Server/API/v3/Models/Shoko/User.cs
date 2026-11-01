@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -11,6 +13,10 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
@@ -85,9 +91,36 @@ public class User
             .Select(tag => tag.TagID)
             .ToList();
 
-        Avatar = user.GetAvatarImageAsDataURL();
+        Avatar = GetAvatarAsDataUrl(user);
 
         PlexUsernames = user.PlexUsers ?? string.Empty;
+    }
+
+    /// <summary>
+    /// The user's avatar, their preferred primary image, as a base64 data url,
+    /// or an empty string when they have none.
+    /// </summary>
+    /// <param name="user">The user.</param>
+    /// <returns>The data url.</returns>
+    private static string GetAvatarAsDataUrl(JMMUser user)
+    {
+        if ((user as IWithPrimaryImage).PrimaryImage is not { IsAvailable: true } primaryImage)
+            return string.Empty;
+
+        try
+        {
+            using var stream = primaryImage.GetStream();
+            if (stream is null)
+                return string.Empty;
+
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            return $"data:{primaryImage.ContentType};base64,{Convert.ToBase64String(memory.ToArray())}";
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
     }
 
     public class Input
@@ -138,14 +171,17 @@ public class User
                             .WhereNotNull()
                             .Cast<IAnidbTag>()
                             .ToList();
-                    if (Avatar is not null)
-                        initialData.AvatarImage = Avatar is "" ? null : Encoding.UTF8.GetBytes(Avatar);
+                    var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
+                    var avatar = UploadAvatar(imageManager, modelState);
+                    if (!modelState.IsValid)
+                        return null;
 
                     // This will throw a validation error of something is invalid.
                     var user = (JMMUser)service.CreateUser(initialData)
                         .ConfigureAwait(false)
                         .GetAwaiter()
                         .GetResult();
+                    ApplyAvatar(imageManager, user, avatar);
 
                     // Extra handling for things not exposed to the plugin API
                     // and probably never will.
@@ -174,6 +210,48 @@ public class User
 
         public class CreateOrUpdateUserBody
         {
+            /// <summary>
+            /// Uploads the avatar the body carries, before the user is saved, so
+            /// an image that cannot be read stops the save.
+            /// </summary>
+            /// <param name="imageManager">The image manager.</param>
+            /// <param name="modelState">Where to put why the image was refused.</param>
+            /// <returns>The uploaded image, or <c>null</c> when there is none to set.</returns>
+            protected IImage? UploadAvatar(IImageManager imageManager, ModelStateDictionary modelState)
+            {
+                if (Avatar is not { Length: > 0 } avatar)
+                    return null;
+
+                try
+                {
+                    return imageManager.UploadImage(Encoding.UTF8.GetBytes(avatar));
+                }
+                catch (ArgumentException ex)
+                {
+                    modelState.AddModelError(nameof(Avatar), ex.Message);
+                    return null;
+                }
+            }
+
+            /// <summary>
+            /// Sets the uploaded avatar as the user's preferred primary image, or
+            /// clears it when the body sent an empty one.
+            /// </summary>
+            /// <param name="imageManager">The image manager.</param>
+            /// <param name="user">The saved user.</param>
+            /// <param name="avatar">The uploaded avatar, if any.</param>
+            protected void ApplyAvatar(IImageManager imageManager, JMMUser user, IImage? avatar)
+            {
+                if (Avatar is null)
+                    return;
+
+                if (avatar is not null)
+                    imageManager.SetPreferredImageForEntity(user, ImageEntityType.Primary, avatar);
+                else if (imageManager.GetImageCrossReferencesForEntity(user, new() { ImageType = ImageEntityType.Primary, LinkedEntityImages = false, IsPreferred = true })
+                    .FirstOrDefault() is { } crossReference)
+                    imageManager.UnsetPreferredImageForEntity(crossReference);
+            }
+
             /// <summary>
             /// The user's new name. Must not be empty or only white-spaces.
             /// </summary>
@@ -253,14 +331,17 @@ public class User
                             .WhereNotNull()
                             .Cast<IAnidbTag>()
                             .ToList();
-                    if (Avatar is not null)
-                        updateData.AvatarImage = Avatar is "" ? null : Encoding.UTF8.GetBytes(Avatar);
+                    var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
+                    var avatar = UploadAvatar(imageManager, modelState);
+                    if (!modelState.IsValid)
+                        return null;
 
                     // This will throw a validation error of something is invalid.
                     user = (JMMUser)service.UpdateUser(user, updateData)
                         .ConfigureAwait(false)
                         .GetAwaiter()
                         .GetResult();
+                    ApplyAvatar(imageManager, user, avatar);
 
                     // Extra handling for things not exposed to the plugin API
                     // and probably never will.

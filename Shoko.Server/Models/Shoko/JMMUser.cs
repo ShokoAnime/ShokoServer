@@ -7,10 +7,8 @@ using System.Threading;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
-using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 
@@ -44,26 +42,6 @@ public class JMMUser : IIdentity, IUser
     public string? PlexToken { get; set; }
 
     #endregion
-
-    public string GetAvatarImageAsDataURL()
-    {
-        if ((this as IWithPrimaryImage).PrimaryImage is not { IsAvailable: true } primaryImage)
-            return string.Empty;
-
-        try
-        {
-            var byteArray = primaryImage.GetStream()?.ToByteArray();
-            if (byteArray is null)
-                return string.Empty;
-
-            var base64 = Convert.ToBase64String(byteArray);
-            return $"data:{primaryImage.ContentType};base64,{base64}";
-        }
-        catch (Exception)
-        {
-            return string.Empty;
-        }
-    }
 
     /// <inheritdoc/>
     public bool IsAllowedToSee(IShokoSeries ser)

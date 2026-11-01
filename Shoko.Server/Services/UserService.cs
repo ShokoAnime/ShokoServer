@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Events;
@@ -30,7 +28,6 @@ namespace Shoko.Server.Services;
 public class UserService(
     ILogger<UserService> _logger,
     IQueueScheduler _scheduler,
-    IImageManager _imageManager,
     JMMUserRepository _userRepository,
     AuthTokensRepository _authTokensRepository,
     AnimeSeriesRepository _seriesRepository,
@@ -131,44 +128,6 @@ public class UserService(
         var shouldSave = isNew;
         var updateStats = isNew;
         var reason = UserSaveReason.None;
-
-        // Try to update the avatar for the user. It will add model errors if it fails.
-        if (updateData.HasSetAvatarImage)
-        {
-            try
-            {
-                switch (updateData)
-                {
-                    case { AvatarImageAsStream: { } stream }:
-                    {
-                        var image = _imageManager.UploadImage(stream);
-                        _imageManager.SetPreferredImageForEntity(user, ImageEntityType.Primary, image);
-                        break;
-                    }
-
-                    case { AvatarImage: { } byteArray }:
-                    {
-                        var image = _imageManager.UploadImage(byteArray);
-                        _imageManager.SetPreferredImageForEntity(user, ImageEntityType.Primary, image);
-                        break;
-                    }
-
-                    case { AvatarImageAsStream: null, AvatarImage: null } when
-                    (
-                        _imageManager.GetImageCrossReferencesForEntity(user, new() { ImageType = ImageEntityType.Primary, LinkedEntityImages = false, IsPreferred = true })
-                            .FirstOrDefault() is { } xref
-                    ):
-                    {
-                        _imageManager.UnsetPreferredImageForEntity(xref);
-                        break;
-                    }
-                }
-            }
-            catch (ArgumentException ex)
-            {
-                AddModelError(updateData.AvatarImageAsStream is not null ? nameof(updateData.AvatarImageAsStream) : nameof(updateData.AvatarImage), ex.Message);
-            }
-        }
 
         // Return early if the model state was invalidated.
         if (errorDict.Count > 0)
