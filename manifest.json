@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.576",
+      "tag": "v6.0.0-dev.576",
+      "commit": "d1766bad08d7b376d165c3b16799c7b1d2aa7a39",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.576/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-01T19:44:14Z",
+      "releaseNotes": "\n`fix`: **Resolve remaining sonarcloud cancellation, regex and smell issues**:\n\nCleared the rest of the `S8949` sites and a mix of lower-severity issues, with no behavior change for normal input.\n\n- Passed `CancellationToken.None`, or the consumer and request token where safe, in `RecoveringFileSystemWatcher`, `ServerNotRunningFilter`, the APIv2 filter and group models and `FilterFactory` (S8949)\n- Added a 5 second match timeout to ten `Regex` uses (S6444)\n- Removed dead null checks and branches in `SeasonWithYear`, `WebThemeService`, `ImageManager` and `UserDataService` (S2583)\n- Renamed duplicate log template placeholders in `MetadataService`, `ActionService` and `VideoRelocationService` (S6677)\n- Locked a dedicated object in `AnimeGroupCreator` (S2445), collapsed identical branches in `AnimeGroup` (S3923), simplified single-iteration loops (S1751), made `ScheduleCreators` return `Task` (S3168) and narrowed the `TagFilter` blacklists to `internal` (S3887)\n\n`fix`: **Leave the identical `PluginNamespaceRules` copies alone**:\n\nReverted the `S6444` timeout in the three copies of `PluginNamespaceRules`, since editing a triplicated file counts as new duplicated code and fails the quality gate.\n\n`fix`: **Leave the copy-pasted APIv2 filter models alone**:\n\nReverted the `S8949` edits in `Filter`, `Filters` and `Group`, whose near-identical blocks count as new duplicated code.\n\n`fix`: **Leave the duplicated blocks in `SQLite`, `UserDataService` and `ImageManager` alone**:\n\nReverted edits that fall inside blocks Sonar counts as duplicated, which fail the new code duplication gate.\n\n`merge`: **Merge pull request #1471 from ShokoAnime/fix/sonar-batch-3**:\n\nfix: resolve remaining sonarcloud issues (batch 3)\n"
+    },
+    {
       "version": "6.0.0.575",
       "tag": "v6.0.0-dev.575",
       "commit": "43f830f6cd5f8180c94f38820e775ab10f756ba4",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.547/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-23T08:45:51Z",
       "releaseNotes": "\n`refactor` (`filters`): **Store every filter expression's values as `Parameter` and `SecondParameter`**:\n\n- A contract resolver stores each expression by its container members, so the classes naming their values themselves (`InSeason`, `InYear`, `Switch`, the character and creator ones) no longer get keys of their own\n- A schema step moves the old keys of stored presets over, a season, appearance or role becoming its name and a removed one unset\n- Wrote the stored shape into the filters readme\n"
-    },
-    {
-      "version": "6.0.0.546",
-      "tag": "v6.0.0-dev.546",
-      "commit": "1e4747721b862071377d0adf8c39590cd1a4456f",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.546/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-22T15:40:53Z",
-      "releaseNotes": "\n`fix` (`db`): **Widen the language columns of `StoredReleaseInfo`**:\n\n- Doubled `AudioLanguages` and `SubtitleLanguages` to 1024 characters on MySQL and SQL Server; a release with many subtitle languages overflowed 512 and aborted its job chain\n"
     }
   ]
 }
