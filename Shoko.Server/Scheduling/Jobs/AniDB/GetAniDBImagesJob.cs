@@ -23,7 +23,7 @@ public class GetAniDBImagesJob(
 ) : BaseJob
 {
     private AniDB_Anime? _anime;
-    private string? _title;
+    private string? _animeTitle;
 
     public int AnimeID { get; set; }
     public bool ForceDownload { get; set; }
@@ -39,7 +39,7 @@ public class GetAniDBImagesJob(
     public override string TypeName => "Get AniDB Images Data";
 
     public override string Title => "Getting AniDB Image Data";
-    public override Dictionary<string, object> Details => _title == null
+    public override Dictionary<string, object> Details => _animeTitle == null
         ? new()
         {
             {
@@ -49,14 +49,14 @@ public class GetAniDBImagesJob(
         : new()
         {
             {
-                "Anime", _title
+                "Anime", _animeTitle
             }
         };
 
     public override void PostInit()
     {
         _anime = anidbAnimes.GetByAnimeID(AnimeID);
-        _title = _anime?.Title ?? titleHelper.SearchAnimeID(AnimeID)?.Title;
+        _animeTitle = _anime?.Title ?? titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
     public override async Task Execute()

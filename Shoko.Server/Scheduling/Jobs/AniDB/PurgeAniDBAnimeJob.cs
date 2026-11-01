@@ -15,7 +15,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobPriority(Default = 0, Prioritized = 10)]
 public class PurgeAniDBAnimeJob(IAnidbService anidbService, AniDB_AnimeRepository anidbAnimeRepository) : BaseJob
 {
-    private string? _title;
+    private string? _animeTitle;
 
     public int AnimeID { get; set; }
 
@@ -25,25 +25,25 @@ public class PurgeAniDBAnimeJob(IAnidbService anidbService, AniDB_AnimeRepositor
 
     public override string Title => "Purging AniDB Anime";
 
-    public override Dictionary<string, object> Details => string.IsNullOrEmpty(_title)
+    public override Dictionary<string, object> Details => string.IsNullOrEmpty(_animeTitle)
         ? new()
         {
             { "AnimeID", AnimeID },
         }
         : new()
         {
-            { "Anime", _title },
+            { "Anime", _animeTitle },
             { "AnimeID", AnimeID },
         };
 
     public override void PostInit()
     {
-        _title = anidbAnimeRepository.GetByAnimeID(AnimeID)?.MainTitle;
+        _animeTitle = anidbAnimeRepository.GetByAnimeID(AnimeID)?.MainTitle;
     }
 
     public override async Task Execute()
     {
-        _logger.LogInformation("Processing {Job} for {Anime}", nameof(PurgeAniDBAnimeJob), _title ?? AnimeID.ToString());
+        _logger.LogInformation("Processing {Job} for {Anime}", nameof(PurgeAniDBAnimeJob), _animeTitle ?? AnimeID.ToString());
         await anidbService.PurgeAnimeByID(AnimeID, RemoveFromMylist).ConfigureAwait(false);
     }
 }

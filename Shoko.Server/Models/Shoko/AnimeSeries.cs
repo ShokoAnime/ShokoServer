@@ -282,7 +282,8 @@ public class AnimeSeries : IShokoSeries
         {
             var grps = new List<AnimeGroup>();
             var groupID = AnimeGroupID;
-            while (groupID != 0)
+            var visited = new HashSet<int>();
+            while (groupID != 0 && visited.Add(groupID))
             {
                 var grp = RepoFactory.AnimeGroup.GetByID(groupID);
                 if (grp != null)

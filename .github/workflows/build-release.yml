@@ -88,7 +88,7 @@ jobs:
 
       # Get a short-lived NuGet API key
       - name: NuGet login (OIDC → temp API key)
-        uses: NuGet/login@v1
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
         id: login
         with:
           user: ${{ secrets.nuget_user }} # Recommended: use a secret like ${{ secrets.NUGET_USER }} for your nuget.org username (profile name), NOT your email address
@@ -256,9 +256,12 @@ jobs:
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          AVD3_URL: ${{ secrets.AVD3_URL }}
         run: |
-          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-          ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
+          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn $env:SENTRY_DSN
+          ./.github/workflows/ReplaceAVD3URL.ps1 -url $env:AVD3_URL
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -322,9 +325,12 @@ jobs:
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          AVD3_URL: ${{ secrets.AVD3_URL }}
         run: |
-          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-          ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
+          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn $env:SENTRY_DSN
+          ./.github/workflows/ReplaceAVD3URL.ps1 -url $env:AVD3_URL
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -556,9 +562,12 @@ jobs:
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          AVD3_URL: ${{ secrets.AVD3_URL }}
         run: |
-          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-          ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
+          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn $env:SENTRY_DSN
+          ./.github/workflows/ReplaceAVD3URL.ps1 -url $env:AVD3_URL
 
       - uses: docker/setup-qemu-action@v4
         name: Set up QEMU
@@ -630,28 +639,32 @@ jobs:
           - ${{ needs.current_info.outputs.tag_minor }}
 
     steps:
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         name: Log into GitHub Container Registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         name: Log into Docker Hub
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Create manifest
+        env:
+          DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
         run: |
-          docker manifest create ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }} --amend ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-amd64 --amend ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-arm64
-          docker manifest create ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }} --amend ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-amd64 --amend ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-arm64
+          docker manifest create "ghcr.io/${DOCKER_REPO}:${{ matrix.tag }}" --amend "ghcr.io/${DOCKER_REPO}:${{ matrix.tag }}-amd64" --amend "ghcr.io/${DOCKER_REPO}:${{ matrix.tag }}-arm64"
+          docker manifest create "${DOCKER_REPO}:${{ matrix.tag }}" --amend "${DOCKER_REPO}:${{ matrix.tag }}-amd64" --amend "${DOCKER_REPO}:${{ matrix.tag }}-arm64"
 
       - name: Push manifest
+        env:
+          DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
         run: |
-          docker manifest push ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}
-          docker manifest push ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}
+          docker manifest push "ghcr.io/${DOCKER_REPO}:${{ matrix.tag }}"
+          docker manifest push "${DOCKER_REPO}:${{ matrix.tag }}"
 
   update-manifest:
     runs-on: ubuntu-24.04

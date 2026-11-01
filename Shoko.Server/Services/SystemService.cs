@@ -209,7 +209,7 @@ public class SystemService : ISystemService
     {
         using (DetachedFlow.Suppress())
         {
-            _ = Task.Delay(StartupMessagesKeptFor).ContinueWith(_ =>
+            _ = Task.Delay(StartupMessagesKeptFor, _shutdownTokenSource.Token).ContinueWith(_ =>
             {
                 lock (_startupMessages)
                     _startupMessages.Clear();
@@ -1491,67 +1491,80 @@ public class SystemService : ISystemService
             tasks = _databaseBlockingTasks.ToArray();
         }
 
-        Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = true }));
-
-        while (tasks.Length > 0)
+        try
         {
-            int task;
-            try
+            Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = true }));
+
+            while (tasks.Length > 0)
             {
-                task = Task.WaitAny(tasks, changedSignal.Token);
-            }
-            // If the operation was cancelled, we need to get the new list of tasks since
-            // the list of tasks may have changed.
-            catch (OperationCanceledException)
-            {
+                int task;
+                try
+                {
+                    task = Task.WaitAny(tasks, changedSignal.Token);
+                }
+                // If the operation was cancelled, we need to get the new list of tasks since
+                // the list of tasks may have changed.
+                catch (OperationCanceledException)
+                {
+                    lock (_databaseBlockingTasks)
+                    {
+                        // Signals are only cancelled and swapped under this lock, so none is cancelled once disposed.
+                        changedSignal.Dispose();
+                        changedSignal = _databaseTasksChangedCTS = new();
+                        tasks = _databaseBlockingTasks.ToArray();
+                    }
+                    continue;
+                }
+
+                // A blocking task that faulted (a failed startup, for one) means the database never became
+                // usable, so keep the block up and fail the waiters rather than unblock them. The block then
+                // stays until the process restarts, which is the only way out of a failed startup anyway.
+                var finished = tasks[task];
+                if (finished.IsFaulted || finished.IsCanceled)
+                {
+                    lock (_databaseBlockingTasks)
+                    {
+                        _databaseBlockingTasks.Remove(finished);
+                        _databaseTasksChangedCTS = null;
+                        changedSignal.Dispose();
+                    }
+
+                    if (finished.Exception is { } exception)
+                        taskSource.TrySetException(exception.InnerExceptions);
+                    else
+                        taskSource.TrySetCanceled();
+                    _logger.LogError(finished.Exception, "A database blocking task failed; the database stays blocked until the server is restarted.");
+                    return;
+                }
+
                 lock (_databaseBlockingTasks)
                 {
-                    // Signals are only cancelled and swapped under this lock, so none is cancelled once disposed.
+                    _databaseBlockingTasks.Remove(finished);
+                    if (_databaseBlockingTasks.Count is 0)
+                    {
+                        taskSource.TrySetResult();
+                        _databaseTaskSource = null;
+                        _databaseTasksChangedCTS = null;
+                        changedSignal.Dispose();
+
+                        Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = false }));
+                        return;
+                    }
+
                     changedSignal.Dispose();
                     changedSignal = _databaseTasksChangedCTS = new();
                     tasks = _databaseBlockingTasks.ToArray();
                 }
-                continue;
             }
-
-            // A blocking task that faulted (a failed startup, for one) means the database never became
-            // usable, so keep the block up and fail the waiters rather than unblock them. The block then
-            // stays until the process restarts, which is the only way out of a failed startup anyway.
-            var finished = tasks[task];
-            if (finished.IsFaulted || finished.IsCanceled)
-            {
-                lock (_databaseBlockingTasks)
-                {
-                    _databaseBlockingTasks.Remove(finished);
-                    _databaseTasksChangedCTS = null;
-                    changedSignal.Dispose();
-                }
-
-                if (finished.Exception is { } exception)
-                    taskSource.TrySetException(exception.InnerExceptions);
-                else
-                    taskSource.TrySetCanceled();
-                _logger.LogError(finished.Exception, "A database blocking task failed; the database stays blocked until the server is restarted.");
-                return;
-            }
-
+        }
+        finally
+        {
+            // Whatever way the loop ends, the current signal is unpublished before it is disposed, so nothing can Cancel() a disposed one.
             lock (_databaseBlockingTasks)
             {
-                _databaseBlockingTasks.Remove(finished);
-                if (_databaseBlockingTasks.Count is 0)
-                {
-                    taskSource.TrySetResult();
-                    _databaseTaskSource = null;
+                if (ReferenceEquals(_databaseTasksChangedCTS, changedSignal))
                     _databaseTasksChangedCTS = null;
-                    changedSignal.Dispose();
-
-                    Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = false }));
-                    return;
-                }
-
                 changedSignal.Dispose();
-                changedSignal = _databaseTasksChangedCTS = new();
-                tasks = _databaseBlockingTasks.ToArray();
             }
         }
     }
