@@ -8,6 +8,8 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Media;
 
 #nullable disable
+using Shoko.Server.Utilities;
+
 namespace Shoko.Server.API.v2.Models.legacy;
 
 [XmlType("Media")]
@@ -160,7 +162,7 @@ public class CL_Media
             BVOP = (byte)(format.BVOP && codec.Simplified != "mpeg1" ? 1 : 0),
         };
 
-        if (stream.PA != 1.0 && stream.Width != 0)
+        if (!FloatingPoint.AreEqual(stream.PA, 1.0) && stream.Width != 0)
         {
             if (stream.Width != 0)
             {

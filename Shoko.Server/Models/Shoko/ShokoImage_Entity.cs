@@ -15,8 +15,10 @@ using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
+
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>
@@ -173,7 +175,7 @@ public class ShokoImage_Entity : IImageCrossReference
             {
                 var newRating = data.HasRating ? data.Rating : null;
                 var newRatingVotes = data.HasRating ? data.RatingVotes : null;
-                if (Rating != newRating || RatingVotes != newRatingVotes)
+                if (!FloatingPoint.AreEqual(Rating, newRating) || RatingVotes != newRatingVotes)
                 {
                     Rating = newRating;
                     RatingVotes = newRatingVotes;

@@ -135,7 +135,7 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>, IMetada
             IsVideo == other.IsVideo &&
             RuntimeSeconds == other.RuntimeSeconds &&
             OriginalLanguageCode == other.OriginalLanguageCode &&
-            Rating.Equals(other.Rating) &&
+            FloatingPoint.AreEqual(Rating, other.Rating) &&
             RatingVotes == other.RatingVotes &&
             MetadataStoredEntry.SameResources(Resources, other.Resources) &&
             CrossSourceIDs.SequenceEqual(other.CrossSourceIDs) &&

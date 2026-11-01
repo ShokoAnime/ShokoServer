@@ -1434,8 +1434,9 @@ public partial class DatabaseFixes
 
                     using var command = transaction.Connection!.CreateCommand();
                     command.Transaction = transaction;
-                    command.CommandText = $"UPDATE {table} SET PreferredOrderingID = @value WHERE {idColumn} = {AsInt(row[0])}";
+                    command.CommandText = $"UPDATE {table} SET PreferredOrderingID = @value WHERE {idColumn} = @id";
                     AddParameter(command, "@value", value);
+                    AddParameter(command, "@id", AsInt(row[0]));
                     command.ExecuteNonQuery();
                     rewritten++;
                 }

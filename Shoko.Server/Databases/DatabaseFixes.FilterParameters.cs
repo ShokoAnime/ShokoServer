@@ -78,8 +78,8 @@ public partial class DatabaseFixes
 
                 using var command = dbConnection.CreateCommand();
                 command.Transaction = transaction;
-                var id = Convert.ToInt32(row[0], CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
-                command.CommandText = $"UPDATE FilterPreset SET Expression = @Expression, SortingExpression = @SortingExpression WHERE FilterPresetID = {id}";
+                command.CommandText = "UPDATE FilterPreset SET Expression = @Expression, SortingExpression = @SortingExpression WHERE FilterPresetID = @ID";
+                AddParameter(command, "@ID", Convert.ToInt32(row[0], CultureInfo.InvariantCulture));
                 AddParameter(command, "@Expression", newExpression ?? expression);
                 AddParameter(command, "@SortingExpression", newSorting ?? sorting);
                 command.ExecuteNonQuery();

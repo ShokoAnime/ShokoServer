@@ -579,6 +579,14 @@ public partial class DatabaseFixes
     /// <param name="command">The command.</param>
     /// <param name="name">The parameter's name.</param>
     /// <param name="value">Its value, or <c>null</c> for a database null.</param>
+    private static void AddParameter(DbCommand command, string name, int value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
+    }
+
     private static void AddParameter(DbCommand command, string name, string? value)
     {
         var parameter = command.CreateParameter();

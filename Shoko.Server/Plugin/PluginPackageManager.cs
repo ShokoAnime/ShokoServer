@@ -1043,11 +1043,17 @@ public partial class PluginPackageManager(
                 throw new ArgumentException("An existing repository with the given URL already exists.", nameof(data.Url));
             WriteRepository(repositoryInfo);
 
-            _logger.LogInformation($"Repository '{name}' created.");
+            _logger.LogInformation("Repository '{RepositoryName}' created.", ForLog(name));
         }
 
         return await SyncPackageRepository(repositoryInfo, forceSync: true, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    ///   Replaces control characters, line breaks included, in a user-supplied value so it cannot forge log entries.
+    /// </summary>
+    private static string? ForLog(string? value)
+        => value is null ? null : new string(value.Select(c => char.IsControl(c) ? '_' : c).ToArray());
 
     /// <inheritdoc/>
     public async Task<PackageRepositoryInfo> EnablePackageRepository(PackageRepositoryInfo repositoryInfo, CancellationToken cancellationToken = default)
@@ -1296,14 +1302,14 @@ public partial class PluginPackageManager(
             var manifestsFilePath = Path.Join(repoDirPath, ManifestFile);
             File.WriteAllText(manifestsFilePath, JsonConvert.SerializeObject(manifests, Formatting.Indented));
 
-            _logger.LogInformation($"Synced {manifests.Count} package manifests from repository '{repositoryInfo.Name}'.");
+            _logger.LogInformation("Synced {Count} package manifests from repository '{RepositoryName}'.", manifests.Count, ForLog(repositoryInfo.Name));
 
             repositoryInfo.LastFetchedAt = lastFetchedAt;
 
             var updatedRepoPath = Path.Join(repoDirPath, RepoInfoFile);
             File.WriteAllText(updatedRepoPath, JsonConvert.SerializeObject(repositoryInfo));
 
-            _logger.LogInformation($"Repository sync completed for '{repositoryInfo.Name}'. Fetched at: {repositoryInfo.LastFetchedAt}");
+            _logger.LogInformation("Repository sync completed for '{RepositoryName}'. Fetched at: {FetchedAt}", ForLog(repositoryInfo.Name), repositoryInfo.LastFetchedAt);
 
             _ = Task.Run(() => RepositorySyncCompleted?.Invoke(null, new RepositorySyncCompletedEventArgs()
             {
@@ -1331,6 +1337,47 @@ public partial class PluginPackageManager(
         return repositoryInfo;
     }
 
+    private async Task ReadManifestArrayAsync(HttpClient httpClient, JsonElement rootElement, string manifestUrl, DateTime lastFetchedAt, Action<RemotePackageManifestInfo, DateTime, string> addUnlessSeen, CancellationToken cancellationToken)
+    {
+        foreach (var element in rootElement.EnumerateArray())
+        {
+            RemotePackageManifestInfo? manifest = null;
+            try
+            {
+                manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
+                if (manifest is { IsReference: true } && IsDowngrade(manifestUrl, manifest.ManifestUrl))
+                {
+                    _logger.LogWarning(
+                        "Left out the linked manifest at {ManifestUrl}: the manifest at {Source} is served over https, so it may not link one served over plain http.",
+                        manifest.ManifestUrl,
+                        manifestUrl
+                    );
+                }
+                else if (manifest is { IsReference: true })
+                {
+                    var subManifests = await GetRemoteManifestAsync(httpClient, manifest.ManifestUrl, allowArray: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    foreach (var subManifest in subManifests)
+                        addUnlessSeen(subManifest.Manifest, subManifest.fetchedAt, manifest.ManifestUrl);
+                }
+                else if (manifest is not null)
+                    addUnlessSeen(manifest, lastFetchedAt, manifestUrl);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                if (manifest is { IsReference: true })
+                    _logger.LogWarning(
+                        IsExpectedFetchFailure(ex) ? null : ex,
+                        "Could not fetch the linked manifest at {ManifestUrl}: {Reason}. Its packages are left out, since no earlier copy is cached. " +
+                        "The rest of the repository is not affected.",
+                        manifest.ManifestUrl,
+                        DescribeFetchFailure(ex)
+                    );
+                else
+                    _logger.LogWarning(ex, "Failed to parse package manifest from repository.");
+            }
+        }
+    }
+
     private async Task<IReadOnlyList<(RemotePackageManifestInfo Manifest, DateTime fetchedAt, string Source)>> GetRemoteManifestAsync(HttpClient httpClient, string manifestUrl, bool allowArray, CancellationToken cancellationToken)
     {
         // Only a referenced manifest falls back on its cached copy: when the
@@ -1353,43 +1400,7 @@ public partial class PluginPackageManager(
                 if (!allowArray)
                     throw new InvalidOperationException("A referenced single-repository manifest cannot contain multiple manifests.");
 
-                foreach (var element in rootElement.EnumerateArray())
-                {
-                    RemotePackageManifestInfo? manifest = null;
-                    try
-                    {
-                        manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
-                        if (manifest is { IsReference: true } && IsDowngrade(manifestUrl, manifest.ManifestUrl))
-                        {
-                            _logger.LogWarning(
-                                "Left out the linked manifest at {ManifestUrl}: the manifest at {Source} is served over https, so it may not link one served over plain http.",
-                                manifest.ManifestUrl,
-                                manifestUrl
-                            );
-                        }
-                        else if (manifest is { IsReference: true })
-                        {
-                            var subManifests = await GetRemoteManifestAsync(httpClient, manifest.ManifestUrl, allowArray: false, cancellationToken: cancellationToken).ConfigureAwait(false);
-                            foreach (var subManifest in subManifests)
-                                AddUnlessSeen(subManifest.Manifest, subManifest.fetchedAt, manifest.ManifestUrl);
-                        }
-                        else if (manifest is not null)
-                            AddUnlessSeen(manifest, lastFetchedAt, manifestUrl);
-                    }
-                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
-                    {
-                        if (manifest is { IsReference: true })
-                            _logger.LogWarning(
-                                IsExpectedFetchFailure(ex) ? null : ex,
-                                "Could not fetch the linked manifest at {ManifestUrl}: {Reason}. Its packages are left out, since no earlier copy is cached. " +
-                                "The rest of the repository is not affected.",
-                                manifest.ManifestUrl,
-                                DescribeFetchFailure(ex)
-                            );
-                        else
-                            _logger.LogWarning(ex, "Failed to parse package manifest from repository.");
-                    }
-                }
+                await ReadManifestArrayAsync(httpClient, rootElement, manifestUrl, lastFetchedAt, AddUnlessSeen, cancellationToken).ConfigureAwait(false);
             }
             else if (rootElement.ValueKind == JsonValueKind.Object)
             {
