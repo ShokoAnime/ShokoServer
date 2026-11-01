@@ -1506,9 +1506,8 @@ public partial class DatabaseFixes
             var extra = (converter.ConvertFrom(null, null, row[2] as string) as TExtra ?? new TExtra()).WithDefaultResourceIDs(resourceIDs);
             using var command = transaction.Connection!.CreateCommand();
             command.Transaction = transaction;
-            command.CommandText = $"UPDATE {target} SET ExtraData = @value WHERE {target}ID = @id";
+            command.CommandText = $"UPDATE {target} SET ExtraData = @value WHERE {target}ID = {AsInt(row[0])}";
             AddParameter(command, "@value", ToExtraJson(extra));
-            AddParameter(command, "@id", AsInt(row[0]));
             command.ExecuteNonQuery();
             pinned++;
         }

@@ -1335,6 +1335,39 @@ public partial class PluginPackageManager(
         return repositoryInfo;
     }
 
+    private async Task ReadManifestArrayAsync(HttpClient httpClient, JsonElement rootElement, string manifestUrl, DateTime lastFetchedAt, Action<RemotePackageManifestInfo, DateTime, string> addUnlessSeen, CancellationToken cancellationToken)
+    {
+        foreach (var element in rootElement.EnumerateArray())
+        {
+            RemotePackageManifestInfo? manifest = null;
+            try
+            {
+                manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
+                if (manifest is { IsReference: true })
+                {
+                    var subManifests = await GetRemoteManifestAsync(httpClient, manifest.ManifestUrl, allowArray: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    foreach (var subManifest in subManifests)
+                        addUnlessSeen(subManifest.Manifest, subManifest.fetchedAt, manifest.ManifestUrl);
+                }
+                else if (manifest is not null)
+                    addUnlessSeen(manifest, lastFetchedAt, manifestUrl);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                if (manifest is { IsReference: true })
+                    _logger.LogWarning(
+                        IsExpectedFetchFailure(ex) ? null : ex,
+                        "Could not fetch the linked manifest at {ManifestUrl}: {Reason}. Its packages are left out, since no earlier copy is cached. " +
+                        "The rest of the repository is not affected.",
+                        manifest.ManifestUrl,
+                        DescribeFetchFailure(ex)
+                    );
+                else
+                    _logger.LogWarning(ex, "Failed to parse package manifest from repository.");
+            }
+        }
+    }
+
     private async Task<IReadOnlyList<(RemotePackageManifestInfo Manifest, DateTime fetchedAt)>> GetRemoteManifestAsync(HttpClient httpClient, string manifestUrl, bool allowArray, CancellationToken cancellationToken)
     {
         // Only a referenced manifest falls back on its cached copy: when the
@@ -1357,35 +1390,7 @@ public partial class PluginPackageManager(
                 if (!allowArray)
                     throw new InvalidOperationException("A referenced single-repository manifest cannot contain multiple manifests.");
 
-                foreach (var element in rootElement.EnumerateArray())
-                {
-                    RemotePackageManifestInfo? manifest = null;
-                    try
-                    {
-                        manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
-                        if (manifest is { IsReference: true })
-                        {
-                            var subManifests = await GetRemoteManifestAsync(httpClient, manifest.ManifestUrl, allowArray: false, cancellationToken: cancellationToken).ConfigureAwait(false);
-                            foreach (var subManifest in subManifests)
-                                AddUnlessSeen(subManifest.Manifest, subManifest.fetchedAt, manifest.ManifestUrl);
-                        }
-                        else if (manifest is not null)
-                            AddUnlessSeen(manifest, lastFetchedAt, manifestUrl);
-                    }
-                    catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
-                    {
-                        if (manifest is { IsReference: true })
-                            _logger.LogWarning(
-                                IsExpectedFetchFailure(ex) ? null : ex,
-                                "Could not fetch the linked manifest at {ManifestUrl}: {Reason}. Its packages are left out, since no earlier copy is cached. " +
-                                "The rest of the repository is not affected.",
-                                manifest.ManifestUrl,
-                                DescribeFetchFailure(ex)
-                            );
-                        else
-                            _logger.LogWarning(ex, "Failed to parse package manifest from repository.");
-                    }
-                }
+                await ReadManifestArrayAsync(httpClient, rootElement, manifestUrl, lastFetchedAt, AddUnlessSeen, cancellationToken).ConfigureAwait(false);
             }
             else if (rootElement.ValueKind == JsonValueKind.Object)
             {
