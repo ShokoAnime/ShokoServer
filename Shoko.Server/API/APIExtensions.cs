@@ -693,8 +693,8 @@ public static partial class APIExtensions
             conf.MapControllers();
             if (webSettings.EnableSignalR)
             {
-                conf.MapHub<LoggingHub>("/signalr/logging").RequireAuthorization("admin");
-                conf.MapHub<AggregateHub>("/signalr/aggregate").RequireAuthorization();
+                conf.MapHub<LoggingHub>("/signalr/logging");
+                conf.MapHub<AggregateHub>("/signalr/aggregate");
             }
         });
 

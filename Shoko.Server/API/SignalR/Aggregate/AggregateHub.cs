@@ -10,6 +10,7 @@ using Shoko.QueueProcessor;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
+[Authorize]
 public class AggregateHub : Hub
 {
     private readonly QueueHandler _queueHandler;
