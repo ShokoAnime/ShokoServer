@@ -434,7 +434,7 @@ public sealed class ScheduledActionService(
             if (_timer is null)
             {
                 using (DetachedFlow.Suppress())
-                    _timer = _timeProvider.CreateTimer(_ => _ = TickAsync(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                    _timer = _timeProvider.CreateTimer(_ => _ = TickAsync(CancellationToken.None), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
 
         }

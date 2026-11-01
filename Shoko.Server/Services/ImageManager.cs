@@ -874,7 +874,7 @@ public class ImageManager(
             {
                 shokoImage.LastUpdatedAt = DateTime.UtcNow;
                 imageRepository.Save(shokoImage);
-                _ = Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = shokoImage }));
+                _ = Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = shokoImage }), CancellationToken.None);
             }
             return true;
         }
@@ -1045,7 +1045,7 @@ public class ImageManager(
         imageRepository.Save(shokoImage);
         logger.LogInformation("Image file stored from a file in hand. (Image={ImageID})", image.ID);
 
-        _ = Task.Run(() => ImageDownloaded?.Invoke(this, new() { Image = shokoImage }));
+        _ = Task.Run(() => ImageDownloaded?.Invoke(this, new() { Image = shokoImage }), CancellationToken.None);
         EmitEventForRelatedEntities(shokoImage, previouslyHeld ? UpdateReason.ImageUpdated : UpdateReason.ImageAdded);
         return shokoImage;
     }
@@ -1100,7 +1100,8 @@ public class ImageManager(
             {
                 await schedulerFactory.EnqueueWithPriority<DownloadImageJob>(
                     c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force),
-                    JobPriorities.ForImage(image.CrossReference?.EntityID.EntityType, image.Type, isNew: false, prioritize: false)
+                    JobPriorities.ForImage(image.CrossReference?.EntityID.EntityType, image.Type, isNew: false, prioritize: false),
+                    ct: cancellationToken
                 ).ConfigureAwait(false);
             }
 
@@ -1334,7 +1335,7 @@ public class ImageManager(
             {
                 shokoImage.LastUpdatedAt = DateTime.UtcNow;
                 imageRepository.Save(shokoImage);
-                _ = Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = shokoImage }));
+                _ = Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = shokoImage }), CancellationToken.None);
             }
 
             if (!available && shokoImage.IsEnabled && shokoImage.IsDesired)

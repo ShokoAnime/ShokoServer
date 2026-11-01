@@ -405,7 +405,7 @@ public partial class PluginPackageManager(
                 StartedAt = eventArgs.StartedAt,
                 CompletedAt = DateTime.UtcNow,
                 Plugin = pluginInfo,
-            }));
+            }), CancellationToken.None);
 
             return pluginInfo;
         }
@@ -427,7 +427,7 @@ public partial class PluginPackageManager(
                 FailedAt = DateTime.UtcNow,
                 Reason = "Package installation was cancelled during installation.",
                 Exception = ex,
-            }));
+            }), CancellationToken.None);
             throw;
         }
         catch (Exception ex)
@@ -448,7 +448,7 @@ public partial class PluginPackageManager(
                 FailedAt = DateTime.UtcNow,
                 Reason = "Failed to install package due to an exception occurring.",
                 Exception = ex,
-            }));
+            }), CancellationToken.None);
             throw;
         }
     }
@@ -485,7 +485,7 @@ public partial class PluginPackageManager(
                 FailedAt = DateTime.UtcNow,
                 Reason = "Package installation failed during the started event.",
                 Exception = ex,
-            }));
+            }), CancellationToken.None);
 
             throw;
         }
@@ -509,7 +509,7 @@ public partial class PluginPackageManager(
                 FailedAt = DateTime.UtcNow,
                 Reason = "Package installation was cancelled by a started event consumer before starting.",
                 Exception = ex,
-            }));
+            }), CancellationToken.None);
 
             throw ex;
         }
@@ -1265,7 +1265,7 @@ public partial class PluginPackageManager(
                 Repository = repositoryInfo,
                 StartedAt = eventArgs.StartedAt,
                 CompletedAt = eventArgs.StartedAt,
-            }));
+            }), CancellationToken.None);
 
             return repositoryInfo;
         }
@@ -1308,7 +1308,7 @@ public partial class PluginPackageManager(
                 Repository = repositoryInfo,
                 StartedAt = eventArgs.StartedAt,
                 CompletedAt = eventArgs.StartedAt,
-            }));
+            }), CancellationToken.None);
         }
         catch (Exception ex)
         {
@@ -1323,7 +1323,7 @@ public partial class PluginPackageManager(
                 Reason = "Repository sync was cancelled",
                 Exception = ex,
                 FailedAt = DateTime.UtcNow,
-            }));
+            }), CancellationToken.None);
         }
 
         return repositoryInfo;

@@ -715,7 +715,7 @@ public class MylistService(
 
         var series = videoLocal.EpisodeCrossReferences.Select(a => a.AnimeID).Distinct().Except([0]).ToArray();
         if (series.Length > 0)
-            await Task.WhenAll(series.Select(id => scheduler.Enqueue<RefreshAnimeStatsJob>(a => a.AnimeID = id)));
+            await Task.WhenAll(series.Select(id => scheduler.Enqueue<RefreshAnimeStatsJob>(a => a.AnimeID = id, ct: CancellationToken.None)));
 
         return mylistEntry;
     }
@@ -1564,8 +1564,11 @@ public class MylistService(
     private static void ValidatePlan(MylistSyncPlan plan)
     {
         var errors = new Dictionary<string, IReadOnlyList<string>>();
-        for (var index = 0; index < plan.Actions.Count; index++)
+        for (var index = 0; index < int.MaxValue; index++)
         {
+            if (index >= plan.Actions.Count)
+                break;
+
             var action = plan.Actions[index];
             var problems = new List<string>();
 
