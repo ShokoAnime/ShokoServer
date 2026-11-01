@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.572",
+      "tag": "v6.0.0-dev.572",
+      "commit": "cba0dbe9925fb62d60082b2cbc38dcaa11c3206c",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.572/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-01T17:27:21Z",
+      "releaseNotes": "\n`fix`: **Resolve sonarcloud reliability and security issues**:\n\nCleared the issues behind the E reliability and D security ratings, with no behavior change for valid input.\n\n- Disposed `_databaseTasksChangedCTS` on every exit path of the database unblock loop in `SystemService` (S2930)\n- Replaced `lock (this)` in `AnimeSeriesService` with a dedicated lock object (S2551)\n- Renamed fields that clashed with accessors in `GetAniDBImagesJob`, `PurgeAniDBAnimeJob` and `CRC32` (S4275)\n- Guarded `AnimeSeries.AllGroupsAbove` against a cyclic parent chain (S6680)\n- Passed the in-scope token to `StartJob` and `TrySetCanceled` where cancellation was already honored (S8949)\n- Suppressed S4790 on the non-security dedupe keys, keeping the algorithm so persisted keys stay valid\n- Pinned `NuGet/login` and `docker/login-action` to full commit SHAs (S7637)\n- Moved secrets out of `run` blocks into step `env` in the workflows (S7636)\n- Used a private temp directory and `usedforsecurity=False` in `scripts/text_snapshots.py` (S5443, S4790)\n\n`fix`: **Address sonarcloud findings on the batch**:\n\n- Left the disposal of `changedSignal` to the `finally` block in `SystemService` instead of also disposing on the early returns (`S3966`)\n- Moved the justification out of the `NOSONAR` comments in `scripts/text_snapshots.py` (`S7632`)\n- Marked the bounded parent walk in `AnimeSeries.AllGroupsAbove` for `S6680`\n\n`fix`: **Satisfy remaining sonarcloud findings on the batch**:\n\n- Created the replacement `CancellationTokenSource` before disposing the old one in `SystemService`, so the `finally` never sees a disposed signal (`S3966`)\n- Capped the parent walk in `AnimeSeries.AllGroupsAbove` at `MaxGroupDepth` instead of suppressing `S6680`\n\n`fix`: **Drop the visited set from the parent group walk**:\n\nKept the `MaxGroupDepth` cap as the loop bound in `AnimeSeries.AllGroupsAbove`; the `HashSet` was itself flagged as a sink by `S6680`.\n\n`fix`: **Bound the parent group walk by depth alone**:\n\nMoved the `groupID` check into the body of the loop in `AnimeSeries.AllGroupsAbove`, so the loop condition no longer reads a stored ID (`S6680`).\n\n`merge`: **Merge pull request #1469 from ShokoAnime/fix/sonar-batch-1**:\n\nfix: resolve sonarcloud reliability and security issues (batch 1)\n"
+    },
+    {
       "version": "6.0.0.571",
       "tag": "v6.0.0-dev.571",
       "commit": "c30b50443e92471a5b747ac289210a78ebd2b56d",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.543/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-22T10:42:42Z",
       "releaseNotes": "\n`fix` (`filters`): **Let a set `Right` win over `Parameter` in the string comparers**:\n\n- The string and string set comparers used `Parameter` when both were set, unlike the number and date ones\n- Wrote the rule into the filters readme\n"
-    },
-    {
-      "version": "6.0.0.542",
-      "tag": "v6.0.0-dev.542",
-      "commit": "b456861e895408f408a859531dcefe833d544ff8",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.542/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-22T08:51:03Z",
-      "releaseNotes": "\n`feat` (`plugin`): **Give the core plugin the Shoko logo as its icon and thumbnail**:\n\n- Shipped `Shoko.Server.icon.svg` (the docs logo, squared) and `Shoko.Server.thumbnail.svg` (16:9, the logo on the generic plugin background) beside the dll, where the plugin loader finds them without writing anything\n\n`feat` (`filters`): **Add `SwitchExpression`**:\n\n- Added a switch around a condition: off or empty it fails, on it passes as its `Left` does; its label never changes the result\n- The logic gates leave a switched-off or empty switch out (`IsSwitchedOff`), and `Not` and `Scope` pass it up\n- Fixed `EqualsExpression.UserDependent` reading the right side's `TimeDependent`\n"
     }
   ]
 }
