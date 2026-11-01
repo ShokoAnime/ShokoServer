@@ -240,7 +240,7 @@ public class SystemService : ISystemService
                 Task.Run(() => StartupMessageChanged?.Invoke(this, new()
                 {
                     Entry = entry
-                }));
+                }), CancellationToken.None);
             }
         }
     } = string.Empty;
@@ -261,7 +261,7 @@ public class SystemService : ISystemService
                 CanShutdown = true;
             }
 
-            Task.Run(() => StartupFailed?.Invoke(this, new(value)));
+            Task.Run(() => StartupFailed?.Invoke(this, new(value)), CancellationToken.None);
 
             _logger.LogError(value, "Failed to Start Server: {Message}", value.Message);
             _startupTaskSource?.SetException(value);
@@ -419,7 +419,7 @@ public class SystemService : ISystemService
                 StartupMessage = "Starting Web Hosts.";
 
             // Start the web server and all IHostedService services.
-            await _webHost.StartAsync();
+            await _webHost.StartAsync(CancellationToken.None);
 
             // The plugins that failed while the web host took their middleware.
             RecordFailedPlugins();
@@ -442,13 +442,13 @@ public class SystemService : ISystemService
 
             // Checked once now, as the scheduled check only starts with the server and until
             // then network jobs wait and the first-run AniDB login test fails.
-            _ = Task.Run(_webHost.Services.GetRequiredService<IConnectivityService>().CheckAvailability);
+            _ = Task.Run(_webHost.Services.GetRequiredService<IConnectivityService>().CheckAvailability, CancellationToken.None);
 
             if (InSetupMode)
             {
                 _logger.LogWarning("The server is in Setup Mode and is NOT STARTED. It needs to be configured via the Web UI or the server-settings.json before use!");
 
-                _ = Task.Run(() => SetupRequired?.Invoke(this, EventArgs.Empty));
+                _ = Task.Run(() => SetupRequired?.Invoke(this, EventArgs.Empty), CancellationToken.None);
             }
             else
             {
@@ -958,7 +958,7 @@ public class SystemService : ISystemService
                 settings.FirstRun = false;
                 _settingsProvider.SaveSettings(settings);
 
-                Task.Run(() => SetupCompleted?.Invoke(this, EventArgs.Empty));
+                Task.Run(() => SetupCompleted?.Invoke(this, EventArgs.Empty), CancellationToken.None);
             }
 
             // The caches and an upgrade's data fixes fragment the heap by gigabytes on a large library;
@@ -972,7 +972,7 @@ public class SystemService : ISystemService
             StartedAt = DateTime.UtcNow;
             ClearStartupMessagesLater();
 
-            Task.Run(() => Started?.Invoke(this, EventArgs.Empty));
+            Task.Run(() => Started?.Invoke(this, EventArgs.Empty), CancellationToken.None);
 
             StartupMessage = "Startup Complete!";
             StartupMessage = null;
@@ -1274,14 +1274,14 @@ public class SystemService : ISystemService
             _logger.LogInformation("Shutdown request accepted");
             ShutdownPending = true;
             var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
-            Task.Run(lifetime.StopApplication);
+            Task.Run(lifetime.StopApplication, CancellationToken.None);
             return true;
         }
     }
 
     /// <inheritdoc/>
     public Task WaitForShutdownAsync()
-        => _webHost?.WaitForShutdownAsync() ?? Task.CompletedTask;
+        => _webHost?.WaitForShutdownAsync(CancellationToken.None) ?? Task.CompletedTask;
 
     internal void OnShutdown()
     {
@@ -1365,7 +1365,7 @@ public class SystemService : ISystemService
             _logger.LogInformation("Restart request accepted");
             RestartPending = true;
             var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
-            Task.Run(lifetime.StopApplication);
+            Task.Run(lifetime.StopApplication, CancellationToken.None);
             return true;
         }
     }
@@ -1493,7 +1493,7 @@ public class SystemService : ISystemService
 
         try
         {
-            Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = true }));
+            Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = true }), CancellationToken.None);
 
             while (tasks.Length > 0)
             {
@@ -1532,7 +1532,7 @@ public class SystemService : ISystemService
                     if (finished.Exception is { } exception)
                         taskSource.TrySetException(exception.InnerExceptions);
                     else
-                        taskSource.TrySetCanceled();
+                        taskSource.TrySetCanceled(CancellationToken.None);
                     _logger.LogError(finished.Exception, "A database blocking task failed; the database stays blocked until the server is restarted.");
                     return;
                 }
@@ -1546,7 +1546,7 @@ public class SystemService : ISystemService
                         _databaseTaskSource = null;
                         _databaseTasksChangedCTS = null;
 
-                        Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = false }));
+                        Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = false }), CancellationToken.None);
                         return;
                     }
 

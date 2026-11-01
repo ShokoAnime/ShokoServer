@@ -763,7 +763,7 @@ public class ActionService(
         foreach (var each in series)
         {
             token.ThrowIfCancellationRequested();
-            await _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = each.AniDB_ID);
+            await _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = each.AniDB_ID, ct: token);
             items.Increment();
         }
     }
@@ -817,7 +817,7 @@ public class ActionService(
             foreach (var a in incorrectGroups)
             {
                 token.ThrowIfCancellationRequested();
-                await _scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
+                await _scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a, ct: token);
                 groupItems.Increment();
             }
 
@@ -848,7 +848,7 @@ public class ActionService(
         foreach (var msg in messages)
         {
             token.ThrowIfCancellationRequested();
-            await _scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID);
+            await _scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID, ct: token);
             items.Increment();
         }
     }
@@ -1044,7 +1044,7 @@ public class ActionService(
         foreach (var creatorID in allMissingCreators)
         {
             token.ThrowIfCancellationRequested();
-            await _scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID).ConfigureAwait(false);
+            await _scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID, ct: token).ConfigureAwait(false);
             items.Increment();
 
             if (items.Done % 10 == 0)
@@ -1109,7 +1109,7 @@ public class ActionService(
         foreach (var animeID in unverifiedAnimeIDs)
         {
             token.ThrowIfCancellationRequested();
-            await _scheduler.StartJob<VerifyAniDBRelationsJob>(c => c.AnimeID = animeID);
+            await _scheduler.StartJob<VerifyAniDBRelationsJob>(c => c.AnimeID = animeID, ct: token);
             items.Increment();
         }
 

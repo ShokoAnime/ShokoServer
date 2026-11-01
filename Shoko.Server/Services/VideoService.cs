@@ -737,7 +737,7 @@ public class VideoService : IVideoService
             }
         }
 
-        await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID, ct: CancellationToken.None)));
     }
 
     public async Task RemoveRecordWithOpenTransaction(ISession session, VideoLocal_Place place, ICollection<AnimeSeries> seriesToUpdate,
@@ -1095,7 +1095,7 @@ public class VideoService : IVideoService
         finally
         {
             // update everything we modified
-            await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+            await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID, ct: CancellationToken.None)));
         }
 
         stages.Complete();
@@ -1159,7 +1159,7 @@ public class VideoService : IVideoService
             await RemoveRecordWithOpenTransaction(session, vid, affectedSeries, skipEvents);
 
         _managedFolderRepository.Delete(folder.ID);
-        await Task.WhenAll(affectedSeries.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(affectedSeries.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID, ct: CancellationToken.None)));
     }
 
     public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false)

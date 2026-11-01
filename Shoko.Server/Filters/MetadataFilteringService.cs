@@ -36,7 +36,7 @@ public class MetadataFilteringService(
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
+        var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting, cancellationToken);
         if (tuples.Count is 0)
             return [];
 
@@ -65,7 +65,7 @@ public class MetadataFilteringService(
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
+        var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting, cancellationToken);
         if (tuples.Count is 0)
             return [];
 
@@ -115,7 +115,7 @@ public class MetadataFilteringService(
                         capturedToken.ThrowIfCancellationRequested();
                         return OrderByGroup(
                             filter,
-                            engine.EvaluateFilterWithTuples(filter, user, time, skipSorting)
+                            engine.EvaluateFilterWithTuples(filter, user, time, skipSorting, capturedToken)
                                 .DistinctBy(t => t.GroupID)
                                 .Select(t => groupRepository.GetByID(t.GroupID))
                                 .WhereNotNull(),
@@ -167,7 +167,7 @@ public class MetadataFilteringService(
                     : new Lazy<IReadOnlyList<IShokoSeries>>(() =>
                     {
                         capturedToken.ThrowIfCancellationRequested();
-                        return engine.EvaluateFilterWithTuples(filter, user, time, skipSorting)
+                        return engine.EvaluateFilterWithTuples(filter, user, time, skipSorting, capturedToken)
                             .Select(t => t.SeriesID)
                             .Select(seriesRepository.GetByID)
                             .WhereNotNull()
@@ -186,7 +186,7 @@ public class MetadataFilteringService(
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
+        var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting, cancellationToken);
         if (results.Count is 0)
             return [];
 
@@ -223,7 +223,7 @@ public class MetadataFilteringService(
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
+        var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting, cancellationToken);
         if (results.Count is 0)
             return [];
 
@@ -264,7 +264,7 @@ public class MetadataFilteringService(
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
+        var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting, cancellationToken);
         if (results.Count is 0)
             return [];
 
@@ -320,7 +320,7 @@ public class MetadataFilteringService(
                 .OrderBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
                 .ToList();
 
-        var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
+        var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting, cancellationToken);
         if (results.Count is 0)
             return [];
 

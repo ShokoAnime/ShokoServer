@@ -692,7 +692,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                         // Only prioritize if we don't have an anime record.
                         prioritize: anime is null && animeRecentlyUpdated is null,
                         // Don't fire immediately if we recently updated the record.
-                        startTime: animeRecentlyUpdated is not null ? DateTime.Now.AddHours(animeRecentlyUpdated.Value) : null
+                        startTime: animeRecentlyUpdated is not null ? DateTime.Now.AddHours(animeRecentlyUpdated.Value) : null,
+                        ct: CancellationToken.None
                     ).ConfigureAwait(false);
                     deferredToRemote = true;
                 }
@@ -714,7 +715,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                     // Anime data is fresh but a new file may have just been linked; refresh stats
                     // so missing-episode counts stay accurate without waiting for the next HTTP fetch.
                     if (anime is not null && _seriesRepository.GetByAnimeID(job.AnimeID) is not null)
-                        await _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = job.AnimeID).ConfigureAwait(false);
+                        await _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = job.AnimeID, CancellationToken.None).ConfigureAwait(false);
                     return null;
                 }
                 throw ex;
@@ -753,7 +754,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                         _anidbAnimeRelationRepository.Save(verifiedNow);
 
                     if (relations.Any(r => !r.Verified))
-                        await _scheduler.StartJob<VerifyAniDBRelationsJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
+                        await _scheduler.StartJob<VerifyAniDBRelationsJob>(c => c.AnimeID = job.AnimeID, ct: CancellationToken.None).ConfigureAwait(false);
                 }
             }
 
@@ -775,12 +776,12 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 _seriesRepository.Save(series, true);
             }
 
-            await _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = job.AnimeID).ConfigureAwait(false);
+            await _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = job.AnimeID, CancellationToken.None).ConfigureAwait(false);
 
             // Request an image download
             await UpsertAndScheduleImageForEntity(anime, anime.Picname!, isDesired: true, forceDownload: false).ConfigureAwait(false);
             if (series is not null)
-                await _scheduler.RunAfterCurrent<GetAniDBImagesJob>(c => (c.AnimeID, c.IsNew) = (job.AnimeID, isNew || seriesIsNew)).ConfigureAwait(false);
+                await _scheduler.RunAfterCurrent<GetAniDBImagesJob>(c => (c.AnimeID, c.IsNew) = (job.AnimeID, isNew || seriesIsNew), CancellationToken.None).ConfigureAwait(false);
 
             // Emit anidb anime updated event.
             if (isNew || isUpdated || animeEpisodeChanges.Count > 0)

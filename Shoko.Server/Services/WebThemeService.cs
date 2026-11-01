@@ -233,7 +233,7 @@ public partial class WebThemeService(IApplicationPaths applicationPaths) : IWebT
 
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromMinutes(1);
-            using var cssResponse = await httpClient.GetAsync(theme.CssUrl);
+            using var cssResponse = await httpClient.GetAsync(theme.CssUrl, CancellationToken.None);
             if (cssResponse.StatusCode != HttpStatusCode.OK)
                 throw new HttpRequestException($"Failed to retrieve CSS file with status code {cssResponse.StatusCode}.", null, cssResponse.StatusCode);
 
@@ -241,7 +241,7 @@ public partial class WebThemeService(IApplicationPaths applicationPaths) : IWebT
             if (string.IsNullOrEmpty(cssContentType) || !_allowedCssMime.Contains(cssContentType))
                 throw new ValidationException("Invalid css content-type for resource. Expected \"text/css\" or \"text/plain\".");
 
-            var cssContent = await cssResponse.Content.ReadAsStringAsync();
+            var cssContent = await cssResponse.Content.ReadAsStringAsync(CancellationToken.None);
             if (string.IsNullOrWhiteSpace(cssContent))
                 throw new ValidationException("The css url cannot resolve to an empty resource if it is provided in the theme definition.");
 

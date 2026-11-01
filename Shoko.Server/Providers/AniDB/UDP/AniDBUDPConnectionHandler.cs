@@ -207,7 +207,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         // The timer's execution context may have been captured while the socket
         // lock was held, so start from a clean reentrancy depth.
         s_socketLockDepth.Value = 0;
-        _inFlightPing = Task.Run(() => PingAsync());
+        _inFlightPing = Task.Run(() => PingAsync(), CancellationToken.None);
     }
 
     private async Task PingAsync()
@@ -226,7 +226,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
             if (IsBanned || BackoffSecs.HasValue) return;
 
             var ping = _requestFactory.Create<RequestPing>();
-            await ping.SendAsync();
+            await ping.SendAsync(CancellationToken.None);
         }
         catch (UnexpectedUDPResponseException)
         {
@@ -247,7 +247,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         if (_inFlightLogout is { IsCompleted: false }) return;
 
         s_socketLockDepth.Value = 0;
-        _inFlightLogout = Task.Run(() => LogoutAsync());
+        _inFlightLogout = Task.Run(() => LogoutAsync(), CancellationToken.None);
     }
 
     private async Task LogoutAsync()
@@ -265,7 +265,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
 
             if (IsBanned || BackoffSecs.HasValue) return;
 
-            await ForceLogoutAsync();
+            await ForceLogoutAsync(CancellationToken.None);
         }
         catch (Exception exception)
         {
