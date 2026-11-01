@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.578",
+      "tag": "v6.0.0-dev.578",
+      "commit": "d02edfd4c04d0c063d0edf090c988a1b2cecd80a",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.578/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-01T21:09:44Z",
+      "releaseNotes": "\n`fix`: **Resolve sonarcloud float comparison, sql and log injection issues (batch 4)**:\n\nCompared floating point values with a tolerance instead of exactly, parameterized row IDs in data fixups and sanitized user-supplied values before logging.\n\n- Added `FloatingPoint.AreEqual` and used it in the metadata models, `MediaContainer`, `UserDataService`, `SyncAniDBVotesJob`, `ShokoImage_Entity` and `CL_Media`\n- Passed row IDs as parameters in `DatabaseFixes` queries\n- Added `ForLog` to `PluginPackageManager` for repository names in log messages\n\n`fix`: **Address the sonarcloud gate on batch 4**:\n\nDropped the exact `Equals` from `FloatingPoint.AreEqual`, split the manifest array reading out of `GetRemoteManifestAsync` to cut its complexity and left the `DatabaseFixes` query that the gate counted as new code as it was.\n\n`chore`: **Merge `master` into `fix/sonar-batch-4`**.\n\n`merge`: **Merge pull request #1472 from ShokoAnime/fix/sonar-batch-4**:\n\nfix: resolve sonarcloud float comparison, sql and log injection issues (batch 4)\n"
+    },
+    {
       "version": "6.0.0.577",
       "tag": "v6.0.0-dev.577",
       "commit": "64cc2d32c52f8a7e17552271f071dfbf7cb2e1f3",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.549/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-23T11:00:43Z",
       "releaseNotes": "\n`fix` (`filters`): **Treat a filter where nothing takes part as no filter**:\n\n- A filter whose expression didn't take part, such as one of only switches set to keep everything, matched nothing; it now matches everything\n"
-    },
-    {
-      "version": "6.0.0.548",
-      "tag": "v6.0.0-dev.548",
-      "commit": "aa46f4470cb98b56cda42daa2f630e97c28181de",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.548/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-23T09:56:42Z",
-      "releaseNotes": "\n`docs` (`filters`): **Reword the help of the `And`, `Or`, `Xor` and `Not` gates**.\n\n`refactor` (`filters`): **Make the switch three-way on `InclusionFilter`, label first**:\n\n- `SwitchExpression` keeps only (`Only`) or leaves out (`False`) what its condition matches; set to keep everything (`True`) or left unset, it is left out of the filter\n- Its label moved to `Parameter`, as a group's, and the inclusion to `SecondParameter`, offered as the `InclusionFilter` names\n- Dropped the switch from the stored-shape migration, as nothing had stored one yet\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.111**.\n\n`feat` (`api`): **Add filter count endpoints**:\n\n- `POST /api/v3/Filter/Preview/Count` and `GET /api/v3/Filter/{filterID}/Count` answer `{ Groups, Series }`, counted as the matching group and series listings would list them, without building the list items\n- The listings and the counts share the same filtering helpers in `FilterController`\n"
     }
   ]
 }
