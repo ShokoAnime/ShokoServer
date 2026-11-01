@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.575",
+      "tag": "v6.0.0-dev.575",
+      "commit": "43f830f6cd5f8180c94f38820e775ab10f756ba4",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.575/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-01T18:57:16Z",
+      "releaseNotes": "\n`feat` (`plugin`): **Pass a manifest's `extensions` through untouched**:\n\n- Package manifests may carry an `extensions` object on the package, each release and each archive; the schema allows it there only\n- The core passes it through as `Extensions` on the abstractions' package models and APIv3's, and never reads it\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.123**.\n"
+    },
+    {
       "version": "6.0.0.574",
       "tag": "v6.0.0-dev.574",
       "commit": "58e5d25df9349ce8d8971b40d474fc2efb74dce4",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.546/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-22T15:40:53Z",
       "releaseNotes": "\n`fix` (`db`): **Widen the language columns of `StoredReleaseInfo`**:\n\n- Doubled `AudioLanguages` and `SubtitleLanguages` to 1024 characters on MySQL and SQL Server; a release with many subtitle languages overflowed 512 and aborted its job chain\n"
-    },
-    {
-      "version": "6.0.0.545",
-      "tag": "v6.0.0-dev.545",
-      "commit": "dfefa7af9fbdcb7c24015cef70956da0207ec623",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.545/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-22T12:30:02Z",
-      "releaseNotes": "\n`refactor` (`filters`): **Make filter parameters nullable and leave out parts with nothing to work with**:\n\n- Every filter parameter is nullable, enums and time spans included; only `null` is unset, so `0`, `\"\"`, `false` and `[]` are set\n- Conditions, source selectors and date functions without a value they need, and comparers without a usable `Left` and right side, no longer take part\n- `FilterFactory` and stored filters keep `null` as `null`; a `0` number is no longer dropped\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.110**.\n"
     }
   ]
 }
