@@ -263,11 +263,73 @@ public partial class PluginManager
         }
     }
 
+    /// <summary>
+    ///   Finds an assembly another installed plugin builds itself (its main
+    ///   assembly or a project it was built with, as its <c>.deps.json</c>
+    ///   names them), the newest copy at least as new as the one asked for.
+    /// </summary>
+    /// <param name="ownDirectory">The directory of the plugin asking, which is left out.</param>
+    /// <param name="assemblyName">The assembly.</param>
+    /// <returns>The path, or <c>null</c> when no other plugin exports it.</returns>
+    private string? FindAssemblyExportedByAnotherPlugin(string? ownDirectory, AssemblyName assemblyName)
+    {
+        if (assemblyName.Name is not { Length: > 0 } name)
+            return null;
+
+        var options = new EnumerationOptions() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System };
+        var ownFullPath = ownDirectory is null ? null : Path.TrimEndingDirectorySeparator(Path.GetFullPath(ownDirectory));
+        string? best = null;
+        Version? bestVersion = null;
+        foreach (var root in new[] { Path.Join(applicationPaths.ApplicationPath, "plugins"), applicationPaths.PluginsPath })
+        {
+            if (!Directory.Exists(root))
+                continue;
+
+            foreach (var directory in Directory.EnumerateDirectories(root, "*", options))
+            {
+                if (string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory)), ownFullPath, StringComparison.Ordinal))
+                    continue;
+
+                var candidate = Path.Join(directory, name + ".dll");
+                if (!File.Exists(candidate))
+                    continue;
+
+                var isExported = Directory.EnumerateFiles(directory, "*.deps.json", options)
+                    .Any(depsPath => PluginLoadContext.ReadExportedAssemblies(Path.ChangeExtension(Path.ChangeExtension(depsPath, null), ".dll"), depsPath).Contains(name));
+                if (!isExported)
+                    continue;
+
+                Version? version;
+                try
+                {
+                    version = AssemblyName.GetAssemblyName(candidate).Version;
+                }
+                catch (Exception ex) when (ex is IOException or BadImageFormatException or UnauthorizedAccessException or ArgumentException)
+                {
+                    continue;
+                }
+
+                if (assemblyName.Version is { } wanted && version is not null && version < wanted)
+                    continue;
+
+                if (best is null || (version is not null && (bestVersion is null || version > bestVersion)))
+                    (best, bestVersion) = (candidate, version);
+            }
+        }
+
+        return best;
+    }
+
     internal InternalPluginInfo? LoadInternalPluginInfo(string? dirPath, string[] dlls, bool isSystem, IServerSettings settings, ref bool settingsChanged)
     {
         var selfResolvingPluginPath = dirPath is not null ? FindSelfResolvingPlugin(dlls) : dlls.FirstOrDefault(dll => Path.Exists(Path.ChangeExtension(dll, ".deps.json")));
         var dllsToLoad = dirPath is not null && selfResolvingPluginPath is not null ? [selfResolvingPluginPath] : dlls;
         var alc = new IsolatedLoadContext(selfResolvingPluginPath);
+        // What another plugin builds itself, such as a contract the plugin uses that only a plugin it
+        // depends on ships, so the plugin's types read as they will when it loads beside that plugin.
+        alc.Resolving += (context, assemblyName) => FindAssemblyExportedByAnotherPlugin(dirPath, assemblyName) is { } path
+            ? context.LoadFromAssemblyPath(path)
+            : null;
         try
         {
             foreach (var dllPath in dllsToLoad)
