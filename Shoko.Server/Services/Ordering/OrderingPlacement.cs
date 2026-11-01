@@ -43,45 +43,8 @@ internal static class OrderingPlacement
         var seasonNumber = 0;
         var seasonNumbers = groups.Select(group => group.IsSpecial ? 0 : ++seasonNumber).ToArray();
 
-        // Every place in the regular groups, in order, with the number of each home episode.
-        var places = new List<RegularPlace>();
-        var airingPlaces = new Dictionary<MetadataGuid, int>();
-        for (var groupIndex = 0; groupIndex < groups.Count; groupIndex++)
-        {
-            if (groups[groupIndex].IsSpecial)
-                continue;
-
-            var episodeNumber = 0;
-            foreach (var id in groups[groupIndex].EpisodeIDs)
-            {
-                if (!specialNumbers.ContainsKey(id))
-                {
-                    places.Add(new(groupIndex, seasonNumbers[groupIndex], id, ++episodeNumber));
-                    continue;
-                }
-
-                if (airingPlaces.TryAdd(id, places.Count))
-                    places.Add(new(groupIndex, seasonNumbers[groupIndex], id, null));
-            }
-        }
-
-        var specials = new Dictionary<MetadataGuid, PlacedSpecial>();
-        foreach (var (id, index) in airingPlaces)
-        {
-            var place = places[index];
-            var previous = places.Take(index).LastOrDefault(item => item.EpisodeNumber is not null);
-            var next = places.Skip(index + 1).FirstOrDefault(item => item.EpisodeNumber is not null);
-            var nextInSeason = next?.GroupIndex == place.GroupIndex ? next : null;
-            specials[id] = new(
-                id,
-                specialNumbers[id],
-                nextInSeason?.SeasonNumber,
-                nextInSeason?.EpisodeNumber,
-                nextInSeason is null ? place.SeasonNumber : null,
-                previous?.EpisodeID,
-                next?.EpisodeID
-            );
-        }
+        var (places, airingPlaces) = FindRegularPlaces(groups, specialNumbers, seasonNumbers);
+        var specials = PlaceSpecials(places, airingPlaces, specialNumbers);
 
         var placedGroups = new List<PlacedGroup>();
         var viewingOrder = new List<MetadataGuid>();
@@ -111,6 +74,69 @@ internal static class OrderingPlacement
     #endregion
 
     #region Helpers
+
+    /// <summary>
+    ///   Lists every place in the regular groups, in order, with the number of each home episode.
+    /// </summary>
+    private static (List<RegularPlace> Places, Dictionary<MetadataGuid, int> AiringPlaces) FindRegularPlaces(
+        IReadOnlyList<OrderingPlacementGroup> groups,
+        Dictionary<MetadataGuid, int> specialNumbers,
+        int[] seasonNumbers
+    )
+    {
+        var places = new List<RegularPlace>();
+        var airingPlaces = new Dictionary<MetadataGuid, int>();
+        for (var groupIndex = 0; groupIndex < groups.Count; groupIndex++)
+        {
+            if (groups[groupIndex].IsSpecial)
+                continue;
+
+            var episodeNumber = 0;
+            foreach (var id in groups[groupIndex].EpisodeIDs)
+            {
+                if (!specialNumbers.ContainsKey(id))
+                {
+                    places.Add(new(groupIndex, seasonNumbers[groupIndex], id, ++episodeNumber));
+                    continue;
+                }
+
+                if (airingPlaces.TryAdd(id, places.Count))
+                    places.Add(new(groupIndex, seasonNumbers[groupIndex], id, null));
+            }
+        }
+
+        return (places, airingPlaces);
+    }
+
+    /// <summary>
+    ///   Works out where each special with a regular place airs.
+    /// </summary>
+    private static Dictionary<MetadataGuid, PlacedSpecial> PlaceSpecials(
+        List<RegularPlace> places,
+        Dictionary<MetadataGuid, int> airingPlaces,
+        Dictionary<MetadataGuid, int> specialNumbers
+    )
+    {
+        var specials = new Dictionary<MetadataGuid, PlacedSpecial>();
+        foreach (var (id, index) in airingPlaces)
+        {
+            var place = places[index];
+            var previous = places.Take(index).LastOrDefault(item => item.EpisodeNumber is not null);
+            var next = places.Skip(index + 1).FirstOrDefault(item => item.EpisodeNumber is not null);
+            var nextInSeason = next?.GroupIndex == place.GroupIndex ? next : null;
+            specials[id] = new(
+                id,
+                specialNumbers[id],
+                nextInSeason?.SeasonNumber,
+                nextInSeason?.EpisodeNumber,
+                nextInSeason is null ? place.SeasonNumber : null,
+                previous?.EpisodeID,
+                next?.EpisodeID
+            );
+        }
+
+        return specials;
+    }
 
     /// <summary>
     ///   One place in a regular group.

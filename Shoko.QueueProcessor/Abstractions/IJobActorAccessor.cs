@@ -42,7 +42,7 @@ public interface IJobActorAccessor
     /// <remarks>
     /// The default keeps no handlers, since the default <see cref="CanRestore"/> never changes.
     /// </remarks>
-    event EventHandler? CanRestoreChanged { add { } remove { } }
+    event EventHandler? CanRestoreChanged { add { _ = value; } remove { _ = value; } }
 }
 
 /// <summary>

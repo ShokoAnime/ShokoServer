@@ -816,20 +816,7 @@ public class MetadataOrderingService(
         foreach (var group in ordering.Groups ?? [])
         {
             ArgumentNullException.ThrowIfNull(group, nameof(ordering));
-            string groupID;
-            if (group.ID is { } kept)
-            {
-                if (kept.Source != MetadataSource.User || kept.EntityType != MetadataEntityType.Season || !existing.Contains(kept.ID))
-                    throw new ArgumentException($"The ordering \"{orderingID}\" has no group \"{kept}\".", nameof(ordering));
-                if (!seen.Add(kept.ID))
-                    throw new ArgumentException($"The group \"{kept}\" is given twice.", nameof(ordering));
-                groupID = kept.ID;
-            }
-            else
-            {
-                groupID = NewLocalID();
-            }
-
+            var groupID = ResolveLocalGroupID(group.ID, orderingID, existing, seen, nameof(ordering));
             groups.Add(new(
                 groupID,
                 group.Titles ?? [],
@@ -846,6 +833,23 @@ public class MetadataOrderingService(
         if (updated is not null && networks is not null)
             studioStore.SetUserOrderingNetworks(orderingID, networks);
         return updated;
+    }
+
+    /// <summary>
+    ///   Checks the ID a group of an updated local ordering names, or makes a new one when it names none.
+    /// </summary>
+    /// <returns>The group's source ID.</returns>
+    /// <exception cref="ArgumentException">The ordering has no such group, or it is given twice.</exception>
+    private static string ResolveLocalGroupID(MetadataGuid? groupID, MetadataGuid orderingID, HashSet<string> existing, HashSet<string> seen, string paramName)
+    {
+        if (groupID is not { } kept)
+            return NewLocalID();
+
+        if (kept.Source != MetadataSource.User || kept.EntityType != MetadataEntityType.Season || !existing.Contains(kept.ID))
+            throw new ArgumentException($"The ordering \"{orderingID}\" has no group \"{kept}\".", paramName);
+        if (!seen.Add(kept.ID))
+            throw new ArgumentException($"The group \"{kept}\" is given twice.", paramName);
+        return kept.ID;
     }
 
     /// <inheritdoc />

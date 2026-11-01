@@ -242,6 +242,18 @@ public class ReadPluginIdentityFromSource : PluginMetadataTask
         if (memberName is null)
             return null;
 
+        return ResolveMemberGuid(classDecl, memberName, depth);
+    }
+
+    /// <summary>
+    ///   Resolves the GUID a field or property of the class gives.
+    /// </summary>
+    /// <param name="classDecl">The plugin class.</param>
+    /// <param name="memberName">The name of the field or property.</param>
+    /// <param name="depth">How many members were followed to get here.</param>
+    /// <returns>The GUID, or <c>null</c> when the member is missing or cannot be worked out from source.</returns>
+    private Guid? ResolveMemberGuid(ClassDeclarationSyntax classDecl, string memberName, int depth)
+    {
         foreach (var member in classDecl.Members)
         {
             switch (member)

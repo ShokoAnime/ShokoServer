@@ -259,13 +259,7 @@ public partial class PluginManager
 
             foreach (var dependency in pluginInfo.Dependencies)
             {
-                if (dependency.IsOptional)
-                    continue;
-
-                if (enabled.FirstOrDefault(other => other.ID == dependency.PluginID) is not { CanLoad: true } target || target.ID == CorePlugin.StaticID)
-                    continue;
-
-                if (FindDependencyMismatch(pluginInfo.DLLs, target.Name, target.Version.Version, target.DLLs) is not { } reason)
+                if (FindRequiredDependencyMismatch(pluginInfo, dependency, enabled) is not { } reason)
                     continue;
 
                 logger.LogError("Not starting plugin \"{Name}\". {Reason} ({Version})", pluginInfo.Name, reason, pluginInfo.Version);
@@ -273,6 +267,22 @@ public partial class PluginManager
                 break;
             }
         }
+    }
+
+    /// <summary>
+    ///   Checks a plugin against one of its required dependencies, if that
+    ///   dependency is an enabled, loadable plugin other than the core.
+    /// </summary>
+    /// <returns>Why the plugin does not fit, or <c>null</c> when nothing is missing or the dependency is not checked.</returns>
+    private string? FindRequiredDependencyMismatch(LocalPluginInfo pluginInfo, PluginDependency dependency, List<LocalPluginInfo> enabled)
+    {
+        if (dependency.IsOptional)
+            return null;
+
+        if (enabled.FirstOrDefault(other => other.ID == dependency.PluginID) is not { CanLoad: true } target || target.ID == CorePlugin.StaticID)
+            return null;
+
+        return FindDependencyMismatch(pluginInfo.DLLs, target.Name, target.Version.Version, target.DLLs);
     }
 
     /// <summary>

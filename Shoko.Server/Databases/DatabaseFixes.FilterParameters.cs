@@ -131,29 +131,38 @@ public partial class DatabaseFixes
 
             foreach (var (from, to, kind) in moves)
             {
-                if (node.Property(from) is not { } property)
-                    continue;
-
-                var value = StoredFilterValue(property.Value, kind);
-                if (from == to)
-                {
-                    if (JToken.DeepEquals(property.Value, value))
-                        continue;
-
-                    property.Value = value;
-                }
-                else
-                {
-                    property.Remove();
-                    if (node.Property(to) is null)
-                        node[to] = value;
-                }
-
-                changed = true;
+                if (MoveStoredFilterParameter(node, from, to, kind))
+                    changed = true;
             }
         }
 
         return changed ? root.ToString(Formatting.None) : null;
+    }
+
+    /// <summary>
+    /// Moves one stored parameter of an expression node to its new name.
+    /// </summary>
+    /// <returns><c>true</c> when the node changed.</returns>
+    private static bool MoveStoredFilterParameter(JObject node, string from, string to, StoredFilterValueKind kind)
+    {
+        if (node.Property(from) is not { } property)
+            return false;
+
+        var value = StoredFilterValue(property.Value, kind);
+        if (from == to)
+        {
+            if (JToken.DeepEquals(property.Value, value))
+                return false;
+
+            property.Value = value;
+            return true;
+        }
+
+        property.Remove();
+        if (node.Property(to) is null)
+            node[to] = value;
+
+        return true;
     }
 
     /// <summary>

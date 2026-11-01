@@ -244,47 +244,7 @@ public class Episode : BaseModel
         if (LinkedMetadataHelper.GenericSources(includeDataFrom) is { Count: > 0 } sources)
             Sources = LinkedMetadataHelper.ForEpisode(ISystemService.StaticServices.GetRequiredService<IMetadataService>(), episode.AniDB_EpisodeID, sources);
         if (includeDataFrom.Contains(MetadataSource.TMDB))
-        {
-            var refreshService = ISystemService.StaticServices.GetRequiredService<IMetadataRefreshService>();
-            TMDB = new()
-            {
-                Episodes = tmdbEpisodeXRefs
-                    .Select(tmdbEpisodeXref =>
-                    {
-                        var episode = tmdbEpisodeXref.TmdbEpisode;
-                        if (episode is not null && refreshService.WaitForRefresh(((IEpisode)episode).SeriesID).GetAwaiter().GetResult())
-                            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
-                        return episode;
-                    })
-                    .WhereNotNull()
-                    .GroupBy(tmdbEpisode => tmdbEpisode.TmdbShowID)
-                    .Select(groupBy => (TmdbShow: groupBy.First().TmdbShow!, TmdbEpisodes: groupBy.ToList()))
-                    .Where(tuple => tuple.TmdbShow is not null)
-                    .SelectMany(tuple0 =>
-                        tuple0.TmdbShow.PreferredAlternateOrderingID is not { Length: > 0 } preferredOrderingID
-                            ? tuple0.TmdbEpisodes.Select(tmdbEpisode => new TmdbEpisode(tuple0.TmdbShow, tmdbEpisode))
-                            : tuple0.TmdbEpisodes
-                                .Select(tmdbEpisode => (
-                                    TmdbEpisode: tmdbEpisode,
-                                    TmdbAlternateOrdering: tmdbEpisode.GetTmdbAlternateOrderingEpisodeById(preferredOrderingID)
-                                ))
-                                .Where(tuple1 => tuple1.TmdbAlternateOrdering is not null)
-                                .Select(tuple1 => new TmdbEpisode(tuple0.TmdbShow, tuple1.TmdbEpisode, tuple1.TmdbAlternateOrdering)
-                    ))
-                    .ToList(),
-                Movies = tmdbMovieXRefs
-                    .Select(tmdbMovieXref =>
-                    {
-                        var movie = tmdbMovieXref.TmdbMovie;
-                        if (movie is not null && refreshService.WaitForRefresh(movie.ID).GetAwaiter().GetResult())
-                            movie = TmdbCompatibility.GetMovie(movie.TmdbMovieID);
-                        return movie;
-                    })
-                    .WhereNotNull()
-                    .Select(tmdbMovie => new TmdbMovie(tmdbMovie))
-                    .ToList(),
-            };
-        }
+            TMDB = BuildTmdbData(tmdbEpisodeXRefs, tmdbMovieXRefs);
 
         if (includeFiles)
             Files = files
@@ -294,6 +254,56 @@ public class Episode : BaseModel
             CrossReferences = FileCrossReference.From(episode.FileCrossReferences).FirstOrDefault()?.EpisodeIDs ?? [];
         if (placements is not null)
             Placements = Placement.From(placements, episode, placementSource);
+    }
+
+    /// <summary>
+    /// Builds the TMDB episodes and movies an episode is linked to, waiting
+    /// for any refresh under way and reading the refreshed data.
+    /// </summary>
+    private static TmdbData BuildTmdbData(
+        IReadOnlyList<global::Shoko.Server.API.v3.Models.TMDB.CrossRef_AniDB_TMDB_Episode> tmdbEpisodeXRefs,
+        IReadOnlyList<global::Shoko.Server.API.v3.Models.TMDB.CrossRef_AniDB_TMDB_Movie> tmdbMovieXRefs
+    )
+    {
+        var refreshService = ISystemService.StaticServices.GetRequiredService<IMetadataRefreshService>();
+        return new()
+        {
+            Episodes = tmdbEpisodeXRefs
+                .Select(tmdbEpisodeXref =>
+                {
+                    var tmdbEpisode = tmdbEpisodeXref.TmdbEpisode;
+                    if (tmdbEpisode is not null && refreshService.WaitForRefresh(((IEpisode)tmdbEpisode).SeriesID).GetAwaiter().GetResult())
+                        tmdbEpisode = TmdbCompatibility.GetEpisode(tmdbEpisode.TmdbEpisodeID);
+                    return tmdbEpisode;
+                })
+                .WhereNotNull()
+                .GroupBy(tmdbEpisode => tmdbEpisode.TmdbShowID)
+                .Select(groupBy => (TmdbShow: groupBy.First().TmdbShow!, TmdbEpisodes: groupBy.ToList()))
+                .Where(tuple => tuple.TmdbShow is not null)
+                .SelectMany(tuple0 =>
+                    tuple0.TmdbShow.PreferredAlternateOrderingID is not { Length: > 0 } preferredOrderingID
+                        ? tuple0.TmdbEpisodes.Select(tmdbEpisode => new TmdbEpisode(tuple0.TmdbShow, tmdbEpisode))
+                        : tuple0.TmdbEpisodes
+                            .Select(tmdbEpisode => (
+                                TmdbEpisode: tmdbEpisode,
+                                TmdbAlternateOrdering: tmdbEpisode.GetTmdbAlternateOrderingEpisodeById(preferredOrderingID)
+                            ))
+                            .Where(tuple1 => tuple1.TmdbAlternateOrdering is not null)
+                            .Select(tuple1 => new TmdbEpisode(tuple0.TmdbShow, tuple1.TmdbEpisode, tuple1.TmdbAlternateOrdering)
+                ))
+                .ToList(),
+            Movies = tmdbMovieXRefs
+                .Select(tmdbMovieXref =>
+                {
+                    var movie = tmdbMovieXref.TmdbMovie;
+                    if (movie is not null && refreshService.WaitForRefresh(movie.ID).GetAwaiter().GetResult())
+                        movie = TmdbCompatibility.GetMovie(movie.TmdbMovieID);
+                    return movie;
+                })
+                .WhereNotNull()
+                .Select(tmdbMovie => new TmdbMovie(tmdbMovie))
+                .ToList(),
+        };
     }
 
     /// <summary>

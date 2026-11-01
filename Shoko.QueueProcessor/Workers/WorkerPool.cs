@@ -523,12 +523,8 @@ public sealed class WorkerPool : IWorkerPool
 
                 if (IsHeld(job, exclusions, holdActorJobs)) continue;
 
-                if (TryRegisterExecuting == null || !TryRegisterExecuting(job))
-                {
-                    if (IsDetached?.Invoke(job) is true)
-                        (detached ??= []).Add(job);
+                if (!TryClaim(job, ref detached))
                     continue;
-                }
 
                 acquired = job;
                 break;
@@ -541,6 +537,21 @@ public sealed class WorkerPool : IWorkerPool
                 RemoveUnderLock(acquired);
             return acquired;
         }
+    }
+
+    /// <summary>
+    /// Registers a job as executing with the orchestrator, noting it in <paramref name="detached"/>
+    /// when the orchestrator refused it because it is detached.
+    /// </summary>
+    /// <returns>Whether the job was claimed.</returns>
+    private bool TryClaim(QueuedJob job, ref List<QueuedJob>? detached)
+    {
+        if (TryRegisterExecuting != null && TryRegisterExecuting(job))
+            return true;
+
+        if (IsDetached?.Invoke(job) is true)
+            (detached ??= []).Add(job);
+        return false;
     }
 
     /// <summary>
@@ -585,6 +596,7 @@ public sealed class WorkerPool : IWorkerPool
             _actorAccessor.CanRestoreChanged += OnActorRestoreChanged;
         OnActorRestoreChanged(null, EventArgs.Empty);
 
+        _cts?.Dispose();
         _cts = new CancellationTokenSource();
         _workers.Clear();
         for (var i = 0; i < MaxWorkers; i++)

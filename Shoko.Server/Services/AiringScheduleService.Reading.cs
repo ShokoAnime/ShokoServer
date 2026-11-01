@@ -149,24 +149,7 @@ public partial class AiringScheduleService
             .Select(entry => new EpisodeAiringView(context, scheduleView, entry))
             .ToList();
         if (options.IncludeEstimates)
-        {
-            var coverage = GetCoverage(context, row, airings);
-            foreach (var episode in GetScheduleEpisodes(context, row))
-            {
-                var key = GetEntityKey(episode);
-                if (coverage.Covers(key, episode))
-                    continue;
-                if (Estimate(context, row, scheduleView, episode, key) is { } estimate)
-                    views.Add(estimate);
-            }
-
-            foreach (var (episode, number) in GetUnlinkedEpisodes(context, row))
-            {
-                var key = GetEntityKey(episode);
-                if (!coverage.Covers(key, number) && Estimate(context, row, scheduleView, episode, key, scheduleEpisodeNumber: number) is { } estimate)
-                    views.Add(estimate);
-            }
-        }
+            AddScheduleEstimates(context, row, scheduleView, airings, views);
 
         ApplyAnchor(views, anchor);
         views.RemoveAll(view => !PassesAiringFilters(context, view, options));
@@ -194,6 +177,40 @@ public partial class AiringScheduleService
             DateOnly.FromDateTime(now),
             TimeSpan.Zero
         );
+    }
+
+    /// <summary>
+    /// Adds the estimates of the episodes of one schedule that have no airing.
+    /// </summary>
+    /// <param name="context">The read the views belong to.</param>
+    /// <param name="row">The schedule.</param>
+    /// <param name="scheduleView">The schedule's view.</param>
+    /// <param name="airings">The schedule's stored airings.</param>
+    /// <param name="views">The views to add to.</param>
+    private static void AddScheduleEstimates(
+        AiringReadContext context,
+        AiringSchedule row,
+        AiringScheduleView scheduleView,
+        IReadOnlyList<EpisodeAiring> airings,
+        List<EpisodeAiringView> views
+    )
+    {
+        var coverage = GetCoverage(context, row, airings);
+        foreach (var episode in GetScheduleEpisodes(context, row))
+        {
+            var key = GetEntityKey(episode);
+            if (coverage.Covers(key, episode))
+                continue;
+            if (Estimate(context, row, scheduleView, episode, key) is { } estimate)
+                views.Add(estimate);
+        }
+
+        foreach (var (episode, number) in GetUnlinkedEpisodes(context, row))
+        {
+            var key = GetEntityKey(episode);
+            if (!coverage.Covers(key, number) && Estimate(context, row, scheduleView, episode, key, scheduleEpisodeNumber: number) is { } estimate)
+                views.Add(estimate);
+        }
     }
 
     /// <inheritdoc/>
@@ -494,6 +511,21 @@ public partial class AiringScheduleService
         if (!linked)
             yield break;
 
+        foreach (var place in GetLinkedPositionSchedules(context, key, animeID))
+            yield return place;
+    }
+
+    /// <summary>
+    /// The schedules of the sources an AniDB place's anime is linked to: its
+    /// shoko series' and the ones an <see cref="AiringEpisodeOffset"/> places
+    /// it on.
+    /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
+    /// <param name="key">The place.</param>
+    /// <param name="animeID">The AniDB anime ID of the place.</param>
+    /// <returns>The schedules, with the place's number on each.</returns>
+    private static IEnumerable<(AiringSchedule Schedule, int Number)> GetLinkedPositionSchedules(AiringReadContext context, AiringEpisodeKey key, int animeID)
+    {
         if (context.GetShokoSeriesByAnimeID(animeID) is { } shokoSeries)
         {
             var (source, id) = GetEntityKey(shokoSeries);
@@ -722,45 +754,96 @@ public partial class AiringScheduleService
         var estimated = new HashSet<int>();
         foreach (var key in keys)
         {
-            if (context.GetEpisode(key.Source, key.ID) is not { Type: EpisodeType.Episode } episode)
-                continue;
-
-            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(key.Source, episode.SeriesID.ID))
-            {
-                if (covered.Contains(row.AiringScheduleID))
-                    continue;
-
-                var scheduleView = context.GetSchedule(row);
-                if (!MatchesFilters(context, scheduleView, options, honourHiddenChannels))
-                    continue;
-
-                if (Estimate(context, row, scheduleView, episode, key, target) is { } estimate)
-                {
-                    estimated.Add(row.AiringScheduleID);
-                    yield return estimate;
-                }
-            }
+            foreach (var estimate in GetKeyEstimates(context, target, key, covered, options, honourHiddenChannels, estimated))
+                yield return estimate;
         }
 
         // The schedules of a linked series whose source does not list the
         // episode yet, placed by the offset the anime's linked episodes give.
         foreach (var key in keys)
         {
-            if (key.Source != MetadataSource.AniDB || context.GetEpisode(key.Source, key.ID) is not IAnidbEpisode anidbEpisode)
+            foreach (var estimate in GetUnlinkedKeyEstimates(context, target, key, covered, options, honourHiddenChannels, estimated))
+                yield return estimate;
+        }
+    }
+
+    /// <summary>
+    /// The estimates the schedules of one key's own series contribute.
+    /// </summary>
+    /// <param name="context">The read the views belong to.</param>
+    /// <param name="target">The target the read is for.</param>
+    /// <param name="key">The episode's own key or a linked one.</param>
+    /// <param name="covered">The schedules that already have an airing for the target.</param>
+    /// <param name="options">The filters to apply.</param>
+    /// <param name="honourHiddenChannels">Whether a schedule on a hidden channel is left out when the read names no channels.</param>
+    /// <param name="estimated">The schedules that estimated so far, added to in place.</param>
+    /// <returns>One estimate per schedule that can produce one.</returns>
+    private static IEnumerable<EpisodeAiringView> GetKeyEstimates(
+        AiringReadContext context,
+        AiringReadTarget target,
+        (MetadataSource Source, string ID) key,
+        HashSet<int> covered,
+        EpisodeAiringFilteringOptions options,
+        bool honourHiddenChannels,
+        HashSet<int> estimated
+    )
+    {
+        if (context.GetEpisode(key.Source, key.ID) is not { Type: EpisodeType.Episode } episode)
+            yield break;
+
+        foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(key.Source, episode.SeriesID.ID))
+        {
+            if (covered.Contains(row.AiringScheduleID))
                 continue;
 
-            foreach (var (row, number) in GetUnlinkedEpisodeSchedules(context, anidbEpisode))
+            var scheduleView = context.GetSchedule(row);
+            if (!MatchesFilters(context, scheduleView, options, honourHiddenChannels))
+                continue;
+
+            if (Estimate(context, row, scheduleView, episode, key, target) is { } estimate)
             {
-                if (covered.Contains(row.AiringScheduleID) || !estimated.Add(row.AiringScheduleID))
-                    continue;
-
-                var scheduleView = context.GetSchedule(row);
-                if (!MatchesFilters(context, scheduleView, options, honourHiddenChannels))
-                    continue;
-
-                if (Estimate(context, row, scheduleView, anidbEpisode, key, target, number) is { } estimate)
-                    yield return estimate;
+                estimated.Add(row.AiringScheduleID);
+                yield return estimate;
             }
+        }
+    }
+
+    /// <summary>
+    /// The estimates the schedules of a linked series, whose source does not
+    /// list an AniDB episode yet, contribute.
+    /// </summary>
+    /// <param name="context">The read the views belong to.</param>
+    /// <param name="target">The target the read is for.</param>
+    /// <param name="key">The episode's own key or a linked one.</param>
+    /// <param name="covered">The schedules that already have an airing for the target.</param>
+    /// <param name="options">The filters to apply.</param>
+    /// <param name="honourHiddenChannels">Whether a schedule on a hidden channel is left out when the read names no channels.</param>
+    /// <param name="estimated">The schedules that estimated so far, added to in place.</param>
+    /// <returns>One estimate per schedule that can produce one.</returns>
+    private static IEnumerable<EpisodeAiringView> GetUnlinkedKeyEstimates(
+        AiringReadContext context,
+        AiringReadTarget target,
+        (MetadataSource Source, string ID) key,
+        HashSet<int> covered,
+        EpisodeAiringFilteringOptions options,
+        bool honourHiddenChannels,
+        HashSet<int> estimated
+    )
+    {
+        if (key.Source != MetadataSource.AniDB || context.GetEpisode(key.Source, key.ID) is not IAnidbEpisode anidbEpisode)
+            yield break;
+
+        foreach (var (row, number) in GetUnlinkedEpisodeSchedules(context, anidbEpisode))
+        {
+            if (covered.Contains(row.AiringScheduleID) || !estimated.Add(row.AiringScheduleID))
+                continue;
+
+            var scheduleView = context.GetSchedule(row);
+            if (!MatchesFilters(context, scheduleView, options, honourHiddenChannels))
+                continue;
+
+            if (Estimate(context, row, scheduleView, anidbEpisode, key, target, number) is { } estimate)
+                yield return estimate;
         }
     }
 
@@ -1613,13 +1696,8 @@ public partial class AiringScheduleService
         var groups = new Dictionary<NextGroupKey, (DateTime Time, int Number, IEpisodeAiring Airing)>();
         foreach (var ((group, _), (time, airing)) in episodeBest)
         {
-            var number = ((IEpisode?)airing.AnidbEpisode ?? (IEpisode?)airing.ShokoEpisode ?? airing.Episode)?.EpisodeNumber ??
-                airing.AnidbEpisodeNumber ??
-                airing.EpisodeNumber ??
-                int.MaxValue;
-            if (!groups.TryGetValue(group, out var current) ||
-                time < current.Time ||
-                (time == current.Time && (number < current.Number || (number == current.Number && airing.ID.CompareTo(current.Airing.ID) < 0))))
+            var number = GetNextNumber(airing);
+            if (!groups.TryGetValue(group, out var current) || IsEarlierNext(time, number, airing, current))
                 groups[group] = (time, number, airing);
         }
 
@@ -1630,6 +1708,30 @@ public partial class AiringScheduleService
             .Distinct()
             .ToList();
     }
+
+    /// <summary>
+    /// The episode number an airing is ordered by among the next ones of a group.
+    /// </summary>
+    /// <param name="airing">The airing.</param>
+    /// <returns>The number, or <see cref="int.MaxValue"/> when the airing has none.</returns>
+    private static int GetNextNumber(IEpisodeAiring airing)
+        => ((IEpisode?)airing.AnidbEpisode ?? (IEpisode?)airing.ShokoEpisode ?? airing.Episode)?.EpisodeNumber ??
+            airing.AnidbEpisodeNumber ??
+            airing.EpisodeNumber ??
+            int.MaxValue;
+
+    /// <summary>
+    /// Whether an airing is next ahead of the one a group has so far: it is
+    /// earlier, else of a lower episode number, else of a lower ID.
+    /// </summary>
+    /// <param name="time">The airing's time.</param>
+    /// <param name="number">The airing's episode number.</param>
+    /// <param name="airing">The airing.</param>
+    /// <param name="current">The group's airing so far.</param>
+    /// <returns><c>true</c> when the airing replaces the group's.</returns>
+    private static bool IsEarlierNext(DateTime time, int number, IEpisodeAiring airing, (DateTime Time, int Number, IEpisodeAiring Airing) current)
+        => time < current.Time ||
+            (time == current.Time && (number < current.Number || (number == current.Number && airing.ID.CompareTo(current.Airing.ID) < 0)));
 
     /// <summary>
     /// The groups an airing counts for in a next-only read.
@@ -2042,13 +2144,7 @@ public partial class AiringScheduleService
         if (source.IsCore || string.IsNullOrEmpty(row.SeriesID))
             return null;
 
-        var isSeriesLinked = context.GetSeriesLinks(anidbAnimeID).Any(link =>
-            link.Source == source &&
-            link.ProviderID is { } providerID &&
-            providerID.EntityType == MetadataEntityType.Series &&
-            providerID.ID == row.SeriesID
-        );
-        if (!isSeriesLinked)
+        if (!IsSeriesLinked(context, anidbAnimeID, row))
             return null;
 
         var linkedEpisodeIDs = new HashSet<int>();
@@ -2061,9 +2157,7 @@ public partial class AiringScheduleService
                 continue;
 
             linkedEpisodeIDs.Add(link.AnidbEpisodeID);
-            if (context.GetEpisode(source, providerID.ID) is not { Type: EpisodeType.Episode } provider || provider.SeriesID.ID != row.SeriesID)
-                continue;
-            if (!string.IsNullOrEmpty(row.SeasonID) && !IsInSeason(context, row, (source, providerID.ID)))
+            if (GetEpisodeOnSchedule(context, row, source, providerID.ID) is not { } provider)
                 continue;
 
             lastScheduleNumber = Math.Max(lastScheduleNumber, provider.EpisodeNumber);
@@ -2083,6 +2177,40 @@ public partial class AiringScheduleService
             return null;
 
         return new(learned, episodeNumbers.Max(), lastScheduleNumber, linkedEpisodeIDs);
+    }
+
+    /// <summary>
+    /// Whether an AniDB anime is linked to the series of a plugin source's schedule.
+    /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
+    /// <param name="anidbAnimeID">The AniDB anime.</param>
+    /// <param name="row">The schedule.</param>
+    /// <returns><c>true</c> when the anime is linked to the schedule's series.</returns>
+    private static bool IsSeriesLinked(AiringReadContext context, int anidbAnimeID, AiringSchedule row)
+        => context.GetSeriesLinks(anidbAnimeID).Any(link =>
+            link.Source == row.SeriesSource &&
+            link.ProviderID is { } providerID &&
+            providerID.EntityType == MetadataEntityType.Series &&
+            providerID.ID == row.SeriesID
+        );
+
+    /// <summary>
+    /// A regular episode of a schedule's series, within its season when it
+    /// narrows to one.
+    /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
+    /// <param name="row">The schedule.</param>
+    /// <param name="source">The source of the episode.</param>
+    /// <param name="episodeID">The episode's ID on the source.</param>
+    /// <returns>The episode, or <c>null</c> when it is not a regular one of the schedule's series and season.</returns>
+    private static IEpisode? GetEpisodeOnSchedule(AiringReadContext context, AiringSchedule row, MetadataSource source, string episodeID)
+    {
+        if (context.GetEpisode(source, episodeID) is not { Type: EpisodeType.Episode } provider || provider.SeriesID.ID != row.SeriesID)
+            return null;
+        if (!string.IsNullOrEmpty(row.SeasonID) && !IsInSeason(context, row, (source, episodeID)))
+            return null;
+
+        return provider;
     }
 
     /// <summary>

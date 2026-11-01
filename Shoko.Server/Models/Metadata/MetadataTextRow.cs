@@ -107,7 +107,7 @@ public abstract class MetadataTextRow
     public virtual TitleType TitleType
     {
         get => TitleType.None;
-        set { }
+        set { _ = value; }
     }
 
     /// <summary>

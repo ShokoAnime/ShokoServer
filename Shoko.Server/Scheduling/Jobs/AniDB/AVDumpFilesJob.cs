@@ -36,7 +36,7 @@ public class AVDumpFilesJob() : BaseJob<AVDumpHelper.AVDumpSession>
         get => Videos is not null
             ? Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(Videos.OrderBy(a => (a.Key, a.Value)).ToDictionary()))))
             : string.Empty;
-        set { }
+        set { _ = value; }
     }
 
     public override string Title => "AVDumping Files";

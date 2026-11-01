@@ -115,15 +115,7 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
             return null;
 
         if (_hostAssemblies.Value.TryGetValue(name, out var host))
-        {
-            // A plugin built against a newer copy of a package the server ships uses its own copy,
-            // as the server's cannot stand in for it; anything the contract shares stays the server's.
-            if (!host.IsShared && ResolveOwn(assemblyName) is { } ownPath
-                && PrefersOwnCopy(host.Version, assemblyName.Version, ReadVersion(ownPath)))
-                return LoadFromAssemblyPath(ownPath);
-
-            return null;
-        }
+            return LoadHostAssembly(host, assemblyName);
 
         var dependencies = GetDependencies();
         foreach (var dependency in dependencies)
@@ -141,6 +133,30 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
                 return dependency.LoadFromAssemblyName(assemblyName);
         }
 
+        return LoadFromExportingContext(name, assemblyName);
+    }
+
+    /// <summary>
+    ///   Resolves an assembly the server ships: the plugin's own copy when it
+    ///   was built against a newer one, otherwise the server's.
+    /// </summary>
+    private Assembly? LoadHostAssembly(HostAssembly host, AssemblyName assemblyName)
+    {
+        // A plugin built against a newer copy of a package the server ships uses its own copy,
+        // as the server's cannot stand in for it; anything the contract shares stays the server's.
+        if (!host.IsShared && ResolveOwn(assemblyName) is { } ownPath
+            && PrefersOwnCopy(host.Version, assemblyName.Version, ReadVersion(ownPath)))
+            return LoadFromAssemblyPath(ownPath);
+
+        return null;
+    }
+
+    /// <summary>
+    ///   Resolves an assembly from the first other context, not left unshared,
+    ///   that exports it.
+    /// </summary>
+    private Assembly? LoadFromExportingContext(string name, AssemblyName assemblyName)
+    {
         foreach (var context in _allContexts())
         {
             if (context != this && !_unsharedIDs.Contains(context.PluginID) && context.ExportedAssemblies.Contains(name))
@@ -296,16 +312,7 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
                 .Select(library => library.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var target in targets.EnumerateObject())
-            {
-                foreach (var library in target.Value.EnumerateObject())
-                {
-                    if (!projects.Contains(library.Name) || !library.Value.TryGetProperty("runtime", out var runtime))
-                        continue;
-
-                    foreach (var file in runtime.EnumerateObject())
-                        names.Add(Path.GetFileNameWithoutExtension(file.Name));
-                }
-            }
+                AddProjectRuntimeNames(target.Value, projects, names);
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
@@ -313,6 +320,22 @@ internal sealed class PluginLoadContext : AssemblyLoadContext
         }
 
         return names;
+    }
+
+    /// <summary>
+    ///   Adds the runtime assembly names of the project libraries of one
+    ///   <c>.deps.json</c> target.
+    /// </summary>
+    private static void AddProjectRuntimeNames(JsonElement target, HashSet<string> projects, HashSet<string> names)
+    {
+        foreach (var library in target.EnumerateObject())
+        {
+            if (!projects.Contains(library.Name) || !library.Value.TryGetProperty("runtime", out var runtime))
+                continue;
+
+            foreach (var file in runtime.EnumerateObject())
+                names.Add(Path.GetFileNameWithoutExtension(file.Name));
+        }
     }
 
     #endregion

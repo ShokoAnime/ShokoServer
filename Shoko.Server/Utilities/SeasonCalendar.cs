@@ -431,24 +431,43 @@ public static class SeasonCalendar
             first = startsOn is { } earlier && earlier < dates[0] ? earlier : dates[0];
             start = first < dates[0] ? GetYearlySeason(first, type) : GetStartSeason(type, dates);
         }
-        else
+        else if (!TryGetStartFromPartialDate(type, startDate, otherAirDates, out first, out start))
         {
-            if (startDate is not { } partial)
-                return null;
-
-            var day = partial.IsComplete
-                ? partial.ToDateOnly()
-                : GetFirstDayWithin(partial, otherAirDates) ?? (partial.Month is null ? null : partial.ToDateOnly());
-            if (day is null)
-                return null;
-
-            first = day.Value;
-            start = GetYearlySeason(first, type);
+            return null;
         }
 
         dates.AddRange(airingDates.Where(date => date >= floor));
         dates.Sort();
         return FromDates(type, first, start, dates, hasEnded);
+    }
+
+    /// <summary>
+    ///   The first day and start season of an entry without dated regular
+    ///   episodes, read from its start date.
+    /// </summary>
+    /// <returns><c>false</c> when there is nothing to start it by.</returns>
+    private static bool TryGetStartFromPartialDate(
+        AnimeType type,
+        PartialDateOnly? startDate,
+        IEnumerable<DateOnly>? otherAirDates,
+        out DateOnly first,
+        out (int Year, YearlySeason Season) start
+    )
+    {
+        first = default;
+        start = default;
+        if (startDate is not { } partial)
+            return false;
+
+        var day = partial.IsComplete
+            ? partial.ToDateOnly()
+            : GetFirstDayWithin(partial, otherAirDates) ?? (partial.Month is null ? null : partial.ToDateOnly());
+        if (day is null)
+            return false;
+
+        first = day.Value;
+        start = GetYearlySeason(first, type);
+        return true;
     }
 
     /// <summary>

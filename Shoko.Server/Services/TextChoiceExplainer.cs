@@ -92,19 +92,36 @@ internal static class TextChoiceExplainer
         }
 
         var ranked = chosen.Source == MetadataSource.User || chosen.Source == entityID.Source || sourceOrder.Contains(chosen.Source);
-        if (ranked)
-        {
-            foreach (var language in languages)
-            {
-                var answers = language is TitleLanguage.Main
-                    ? chosen is ITitle { Type: TitleType.Main } || IText.Equals(chosen, defaultText)
-                    : TextChooser.Speaks(chosen, language);
-                if (!answers)
-                    continue;
+        if (!ranked)
+            return (TextChoiceStep.Default, null);
 
-                var generic = episode && kind is TextKind.Title && GenericEpisodeTitles.LooksGeneric(chosen.Value);
-                return (generic ? TextChoiceStep.GenericTitle : WalkStepOf(entityID, kind, chosen, seriesDescriptionStep), language);
-            }
+        return WalkLanguages(entityID, kind, chosen, defaultText, seriesDescriptionStep, languages, episode);
+    }
+
+    /// <summary>
+    ///   Walks the configured languages for the first one the chosen text answers.
+    /// </summary>
+    /// <returns>The step and the language that found the text, or the default step when none did.</returns>
+    private static (TextChoiceStep Step, TitleLanguage? Language) WalkLanguages(
+        MetadataGuid entityID,
+        TextKind kind,
+        IText chosen,
+        IText? defaultText,
+        SeriesDescriptionStep? seriesDescriptionStep,
+        IReadOnlyList<TitleLanguage> languages,
+        bool episode
+    )
+    {
+        foreach (var language in languages)
+        {
+            var answers = language is TitleLanguage.Main
+                ? chosen is ITitle { Type: TitleType.Main } || IText.Equals(chosen, defaultText)
+                : TextChooser.Speaks(chosen, language);
+            if (!answers)
+                continue;
+
+            var generic = episode && kind is TextKind.Title && GenericEpisodeTitles.LooksGeneric(chosen.Value);
+            return (generic ? TextChoiceStep.GenericTitle : WalkStepOf(entityID, kind, chosen, seriesDescriptionStep), language);
         }
 
         return (TextChoiceStep.Default, null);

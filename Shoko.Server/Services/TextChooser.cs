@@ -62,22 +62,34 @@ internal static class TextChooser
         var picksRead = new HashSet<TitleLanguage>();
         foreach (var step in selection.Steps)
         {
-            if (selection.UsePreferences && step.Language is not TitleLanguage.Main && picksRead.Add(step.Language) &&
-                enabled.FirstOrDefault(title => title.Preference is TextPreference.Language && Speaks(title, step.Language)) is { } picked)
+            if (FindLanguagePreference(enabled, selection, step, picksRead) is { } picked)
                 return picked;
 
             if (Walk(enabled, step.Source, step.Language, step.AllowSynonyms, selection.RankGenericTitlesLast ? false : null, main) is { } title)
                 return title;
         }
 
-        if (selection.RankGenericTitlesLast)
+        if (!selection.RankGenericTitlesLast)
+            return null;
+
+        foreach (var step in selection.Steps)
         {
-            foreach (var step in selection.Steps)
-                if (Walk(enabled, step.Source, step.Language, step.AllowSynonyms, true, main) is { } title)
-                    return title;
+            if (Walk(enabled, step.Source, step.Language, step.AllowSynonyms, true, main) is { } title)
+                return title;
         }
 
         return null;
+    }
+
+    /// <summary>
+    ///   The title a user picked for a step's language, the first time a step names that language.
+    /// </summary>
+    private static ITitle? FindLanguagePreference(List<ITitle> enabled, TitleSelection selection, TitleSelectionStep step, HashSet<TitleLanguage> picksRead)
+    {
+        if (!selection.UsePreferences || step.Language is TitleLanguage.Main || !picksRead.Add(step.Language))
+            return null;
+
+        return enabled.FirstOrDefault(title => title.Preference is TextPreference.Language && Speaks(title, step.Language));
     }
 
     /// <summary>

@@ -604,16 +604,7 @@ public class WebUIService(
     {
         var current = webUI.Provider.CurrentRelease;
         var bundled = webUI.Provider.BundledRelease is { } release ? WithServerCompatibility(release) : null;
-        string? reason = null;
-        if (bundled is { IncompatibleReason: null })
-        {
-            if (current is null)
-                reason = "nothing is installed";
-            else if (current.Channel is not ReleaseChannel.Debug && WithServerCompatibility(current).IncompatibleReason is { } incompatibleReason)
-                reason = $"the installed release cannot be used: {incompatibleReason}";
-            else if (settingsProvider.GetSettings().Web.AutoReplaceWebUIWithIncluded && IsNewerOnSameChannel(bundled, current))
-                reason = "the bundled release is newer";
-        }
+        var reason = bundled is { IncompatibleReason: null } ? GetBundledInstallReason(current, bundled) : null;
 
         try
         {
@@ -637,18 +628,35 @@ public class WebUIService(
         {
             logger.LogWarning("The installed release of {Name} cannot be used: {Reason} Looking for one that can.", webUI.Name, stillIncompatible);
             using (DetachedFlow.Suppress())
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        if (await Update(current.Channel, webUI: webUI) is WebUIInstallResult.Failed)
-                            logger.LogWarning("No release of {Name} that this server can use was found.", webUI.Name);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to replace the incompatible release of {Name}.", webUI.Name);
-                    }
-                });
+                _ = Task.Run(() => ReplaceIncompatibleRelease(current.Channel, webUI));
+        }
+    }
+
+    /// <summary>
+    ///   Works out why the bundled release should be installed over the
+    ///   installed one, if it should.
+    /// </summary>
+    private string? GetBundledInstallReason(WebUIReleaseInformation? current, WebUIReleaseInformation bundled)
+    {
+        if (current is null)
+            return "nothing is installed";
+        if (current.Channel is not ReleaseChannel.Debug && WithServerCompatibility(current).IncompatibleReason is { } incompatibleReason)
+            return $"the installed release cannot be used: {incompatibleReason}";
+        if (settingsProvider.GetSettings().Web.AutoReplaceWebUIWithIncluded && IsNewerOnSameChannel(bundled, current))
+            return "the bundled release is newer";
+        return null;
+    }
+
+    private async Task ReplaceIncompatibleRelease(ReleaseChannel channel, WebUIProviderInfo webUI)
+    {
+        try
+        {
+            if (await Update(channel, webUI: webUI) is WebUIInstallResult.Failed)
+                logger.LogWarning("No release of {Name} that this server can use was found.", webUI.Name);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to replace the incompatible release of {Name}.", webUI.Name);
         }
     }
 

@@ -216,27 +216,7 @@ public class MetadataOrderingTransferService(
             return null;
         }
 
-        // A placed special is written where it airs too, so it is placed again on import.
-        var placement = (ordering as IPlacedOrdering)?.Placement;
-        var byID = ordering.Episodes.Select(Linked).DistinctBy(episode => episode.ID).ToDictionary(episode => episode.ID);
-        var groups = new List<(ISeason Season, List<AnidbPlace> Episodes)>();
-        foreach (var season in ordering.Seasons)
-        {
-            var episodes = new List<AnidbPlace>();
-            var listed = placement is null
-                ? season.Episodes.Select(Linked).ToList()
-                : [.. placement.Listed(season.ID).Select(place => byID.GetValueOrDefault(place.EpisodeID)).OfType<IEpisode>()];
-            foreach (var episode in listed)
-            {
-                var places = ToAnidb(episode);
-                if (places.Count is 0)
-                    context.Warnings.Add($"The episode \"{episode.ID}\" of the ordering \"{ordering.ID}\" was left out: it has no AniDB episode.");
-                episodes.AddRange(places);
-            }
-
-            groups.Add((season, episodes));
-        }
-
+        var groups = CollectAnidbGroups(ordering, context);
         if (AnidbAnimeOf(series, groups.SelectMany(group => group.Episodes)) is not { } animeID)
         {
             context.Warnings.Add($"The ordering \"{ordering.ID}\" was left out: its series \"{series.ID}\" has no AniDB anime.");
@@ -273,6 +253,38 @@ public class MetadataOrderingTransferService(
         }
 
         return entry;
+    }
+
+    /// <summary>
+    ///   Lists each season of an ordering with its episodes as AniDB places.
+    /// </summary>
+    /// <param name="ordering">The ordering.</param>
+    /// <param name="context">The export.</param>
+    /// <returns>Each season with its AniDB episodes, in order.</returns>
+    private static List<(ISeason Season, List<AnidbPlace> Episodes)> CollectAnidbGroups(IOrdering ordering, ExportContext context)
+    {
+        // A placed special is written where it airs too, so it is placed again on import.
+        var placement = (ordering as IPlacedOrdering)?.Placement;
+        var byID = ordering.Episodes.Select(Linked).DistinctBy(episode => episode.ID).ToDictionary(episode => episode.ID);
+        var groups = new List<(ISeason Season, List<AnidbPlace> Episodes)>();
+        foreach (var season in ordering.Seasons)
+        {
+            var episodes = new List<AnidbPlace>();
+            var listed = placement is null
+                ? season.Episodes.Select(Linked).ToList()
+                : [.. placement.Listed(season.ID).Select(place => byID.GetValueOrDefault(place.EpisodeID)).OfType<IEpisode>()];
+            foreach (var episode in listed)
+            {
+                var places = ToAnidb(episode);
+                if (places.Count is 0)
+                    context.Warnings.Add($"The episode \"{episode.ID}\" of the ordering \"{ordering.ID}\" was left out: it has no AniDB episode.");
+                episodes.AddRange(places);
+            }
+
+            groups.Add((season, episodes));
+        }
+
+        return groups;
     }
 
     /// <summary>

@@ -378,6 +378,87 @@ public partial class PluginPackageManager(
             packageInfo.Archive.RuntimeIdentifier
         );
 
+        RaiseInstallationStarted(packageInfo, eventArgs, cancellationToken);
+
+        var extractPath = GetExtractPath(packageInfo);
+        var zipPath = extractPath + ".zip";
+        try
+        {
+            await DownloadAndExtractPackage(packageInfo, cancellationToken).ConfigureAwait(false);
+
+            var pluginInfo = RegisterInstalledPackage(packageInfo, reason, requiredBy, extractPath);
+            if (pluginInfo is null)
+                return null;
+
+            _installedPackages.Add(new PackageInfo
+            {
+                Manifest = packageInfo.Manifest,
+                Repository = packageInfo.Repository,
+                Archive = packageInfo.Archive,
+                Plugin = pluginInfo,
+                Release = packageInfo.Release,
+            });
+
+            _ = Task.Run(() => PackageInstallationCompleted?.Invoke(null, new()
+            {
+                Package = packageInfo,
+                StartedAt = eventArgs.StartedAt,
+                CompletedAt = DateTime.UtcNow,
+                Plugin = pluginInfo,
+            }));
+
+            return pluginInfo;
+        }
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                ex,
+                "Installation of package {PackageName} was cancelled during installation. (Id={PackageId}, Version={PackageVersion}, RuntimeId={PackageRuntimeId})",
+                packageInfo.Manifest.Name,
+                packageInfo.Manifest.PackageID,
+                packageInfo.Release.Version,
+                packageInfo.Archive.RuntimeIdentifier
+            );
+
+            _ = Task.Run(() => PackageInstallationFailed?.Invoke(null, new()
+            {
+                Package = packageInfo,
+                StartedAt = eventArgs.StartedAt,
+                FailedAt = DateTime.UtcNow,
+                Reason = "Package installation was cancelled during installation.",
+                Exception = ex,
+            }));
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to install package {PackageName} due to an exception occurring during installation. (Id={PackageId}, Version={PackageVersion}, RuntimeId={PackageRuntimeId})",
+                packageInfo.Manifest.Name,
+                packageInfo.Manifest.PackageID,
+                packageInfo.Release.Version,
+                packageInfo.Archive.RuntimeIdentifier
+            );
+            CleanUpFailedInstall(zipPath, extractPath);
+            _ = Task.Run(() => PackageInstallationFailed?.Invoke(null, new()
+            {
+                Package = packageInfo,
+                StartedAt = eventArgs.StartedAt,
+                FailedAt = DateTime.UtcNow,
+                Reason = "Failed to install package due to an exception occurring.",
+                Exception = ex,
+            }));
+            throw;
+        }
+    }
+
+    /// <summary>
+    ///   Raises the installation started event, throwing when it failed or
+    ///   was cancelled by a consumer or the caller.
+    /// </summary>
+    private void RaiseInstallationStarted(PackageInfo packageInfo, PackageInstallationStartedEventArgs eventArgs, CancellationToken cancellationToken)
+    {
         try
         {
             PackageInstallationStarted?.Invoke(null, eventArgs);
@@ -432,107 +513,57 @@ public partial class PluginPackageManager(
 
             throw ex;
         }
+    }
 
-        var extractPath = GetExtractPath(packageInfo);
-        var zipPath = extractPath + ".zip";
+    /// <summary>
+    ///   Loads an extracted package and writes its dependency marker, the way
+    ///   the reason and the versions already installed call for.
+    /// </summary>
+    /// <returns>The installed version, or <c>null</c> if it could not be loaded.</returns>
+    private LocalPluginInfo? RegisterInstalledPackage(PackageInfo packageInfo, InstallReason reason, IReadOnlyList<Guid> requiredBy, string extractPath)
+    {
+        // Before the version is read, so a version installed as a dependency gets no enabled state of its own.
+        var versions = _pluginManager.GetPluginInfos(packageInfo.Manifest.PackageID).Where(info => info.IsInstalled).ToList();
+        var registered = versions.FirstOrDefault(info => string.Equals(info.ContainingDirectory, extractPath, StringComparison.Ordinal));
+        var markAsDependency = ShouldMarkAsDependency(reason, versions.Where(info => info != registered).Select(info => info.IsDependency).ToList());
+        if (registered is null)
+        {
+            if (markAsDependency)
+                PluginManager.WriteDependencyMarker(extractPath, string.Empty, requiredBy);
+            else
+                PluginManager.RemoveDependencyMarker(extractPath, string.Empty);
+        }
+
+        var pluginInfo = _pluginManager.LoadFromPath(extractPath);
+        if (pluginInfo is null)
+        {
+            _logger.LogWarning("Plugin info was null after loading from path.");
+
+            return null;
+        }
+
+        // A version installed before keeps its folder, so its marker changes the way the admin's would.
+        if (registered is not null && pluginInfo.IsDependency != markAsDependency)
+            pluginInfo = markAsDependency ? _pluginManager.MarkAsDependency(pluginInfo) : _pluginManager.UnmarkAsDependency(pluginInfo);
+
+        return pluginInfo;
+    }
+
+    /// <summary>
+    ///   Deletes the archive and the extracted files of a failed installation.
+    /// </summary>
+    private void CleanUpFailedInstall(string zipPath, string extractPath)
+    {
         try
         {
-            await DownloadAndExtractPackage(packageInfo, cancellationToken).ConfigureAwait(false);
-
-            // Before the version is read, so a version installed as a dependency gets no enabled state of its own.
-            var versions = _pluginManager.GetPluginInfos(packageInfo.Manifest.PackageID).Where(info => info.IsInstalled).ToList();
-            var registered = versions.FirstOrDefault(info => string.Equals(info.ContainingDirectory, extractPath, StringComparison.Ordinal));
-            var markAsDependency = ShouldMarkAsDependency(reason, versions.Where(info => info != registered).Select(info => info.IsDependency).ToList());
-            if (registered is null)
-            {
-                if (markAsDependency)
-                    PluginManager.WriteDependencyMarker(extractPath, string.Empty, requiredBy);
-                else
-                    PluginManager.RemoveDependencyMarker(extractPath, string.Empty);
-            }
-
-            var pluginInfo = _pluginManager.LoadFromPath(extractPath);
-            if (pluginInfo is null)
-            {
-                _logger.LogWarning("Plugin info was null after loading from path.");
-
-                return null;
-            }
-
-            // A version installed before keeps its folder, so its marker changes the way the admin's would.
-            if (registered is not null && pluginInfo.IsDependency != markAsDependency)
-                pluginInfo = markAsDependency ? _pluginManager.MarkAsDependency(pluginInfo) : _pluginManager.UnmarkAsDependency(pluginInfo);
-
-            _installedPackages.Add(new PackageInfo
-            {
-                Manifest = packageInfo.Manifest,
-                Repository = packageInfo.Repository,
-                Archive = packageInfo.Archive,
-                Plugin = pluginInfo,
-                Release = packageInfo.Release,
-            });
-
-            _ = Task.Run(() => PackageInstallationCompleted?.Invoke(null, new()
-            {
-                Package = packageInfo,
-                StartedAt = eventArgs.StartedAt,
-                CompletedAt = DateTime.UtcNow,
-                Plugin = pluginInfo,
-            }));
-
-            return pluginInfo;
+            if (File.Exists(zipPath))
+                File.Delete(zipPath);
+            if (Directory.Exists(extractPath))
+                Directory.Delete(extractPath, true);
         }
-        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        catch (Exception cleanupEx)
         {
-            _logger.LogWarning(
-                ex,
-                "Installation of package {PackageName} was cancelled during installation. (Id={PackageId}, Version={PackageVersion}, RuntimeId={PackageRuntimeId})",
-                packageInfo.Manifest.Name,
-                packageInfo.Manifest.PackageID,
-                packageInfo.Release.Version,
-                packageInfo.Archive.RuntimeIdentifier
-            );
-
-            _ = Task.Run(() => PackageInstallationFailed?.Invoke(null, new()
-            {
-                Package = packageInfo,
-                StartedAt = eventArgs.StartedAt,
-                FailedAt = DateTime.UtcNow,
-                Reason = "Package installation was cancelled during installation.",
-                Exception = ex,
-            }));
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Failed to install package {PackageName} due to an exception occurring during installation. (Id={PackageId}, Version={PackageVersion}, RuntimeId={PackageRuntimeId})",
-                packageInfo.Manifest.Name,
-                packageInfo.Manifest.PackageID,
-                packageInfo.Release.Version,
-                packageInfo.Archive.RuntimeIdentifier
-            );
-            try
-            {
-                if (File.Exists(zipPath))
-                    File.Delete(zipPath);
-                if (Directory.Exists(extractPath))
-                    Directory.Delete(extractPath, true);
-            }
-            catch (Exception cleanupEx)
-            {
-                _logger.LogError(cleanupEx, "Failed to clean up extracted files after cancellation.");
-            }
-            _ = Task.Run(() => PackageInstallationFailed?.Invoke(null, new()
-            {
-                Package = packageInfo,
-                StartedAt = eventArgs.StartedAt,
-                FailedAt = DateTime.UtcNow,
-                Reason = "Failed to install package due to an exception occurring.",
-                Exception = ex,
-            }));
-            throw;
+            _logger.LogError(cleanupEx, "Failed to clean up extracted files after cancellation.");
         }
     }
 
@@ -666,20 +697,7 @@ public partial class PluginPackageManager(
             _logger.LogInformation($"Extracting plugin to {extractPath}");
 
             ZipFile.ExtractToDirectory(zipPath, extractPath);
-            if (Directory.GetFileSystemEntries(extractPath) is { Length: 1 } entries && Directory.Exists(entries[0]))
-            {
-                _logger.LogDebug("Found inner directory, moving contents to root.");
-                var innerPath = entries[0];
-                foreach (var entryPath in Directory.GetFileSystemEntries(innerPath))
-                {
-                    var destinationPath = Path.Join(extractPath, Path.GetFileName(entryPath));
-                    if (Directory.Exists(entryPath))
-                        Directory.Move(entryPath, destinationPath);
-                    else
-                        File.Move(entryPath, destinationPath, overwrite: true);
-                }
-                Directory.Delete(innerPath, true);
-            }
+            MoveInnerDirectoryContentsToRoot(extractPath);
 
             File.Delete(zipPath);
 
@@ -693,6 +711,29 @@ public partial class PluginPackageManager(
         }
 
         return extractPath;
+    }
+
+    /// <summary>
+    ///   Moves the contents of the only directory an archive extracted to up
+    ///   into the extraction directory, if that is all it extracted.
+    /// </summary>
+    /// <param name="extractPath">The extraction directory.</param>
+    private void MoveInnerDirectoryContentsToRoot(string extractPath)
+    {
+        if (Directory.GetFileSystemEntries(extractPath) is not { Length: 1 } entries || !Directory.Exists(entries[0]))
+            return;
+
+        _logger.LogDebug("Found inner directory, moving contents to root.");
+        var innerPath = entries[0];
+        foreach (var entryPath in Directory.GetFileSystemEntries(innerPath))
+        {
+            var destinationPath = Path.Join(extractPath, Path.GetFileName(entryPath));
+            if (Directory.Exists(entryPath))
+                Directory.Move(entryPath, destinationPath);
+            else
+                File.Move(entryPath, destinationPath, overwrite: true);
+        }
+        Directory.Delete(innerPath, true);
     }
 
     private async Task DownloadAndVerifyArchiveAsync(string downloadUrl, string destinationPath, string checksum, CancellationToken cancellationToken)
@@ -1402,11 +1443,7 @@ public partial class PluginPackageManager(
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, manifestUrl);
             if (cacheExists)
-            {
-                request.Headers.IfModifiedSince = File.GetLastWriteTimeUtc(jsonPath);
-                if (File.Exists(etagPath) && File.ReadAllText(etagPath, Encoding.UTF8) is { Length: > 0 } cachedEtag)
-                    request.Headers.IfNoneMatch.ParseAdd(cachedEtag);
-            }
+                AddConditionalHeaders(request, jsonPath, etagPath);
 
             using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             if (cacheExists && response.StatusCode is HttpStatusCode.NotModified)
@@ -1418,29 +1455,8 @@ public partial class PluginPackageManager(
                 throw new InvalidOperationException($"Invalid content type: \"{contentType}\". Expected \"application/json\", \"text/plain\" or \"text/json\".");
 
             var content = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-            JsonDocument jsonDoc;
-            try
-            {
-                jsonDoc = JsonDocument.Parse(content);
-            }
-            catch (System.Text.Json.JsonException ex)
-            {
-                throw new InvalidOperationException("The manifest is not valid JSON.", ex);
-            }
-
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(jsonPath)!);
-                File.WriteAllBytes(jsonPath, content);
-                if (response.Headers.ETag?.ToString() is { Length: > 0 } etag)
-                    File.WriteAllText(etagPath, etag, Encoding.UTF8);
-                else
-                    File.Delete(etagPath);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                _logger.LogWarning(ex, "Failed to cache the manifest at {ManifestUrl}.", manifestUrl);
-            }
+            var jsonDoc = ParseManifest(content);
+            TryCacheManifest(content, response.Headers.ETag?.ToString(), jsonPath, etagPath, manifestUrl);
 
             return (jsonDoc, DateTime.UtcNow);
         }
@@ -1455,6 +1471,53 @@ public partial class PluginPackageManager(
                 cached.LastFetchedAt
             );
             return cached;
+        }
+    }
+
+    /// <summary>
+    ///   Makes a request conditional on the kept copy of a manifest.
+    /// </summary>
+    private static void AddConditionalHeaders(HttpRequestMessage request, string jsonPath, string etagPath)
+    {
+        request.Headers.IfModifiedSince = File.GetLastWriteTimeUtc(jsonPath);
+        if (File.Exists(etagPath) && File.ReadAllText(etagPath, Encoding.UTF8) is { Length: > 0 } cachedEtag)
+            request.Headers.IfNoneMatch.ParseAdd(cachedEtag);
+    }
+
+    /// <summary>
+    ///   Parses the answer of a manifest fetch.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown if the answer is not JSON.</exception>
+    private static JsonDocument ParseManifest(byte[] content)
+    {
+        try
+        {
+            return JsonDocument.Parse(content);
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            throw new InvalidOperationException("The manifest is not valid JSON.", ex);
+        }
+    }
+
+    /// <summary>
+    ///   Keeps a fetched manifest and its entity tag, logging instead of
+    ///   throwing when it cannot be written.
+    /// </summary>
+    private void TryCacheManifest(byte[] content, string? etagValue, string jsonPath, string etagPath, string manifestUrl)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(jsonPath)!);
+            File.WriteAllBytes(jsonPath, content);
+            if (etagValue is { Length: > 0 } etag)
+                File.WriteAllText(etagPath, etag, Encoding.UTF8);
+            else
+                File.Delete(etagPath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(ex, "Failed to cache the manifest at {ManifestUrl}.", manifestUrl);
         }
     }
 
@@ -1958,35 +2021,55 @@ public partial class PluginPackageManager(
                 .Distinct()
                 .ToList();
             var current = versions.Select(version => version.Version).Max(comparer)!;
-            foreach (var release in manifest.Releases.OrderByDescending(release => release.Version, comparer))
-            {
-                if (comparer.Compare(NormalizeVersion(release.Version), current) <= 0)
-                    break;
-
-                if (ranges.Any(range => !PluginVersionRange.IsSatisfied(range, NormalizeVersion(release.Version))))
-                    continue;
-
-                var archive = release.Archives
-                    .Where(archive => isCompatible(archive.AbstractionVersion, archive.RuntimeIdentifier))
-                    .OrderByDescending(archive => archive.RuntimeIdentifier == runtimeIdentifier)
-                    .ThenByDescending(archive => archive.AbstractionVersion, comparer)
-                    .FirstOrDefault();
-                if (archive is null)
-                    continue;
-
-                upgrades.Add(new()
-                {
-                    Manifest = manifest,
-                    Repository = repositories.FirstOrDefault(repository => repository.ID == release.RepositoryID),
-                    Archive = archive,
-                    Plugin = null,
-                    Release = release,
-                });
-                break;
-            }
+            if (SelectUpgrade(manifest, current, ranges, repositories, isCompatible, runtimeIdentifier, comparer) is { } upgrade)
+                upgrades.Add(upgrade);
         }
 
         return upgrades;
+    }
+
+    /// <summary>
+    ///   Picks the newest release above the current version that the ranges
+    ///   accept and that has a compatible archive.
+    /// </summary>
+    /// <returns>The package to install, or <c>null</c> when there is none.</returns>
+    private static PackageInfo? SelectUpgrade(
+        PackageManifestInfo manifest,
+        Version current,
+        IReadOnlyList<string> ranges,
+        IReadOnlyList<PackageRepositoryInfo> repositories,
+        Func<Version, string, bool> isCompatible,
+        string runtimeIdentifier,
+        SemverVersionComparer comparer
+    )
+    {
+        foreach (var release in manifest.Releases.OrderByDescending(release => release.Version, comparer))
+        {
+            if (comparer.Compare(NormalizeVersion(release.Version), current) <= 0)
+                break;
+
+            if (ranges.Any(range => !PluginVersionRange.IsSatisfied(range, NormalizeVersion(release.Version))))
+                continue;
+
+            var archive = release.Archives
+                .Where(archive => isCompatible(archive.AbstractionVersion, archive.RuntimeIdentifier))
+                .OrderByDescending(archive => archive.RuntimeIdentifier == runtimeIdentifier)
+                .ThenByDescending(archive => archive.AbstractionVersion, comparer)
+                .FirstOrDefault();
+            if (archive is null)
+                continue;
+
+            return new()
+            {
+                Manifest = manifest,
+                Repository = repositories.FirstOrDefault(repository => repository.ID == release.RepositoryID),
+                Archive = archive,
+                Plugin = null,
+                Release = release,
+            };
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -2131,13 +2214,7 @@ public partial class PluginPackageManager(
                 if (pluginInfo.IsActive || pluginInfo.IsPinned || pluginInfo.IsKept || !pluginInfo.CanUninstall)
                     continue;
 
-                var version = pluginInfo.Version.Version;
-                DateTime since;
-                if (version < active.Version.Version)
-                    since = versions.Where(p => p.Version.Version > version).Min(p => p.InstalledAt);
-                else if (version > active.Version.Version && active.IsPinned)
-                    since = pluginInfo.InstalledAt;
-                else
+                if (GetInactiveSince(pluginInfo, active, versions) is not { } since)
                     continue;
 
                 if (retention == TimeSpan.Zero || now - since > retention)
@@ -2146,6 +2223,24 @@ public partial class PluginPackageManager(
         }
 
         return selected;
+    }
+
+    /// <summary>
+    ///   Works out since when an inactive version has been due for removal:
+    ///   the first newer install for an older version, its own install for a
+    ///   newer one while the active version is pinned.
+    /// </summary>
+    /// <returns>The time, or <c>null</c> when the version is not due.</returns>
+    private static DateTime? GetInactiveSince(LocalPluginInfo pluginInfo, LocalPluginInfo active, IEnumerable<LocalPluginInfo> versions)
+    {
+        var version = pluginInfo.Version.Version;
+        if (version < active.Version.Version)
+            return versions.Where(p => p.Version.Version > version).Min(p => p.InstalledAt);
+
+        if (version > active.Version.Version && active.IsPinned)
+            return pluginInfo.InstalledAt;
+
+        return null;
     }
 
     #endregion

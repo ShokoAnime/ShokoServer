@@ -235,33 +235,14 @@ public class UserConfigurationService(
             throw Refused(nameof(json), "The configuration must be a JSON object.");
         }
 
-        // A secret handed out masked keeps its stored value, as the configuration system's saves do.
-        if (registration.ConfigurationType is not null && GetSchemaState(registration).Configuration is { } typed &&
-            ConfigurationSecrets.ContainsSecrets(typed.Type) && configurationService is ConfigurationService service)
-        {
-            var current = Load(user, configurationID) is { } previous ? JToken.Parse(previous) : null;
-            var (restored, errors) = service.RestoreMaskedSecrets(incoming, current, typed.Type);
-            if (errors.Count > 0)
-                throw new GenericValidationException("The configuration could not take back its stored secrets.", errors);
-            incoming = (JObject)restored;
-        }
+        incoming = RestoreMaskedSecrets(user, configurationID, registration, incoming);
 
         json = incoming.ToString(Formatting.None);
 
         if (json.Length > MaxDocumentLength)
             throw Refused(nameof(json), $"The configuration is {json.Length} characters long, more than the {MaxDocumentLength} kept.");
 
-        var schema = GetSchemaState(registration);
-        if (schema.Schema is not null)
-        {
-            var errors = schema.Configuration is { } info ? configurationService.Validate(info, json) : configurationService.Validate(json, schema.Schema);
-            if (errors.Count > 0)
-                throw new GenericValidationException($"The configuration does not fit the schema of {registration.DisplayName} ({registration.ID}).", errors);
-        }
-        else if (schema.Problem is { } problem && registration.Strict)
-        {
-            throw Refused(nameof(configurationID), problem);
-        }
+        ValidateAgainstSchema(configurationID, registration, json);
 
         var userID = GetUserID(user);
         var key = registration.ID;
@@ -287,6 +268,35 @@ public class UserConfigurationService(
             Actor = ActorContext.CurrentActor,
         };
         Task.Run(() => Saved?.Invoke(this, savedEventArgs));
+    }
+
+    // A secret handed out masked keeps its stored value, as the configuration system's saves do.
+    private JObject RestoreMaskedSecrets(IUser user, string configurationID, UserConfigurationRegistration registration, JObject incoming)
+    {
+        if (registration.ConfigurationType is null || GetSchemaState(registration).Configuration is not { } typed ||
+            !ConfigurationSecrets.ContainsSecrets(typed.Type) || configurationService is not ConfigurationService service)
+            return incoming;
+
+        var current = Load(user, configurationID) is { } previous ? JToken.Parse(previous) : null;
+        var (restored, errors) = service.RestoreMaskedSecrets(incoming, current, typed.Type);
+        if (errors.Count > 0)
+            throw new GenericValidationException("The configuration could not take back its stored secrets.", errors);
+        return (JObject)restored;
+    }
+
+    private void ValidateAgainstSchema(string configurationID, UserConfigurationRegistration registration, string json)
+    {
+        var schema = GetSchemaState(registration);
+        if (schema.Schema is not null)
+        {
+            var errors = schema.Configuration is { } info ? configurationService.Validate(info, json) : configurationService.Validate(json, schema.Schema);
+            if (errors.Count > 0)
+                throw new GenericValidationException($"The configuration does not fit the schema of {registration.DisplayName} ({registration.ID}).", errors);
+        }
+        else if (schema.Problem is { } problem && registration.Strict)
+        {
+            throw Refused(nameof(configurationID), problem);
+        }
     }
 
     /// <inheritdoc/>

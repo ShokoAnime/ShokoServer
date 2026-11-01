@@ -35,42 +35,11 @@ internal static class WebUIHosts
             return false;
         }
 
-        string name;
-        string? port = null;
-        if (trimmed[0] is '[')
-        {
-            var end = trimmed.IndexOf(']');
-            if (end < 0)
-            {
-                reason = $"\"{trimmed}\" is missing the closing bracket of its IPv6 address.";
-                return false;
-            }
-
-            name = trimmed[..(end + 1)];
-            var rest = trimmed[(end + 1)..];
-            if (rest.Length > 0)
-            {
-                if (rest[0] is not ':')
-                {
-                    reason = $"\"{trimmed}\" is not a host name or IP address with an optional port.";
-                    return false;
-                }
-
-                port = rest[1..];
-            }
-        }
-        else
-        {
-            var colon = trimmed.IndexOf(':');
-            if (colon >= 0 && trimmed.IndexOf(':', colon + 1) >= 0)
-            {
-                reason = $"\"{trimmed}\" has more than one colon; an IPv6 address goes in brackets.";
-                return false;
-            }
-
-            name = colon < 0 ? trimmed : trimmed[..colon];
-            port = colon < 0 ? null : trimmed[(colon + 1)..];
-        }
+        var split = trimmed[0] is '['
+            ? TrySplitBracketed(trimmed, out var name, out var port, out reason)
+            : TrySplitPlain(trimmed, out name, out port, out reason);
+        if (!split)
+            return false;
 
         if (NormalizeName(name) is not { } normalizedName)
         {
@@ -91,6 +60,56 @@ internal static class WebUIHosts
         }
 
         key = $"{normalizedName}:{portNumber}";
+        return true;
+    }
+
+    /// <summary>
+    ///   Splits a host starting with a bracketed IPv6 address into its name and port.
+    /// </summary>
+    private static bool TrySplitBracketed(string trimmed, out string name, out string? port, out string? reason)
+    {
+        name = string.Empty;
+        port = null;
+        reason = null;
+        var end = trimmed.IndexOf(']');
+        if (end < 0)
+        {
+            reason = $"\"{trimmed}\" is missing the closing bracket of its IPv6 address.";
+            return false;
+        }
+
+        name = trimmed[..(end + 1)];
+        var rest = trimmed[(end + 1)..];
+        if (rest.Length is 0)
+            return true;
+
+        if (rest[0] is not ':')
+        {
+            reason = $"\"{trimmed}\" is not a host name or IP address with an optional port.";
+            return false;
+        }
+
+        port = rest[1..];
+        return true;
+    }
+
+    /// <summary>
+    ///   Splits a host name or IPv4 address with an optional port into its name and port.
+    /// </summary>
+    private static bool TrySplitPlain(string trimmed, out string name, out string? port, out string? reason)
+    {
+        name = string.Empty;
+        port = null;
+        reason = null;
+        var colon = trimmed.IndexOf(':');
+        if (colon >= 0 && trimmed.IndexOf(':', colon + 1) >= 0)
+        {
+            reason = $"\"{trimmed}\" has more than one colon; an IPv6 address goes in brackets.";
+            return false;
+        }
+
+        name = colon < 0 ? trimmed : trimmed[..colon];
+        port = colon < 0 ? null : trimmed[(colon + 1)..];
         return true;
     }
 
