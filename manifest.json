@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.570",
+      "tag": "v6.0.0-dev.570",
+      "commit": "79ba337cd6aa279d1331b07d08f04921da46d11f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.570/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-01T16:16:13Z",
+      "releaseNotes": "\n`refactor`: **Fix sonarcloud blocker and complexity issues**:\n\nReduced cognitive complexity of 43 methods by extracting helpers and using guard clauses, with no behavior change.\n\n- Read `value` in empty setters and event accessors of `IJobActorAccessor`, `MetadataTextRow` and the job `Key` properties (S3237)\n- Disposed the previous `CancellationTokenSource` in `WorkerPool` and `WorkerPoolManager` before replacing it (S2930)\n- Split long methods in plugin management, airing schedule, ordering, web UI, metadata and AniDB code (S3776)\n\n`merge`: **Merge pull request #1467 from ShokoAnime/fix/sonar-issues**:\n\nrefactor: fix sonarcloud blocker and complexity issues\n"
+    },
+    {
       "version": "6.0.0.569",
       "tag": "v6.0.0-dev.569",
       "commit": "565b066fce965e930303af55887edbb8bfa16c4a",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.541/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-22T07:01:41Z",
       "releaseNotes": "\n`fix` (`core`): **Apply `Import.Exclude` patterns to directories** ([#1464](https://github.com/ShokoAnime/ShokoServer/pull/1464)):\n\n**What**:\n\n`CoreIgnoreRule.ShouldIgnore` returned `false` for every entry that is not a `FileInfo`, so `Import.ExcludeExpressions` never matched a folder — even though scans pass directories to ignore rules and the walker prunes a rejected directory together with its whole subtree (`FileSystemHelpers.GetFileSystemEntryPaths`, the `canProceed(directory, true)` branch).\n\nThat made the documented contract unreachable. A pattern like `[\\/]!SomeTree[\\/]` filtered the *files* inside that tree, but the walk still enumerated it — the expensive part — and every nested directory with a plugin rule was still descended into.\n\n**Changes**:\n\n- The rule now matches directories as well as files; the file path is untouched.\n- A directory path gets the platform separator appended before a single pass over the patterns. `DirectoryInfo.FullName` never ends with a separator, so a pattern written as a directory prefix (the shipped defaults are `[\\\\/]\\.Trash-\\d+[\\\\/]`) matched only the children and pruned one level too late.\n- `Shoko.Abstractions/Video/README.md` no longer claims the built-in rule is file-only.\n"
-    },
-    {
-      "version": "6.0.0.540",
-      "tag": "v6.0.0-dev.540",
-      "commit": "1c54f2dfbdcb727f7154016922f8d92ac8c48b00",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.540/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-21T00:03:00Z",
-      "releaseNotes": "\n`docs`: **Ask for plugin icons readable at 24 pixels, not 16**:\n\nNo client draws a plugin icon below 24 pixels; the Web UI draws source\nicons at that size.\n"
     }
   ]
 }
