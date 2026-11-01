@@ -269,6 +269,8 @@ jobs:
           retention-days: 1
 
   nuget:
+    permissions:
+        id-token: write  # enable GitHub OIDC token issuance for this job
     runs-on: ubuntu-24.04
 
     strategy:
@@ -283,9 +285,6 @@ jobs:
           - Shoko.BuildTools.Analyzers
 
     name: Publish ${{ matrix.package }} Nuget
-
-    env:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
     steps:
       - name: Checkout "${{ github.ref }}"
@@ -302,12 +301,19 @@ jobs:
       - name: Run dotnet build
         run: dotnet build -c Release ${{ matrix.package }}
 
+      # Get a short-lived NuGet API key
+      - name: NuGet login (OIDC → temp API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.nuget_user }} # Recommended: use a secret like ${{ secrets.NUGET_USER }} for your nuget.org username (profile name), NOT your email address
+    
       - name: Publish ${{ matrix.package }} Nuget
         uses: ./.github/actions/publish-nuget
-        if: ${{ env.NUGET_API_KEY != '' }}
+        if: ${{ steps.login.outputs.NUGET_API_KEY != '' }}
         with:
           project-file-path: ${{ matrix.package }}/${{ matrix.package }}.csproj
-          nuget-key: ${{ env.NUGET_API_KEY }}
+          nuget-key: ${{steps.login.outputs.NUGET_API_KEY}}
           tag-format: ${{ matrix.package }}-v*
 
   cli:
