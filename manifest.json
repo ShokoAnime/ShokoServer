@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.579",
+      "tag": "v6.0.0-dev.579",
+      "commit": "3f6c51f32a649a187c2cc0af30c47169c7610e62",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.579/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-01T22:32:48Z",
+      "releaseNotes": "\n`fix`: **Resolve remaining sonarcloud reliability and security issues (batch 5)**:\n\nMade the data flow visible to the analyzer where local functions filled captured collections, awaited `ImportVotes` instead of leaving it `async void` and made the `MetadataGuid` hash code immutable.\n\n- Passed the collections to `AddParts`, `Take`, `AddTarget` and `AddSeries` as parameters\n- Added `IsSocketConnectedAsync` to `AniDBUDPConnectionHandler`\n- Turned `ImportVotes` and `DispatchShutdown` into `Task` methods\n- Suppressed `S2245` on the seeded benchmark and snapshot data\n\n`merge`: **Merge pull request #1473 from ShokoAnime/fix/sonar-batch-5**:\n\nfix: resolve remaining sonarcloud reliability and security issues (batch 5)\n"
+    },
+    {
       "version": "6.0.0.578",
       "tag": "v6.0.0-dev.578",
       "commit": "d02edfd4c04d0c063d0edf090c988a1b2cecd80a",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.550/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-23T21:44:46Z",
       "releaseNotes": "\n`feat` (`abstractions`): **Add `IVideoService.SetVideoVariation`**:\n\n- Plugins can mark a video as a variation, or unmark it\n- `PUT /api/v3/File/{fileID}/Variation` goes through it, as the video\n  action will\n\n`feat` (`abstractions`): **Add `IVideoService.SetVideoIgnored`**:\n\n- Plugins can mark a video as ignored, or unmark it\n- `PUT /api/v3/File/{fileID}/Ignore` goes through it, as the video\n  action will\n\n`feat` (`abstractions`): **Add `IVideoService.GetIgnoredVideos`**.\n\n`feat` (`abstractions`): **Add `IVideoService.VideoUpdated`**:\n\n- Raised by `SetVideoIgnored` and `SetVideoVariation` when a flag\n  changes, with the actor\n- \"Check for Previously Ignored Files\" goes through `SetVideoIgnored`,\n  so its changes raise it too\n- The `file` feed forwards it as `file:updated`\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.112**.\n"
-    },
-    {
-      "version": "6.0.0.549",
-      "tag": "v6.0.0-dev.549",
-      "commit": "46db34105f33eb55fc7caef4657119c7436e9cd1",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.549/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-23T11:00:43Z",
-      "releaseNotes": "\n`fix` (`filters`): **Treat a filter where nothing takes part as no filter**:\n\n- A filter whose expression didn't take part, such as one of only switches set to keep everything, matched nothing; it now matches everything\n"
     }
   ]
 }
