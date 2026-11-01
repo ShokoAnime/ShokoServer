@@ -188,7 +188,8 @@ def build_corpus(db_path, seed):
     db = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     rows = db.execute("SELECT AnimeID, Title, Language, TitleType FROM AniDB_Anime_Title ORDER BY AniDB_Anime_TitleID").fetchall()
     db.close()
-    rng = random.Random(seed)
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    rng = random.Random(seed)  # NOSONAR
     # TitleType: 1 main, 3 official, 2 synonym, 4 short (stored as text or number depending on the schema).
     kind = lambda row: str(row[3]).lower()
     main = [r for r in rows if kind(r) in ("1", "main")]
@@ -199,23 +200,36 @@ def build_corpus(db_path, seed):
     def typo(text):
         if len(text) < 5:
             return text
-        i = rng.randrange(1, len(text) - 2)
-        return [text[:i] + text[i + 1:], text[:i] + text[i + 1] + text[i] + text[i + 2:], text[:i] + "e" + text[i + 1:]][rng.randrange(3)]
+        # seeded on purpose so the snapshot queries are reproducible; not a security use
+        i = rng.randrange(1, len(text) - 2)  # NOSONAR
+        # seeded on purpose so the snapshot queries are reproducible; not a security use
+        return [text[:i] + text[i + 1:], text[:i] + text[i + 1] + text[i] + text[i + 2:], text[:i] + "e" + text[i + 1:]][rng.randrange(3)]  # NOSONAR
 
     corpus = []
-    corpus += [("title", r[1]) for r in rng.sample(main, min(50, len(main)))]
-    corpus += [("english", r[1]) for r in rng.sample(official_en, min(30, len(official_en)))]
-    for r in rng.sample(main, min(30, len(main))):
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    corpus += [("title", r[1]) for r in rng.sample(main, min(50, len(main)))]  # NOSONAR
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    corpus += [("english", r[1]) for r in rng.sample(official_en, min(30, len(official_en)))]  # NOSONAR
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    for r in rng.sample(main, min(30, len(main))):  # NOSONAR
         words = r[1].split()
-        corpus.append(("partial", words[0] if len(words) > 1 and len(words[0]) >= 3 else r[1][:rng.randint(4, 8)]))
-    corpus += [("typo", typo(r[1])) for r in rng.sample(main, min(30, len(main)))]
-    for r in rng.sample(japanese, min(20, len(japanese))):
-        start = rng.randrange(0, max(1, len(r[1]) - 2))
-        corpus.append(("japanese", r[1][start:start + rng.randint(2, 3)]))
+        # seeded on purpose so the snapshot queries are reproducible; not a security use
+        corpus.append(("partial", words[0] if len(words) > 1 and len(words[0]) >= 3 else r[1][:rng.randint(4, 8)]))  # NOSONAR
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    corpus += [("typo", typo(r[1])) for r in rng.sample(main, min(30, len(main)))]  # NOSONAR
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    for r in rng.sample(japanese, min(20, len(japanese))):  # NOSONAR
+        # seeded on purpose so the snapshot queries are reproducible; not a security use
+        start = rng.randrange(0, max(1, len(r[1]) - 2))  # NOSONAR
+        # seeded on purpose so the snapshot queries are reproducible; not a security use
+        corpus.append(("japanese", r[1][start:start + rng.randint(2, 3)]))  # NOSONAR
     words = sorted({w.lower().strip(":,.!?") for r in official_en for w in r[1].split() if len(w) >= 4})
-    corpus += [("word", w) for w in rng.sample(words, min(20, len(words)))]
-    corpus += [("synonym", r[1]) for r in rng.sample(synonyms, min(10, len(synonyms)))]
-    corpus += [("miss", "".join(rng.choice("qxzjvk") for _ in range(rng.randint(5, 9)))) for _ in range(10)]
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    corpus += [("word", w) for w in rng.sample(words, min(20, len(words)))]  # NOSONAR
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    corpus += [("synonym", r[1]) for r in rng.sample(synonyms, min(10, len(synonyms)))]  # NOSONAR
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    corpus += [("miss", "".join(rng.choice("qxzjvk") for _ in range(rng.randint(5, 9)))) for _ in range(10)]  # NOSONAR
     return [{"kind": k, "query": v} for k, v in corpus]
 
 #endregion
@@ -486,7 +500,8 @@ def counters(tool, pid, seconds=6):
 
 
 def browse(api, out, corpus, db_path, tool, pid, seed, preset):
-    rng = random.Random(seed)
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    rng = random.Random(seed)  # NOSONAR
     report = {"before": counters(tool, pid)}
     series_ids = [s.get("IDs", {}).get("ID") for s in api.pages("/api/v3/Series", 100, family="v3-series-list")]
     for series_id in series_ids:
@@ -494,7 +509,8 @@ def browse(api, out, corpus, db_path, tool, pid, seed, preset):
     db = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     episode_ids = [row[0] for row in db.execute("SELECT AnimeEpisodeID FROM AnimeEpisode ORDER BY AnimeEpisodeID")]
     db.close()
-    for episode_id in rng.sample(episode_ids, min(500, len(episode_ids))):
+    # seeded on purpose so the snapshot queries are reproducible; not a security use
+    for episode_id in rng.sample(episode_ids, min(500, len(episode_ids))):  # NOSONAR
         api.get(f"/api/v3/Episode/{episode_id}?includeDataFrom=AniDB,TMDB", family="v3-episode")
     for page in range(1, 51):
         api.get(f"/api/v3/Episode?pageSize=100&page={page}&includeDataFrom=AniDB,TMDB", family="v3-episode-list")

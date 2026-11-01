@@ -325,16 +325,16 @@ public partial class AiringScheduleService
     {
         var seen = new HashSet<(MetadataSource, string)> { ownKey };
         var linkedSeries = new List<(MetadataSource Source, string ID)>();
-        void AddSeries(ISeries series)
+        static void AddSeries(HashSet<(MetadataSource, string)> seen, List<(MetadataSource Source, string ID)> linkedSeries, ISeries series)
         {
             var key = GetEntityKey(series);
             if (seen.Add(key))
                 linkedSeries.Add(key);
         }
 
-        AddSeries(shokoSeries);
+        AddSeries(seen, linkedSeries, shokoSeries);
         foreach (var series in shokoSeries.LinkedSeries)
-            AddSeries(series);
+            AddSeries(seen, linkedSeries, series);
 
         var episodeKeys = shokoSeries.Episodes
             .SelectMany(episode => episode.LinkedEpisodes.Select(GetEntityKey).Prepend(GetEntityKey(episode)))

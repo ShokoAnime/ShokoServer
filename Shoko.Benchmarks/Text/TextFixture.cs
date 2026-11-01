@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -149,6 +150,7 @@ public sealed class TextFixture
     /// </summary>
     public static TextFixture Instance => _instance.Value;
 
+    [SuppressMessage("Security", "S2245", Justification = "Seeded on purpose so every run benchmarks the same data; not a security use.")]
     private TextFixture()
     {
         var random = new Random(RandomSeed);

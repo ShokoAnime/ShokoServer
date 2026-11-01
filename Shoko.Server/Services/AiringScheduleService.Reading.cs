@@ -277,7 +277,7 @@ public partial class AiringScheduleService
         var linked = options.LinkedEntityAirings ?? true;
         var targets = new Dictionary<AiringEpisodeKey, AiringReadTarget>();
         var targetEpisodes = new HashSet<(MetadataSource Source, string ID)>();
-        void AddTarget(AiringReadTarget target)
+        static void AddTarget(Dictionary<AiringEpisodeKey, AiringReadTarget> targets, HashSet<(MetadataSource Source, string ID)> targetEpisodes, AiringReadTarget target)
         {
             if (target.Episode is { } episode)
                 targetEpisodes.Add(GetEntityKey(episode));
@@ -291,7 +291,7 @@ public partial class AiringScheduleService
             var view = new EpisodeAiringView(context, scheduleView, entry);
             if (view.Episode is not { } episode)
             {
-                AddTarget(new(null, linked ? AiringEpisodeKey.For(view) : AiringEpisodeKey.ForUnlinked(view)));
+                AddTarget(targets, targetEpisodes, new(null, linked ? AiringEpisodeKey.For(view) : AiringEpisodeKey.ForUnlinked(view)));
                 continue;
             }
 
@@ -300,7 +300,7 @@ public partial class AiringScheduleService
                 var key = linked
                     ? AiringEpisodeKey.For(new EpisodeAiringView(context, scheduleView, entry, target))
                     : AiringEpisodeKey.ForEpisode(target.Source, target.ID.ID);
-                AddTarget(new(target, key));
+                AddTarget(targets, targetEpisodes, new(target, key));
             }
         }
 
@@ -313,7 +313,7 @@ public partial class AiringScheduleService
 
                 foreach (var target in GetLinkedTargets(episode, linked))
                     if (!targetEpisodes.Contains(GetEntityKey(target)))
-                        AddTarget(new(target, GetEpisodeTargetKey(context, target, linked)));
+                        AddTarget(targets, targetEpisodes, new(target, GetEpisodeTargetKey(context, target, linked)));
             }
         }
 

@@ -36,9 +36,9 @@ public sealed class MetadataGuid : IEquatable<MetadataGuid>, IComparable<Metadat
     #region Fields
 
     /// <summary>
-    ///   The hash code, once worked out, or <c>0</c>.
+    ///   The hash code, worked out once as identifiers key the text and link lookups.
     /// </summary>
-    private int _hashCode;
+    private readonly int _hashCode;
 
     #endregion
 
@@ -72,6 +72,7 @@ public sealed class MetadataGuid : IEquatable<MetadataGuid>, IComparable<Metadat
         EntityType = entityType;
         ID = id;
         IsNumericID = IsCanonicalInteger(id);
+        _hashCode = HashCode.Combine(source, entityType, StringComparer.Ordinal.GetHashCode(id));
     }
 
     /// <summary>
@@ -317,11 +318,7 @@ public sealed class MetadataGuid : IEquatable<MetadataGuid>, IComparable<Metadat
     /// <returns>The hash code.</returns>
     public override int GetHashCode()
     {
-        // Worked out once, as identifiers key the text and link lookups.
-        var hashCode = _hashCode;
-        if (hashCode is 0)
-            _hashCode = hashCode = HashCode.Combine(Source, EntityType, StringComparer.Ordinal.GetHashCode(ID));
-        return hashCode;
+        return _hashCode;
     }
 
     /// <summary>

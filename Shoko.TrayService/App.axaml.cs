@@ -42,7 +42,7 @@ public partial class App : Application
         InitialiseTrayIcon();
 
         var systemService = _systemService = new SystemService();
-        systemService.Shutdown += (_, _) => DispatchShutdown();
+        systemService.Shutdown += (_, _) => _ = DispatchShutdown();
 
         // Started on the thread pool, as its awaits would otherwise resume on this
         // thread, which is blocked waiting for them.
@@ -55,7 +55,7 @@ public partial class App : Application
             Task.Run(() =>
             {
                 Thread.Sleep(1000);
-                DispatchShutdown();
+                _ = DispatchShutdown();
             });
         }
         else
@@ -112,7 +112,7 @@ public partial class App : Application
     }
 
     private void OnTrayExit(object? sender, EventArgs args)
-        => DispatchShutdown();
+        => _ = DispatchShutdown();
 
     /// <summary>
     /// Signal the queue processor to shutdown, since it's not properly signalled by the application's lifetime
@@ -133,10 +133,10 @@ public partial class App : Application
     private void OnConsoleOnCancelKeyPress(object? sender, ConsoleCancelEventArgs args)
     {
         args.Cancel = true;
-        DispatchShutdown();
+        _ = DispatchShutdown();
     }
 
-    private async void DispatchShutdown()
+    private async Task DispatchShutdown()
     {
         try
         {
