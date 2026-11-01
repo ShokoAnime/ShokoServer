@@ -271,6 +271,7 @@ jobs:
   nuget:
     permissions:
         id-token: write  # enable GitHub OIDC token issuance for this job
+        contents: write   # push tags / create releases
     runs-on: ubuntu-24.04
 
     strategy:
