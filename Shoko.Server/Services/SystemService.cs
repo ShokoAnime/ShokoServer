@@ -1509,8 +1509,9 @@ public class SystemService : ISystemService
                     lock (_databaseBlockingTasks)
                     {
                         // Signals are only cancelled and swapped under this lock, so none is cancelled once disposed.
-                        changedSignal.Dispose();
+                        var previousSignal = changedSignal;
                         changedSignal = _databaseTasksChangedCTS = new();
+                        previousSignal.Dispose();
                         tasks = _databaseBlockingTasks.ToArray();
                     }
                     continue;
@@ -1549,8 +1550,9 @@ public class SystemService : ISystemService
                         return;
                     }
 
-                    changedSignal.Dispose();
+                    var previousSignal = changedSignal;
                     changedSignal = _databaseTasksChangedCTS = new();
+                    previousSignal.Dispose();
                     tasks = _databaseBlockingTasks.ToArray();
                 }
             }

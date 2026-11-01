@@ -276,6 +276,8 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
+    private const int MaxGroupDepth = 1024;
+
     public List<AnimeGroup> AllGroupsAbove
     {
         get
@@ -283,9 +285,8 @@ public class AnimeSeries : IShokoSeries
             var grps = new List<AnimeGroup>();
             var groupID = AnimeGroupID;
             var visited = new HashSet<int>();
-            // The walk follows stored parent IDs and stops at the root or a repeated ID, so it is bounded by the number of groups.
-#pragma warning disable S6680
-            while (groupID != 0 && visited.Add(groupID))
+            // The walk follows stored parent IDs and stops at the root, a repeated ID or the depth cap, which no real nesting reaches.
+            for (var depth = 0; groupID != 0 && depth < MaxGroupDepth && visited.Add(groupID); depth++)
             {
                 var grp = RepoFactory.AnimeGroup.GetByID(groupID);
                 if (grp != null)
@@ -298,7 +299,6 @@ public class AnimeSeries : IShokoSeries
                     groupID = 0;
                 }
             }
-#pragma warning restore S6680
 
             return grps;
         }
