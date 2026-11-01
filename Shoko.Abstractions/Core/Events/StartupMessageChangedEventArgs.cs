@@ -9,7 +9,13 @@ namespace Shoko.Abstractions.Core.Events;
 public class StartupMessageChangedEventArgs : EventArgs
 {
     /// <summary>
+    ///   The message, with when it was shown, as kept in
+    ///   <see cref="ISystemService.StartupMessages"/>.
+    /// </summary>
+    public required StartupMessageEntry Entry { get; init; }
+
+    /// <summary>
     ///   The current message that is displayed to the user during startup.
     /// </summary>
-    public required string Message { get; init; }
+    public string Message => Entry.Message;
 }

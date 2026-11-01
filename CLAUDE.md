@@ -95,7 +95,7 @@ throughput gain on real libraries.
 
 Entry points: `Shoko.CLI/Program.cs` (headless) or `Shoko.TrayService/Program.cs` (tray app). Both instantiate `new SystemService()` directly, which internally builds and starts the `IHost`.
 
-`Program.cs` → `SystemService` constructor (NLog, `PluginManager`, `ConfigurationService`, `SettingsProvider`, `PluginPackageManager`) → `SystemService.StartAsync()` (seeds the default package repositories and installs plugin upgrades before the plugin scan, then scans for plugins and builds and starts `IHost` / ASP.NET Core on port 8111) → `SystemService.LateStart()` (database schema patches and `DatabaseFixes` data fixups, plugin database migrations, init queue scheduler via `IQueueScheduler`, UDP connection handler, file watchers).
+`Program.cs` → `SystemService` constructor (NLog, `PluginManager`, `ConfigurationService`, `SettingsProvider`, `PluginPackageManager`) → `SystemService.StartAsync()` (keeps every startup message in `ISystemService.StartupMessages`, through a failed start, until about 10 seconds after the server has started; seeds the default package repositories and installs plugin upgrades before the plugin scan, then scans for plugins and builds and starts `IHost` / ASP.NET Core on port 8111) → `SystemService.LateStart()` (database schema patches and `DatabaseFixes` data fixups, plugin database migrations, init queue scheduler via `IQueueScheduler`, UDP connection handler, file watchers).
 
 **Note:** `LateStart()` is skipped during first-run setup mode (`InSetupMode == true`). It runs either on normal startup or when `CompleteSetup()` transitions out of setup mode.
 

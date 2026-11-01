@@ -183,6 +183,40 @@ public class SystemService : ISystemService
     /// <inheritdoc/>
     public DateTime? StartedAt { get; private set; }
 
+    private readonly List<StartupMessageEntry> _startupMessages = [];
+
+    /// <inheritdoc/>
+    public IReadOnlyList<StartupMessageEntry> StartupMessages
+    {
+        get
+        {
+            lock (_startupMessages)
+                return [.. _startupMessages];
+        }
+    }
+
+    /// <summary>
+    ///   How long the startup messages are kept after the server has
+    ///   started, so one who connected late still gets the last of them.
+    /// </summary>
+    internal static readonly TimeSpan StartupMessagesKeptFor = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    ///   Clears the startup messages once <see cref="StartupMessagesKeptFor"/>
+    ///   has passed.
+    /// </summary>
+    private void ClearStartupMessagesLater()
+    {
+        using (DetachedFlow.Suppress())
+        {
+            _ = Task.Delay(StartupMessagesKeptFor).ContinueWith(_ =>
+            {
+                lock (_startupMessages)
+                    _startupMessages.Clear();
+            }, TaskScheduler.Default);
+        }
+    }
+
     /// <inheritdoc/>
     public string? StartupMessage
     {
@@ -197,10 +231,15 @@ public class SystemService : ISystemService
             field = value;
             if (value is { Length: > 0 } && changed)
             {
+                // Kept in order here, as the event below may reach its handlers out of order.
+                var entry = new StartupMessageEntry { Message = value, Time = DateTime.UtcNow };
+                lock (_startupMessages)
+                    _startupMessages.Add(entry);
+
                 _logger.LogInformation("Starting Server: {Message}", value);
                 Task.Run(() => StartupMessageChanged?.Invoke(this, new()
                 {
-                    Message = value
+                    Entry = entry
                 }));
             }
         }
@@ -931,6 +970,7 @@ public class SystemService : ISystemService
             NativeAllocator.Trim();
 
             StartedAt = DateTime.UtcNow;
+            ClearStartupMessagesLater();
 
             Task.Run(() => Started?.Invoke(this, EventArgs.Empty));
 

@@ -91,6 +91,13 @@ public interface ISystemService
     string? StartupMessage { get; }
 
     /// <summary>
+    ///   Every message shown so far while the server starts, oldest first,
+    ///   so one who starts listening late can catch up. A failed start keeps
+    ///   them; they are cleared about 10 seconds after the server has started.
+    /// </summary>
+    IReadOnlyList<StartupMessageEntry> StartupMessages { get; }
+
+    /// <summary>
     ///  The exception that was thrown during startup, if any.
     /// </summary>
     StartupFailedException? StartupFailedException { get; }

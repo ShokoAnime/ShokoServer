@@ -30,6 +30,11 @@ public sealed class DatabaseMigrationFixture : IDisposable
 
     public string? FailureMessage { get; private set; }
 
+    /// <summary>
+    /// The startup messages the server still kept when it said it had started.
+    /// </summary>
+    public int StartupMessagesKeptOnStart { get; private set; }
+
     /// <summary>The backend this run migrated, as selected by <c>DB_TYPE</c>.</summary>
     public string Backend { get; } = Environment.GetEnvironmentVariable("DB_TYPE") is { Length: > 0 } type ? type : "SQLite";
 
@@ -87,9 +92,11 @@ public sealed class DatabaseMigrationFixture : IDisposable
         settings.Database.UseMainDatabaseForPlugins = true;
         ISettingsProvider.Instance.SaveSettings(settings);
 
+
         var started = new ManualResetEventSlim(false);
         systemService.Started += (_, _) =>
         {
+            StartupMessagesKeptOnStart = systemService.StartupMessages.Count;
             Success = true;
             started.Set();
         };
