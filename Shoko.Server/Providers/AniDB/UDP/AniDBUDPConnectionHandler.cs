@@ -216,12 +216,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         {
             if (!_session.IsLoggedOn) return;
 
-            bool connected = false;
-            await WithSocketLockAsync(async () =>
-            {
-                connected = _socketHandler is { IsConnected: true };
-            }, CancellationToken.None);
-            if (!connected) return;
+            if (!await IsSocketConnectedAsync()) return;
 
             if (IsBanned || BackoffSecs.HasValue) return;
 
@@ -256,12 +251,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         {
             if (!_session.IsLoggedOn) return;
 
-            bool connected = false;
-            await WithSocketLockAsync(async () =>
-            {
-                connected = _socketHandler is { IsConnected: true };
-            }, CancellationToken.None);
-            if (!connected) return;
+            if (!await IsSocketConnectedAsync()) return;
 
             if (IsBanned || BackoffSecs.HasValue) return;
 
@@ -546,6 +536,17 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
 
     public bool ValidAniDBCredentials([NotNullWhen(true)] string? user, [NotNullWhen(true)] string? pass)
         => AniDbUdpSession.ValidAniDBCredentials(user, pass);
+
+    private async Task<bool> IsSocketConnectedAsync()
+    {
+        var connected = false;
+        await WithSocketLockAsync(() =>
+        {
+            connected = _socketHandler is { IsConnected: true };
+            return Task.CompletedTask;
+        }, CancellationToken.None);
+        return connected;
+    }
 
     private async Task WithSocketLockAsync(Func<Task> action, CancellationToken cancellationToken)
     {

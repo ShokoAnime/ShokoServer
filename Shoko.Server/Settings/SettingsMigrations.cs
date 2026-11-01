@@ -275,12 +275,12 @@ public static partial class SettingsMigrations
         var currentSettings = JObject.Parse(settings);
         var anidb = currentSettings["AniDb"] as JObject;
         var taken = new Dictionary<string, int>();
-        Take(anidb, "Calendar_UpdateFrequency", AnidbCalendarFrequency);
-        Take(anidb, "Anime_UpdateFrequency", AnidbAnimeFrequency);
-        Take(anidb, "File_UpdateFrequency", AnidbFileFrequency);
-        Take(anidb, "Notification_UpdateFrequency", AnidbNotificationFrequency);
-        Take(anidb?["MyList"] as JObject, "UpdateFrequency", AnidbMylistFrequency);
-        Take(currentSettings["Plugins"]?["Updates"] as JObject, "AutoUpdateFrequency", PluginUpdatesFrequency);
+        Take(taken, anidb, "Calendar_UpdateFrequency", AnidbCalendarFrequency);
+        Take(taken, anidb, "Anime_UpdateFrequency", AnidbAnimeFrequency);
+        Take(taken, anidb, "File_UpdateFrequency", AnidbFileFrequency);
+        Take(taken, anidb, "Notification_UpdateFrequency", AnidbNotificationFrequency);
+        Take(taken, anidb?["MyList"] as JObject, "UpdateFrequency", AnidbMylistFrequency);
+        Take(taken, currentSettings["Plugins"]?["Updates"] as JObject, "AutoUpdateFrequency", PluginUpdatesFrequency);
         if (taken.Count > 0)
         {
             var path = UpdateFrequencyCarryOverPath(dataPath);
@@ -290,7 +290,7 @@ public static partial class SettingsMigrations
 
         return currentSettings.ToString();
 
-        void Take(JObject? parent, string name, string key)
+        static void Take(Dictionary<string, int> taken, JObject? parent, string name, string key)
         {
             if (parent?.Property(name) is not { } property)
                 return;
@@ -699,8 +699,8 @@ public static partial class SettingsMigrations
         var currentSettings = JObject.Parse(settings);
         var import = currentSettings["Import"] as JObject;
         var taken = new List<string>(2);
-        Take("RunOnStart", RunImportOnStart);
-        Take("ScanDropFoldersOnStart", ScanDropFoldersOnStart);
+        Take(taken, import, "RunOnStart", RunImportOnStart);
+        Take(taken, import, "ScanDropFoldersOnStart", ScanDropFoldersOnStart);
         if (taken.Count > 0)
         {
             var path = StartupTriggerCarryOverPath(dataPath);
@@ -710,7 +710,7 @@ public static partial class SettingsMigrations
 
         return currentSettings.ToString();
 
-        void Take(string name, string key)
+        static void Take(List<string> taken, JObject? import, string name, string key)
         {
             if (import?.Property(name) is not { } property)
                 return;

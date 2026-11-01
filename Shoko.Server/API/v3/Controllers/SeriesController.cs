@@ -1769,7 +1769,7 @@ public class SeriesController(
                     MetadataSource.TMDB,
                     episodeID,
                     MetadataEntityType.Movie,
-                    body?.Purge ?? false,
+                    body is { Purge: true },
                     disableAutoLinking: true
                 );
         }

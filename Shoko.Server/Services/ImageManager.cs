@@ -546,7 +546,7 @@ public class ImageManager(
 
         if (contentType is not null)
         {
-            contentType = contentType?.ToLower().Replace("jpg", "jpeg") ?? string.Empty;
+            contentType = contentType.ToLower().Replace("jpg", "jpeg");
             if (contentType is not { Length: > 8 } || contentType[0..6] is not "image/")
                 throw new ArgumentException("The provided content-type is not valid.", nameof(contentType));
 

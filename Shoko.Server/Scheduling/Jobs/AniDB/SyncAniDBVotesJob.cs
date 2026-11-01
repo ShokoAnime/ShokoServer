@@ -70,7 +70,7 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
         if (Export)
             await ExportVotes(user, response.Response);
         else
-            ImportVotes(user, response.Response);
+            await ImportVotes(user, response.Response);
     }
 
     private async Task ExportVotes(JMMUser user, List<ResponseVote> votes)
@@ -158,7 +158,7 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
         }
     }
 
-    private async void ImportVotes(JMMUser user, List<ResponseVote> votes)
+    private async Task ImportVotes(JMMUser user, List<ResponseVote> votes)
     {
         _logger.LogInformation("Importing votes for user {UserID} from AniDB.", user.JMMUserID);
         foreach (var vote in votes)

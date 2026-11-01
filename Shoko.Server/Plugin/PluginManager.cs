@@ -716,7 +716,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var unattributed = new List<Exception>();
 
         // One service failing on a plugin's part does not keep the others from theirs.
-        void AddParts(string doing, Action addParts)
+        void AddParts(List<Exception> failures, string doing, Action addParts)
         {
             try
             {
@@ -731,83 +731,83 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 }
 
                 logger.LogError(ex, "Failed while {Doing}, and no plugin could be named for it.", doing);
-                unattributed.Add(ex);
+                failures.Add(ex);
             }
         }
 
-        AddParts("registering its configurations", () =>
+        AddParts(unattributed, "registering its configurations", () =>
         {
             if (services.GetRequiredService<IConfigurationService>() is ConfigurationService configurationService)
                 configurationService.AddParts(GetTypes<IConfiguration>(), (pluginInfo, ex) => MarkFailed(pluginInfo, "registering its configurations", ex));
         });
 
-        AddParts("registering its metadata resolvers", () =>
+        AddParts(unattributed, "registering its metadata resolvers", () =>
         {
             if (services.GetRequiredService<IMetadataService>() is MetadataService metadataService)
                 metadataService.AddParts(CreateExports<IResourceResolver>(), CreateExports<IMetadataResolver>());
         });
 
-        AddParts("registering its metadata providers", () =>
+        AddParts(unattributed, "registering its metadata providers", () =>
             services.GetRequiredService<MetadataProviderManager>().AddParts(CreateExports<IMetadataProvider>()));
 
-        AddParts("registering its image contributors", () =>
+        AddParts(unattributed, "registering its image contributors", () =>
             services.GetRequiredService<MetadataImageContributorManager>().AddParts(CreateExports<IMetadataImageContributor>()));
 
-        AddParts("registering its ignore rules", () =>
+        AddParts(unattributed, "registering its ignore rules", () =>
         {
             if (services.GetRequiredService<IVideoService>() is VideoService videoService)
                 videoService.AddParts(CreateExports<IManagedFolderIgnoreRule>());
         });
 
         // Used to store the updated priorities for the providers in the settings file.
-        AddParts("registering its release providers", () =>
+        AddParts(unattributed, "registering its release providers", () =>
         {
             if (services.GetRequiredService<IVideoReleaseService>() is VideoReleaseService videoReleaseService)
                 videoReleaseService.AddParts(CreateExports<IReleaseInfoProvider>());
         });
 
-        AddParts("registering its hash providers", () =>
+        AddParts(unattributed, "registering its hash providers", () =>
         {
             if (services.GetRequiredService<IVideoHashingService>() is VideoHashingService videoHashingService)
                 videoHashingService.AddParts(CreateExports<IHashProvider>());
         });
 
-        AddParts("registering its airing schedule providers", () =>
+        AddParts(unattributed, "registering its airing schedule providers", () =>
         {
             if (services.GetRequiredService<IAiringScheduleService>() is AiringScheduleService airingScheduleService)
                 airingScheduleService.AddParts(CreateExports<IAiringScheduleProvider>());
         });
 
-        AddParts("registering its relocation providers", () =>
+        AddParts(unattributed, "registering its relocation providers", () =>
         {
             if (services.GetRequiredService<IVideoRelocationService>() is VideoRelocationService relocationService)
                 relocationService.AddParts(CreateExports<IRelocationProvider>());
         });
 
-        AddParts("registering its web UIs", () =>
+        AddParts(unattributed, "registering its web UIs", () =>
             services.GetRequiredService<WebUIService>().AddParts(
                 CreateExports<IWebUIProvider>(),
                 (pluginInfo, ex) => MarkFailed(pluginInfo, "registering its web UI", ex)
             ));
 
-        AddParts("registering its suspension providers", () =>
+        AddParts(unattributed, "registering its suspension providers", () =>
         {
             if (services.GetRequiredService<ISuspensionService>() is SuspensionService suspensionService)
                 suspensionService.AddParts(CreateExports<ISuspensionProvider>());
         });
 
-        AddParts("registering its actions", () =>
+        AddParts(unattributed, "registering its actions", () =>
             services.GetRequiredService<ActionService>().AddParts(GetTypes<IExecutableAction>()
                 .Select(type => (GetPluginInfo(type.Assembly)!.ID, type))));
 
-        AddParts("registering its scheduled actions", () =>
+        AddParts(unattributed, "registering its scheduled actions", () =>
             services.GetRequiredService<ScheduledActionRegistry>().AddParts(GetTypes<IScheduledAction>()
                 .Select(type => (GetPluginInfo(type.Assembly)!.ID, type))));
 
-        AddParts("registering its scheduled action providers", () =>
+        AddParts(unattributed, "registering its scheduled action providers", () =>
             services.GetRequiredService<ScheduledActionRegistry>().AddProviders(CreateExports<IScheduledActionProvider>()));
 
-        AddParts("registering its stream transforms and playback observers", () =>
+        AddParts(unattributed, "registering its stream transforms and playback observers", () =>
         {
             if (services.GetRequiredService<IVideoStreamPipelineService>() is VideoStreamPipelineService videoStreamPipelineService)
             {

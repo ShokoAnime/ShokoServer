@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Utilities;
@@ -30,6 +31,7 @@ public class PocoCacheIndexBenchmarks
     public int RowCount { get; set; }
 
     [GlobalSetup]
+    [SuppressMessage("Security", "S2245", Justification = "Seeded on purpose so every run benchmarks the same data; not a security use.")]
     public void Setup()
     {
         _rows = Build(RowCount);
@@ -76,6 +78,7 @@ public class PocoCacheIndexBenchmarks
     /// </summary>
     /// <param name="count">The number of rows.</param>
     /// <returns>The rows.</returns>
+    [SuppressMessage("Security", "S2245", Justification = "Seeded on purpose so every run benchmarks the same data; not a security use.")]
     private static Row[] Build(int count)
     {
         var random = new Random(42);

@@ -960,7 +960,7 @@ public class UserDataService(
             .Where(a => a.VideoLocal is not null)
             .ToLookup(a => a.AnidbEpisodeID, b => b.VideoLocal);
         var videoUserDataLookup = videoLookup
-            .SelectMany(xref => xref.SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.LocalID)).Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ?? [])
+            .SelectMany(xref => xref.SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.LocalID)).Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)))
             .Where(a => a.VideoLocalUser is not null)
             .ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
         var episodeUserDataLookup = episodes.SelectMany(
@@ -986,7 +986,7 @@ public class UserDataService(
             .Where(a => a.VideoLocal is not null)
             .ToLookup(a => a.AnidbEpisodeID, b => b.VideoLocal);
         var videoUserDataLookup = videoLookup
-            .SelectMany(xref => xref.SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.LocalID)).Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ?? [])
+            .SelectMany(xref => xref.SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.LocalID)).Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)))
             .Where(a => a.VideoLocalUser is not null)
             .ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
         var episodeUserDataLookup = episodes.SelectMany(
