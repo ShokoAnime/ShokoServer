@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Shoko.Server.Plugin.Models;
 
@@ -43,4 +44,10 @@ public sealed class RemotePackageArchiveInfo
     [JsonPropertyName("checksum")]
     [JsonProperty("checksum")]
     public string ArchiveChecksum { get; set; } = string.Empty;
+
+    /// <summary>
+    ///   Free-form data about the archive, kept as is and never read.
+    /// </summary>
+    [JsonProperty("extensions")]
+    public JObject? Extensions { get; init; }
 }

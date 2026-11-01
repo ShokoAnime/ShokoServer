@@ -878,6 +878,7 @@ public partial class PluginPackageManager(
                 HomepageUrl = list[0].HomepageUrl,
                 Thumbnail = list.FirstOrDefault(m => m.Thumbnail is not null)?.Thumbnail,
                 Icon = list.FirstOrDefault(m => m.Icon is not null)?.Icon,
+                Extensions = list.FirstOrDefault(m => m.Extensions is not null)?.Extensions,
                 Name = list[0].Name,
                 IsMeta = list.Select(m => m.IsMeta).FirstOrDefault(isMeta => isMeta is not null),
                 Releases = list.SelectMany(m => m.Releases)
@@ -1604,6 +1605,7 @@ public partial class PluginPackageManager(
                 .ToArray(),
             Thumbnail = thumbnail,
             Icon = icon,
+            Extensions = manifestInfo.Extensions,
             Releases = manifestInfo.Releases
                 .Select(remoteRelease => new PackageReleaseInfo
                 {
@@ -1615,6 +1617,7 @@ public partial class PluginPackageManager(
                     Channel = remoteRelease.Channel,
                     ReleaseNotes = remoteRelease.ReleaseNotes,
                     IsMeta = remoteRelease.IsMeta,
+                    Extensions = remoteRelease.Extensions,
                     // A dependency without a range accepts any version.
                     Dependencies = remoteRelease.Dependencies
                         .Select(remoteDependency => new PluginDependency
@@ -1632,6 +1635,7 @@ public partial class PluginPackageManager(
                             AbstractionVersion = remoteArchive.AbstractionVersion,
                             ArchiveUrl = remoteArchive.ArchiveUrl,
                             ArchiveChecksum = remoteArchive.ArchiveChecksum,
+                            Extensions = remoteArchive.Extensions,
                         })
                         .ToList(),
                     Refusals = remoteRelease.Archives

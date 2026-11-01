@@ -100,6 +100,10 @@
       "items": {
         "$ref": "#/$defs/Release"
       }
+    },
+    "extensions": {
+      "description": "Free-form data for frontends and tooling, passed through by the server as is and never read by it. Any keys and values.",
+      "type": "object"
     }
   },
   "if": {
@@ -242,6 +246,10 @@
           "items": {
             "$ref": "#/$defs/Archive"
           }
+        },
+        "extensions": {
+          "description": "Free-form data about this release for frontends and tooling, passed through by the server as is and never read by it. Any keys and values.",
+          "type": "object"
         }
       }
     },
@@ -280,6 +288,10 @@
           "description": "Checksum for archive verification. Either a bare hex string (backward compatible) or prefixed with 'sha256:', 'sha1:', or 'md5:'.",
           "type": "string",
           "pattern": "^(sha256:|sha1:|md5:)?[0-9a-fA-F]+$"
+        },
+        "extensions": {
+          "description": "Free-form data about this archive for frontends and tooling, passed through by the server as is and never read by it. Any keys and values.",
+          "type": "object"
         }
       }
     }

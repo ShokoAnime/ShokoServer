@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 
@@ -67,4 +69,12 @@ public class PackageArchiveInfo(AbstractPackageReleaseInfo releaseInfo, Abstract
     /// </summary>
     [Required]
     public string ArchiveChecksum { get; init; } = archiveInfo.ArchiveChecksum;
+
+    /// <summary>
+    ///   Free-form data about the archive from its manifest, passed through as
+    ///   is for frontends; the server never reads it. Left out when the
+    ///   manifest has none.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public JObject? Extensions { get; init; } = archiveInfo.Extensions;
 }
