@@ -288,6 +288,16 @@ public partial class PluginManager
     private string? FindDependencyMismatch(InternalPluginInfo plugin, InternalPluginInfo dependency)
         => FindDependencyMismatch(plugin.DLLs, dependency.Name, dependency.Version.Version, dependency.DLLs);
 
+    /// <summary>
+    ///   Checks a plugin's DLLs against a dependency's, by the rules of
+    ///   <see cref="FindDependencyMismatch(InternalPluginInfo, InternalPluginInfo)"/>,
+    ///   for the scan before the plugins are known and the check after it.
+    /// </summary>
+    /// <param name="dlls">The plugin's DLLs.</param>
+    /// <param name="dependencyName">The dependency's name, for the reason.</param>
+    /// <param name="dependencyVersion">The dependency's version, for the reason.</param>
+    /// <param name="dependencyDlls">The dependency's DLLs, its main DLL first.</param>
+    /// <returns>Why the plugin does not fit, or <c>null</c> when nothing is missing.</returns>
     private string? FindDependencyMismatch(IReadOnlyList<string> dlls, string dependencyName, Version dependencyVersion, IReadOnlyList<string> dependencyDlls)
     {
         if (dependencyDlls is not [var mainDllPath, ..])
