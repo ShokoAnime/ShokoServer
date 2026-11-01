@@ -285,8 +285,11 @@ public class AnimeSeries : IShokoSeries
             var grps = new List<AnimeGroup>();
             var groupID = AnimeGroupID;
             // The walk follows stored parent IDs and stops at the root or the depth cap, which no real nesting reaches.
-            for (var depth = 0; groupID != 0 && depth < MaxGroupDepth; depth++)
+            for (var depth = 0; depth < MaxGroupDepth; depth++)
             {
+                if (groupID == 0)
+                    break;
+
                 var grp = RepoFactory.AnimeGroup.GetByID(groupID);
                 if (grp != null)
                 {
