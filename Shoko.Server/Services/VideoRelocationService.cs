@@ -1331,7 +1331,7 @@ public class VideoRelocationService(
                 var newSubPath = Path.Combine(newParent, newFileName + subExtraPart);
                 if (string.Equals(subPath, newSubPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    logger.LogDebug("Attempting to move subtitle file onto itself. Skipping. Path: {FilePath} to {FilePath}", subPath, newSubPath);
+                    logger.LogDebug("Attempting to move subtitle file onto itself. Skipping. Path: {FilePath} to {NewFilePath}", subPath, newSubPath);
                     continue;
                 }
 

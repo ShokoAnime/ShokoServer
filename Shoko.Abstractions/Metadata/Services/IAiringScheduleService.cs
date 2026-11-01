@@ -1419,7 +1419,7 @@ public interface IAiringScheduleService
     {
         ArgumentNullException.ThrowIfNull(name);
 
-        return Regex.Replace(name.Normalize(NormalizationForm.FormKC), @"\s+", " ").Trim().ToLowerInvariant();
+        return Regex.Replace(name.Normalize(NormalizationForm.FormKC), @"\s+", " ", RegexOptions.None, TimeSpan.FromSeconds(5)).Trim().ToLowerInvariant();
     }
 
     /// <summary>

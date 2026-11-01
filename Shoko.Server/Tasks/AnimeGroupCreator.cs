@@ -41,6 +41,7 @@ public class AnimeGroupCreator
     private readonly AnimeSeriesRepository _animeSeriesRepo;
     private readonly AnimeGroupRepository _animeGroupRepo;
     private readonly AnimeGroup_UserRepository _animeGroupUserRepo;
+    private static readonly object _cacheLock = new();
     private readonly bool _autoGroupSeries;
     private readonly DatabaseFactory _databaseFactory;
 
@@ -93,7 +94,7 @@ public class AnimeGroupCreator
         // We won't use AnimeGroupRepository.Save because we don't need to perform all the extra stuff since this is for temporary use only
         await session.InsertAsync(tempGroup);
         TemporaryGroupID = tempGroup.AnimeGroupID;
-        lock (_animeGroupRepo.Cache)
+        lock (_cacheLock)
         {
             _animeGroupRepo.Cache.Update(tempGroup);
         }

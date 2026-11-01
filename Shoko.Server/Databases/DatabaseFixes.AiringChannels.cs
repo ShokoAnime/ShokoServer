@@ -43,7 +43,7 @@ public partial class DatabaseFixes
     /// <summary>
     /// A name ending in a country in parentheses, e.g. <c>Tokyo MX (JP)</c>.
     /// </summary>
-    private static readonly Regex _regionalChannelName = new(@"^(?<name>.*\S)\s*\((?<country>[A-Z]{2})\)$", RegexOptions.Compiled);
+    private static readonly Regex _regionalChannelName = new(@"^(?<name>.*\S)\s*\((?<country>[A-Z]{2})\)$", RegexOptions.Compiled, TimeSpan.FromSeconds(5));
 
     #endregion
 

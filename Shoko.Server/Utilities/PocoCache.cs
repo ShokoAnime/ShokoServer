@@ -594,9 +594,8 @@ internal struct PocoRowSet<TKey> where TKey : notnull
                 case TKey[] array:
                     return array[0];
                 default:
-                    foreach (var row in (HashSet<TKey>)_many)
-                        return row;
-                    return default!;
+                    using (var enumerator = ((HashSet<TKey>)_many).GetEnumerator())
+                        return enumerator.MoveNext() ? enumerator.Current : default!;
             }
         }
     }

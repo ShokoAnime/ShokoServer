@@ -101,7 +101,8 @@ internal static class GenericEpisodeTitles
     /// </summary>
     private static readonly Regex _episodeRegex = new(
         $@"^(?:{Placeholders}|episode\s*(?<t>(?-i:[SCTPO]))\s*(?<n>\d+)|{_episodeForms})$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
+        TimeSpan.FromSeconds(5)
     );
 
     /// <summary>
@@ -110,7 +111,8 @@ internal static class GenericEpisodeTitles
     /// </summary>
     private static readonly Regex _seasonNameRegex = new(
         $"^(?:{string.Join('|', _forms.Values.SelectMany(forms => forms.Specials.Prepend(forms.Season)).Distinct().Select(Pattern))})$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
+        TimeSpan.FromSeconds(5)
     );
 
     /// <summary>

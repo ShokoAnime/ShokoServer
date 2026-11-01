@@ -219,7 +219,7 @@ public class MetadataService : IMetadataService
                 if (source.IsCore || MetadataProviderManager.CoreReservedSources.Contains(source))
                 {
                     _logger.LogError(
-                        "Refusing metadata resolver {Resolver} for {Source}://{EntityType}: the core resolves every {Source} entry itself.",
+                        "Refusing metadata resolver {Resolver} for {Source}://{EntityType}: the core resolves every {ReservedSource} entry itself.",
                         resolver.Name, source.Value, entityType.Value, source.Value
                     );
                     continue;

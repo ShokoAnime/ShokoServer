@@ -530,54 +530,29 @@ public class AnimeGroup : IShokoGroup
     IImageCrossReference? IWithImages.GetBestImageCrossReferenceForType(ImageEntityType imageType, bool primaryImage)
     {
         var withImages = (IWithImages)this;
-        if (primaryImage)
-        {
-            // If a preferred image is set and available for the group, return it.
-            if (withImages.GetPreferredImageCrossReferenceForType(imageType) is { IsEnabled: true, IsPrimaryAvailable: true } preferredImageCrossReference)
-                return preferredImageCrossReference;
+        // If a preferred image is set and available for the group, return it.
+        if (withImages.GetPreferredImageCrossReferenceForType(imageType) is { IsEnabled: true, IsPrimaryAvailable: true } preferredImageCrossReference)
+            return preferredImageCrossReference;
 
-            // If a preferred image is set and available for the main series, return it.
-            var mainSeries = (this as IShokoGroup).MainSeries;
-            if (mainSeries.GetPreferredImageCrossReferenceForType(imageType) is { IsEnabled: true, IsPrimaryAvailable: true } mainSeriesPreferredImageCrossReference)
-                return mainSeriesPreferredImageCrossReference;
+        // If a preferred image is set and available for the main series, return it.
+        var mainSeries = (this as IShokoGroup).MainSeries;
+        if (mainSeries.GetPreferredImageCrossReferenceForType(imageType) is { IsEnabled: true, IsPrimaryAvailable: true } mainSeriesPreferredImageCrossReference)
+            return mainSeriesPreferredImageCrossReference;
 
-            // If a default image is set and available for the main series, return it.
-            var defaultImageCrossReference = mainSeries.GetDefaultImageCrossReferenceForType(imageType);
-            if (defaultImageCrossReference is { IsEnabled: true, IsPrimaryAvailable: true })
-                return defaultImageCrossReference;
+        // If a default image is set and available for the main series, return it.
+        var defaultImageCrossReference = mainSeries.GetDefaultImageCrossReferenceForType(imageType);
+        if (defaultImageCrossReference is { IsEnabled: true, IsPrimaryAvailable: true })
+            return defaultImageCrossReference;
 
-            // Otherwise, return the first available image, first enabled image, or the first image.
-            var selectedImageCrossReference = withImages.GetImageCrossReferences(new() { ImageType = imageType }) is { Count: > 0 } xrefs ? (
-                xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsDesired: true, IsPrimaryAvailable: true }) ??
-                xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsPrimaryAvailable: true }) ??
-                xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsDesired: true }) ??
-                xrefs.FirstOrDefault(i => i is { IsEnabled: true })
-            ) : null;
-            if (selectedImageCrossReference is not null)
-                return selectedImageCrossReference;
-        }
-        else
-        {
-            if (withImages.GetPreferredImageCrossReferenceForType(imageType) is { IsEnabled: true, IsPrimaryAvailable: true } preferredImageCrossReference)
-                return preferredImageCrossReference;
-
-            var mainSeries = (this as IShokoGroup).MainSeries;
-            if (mainSeries.GetPreferredImageCrossReferenceForType(imageType) is { IsEnabled: true, IsPrimaryAvailable: true } mainSeriesPreferredImageCrossReference)
-                return mainSeriesPreferredImageCrossReference;
-
-            var defaultImageCrossReference = mainSeries.GetDefaultImageCrossReferenceForType(imageType);
-            if (defaultImageCrossReference is { IsEnabled: true, IsPrimaryAvailable: true })
-                return defaultImageCrossReference;
-
-            var selectedImageCrossReference = withImages.GetImageCrossReferences(new() { ImageType = imageType }) is { Count: > 0 } xrefs ? (
-                xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsDesired: true, IsPrimaryAvailable: true }) ??
-                xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsPrimaryAvailable: true }) ??
-                xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsDesired: true }) ??
-                xrefs.FirstOrDefault(i => i is { IsEnabled: true })
-            ) : null;
-            if (selectedImageCrossReference is not null)
-                return selectedImageCrossReference;
-        }
+        // Otherwise, return the first available image, first enabled image, or the first image.
+        var selectedImageCrossReference = withImages.GetImageCrossReferences(new() { ImageType = imageType }) is { Count: > 0 } xrefs ? (
+            xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsDesired: true, IsPrimaryAvailable: true }) ??
+            xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsPrimaryAvailable: true }) ??
+            xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsDesired: true }) ??
+            xrefs.FirstOrDefault(i => i is { IsEnabled: true })
+        ) : null;
+        if (selectedImageCrossReference is not null)
+            return selectedImageCrossReference;
 
         return null;
     }

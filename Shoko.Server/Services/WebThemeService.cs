@@ -113,8 +113,6 @@ public partial class WebThemeService(IApplicationPaths applicationPaths) : IWebT
 
             if (!cssUrl.IsAbsoluteUri)
             {
-                if (updateUrl is null)
-                    throw new ValidationException("Unable to resolve CSS URL in new theme definition because it is relative and no update URL was provided.");
                 cssUrl = new Uri(updateUrl, cssUrl);
                 updatedTheme.CssUrl = cssUrl.AbsoluteUri;
             }

@@ -204,7 +204,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         // inotify/FSEvents). Disposing a FileSystemWatcher from within its own event thread can
         // hang (self-join) or crash the process on those platforms, so recovery must happen on an
         // unrelated thread.
-        Task.Run(RecoverWatcher);
+        Task.Run(RecoverWatcher, CancellationToken.None);
     }
 
     private void RecoverWatcher()
@@ -265,7 +265,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         if (_consumerTask is { IsCompleted: false }) return;
         _consumerCts?.Dispose();
         _consumerCts = new CancellationTokenSource();
-        _consumerTask = Task.Run(() => RunConsumerAsync(_consumerCts.Token));
+        _consumerTask = Task.Run(() => RunConsumerAsync(_consumerCts.Token), _consumerCts.Token);
     }
 
     private void RecoveringTimerElapsed(object? state)
@@ -323,7 +323,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         // processing of a file we just finished handling. A short grace period is cheap defense in
         // depth; callers don't wait on this method today, so deferring the actual removal is
         // transparent to them.
-        _ = Task.Delay(TimeSpan.FromSeconds(2)).ContinueWith(_ =>
+        _ = Task.Delay(TimeSpan.FromSeconds(2), CancellationToken.None).ContinueWith(_ =>
         {
             lock (_exclusions)
             {
@@ -387,7 +387,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         cts?.Cancel();
         try
         {
-            consumerTask?.Wait(TimeSpan.FromSeconds(5));
+            consumerTask?.Wait(TimeSpan.FromSeconds(5), CancellationToken.None);
         }
         catch
         {

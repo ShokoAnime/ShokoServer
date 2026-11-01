@@ -33,11 +33,6 @@ public class SeasonWithYear(int year, YearlySeason animeSeason) : IComparable<Se
             return 1;
         }
 
-        if (ReferenceEquals(null, this))
-        {
-            return -1;
-        }
-
         var yearComparison = Year.CompareTo(other.Year);
         if (yearComparison != 0)
         {

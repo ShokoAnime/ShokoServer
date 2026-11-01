@@ -1179,7 +1179,7 @@ public class AnimeCreator
         }
 
         if (!skipCreatorScheduling)
-            ScheduleCreators(creatorsToSchedule, anime.MainTitle);
+            _ = ScheduleCreators(creatorsToSchedule, anime.MainTitle);
     }
 
     public void CreateStaff(List<ResponseStaff> staffList, AniDB_Anime anime, bool skipCreatorScheduling = false)
@@ -1313,7 +1313,7 @@ public class AnimeCreator
         }
 
         if (!skipCreatorScheduling)
-            ScheduleCreators(creatorsToSchedule, anime.MainTitle);
+            _ = ScheduleCreators(creatorsToSchedule, anime.MainTitle);
     }
 
     /// <summary>
@@ -1350,7 +1350,7 @@ public class AnimeCreator
         );
     }
 
-    private async void ScheduleCreators(IEnumerable<int> creatorIDs, string mainTitle)
+    private async Task ScheduleCreators(IEnumerable<int> creatorIDs, string mainTitle)
     {
         try
         {
