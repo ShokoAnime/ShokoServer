@@ -23,6 +23,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
@@ -619,7 +620,7 @@ public class UserDataService(
                     reason |= EpisodeUserDataSaveReason.UserRating;
                 }
             }
-            else if (userData.UserRating != userDataUpdate.UserRating)
+            else if (!FloatingPoint.AreEqual(userData.UserRating, userDataUpdate.UserRating))
             {
                 userData.UserRating = userDataUpdate.UserRating;
                 shouldSave = true;
@@ -902,7 +903,7 @@ public class UserDataService(
                 providerVoteType = userDataUpdate.UserRatingVoteType is SeriesVoteType.Permanent
                     ? VoteType.AnimePermanent
                     : VoteType.AnimeTemporary;
-                if (userData.UserRating != userDataUpdate.UserRating || userData.UserRatingVoteType != userDataUpdate.UserRatingVoteType)
+                if (!FloatingPoint.AreEqual(userData.UserRating, userDataUpdate.UserRating) || userData.UserRatingVoteType != userDataUpdate.UserRatingVoteType)
                 {
                     userData.UserRating = userDataUpdate.UserRating;
                     userData.UserRatingVoteType = userDataUpdate.UserRatingVoteType;

@@ -16,6 +16,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
@@ -108,7 +109,7 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
                 });
             }
             // TODO: Handle the unsetting of permanent vote to set a temporary vote if needed.
-            else if (vote.VoteValue != userData.UserRating.Value || (voteType != userData.UserRatingVoteType.Value && voteType is not SeriesVoteType.Permanent))
+            else if (!FloatingPoint.AreEqual(vote.VoteValue, userData.UserRating.Value) || (voteType != userData.UserRatingVoteType.Value && voteType is not SeriesVoteType.Permanent))
             {
                 await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
                 {
@@ -146,7 +147,7 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
                     c.VoteValue = -1;
                 });
             }
-            else if (vote.VoteValue != userData.UserRating.Value)
+            else if (!FloatingPoint.AreEqual(vote.VoteValue, userData.UserRating.Value))
             {
                 await scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
                 {

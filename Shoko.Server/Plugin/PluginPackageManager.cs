@@ -1041,11 +1041,17 @@ public partial class PluginPackageManager(
                 throw new ArgumentException("An existing repository with the given URL already exists.", nameof(data.Url));
             WriteRepository(repositoryInfo);
 
-            _logger.LogInformation($"Repository '{name}' created.");
+            _logger.LogInformation("Repository '{RepositoryName}' created.", ForLog(name));
         }
 
         return await SyncPackageRepository(repositoryInfo, forceSync: true, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    ///   Replaces control characters, line breaks included, in a user-supplied value so it cannot forge log entries.
+    /// </summary>
+    private static string? ForLog(string? value)
+        => value is null ? null : new string(value.Select(c => char.IsControl(c) ? '_' : c).ToArray());
 
     /// <inheritdoc/>
     public async Task<PackageRepositoryInfo> EnablePackageRepository(PackageRepositoryInfo repositoryInfo, CancellationToken cancellationToken = default)
@@ -1294,14 +1300,14 @@ public partial class PluginPackageManager(
             var manifestsFilePath = Path.Join(repoDirPath, ManifestFile);
             File.WriteAllText(manifestsFilePath, JsonConvert.SerializeObject(manifests, Formatting.Indented));
 
-            _logger.LogInformation($"Synced {manifests.Count} package manifests from repository '{repositoryInfo.Name}'.");
+            _logger.LogInformation("Synced {Count} package manifests from repository '{RepositoryName}'.", manifests.Count, ForLog(repositoryInfo.Name));
 
             repositoryInfo.LastFetchedAt = lastFetchedAt;
 
             var updatedRepoPath = Path.Join(repoDirPath, RepoInfoFile);
             File.WriteAllText(updatedRepoPath, JsonConvert.SerializeObject(repositoryInfo));
 
-            _logger.LogInformation($"Repository sync completed for '{repositoryInfo.Name}'. Fetched at: {repositoryInfo.LastFetchedAt}");
+            _logger.LogInformation("Repository sync completed for '{RepositoryName}'. Fetched at: {FetchedAt}", ForLog(repositoryInfo.Name), repositoryInfo.LastFetchedAt);
 
             _ = Task.Run(() => RepositorySyncCompleted?.Invoke(null, new RepositorySyncCompletedEventArgs()
             {

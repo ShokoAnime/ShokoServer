@@ -158,7 +158,7 @@ public class Metadata_Series : ISeries<ISeries, IEpisode>, IMetadataStoreRow<Met
             Type == other.Type &&
             AirDate == other.AirDate &&
             EndDate == other.EndDate &&
-            Rating.Equals(other.Rating) &&
+            FloatingPoint.AreEqual(Rating, other.Rating) &&
             RatingVotes == other.RatingVotes &&
             IsRestricted == other.IsRestricted &&
             ReleaseStatus == other.ReleaseStatus &&

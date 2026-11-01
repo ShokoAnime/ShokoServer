@@ -14,6 +14,8 @@ using Shoko.Abstractions.Video.Media;
 #pragma warning disable IDE0019
 #pragma warning disable IDE1006
 #pragma warning disable MsgPack015
+using Shoko.Server.Utilities;
+
 namespace Shoko.Server.MediaInfo;
 
 /// <summary>
@@ -351,7 +353,7 @@ public class GeneralStream : Stream
     public GeneralExtra? extra { get; }
 
     protected bool Equals(GeneralStream other) =>
-        base.Equals(other) && Duration.Equals(other.Duration) && OverallBitRate == other.OverallBitRate && FileExtension == other.FileExtension && Format_Version == other.Format_Version
+        base.Equals(other) && FloatingPoint.AreEqual(Duration, other.Duration) && OverallBitRate == other.OverallBitRate && FileExtension == other.FileExtension && Format_Version == other.Format_Version
         && FrameRate == other.FrameRate && IsStreamable == other.IsStreamable && Nullable.Equals(Encoded_Date, other.Encoded_Date);
 
     public override bool Equals(object? obj)
@@ -611,10 +613,10 @@ public class AudioExtra
     public int dynrng_Count { get; set; }
 
     protected bool Equals(AudioExtra other) =>
-        NumberOfDynamicObjects == other.NumberOfDynamicObjects && bsid == other.bsid && dialnorm.Equals(other.dialnorm) && compr.Equals(other.compr) && dynrng.Equals(other.dynrng) && acmod.Equals(other.acmod)
-        && lfeon.Equals(other.lfeon) && dialnorm_Average.Equals(other.dialnorm_Average) && dialnorm_Minimum.Equals(other.dialnorm_Minimum) && compr_Average.Equals(other.compr_Average)
-        && compr_Minimum.Equals(other.compr_Minimum) && compr_Maximum.Equals(other.compr_Maximum) && compr_Count == other.compr_Count && dynrng_Average.Equals(other.dynrng_Average)
-        && dynrng_Minimum.Equals(other.dynrng_Minimum) && dynrng_Maximum.Equals(other.dynrng_Maximum) && dynrng_Count == other.dynrng_Count;
+        NumberOfDynamicObjects == other.NumberOfDynamicObjects && bsid == other.bsid && FloatingPoint.AreEqual(dialnorm, other.dialnorm) && FloatingPoint.AreEqual(compr, other.compr) && FloatingPoint.AreEqual(dynrng, other.dynrng) && FloatingPoint.AreEqual(acmod, other.acmod)
+        && FloatingPoint.AreEqual(lfeon, other.lfeon) && FloatingPoint.AreEqual(dialnorm_Average, other.dialnorm_Average) && FloatingPoint.AreEqual(dialnorm_Minimum, other.dialnorm_Minimum) && FloatingPoint.AreEqual(compr_Average, other.compr_Average)
+        && FloatingPoint.AreEqual(compr_Minimum, other.compr_Minimum) && FloatingPoint.AreEqual(compr_Maximum, other.compr_Maximum) && compr_Count == other.compr_Count && FloatingPoint.AreEqual(dynrng_Average, other.dynrng_Average)
+        && FloatingPoint.AreEqual(dynrng_Minimum, other.dynrng_Minimum) && FloatingPoint.AreEqual(dynrng_Maximum, other.dynrng_Maximum) && dynrng_Count == other.dynrng_Count;
 
     public override bool Equals(object? obj)
     {

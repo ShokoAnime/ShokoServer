@@ -16,6 +16,8 @@ using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
 using Shoko.Server.Services;
+using Shoko.Server.Utilities;
+
 namespace Shoko.Server.Models.Metadata;
 
 /// <summary>
@@ -168,7 +170,7 @@ public class Metadata_Episode : IEpisode<ISeries, IEpisode>, IMetadataStoreRow<M
             SeasonNumber == other.SeasonNumber &&
             EpisodeNumber == other.EpisodeNumber &&
             Type == other.Type &&
-            Rating.Equals(other.Rating) &&
+            FloatingPoint.AreEqual(Rating, other.Rating) &&
             RatingVotes == other.RatingVotes &&
             RuntimeSeconds == other.RuntimeSeconds &&
             AirDate == other.AirDate &&
