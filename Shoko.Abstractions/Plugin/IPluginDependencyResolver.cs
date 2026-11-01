@@ -67,8 +67,9 @@ public interface IPluginDependencyResolver
     /// </summary>
     /// <param name="plugin">The plugin to validate.</param>
     /// <returns>
-    ///   Enabled plugins that declare <paramref name="plugin"/> as a
-    ///   dependency. Empty if it is safe to disable.
+    ///   Enabled plugins that require <paramref name="plugin"/>. Plugins
+    ///   that only optionally depend on it are left out, as they go on
+    ///   without it. Empty if it is safe to disable.
     /// </returns>
     IReadOnlyList<LocalPluginInfo> ValidateDisable(LocalPluginInfo plugin);
 
@@ -79,8 +80,9 @@ public interface IPluginDependencyResolver
     /// </summary>
     /// <param name="plugin">The plugin to check.</param>
     /// <returns>
-    ///   The full cascade of plugins that depend on <paramref name="plugin"/>,
-    ///   directly or transitively, excluding the plugin itself.
+    ///   The full cascade of plugins that require <paramref name="plugin"/>,
+    ///   directly or transitively, excluding the plugin itself. Plugins that
+    ///   only optionally depend on one in the cascade are left out.
     /// </returns>
     IReadOnlyList<LocalPluginInfo> GetUninstallCascade(LocalPluginInfo plugin);
 

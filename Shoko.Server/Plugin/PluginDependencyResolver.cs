@@ -116,7 +116,9 @@ public class PluginDependencyResolver : IPluginDependencyResolver
     }
 
     public IReadOnlyList<LocalPluginInfo> ValidateDisable(LocalPluginInfo plugin)
-        => GetDependents(plugin);
+        => GetDependents(plugin)
+            .Where(dependent => dependent.Dependencies.Any(dependency => dependency.PluginID == plugin.ID && !dependency.IsOptional))
+            .ToList();
 
     public IReadOnlyList<LocalPluginInfo> GetUninstallCascade(LocalPluginInfo plugin)
     {
@@ -141,7 +143,8 @@ public class PluginDependencyResolver : IPluginDependencyResolver
             if (visited.Contains(candidate.ID))
                 continue;
 
-            if (candidate.Dependencies.Any(d => d.PluginID == pluginId))
+            // A plugin that only optionally depends on it goes on without it.
+            if (candidate.Dependencies.Any(d => d.PluginID == pluginId && !d.IsOptional))
             {
                 visited.Add(candidate.ID);
                 cascade.Add(candidate);
