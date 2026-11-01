@@ -101,6 +101,14 @@ public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IReadOnl
         .ToList();
 
     /// <summary>
+    ///   Why archives the manifest listed for this release were left out,
+    ///   such as one offered over plain http by a manifest served over
+    ///   https. Empty when every archive was kept.
+    /// </summary>
+    [Required]
+    public IReadOnlyList<string> Refusals { get; init; } = releaseInfo.Refusals;
+
+    /// <summary>
     ///   Available archives for different runtime environments and
     ///   architectures.
     /// </summary>

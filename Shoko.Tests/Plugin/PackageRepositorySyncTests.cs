@@ -117,6 +117,57 @@ public class PackageRepositorySyncTests : IDisposable
         Assert.Equal(lastFetchedAt, _repository.LastFetchedAt);
     }
 
+    [Fact]
+    public async Task LinkedHttpManifestOfAnHttpsRepositoryIsLeftOut()
+    {
+        const string plainUrl = "http://plain.test/manifest.json";
+        var plainId = new Guid("33333333-3333-3333-3333-333333333333");
+        _host.Json[RepositoryUrl] = $$"""
+            [
+              { "id": "{{_firstId}}", "type": "manifest", "url": "{{FirstUrl}}" },
+              { "id": "{{plainId}}", "type": "manifest", "url": "{{plainUrl}}" }
+            ]
+            """;
+        _host.Json[plainUrl] = PackageManifest(plainId, "Plain");
+
+        Assert.Equal(["First"], await SyncAndListPackageNames());
+    }
+
+    [Fact]
+    public async Task HttpArchiveInAnHttpsManifestIsRefused()
+    {
+        _host.Json[FirstUrl] = $$"""
+            {
+              "id": "{{_firstId}}", "name": "First", "overview": "Overview.", "authors": "Author", "tags": [],
+              "releases": [
+                {
+                  "version": "1.0.0", "tag": null, "source_revision": null, "channel": "stable", "released_at": "2026-11-01T00:00:00Z",
+                  "archives": [
+                    { "runtime": "any", "abstraction": "6.0.0", "url": "https://first.test/first.zip", "checksum": "sha256:00" },
+                    { "runtime": "any", "abstraction": "6.0.0", "url": "http://first.test/first.zip", "checksum": "sha256:00" }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        await SyncAndListPackageNames();
+        var manifests = await _manager.GetAvailablePackageManifests(allowSync: false, cancellationToken: TestContext.Current.CancellationToken);
+        var release = Assert.Single(manifests.Single(manifest => manifest.PackageID == _firstId).Releases);
+
+        Assert.Equal(["https://first.test/first.zip"], release.Archives.Select(archive => archive.ArchiveUrl));
+        Assert.Contains("http://first.test/first.zip", Assert.Single(release.Refusals));
+    }
+
+    [Theory]
+    [InlineData("https://repo.test/manifest.json", "http://repo.test/a.zip", true)]
+    [InlineData("https://repo.test/manifest.json", "https://repo.test/a.zip", false)]
+    [InlineData("https://repo.test/manifest.json", "a.zip", false)]
+    [InlineData("http://repo.test/manifest.json", "http://repo.test/a.zip", false)]
+    [InlineData("http://repo.test/manifest.json", "https://repo.test/a.zip", false)]
+    public void ADownloadMayNotBeLessSecureThanItsManifest(string manifestUrl, string url, bool refused)
+        => Assert.Equal(refused, PluginPackageManager.IsDowngrade(manifestUrl, url));
+
     /// <summary>
     /// Serves the manifests in <see cref="Json"/> by address, and answers 404
     /// for every other address.
