@@ -48,7 +48,7 @@ public class Filters : BaseDirectory
         if (evaluatedResults == null)
         {
             var evaluator = ctx.RequestServices.GetRequiredService<IFilteringEngine>();
-            evaluatedResults = evaluator.BatchPrepareFiltersWithGrouping(gfs, ctx.GetUser());
+            evaluatedResults = evaluator.BatchPrepareFiltersWithGrouping(gfs, ctx.GetUser(), cancellationToken: ctx.RequestAborted);
             gfs = gfs.Where(a => evaluatedResults[a].Any()).ToList();
         }
 
