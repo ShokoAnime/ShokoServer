@@ -108,21 +108,47 @@ public static class AnidbStartSeasonOverrideCsv
             }
 
             seen[row.AnimeID] = lineNumber;
-            var existing = anidbService.GetStartSeasonOverride(row.AnimeID);
-            if (existing is not null && existing.Year == row.Year && existing.Season == row.Season)
+            switch (Apply(anidbService, row))
             {
-                unchanged++;
-                continue;
+                case OverrideChange.Unchanged:
+                    unchanged++;
+                    break;
+                case OverrideChange.Added:
+                    added++;
+                    break;
+                default:
+                    updated++;
+                    break;
             }
-
-            anidbService.SetStartSeasonOverride(row.AnimeID, row.Year, row.Season);
-            if (existing is null)
-                added++;
-            else
-                updated++;
         }
 
         return new(added, updated, unchanged, rejected);
+    }
+
+    /// <summary>
+    ///   What setting an override did.
+    /// </summary>
+    private enum OverrideChange
+    {
+        Unchanged,
+        Added,
+        Updated,
+    }
+
+    /// <summary>
+    ///   Sets an override through the AniDB service unless it already holds it.
+    /// </summary>
+    /// <param name="anidbService">The AniDB service.</param>
+    /// <param name="row">The override.</param>
+    /// <returns>Whether the override was left as it was, added or updated.</returns>
+    private static OverrideChange Apply(IAnidbService anidbService, (int AnimeID, int Year, YearlySeason Season) row)
+    {
+        var existing = anidbService.GetStartSeasonOverride(row.AnimeID);
+        if (existing is not null && existing.Year == row.Year && existing.Season == row.Season)
+            return OverrideChange.Unchanged;
+
+        anidbService.SetStartSeasonOverride(row.AnimeID, row.Year, row.Season);
+        return existing is null ? OverrideChange.Added : OverrideChange.Updated;
     }
 
     /// <summary>

@@ -41,10 +41,7 @@ public partial class AiringScheduleService
         // A merge moves a keyless schedule without changing its key, so look
         // for the one derived on the channel it came from.
         if (row is null && isKeyless && channelID is { } mergedChannelID)
-            row = RepoFactory.AiringSchedule.GetBySeriesIDAndSeasonID(seriesKey.Source, seriesKey.ID, seasonID)
-                .FirstOrDefault(other => other.ProviderID == info.ID &&
-                    other.ChannelID == mergedChannelID &&
-                    AiringScheduleUtility.IsDerivedChannelScheduleKey(other.Key, tracks));
+            row = FindMergedSchedule(info, seriesKey, seasonID, mergedChannelID, tracks);
         AiringChannel? leftChannel = null;
         var reason = UpdateReason.Added;
         var now = UtcNow;
@@ -63,25 +60,7 @@ public partial class AiringScheduleService
         }
         else
         {
-            if (row.ProviderID != info.ID)
-                throw new ArgumentException("The schedule is owned by another provider.", nameof(provider));
-            // A channel change is a different schedule, never an update to this
-            // one, except for the same channel in another country.
-            if (row.ChannelID != channelID)
-            {
-                if (!TryGetCountryMove(row.ChannelID, channelID, out leftChannel))
-                    throw new ArgumentException("The schedule already exists on another channel.", nameof(data));
-
-                logger.LogInformation(
-                    "Moving schedule {ScheduleID} of provider {ProviderName} from channel {FromChannelID} to {ToChannelID}, its channel in another country.",
-                    row.ID,
-                    info.Name,
-                    row.ChannelID,
-                    channelID
-                );
-                row.ChannelID = channelID;
-            }
-
+            leftChannel = CheckExistingSchedule(row, info, provider, data, channelID);
             reason = UpdateReason.Updated;
         }
 
@@ -101,12 +80,79 @@ public partial class AiringScheduleService
 
         // A channel without a country that nothing airs on any more was the
         // same channel before its country was known, so it folds into it.
-        if (leftChannel is not null && RepoFactory.AiringChannel.GetByChannelID(row.ChannelID!.Value) is { } newChannel &&
+        if (leftChannel is not null)
+            MergeLeftChannel(leftChannel, row.ChannelID!.Value);
+
+        return view;
+    }
+
+    /// <summary>
+    /// The keyless schedule a merge moved to a channel, found by the key
+    /// derived on the channel it came from.
+    /// </summary>
+    /// <param name="info">The provider.</param>
+    /// <param name="seriesKey">The series' key.</param>
+    /// <param name="seasonID">The season's ID, or empty.</param>
+    /// <param name="channelID">The channel the schedule is on now.</param>
+    /// <param name="tracks">The schedule's tracks.</param>
+    /// <returns>The schedule, or <c>null</c>.</returns>
+    private static AiringSchedule? FindMergedSchedule(
+        AiringScheduleProviderInfo info,
+        (MetadataSource Source, string ID) seriesKey,
+        string seasonID,
+        Guid channelID,
+        List<AiringTrackData> tracks
+    )
+        => RepoFactory.AiringSchedule.GetBySeriesIDAndSeasonID(seriesKey.Source, seriesKey.ID, seasonID)
+            .FirstOrDefault(other => other.ProviderID == info.ID &&
+                other.ChannelID == channelID &&
+                AiringScheduleUtility.IsDerivedChannelScheduleKey(other.Key, tracks));
+
+    /// <summary>
+    /// Checks that a stored schedule can be updated by the call, moving it to
+    /// the same channel in another country when the channel differs.
+    /// </summary>
+    /// <param name="row">The stored schedule.</param>
+    /// <param name="info">The provider.</param>
+    /// <param name="provider">The provider passed in.</param>
+    /// <param name="data">The data passed in.</param>
+    /// <param name="channelID">The channel the data names.</param>
+    /// <returns>The channel the schedule left, or <c>null</c> when it stays on its channel.</returns>
+    private AiringChannel? CheckExistingSchedule(AiringSchedule row, AiringScheduleProviderInfo info, IAiringScheduleProvider provider, AiringScheduleData data, Guid? channelID)
+    {
+        if (row.ProviderID != info.ID)
+            throw new ArgumentException("The schedule is owned by another provider.", nameof(provider));
+        // A channel change is a different schedule, never an update to this
+        // one, except for the same channel in another country.
+        if (row.ChannelID == channelID)
+            return null;
+
+        if (!TryGetCountryMove(row.ChannelID, channelID, out var leftChannel))
+            throw new ArgumentException("The schedule already exists on another channel.", nameof(data));
+
+        logger.LogInformation(
+            "Moving schedule {ScheduleID} of provider {ProviderName} from channel {FromChannelID} to {ToChannelID}, its channel in another country.",
+            row.ID,
+            info.Name,
+            row.ChannelID,
+            channelID
+        );
+        row.ChannelID = channelID;
+        return leftChannel;
+    }
+
+    /// <summary>
+    /// Folds the channel a schedule left into the one it moved to, when
+    /// nothing airs on it any more and one of them has no country.
+    /// </summary>
+    /// <param name="leftChannel">The channel the schedule left.</param>
+    /// <param name="newChannelID">The channel it moved to.</param>
+    private void MergeLeftChannel(AiringChannel leftChannel, Guid newChannelID)
+    {
+        if (RepoFactory.AiringChannel.GetByChannelID(newChannelID) is { } newChannel &&
             (leftChannel.CountryCode is null || newChannel.CountryCode is null) &&
             RepoFactory.AiringSchedule.GetByChannelID(leftChannel.ChannelID).Count is 0)
             MergeChannelRows(newChannel, [leftChannel], byScheduleMove: true);
-
-        return view;
     }
 
     /// <inheritdoc/>

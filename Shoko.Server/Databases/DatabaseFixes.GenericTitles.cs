@@ -102,39 +102,12 @@ public partial class DatabaseFixes
             var episode = KindNumber(MetadataEntityType.Episode);
             var season = KindNumber(MetadataEntityType.Season);
             var numbers = EntryNumbers(transaction);
-            var generic = new HashSet<int>();
-            using (var command = transaction.Connection!.CreateCommand())
-            {
-                command.Transaction = transaction;
-                command.CommandText = "SELECT Metadata_TitleID, EntitySource, EntityType, EntityID, Value FROM Metadata_Title " +
-                    $"WHERE EntityType IN ({episode}, {season})";
-                using var reader = command.ExecuteReader();
-                while (reader.Read())
-                {
-                    var kind = AsInt(reader.GetValue(2));
-                    var entityType = kind == episode ? MetadataEntityType.Episode : MetadataEntityType.Season;
-                    GenericEpisodeTitles.EntryNumber? number = numbers.TryGetValue((AsInt(reader.GetValue(1)), kind, reader.GetString(3)), out var found)
-                        ? found
-                        : null;
-                    if (GenericEpisodeTitles.IsGenericFor(entityType, reader.IsDBNull(4) ? null : reader.GetString(4), number))
-                        generic.Add(AsInt(reader.GetValue(0)));
-                }
-            }
+            var generic = FindGenericTitleIDs(transaction, numbers, episode, season);
 
             // A pick copies what it picks, so the picks of a removed title go
             // with it, and the picks of those.
-            var picks = Read(transaction, "SELECT Metadata_TitleID, ReferenceID FROM Metadata_Title WHERE ReferenceID IS NOT NULL")
-                .Select(row => (ID: AsInt(row[0]), ReferenceID: AsInt(row[1])))
-                .ToList();
             var titles = generic.Count;
-            int before;
-            do
-            {
-                before = generic.Count;
-                foreach (var (id, referenceID) in picks)
-                    if (generic.Contains(referenceID))
-                        generic.Add(id);
-            } while (generic.Count > before);
+            AddPicksOfGenericTitles(transaction, generic);
 
             foreach (var chunk in generic.Order().Chunk(TmdbIDsPerList))
                 Execute(transaction, $"DELETE FROM Metadata_Title WHERE Metadata_TitleID IN ({string.Join(", ", chunk.Select(Text))})");
@@ -151,6 +124,54 @@ public partial class DatabaseFixes
     #endregion
 
     #region Generic Titles | Helpers
+
+    /// <summary>
+    ///   Finds the IDs of the episode and season titles that are generic for their own entry's number.
+    /// </summary>
+    private static HashSet<int> FindGenericTitleIDs(
+        DbTransaction transaction,
+        Dictionary<(int Source, int Kind, string ID), GenericEpisodeTitles.EntryNumber> numbers,
+        int episode,
+        int season
+    )
+    {
+        var generic = new HashSet<int>();
+        using var command = transaction.Connection!.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT Metadata_TitleID, EntitySource, EntityType, EntityID, Value FROM Metadata_Title " +
+            $"WHERE EntityType IN ({episode}, {season})";
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            var kind = AsInt(reader.GetValue(2));
+            var entityType = kind == episode ? MetadataEntityType.Episode : MetadataEntityType.Season;
+            GenericEpisodeTitles.EntryNumber? number = numbers.TryGetValue((AsInt(reader.GetValue(1)), kind, reader.GetString(3)), out var found)
+                ? found
+                : null;
+            if (GenericEpisodeTitles.IsGenericFor(entityType, reader.IsDBNull(4) ? null : reader.GetString(4), number))
+                generic.Add(AsInt(reader.GetValue(0)));
+        }
+
+        return generic;
+    }
+
+    /// <summary>
+    ///   Adds the picks of the given titles, and the picks of those, to the set.
+    /// </summary>
+    private static void AddPicksOfGenericTitles(DbTransaction transaction, HashSet<int> generic)
+    {
+        var picks = Read(transaction, "SELECT Metadata_TitleID, ReferenceID FROM Metadata_Title WHERE ReferenceID IS NOT NULL")
+            .Select(row => (ID: AsInt(row[0]), ReferenceID: AsInt(row[1])))
+            .ToList();
+        int before;
+        do
+        {
+            before = generic.Count;
+            foreach (var (id, referenceID) in picks)
+                if (generic.Contains(referenceID))
+                    generic.Add(id);
+        } while (generic.Count > before);
+    }
 
     /// <summary>
     ///   The number every stored season and episode's generic titles carry,

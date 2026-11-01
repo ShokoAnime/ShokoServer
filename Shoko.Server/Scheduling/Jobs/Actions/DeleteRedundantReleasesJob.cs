@@ -35,7 +35,7 @@ public class DeleteRedundantReleasesJob(IVideoService videoService, VideoLocal_P
         get => PlaceIDs is not null
             ? Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(PlaceIDs.Order().ToArray()))))
             : string.Empty;
-        set { }
+        set { _ = value; }
     }
 
     public override string TypeName => "Delete Redundant Files";

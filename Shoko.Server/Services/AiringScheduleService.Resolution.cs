@@ -77,24 +77,33 @@ public partial class AiringScheduleService
             var seriesKeys = new HashSet<(MetadataSource Source, string ID)>();
             foreach (var change in eventArgs.Changes)
             {
-                foreach (var providerID in new[] { change.ProviderID, change.PreviousProviderID })
-                {
-                    if (providerID is null || providerID.Source.IsCore)
-                        continue;
-
-                    if (providerID.EntityType == MetadataEntityType.Series)
-                        seriesKeys.Add((providerID.Source, providerID.ID));
-                    else if (providerID.EntityType == MetadataEntityType.Episode && context.GetEpisode(providerID.Source, providerID.ID) is { } episode)
-                        seriesKeys.Add((episode.Source, episode.SeriesID.ID));
-                    else if (providerID.EntityType == MetadataEntityType.Season && context.GetSeason(providerID.Source, providerID.ID) is { } season)
-                        seriesKeys.Add((season.Source, season.SeriesID.ID));
-                }
+                AddSeriesKey(context, change.ProviderID, seriesKeys);
+                AddSeriesKey(context, change.PreviousProviderID, seriesKeys);
             }
 
             return seriesKeys
                 .SelectMany(key => RepoFactory.AiringSchedule.GetBySeriesID(key.Source, key.ID))
                 .SelectMany(row => RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID).Select(entry => (row, entry)));
         });
+
+    /// <summary>
+    /// Adds the key of the series a changed link's provider entry belongs to.
+    /// </summary>
+    /// <param name="context">The read the lookups belong to.</param>
+    /// <param name="providerID">The provider entry, if any.</param>
+    /// <param name="seriesKeys">The keys to add to.</param>
+    private static void AddSeriesKey(AiringReadContext context, MetadataGuid? providerID, HashSet<(MetadataSource Source, string ID)> seriesKeys)
+    {
+        if (providerID is null || providerID.Source.IsCore)
+            return;
+
+        if (providerID.EntityType == MetadataEntityType.Series)
+            seriesKeys.Add((providerID.Source, providerID.ID));
+        else if (providerID.EntityType == MetadataEntityType.Episode && context.GetEpisode(providerID.Source, providerID.ID) is { } episode)
+            seriesKeys.Add((episode.Source, episode.SeriesID.ID));
+        else if (providerID.EntityType == MetadataEntityType.Season && context.GetSeason(providerID.Source, providerID.ID) is { } season)
+            seriesKeys.Add((season.Source, season.SeriesID.ID));
+    }
 
     /// <summary>
     /// The stored airings whose episode changes with some episodes being
@@ -121,21 +130,39 @@ public partial class AiringScheduleService
             if (episode.Type is not EpisodeType.Episode)
                 continue;
 
-            var places = RepoFactory.AiringSchedule.GetBySeriesID(source, episode.SeriesID.ID)
-                .Select(row => (Row: row, Number: episode.EpisodeNumber));
-            if (episode is IAnidbEpisode anidbEpisode)
-                places = places.Concat(GetUnlinkedEpisodeSchedules(context, anidbEpisode).Select(place => (Row: place.Schedule, place.Number)));
+            foreach (var pair in GetAiringsAtEpisodeNumber(context, episode, source))
+                yield return pair;
+        }
+    }
 
-            foreach (var (row, number) in places)
-            {
-                var sequenceNumber = number - row.FirstEpisodeNumber + 1;
-                if (sequenceNumber < 1)
-                    continue;
+    /// <summary>
+    /// The unpinned airings at an episode's number on the schedules of its
+    /// series, and on the ones an offset places it on.
+    /// </summary>
+    /// <param name="context">The read the lookups belong to.</param>
+    /// <param name="episode">The episode added or removed.</param>
+    /// <param name="source">The source of the episode.</param>
+    /// <returns>The airings, each with its schedule.</returns>
+    private static IEnumerable<(AiringSchedule Schedule, EpisodeAiring Entry)> GetAiringsAtEpisodeNumber(
+        AiringReadContext context,
+        IEpisode episode,
+        MetadataSource source
+    )
+    {
+        var places = RepoFactory.AiringSchedule.GetBySeriesID(source, episode.SeriesID.ID)
+            .Select(row => (Row: row, Number: episode.EpisodeNumber));
+        if (episode is IAnidbEpisode anidbEpisode)
+            places = places.Concat(GetUnlinkedEpisodeSchedules(context, anidbEpisode).Select(place => (Row: place.Schedule, place.Number)));
 
-                foreach (var entry in RepoFactory.EpisodeAiring.GetByScheduleIDAndSequenceNumber(row.AiringScheduleID, sequenceNumber))
-                    if (!entry.IsPinned)
-                        yield return (row, entry);
-            }
+        foreach (var (row, number) in places)
+        {
+            var sequenceNumber = number - row.FirstEpisodeNumber + 1;
+            if (sequenceNumber < 1)
+                continue;
+
+            foreach (var entry in RepoFactory.EpisodeAiring.GetByScheduleIDAndSequenceNumber(row.AiringScheduleID, sequenceNumber))
+                if (!entry.IsPinned)
+                    yield return (row, entry);
         }
     }
 

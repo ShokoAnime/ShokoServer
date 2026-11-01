@@ -146,7 +146,7 @@ internal static class DefaultOrderingPlacement
         var airings = new List<Airing>();
         foreach (var special in lists[specialIndex].OfType<Metadata_Episode>())
         {
-            if (special.AirsBeforeSeasonNumber is { } beforeSeason && Regular(beforeSeason) is { } beforeIndex)
+            if (special.AirsBeforeSeasonNumber is { } beforeSeason && Regular(seasons, specialIndex, beforeSeason) is { } beforeIndex)
             {
                 var target = special.AirsBeforeEpisodeNumber is { } beforeEpisode
                     ? lists[beforeIndex].FirstOrDefault(episode => episode.EpisodeNumber == beforeEpisode)
@@ -158,17 +158,21 @@ internal static class DefaultOrderingPlacement
                 }
             }
 
-            if (special.AirsAfterSeasonNumber is { } afterSeason && Regular(afterSeason) is { } afterIndex)
+            if (special.AirsAfterSeasonNumber is { } afterSeason && Regular(seasons, specialIndex, afterSeason) is { } afterIndex)
                 airings.Add(new(special.ID, afterIndex, null));
         }
 
         return airings;
+    }
 
-        int? Regular(int seasonNumber)
-        {
-            var index = Enumerable.Range(0, seasons.Count).FirstOrDefault(index => index != specialIndex && seasons[index].SeasonNumber == seasonNumber, -1);
-            return index < 0 ? null : index;
-        }
+    /// <summary>
+    ///   Finds the index of the regular season with the given number.
+    /// </summary>
+    /// <returns>The index, or <c>null</c> when the series has no such regular season.</returns>
+    private static int? Regular(IReadOnlyList<ISeason> seasons, int specialIndex, int seasonNumber)
+    {
+        var index = Enumerable.Range(0, seasons.Count).FirstOrDefault(index => index != specialIndex && seasons[index].SeasonNumber == seasonNumber, -1);
+        return index < 0 ? null : index;
     }
 
     #endregion

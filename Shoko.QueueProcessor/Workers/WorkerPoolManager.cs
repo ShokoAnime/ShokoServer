@@ -116,6 +116,7 @@ public sealed class WorkerPoolManager : IHostedService
             ThreadPool.SetMinThreads(totalWorkers, currentIoMin);
 
         // Start workers
+        _cts?.Dispose();
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         foreach (var pool in _pools)
             pool.Start(_serviceProvider, _orchestrator, _metrics, _events, _chainScopeRegistry);

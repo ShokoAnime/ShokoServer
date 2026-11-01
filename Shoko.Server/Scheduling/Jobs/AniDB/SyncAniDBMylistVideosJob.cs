@@ -53,7 +53,7 @@ public class SyncAniDBMylistVideosJob(IMylistService mylistService, IVideoServic
         get => VideoIDs is { Length: > 0 }
             ? Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(VideoIDs.Order().ToArray()))))
             : string.Empty;
-        set { }
+        set { _ = value; }
     }
 
     [JobKeyIgnore]

@@ -194,18 +194,24 @@ internal static class PluginChangePlanner
                 if (listed.Contains(info.ID) || (enabledOnly && !state.IsEnabledAfter(info)))
                     continue;
 
-                entries.Add(state.IsDependencyAfter(info)
-                    ? new()
-                    {
-                        Plugin = info,
-                        Change = PluginChange.None,
-                        Reason = PluginChangeReason.NeededByOthers,
-                        Related = state.DependentsAfter(info.ID, enabledOnly),
-                    }
-                    : new() { Plugin = info, Change = PluginChange.None, Reason = PluginChangeReason.InstalledOnPurpose });
+                entries.Add(CreateStayingEntry(info, state, enabledOnly));
             }
         }
     }
+
+    /// <summary>
+    ///   Creates the entry of a dependency that stays, with why.
+    /// </summary>
+    private static PluginChangePlanEntry CreateStayingEntry(LocalPluginInfo info, PlanState state, bool enabledOnly)
+        => state.IsDependencyAfter(info)
+            ? new()
+            {
+                Plugin = info,
+                Change = PluginChange.None,
+                Reason = PluginChangeReason.NeededByOthers,
+                Related = state.DependentsAfter(info.ID, enabledOnly),
+            }
+            : new() { Plugin = info, Change = PluginChange.None, Reason = PluginChangeReason.InstalledOnPurpose };
 
     /// <summary>
     ///   The active, installed plugins that depend on a plugin, required or

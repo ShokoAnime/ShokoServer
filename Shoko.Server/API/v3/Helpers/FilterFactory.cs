@@ -430,21 +430,7 @@ public class FilterFactory(IHttpContextAccessor context, IFilteringEngine _evalu
             filter.ParentID = null;
 
         if (filter.ParentID.HasValue)
-        {
-            var parentFilter = RepoFactory.FilterPreset.GetByID(filter.ParentID.Value);
-            if (parentFilter == null)
-            {
-                AddError(nameof(filter.ParentID), $"Unable to find parent filter with id {filter.ParentID.Value}");
-            }
-            else
-            {
-                if (parentFilter.Locked)
-                    AddError(nameof(filter.ParentID), "Unable to add a sub-filter to a filter that is locked.");
-
-                if (!parentFilter.IsDirectory)
-                    AddError(nameof(filter.ParentID), "Unable to add a sub-filter to a filter that is not a directorty filter.");
-            }
-        }
+            ValidateParentFilter(filter.ParentID.Value, AddError);
 
         if (existing is { FilterPresetID: > 0 } && filter.IsDirectory != existing.IsDirectory)
             AddError(nameof(filter.IsDirectory), "A filter can not become a directory filter, or stop being one, after it is created.");
@@ -459,5 +445,24 @@ public class FilterFactory(IHttpContextAccessor context, IFilteringEngine _evalu
         }
 
         return isValid;
+    }
+
+    /// <summary>
+    /// Checks that a parent filter exists, is not locked and is a directory.
+    /// </summary>
+    private static void ValidateParentFilter(int parentID, Action<string, string> addError)
+    {
+        var parentFilter = RepoFactory.FilterPreset.GetByID(parentID);
+        if (parentFilter == null)
+        {
+            addError(nameof(Filter.Input.CreateOrUpdateFilterBody.ParentID), $"Unable to find parent filter with id {parentID}");
+            return;
+        }
+
+        if (parentFilter.Locked)
+            addError(nameof(Filter.Input.CreateOrUpdateFilterBody.ParentID), "Unable to add a sub-filter to a filter that is locked.");
+
+        if (!parentFilter.IsDirectory)
+            addError(nameof(Filter.Input.CreateOrUpdateFilterBody.ParentID), "Unable to add a sub-filter to a filter that is not a directorty filter.");
     }
 }

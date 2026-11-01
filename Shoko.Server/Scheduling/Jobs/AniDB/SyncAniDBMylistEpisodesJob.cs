@@ -53,7 +53,7 @@ public class SyncAniDBMylistEpisodesJob(IMylistService mylistService, AnimeEpiso
         get => EpisodeIDs is { Length: > 0 }
             ? Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(EpisodeIDs.Order().ToArray()))))
             : string.Empty;
-        set { }
+        set { _ = value; }
     }
 
     [JobKeyIgnore]

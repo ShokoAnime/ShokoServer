@@ -196,8 +196,37 @@ public class AnimeCreator
         var descriptionUpdated = false;
         var shouldUpdateFiles = false;
         var isNew = anime.AnimeID == 0 || anime.AniDB_AnimeID == 0;
+        PopulateIdentityFields(animeInfo, anime, ref isUpdated, ref descriptionUpdated, ref shouldUpdateFiles);
+        PopulateCountAndDateFields(animeInfo, anime, ref isUpdated, ref shouldUpdateFiles);
+        PopulateRatingFields(animeInfo, anime, ref isUpdated);
+
+        if (isNew)
+        {
+            anime.AllTags = string.Empty;
+            anime.ImageEnabled = 1;
+        }
+
+#pragma warning disable CS0618
+        // Make sure these fields are set for new entries.
+        if (isNew)
+            anime.CreatedAt = anime.DateTimeUpdated = anime.DateTimeDescUpdated = DateTime.Now;
+#pragma warning restore CS0618
+
+        return (isUpdated, descriptionUpdated, shouldUpdateFiles);
+    }
+
+    /// <summary>
+    ///   Copies the first group of the anime's fields: dates, type, rating, begin year and description.
+    /// </summary>
+    private static void PopulateIdentityFields(
+        ResponseAnime animeInfo,
+        AniDB_Anime anime,
+        ref bool isUpdated,
+        ref bool descriptionUpdated,
+        ref bool shouldUpdateFiles
+    )
+    {
         var description = animeInfo.Description ?? string.Empty;
-        var episodeCountSpecial = animeInfo.EpisodeCount - animeInfo.EpisodeCountNormal;
         if (anime.AirDate != animeInfo.AirDate)
         {
             anime.AirDate = animeInfo.AirDate;
@@ -239,7 +268,14 @@ public class AnimeCreator
             descriptionUpdated = true;
             shouldUpdateFiles = true;
         }
+    }
 
+    /// <summary>
+    ///   Copies the second group of the anime's fields: end date and year, title, episode counts, picture, rating and restriction.
+    /// </summary>
+    private static void PopulateCountAndDateFields(ResponseAnime animeInfo, AniDB_Anime anime, ref bool isUpdated, ref bool shouldUpdateFiles)
+    {
+        var episodeCountSpecial = animeInfo.EpisodeCount - animeInfo.EpisodeCountNormal;
         if (anime.EndDate != animeInfo.EndDate)
         {
             anime.EndDate = animeInfo.EndDate;
@@ -298,7 +334,13 @@ public class AnimeCreator
             isUpdated = true;
             shouldUpdateFiles = true;
         }
+    }
 
+    /// <summary>
+    ///   Copies the last group of the anime's fields: review, temporary rating, vote counts and URL.
+    /// </summary>
+    private static void PopulateRatingFields(ResponseAnime animeInfo, AniDB_Anime anime, ref bool isUpdated)
+    {
         if (anime.ReviewCount != animeInfo.ReviewCount)
         {
             anime.ReviewCount = animeInfo.ReviewCount;
@@ -328,20 +370,6 @@ public class AnimeCreator
             anime.VoteCount = animeInfo.VoteCount;
             isUpdated = true;
         }
-
-        if (isNew)
-        {
-            anime.AllTags = string.Empty;
-            anime.ImageEnabled = 1;
-        }
-
-#pragma warning disable CS0618
-        // Make sure these fields are set for new entries.
-        if (isNew)
-            anime.CreatedAt = anime.DateTimeUpdated = anime.DateTimeDescUpdated = DateTime.Now;
-#pragma warning restore CS0618
-
-        return (isUpdated, descriptionUpdated, shouldUpdateFiles);
     }
 
     /// <summary>

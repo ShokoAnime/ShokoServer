@@ -404,20 +404,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             if (_jobKeyIndex.TryGetValue(job.JobKey, out var existingId))
             {
                 isExisting = true;
-                if (!_executingSet.ContainsKey(existingId) && HasMergeHandler(type))
-                {
-                    if (!TryUpgradeDeferredUnderLock(job.JobKey, existingId, context))
-                    {
-                        shouldUpgrade = true;
-                        upgradeId = existingId;
-                    }
-                }
-                else if (!_executingSet.ContainsKey(existingId))
-                {
-                    // A deferred job is held outside the pools and released at Immediate, so only its pool is tried.
-                    shouldRaise = true;
-                    upgradeId = existingId;
-                }
+                ClassifyExistingUnderLock(type, existingId, context, out shouldUpgrade, out shouldRaise);
+                upgradeId = shouldUpgrade || shouldRaise ? existingId : Guid.Empty;
             }
             else
             {
@@ -447,6 +435,27 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             : context.DisplayItem;
         FireJobsAdded([item]);
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Decides what a duplicate enqueue does to the job already queued under its key. Must run
+    /// under <see cref="_gate"/>. An executing job is left alone.
+    /// </summary>
+    private void ClassifyExistingUnderLock(Type type, Guid existingId, EnqueueContext context, out bool shouldUpgrade, out bool shouldRaise)
+    {
+        shouldUpgrade = false;
+        shouldRaise = false;
+        if (_executingSet.ContainsKey(existingId))
+            return;
+
+        if (HasMergeHandler(type))
+        {
+            shouldUpgrade = !TryUpgradeDeferredUnderLock(context.Job.JobKey, existingId, context);
+            return;
+        }
+
+        // A deferred job is held outside the pools and released at Immediate, so only its pool is tried.
+        shouldRaise = true;
     }
 
     /// <summary>

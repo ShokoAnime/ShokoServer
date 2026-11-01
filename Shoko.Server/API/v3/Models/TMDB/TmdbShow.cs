@@ -244,36 +244,14 @@ public class TmdbShow
         Genres = show.Genres;
         if (include.HasFlag(IncludeDetails.ContentRatings))
             ContentRatings = show.TmdbContentRatings.ToDto(language);
-        if (include.HasFlag(IncludeDetails.Studios))
-            Studios = show.TmdbStudios
-                .Select(company => new Studio(company))
-                .ToList();
-        if (include.HasFlag(IncludeDetails.Networks))
-            Networks = show.TmdbNetworks
-                .Select(network => new Network(network))
-                .ToList();
-        if (include.HasFlag(IncludeDetails.Images))
-            Images = ((IWithImages)show).GetImages()
-                .ToDto(language);
-        if (include.HasFlag(IncludeDetails.Cast))
-            Cast = (alternateOrdering is null ? show.TmdbCast : alternateOrdering.Cast)
-                .Select(Role.FromTmdb)
-                .OfType<Role>()
-                .ToList();
-        if (include.HasFlag(IncludeDetails.Crew))
-            Crew = (alternateOrdering is null ? show.TmdbCrew : alternateOrdering.Crew)
-                .Select(Role.FromTmdb)
-                .OfType<Role>()
-                .ToList();
+        Studios = StudiosOf(show, include);
+        Networks = NetworksOf(show, include);
+        Images = ImagesOf(show, include, language);
+        Cast = CastOf(show, include, alternateOrdering);
+        Crew = CrewOf(show, include, alternateOrdering);
         if (include.HasFlag(IncludeDetails.YearlySeasons))
             YearlySeasons = show.YearlySeasons.ToV3Dto();
-        if (include.HasFlag(IncludeDetails.DaysOfWeek))
-            DaysOfWeek = show.TmdbEpisodes
-                .Select(e => e.AiredAt?.DayOfWeek)
-                .WhereNotNullOrDefault()
-                .Distinct()
-                .Order()
-                .ToList();
+        DaysOfWeek = DaysOfWeekOf(show, include);
         if (alternateOrdering != null)
         {
             EpisodeCount = alternateOrdering.EpisodeCount;
@@ -288,27 +266,8 @@ public class TmdbShow
         }
         var alternateOrderings = show.TmdbAlternateOrdering;
         AlternateOrderingCount = alternateOrderings.Count;
-        if (include.HasFlag(IncludeDetails.Ordering))
-        {
-            var preferredOrderingID = show.PreferredAlternateOrderingID;
-            var ordering = new List<OrderingInformation>
-            {
-                new(show, alternateOrdering),
-            };
-            foreach (var altOrder in alternateOrderings)
-                ordering.Add(new(altOrder, preferredOrderingID, alternateOrdering));
-            Ordering = ordering
-                .OrderByDescending(o => o.IsDefault)
-                .ThenBy(o => o.OrderingType)
-                .ThenBy(o => o.OrderingName)
-                .ToList();
-        }
-        if (include.HasFlag(IncludeDetails.CrossReferences))
-            CrossReferences = show.CrossReferences
-                .Select(xref => new CrossReference(xref))
-                .OrderBy(xref => xref.AnidbAnimeID)
-                .ThenBy(xref => xref.TmdbShowID)
-                .ToList();
+        Ordering = OrderingOf(show, include, alternateOrdering, alternateOrderings);
+        CrossReferences = CrossReferencesOf(show, include);
         if (include.HasFlag(IncludeDetails.Keywords))
             Keywords = show.Keywords;
         if (include.HasFlag(IncludeDetails.ProductionCountries))
@@ -318,6 +277,91 @@ public class TmdbShow
         CreatedAt = show.CreatedAt.ToUniversalTime();
         LastUpdatedAt = show.LastUpdatedAt.ToUniversalTime();
     }
+
+    private static IReadOnlyList<Studio>? StudiosOf(Metadata_Series show, IncludeDetails include)
+        => !include.HasFlag(IncludeDetails.Studios)
+            ? null
+            : show.TmdbStudios
+                .Select(company => new Studio(company))
+                .ToList();
+
+    private static IReadOnlyList<Network>? NetworksOf(Metadata_Series show, IncludeDetails include)
+        => !include.HasFlag(IncludeDetails.Networks)
+            ? null
+            : show.TmdbNetworks
+                .Select(network => new Network(network))
+                .ToList();
+
+    private static Images? ImagesOf(Metadata_Series show, IncludeDetails include, IReadOnlySet<TitleLanguage>? language)
+        => !include.HasFlag(IncludeDetails.Images)
+            ? null
+            : ((IWithImages)show).GetImages()
+                .ToDto(language);
+
+    private static IReadOnlyList<Role>? CastOf(Metadata_Series show, IncludeDetails include, TmdbCompatibility.AlternateOrdering? alternateOrdering)
+    {
+        if (!include.HasFlag(IncludeDetails.Cast))
+            return null;
+
+        return (alternateOrdering is null ? show.TmdbCast : alternateOrdering.Cast)
+            .Select(Role.FromTmdb)
+            .OfType<Role>()
+            .ToList();
+    }
+
+    private static IReadOnlyList<Role>? CrewOf(Metadata_Series show, IncludeDetails include, TmdbCompatibility.AlternateOrdering? alternateOrdering)
+    {
+        if (!include.HasFlag(IncludeDetails.Crew))
+            return null;
+
+        return (alternateOrdering is null ? show.TmdbCrew : alternateOrdering.Crew)
+            .Select(Role.FromTmdb)
+            .OfType<Role>()
+            .ToList();
+    }
+
+    private static List<DayOfWeek>? DaysOfWeekOf(Metadata_Series show, IncludeDetails include)
+        => !include.HasFlag(IncludeDetails.DaysOfWeek)
+            ? null
+            : show.TmdbEpisodes
+                .Select(e => e.AiredAt?.DayOfWeek)
+                .WhereNotNullOrDefault()
+                .Distinct()
+                .Order()
+                .ToList();
+
+    private static IReadOnlyList<OrderingInformation>? OrderingOf(
+        Metadata_Series show,
+        IncludeDetails include,
+        TmdbCompatibility.AlternateOrdering? alternateOrdering,
+        IReadOnlyList<TmdbCompatibility.AlternateOrdering> alternateOrderings
+    )
+    {
+        if (!include.HasFlag(IncludeDetails.Ordering))
+            return null;
+
+        var preferredOrderingID = show.PreferredAlternateOrderingID;
+        var ordering = new List<OrderingInformation>
+        {
+            new(show, alternateOrdering),
+        };
+        foreach (var altOrder in alternateOrderings)
+            ordering.Add(new(altOrder, preferredOrderingID, alternateOrdering));
+        return ordering
+            .OrderByDescending(o => o.IsDefault)
+            .ThenBy(o => o.OrderingType)
+            .ThenBy(o => o.OrderingName)
+            .ToList();
+    }
+
+    private static IReadOnlyList<CrossReference>? CrossReferencesOf(Metadata_Series show, IncludeDetails include)
+        => !include.HasFlag(IncludeDetails.CrossReferences)
+            ? null
+            : show.CrossReferences
+                .Select(xref => new CrossReference(xref))
+                .OrderBy(xref => xref.AnidbAnimeID)
+                .ThenBy(xref => xref.TmdbShowID)
+                .ToList();
 
     public class OrderingInformation
     {

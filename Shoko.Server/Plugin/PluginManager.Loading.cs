@@ -287,29 +287,7 @@ public partial class PluginManager
 
             foreach (var directory in Directory.EnumerateDirectories(root, "*", options))
             {
-                if (string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory)), ownFullPath, StringComparison.Ordinal))
-                    continue;
-
-                var candidate = Path.Join(directory, name + ".dll");
-                if (!File.Exists(candidate))
-                    continue;
-
-                var isExported = Directory.EnumerateFiles(directory, "*.deps.json", options)
-                    .Any(depsPath => PluginLoadContext.ReadExportedAssemblies(Path.ChangeExtension(Path.ChangeExtension(depsPath, null), ".dll"), depsPath).Contains(name));
-                if (!isExported)
-                    continue;
-
-                Version? version;
-                try
-                {
-                    version = AssemblyName.GetAssemblyName(candidate).Version;
-                }
-                catch (Exception ex) when (ex is IOException or BadImageFormatException or UnauthorizedAccessException or ArgumentException)
-                {
-                    continue;
-                }
-
-                if (assemblyName.Version is { } wanted && version is not null && version < wanted)
+                if (!TryReadExportedCandidate(directory, ownFullPath, assemblyName, name, options, out var candidate, out var version))
                     continue;
 
                 if (best is null || (version is not null && (bestVersion is null || version > bestVersion)))
@@ -318,6 +296,47 @@ public partial class PluginManager
         }
 
         return best;
+    }
+
+    /// <summary>
+    ///   Reads the copy of an assembly in another plugin's directory, if that
+    ///   plugin builds it itself and the copy is at least as new as asked for.
+    /// </summary>
+    /// <returns><c>true</c> when the directory holds a fitting copy.</returns>
+    private static bool TryReadExportedCandidate(
+        string directory,
+        string? ownFullPath,
+        AssemblyName assemblyName,
+        string name,
+        EnumerationOptions options,
+        out string candidate,
+        out Version? version
+    )
+    {
+        candidate = string.Empty;
+        version = null;
+        if (string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory)), ownFullPath, StringComparison.Ordinal))
+            return false;
+
+        candidate = Path.Join(directory, name + ".dll");
+        if (!File.Exists(candidate))
+            return false;
+
+        var isExported = Directory.EnumerateFiles(directory, "*.deps.json", options)
+            .Any(depsPath => PluginLoadContext.ReadExportedAssemblies(Path.ChangeExtension(Path.ChangeExtension(depsPath, null), ".dll"), depsPath).Contains(name));
+        if (!isExported)
+            return false;
+
+        try
+        {
+            version = AssemblyName.GetAssemblyName(candidate).Version;
+        }
+        catch (Exception ex) when (ex is IOException or BadImageFormatException or UnauthorizedAccessException or ArgumentException)
+        {
+            return false;
+        }
+
+        return !(assemblyName.Version is { } wanted && version is not null && version < wanted);
     }
 
     internal InternalPluginInfo? LoadInternalPluginInfo(string? dirPath, string[] dlls, bool isSystem, IServerSettings settings, ref bool settingsChanged)

@@ -394,13 +394,7 @@ public class AnidbAnimeCatalog(
             : filteredAnimeIDs.Select(animeRepository.GetByAnimeID).OfType<AniDB_Anime>();
         foreach (var anime in candidates)
         {
-            if (types is not null && !types.Contains(anime.AnimeType))
-                continue;
-
-            if (!options.IncludeRestricted.Passes(anime.IsRestricted))
-                continue;
-
-            if (inSeasons is not null && !inSeasons(anime))
+            if (!PassesAnimeFilters(options, types, inSeasons, anime))
                 continue;
 
             var series = seriesRepository.GetByAnimeID(anime.AnimeID);
@@ -420,6 +414,21 @@ public class AnidbAnimeCatalog(
             if (title.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 yield return (anime, series, title);
         }
+    }
+
+    /// <summary>
+    ///   Whether an anime passes the filters that need nothing but the anime
+    ///   itself: its type, whether it is restricted and its seasons.
+    /// </summary>
+    private static bool PassesAnimeFilters(AnidbAnimeListOptions options, HashSet<AnimeType>? types, Func<AniDB_Anime, bool>? inSeasons, AniDB_Anime anime)
+    {
+        if (types is not null && !types.Contains(anime.AnimeType))
+            return false;
+
+        if (!options.IncludeRestricted.Passes(anime.IsRestricted))
+            return false;
+
+        return inSeasons is null || inSeasons(anime);
     }
 
     /// <summary>

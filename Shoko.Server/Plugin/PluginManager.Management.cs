@@ -316,23 +316,32 @@ public partial class PluginManager
                 continue;
 
             foreach (var folder in Directory.GetDirectories(root))
-            {
-                if (!File.Exists(Path.Join(folder, Remove)))
-                    continue;
+                RemoveMarkedPluginDataFolder(root, folder);
+        }
+    }
 
-                if (root == applicationPaths.DatabasePath && Guid.TryParse(Path.GetFileName(folder), out var pluginID) && !DropPluginTables(pluginID))
-                    continue;
+    /// <summary>
+    /// Removes one plugin data folder if it is marked for removal, unless its tables in the core's
+    /// database could not be dropped.
+    /// </summary>
+    /// <param name="root">The database or cache root the folder is in.</param>
+    /// <param name="folder">The folder.</param>
+    private void RemoveMarkedPluginDataFolder(string root, string folder)
+    {
+        if (!File.Exists(Path.Join(folder, Remove)))
+            return;
 
-                logger.LogInformation("Removing the data of an uninstalled plugin: {Path}", folder);
-                try
-                {
-                    Directory.Delete(folder, true);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to remove the data of an uninstalled plugin: {Path}", folder);
-                }
-            }
+        if (root == applicationPaths.DatabasePath && Guid.TryParse(Path.GetFileName(folder), out var pluginID) && !DropPluginTables(pluginID))
+            return;
+
+        logger.LogInformation("Removing the data of an uninstalled plugin: {Path}", folder);
+        try
+        {
+            Directory.Delete(folder, true);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to remove the data of an uninstalled plugin: {Path}", folder);
         }
     }
 
@@ -380,23 +389,14 @@ public partial class PluginManager
 
     private LocalPluginInfo? LoadFromDirectoryOrDLL(string? containingDirectory, string[] dlls)
     {
-        LocalPluginInfo? existingPluginInfo = null;
-        if (!string.IsNullOrEmpty(containingDirectory))
-        {
-            existingPluginInfo = _pluginTypes.Find(p => p.ContainingDirectory == containingDirectory);
-            if (existingPluginInfo?.IsInstalled ?? false)
-                return existingPluginInfo;
-        }
-        else if (dlls.Length is 1)
-        {
-            existingPluginInfo = _pluginTypes.Find(p => p.IsInstalled && p.DLLs[0] == dlls[0]);
-            if (existingPluginInfo?.IsInstalled ?? false)
-                return existingPluginInfo;
-        }
-        else
-        {
+        if (string.IsNullOrEmpty(containingDirectory) && dlls.Length is not 1)
             return null;
-        }
+
+        var existingPluginInfo = string.IsNullOrEmpty(containingDirectory)
+            ? _pluginTypes.Find(p => p.IsInstalled && p.DLLs[0] == dlls[0])
+            : _pluginTypes.Find(p => p.ContainingDirectory == containingDirectory);
+        if (existingPluginInfo?.IsInstalled ?? false)
+            return existingPluginInfo;
 
         if (LoadInternalPluginInfo(containingDirectory, dlls) is not { } internalPluginInfo)
             return null;
@@ -441,23 +441,35 @@ public partial class PluginManager
             _pluginTypes.Add(pluginInfo);
 
         // Unmark the plugin for removal when it's reinstalled again.
-        if (existingPluginInfo is not null && !string.IsNullOrEmpty(pluginInfo.ContainingDirectory))
-        {
-            if (Directory.Exists(pluginInfo.ContainingDirectory))
-            {
-                var removalFile = Path.Join(pluginInfo.ContainingDirectory, Remove);
-                if (File.Exists(removalFile))
-                    File.Delete(removalFile);
-            }
-        }
-        else if (existingPluginInfo is not null && pluginInfo.DLLs.Count is 1)
-        {
-            var removalFile = Path.ChangeExtension(pluginInfo.DLLs[0], Remove);
-            if (File.Exists(removalFile))
-                File.Delete(removalFile);
-        }
+        if (existingPluginInfo is not null)
+            UnmarkReinstalledPluginForRemoval(pluginInfo);
 
         return pluginInfo;
+    }
+
+    /// <summary>
+    /// Deletes the removal marker of a plugin that was reinstalled.
+    /// </summary>
+    /// <param name="pluginInfo">The reinstalled plugin.</param>
+    private static void UnmarkReinstalledPluginForRemoval(LocalPluginInfo pluginInfo)
+    {
+        if (!string.IsNullOrEmpty(pluginInfo.ContainingDirectory))
+        {
+            if (!Directory.Exists(pluginInfo.ContainingDirectory))
+                return;
+
+            DeleteIfExists(Path.Join(pluginInfo.ContainingDirectory, Remove));
+        }
+        else if (pluginInfo.DLLs.Count is 1)
+        {
+            DeleteIfExists(Path.ChangeExtension(pluginInfo.DLLs[0], Remove));
+        }
+    }
+
+    private static void DeleteIfExists(string path)
+    {
+        if (File.Exists(path))
+            File.Delete(path);
     }
 
     private LocalPluginInfo TogglePlugin(LocalPluginInfo pluginInfo, bool enabled)

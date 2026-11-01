@@ -535,6 +535,38 @@ public class MetadataTextStore(TextCache cache, MetadataRowWriter writer, ILogge
         // source's own texts are replaced, since they follow what they pick.
         var stored = RowsOf(entry, row => row.Kind == kind && cache.SourceOf(row) == source && row.ReferenceID is 0);
         var unmatched = new List<MetadataTextRow>(stored);
+        var matches = MatchStoredRows(items, unmatched);
+
+        for (var index = 0; index < items.Count; index++)
+        {
+            var item = items[index];
+            var row = matches[index];
+            var ordering = gap is { } free && index >= free ? index + 1 : index;
+            if (row is not null && item.SameText(row) && row.Ordering == ordering && row.Language == item.Language)
+                continue;
+
+            var changedValue = row is not null && !string.Equals(row.Value, item.Value, StringComparison.Ordinal);
+            row ??= MetadataTextRow.Create(kind);
+            row.EntryID = entry;
+            row.Source = source;
+            item.CopyTo(row);
+            row.Ordering = ordering;
+            saving.Add(row);
+            if (changedValue)
+                saving.AddRange(Followers(row));
+        }
+
+        deleting.AddRange(unmatched);
+    }
+
+    /// <summary>
+    ///   Matches each given text to a stored row, taking the matched rows out of <paramref name="unmatched"/>.
+    /// </summary>
+    /// <param name="items">The checked texts, in order.</param>
+    /// <param name="unmatched">The stored rows; the ones left over when it returns.</param>
+    /// <returns>The row of each text, or <c>null</c> for a text with none.</returns>
+    private static MetadataTextRow?[] MatchStoredRows(IReadOnlyList<CheckedText> items, List<MetadataTextRow> unmatched)
+    {
         var matches = new MetadataTextRow?[items.Count];
 
         // First the texts that are still given as they were.
@@ -564,26 +596,7 @@ public class MetadataTextStore(TextCache cache, MetadataRowWriter writer, ILogge
             unmatched.RemoveAt(match);
         }
 
-        for (var index = 0; index < items.Count; index++)
-        {
-            var item = items[index];
-            var row = matches[index];
-            var ordering = gap is { } free && index >= free ? index + 1 : index;
-            if (row is not null && item.SameText(row) && row.Ordering == ordering && row.Language == item.Language)
-                continue;
-
-            var changedValue = row is not null && !string.Equals(row.Value, item.Value, StringComparison.Ordinal);
-            row ??= MetadataTextRow.Create(kind);
-            row.EntryID = entry;
-            row.Source = source;
-            item.CopyTo(row);
-            row.Ordering = ordering;
-            saving.Add(row);
-            if (changedValue)
-                saving.AddRange(Followers(row));
-        }
-
-        deleting.AddRange(unmatched);
+        return matches;
     }
 
     /// <summary>

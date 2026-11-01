@@ -148,34 +148,50 @@ internal sealed class AnidbLinkedAirDateCache
             foreach (var animeID in stale)
                 _stale.TryRemove(animeID, out _);
 
-            Dictionary<int, AnimeDates> anime;
-            if (_snapshot is { } previous)
-            {
-                anime = new(previous.Anime);
-                foreach (var animeID in stale)
-                {
-                    if (BuildAnime(animeID) is { } dates)
-                        anime[animeID] = dates;
-                    else
-                        anime.Remove(animeID);
-                }
-            }
-            else
-            {
-                anime = [];
-                var animeIDs = RepoFactory.AniDB_Episode.GetAll()
-                    .Where(IsUndatedPre1970)
-                    .Select(episode => episode.AnimeID)
-                    .ToHashSet();
-                foreach (var animeID in animeIDs)
-                {
-                    if (BuildAnime(animeID) is { } dates)
-                        anime[animeID] = dates;
-                }
-            }
-
+            var anime = _snapshot is { } previous ? RebuildStale(previous, stale) : BuildAll();
             return _snapshot = new(anime);
         }
+    }
+
+    /// <summary>
+    /// The previous snapshot's anime with the stale ones rebuilt, or dropped
+    /// when the cache no longer covers them.
+    /// </summary>
+    /// <param name="previous">The previous snapshot.</param>
+    /// <param name="stale">The AniDB anime IDs to rebuild.</param>
+    /// <returns>The anime.</returns>
+    private Dictionary<int, AnimeDates> RebuildStale(Snapshot previous, List<int> stale)
+    {
+        Dictionary<int, AnimeDates> anime = new(previous.Anime);
+        foreach (var animeID in stale)
+        {
+            if (BuildAnime(animeID) is { } dates)
+                anime[animeID] = dates;
+            else
+                anime.Remove(animeID);
+        }
+
+        return anime;
+    }
+
+    /// <summary>
+    /// The anime of every AniDB anime with an undated regular episode.
+    /// </summary>
+    /// <returns>The anime.</returns>
+    private Dictionary<int, AnimeDates> BuildAll()
+    {
+        Dictionary<int, AnimeDates> anime = [];
+        var animeIDs = RepoFactory.AniDB_Episode.GetAll()
+            .Where(IsUndatedPre1970)
+            .Select(episode => episode.AnimeID)
+            .ToHashSet();
+        foreach (var animeID in animeIDs)
+        {
+            if (BuildAnime(animeID) is { } dates)
+                anime[animeID] = dates;
+        }
+
+        return anime;
     }
 
     /// <summary>

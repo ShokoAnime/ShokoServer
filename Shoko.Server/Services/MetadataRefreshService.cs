@@ -119,29 +119,49 @@ public class MetadataRefreshService : IMetadataRefreshService
                     ? []
                     : _metadataService.GetAllCollectionsForSource(info.Source).ToList();
             var items = new ItemProgress(stages, entries.Count + collections.Count);
-            foreach (var entry in entries)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (MetadataProviderScheduler.Refreshes(info.Provider, entry.EntityType) && MetadataProviderScheduler.MayRefresh(info, entry.EntityType) &&
-                    await _providerScheduler.ScheduleRefresh(info, entry, force, options, cancellationToken).ConfigureAwait(false))
-                    queued++;
-
-                items.Increment();
-            }
-
-            foreach (var collection in collections)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (await _providerScheduler.ScheduleRefresh(info, collection.ID, force, options, cancellationToken).ConfigureAwait(false))
-                    queued++;
-
-                items.Increment();
-            }
+            queued += await ScheduleLinkedRefreshes(info, entries, collections, items, force, options, cancellationToken).ConfigureAwait(false);
 
             stages.NextStage();
         }
 
         stages.Complete();
+        return queued;
+    }
+
+    /// <summary>
+    ///   Schedules the refresh of each linked entry and stored collection of one provider.
+    /// </summary>
+    /// <returns>How many refreshes were queued.</returns>
+    private async Task<int> ScheduleLinkedRefreshes(
+        MetadataProviderInfo info,
+        IReadOnlyList<MetadataGuid> entries,
+        IReadOnlyList<ICollection> collections,
+        ItemProgress items,
+        bool force,
+        MetadataRefreshOptions options,
+        CancellationToken cancellationToken
+    )
+    {
+        var queued = 0;
+        foreach (var entry in entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (MetadataProviderScheduler.Refreshes(info.Provider, entry.EntityType) && MetadataProviderScheduler.MayRefresh(info, entry.EntityType) &&
+                await _providerScheduler.ScheduleRefresh(info, entry, force, options, cancellationToken).ConfigureAwait(false))
+                queued++;
+
+            items.Increment();
+        }
+
+        foreach (var collection in collections)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (await _providerScheduler.ScheduleRefresh(info, collection.ID, force, options, cancellationToken).ConfigureAwait(false))
+                queued++;
+
+            items.Increment();
+        }
+
         return queued;
     }
 
