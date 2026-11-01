@@ -1827,7 +1827,7 @@ public partial class PluginPackageManager(
     /// <inheritdoc/>
     public async Task ScheduleCheckForUpdates(bool? forceSync = null, bool? performUpgrade = null, CancellationToken cancellationToken = default)
     {
-        await queueSchedulerAccessor().StartJob<CheckPluginUpdatesJob>(c => (c.ForceSync, c.PerformUpgrade) = (forceSync, performUpgrade)).ConfigureAwait(false);
+        await queueSchedulerAccessor().StartJob<CheckPluginUpdatesJob>(c => (c.ForceSync, c.PerformUpgrade) = (forceSync, performUpgrade), ct: cancellationToken).ConfigureAwait(false);
     }
 
     #endregion

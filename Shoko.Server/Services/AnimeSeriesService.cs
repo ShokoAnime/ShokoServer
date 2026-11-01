@@ -49,6 +49,7 @@ public class AnimeSeriesService(
 {
     private readonly UserDataService _userDataService = (UserDataService)userDataService;
 
+    private readonly object _statsLock = new();
     private IAnidbService? _anidbService;
     private IShokoGroupManager? _groupManager;
     private IMetadataLinkingService? _linkingService;
@@ -159,7 +160,7 @@ public class AnimeSeriesService(
     public void UpdateStats(AnimeSeries? series, bool watchedStats, bool missingEpsStats)
     {
         if (series == null) return;
-        lock (this)
+        lock (_statsLock)
         {
             var start = DateTime.Now;
             var initialStart = DateTime.Now;

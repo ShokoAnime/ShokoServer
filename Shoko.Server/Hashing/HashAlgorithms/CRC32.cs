@@ -39,34 +39,34 @@ public class CRC32 : HashAlgorithm
         0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
     };
 
-    private uint _crcValue;
+    private uint _crc;
 
     public override void Initialize()
     {
-        _crcValue = 0;
+        _crc = 0;
     }
 
     protected override void HashCore(byte[] buffer, int start, int length)
     {
-        _crcValue ^= DefaultSeed;
+        _crc ^= DefaultSeed;
 
         unchecked
         {
             while (--length >= 0)
             {
-                _crcValue = CrcTable[(_crcValue ^ buffer[start++]) & 0xFF] ^ (_crcValue >> 8);
+                _crc = CrcTable[(_crc ^ buffer[start++]) & 0xFF] ^ (_crc >> 8);
             }
         }
 
-        _crcValue ^= DefaultSeed;
+        _crc ^= DefaultSeed;
     }
 
     protected override byte[] HashFinal()
     {
         HashValue = new[]
         {
-            (byte)((_crcValue >> 24) & 0xff), (byte)((_crcValue >> 16) & 0xff), (byte)((_crcValue >> 8) & 0xff),
-            (byte)(_crcValue & 0xff)
+            (byte)((_crc >> 24) & 0xff), (byte)((_crc >> 16) & 0xff), (byte)((_crc >> 8) & 0xff),
+            (byte)(_crc & 0xff)
         };
         return HashValue;
     }

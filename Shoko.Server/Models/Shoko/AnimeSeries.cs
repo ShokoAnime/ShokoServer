@@ -276,14 +276,20 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
+    private const int MaxGroupDepth = 1024;
+
     public List<AnimeGroup> AllGroupsAbove
     {
         get
         {
             var grps = new List<AnimeGroup>();
             var groupID = AnimeGroupID;
-            while (groupID != 0)
+            // The walk follows stored parent IDs and stops at the root or the depth cap, which no real nesting reaches.
+            for (var depth = 0; depth < MaxGroupDepth; depth++)
             {
+                if (groupID == 0)
+                    break;
+
                 var grp = RepoFactory.AnimeGroup.GetByID(groupID);
                 if (grp != null)
                 {

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,6 +49,7 @@ public class SyncAniDBMylistEpisodesJob(IMylistService mylistService, AnimeEpiso
     /// exists because the queue builds job keys from read-write properties alone.
     /// </remarks>
     [JobKeyMember]
+    [SuppressMessage("Security", "S4790", Justification = "Non-security dedupe key; changing the algorithm would change persisted queue keys.")]
     public string Key
     {
         get => EpisodeIDs is { Length: > 0 }

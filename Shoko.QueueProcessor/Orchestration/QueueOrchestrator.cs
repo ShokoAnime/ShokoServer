@@ -1184,7 +1184,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             lock (_gate) _heldFromAcquisition.Remove(id);
         }
 
-        completions?.ForEach(tcs => tcs.TrySetCanceled());
+        completions?.ForEach(tcs => tcs.TrySetCanceled(ct));
 
         // Buffered like every other delete, so a job whose insert is still buffered is never written.
         _persistenceBuffer.OnComplete(id);
@@ -1592,7 +1592,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         }
 
         if (cancelled)
-            completions?.ForEach(tcs => tcs.TrySetCanceled());
+            completions?.ForEach(tcs => tcs.TrySetCanceled(ct));
         else
             completions?.ForEach(tcs => tcs.TrySetException(ex));
 

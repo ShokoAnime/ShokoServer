@@ -31,11 +31,13 @@ import json
 import os
 import random
 import re
+import shutil
 import signal
 import sqlite3
 import statistics
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.error
@@ -157,7 +159,8 @@ def _prune_dict(value):
 
 
 def digest(value):
-    return hashlib.sha1(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    # a content fingerprint for comparing snapshots, not a security use; the algorithm must stay to match stored snapshots
+    return hashlib.sha1(json.dumps(value, sort_keys=True, ensure_ascii=False).encode(), usedforsecurity=False).hexdigest()  # NOSONAR
 
 
 class Writer:
@@ -454,7 +457,8 @@ def counters(tool, pid, seconds=6):
     """The last value of each System.Runtime counter over a few seconds."""
     if not tool or not pid:
         return None
-    path = f"/tmp/text-snapshots-counters-{pid}-{time.time_ns()}.json"
+    workdir = tempfile.mkdtemp(prefix="text-snapshots-counters-")  # private (0700) directory rather than a shared /tmp path
+    path = os.path.join(workdir, f"{pid}-{time.time_ns()}.json")
     subprocess.run([tool, "collect", "--process-id", str(pid), "--counters", "System.Runtime", "--format", "json", "--refresh-interval", "1",
                     "--duration", f"00:00:{seconds:02d}", "-o", path], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
@@ -466,8 +470,7 @@ def counters(tool, pid, seconds=6):
     except (OSError, ValueError):
         return None
     finally:
-        if os.path.exists(path):
-            os.remove(path)
+        shutil.rmtree(workdir, ignore_errors=True)
     last = {}
     for event in events:
         name = event.get("name", "")
@@ -596,7 +599,8 @@ def digests(path):
     records = {}
     with open(path, encoding="utf-8") as handle:
         for line in handle:
-            records[json.loads(line)["key"]] = hashlib.sha1(line.encode()).digest()
+            # change-detection fingerprint, not a security use
+            records[json.loads(line)["key"]] = hashlib.sha1(line.encode(), usedforsecurity=False).digest()  # NOSONAR
     return records
 
 
