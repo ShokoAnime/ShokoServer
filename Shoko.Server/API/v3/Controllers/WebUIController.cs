@@ -445,7 +445,7 @@ public partial class WebUIController(
     /// <param name="channel">The release channel to use.</param>
     /// <param name="version">Optional specific version to install.</param>
     /// <param name="allowIncompatible">Allow downloading an incompatible version.</param>
-    /// <returns></returns>
+    /// <returns>A redirect to the web UI once installed; <c>409</c> when no compatible release may be installed.</returns>
     [AllowAnonymous]
     [DatabaseBlockedExempt]
     [InitFriendly]
@@ -474,7 +474,7 @@ public partial class WebUIController(
     /// <param name="channel">The release channel to use.</param>
     /// <param name="version">Optional specific version to install.</param>
     /// <param name="allowIncompatible">Allow downloading an incompatible version.</param>
-    /// <returns></returns>
+    /// <returns><c>204</c> once installed; <c>409</c> when no compatible release may be installed.</returns>
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Update")]
@@ -511,11 +511,21 @@ public partial class WebUIController(
                     v.Version.ToSemanticVersioningString() == version || v.ReleaseTag == version || (v.SourceRevision is { Length: > 0 } && v.SourceRevision == version));
                 if (match is null)
                     return BadRequest($"Version '{version}' not found in the release history.");
+                if (!allowIncompatible && match.IncompatibleReason is { } reason)
+                    return NoCompatibleRelease($"Release {match.Version.ToSemanticVersioningString()} cannot be used: {reason}");
                 result = await webUIService.InstallRelease(match, webUI).ConfigureAwait(false);
             }
             else
             {
-                result = await webUIService.Update(channel, allowIncompatible, webUI).ConfigureAwait(false);
+                if (await webUIService.GetLatestRelease(channel, allowIncompatible: allowIncompatible, webUI: webUI).ConfigureAwait(false) is not { } latest)
+                {
+                    var releases = await webUIService.GetReleases(channel, webUI: webUI).ConfigureAwait(false);
+                    return NoCompatibleRelease(releases.Count is 0
+                        ? "No release is offered on the channel."
+                        : string.Join(" ", releases.Select(release => $"Release {release.Version.ToSemanticVersioningString()} cannot be used: {release.IncompatibleReason}")));
+                }
+
+                result = await webUIService.InstallRelease(latest, webUI).ConfigureAwait(false);
             }
 
             if (result is WebUIInstallResult.Failed)
@@ -529,6 +539,15 @@ public partial class WebUIController(
 
         return null;
     }
+
+    /// <summary>
+    /// The answer when no release may be installed: <c>409</c> with a
+    /// <c>no-compatible-release</c> problem saying why.
+    /// </summary>
+    /// <param name="detail">Why each release was refused.</param>
+    /// <returns>The problem.</returns>
+    private ObjectResult NoCompatibleRelease(string detail)
+        => Problem(detail, null, (int)HttpStatusCode.Conflict, "No compatible release", "no-compatible-release");
 
     /// <summary>
     /// Get the full release history for the web UI served for the request's
