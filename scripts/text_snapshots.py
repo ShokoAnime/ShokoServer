@@ -159,7 +159,8 @@ def _prune_dict(value):
 
 
 def digest(value):
-    return hashlib.sha1(json.dumps(value, sort_keys=True, ensure_ascii=False).encode(), usedforsecurity=False).hexdigest()  # NOSONAR: a content fingerprint for comparing snapshots, not a security use; the algorithm must stay to match stored snapshots
+    # a content fingerprint for comparing snapshots, not a security use; the algorithm must stay to match stored snapshots
+    return hashlib.sha1(json.dumps(value, sort_keys=True, ensure_ascii=False).encode(), usedforsecurity=False).hexdigest()  # NOSONAR
 
 
 class Writer:
@@ -598,7 +599,8 @@ def digests(path):
     records = {}
     with open(path, encoding="utf-8") as handle:
         for line in handle:
-            records[json.loads(line)["key"]] = hashlib.sha1(line.encode(), usedforsecurity=False).digest()  # NOSONAR: change-detection fingerprint, not a security use
+            # change-detection fingerprint, not a security use
+            records[json.loads(line)["key"]] = hashlib.sha1(line.encode(), usedforsecurity=False).digest()  # NOSONAR
     return records
 
 

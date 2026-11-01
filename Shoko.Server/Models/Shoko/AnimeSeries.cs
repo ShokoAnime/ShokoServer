@@ -283,6 +283,8 @@ public class AnimeSeries : IShokoSeries
             var grps = new List<AnimeGroup>();
             var groupID = AnimeGroupID;
             var visited = new HashSet<int>();
+            // The walk follows stored parent IDs and stops at the root or a repeated ID, so it is bounded by the number of groups.
+#pragma warning disable S6680
             while (groupID != 0 && visited.Add(groupID))
             {
                 var grp = RepoFactory.AnimeGroup.GetByID(groupID);
@@ -296,6 +298,7 @@ public class AnimeSeries : IShokoSeries
                     groupID = 0;
                 }
             }
+#pragma warning restore S6680
 
             return grps;
         }

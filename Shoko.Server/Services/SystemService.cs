@@ -1526,7 +1526,6 @@ public class SystemService : ISystemService
                     {
                         _databaseBlockingTasks.Remove(finished);
                         _databaseTasksChangedCTS = null;
-                        changedSignal.Dispose();
                     }
 
                     if (finished.Exception is { } exception)
@@ -1545,7 +1544,6 @@ public class SystemService : ISystemService
                         taskSource.TrySetResult();
                         _databaseTaskSource = null;
                         _databaseTasksChangedCTS = null;
-                        changedSignal.Dispose();
 
                         Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = false }));
                         return;
