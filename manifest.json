@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.571",
+      "tag": "v6.0.0-dev.571",
+      "commit": "c30b50443e92471a5b747ac289210a78ebd2b56d",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.571/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-01T16:29:17Z",
+      "releaseNotes": "\n`fix`: **Tolerate unloadable assemblies in `ReflectionUtilsTests`**:\n\n`TheScanSurvivesAssembliesBeingEmittedAlongsideIt` read every loaded assembly with `GetTypes`, so an unrelated assembly with a mismatched reference, such as `NuGet.Frameworks`, failed it depending on what other tests had loaded.\n\n- Gave `Scan` a type loader parameter\n- Kept the raw `GetTypes` for the half-built assembly, which must throw\n- Used `ReflectionUtils.LoadableTypes`, which the server's own scans use, for the real assemblies\n\n`merge`: **Merge pull request #1468 from ShokoAnime/fix/reflection-utils-test**:\n\nfix: tolerate unloadable assemblies in ReflectionUtilsTests\n"
+    },
+    {
       "version": "6.0.0.570",
       "tag": "v6.0.0-dev.570",
       "commit": "79ba337cd6aa279d1331b07d08f04921da46d11f",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.542/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-22T08:51:03Z",
       "releaseNotes": "\n`feat` (`plugin`): **Give the core plugin the Shoko logo as its icon and thumbnail**:\n\n- Shipped `Shoko.Server.icon.svg` (the docs logo, squared) and `Shoko.Server.thumbnail.svg` (16:9, the logo on the generic plugin background) beside the dll, where the plugin loader finds them without writing anything\n\n`feat` (`filters`): **Add `SwitchExpression`**:\n\n- Added a switch around a condition: off or empty it fails, on it passes as its `Left` does; its label never changes the result\n- The logic gates leave a switched-off or empty switch out (`IsSwitchedOff`), and `Not` and `Scope` pass it up\n- Fixed `EqualsExpression.UserDependent` reading the right side's `TimeDependent`\n"
-    },
-    {
-      "version": "6.0.0.541",
-      "tag": "v6.0.0-dev.541",
-      "commit": "cc7315e8a89d54f89c3a5e751f9f4915b25553c2",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.541/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-22T07:01:41Z",
-      "releaseNotes": "\n`fix` (`core`): **Apply `Import.Exclude` patterns to directories** ([#1464](https://github.com/ShokoAnime/ShokoServer/pull/1464)):\n\n**What**:\n\n`CoreIgnoreRule.ShouldIgnore` returned `false` for every entry that is not a `FileInfo`, so `Import.ExcludeExpressions` never matched a folder — even though scans pass directories to ignore rules and the walker prunes a rejected directory together with its whole subtree (`FileSystemHelpers.GetFileSystemEntryPaths`, the `canProceed(directory, true)` branch).\n\nThat made the documented contract unreachable. A pattern like `[\\/]!SomeTree[\\/]` filtered the *files* inside that tree, but the walk still enumerated it — the expensive part — and every nested directory with a plugin rule was still descended into.\n\n**Changes**:\n\n- The rule now matches directories as well as files; the file path is untouched.\n- A directory path gets the platform separator appended before a single pass over the patterns. `DirectoryInfo.FullName` never ends with a separator, so a pattern written as a directory prefix (the shipped defaults are `[\\\\/]\\.Trash-\\d+[\\\\/]`) matched only the children and pruned one level too late.\n- `Shoko.Abstractions/Video/README.md` no longer claims the built-in rule is file-only.\n"
     }
   ]
 }
