@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.574",
+      "tag": "v6.0.0-dev.574",
+      "commit": "58e5d25df9349ce8d8971b40d474fc2efb74dce4",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.574/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-01T18:11:58Z",
+      "releaseNotes": "\n`fix` (`images`): **Answer `404` for the empty image ID instead of `500`**.\n\n`fix` (`plugin`): **Never download over plain http what an https manifest names**:\n\n- A manifest served over https may no longer link a manifest, offer an archive or name an image over plain http; they are left out, and `PackageReleaseInfo.Refusals` says why for each archive\n- A redirect from https to http is refused by name instead of failing as a bare redirect status\n\n`refactor` (`abstractions`): **Set user avatars through the image manager**:\n\n- Removed the avatar members from `UserUpdate` and their handling in `UserService`; a user's avatar and banner are images set through `IImageManager`\n- APIv3's user create and update routes now upload the avatar and set it as the user's preferred primary image themselves, and build the data url `User.Avatar` returns\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.122**.\n"
+    },
+    {
       "version": "6.0.0.573",
       "tag": "v6.0.0-dev.573",
       "commit": "5b519e033ac77582f65db5655c4a57088bdb3b06",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.545/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-22T12:30:02Z",
       "releaseNotes": "\n`refactor` (`filters`): **Make filter parameters nullable and leave out parts with nothing to work with**:\n\n- Every filter parameter is nullable, enums and time spans included; only `null` is unset, so `0`, `\"\"`, `false` and `[]` are set\n- Conditions, source selectors and date functions without a value they need, and comparers without a usable `Left` and right side, no longer take part\n- `FilterFactory` and stored filters keep `null` as `null`; a `0` number is no longer dropped\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.110**.\n"
-    },
-    {
-      "version": "6.0.0.544",
-      "tag": "v6.0.0-dev.544",
-      "commit": "ddec6b12f913e12a7a3a8fec8dca9075581531c2",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.544/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-22T11:38:56Z",
-      "releaseNotes": "\n`refactor` (`filters`): **Replace `IsSwitchedOff` with `IsApplicable`, leaving missing inputs out too**:\n\n- A gate with a missing input now acts as its other input, as with a switched-off one, so saved single-input gates match the editor's preview\n- An empty `Not`, `Scope` or gate drops out of its parent\n- Wrote the rule into the filters readme\n"
     }
   ]
 }
