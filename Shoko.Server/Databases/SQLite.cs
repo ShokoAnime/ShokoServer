@@ -2227,7 +2227,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         // A definition runs between commas, but its type may bracket a comma of its own: decimal(6,2).
         var definition = new Regex(
             $@"(?<=[(,]\s*[""]?)(?<name>[""]?{Regex.Escape(columnName)}[""]?)(?<type>(?:\s+[^\s,()]+|\s*\([^()]*\))*?)(?<null>\s+(?:NOT\s+)?NULL)?(?=\s*[,)])",
-            RegexOptions.IgnoreCase, TimeSpan.FromSeconds(5));
+            RegexOptions.IgnoreCase);
         var patched = definition.Replace(createCommand, match => $"{match.Groups["name"].Value}{match.Groups["type"].Value} {nullability}", 1);
         if (patched == createCommand && !definition.IsMatch(createCommand))
             throw new InvalidOperationException($"Could not find a definition for `{columnName}` in: {createCommand}");
@@ -2257,7 +2257,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         // may be quoted, as a tool that rebuilt the table outside Shoko leaves it.
         var definition = new Regex(
             $@"(?<=[(,]\s*[""]?)(?<name>[""]?{Regex.Escape(columnName)}[""]?)(?:\s+(?!(?:{ColumnConstraints})\b)[^\s,()]+|\s*\([^()]*\))*(?=\s*[,)]|\s+(?:{ColumnConstraints})\b)",
-            RegexOptions.IgnoreCase, TimeSpan.FromSeconds(5));
+            RegexOptions.IgnoreCase);
         var patched = definition.Replace(createCommand, match => $"{match.Groups["name"].Value} {type}", 1);
         if (patched == createCommand && !definition.IsMatch(createCommand))
             throw new InvalidOperationException($"Could not find a definition for `{columnName}` in: {createCommand}");
