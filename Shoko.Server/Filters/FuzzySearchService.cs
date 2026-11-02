@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Shoko.Abstractions.Filtering.Services;
@@ -9,11 +8,44 @@ namespace Shoko.Server.Filters;
 
 public class FuzzySearchService : IFuzzySearchService
 {
-    private volatile ConditionalWeakTable<IReadOnlySet<string>, ConcurrentDictionary<string, (bool, int, double, int)?>> _scoreCache = new();
+    /// <summary>
+    ///   How many distinct queries keep their scores. Each one holds a score
+    ///   for every name set it was matched against, a few MiB on a large
+    ///   collection, so the least recently used query is dropped first.
+    /// </summary>
+    internal const int MaxCachedQueries = 16;
+
+    private readonly object _lock = new();
+
+    private readonly LinkedList<(string Query, ConditionalWeakTable<IReadOnlySet<string>, StrongBox<(bool, int, double, int)?>> Scores)> _recent = new();
+
+    private readonly Dictionary<string, LinkedListNode<(string Query, ConditionalWeakTable<IReadOnlySet<string>, StrongBox<(bool, int, double, int)?>> Scores)>> _byQuery = new(StringComparer.Ordinal);
+
+    // The query a filter is evaluating repeats for every series, so the last one is found without the lock.
+    private volatile Tuple<string, ConditionalWeakTable<IReadOnlySet<string>, StrongBox<(bool, int, double, int)?>>>? _last;
+
+    /// <summary>
+    ///   The number of queries whose scores are kept.
+    /// </summary>
+    internal int CachedQueryCount
+    {
+        get
+        {
+            lock (_lock)
+                return _byQuery.Count;
+        }
+    }
 
     /// <inheritdoc/>
     public void InvalidateCache()
-        => _scoreCache = new ConditionalWeakTable<IReadOnlySet<string>, ConcurrentDictionary<string, (bool, int, double, int)?>>();
+    {
+        lock (_lock)
+        {
+            _recent.Clear();
+            _byQuery.Clear();
+            _last = null;
+        }
+    }
 
     /// <inheritdoc/>
     public bool FuzzyMatchesAnyName(string query, IReadOnlySet<string> names)
@@ -22,8 +54,47 @@ public class FuzzySearchService : IFuzzySearchService
     /// <inheritdoc/>
     public (bool isNotExact, int index, double distance, int lengthDiff)? FuzzyScoreAnyName(string query, IReadOnlySet<string> names)
     {
-        var cache = _scoreCache.GetOrCreateValue(names);
-        return cache.GetOrAdd(query, q => ComputeFuzzyScore(q, names));
+        var scores = GetScores(query);
+        if (scores.TryGetValue(names, out var cached))
+            return cached.Value;
+
+        var score = ComputeFuzzyScore(query, names);
+        scores.AddOrUpdate(names, new(score));
+        return score;
+    }
+
+    /// <summary>
+    ///   Gets the scores kept for a query, making it the most recently used
+    ///   and dropping the least recently used beyond <see cref="MaxCachedQueries"/>.
+    /// </summary>
+    /// <param name="query">The query.</param>
+    /// <returns>The query's scores, by name set.</returns>
+    private ConditionalWeakTable<IReadOnlySet<string>, StrongBox<(bool, int, double, int)?>> GetScores(string query)
+    {
+        if (_last is { } last && string.Equals(last.Item1, query, StringComparison.Ordinal))
+            return last.Item2;
+
+        lock (_lock)
+        {
+            if (_byQuery.TryGetValue(query, out var node))
+            {
+                _recent.Remove(node);
+                _recent.AddFirst(node);
+            }
+            else
+            {
+                node = _recent.AddFirst((query, new()));
+                _byQuery[query] = node;
+                while (_recent.Count > MaxCachedQueries && _recent.Last is { } oldest)
+                {
+                    _recent.RemoveLast();
+                    _byQuery.Remove(oldest.Value.Query);
+                }
+            }
+
+            _last = Tuple.Create(query, node.Value.Scores);
+            return node.Value.Scores;
+        }
     }
 
     private static (bool, int, double, int)? ComputeFuzzyScore(string query, IReadOnlySet<string> names)
