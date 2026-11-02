@@ -102,7 +102,7 @@ public sealed partial class MetadataEntityType : IEquatable<MetadataEntityType>,
         Collection = RegisterCore("Collection", "collection", ["group", "boxset", "franchise"], "A collection holding other entries, such as a group of series.");
         Studio = RegisterCore("Studio", "studio", ["company"], "A studio or company that worked on something.");
         Network = RegisterCore("Network", "network", [], "A network that airs or streams something.");
-        Channel = RegisterCore("Channel", "channel", [], "A channel something airs on, from the airing schedules.");
+        Channel = RegisterCore("Channel", "channel", [], "A named channel things arrive through, such as a station something airs on, or a channel a plugin defines under its own source.");
         Creator = RegisterCore("Creator", "creator", ["person", "staffmember"], "A person or staff member who worked on something.");
         Character = RegisterCore("Character", "character", [], "A character in a work.");
         Tag = RegisterCore("Tag", "tag", [], "A tag describing an entry.");
@@ -151,7 +151,9 @@ public sealed partial class MetadataEntityType : IEquatable<MetadataEntityType>,
     public static MetadataEntityType Network { get; }
 
     /// <summary>
-    ///   A channel something airs on, from the airing schedules.
+    ///   A named channel things arrive through, such as a station something
+    ///   airs on (the airing schedules' <c>shoko://channel/…</c>), or a
+    ///   channel a plugin defines under its own source.
     /// </summary>
     public static MetadataEntityType Channel { get; }
 
