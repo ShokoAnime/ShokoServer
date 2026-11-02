@@ -255,6 +255,7 @@ public class LanguageExtensionsTests
     [InlineData("unknown")]
     [InlineData("Keine Angabe")]
     [InlineData("instrumental")]
+    [InlineData("sdh")]
     public void GetTitleLanguage_KnownUnknownCodes_AreNotReported(string text)
     {
         // Other classes parse unknown languages in parallel, into the same static event.

@@ -27,6 +27,8 @@ public static partial class LanguageExtensions
     {
         "unk", "x-unk", "x-other", "und", "zxx", "mul", "mis", "map", "unknown", "sh", "hbs",
         "undefined", "undefined / undefined", "keine angabe", "instrumental",
+        // Subtitles for the deaf and hard of hearing, as track metadata uses it; not Southern Kurdish.
+        "sdh",
     };
 
     [GeneratedRegex(
