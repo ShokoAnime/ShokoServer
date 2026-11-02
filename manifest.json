@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.583",
+      "tag": "v6.0.0-dev.583",
+      "commit": "93dfaba4fa82547765fb1dbfc791672fb997a1f5",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.583/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-02T01:29:51Z",
+      "releaseNotes": "\n`docs` (`abstractions`): **Describe `MetadataEntityType.Channel` as any named channel, not only airing ones**.\n"
+    },
+    {
       "version": "6.0.0.582",
       "tag": "v6.0.0-dev.582",
       "commit": "2a03c6e6c4dbdcf7b3e00ee15a05e7b65478ec2d",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.554/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-25T21:26:34Z",
       "releaseNotes": "\n`fix` (`api`): **Send a browser's unanswered page into the web UI**:\n\n- A page outside the mount path that the rest of the pipeline answers `404` is redirected to the same path under it\n- Until the server has started, such a page is redirected at once, as the not-running check would answer it\n- Requests not accepting `text/html` and the `/api`, `/plugin` and `/signalr` paths keep their answers\n"
-    },
-    {
-      "version": "6.0.0.553",
-      "tag": "v6.0.0-dev.553",
-      "commit": "0fd71bd23f42c61c1023f982a88b0c2656fa235a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.553/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-25T21:05:13Z",
-      "releaseNotes": "\n`fix` (`buildtools`): **Leave the plugin metadata to `shoko-build` when it drives the build**:\n\n- The targets stamped identity, tags, dependencies and git data a second time, and the server kept their tags, without the discovered ones\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.6.1**.\n"
     }
   ]
 }
