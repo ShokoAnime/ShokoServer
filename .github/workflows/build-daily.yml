@@ -45,7 +45,7 @@ jobs:
 
       - name: Install NPM Packages
         run: |
-          npm install --no-save semver fast-xml-parser
+          npm install --no-save semver@7.8.5 fast-xml-parser@5.11.2
 
       - name: Read Source Version
         id: read_source_version
