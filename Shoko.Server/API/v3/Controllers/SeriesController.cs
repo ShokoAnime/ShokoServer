@@ -694,6 +694,7 @@ public class SeriesController(
         }
 
         return _anidbAnimeSimilar.GetByAnimeID(anidb.AnimeID)
+            .Where(similar => !IsHiddenAnime(similar.SimilarAnimeID))
             .Select(similar => new AnidbAnime(similar))
             .ToList();
     }
@@ -907,8 +908,8 @@ public class SeriesController(
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return _anidbAnimeRelations.GetByAnimeID(anidb.AnimeID).OfType<IRelatedMetadata>()
-            .Concat(_anidbAnimeRelations.GetByRelatedAnimeID(anidb.AnimeID).OfType<IRelatedMetadata>().Select(a => a.Reversed))
+        return _anidbAnimeRelations.GetByAnimeID(anidb.AnimeID).Where(relation => !IsHiddenAnime(relation.RelatedAnimeID)).OfType<IRelatedMetadata>()
+            .Concat(_anidbAnimeRelations.GetByRelatedAnimeID(anidb.AnimeID).Where(relation => !IsHiddenAnime(relation.AnimeID)).OfType<IRelatedMetadata>().Select(a => a.Reversed))
             .Distinct()
             .OrderBy(a => a.BaseID)
             .ThenBy(a => a.RelatedID)
@@ -942,8 +943,8 @@ public class SeriesController(
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        return _anidbAnimeRelations.GetByAnimeID(anidb.AnimeID).OfType<IRelatedMetadata>()
-            .Concat(_anidbAnimeRelations.GetByRelatedAnimeID(anidb.AnimeID).OfType<IRelatedMetadata>().Select(a => a.Reversed))
+        return _anidbAnimeRelations.GetByAnimeID(anidb.AnimeID).Where(relation => !IsHiddenAnime(relation.RelatedAnimeID)).OfType<IRelatedMetadata>()
+            .Concat(_anidbAnimeRelations.GetByRelatedAnimeID(anidb.AnimeID).Where(relation => !IsHiddenAnime(relation.AnimeID)).OfType<IRelatedMetadata>().Select(a => a.Reversed))
             .Distinct()
             .OrderBy(a => a.BaseID)
             .ThenBy(a => a.RelatedID)
@@ -1183,6 +1184,7 @@ public class SeriesController(
         }
 
         return _anidbAnimeSimilar.GetByAnimeID(anidbID)
+            .Where(similar => !IsHiddenAnime(similar.SimilarAnimeID))
             .Select(similar => new AnidbAnime(similar))
             .ToList();
     }
@@ -1207,6 +1209,7 @@ public class SeriesController(
         }
 
         return _anidbAnimeRelations.GetByAnimeID(anidbID)
+            .Where(relation => !IsHiddenAnime(relation.RelatedAnimeID))
             .Select(relation => new AnidbAnime(relation))
             .ToList();
     }
@@ -3596,7 +3599,7 @@ public class SeriesController(
             var anime = _anidbAnime.GetByAnimeID(animeID);
             if (anime is not null)
             {
-                return new(1, [new(anime, includeTitles: includeTitles)]);
+                return User.AllowedAnime(anime) ? new(1, [new(anime, includeTitles: includeTitles)]) : new();
             }
 
             // Check the title cache for a match.
@@ -3616,7 +3619,7 @@ public class SeriesController(
                 .Select(result =>
                 {
                     var series = _animeSeries.GetByAnimeID(result.AnimeID);
-                    if (local.HasValue && series is null == local.Value)
+                    if ((local.HasValue && series is null == local.Value) || IsHiddenAnime(result.AnimeID))
                         return null;
 
                     return new AnidbAnime(result, series, includeTitles);
@@ -3629,7 +3632,7 @@ public class SeriesController(
             .Select(result =>
             {
                 var series = _animeSeries.GetByAnimeID(result.Result.AnimeID);
-                if (local.HasValue && series is null == local.Value)
+                if ((local.HasValue && series is null == local.Value) || IsHiddenAnime(result.Result.AnimeID))
                     return null;
 
                 return new AnidbAnime(result.Result, series, includeTitles);
@@ -3637,6 +3640,16 @@ public class SeriesController(
             .WhereNotNull()
             .ToListResult(page, pageSize);
     }
+
+    /// <summary>
+    /// Whether the user's restricted tags hide an AniDB anime. Only an anime
+    /// stored locally has tags to check, so one known only from the title
+    /// list is never hidden.
+    /// </summary>
+    /// <param name="animeID">The AniDB anime ID.</param>
+    /// <returns><c>true</c> when the anime is hidden from the user.</returns>
+    private bool IsHiddenAnime(int animeID)
+        => User.HasRestrictions() && _anidbAnime.GetByAnimeID(animeID) is { } anime && !User.AllowedAnime(anime);
 
     /// <summary>
     /// Searches for series whose title starts with a string
