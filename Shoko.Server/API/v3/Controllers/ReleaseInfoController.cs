@@ -274,6 +274,9 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
         if (videoRepository.GetByID(fileID) is not { } video)
             return NotFound("File not found!");
 
+        if (!User.IsAllowedToSee(video))
+            return Forbid(FileController.FileForbiddenForUser);
+
         if (videoReleaseService.GetCurrentReleaseForVideo(video) is not { } releaseInfo)
             return NoContent();
 
