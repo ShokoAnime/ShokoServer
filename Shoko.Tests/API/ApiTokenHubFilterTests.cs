@@ -10,12 +10,13 @@ using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Events;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.SignalR;
+using Shoko.Tests.Infrastructure;
 using Xunit;
 
 namespace Shoko.Tests.API;
 
 /// <summary>
-/// Covers closing hub connections when their API token is invalidated.
+/// Covers closing hub connections when their API token is invalidated or expires.
 /// </summary>
 public class ApiTokenHubFilterTests
 {
@@ -59,6 +60,27 @@ public class ApiTokenHubFilterTests
 
         await filter.OnConnectedAsync(Lifetime(connection), _ => Task.CompletedTask);
 
+        connection.Verify(c => c.Abort(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(240)]
+    public async Task AnExpiringTokenIsClosedWhenItExpires(int hours)
+    {
+        var clock = new ManualTimeProvider();
+        var lifetime = TimeSpan.FromHours(hours);
+        var token = new ApiToken(Mock.Of<IUser>(), "device", "key", clock.GetLocalNow().DateTime + lifetime);
+        var users = new Mock<IUserService>();
+        users.Setup(u => u.GetApiTokenFromHttpContext(It.IsAny<HttpContext>())).Returns(token);
+        using var filter = new ApiTokenHubFilter(users.Object, NullLogger<ApiTokenHubFilter>.Instance, clock);
+        var connection = Connection("key", "a", withHttpContext: true);
+        await filter.OnConnectedAsync(Lifetime(connection), _ => Task.CompletedTask);
+
+        clock.Advance(lifetime - TimeSpan.FromMinutes(1));
+        connection.Verify(c => c.Abort(), Times.Never);
+
+        clock.Advance(TimeSpan.FromMinutes(2));
         connection.Verify(c => c.Abort(), Times.Once);
     }
 
