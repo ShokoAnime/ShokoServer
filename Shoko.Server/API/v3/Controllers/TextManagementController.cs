@@ -38,7 +38,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/Text/Management"), Tags("Text")]
 [ApiV3]
-[Authorize]
+[Authorize("admin")]
 public class TextManagementController(IMetadataTextManager textManager, IMetadataService metadataService, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
     private const string TextNotFound = "The requested text does not exist.";
@@ -135,7 +135,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// <param name="textID">The text's ID.</param>
     /// <param name="body">What to change.</param>
     /// <returns>The text as it is now.</returns>
-    [Authorize("admin")]
     [HttpPatch("{kind}/{textID:int}")]
     public ActionResult<ManagedText> UpdateText(
         [FromRoute] TextKind kind,
@@ -165,7 +164,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// </summary>
     /// <param name="body">The texts and what to change on each.</param>
     /// <returns>The texts changed, as they are now, or 400 when none could be.</returns>
-    [Authorize("admin")]
     [HttpPost("Batch/Update")]
     public ActionResult<ListResult<ManagedText>> BatchUpdateTexts(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchUpdateTextBody body
@@ -210,7 +208,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// <param name="textID">The text's ID.</param>
     /// <param name="body">The enabled state to set.</param>
     /// <returns>The text as it is now.</returns>
-    [Authorize("admin")]
     [HttpPost("{kind}/{textID:int}/Enabled")]
     public ActionResult<ManagedText> EnableOrDisableText(
         [FromRoute] TextKind kind,
@@ -231,7 +228,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// <param name="textID">The text's ID.</param>
     /// <param name="languageOnly">Prefer it only once the language order reaches its language, rather than over everything.</param>
     /// <returns>The text as it is now.</returns>
-    [Authorize("admin")]
     [HttpPut("{kind}/{textID:int}/Preferred")]
     public ActionResult<ManagedText> SetPreferredText(
         [FromRoute] TextKind kind,
@@ -251,7 +247,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// <param name="kind">Whether the ID names a title or an overview.</param>
     /// <param name="textID">The text's ID.</param>
     /// <returns>No content, or 400 when the text carried no preference.</returns>
-    [Authorize("admin")]
     [HttpDelete("{kind}/{textID:int}/Preferred")]
     public ActionResult UnsetPreferredText([FromRoute] TextKind kind, [FromRoute, Range(1, int.MaxValue)] int textID)
     {
@@ -269,7 +264,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// <param name="kind">Whether the ID names a title or an overview.</param>
     /// <param name="textID">The text's ID.</param>
     /// <returns>No content.</returns>
-    [Authorize("admin")]
     [HttpDelete("{kind}/{textID:int}")]
     public ActionResult RemoveText([FromRoute] TextKind kind, [FromRoute, Range(1, int.MaxValue)] int textID)
     {
@@ -284,7 +278,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// </summary>
     /// <param name="entitySource">Only entries from this source.</param>
     /// <returns>The number of texts removed.</returns>
-    [Authorize("admin")]
     [HttpDelete("Orphaned")]
     public ActionResult<int> PurgeOrphanedTexts([FromQuery] MetadataSource? entitySource = null)
         => Ok(textManager.PurgeOrphanedTexts(entitySource));
@@ -347,7 +340,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// <param name="entityID">The entity ID (string representation).</param>
     /// <param name="body">The text to add.</param>
     /// <returns>The stored text.</returns>
-    [Authorize("admin")]
     [HttpPost("Entity/{entitySource}/{entityType}/{*entityID}")]
     public ActionResult<ManagedText> AddText(
         [FromRoute] MetadataSource entitySource,
@@ -380,7 +372,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// <param name="entityID">The entity ID (string representation).</param>
     /// <param name="source">Only this source's texts; every source's when left out.</param>
     /// <returns>The number of texts removed.</returns>
-    [Authorize("admin")]
     [HttpDelete("Entity/{entitySource}/{entityType}/{*entityID}")]
     public ActionResult<int> RemoveTextsForEntity(
         [FromRoute] MetadataSource entitySource,
@@ -427,7 +418,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// <param name="entityID">The entity ID (string representation).</param>
     /// <param name="body">What to pick.</param>
     /// <returns>The stored text that now carries the preference.</returns>
-    [Authorize("admin")]
     [HttpPut("Preferred/Entity/{entitySource}/{entityType}/{*entityID}")]
     public ActionResult<ManagedText> SetPreferredTextForEntity(
         [FromRoute] MetadataSource entitySource,
@@ -480,7 +470,6 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     /// <param name="entityID">The entity ID (string representation).</param>
     /// <param name="kind">Only titles or only overviews; both when left out.</param>
     /// <returns>The number of texts that carried a preference.</returns>
-    [Authorize("admin")]
     [HttpDelete("Preferred/Entity/{entitySource}/{entityType}/{*entityID}")]
     public ActionResult<int> UnsetAllPreferredTextsForEntity(
         [FromRoute] MetadataSource entitySource,
