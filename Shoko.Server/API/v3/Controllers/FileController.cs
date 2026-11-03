@@ -650,6 +650,7 @@ public class FileController(
     /// <param name="anidbFileID">AniDB File ID</param>
     /// <param name="priority">Increase the priority to the max for the queued command.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("AniDB/{anidbFileID}/Rescan")]
     public async Task<ActionResult> RescanFileByAniDBFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID, [FromQuery] bool priority = false)
     {
@@ -1567,6 +1568,7 @@ public class FileController(
     /// <param name="fileID">VideoLocal ID</param>
     /// <param name="value">Thew new ignore value.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPut("{fileID}/Ignore")]
     public ActionResult MarkFileAsIgnored([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool value = true)
     {
@@ -1585,6 +1587,7 @@ public class FileController(
     /// <param name="fileID">VideoLocal ID</param>
     /// <param name="value">Thew new variation value.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPut("{fileID}/Variation")]
     public ActionResult MarkFileAsVariation([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool value = true)
     {
@@ -1604,6 +1607,7 @@ public class FileController(
     /// <param name="priority">Increase the priority to the max for the queued command.</param>
     /// <param name="immediate">Immediately run the AVDump, without adding the command to the queue.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{fileID}/AVDump")]
     public async Task<ActionResult> AvDumpFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false,
         [FromQuery] bool immediate = true)
@@ -1637,6 +1641,7 @@ public class FileController(
     /// <param name="fileID">VideoLocal ID</param>
     /// <param name="priority">Increase the priority to the max for the queued command.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{fileID}/Rescan")]
     public async Task<ActionResult> RescanFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false)
     {
@@ -1661,6 +1666,7 @@ public class FileController(
     /// <param name="fileID">VideoLocal ID</param>
     /// <param name="priority">Whether to start the job immediately. Default true</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{fileID}/Rehash")]
     public async Task<ActionResult> RehashFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = true)
     {
@@ -1688,6 +1694,7 @@ public class FileController(
     /// </summary>
     /// <param name="fileID">The file id.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{fileID}/AddToMylist")]
     public async Task<ActionResult> AddFileToMylist([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
@@ -1871,6 +1878,7 @@ public class FileController(
     /// <param name="body">The body.</param>
     /// <returns></returns>
     [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
+    [Authorize("admin")]
     [HttpPost("{fileID}/Link")]
     public async Task<ActionResult> LinkSingleEpisodeToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkEpisodesBody body)
     {
@@ -1911,6 +1919,7 @@ public class FileController(
     /// <param name="body">The body.</param>
     /// <returns></returns>
     [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
+    [Authorize("admin")]
     [HttpPost("{fileID}/LinkFromSeries")]
     public async Task<ActionResult> LinkMultipleEpisodesToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkSeriesBody body)
     {
@@ -1994,6 +2003,7 @@ public class FileController(
     /// <param name="fileID">The file id.</param>
     /// <returns></returns>
     [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
+    [Authorize("admin")]
     [HttpDelete("{fileID}/Link")]
     public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
@@ -2014,6 +2024,7 @@ public class FileController(
     /// <param name="body">The body.</param>
     /// <returns></returns>
     [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
+    [Authorize("admin")]
     [HttpPost("LinkFromSeries")]
     public async Task<ActionResult> LinkMultipleFiles([FromBody] File.Input.LinkSeriesMultipleBody body)
     {
@@ -2132,6 +2143,7 @@ public class FileController(
     /// <param name="body">The body.</param>
     /// <returns></returns>
     [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
+    [Authorize("admin")]
     [HttpPost("Link")]
     public async Task<ActionResult> LinkMultipleFiles([FromBody] File.Input.LinkMultipleFilesBody body)
     {
