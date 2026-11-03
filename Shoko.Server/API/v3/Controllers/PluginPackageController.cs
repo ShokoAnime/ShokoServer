@@ -367,10 +367,7 @@ public class PluginPackageController(
     {
         var manifests = await packageManager.GetAvailablePackageManifests(allowSync: false).ConfigureAwait(false);
         var manifest = manifests.FirstOrDefault(m => m.PackageID == packageID);
-        if (manifest?.Thumbnail?.GetStream(applicationPaths) is not { } stream)
-            return NotFound("Package or thumbnail not found");
-
-        return File(stream, manifest.Thumbnail.MimeType);
+        return PackageIcon(manifest?.Thumbnail, applicationPaths, "Package or thumbnail not found");
     }
 
     /// <summary>
@@ -388,10 +385,7 @@ public class PluginPackageController(
     {
         var manifests = await packageManager.GetAvailablePackageManifests(allowSync: false).ConfigureAwait(false);
         var manifest = manifests.FirstOrDefault(m => m.PackageID == packageID);
-        if (manifest?.Icon?.GetStream(applicationPaths) is not { } stream)
-            return NotFound("Package or icon not found");
-
-        return File(stream, manifest.Icon.MimeType);
+        return PackageIcon(manifest?.Icon, applicationPaths, "Package or icon not found");
     }
 
     #endregion

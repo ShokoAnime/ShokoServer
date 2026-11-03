@@ -283,10 +283,7 @@ public class PluginController(
     [AllowAnonymous]
     [HttpGet("{pluginID}/Thumbnail")]
     public ActionResult GetThumbnailForPluginByID([FromRoute] Guid pluginID)
-        => pluginManager.GetPluginInfo(pluginID) is { Thumbnail: { } } pluginInfo &&
-        pluginInfo.Thumbnail.GetStream(applicationPaths) is { } stream
-            ? File(stream, pluginInfo.Thumbnail.MimeType)
-            : NotFound("Plugin not found");
+        => PackageIcon(pluginManager.GetPluginInfo(pluginID)?.Thumbnail, applicationPaths, "Plugin not found");
 
     /// <summary>
     ///   Gets the icon for the active or highest version of a plugin by ID.
@@ -300,10 +297,7 @@ public class PluginController(
     [AllowAnonymous]
     [HttpGet("{pluginID}/Icon")]
     public ActionResult GetIconForPluginByID([FromRoute] Guid pluginID)
-        => pluginManager.GetPluginInfo(pluginID) is { Icon: { } } pluginInfo &&
-        pluginInfo.Icon.GetStream(applicationPaths) is { } stream
-            ? File(stream, pluginInfo.Icon.MimeType)
-            : NotFound("Plugin not found");
+        => PackageIcon(pluginManager.GetPluginInfo(pluginID)?.Icon, applicationPaths, "Plugin not found");
 
     /// <summary>
     ///   Gets the pages for the active or highest version of a plugin by ID.
@@ -582,10 +576,7 @@ public class PluginController(
     /// </returns>
     [HttpGet("{pluginID}/{pluginVersion}/Thumbnail")]
     public ActionResult GetThumbnailForPluginByIDAndVersion([FromRoute] Guid pluginID, [FromRoute] Version pluginVersion)
-        => pluginManager.GetPluginInfo(pluginID, pluginVersion) is { Thumbnail: { } } pluginInfo &&
-            pluginInfo.Thumbnail.GetStream(applicationPaths) is { } stream
-            ? File(stream, pluginInfo.Thumbnail.MimeType)
-            : NotFound("Plugin not found");
+        => PackageIcon(pluginManager.GetPluginInfo(pluginID, pluginVersion)?.Thumbnail, applicationPaths, "Plugin not found");
 
     /// <summary>
     ///   Gets the icon for a specific version of a plugin by ID.
@@ -601,10 +592,7 @@ public class PluginController(
     /// </returns>
     [HttpGet("{pluginID}/{pluginVersion}/Icon")]
     public ActionResult GetIconForPluginByIDAndVersion([FromRoute] Guid pluginID, [FromRoute] Version pluginVersion)
-        => pluginManager.GetPluginInfo(pluginID, pluginVersion) is { Icon: { } } pluginInfo &&
-            pluginInfo.Icon.GetStream(applicationPaths) is { } stream
-            ? File(stream, pluginInfo.Icon.MimeType)
-            : NotFound("Plugin not found");
+        => PackageIcon(pluginManager.GetPluginInfo(pluginID, pluginVersion)?.Icon, applicationPaths, "Plugin not found");
 
     /// <summary>
     ///   Gets the pages for the active or highest version of a plugin by ID.
