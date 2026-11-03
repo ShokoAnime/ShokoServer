@@ -464,7 +464,7 @@ public partial class TmdbController(
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return FileCrossReference.From(movie.FileCrossReferences);
+        return FileCrossReference.From(movie.FileCrossReferences.Where(xref => xref.AniDBAnime is not { } anime || User.AllowedAnime(anime)));
     }
 
     [HttpGet("Movie/{movieID}/Studios")]
@@ -588,6 +588,7 @@ public partial class TmdbController(
         return movie.CrossReferences
             .Select(xref => xref.AnidbAnime)
             .WhereNotNull()
+            .Where(User.AllowedAnime)
             .Select(anime => new AnidbAnime(anime))
             .ToList();
     }
@@ -609,6 +610,7 @@ public partial class TmdbController(
         return movie.CrossReferences
             .Select(xref => xref.AnidbEpisode)
             .WhereNotNull()
+            .Where(episode => episode.AniDB_Anime is not { } anime || User.AllowedAnime(anime))
             .Select(episode => new AnidbEpisode(episode))
             .ToList();
     }
@@ -634,6 +636,7 @@ public partial class TmdbController(
         return movie.CrossReferences
             .Select(xref => xref.AnimeSeries)
             .WhereNotNull()
+            .Where(User.AllowedSeries)
             .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
     }
@@ -657,6 +660,7 @@ public partial class TmdbController(
         return movie.CrossReferences
             .Select(xref => xref.AnimeEpisode)
             .WhereNotNull()
+            .Where(episode => episode.AnimeSeries is { } series && User.AllowedSeries(series))
             .Select(episode => new Episode(HttpContext, episode, includeDataFrom))
             .ToList();
     }
@@ -1799,6 +1803,7 @@ public partial class TmdbController(
         return show.CrossReferences
             .Select(xref => xref.AnidbAnime)
             .WhereNotNull()
+            .Where(User.AllowedAnime)
             .Select(anime => new AnidbAnime(anime))
             .ToList();
     }
@@ -1826,6 +1831,7 @@ public partial class TmdbController(
         return show.CrossReferences
             .Select(xref => xref.AnimeSeries)
             .WhereNotNull()
+            .Where(User.AllowedSeries)
             .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
     }
@@ -2427,6 +2433,7 @@ public partial class TmdbController(
                 .DistinctBy(xref => xref.AnidbAnimeID)
                 .Select(xref => xref.AnidbAnime)
                 .WhereNotNull()
+                .Where(User.AllowedAnime)
                 .Select(anime => new AnidbAnime(anime))
                 .ToList();
         }
@@ -2443,6 +2450,7 @@ public partial class TmdbController(
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnidbAnime)
             .WhereNotNull()
+            .Where(User.AllowedAnime)
             .Select(anime => new AnidbAnime(anime))
             .ToList();
     }
@@ -2467,6 +2475,7 @@ public partial class TmdbController(
                 .DistinctBy(xref => xref.AnidbAnimeID)
                 .Select(xref => xref.AnimeSeries)
                 .WhereNotNull()
+                .Where(User.AllowedSeries)
                 .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
                 .ToList();
         }
@@ -2483,6 +2492,7 @@ public partial class TmdbController(
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnimeSeries)
             .WhereNotNull()
+            .Where(User.AllowedSeries)
             .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
     }
@@ -2796,7 +2806,7 @@ public partial class TmdbController(
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        return FileCrossReference.From(episode.FileCrossReferences);
+        return FileCrossReference.From(episode.FileCrossReferences.Where(xref => xref.AniDBAnime is not { } anime || User.AllowedAnime(anime)));
     }
 
     #endregion
@@ -2937,6 +2947,7 @@ public partial class TmdbController(
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnidbAnime)
             .WhereNotNull()
+            .Where(User.AllowedAnime)
             .Select(anime => new AnidbAnime(anime))
             .ToList();
     }
@@ -2956,6 +2967,7 @@ public partial class TmdbController(
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnidbEpisode)
             .WhereNotNull()
+            .Where(episode => episode.AniDB_Anime is not { } anime || User.AllowedAnime(anime))
             .Select(anidbEpisode => new AnidbEpisode(anidbEpisode))
             .ToList();
     }
@@ -2977,6 +2989,7 @@ public partial class TmdbController(
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => xref.AnimeSeries)
             .WhereNotNull()
+            .Where(User.AllowedSeries)
             .Select(shokoSeries => new Series(shokoSeries, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
     }
@@ -2997,6 +3010,7 @@ public partial class TmdbController(
             .DistinctBy(xref => xref.AnidbEpisodeID)
             .Select(xref => xref.AnimeEpisode)
             .WhereNotNull()
+            .Where(episode => episode.AnimeSeries is { } series && User.AllowedSeries(series))
             .Select(shokoEpisode => new Episode(HttpContext, shokoEpisode, includeDataFrom))
             .ToList();
     }
