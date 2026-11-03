@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http;
@@ -52,21 +51,6 @@ public class StreamModule(
         return "<table>" + string.Join(string.Empty, subs.Select(a => "<tr><td><a href=\"" + a.Filename + "\"/></td></tr>")) + "</table>";
     }
 
-    [HttpGet("Filename/{base64filename}/{userId?}/{autoWatch?}/{fakeName?}")]
-    [ProducesResponseType(typeof(FileStreamResult), 200)]
-    [ProducesResponseType(typeof(FileStreamResult), 206)]
-    [ProducesResponseType(404)]
-    public object StreamVideoFromFilename(string base64filename, int? userId, bool? autoWatch, string fakeName)
-    {
-        var r = ResolveFilename(base64filename, userId);
-        if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
-        {
-            return StatusCode((int)r.Status, r.StatusDescription);
-        }
-
-        return StreamInfoResult(r);
-    }
-
     /// <summary>
     ///   Serves this video through the selected <see cref="IVideoStreamTransform"/>, or returns
     ///   <c>null</c> if none applies and the caller should fall through to the raw file.
@@ -92,10 +76,7 @@ public class StreamModule(
     [NonAction]
     private async Task<object> TransformedResult(InfoResult r, bool headOnly)
     {
-        // The by-filename routes resolve a path, not a library entry, so there is no IVideo to
-        // select a transform for. Raw file is the only thing they can serve.
-        if (r.VideoLocal is not { } video)
-            return null;
+        var video = r.VideoLocal;
 
         var context = new VideoStreamTransformContext { User = r.User, QueryParameters = Request.Query };
         VideoStreamTransformInfo transformInfo;
@@ -351,24 +332,6 @@ public class StreamModule(
         return Ok();
     }
 
-    [HttpHead("Filename/{base64filename}/{userId?}/{autoWatch?}/{fakeName?}")]
-    public object InfoVideoFromFilename(string base64filename, int? userId, bool? autoWatch, string fakeName)
-    {
-        var r = ResolveFilename(base64filename, userId);
-        if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
-        {
-            return StatusCode((int)r.Status, r.StatusDescription);
-        }
-
-        Response.Headers.Append("Server", SERVER_VERSION);
-        Response.Headers.Append("Accept-Ranges", "bytes");
-        Response.Headers.Append("Content-Range", "bytes 0-" + (r.File.Length - 1) + "/" + r.File.Length);
-        Response.ContentType = r.Mime;
-        Response.ContentLength = r.File.Length;
-        Response.StatusCode = (int)r.Status;
-        return Ok();
-    }
-
     private class InfoResult
     {
         public FileInfo File { get; set; }
@@ -395,12 +358,6 @@ public class StreamModule(
         return FinishResolve(r, userId);
     }
 
-    public static string Base64DecodeUrl(string base64EncodedData)
-    {
-        var base64EncodedBytes = Convert.FromBase64String(base64EncodedData.Replace("-", "+").Replace("_", "/").Replace(",", "="));
-        return Encoding.UTF8.GetString(base64EncodedBytes);
-    }
-
     private static InfoResult FinishResolve(InfoResult r, int? userId)
     {
         if (r.File == null)
@@ -424,14 +381,5 @@ public class StreamModule(
         r.Mime = ContentTypeHelper.GetContentType(r.File.FullName);
         r.Status = HttpStatusCode.OK;
         return r;
-    }
-
-    private static InfoResult ResolveFilename(string base64, int? userId)
-    {
-        var r = new InfoResult();
-        var fullName = Base64DecodeUrl(base64);
-        r.VideoLocal = null;
-        r.File = new FileInfo(fullName);
-        return FinishResolve(r, userId);
     }
 }
