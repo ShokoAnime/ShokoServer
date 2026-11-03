@@ -201,12 +201,15 @@ public static partial class APIExtensions
         services.TryAddEnumerable(ServiceDescriptor.Transient<IApiDescriptionProvider, RequestDelegateApiDescriptionProvider>());
 
         services.AddSingleton<ActorHubFilter>();
+        services.AddSingleton<ApiTokenHubFilter>();
         services.AddSignalR(options =>
             {
                 options.EnableDetailedErrors = true;
                 options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // default timeout is 30 seconds
                 // Every hub call runs for the connection's token.
                 options.AddFilter<ActorHubFilter>();
+                // A connection closes when its token is invalidated.
+                options.AddFilter<ApiTokenHubFilter>();
             })
             .AddNewtonsoftJsonProtocol(o => o.PayloadSerializerSettings.ContractResolver = new ApiContractResolver());
 
