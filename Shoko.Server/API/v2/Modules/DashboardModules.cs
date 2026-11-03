@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
@@ -29,7 +28,7 @@ public class DashboardModules : BaseController
     [HttpGet]
     public object GetStats()
     {
-        var user = HttpContext.User.Identity as JMMUser;
+        var user = HttpContext.GetUser();
 
         int series_count;
         int file_count;
