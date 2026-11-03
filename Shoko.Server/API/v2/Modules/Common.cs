@@ -126,6 +126,7 @@ public class Common : BaseController
     /// Add Folder to Import Folders Repository
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpPost("folder/add")]
     public ActionResult<CL_ImportFolder> AddFolder(CL_ImportFolder folder)
     {
@@ -162,6 +163,7 @@ public class Common : BaseController
     /// Edit folder giving fulll ImportFolder object with ID
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpPost("folder/edit")]
     public ActionResult<CL_ImportFolder> EditFolder(CL_ImportFolder folder)
     {
@@ -203,6 +205,7 @@ public class Common : BaseController
     /// Delete Import Folder out of Import Folder Repo.Instance.itory
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpPost("folder/delete")]
     public async Task<ActionResult> DeleteFolder(int folderId)
     {
@@ -231,6 +234,7 @@ public class Common : BaseController
     /// Run Import action on all Import Folders inside Import Folders Repository
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("folder/import")]
     public async Task<ActionResult> RunImport()
     {
@@ -243,6 +247,7 @@ public class Common : BaseController
     /// Scan All Drop Folders
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("folder/scan")]
     public async Task<ActionResult> ScanDropFolders()
     {
@@ -259,6 +264,7 @@ public class Common : BaseController
     /// Scans your import folders and remove files from your database that are no longer in your collection.
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("remove_missing_files")]
     public async Task<ActionResult> RemoveMissingFiles()
     {
@@ -271,6 +277,7 @@ public class Common : BaseController
     /// Updates all series stats such as watched state and missing files.
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("stats_update")]
     public async Task<ActionResult> UpdateStats()
     {
@@ -283,6 +290,7 @@ public class Common : BaseController
     /// Updates all technical details about the files in your collection via running MediaInfo on them.
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("medainfo_update")]
     public async Task<ActionResult> UpdateMediaInfo()
     {
@@ -295,6 +303,7 @@ public class Common : BaseController
     /// Sync Hashes - download/upload hashes from/to webcache
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("hash/sync")]
     public ActionResult HashSync()
     {
@@ -306,6 +315,7 @@ public class Common : BaseController
     /// Rescan ImportFolder (with given id) to recognize new episodes
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("rescan")]
     public async Task<ActionResult> RescanVideoLocal(int id)
     {
@@ -336,6 +346,7 @@ public class Common : BaseController
     /// Handle /api/rescanunlinked
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("rescanunlinked")]
     public async Task<ActionResult> RescanUnlinked()
     {
@@ -362,6 +373,7 @@ public class Common : BaseController
     /// Handle /api/rescanmanuallinks
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("rescanmanuallinks")]
     public async Task<ActionResult> RescanManualLinks()
     {
@@ -389,6 +401,7 @@ public class Common : BaseController
     /// Rehash given files in given VideoLocal
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("rehash")]
     public async Task<ActionResult> RehashVideoLocal(int id)
     {
@@ -425,6 +438,7 @@ public class Common : BaseController
     /// Handle /api/rehashunlinked
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("rehashunlinked")]
     public async Task<ActionResult> RehashUnlinked()
     {
@@ -461,6 +475,7 @@ public class Common : BaseController
     /// Handle /api/rehashmanuallinks
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("rehashmanuallinks")]
     public async Task<ActionResult> RehashManualLinks()
     {
@@ -620,6 +635,7 @@ public class Common : BaseController
     /// Pause all running Queues
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/pause")]
     public async Task<ActionResult> PauseQueue()
     {
@@ -631,6 +647,7 @@ public class Common : BaseController
     /// Start all queues that are pasued
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/start")]
     public async Task<ActionResult> StartQueue()
     {
@@ -693,6 +710,7 @@ public class Common : BaseController
     /// Pause Queue
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/hasher/pause")]
     public async Task<ActionResult> PauseHasherQueue()
     {
@@ -704,6 +722,7 @@ public class Common : BaseController
     /// Pause Queue
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/general/pause")]
     public async Task<ActionResult> PauseGeneralQueue()
     {
@@ -715,6 +734,7 @@ public class Common : BaseController
     /// Pause Queue
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/images/pause")]
     public async Task<ActionResult> PauseImagesQueue()
     {
@@ -726,6 +746,7 @@ public class Common : BaseController
     /// Start Queue from Pause state
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/hasher/start")]
     public async Task<ActionResult> StartHasherQueue()
     {
@@ -737,6 +758,7 @@ public class Common : BaseController
     /// Start Queue from Pause state
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/general/start")]
     public async Task<ActionResult> StartGeneralQueue()
     {
@@ -748,6 +770,7 @@ public class Common : BaseController
     /// Start Queue from Pause state
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/images/start")]
     public async Task<ActionResult> StartImagesQueue()
     {
@@ -759,6 +782,7 @@ public class Common : BaseController
     /// Clear Queue and Restart it
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/hasher/clear")]
     public ActionResult ClearHasherQueue()
     {
@@ -769,6 +793,7 @@ public class Common : BaseController
     /// Clear Queue and Restart it
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/general/clear")]
     public ActionResult ClearGeneralQueue()
     {
@@ -779,6 +804,7 @@ public class Common : BaseController
     /// Clear Queue and Restart it
     /// </summary>
     /// <returns>APIStatus</returns>
+    [Authorize("admin")]
     [HttpGet("queue/images/clear")]
     public ActionResult ClearImagesQueue()
     {
@@ -825,6 +851,7 @@ public class Common : BaseController
     /// Gets files whose data does not match AniDB
     /// </summary>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpGet("avdumpmismatchedfiles")]
     public async Task<ActionResult> AVDumpMismatchedFiles()
     {
@@ -1648,6 +1675,7 @@ public class Common : BaseController
     /// Handle /api/serie/calendar/refresh
     /// </summary>
     /// <returns>API status</returns>
+    [Authorize("admin")]
     [HttpGet("serie/calendar/refresh")]
     public async Task<ActionResult> SerieCalendarRefresh()
     {
@@ -2449,18 +2477,21 @@ public class Common : BaseController
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
+    [Authorize("admin")]
     [HttpPost("cloud/add")]
     public ActionResult AddCloudAccount()
     {
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
+    [Authorize("admin")]
     [HttpPost("cloud/delete")]
     public ActionResult DeleteCloudAccount()
     {
         return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
+    [Authorize("admin")]
     [HttpGet("cloud/import")]
     public async Task<ActionResult> RunCloudImport()
     {
