@@ -93,6 +93,15 @@ public class FileController(
     private static readonly Regex PathTraversalPattern = new(@"(^|(?<=[\\/]))\.\.?[\\/]", RegexOptions.Compiled, TimeSpan.FromMilliseconds(250));
 
     /// <summary>
+    /// Whether the current user may see the file's details or stream it. An
+    /// anonymous stream, when allowed, has no user and so no restrictions.
+    /// </summary>
+    /// <param name="file">The file.</param>
+    /// <returns><c>true</c> if the file may be shown.</returns>
+    private bool IsAllowedToSee(VideoLocal file)
+        => User is not { } user || user.IsAllowedToSee(file);
+
+    /// <summary>
     /// Get or search through the files accessible to the current user.
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
@@ -113,7 +122,8 @@ public class FileController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? releaseProviders = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null)
     {
-        return ModelHelper.FilterFiles(_videoLocals.GetAll(), User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
+        var videos = _videoLocals.GetAll().Where(IsAllowedToSee);
+        return ModelHelper.FilterFiles(videos, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
     }
 
     /// <summary>
@@ -170,7 +180,7 @@ public class FileController(
         [FromQuery] bool? skipSort = null,
         [FromQuery] bool fuzzy = true)
     {
-        var videos = _videoLocals.GetAll() as IEnumerable<VideoLocal>;
+        var videos = _videoLocals.GetAll().Where(IsAllowedToSee);
         if (!string.IsNullOrEmpty(query))
             videos = videos
                 .Search(
@@ -241,6 +251,9 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
+
         include ??= [];
         return new File(
             HttpContext,
@@ -272,6 +285,9 @@ public class FileController(
         var file = _videoLocals.GetByCrc32AndSize(hash, size);
         if (file == null)
             return NotFound(FileNotFoundWithHash);
+
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
 
         include ??= [];
         return new File(
@@ -305,6 +321,9 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
+
         include ??= [];
         return new File(
             HttpContext,
@@ -337,6 +356,9 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
+
         include ??= [];
         return new File(
             HttpContext,
@@ -365,6 +387,9 @@ public class FileController(
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
+
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
 
         include ??= [];
         return new File(
@@ -414,6 +439,9 @@ public class FileController(
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileLocationNotFoundWithLocationID);
+
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
 
         return file.Places
             .Select(location => new File.Location(location, includeAbsolutePaths, includeLocationUID))
@@ -466,6 +494,9 @@ public class FileController(
     {
         if (_videoLocalPlaces.GetByID(locationID) is not { } fileLocation)
             return NotFound(FileLocationNotFoundWithLocationID);
+
+        if (fileLocation.VideoLocal is { } file && !IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
 
         return new File.Location(fileLocation, true, true);
     }
@@ -562,6 +593,9 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
+
         if (file.ReleaseInfo is not { ReleaseURI: not null } releaseInfo)
             return NotFound(ReleaseNotFoundForFileID);
 
@@ -582,6 +616,9 @@ public class FileController(
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
+
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
 
         if (file.ReleaseInfo is not { ReleaseURI: not null } releaseInfo || !releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
             return NotFound(AnidbReleaseNotFoundForFileID);
@@ -605,6 +642,9 @@ public class FileController(
             !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
         )
             return NotFound(AnidbReleaseNotFoundForAnidbFileID);
+
+        if (User.HasRestrictions() && (_videoLocals.GetByEd2kAndSize(anidb.ED2K, anidb.FileSize) is not { } file || !IsAllowedToSee(file)))
+            return Forbid(FileForbiddenForUser);
 
         return new ReleaseInfo(anidb);
     }
@@ -633,6 +673,10 @@ public class FileController(
         if (file == null)
             return NotFound(AnidbReleaseNotFoundForAnidbFileID);
 
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
+
+        include ??= [];
         return new File(
             HttpContext,
             file,
@@ -712,6 +756,9 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
+
         var bestLocation = file.Places.FirstOrDefault(a => a.FileName.Equals(filename));
         bestLocation ??= file.FirstValidPlace;
 
@@ -751,6 +798,9 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
+
         var context = new VideoStreamTransformContext { User = User, QueryParameters = Request.Query };
         return _streamPipelineService.GetApplicableTransforms(file, context)
             .Select(info => new VideoStreamTransform(info))
@@ -774,6 +824,9 @@ public class FileController(
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
+
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
 
         var context = new VideoStreamTransformContext { User = User, QueryParameters = Request.Query };
         var transformInfo = _streamPipelineService.SelectTransform(file, context, transformId);
@@ -850,6 +903,9 @@ public class FileController(
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
+
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
 
         var context = new VideoStreamTransformContext { User = User, QueryParameters = Request.Query };
         var transformInfo = _streamPipelineService.SelectTransform(file, context, transformId);
@@ -1127,10 +1183,11 @@ public class FileController(
     private StreamSessionSource CreateStreamSessionSource(int fileID, string transformID)
         => new(fileID, transformID, new QueryCollection(Request.Query.ToDictionary(pair => pair.Key, pair => pair.Value)));
 
-    private Task<StreamSession?> GetStreamSession(int fileID, Guid sessionID)
-        => _streamSessionManager.GetOrRestoreSessionAsync(sessionID, async (source, cancellationToken) =>
+    private async Task<StreamSession?> GetStreamSession(int fileID, Guid sessionID)
+    {
+        var session = await _streamSessionManager.GetOrRestoreSessionAsync(sessionID, async (source, cancellationToken) =>
         {
-            if (source.VideoID != fileID || _videoLocals.GetByID(fileID) is not { } file)
+            if (source.VideoID != fileID || _videoLocals.GetByID(fileID) is not { } file || !IsAllowedToSee(file))
                 return null;
 
             var context = new VideoStreamTransformContext { User = User, QueryParameters = source.QueryParameters };
@@ -1139,6 +1196,14 @@ public class FileController(
 
             return (file, await transformInfo.Transform.GetRenditionAsync(file, context, cancellationToken));
         }, HttpContext.RequestAborted);
+
+        // A live session may have been started by another user, so check the
+        // video it plays too.
+        if (session?.Video is VideoLocal video && !IsAllowedToSee(video))
+            return null;
+
+        return session;
+    }
 
     private void AddStreamSessionLink(int fileID, Guid sessionID)
         => Response.Headers.Append("Link", $"<{Url.Action(nameof(GetFileStreamSession), new { fileID, sessionID })}{Request.QueryString}>; rel=\"describedby\"");
@@ -1193,6 +1258,9 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
+
         var routeTemplate = Request.Scheme + "://" + Request.Host + "/api/v3/File/" + fileID + "/StreamDirectory/ExternalSub/";
         return new ObjectResult("<table>" + string.Join(string.Empty,
             file.MediaInfo?.TextStreams.Where(a => a.External).Select(a => $"<tr><td><a href=\"{routeTemplate + a.Filename}\"/></td></tr>") ?? []) + "</table>");
@@ -1218,6 +1286,9 @@ public class FileController(
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
+
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
 
         var isKnownExternalSubtitle = file.MediaInfo?.TextStreams.Any(a => a.External && a.Filename == filename) ?? false;
         if (!isKnownExternalSubtitle)
@@ -1248,6 +1319,9 @@ public class FileController(
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
+        if (!IsAllowedToSee(file))
+            return Forbid(FileForbiddenForUser);
+
         var mediaContainer = file.MediaInfo;
         if (mediaContainer == null)
             return InternalError("Unable to find media container for File");
@@ -1256,6 +1330,11 @@ public class FileController(
     }
 
     #region User Data
+
+    // The user data routes skip the visibility check on purpose. An
+    // integration, such as a media server plugin, may let the user watch a
+    // file they cannot see here, and their user data must still sync, both
+    // for backups and for the plugins acting on the scrobble events it raises.
 
     [Obsolete("Use /UserData instead")]
     [HttpGet("{fileID}/UserStats")]
@@ -1779,7 +1858,7 @@ public class FileController(
             .Select(location => location.VideoLocal)
             .WhereNotNull()
             .DistinctBy(file => file.VideoLocalID)
-            .Where(User.IsAllowedToSee);
+            .Where(IsAllowedToSee);
 
         include ??= [];
         if (limit <= 0)
@@ -1864,7 +1943,7 @@ public class FileController(
             .DistinctBy(v => v.VideoID)
             .Select(a => a.VideoLocal)
             .WhereNotNull()
-            .Where(User.IsAllowedToSee)
+            .Where(IsAllowedToSee)
             .Select(a => new File(HttpContext, a, true))
             .ToList();
     }
