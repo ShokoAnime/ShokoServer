@@ -56,6 +56,7 @@ public class AVDumpController(
     /// </summary>
     /// <param name="body">Body containing the file ids to dump.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("DumpFiles")]
     public async Task<ActionResult> MultiDump([FromBody] AVDump.Input.DumpFilesBody body)
     {

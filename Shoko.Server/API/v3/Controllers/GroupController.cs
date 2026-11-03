@@ -124,6 +124,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// </remarks>
     /// <param name="body">The details for the group to be created.</param>
     /// <returns>The new group.</returns>
+    [Authorize("admin")]
     [HttpPost]
     public ActionResult<Group> CreateGroup([FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
@@ -168,6 +169,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="groupID">The ID of the group to be updated.</param>
     /// <param name="body">The new details for the group.</param>
     /// <returns>The updated group.</returns>
+    [Authorize("admin")]
     [HttpPut("{groupID}")]
     public ActionResult<Group> PutGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
@@ -196,6 +198,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="groupID">The ID of the group to be updated.</param>
     /// <param name="patchDocument">The JSON Patch document containing the changes to be applied to the group.</param>
     /// <returns>The updated group.</returns>
+    [Authorize("admin")]
     [HttpPatch("{groupID}")]
     public ActionResult<Group> PatchGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] JsonPatchDocument<Group.Input.CreateOrUpdateGroupBody> patchDocument)
     {
@@ -666,6 +669,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// </summary>
     /// <param name="groupID"></param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("{groupID}/Recalculate")]
     public async Task<ActionResult> RecalculateStats([FromRoute, Range(1, int.MaxValue)] int groupID)
     {

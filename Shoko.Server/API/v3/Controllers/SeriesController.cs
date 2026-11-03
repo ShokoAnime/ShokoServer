@@ -1432,6 +1432,7 @@ public class SeriesController(
     /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <param name="skipTmdbUpdate">Skip updating related TMDB entities after refresh.</param>
     /// <returns>True if the refresh was performed at once, otherwise false if it was queued.</returns>
+    [Authorize("admin")]
     [HttpPost("AniDB/{anidbID}/Refresh")]
     public async Task<ActionResult<bool>> RefreshAniDBByAniDBID([FromRoute] int anidbID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
@@ -1464,6 +1465,7 @@ public class SeriesController(
     /// <param name="cacheOnly">Only used data from the cache when performing the refresh. <paramref name="force"/> takes precedence over this option.</param>
     /// <param name="skipTmdbUpdate">Skip updating related TMDB entities after refresh.</param>
     /// <returns>True if the refresh is done, otherwise false if it was queued.</returns>
+    [Authorize("admin")]
     [HttpPost("{seriesID}/AniDB/Refresh")]
     public async Task<ActionResult<bool>> RefreshAniDBBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool force = false,
         [FromQuery] bool downloadRelations = false, [FromQuery] bool? createSeriesEntry = null,
@@ -1545,6 +1547,7 @@ public class SeriesController(
     /// No content, or <c>503 Service Unavailable</c> while TMDB is not
     /// configured.
     /// </returns>
+    [Authorize("admin")]
     [HttpPost("{seriesID}/TMDB/Action/AutoSearch")]
     public async Task<ActionResult> ScheduleAutoMatchTMDBMoviesBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
