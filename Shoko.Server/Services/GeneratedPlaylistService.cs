@@ -129,9 +129,9 @@ public class GeneratedPlaylistService(
     ///   The field name to use for error keys. Defaults to <c>"playlist"</c>.
     /// </param>
     /// <param name="user">
-    ///   The user the playlist is for, who only gets the groups, series and
-    ///   episodes they may see; files named by ID or hash are not checked.
-    ///   Defaults to the current request's user.
+    ///   The user the playlist is for, who only gets the groups, series,
+    ///   episodes and files they may see. Defaults to the current request's
+    ///   user.
     /// </param>
     /// <returns>
     ///   The parsed playlist as a list of episode-group/video-file tuples.
@@ -378,9 +378,6 @@ public class GeneratedPlaylistService(
 
                     default:
                     {
-                        // A file named by ID or hash is a direct lookup, so the
-                        // user's restrictions do not apply to it.
-
                         // Lookup by ED2K (optionally also by file size)
                         if (IsHash(rawValue))
                         {
@@ -394,7 +391,8 @@ public class GeneratedPlaylistService(
                                     continue;
                                 }
                             }
-                            if ((fileSize > 0 ? videoRepository.GetByEd2kAndSize(ed2kHash, fileSize) : videoRepository.GetByEd2k(ed2kHash)) is not { } video0)
+                            if ((fileSize > 0 ? videoRepository.GetByEd2kAndSize(ed2kHash, fileSize) : videoRepository.GetByEd2k(ed2kHash)) is not { } video0 ||
+                                (user is not null && !user.IsAllowedToSee(video0)))
                             {
                                 if (fileSize == 0)
                                     modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown hash \"{rawValue}\" at index {index} at offset {offset}");
@@ -412,7 +410,7 @@ public class GeneratedPlaylistService(
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Invalid file ID \"{rawValue}\".");
                             continue;
                         }
-                        if (videoRepository.GetByID(fileID) is not { } video)
+                        if (videoRepository.GetByID(fileID) is not { } video || (user is not null && !user.IsAllowedToSee(video)))
                         {
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown file ID \"{rawValue}\".");
                             continue;
