@@ -429,6 +429,12 @@ public class EpisodeController(
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
+        if (episode.AnimeSeries is not { } series)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
         var anidb = episode.AniDB_Episode;
         if (anidb == null)
             return InternalError(AnidbNotFoundForEpisodeID);
@@ -447,6 +453,9 @@ public class EpisodeController(
         var anidb = _anidbEpisodes.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
             return NotFound(AnidbNotFoundForAnidbEpisodeID);
+
+        if (anidb.AniDB_Anime is { } anime && !User.AllowedAnime(anime))
+            return Forbid(EpisodeForbiddenForUser);
 
         return new AnidbEpisode(anidb);
     }
@@ -483,6 +492,12 @@ public class EpisodeController(
         var episode = _animeEpisodes.GetByAniDBEpisodeID(anidb.EpisodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundForAnidbEpisodeID);
+
+        if (episode.AnimeSeries is not { } series)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
 
         return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo, Episode.PlacementResolver(HttpContext, include), placementSource);
     }
