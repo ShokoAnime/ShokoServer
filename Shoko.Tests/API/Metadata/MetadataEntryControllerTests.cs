@@ -339,12 +339,16 @@ public class MetadataEntryControllerTests
         var hiddenAnime = Mock.Of<IAnidbAnime>();
         var shownAnime = Mock.Of<IAnidbAnime>();
         var hiddenSeries = Mock.Of<IShokoSeries>();
+        var hiddenGroup = Mock.Of<IShokoGroup>();
         var user = new Mock<IUser>();
         user.Setup(u => u.IsAllowedToSee(It.IsAny<IAnidbAnime>())).Returns((IAnidbAnime anime) => anime != hiddenAnime);
         user.Setup(u => u.IsAllowedToSee(It.IsAny<IShokoSeries>())).Returns((IShokoSeries series) => series != hiddenSeries);
+        user.Setup(u => u.IsAllowedToSee(It.IsAny<IShokoGroup>())).Returns((IShokoGroup group) => group != hiddenGroup);
+        user.Setup(u => u.IsAllowedToSee(It.IsAny<IVideo>())).Returns((IVideo video) => video.Series.Any(series => series != hiddenSeries));
         var anidbEpisode = Mock.Of<IAnidbEpisode>(episode => episode.Series == hiddenAnime);
         var shokoEpisode = Mock.Of<IShokoEpisode>(episode => episode.Series == hiddenSeries);
         var video = Mock.Of<IVideo>(video => video.Series == new List<IShokoSeries> { hiddenSeries });
+        var ordering = Mock.Of<IOrdering>(ordering => ordering.Series == hiddenSeries);
 
         Assert.False(MetadataEntryController.MaySee(hiddenAnime, () => user.Object));
         Assert.True(MetadataEntryController.MaySee(shownAnime, () => user.Object));
@@ -352,6 +356,8 @@ public class MetadataEntryControllerTests
         Assert.False(MetadataEntryController.MaySee(hiddenSeries, () => user.Object));
         Assert.False(MetadataEntryController.MaySee(shokoEpisode, () => user.Object));
         Assert.False(MetadataEntryController.MaySee(video, () => user.Object));
+        Assert.False(MetadataEntryController.MaySee(hiddenGroup, () => user.Object));
+        Assert.False(MetadataEntryController.MaySee(ordering, () => user.Object));
     }
 
     [Fact]

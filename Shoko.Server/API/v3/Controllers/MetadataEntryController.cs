@@ -332,8 +332,9 @@ public partial class MetadataEntryController : BaseController
     /// <summary>
     /// Whether a user may see an entry: an AniDB anime, season or episode, or
     /// a Shoko series, season or episode, when the anime or series behind it
-    /// is not hidden from the user, and a video with no series or one the user
-    /// may see. Every other entry may be seen.
+    /// is not hidden from the user, a Shoko group or a video the user may see,
+    /// and an ordering when its series may be seen. Every other entry may be
+    /// seen.
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <param name="user">Gives the user, only asked for when the entry is one the user may be kept from.</param>
@@ -347,7 +348,9 @@ public partial class MetadataEntryController : BaseController
             IShokoSeries series => user().IsAllowedToSee(series),
             ISeason<IShokoSeries, IShokoEpisode> season => user().IsAllowedToSee(season.Series),
             IShokoEpisode episode => episode.Series is not { } series || user().IsAllowedToSee(series),
-            IVideo video => video.Series is var linked && (linked.Count is 0 || linked.Any(series => user().IsAllowedToSee(series))),
+            IShokoGroup group => user().IsAllowedToSee(group),
+            IVideo video => user().IsAllowedToSee(video),
+            IOrdering ordering => MaySee(ordering.Series, user),
             _ => true,
         };
 
