@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.584",
+      "tag": "v6.0.0-dev.584",
+      "commit": "949866fd58eafe7ae7cf08c8a536500c0773cecb",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.584/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-03T17:36:30Z",
+      "releaseNotes": "\n`fix` (`abstractions`): **Read the `sdh` track tag as no language instead of reporting it**.\n\n`fix` (`filters`): **Keep fuzzy scores for the most recent queries only**:\n\n- `FuzzySearchService` held a score for every query ever searched, a few MiB each on a large collection, for the life of the process\n- It now keeps the 16 most recently used queries and drops the oldest, with the name sets still held weakly\n\n`refactor`: **Add `IsAllowedToSee(IVideo)` to `IUser` and drop `AllowedVideo`**:\n\n- A recognized video is visible when any of its series is, and an unrecognized one only to users without restricted tags\n- Every file listing, search and action check now uses it, so unrecognized files are hidden from restricted users everywhere\n\n`fix` (`api`): **Restrict the file action and link routes to admins**:\n\n- `Ignore`, `Variation`, `AVDump`, `Rescan`, `Rehash`, `AddToMylist` and the AniDB file `Rescan`\n- The deprecated `Link`, `LinkFromSeries` and unlink routes\n\n`refactor` (`api`): **Replace the unused `autoWatch` segment of the APIv2 `/Stream` routes with a placeholder**.\n\n`refactor` (`api`): **Remove the APIv2 `/Stream/Filename` routes**.\n\n`fix` (`api`): **Restrict the text management routes to admins**.\n\n`fix` (`api`): **Restrict the APIv2 folder, import, rescan, rehash and queue routes to admins**.\n\n`fix` (`api`): **Check restricted tags on the APIv2 file, episode and series lookups**:\n\n- `file?id=`, `file/unsort`, `ep/getbyfilename` (v2.0), `ep/getbyhash`, `serie/fromep`, `serie/fromaid`, `serie/byfolder`, `serie/infobyfolder` and `links/serie`\n- `file/count` and `serie/count` count only what the user may see\n\n`fix` (`api`): **Read the signed-in user on the APIv2 dashboard**.\n\n`fix` (`api`): **Restrict group editing, the AVDump batch, AniDB refreshes and the TMDB auto search to admins**:\n\n`POST`/`PUT`/`PATCH` `/Group`, `/Group/{id}/Recalculate`, `/AVDump/DumpFiles`, both `/Series/…/AniDB/Refresh` routes and `POST /Series/{id}/TMDB/Action/AutoSearch`.\n\n`fix` (`settings`): **Mask the database and queue connection strings as secrets**.\n\n`fix` (`api`): **Serve plugin and package icons with the sandbox headers**.\n\n`fix` (`api`): **Check the file's visibility on `/ReleaseInfo/File/{fileID}`**.\n\n`fix` (`api`): **Hide groups, unrecognized files and orderings of hidden series in the metadata entry routes**.\n\n`fix` (`api`): **Check the series on the episode routes looked up by AniDB episode ID**.\n\n`fix` (`api`): **Leave hidden series, episodes and anime out of the TMDB cross-source lookups**.\n\n`fix` (`api`): **Check the visibility of files named by ID or hash in generated playlists**.\n\n`fix` (`api`): **Leave hidden anime out of the AniDB search, similar, related and relation routes**.\n\n`fix` (`api`): **Close hub connections when their API token is invalidated**.\n\n`fix` (`api`): **Close hub connections when their API token expires**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.125**.\n\n`fix` (`api`): **Check the file's visibility on the file metadata and stream routes**:\n\n- Restricted users get a `403` for a file they may not see, unrecognized files included, by ID, hash, AniDB file ID or location ID\n- Applied to the stream routes and their sessions, and to the listings and path searches\n- User data, watched and scrobble routes stay open on purpose\n\nFixes GHSA-xpwh-jh8w-7fhh: https://github.com/ShokoAnime/ShokoServer/security/advisories/GHSA-xpwh-jh8w-7fhh\n\nReported-by: Jona Kats <42283268+kats1123@users.noreply.github.com>\n"
+    },
+    {
       "version": "6.0.0.583",
       "tag": "v6.0.0-dev.583",
       "commit": "93dfaba4fa82547765fb1dbfc791672fb997a1f5",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.555/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-26T07:48:27Z",
       "releaseNotes": "\n`fix` (`abstractions`): **Leave the key out of an `ApiToken` written as text**:\n\n- `ApiToken` writes its user, device and expiry for `ToString`, never `Token`, so a token in a log or a message carries no key\n"
-    },
-    {
-      "version": "6.0.0.554",
-      "tag": "v6.0.0-dev.554",
-      "commit": "2da34db93d6a0a5606dba19dc6d8138c31ed1a4e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.554/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-25T21:26:34Z",
-      "releaseNotes": "\n`fix` (`api`): **Send a browser's unanswered page into the web UI**:\n\n- A page outside the mount path that the rest of the pipeline answers `404` is redirected to the same path under it\n- Until the server has started, such a page is redirected at once, as the not-running check would answer it\n- Requests not accepting `text/html` and the `/api`, `/plugin` and `/signalr` paths keep their answers\n"
     }
   ]
 }
