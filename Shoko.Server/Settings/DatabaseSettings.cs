@@ -172,7 +172,7 @@ public class DatabaseSettings
     [Display(Name = "Connection String")]
     [RequiresRestart]
     [EnvironmentVariable("DB_CONNECTION_STRING")]
-    [TextArea]
+    [PasswordPropertyText]
     public string OverrideConnectionString { get; set; } = string.Empty;
 
     [JsonIgnore]

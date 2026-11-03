@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using Newtonsoft.Json;
@@ -56,6 +57,7 @@ public class QueueProcessorSettings
     [Display(Name = "Connection String")]
     [RequiresRestart]
     [EnvironmentVariable("QUEUE_CONNECTION_STRING")]
+    [PasswordPropertyText]
     public string ConnectionString { get; set; } = string.Empty;
 
     /// <summary>
