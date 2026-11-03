@@ -627,9 +627,9 @@ public class ActionService(
 
     /// <summary>
     ///   Whether the caller may act on the entity: a series or episode whose
-    ///   series the caller may see, a file with no series or one the caller may
-    ///   see, or a group visible in whole unless the action only touches the
-    ///   series the caller may see.
+    ///   series the caller may see, a file the caller may see, or a group
+    ///   visible in whole unless the action only touches the series the caller
+    ///   may see.
     /// </summary>
     /// <param name="action">The action.</param>
     /// <param name="scopeEntity">The entity the action is scoped to, or <c>null</c>.</param>
@@ -646,7 +646,7 @@ public class ActionService(
             AnimeGroup group => AnimeGroupView.For(group, caller) is { IsVisible: true, IsComplete: true },
             AnimeSeries series => caller!.IsAllowedToSee(series),
             AnimeEpisode episode => episode.AnimeSeries is not { } series || caller!.IsAllowedToSee(series),
-            VideoLocal video => JMMUser.IsVideoVisible(video, caller!.IsAllowedToSee),
+            VideoLocal video => caller!.IsAllowedToSee(video),
             _ => true,
         };
         return visible ? null : new ActionValidationResult($"The {ScopeOf(scopeEntity).ToString().ToLowerInvariant()} is not visible to the calling user.");

@@ -1772,7 +1772,7 @@ public class FileController(
             .Select(location => location.VideoLocal)
             .WhereNotNull()
             .DistinctBy(file => file.VideoLocalID)
-            .Where(User.AllowedVideo);
+            .Where(User.IsAllowedToSee);
 
         include ??= [];
         if (limit <= 0)
@@ -1857,7 +1857,7 @@ public class FileController(
             .DistinctBy(v => v.VideoID)
             .Select(a => a.VideoLocal)
             .WhereNotNull()
-            .Where(User.AllowedVideo)
+            .Where(User.IsAllowedToSee)
             .Select(a => new File(HttpContext, a, true))
             .ToList();
     }

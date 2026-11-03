@@ -329,7 +329,7 @@ public class ManagedFolderController(
             .GroupBy(place => place.VideoID)
             .Select(places => videoRepository.GetByID(places.Key))
             .WhereNotNull()
-            .Where(User.AllowedVideo)
+            .Where(User.IsAllowedToSee)
             .OrderBy(file => file.DateTimeCreated)
             .ToListResult(file => new File(
                 HttpContext,

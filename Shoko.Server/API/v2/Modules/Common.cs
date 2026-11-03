@@ -812,7 +812,7 @@ public class Common : BaseController
     {
         var user = HttpContext.GetUser();
 
-        var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null && user.AllowedVideo(vid))
+        var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null && user.IsAllowedToSee(vid))
             .ToDictionary(a => a, a => a.ReleaseInfo);
         return allVideos.Keys.Select(vid => new { vid, anidb = allVideos[vid] })
             .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
@@ -870,7 +870,7 @@ public class Common : BaseController
         var user = HttpContext.GetUser();
 
         var allVideos = RepoFactory.VideoLocal.GetAll()
-            .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderName: "AniDB", IsCorrupted: true } && user.AllowedVideo(a)).ToList();
+            .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderName: "AniDB", IsCorrupted: true } && user.IsAllowedToSee(a)).ToList();
         return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList()!;
     }
 
@@ -1096,7 +1096,7 @@ public class Common : BaseController
             limit_x = 100;
         }
 
-        foreach (var file in RepoFactory.VideoLocal.GetAll().Where(user.AllowedVideo).Take(limit_x))
+        foreach (var file in RepoFactory.VideoLocal.GetAll().Where(user.IsAllowedToSee).Take(limit_x))
         {
             list.Add(new RawFile(HttpContext, file, level, user.JMMUserID));
             if (limit != 0)

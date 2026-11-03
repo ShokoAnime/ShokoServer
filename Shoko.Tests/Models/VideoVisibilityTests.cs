@@ -15,8 +15,8 @@ using Xunit;
 namespace Shoko.Tests.Models;
 
 /// <summary>
-/// Covers how a user with restricted tags sees files where they are listed or acted on: a file is
-/// kept when it has no series, or when any of its series is visible to the user.
+/// Covers how a user with restricted tags sees files: a file is visible when any of its series is
+/// visible to the user, and a file without a series is hidden.
 /// </summary>
 [Collection(nameof(RepoFactoryCollection))]
 public class VideoVisibilityTests
@@ -82,13 +82,13 @@ public class VideoVisibilityTests
     #endregion
 
     [Fact]
-    public void AListingKeepsFilesWithAVisibleSeriesOrNone()
+    public void AListingKeepsOnlyFilesWithAVisibleSeries()
     {
         using var world = new World();
 
         var listed = world.Videos.GetMostRecentlyAdded(-1, world.User.JMMUserID);
 
-        Assert.Equal([1, 3], listed.Select(video => video.VideoLocalID));
+        Assert.Equal([1], listed.Select(video => video.VideoLocalID));
     }
 
     [Fact]
@@ -98,7 +98,19 @@ public class VideoVisibilityTests
         var action = new NoopVideoAction();
 
         Assert.Null(ActionService.CheckVisible(action, world.MixedVideo, world.User));
-        Assert.Null(ActionService.CheckVisible(action, world.UnlinkedVideo, world.User));
+        Assert.NotNull(ActionService.CheckVisible(action, world.UnlinkedVideo, world.User));
         Assert.NotNull(ActionService.CheckVisible(action, world.HiddenVideo, world.User));
+    }
+
+    [Fact]
+    public void ARestrictedUserSeesOnlyFilesWithAVisibleSeries()
+    {
+        using var world = new World();
+        var unrestricted = new JMMUser { JMMUserID = 2, HideCategories = string.Empty };
+
+        Assert.True(world.User.IsAllowedToSee(world.MixedVideo));
+        Assert.False(world.User.IsAllowedToSee(world.HiddenVideo));
+        Assert.False(world.User.IsAllowedToSee(world.UnlinkedVideo));
+        Assert.True(unrestricted.IsAllowedToSee(world.UnlinkedVideo));
     }
 }

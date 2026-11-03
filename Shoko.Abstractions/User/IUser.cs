@@ -3,6 +3,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Video;
 
 namespace Shoko.Abstractions.User;
 
@@ -77,4 +78,19 @@ public interface IUser : IMetadata, IWithPrimaryImage, IWithBackdropImage
     ///   <c>false</c>.
     /// </returns>
     bool IsAllowedToSee(IAnidbAnime anime);
+
+    /// <summary>
+    ///   Indicates that the user is allowed to see the specified video based on
+    ///   the user's restricted tags: a recognized video when at least one of
+    ///   the series it is linked to is one the user is allowed to see, and an
+    ///   unrecognized video only when the user has no restricted tags.
+    /// </summary>
+    /// <param name="video">
+    ///   The video.
+    /// </param>
+    /// <returns>
+    ///   <c>true</c> if the user is allowed to see the video; otherwise,
+    ///   <c>false</c>.
+    /// </returns>
+    bool IsAllowedToSee(IVideo video);
 }

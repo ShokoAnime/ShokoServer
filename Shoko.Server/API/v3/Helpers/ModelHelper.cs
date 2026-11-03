@@ -526,7 +526,7 @@ public static class ModelHelper
             .Where(tuple =>
             {
                 var (video, _, locations, releaseInfo, userRecord) = tuple;
-                if (!user.AllowedVideo(video))
+                if (!user.IsAllowedToSee(video))
                     return false;
 
                 var xrefs = video.EpisodeCrossReferences;

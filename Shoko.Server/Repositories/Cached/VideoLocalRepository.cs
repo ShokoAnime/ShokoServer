@@ -262,7 +262,7 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
         var videos = Cache.GetAll()
-            .Where(video => user is null || user.AllowedVideo(video))
+            .Where(video => user is null || user.IsAllowedToSee(video))
             .OrderByDescending(a => a.DateTimeCreated);
         return maxResults < 0 ? videos.ToList() : videos.Take(maxResults).ToList();
     }

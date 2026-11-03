@@ -9,6 +9,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
+using Shoko.Abstractions.Video;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 
@@ -71,6 +72,19 @@ public class JMMUser : IIdentity, IUser
         return AllowedGroup(shokoGroup);
     }
 
+    /// <inheritdoc/>
+    public bool IsAllowedToSee(IVideo video)
+    {
+        if (video is not VideoLocal shokoVideo)
+            throw new ArgumentException("Expected VideoLocal", nameof(video));
+        if (!HasRestrictions()) return true;
+        return shokoVideo.EpisodeCrossReferences
+            .DistinctBy(xref => xref.AnimeID)
+            .Select(xref => xref.AniDBAnime)
+            .WhereNotNull()
+            .Any(AllowedAnime);
+    }
+
     /// <summary>
     /// Returns whether a user is allowed to view this series
     /// </summary>
@@ -113,36 +127,6 @@ public class JMMUser : IIdentity, IUser
     {
         if (!HasRestrictions()) return true;
         return grp.AllSeries.All(AllowedSeries);
-    }
-
-    /// <summary>
-    ///   Returns whether the user may see the video where files are listed or
-    ///   searched: when it is linked to no known series, or to at least one
-    ///   series the user may see.
-    /// </summary>
-    /// <param name="video">The video.</param>
-    /// <returns><c>true</c> if the user may see the video.</returns>
-    public bool AllowedVideo(VideoLocal video)
-        => !HasRestrictions() || IsVideoVisible(video, AllowedAnime);
-
-    /// <summary>
-    ///   Returns whether a video is linked to no known series, or to at least
-    ///   one whose AniDB anime passes the check.
-    /// </summary>
-    /// <param name="video">The video.</param>
-    /// <param name="isAllowed">Whether the user may see the anime.</param>
-    /// <returns><c>true</c> if the video is visible.</returns>
-    internal static bool IsVideoVisible(VideoLocal video, Func<AniDB_Anime, bool> isAllowed)
-    {
-        var isLinked = false;
-        foreach (var anime in video.EpisodeCrossReferences.DistinctBy(xref => xref.AnimeID).Select(xref => xref.AniDBAnime).WhereNotNull())
-        {
-            if (isAllowed(anime))
-                return true;
-            isLinked = true;
-        }
-
-        return !isLinked;
     }
 
     /// <summary>
