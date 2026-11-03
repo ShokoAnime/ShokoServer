@@ -35,16 +35,16 @@ public class StreamModule(
 
     public const string SERVER_VERSION = "Shoko Stream Server 1.0";
 
-    [HttpGet("{videoLocalId}/{userId?}/{autoWatch?}/{fakeName?}")]
+    [HttpGet("{videoLocalId}/{userId?}/{_?}/{fakeName?}")]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(typeof(FileStreamResult), 206)]
     [ProducesResponseType(404)]
-    public async Task<object> StreamVideo(int videoLocalId, int? userId, bool? autoWatch, string fakeName)
+    public async Task<object> StreamVideo(int videoLocalId, int? userId, string fakeName)
     {
-        var r = ResolveVideoLocal(videoLocalId, userId, autoWatch);
+        var r = ResolveVideoLocal(videoLocalId, userId);
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent) return StatusCode((int)r.Status, r.StatusDescription);
         if (!string.IsNullOrEmpty(fakeName))
-            return await TransformedResult(r, headOnly: false) ?? StreamInfoResult(r, autoWatch);
+            return await TransformedResult(r, headOnly: false) ?? StreamInfoResult(r);
 
         var subs = r.VideoLocal.MediaInfo.TextStreams.Where(a => a.External).ToList();
         if (subs.Count == 0) return StatusCode(404);
@@ -58,13 +58,13 @@ public class StreamModule(
     [ProducesResponseType(404)]
     public object StreamVideoFromFilename(string base64filename, int? userId, bool? autoWatch, string fakeName)
     {
-        var r = ResolveFilename(base64filename, userId, autoWatch);
+        var r = ResolveFilename(base64filename, userId);
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
         {
             return StatusCode((int)r.Status, r.StatusDescription);
         }
 
-        return StreamInfoResult(r, autoWatch);
+        return StreamInfoResult(r);
     }
 
     /// <summary>
@@ -242,7 +242,7 @@ public class StreamModule(
     }
 
     [NonAction]
-    private object StreamInfoResult(InfoResult r, bool? autoWatch)
+    private object StreamInfoResult(InfoResult r)
     {
         try
         {
@@ -328,10 +328,10 @@ public class StreamModule(
         }
     }
 
-    [HttpHead("{videoLocalId}/{userId?}/{autoWatch?}/{fakeName?}")]
-    public async Task<object> InfoVideo(int videoLocalId, int? userId, bool? autoWatch, string fakeName)
+    [HttpHead("{videoLocalId}/{userId?}/{_?}/{fakeName?}")]
+    public async Task<object> InfoVideo(int videoLocalId, int? userId, string fakeName)
     {
-        var r = ResolveVideoLocal(videoLocalId, userId, autoWatch);
+        var r = ResolveVideoLocal(videoLocalId, userId);
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
         {
             return StatusCode((int)r.Status, r.StatusDescription);
@@ -354,7 +354,7 @@ public class StreamModule(
     [HttpHead("Filename/{base64filename}/{userId?}/{autoWatch?}/{fakeName?}")]
     public object InfoVideoFromFilename(string base64filename, int? userId, bool? autoWatch, string fakeName)
     {
-        var r = ResolveFilename(base64filename, userId, autoWatch);
+        var r = ResolveFilename(base64filename, userId);
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
         {
             return StatusCode((int)r.Status, r.StatusDescription);
@@ -379,7 +379,7 @@ public class StreamModule(
         public string Mime { get; set; }
     }
 
-    private static InfoResult ResolveVideoLocal(int videoLocalId, int? userId, bool? autoWatch)
+    private static InfoResult ResolveVideoLocal(int videoLocalId, int? userId)
     {
         var r = new InfoResult();
         var loc = RepoFactory.VideoLocal.GetByID(videoLocalId);
@@ -392,7 +392,7 @@ public class StreamModule(
 
         r.VideoLocal = loc;
         r.File = loc.FirstResolvedPlace?.FileInfo;
-        return FinishResolve(r, userId, autoWatch);
+        return FinishResolve(r, userId);
     }
 
     public static string Base64DecodeUrl(string base64EncodedData)
@@ -401,7 +401,7 @@ public class StreamModule(
         return Encoding.UTF8.GetString(base64EncodedBytes);
     }
 
-    private static InfoResult FinishResolve(InfoResult r, int? userId, bool? autoWatch)
+    private static InfoResult FinishResolve(InfoResult r, int? userId)
     {
         if (r.File == null)
         {
@@ -410,7 +410,7 @@ public class StreamModule(
             return r;
         }
 
-        if (userId.HasValue && autoWatch.HasValue && userId.Value != 0)
+        if (userId is not (null or 0))
         {
             r.User = RepoFactory.JMMUser.GetByID(userId.Value);
             if (r.User == null)
@@ -426,12 +426,12 @@ public class StreamModule(
         return r;
     }
 
-    private static InfoResult ResolveFilename(string base64, int? userId, bool? autoWatch)
+    private static InfoResult ResolveFilename(string base64, int? userId)
     {
         var r = new InfoResult();
         var fullName = Base64DecodeUrl(base64);
         r.VideoLocal = null;
         r.File = new FileInfo(fullName);
-        return FinishResolve(r, userId, autoWatch);
+        return FinishResolve(r, userId);
     }
 }

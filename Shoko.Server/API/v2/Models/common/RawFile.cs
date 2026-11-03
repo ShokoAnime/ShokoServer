@@ -154,7 +154,7 @@ public class RawFile : BaseDirectory
         }
 
         url = APIV2Helper.ConstructVideoLocalStream(ctx, uid, vl.VideoLocalID.ToString(),
-            "file" + Path.GetExtension(filename), false);
+            "file" + Path.GetExtension(filename));
 
         recognized = e != null || vl.EpisodeCrossReferences.Count != 0;
 

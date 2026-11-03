@@ -19,9 +19,9 @@ public class APIV2Helper
         return APIHelper.ProperURL(ctx, "/api/filter", short_url);
     }
 
-    public static string ConstructVideoLocalStream(HttpContext ctx, int userid, string vid, string name, bool autowatch)
+    public static string ConstructVideoLocalStream(HttpContext ctx, int userid, string vid, string name)
     {
-        return APIHelper.ProperURL(ctx, "/Stream/" + vid + "/" + userid + "/" + autowatch + "/" + name);
+        return APIHelper.ProperURL(ctx, "/Stream/" + vid + "/" + userid + "/_/" + name);
     }
 
     public static string ConstructSupportImageLink(HttpContext ctx, string name, bool short_url = true)
