@@ -38,6 +38,10 @@ Rows with an empty license column are MIT.
 | LGPL-2.1-only | NHibernate.Driver.MySqlConnector |
 | Apache-2.0 | Magick.NET-Q8-AnyCPU (ImageMagick) |
 | Apache-2.0 | Microsoft.AspNetCore.ResponseCaching |
+| Apache-2.0 | OpenTelemetry.Exporter.OpenTelemetryProtocol |
+| Apache-2.0 | OpenTelemetry.Instrumentation.AspNetCore |
+| Apache-2.0 | OpenTelemetry.Instrumentation.EntityFrameworkCore |
+| Apache-2.0 | OpenTelemetry.Instrumentation.Http |
 | Apache-2.0 | SQLitePCLRaw.bundle_e_sqlite3 |
 | Apache-2.0 | SQLitePCLRaw.core |
 | Apache-2.0 | SQLitePCLRaw.provider.e_sqlite3 |

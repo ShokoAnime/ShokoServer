@@ -273,6 +273,18 @@ A plugin says a service it talks to cannot take work by exporting an `ISuspensio
 - `appsettings.json` is configured as an **optional** overlay in the host builder but is not shipped
 - **Settings migrations** — versioned JSON transforms on the persisted settings file, in `Shoko.Server/Settings/SettingsMigrations.cs`. Each entry in the `_migrations` dictionary runs once (on upgrade past its key) via `MigrateSettings`; append new migrations, never modify existing ones.
 
+### Telemetry
+
+The server can export traces, metrics and its logs over OTLP, for an admin's own collector (`Shoko.Server/Telemetry/README.md` has the settings, the names and a Grafana Alloy example). Off by default: `Telemetry.Endpoint` is empty, and an endpoint alone exports nothing, since each signal has its own switch. Unrelated to Sentry.
+
+`TelemetryRuntime` builds the providers by hand as soon as `SystemService.StartAsync` has the settings, not through the web host, so they cover plugin upgrades, setup and failure mode; a process exit flushes them within 3 seconds. Every source and meter named `Shoko.*` is exported, the plugins' included. Instrument with the runtime's own `ActivitySource` and `Meter`: `Shoko.Abstractions` and `Shoko.QueueProcessor` take no OpenTelemetry dependency, and nothing costs more than a check until something listens.
+
+- **Secrets.** Never put a path, a URL, a job's arguments, a command's arguments or an exception's message in a span or metric; `error.type` takes the exception's type. No outbound request gets a `traceparent` (`NoOutputTextMapPropagator`, and `CoreHttpClientFactory`'s handler). `TelemetryRedactionProcessor` and `OtlpLogTarget` scrub what is left as a last guard, not as the plan.
+- **Telemetry never fails the work.** Helpers catch what a listener throws, and end a span first thing in a `finally` that can throw.
+- **Jobs.** One root span per attempt (`shoko.job {JobType}`), sampled by `JobTraceSampleRatio`, linked through `QueuedJob.TraceParent` to the span that queued it rather than parented to it. Job metrics ignore sampling.
+- **Database.** `DatabaseSpansEnabled` swaps in `TracingBatcher` for session factories built afterwards, and adds the EF Core instrumentation. Direct `CreateCommand` calls in schema steps and data fixes are not covered.
+- **Logs.** `OtlpLogTarget` buffers from `InitLogger`, then replays with the original timestamps or drops the buffer once the settings are read.
+
 ### Testing
 
 - **Framework**: xUnit v3 (`xunit.v3`) — there is no `Xunit.DependencyInjection`; test classes take

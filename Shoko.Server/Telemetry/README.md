@@ -1,0 +1,112 @@
+# OpenTelemetry export
+
+Shoko Server can send its traces, metrics and logs over OTLP to a collector you run, such as Grafana Alloy. It is for your
+own observability: nothing is sent anywhere else, no address is built in, and it has nothing to do with Sentry.
+
+Everything is off by default. Setting an endpoint alone exports nothing, since each signal has its own switch.
+
+## Settings
+
+Under `Telemetry` in `settings-server.json`. Every setting needs a restart, except the log level.
+
+| Setting | Default | Environment variable | |
+|---|---|---|---|
+| `Endpoint` | empty (off) | `SHOKO_OTLP_ENDPOINT` | The collector's base address. No credentials, query or fragment. |
+| `Protocol` | `HttpProtobuf` | `SHOKO_OTLP_PROTOCOL` | `HttpProtobuf` (usually port 4318) or `Grpc` (usually port 4317). |
+| `Headers` | empty | `SHOKO_OTLP_HEADERS` | `key=value,key=value`, sent with every export. |
+| `ExportTimeoutMs` | `5000` | `SHOKO_OTLP_TIMEOUT_MS` | How long one export may take. |
+| `ServiceName` | `shoko-server` | `SHOKO_OTLP_SERVICE_NAME` | The `service.name` of everything sent. |
+| `TracesEnabled` | `false` | `SHOKO_OTLP_TRACES_ENABLED` | Export spans. |
+| `MetricsEnabled` | `false` | `SHOKO_OTLP_METRICS_ENABLED` | Export metrics. |
+| `LogsEnabled` | `false` | `SHOKO_OTLP_LOGS_ENABLED` | Export the server's logs from this start on, early start-up lines included. Existing log files are not sent. |
+| `TraceSampleRatio` | `1.0` | `SHOKO_OTLP_TRACE_SAMPLE_RATIO` | The share of traces kept, from 0 to 1. |
+| `JobTraceSampleRatio` | `1.0` | `SHOKO_OTLP_JOB_TRACE_SAMPLE_RATIO` | The same for queue jobs, each attempt on its own. Job metrics count every job either way. |
+| `MetricExportIntervalSeconds` | `60` | `SHOKO_OTLP_METRIC_INTERVAL_SECONDS` | How often metrics are sent. |
+| `DatabaseSpansEnabled` | `false` | `SHOKO_OTLP_DB_SPANS_ENABLED` | A span and a duration for every statement. Busy. |
+| `CaptureDatabaseStatements` | `false` | `SHOKO_OTLP_DB_STATEMENTS_ENABLED` | Keep each statement's text on its span. |
+
+`Logging.DefaultOtlpLogLevel` (`LOGGING_OTLP_LOG_LEVEL`, Information by default) sets which logs are exported, and applies
+at once.
+
+A bad value logs a warning and turns the export off; it never stops the server from starting. The standard
+`OTEL_EXPORTER_OTLP_*` environment variables are ignored, so a platform that injects them cannot turn this on or redirect it.
+
+## What is sent
+
+**Spans**
+
+| Name | |
+|---|---|
+| `shoko.server.startup`, `shoko.server.late_start` | The two stages of starting. |
+| API requests, outgoing HTTP calls | ASP.NET Core and `HttpClient` instrumentation. `/signalr` and requests no route took are left out. |
+| `shoko.job {JobType}` | One attempt of a queue job, linked to the span that queued it. |
+| `anidb.udp {COMMAND}`, `anidb.http` | A request to AniDB, without the wait for its turn. |
+| `video.hash`, `release.search`, `image.download` | Hashing a file, searching for its release, fetching an image. |
+| `SELECT`, `INSERT`, … | A statement, with `DatabaseSpansEnabled`. |
+
+**Metrics**
+
+| Meter | Instruments |
+|---|---|
+| `Shoko.QueueProcessor` | `shoko.queue.job.duration`, `shoko.queue.jobs.waiting`, `.blocked`, `.scheduled`, `.executing`, `shoko.queue.workers.limit` |
+| `Shoko.Server.AniDB` | `shoko.anidb.request.duration`, `shoko.anidb.rate_limit.wait.duration`, `shoko.anidb.bans` (an empty UDP reply is assumed to be a ban, so this can count lost connections) |
+| `Shoko.Server` | `shoko.video.hash.duration`, `shoko.video.hash.size`, `shoko.release.search.duration`, `shoko.image.download.duration`, `shoko.suspension.active` |
+| `Shoko.Server.Database` | `db.client.operation.duration`, with `DatabaseSpansEnabled` |
+| Built in | `System.Runtime`, `System.Net.Http`, `System.Net.NameResolution`, `MySqlConnector`, and ASP.NET Core's hosting, Kestrel, routing, diagnostics, connections, authentication and authorization meters |
+
+Plugins following the `Shoko.*` naming convention are exported too.
+
+## What is kept out
+
+- No `traceparent` goes to AniDB, TMDB, Plex or anything else the server calls.
+- Spans and metrics hold no file paths, job arguments, UDP arguments or exception messages. Failures report the exception's type.
+- Query strings stay redacted, and known secret parameters are hidden in URLs, statements and log messages.
+- `Settings.*` log lines are not exported.
+
+Logs are exported as written, apart from those secrets. A stack trace in a log is not scrubbed, so treat your collector as
+you would your log files.
+
+## Grafana Alloy
+
+Point the server at Alloy:
+
+```json
+{
+  "Telemetry": {
+    "Endpoint": "http://alloy:4318",
+    "TracesEnabled": true,
+    "MetricsEnabled": true,
+    "LogsEnabled": true
+  }
+}
+```
+
+And have Alloy pass it on, here to anything taking OTLP over HTTP:
+
+```alloy
+otelcol.receiver.otlp "shoko" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces  = [otelcol.processor.batch.shoko.input]
+    metrics = [otelcol.processor.batch.shoko.input]
+    logs    = [otelcol.processor.batch.shoko.input]
+  }
+}
+
+otelcol.processor.batch "shoko" {
+  output {
+    traces  = [otelcol.exporter.otlphttp.backend.input]
+    metrics = [otelcol.exporter.otlphttp.backend.input]
+    logs    = [otelcol.exporter.otlphttp.backend.input]
+  }
+}
+
+otelcol.exporter.otlphttp "backend" {
+  client {
+    endpoint = "http://otel-backend:4318"
+  }
+}
+```
