@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -65,6 +66,7 @@ using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Services.Mylist;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using Shoko.Server.Telemetry;
 using Shoko.Server.Utilities;
 using Trinet.Core.IO.Ntfs;
 
@@ -87,6 +89,10 @@ public class SystemService : ISystemService
     private readonly SettingsProvider _settingsProvider;
 
     private readonly RestartReasonTracker _restartReasons;
+
+    private readonly ILogger<TelemetryRuntime> _telemetryLogger;
+
+    private TelemetryRuntime? _telemetry;
 
     private IHost? _webHost;
 
@@ -118,6 +124,7 @@ public class SystemService : ISystemService
         Version = PluginManager.GetVersionInformation();
 
         _logger = loggerFactory.CreateLogger<SystemService>();
+        _telemetryLogger = loggerFactory.CreateLogger<TelemetryRuntime>();
         _pluginManager = new(loggerFactory.CreateLogger<PluginManager>(), this, ApplicationPaths.Instance);
         _configurationService = new(loggerFactory, ApplicationPaths.Instance, _pluginManager);
         _settingsProvider = new(loggerFactory.CreateLogger<SettingsProvider>(), this, _configurationService.CreateProvider<ServerSettings>());
@@ -283,6 +290,7 @@ public class SystemService : ISystemService
     /// <inheritdoc/>
     public async Task<IHost?> StartAsync()
     {
+        Activity? startupSpan = null;
         try
         {
             // Check if any of the DLL are blocked, common issue with daily builds.
@@ -294,6 +302,9 @@ public class SystemService : ISystemService
             }
 
             var settings = _settingsProvider.GetSettings();
+
+            _telemetry = TelemetryRuntime.Start(settings.Telemetry, Version.Version.ToSemanticVersioningString(), _telemetryLogger);
+            startupSpan = ShokoTelemetry.Source.StartActivity("shoko.server.startup");
 
             LogService.ApplyLoggingSettings(settings.Logging);
 
@@ -418,6 +429,10 @@ public class SystemService : ISystemService
             if (StartupFailedException is null)
                 StartupMessage = "Starting Web Hosts.";
 
+            // The startup span stays open but stops being the current one, or what the hosted services
+            // start here, and the requests they go on to serve, would count as part of the startup.
+            Activity.Current = null;
+
             // Start the web server and all IHostedService services.
             await _webHost.StartAsync(CancellationToken.None);
 
@@ -471,6 +486,8 @@ public class SystemService : ISystemService
         }
         finally
         {
+            startupSpan?.Dispose();
+
             // Every way out closes registration, including those that never reach the plugin setup.
             PluginManager.CloseMetadataRegistration(_logger);
         }
@@ -890,6 +907,7 @@ public class SystemService : ISystemService
     /// </summary>
     private void LateStart()
     {
+        using var span = ShokoTelemetry.Source.StartActivity("shoko.server.late_start");
         var settings = _settingsProvider.GetSettings();
         try
         {

@@ -55,6 +55,10 @@ internal sealed class CoreHttpClientFactory : IHttpClientFactory
         handler.AllowAutoRedirect = true;
         handler.AutomaticDecompression = DecompressionMethods.All;
         handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
+
+        // This handler is built before the settings are read, and only takes the global propagator when it is built,
+        // so it would tell remote services about the server's traces.
+        handler.ActivityHeadersPropagator = null;
     }
 
     /// <summary>
