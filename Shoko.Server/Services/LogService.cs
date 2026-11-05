@@ -1008,6 +1008,12 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
     private static List<LogLevelRuleConfiguration> _logLevelRules = [];
 
+    private static ELogLevel? _defaultFileLogLevel;
+
+    private static ELogLevel? _defaultConsoleLogLevel;
+
+    private static ELogLevel? _defaultSignalRLogLevel;
+
     private static LogSerializeFormat _consoleFormat = LogSerializeFormat.Console;
 
     static LogService()
@@ -1070,7 +1076,11 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
     private static bool ApplyLoggingLevelRules(LoggingSettings logging, LoggingConfiguration config)
     {
-        if (_logLevelRules.SequenceEqual(logging.LogLevelRules) && _traceLogging == logging.TraceLog)
+        if (_logLevelRules.SequenceEqual(logging.LogLevelRules)
+            && _traceLogging == logging.TraceLog
+            && _defaultFileLogLevel == logging.DefaultFileLogLevel
+            && _defaultConsoleLogLevel == logging.DefaultConsoleLogLevel
+            && _defaultSignalRLogLevel == logging.DefaultSignalRLogLevel)
             return false;
         if (config.FindTargetByName<FileTarget>("file") is not { } fileTarget)
             return false;
@@ -1082,6 +1092,9 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             return false;
 
         _traceLogging = logging.TraceLog;
+        _defaultFileLogLevel = logging.DefaultFileLogLevel;
+        _defaultConsoleLogLevel = logging.DefaultConsoleLogLevel;
+        _defaultSignalRLogLevel = logging.DefaultSignalRLogLevel;
         _logLevelRules = logging.LogLevelRules
             .Select(a => new LogLevelRuleConfiguration() { LoggerNamePattern = a.LoggerNamePattern, MaxLevel = a.MaxLevel, Final = a.Final })
             .ToList();
