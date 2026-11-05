@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,6 +41,7 @@ public sealed class WorkerPoolManager : IHostedService
     private readonly PoolDiscovery _poolDiscovery;
     private readonly PersistenceBuffer _persistenceBuffer;
     private readonly QueueMetrics _metrics;
+    private Meter? _poolGauges;
     private readonly QueueStateEventHandler _events;
     private readonly IEnumerable<IAcquisitionFilter> _acquisitionFilters;
     private readonly IEnumerable<IJobWatchdogThreshold> _watchdogThresholds;
@@ -121,6 +123,9 @@ public sealed class WorkerPoolManager : IHostedService
         foreach (var pool in _pools)
             pool.Start(_serviceProvider, _orchestrator, _metrics, _events, _chainScopeRegistry);
 
+        _poolGauges?.Dispose();
+        _poolGauges = QueueTelemetry.CreatePoolGauges(_orchestrator.GetPoolStatus);
+
         // Start watchdog
         _watchdog = new JobWatchdog(
             _orchestrator,
@@ -138,6 +143,8 @@ public sealed class WorkerPoolManager : IHostedService
     {
         _logger.LogInformation("WorkerPoolManager stopping");
         _cts?.Cancel();
+        _poolGauges?.Dispose();
+        _poolGauges = null;
 
         // Pause enqueue + concurrency gate so anything triggered by a completing job's
         // event handlers (e.g. job chains) doesn't enter the queue during shutdown.

@@ -197,7 +197,7 @@ internal sealed class TelemetryRuntime
     private static TracerProvider BuildTracerProvider(TelemetryExportOptions options, ResourceBuilder resource)
         => Sdk.CreateTracerProviderBuilder()
             .SetResourceBuilder(resource)
-            .SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(options.Settings.TraceSampleRatio)))
+            .SetSampler(new TelemetrySampler(options.Settings.TraceSampleRatio, options.Settings.JobTraceSampleRatio))
             .AddSource(ShokoNamePattern)
             .AddAspNetCoreInstrumentation(instrumentation =>
             {
