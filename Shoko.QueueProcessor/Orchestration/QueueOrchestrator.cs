@@ -652,7 +652,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 ChainId: job.ChainId,
                 IsChainFinally: job.IsChainFinally,
                 IsCancellable: JobCapabilities.IsCancellable(type),
-                Actor: job.Actor);
+                Actor: job.Actor,
+                TraceParent: job.TraceParent);
             _executionStates[job.Id] = new JobExecutionState(job.Id, job.JobKey, OnProgressReported);
         }
         return true;
@@ -1063,6 +1064,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         ChainId = entry.ChainId,
         IsChainFinally = entry.IsChainFinally,
         Actor = entry.Actor,
+        TraceParent = entry.TraceParent,
     };
 
     public void Pause()

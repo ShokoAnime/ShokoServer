@@ -81,6 +81,24 @@ public class JobRepositoryTests
         }
     }
 
+    [Fact]
+    public async Task InsertBatchAsync_TraceParent_PersistedAndReloaded()
+    {
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
+        {
+            const string TraceParent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+            var linked = FakeJob(jobKey: "linked");
+            linked.TraceParent = TraceParent;
+
+            await repo.InsertBatchAsync([linked, FakeJob(jobKey: "not-linked")], TestContext.Current.CancellationToken);
+
+            var loaded = (await repo.LoadAllAsync(TestContext.Current.CancellationToken)).ToDictionary(j => j.JobKey);
+            Assert.Equal(TraceParent, loaded["linked"].TraceParent);
+            Assert.Null(loaded["not-linked"].TraceParent);
+        }
+    }
+
     // ── Load ordering ─────────────────────────────────────────────────────────
 
     [Fact]

@@ -53,16 +53,28 @@ public static class QueueTelemetry
     );
 
     /// <summary>
+    /// Captures the trace context of the current span for a job being queued.
+    /// </summary>
+    /// <returns>The trace context, or <c>null</c> without a span being kept, as a link to it would lead nowhere.</returns>
+    internal static string? CaptureTraceParent()
+        => Activity.Current is { IdFormat: ActivityIdFormat.W3C, Recorded: true } span ? span.Id : null;
+
+    /// <summary>
     /// Starts the span of a job, which is the current one until it is finished.
     /// </summary>
     /// <param name="jobType">The job's type. Never its arguments, which can hold anything.</param>
     /// <param name="pool">The pool it runs in, if any.</param>
+    /// <param name="traceParent">
+    /// The trace context of what queued it, linked to rather than made its parent: a job can run long after whatever
+    /// queued it has ended, and each attempt is sampled on its own.
+    /// </param>
     /// <returns>The span, or <c>null</c> when no one is listening.</returns>
-    internal static Activity? StartJob(string jobType, string? pool)
+    internal static Activity? StartJob(string jobType, string? pool, string? traceParent = null)
     {
         try
         {
-            var span = _source.StartActivity(JobSpanPrefix + jobType, ActivityKind.Consumer);
+            ActivityLink[]? links = ActivityContext.TryParse(traceParent, null, isRemote: true, out var queuedBy) ? [new(queuedBy)] : null;
+            var span = _source.StartActivity(JobSpanPrefix + jobType, ActivityKind.Consumer, default(ActivityContext), links: links);
             span?.SetTag(JobTypeTag, jobType);
             span?.SetTag(PoolTag, pool);
             return span;

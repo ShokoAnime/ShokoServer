@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
@@ -131,9 +132,9 @@ public sealed class QueueScheduler(
     /// <see cref="IQueueJob"/> instance: persisted <see cref="QueuedJob"/> + display
     /// <see cref="QueueItem"/> + pre-resolved <see cref="Type"/>. PoolName is left blank — the
     /// orchestrator stamps it from pool routing. The actor is captured by the caller, in the
-    /// flow that queued the job.
+    /// flow that queued the job, as is the trace context unless the caller captured one earlier.
     /// </summary>
-    internal static EnqueueContext BuildContext(Type type, string jobKey, IQueueJob instance, int priority, DateTimeOffset? scheduledAt, JobActor? actor = null)
+    internal static EnqueueContext BuildContext(Type type, string jobKey, IQueueJob instance, int priority, DateTimeOffset? scheduledAt, JobActor? actor = null, string? traceParent = null)
     {
         var asmQualified = JobTypeNames.Stored(type);
         var shortTypeName = JobTypeNames.Short(type);
@@ -150,6 +151,7 @@ public sealed class QueueScheduler(
                 QueuedAt = DateTimeOffset.UtcNow,
                 ScheduledAt = scheduledAt,
                 Actor = actor,
+                TraceParent = traceParent ?? QueueTelemetry.CaptureTraceParent(),
             },
             DisplayItem = new QueueItem
             {
@@ -281,6 +283,9 @@ internal sealed class JobChainBuilder(
     // Captured once, when the chain is created: every job of the chain runs for the same actor.
     private readonly JobActor? _actor = actorAccessor?.Capture();
 
+    // Likewise, so every job of the chain links back to what created it.
+    private readonly string? _traceParent = QueueTelemetry.CaptureTraceParent();
+
     public IJobChainBuilder Then<T>(Action<T>? configure = null) where T : class, IQueueJob
     {
         var keyBuilder = JobKeyBuilder<T>.Create();
@@ -291,7 +296,7 @@ internal sealed class JobChainBuilder(
         var instance = (T)scope.ServiceProvider.GetRequiredService(typeof(T));
         configure?.Invoke(instance);
 
-        var ctx = QueueScheduler.BuildContext(typeof(T), key, instance, QueuePriority.Immediate, null, _actor);
+        var ctx = QueueScheduler.BuildContext(typeof(T), key, instance, QueuePriority.Immediate, null, _actor, _traceParent);
         ctx.Job.ChainId = _chainId;
         ctx.Job.IsChainFinally = typeof(T).GetCustomAttribute<ChainFinallyAttribute>() != null;
         _entries.Add(ctx);
@@ -307,7 +312,7 @@ internal sealed class JobChainBuilder(
         var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
         configure?.Invoke(instance);
 
-        var ctx = QueueScheduler.BuildContext(jobType, key, instance, QueuePriority.Immediate, null, _actor);
+        var ctx = QueueScheduler.BuildContext(jobType, key, instance, QueuePriority.Immediate, null, _actor, _traceParent);
         ctx.Job.ChainId = _chainId;
         ctx.Job.IsChainFinally = jobType.GetCustomAttribute<ChainFinallyAttribute>() != null;
         _entries.Add(ctx);

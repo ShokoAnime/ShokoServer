@@ -90,6 +90,12 @@ public class QueuedJob
     public string? ActorDeviceName { get; set; }
 
     /// <summary>
+    /// The W3C trace context of the span that queued the job, for the job's own spans to link back to. Null when it was
+    /// not queued inside a span that is being kept.
+    /// </summary>
+    public string? TraceParent { get; set; }
+
+    /// <summary>
     /// The actor the job was queued for, or <c>null</c> for none.
     /// </summary>
     internal Abstractions.JobActor? Actor

@@ -11,7 +11,8 @@ namespace Shoko.QueueProcessor.Orchestration;
 /// <see cref="TypeName"/>, <see cref="Title"/> and <see cref="Details"/> may be empty until the
 /// worker has resolved the job and run <see cref="Abstractions.IQueueJob.PostInit"/>.
 /// <see cref="Progress"/> is only filled in the snapshots <see cref="QueueOrchestrator.GetExecuting"/>
-/// hands out. <see cref="Actor"/> is kept so a re-queued or retried job still runs for whoever queued it.
+/// hands out. <see cref="Actor"/> is kept so a re-queued or retried job still runs for whoever queued it,
+/// and <see cref="TraceParent"/> so its spans still link back to what queued it.
 /// </remarks>
 public record struct ExecutingEntry(
     Guid Id,
@@ -31,4 +32,5 @@ public record struct ExecutingEntry(
     bool IsCancellable = false,
     bool CancellationRequested = false,
     decimal? Progress = null,
-    Abstractions.JobActor? Actor = null);
+    Abstractions.JobActor? Actor = null,
+    string? TraceParent = null);

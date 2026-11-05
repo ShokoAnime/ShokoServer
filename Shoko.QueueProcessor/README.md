@@ -788,6 +788,7 @@ include exactly where in the code that call originated.
 | `IsChainFinally` | True when the job carries `[ChainFinally]` — it runs even if the chain aborts. |
 | `ParentJobId` (Guid?) | Non-null while the job is deferred in `AfterParentCallbacks`. Cleared (UPDATE) the moment the parent fires it. Used at startup to reconstruct `AfterParentCallbacks` from DB. |
 | `ActorUserId` (int?) / `ActorDeviceName` | Who the job was queued for, captured through `IJobActorAccessor`; null for no one. Never a credential. |
+| `TraceParent` | The W3C trace context of the span that queued the job, which each attempt's span links back to; null when it was not queued inside a span being kept. |
 
 There's **no status column** — executing state lives only in memory. On crash-restart, in-flight jobs are re-dispatched from their surviving row. Jobs with `ParentJobId` set whose parent is still present are placed back into `AfterParentCallbacks`; those whose parent is already gone are promoted to the active queue.
 

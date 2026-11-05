@@ -296,6 +296,7 @@ public sealed class WorkerPool : IWorkerPool
                 IsChainFinally = job.IsChainFinally,
                 ParentJobId = job.ParentJobId,
                 Actor = job.Actor,
+                TraceParent = job.TraceParent,
             };
             _subQueue.Add(raised);
             _subQueueById[raised.Id] = raised;
@@ -336,6 +337,7 @@ public sealed class WorkerPool : IWorkerPool
                     IsChainFinally = existing.IsChainFinally,
                     ParentJobId = existing.ParentJobId,
                     Actor = existing.Actor,
+                    TraceParent = existing.TraceParent,
                 };
                 _subQueue.Add(updated);
                 _subQueueById[id] = updated;
