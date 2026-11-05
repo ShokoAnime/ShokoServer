@@ -17,6 +17,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry.Database;
 
 // ReSharper disable InconsistentNaming
 
@@ -170,7 +171,10 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<SystemService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
-                prop.Batcher<NonBatchingBatcherFactory>();
+                if (DatabaseTelemetry.IsEnabled)
+                    prop.Batcher<TracingBatcherFactory>();
+                else
+                    prop.Batcher<NonBatchingBatcherFactory>();
                 prop.BatchSize = 0;
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
             })
