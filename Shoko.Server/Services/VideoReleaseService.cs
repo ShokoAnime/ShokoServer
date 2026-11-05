@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,6 +36,7 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry;
 
 namespace Shoko.Server.Services;
 
@@ -697,6 +699,7 @@ public class VideoReleaseService(
         var selectedProvider = (ReleaseProviderInfo?)null;
         var releaseInfo = (IReleaseInfo?)null;
         var exception = (Exception?)null;
+        var span = ShokoTelemetry.StartSpan("release.search");
         var request = new ReleaseInfoContext()
         {
             Video = video,
@@ -773,6 +776,9 @@ public class VideoReleaseService(
         }
         finally
         {
+            // First, since what follows here can throw and would leave the span open.
+            ShokoTelemetry.FinishReleaseSearch(span, selectedProvider?.Name, releaseInfo is not null, exception);
+
             var videoDeleted = false;
             if (matchAttempt.IsSuccessful && saveRelease)
             {
@@ -812,7 +818,19 @@ public class VideoReleaseService(
         {
             logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", providerInfo.Provider.Name, request.Video.LocalID, providerInfo.ID);
             var provider = providerInfo.Provider;
-            var release = await provider.GetReleaseInfoForVideo(request, cancellationToken);
+            var startedAt = Stopwatch.GetTimestamp();
+            ReleaseInfo? release;
+            try
+            {
+                release = await provider.GetReleaseInfoForVideo(request, cancellationToken);
+                ShokoTelemetry.RecordReleaseSearch(provider.Name, startedAt, release is { CrossReferences.Count: > 0 });
+            }
+            catch (Exception failure)
+            {
+                ShokoTelemetry.RecordReleaseSearch(provider.Name, startedAt, false, failure);
+                throw;
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
             if (release is null || release.CrossReferences.Count < 1)
                 continue;

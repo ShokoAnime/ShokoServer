@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Plugin;
+using Shoko.Server.Telemetry;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services;
@@ -31,6 +33,8 @@ public sealed class SuspensionService : ISuspensionService, IDisposable
     private readonly ILogger<SuspensionService> _logger;
 
     private readonly TimeProvider _timeProvider;
+
+    private readonly Meter _gauge;
 
     private readonly Lock _lock = new();
 
@@ -97,6 +101,7 @@ public sealed class SuspensionService : ISuspensionService, IDisposable
         _providerManager = providerManager;
         _logger = logger;
         _timeProvider = timeProvider;
+        _gauge = ShokoTelemetry.CreateSuspensionGauge(GetAll);
     }
 
     #endregion
@@ -616,6 +621,8 @@ public sealed class SuspensionService : ISuspensionService, IDisposable
             _expiryTimer?.Dispose();
             _expiryTimer = null;
         }
+
+        _gauge.Dispose();
     }
 
     #endregion

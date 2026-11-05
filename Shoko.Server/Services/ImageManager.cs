@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -39,6 +40,7 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services;
@@ -894,6 +896,9 @@ public class ImageManager(
         var downloaded = false;
         var remoteUrl = contributor is null ? string.Format(template!, image.ResourceID) : $"{image.Source.Value}:{image.ResourceID}";
         var originalContentType = shokoImage.ContentType;
+        var failure = (Exception?)null;
+        var startedAt = Stopwatch.GetTimestamp();
+        var span = ShokoTelemetry.StartImageDownload(image.Source.Value);
         try
         {
             var byteArray = contributor is null
@@ -934,17 +939,23 @@ public class ImageManager(
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden or HttpStatusCode.ExpectationFailed)
         {
+            failure = ex;
             logger.LogWarning("Image failed to download because the remote resource does not exist, is unavailable, or is not invalid/disallowed: {DownloadUrl} (Image={ImageID})", remoteUrl, image.ID);
             throw;
         }
         catch (Exception e)
         {
+            failure = e;
             shokoImage.ContentType = originalContentType;
             logger.LogWarning("Image failed to download due to an unexpected error: {DownloadUrl} - {Message} (Image={ImageID})", remoteUrl, e.Message, image.ID);
             throw;
         }
         finally
         {
+            // First, since what follows here can throw and would leave the span open.
+            ShokoTelemetry.RecordImageDownload(image.Source.Value, startedAt, failure);
+            ShokoTelemetry.FinishSpan(span, failure);
+
             // Emit updated event if not downloaded, because the metadata changed.
             shokoImage.DownloadAttempts++;
             // On failure the file may have been deleted (forced re-download) or never written, so recompute.
