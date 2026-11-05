@@ -40,10 +40,13 @@ A bad value logs a warning and turns the export off; it never stops the server f
 | `shoko.server.startup`, `shoko.server.late_start` | The two stages of starting. |
 | API requests, outgoing HTTP calls | ASP.NET Core and `HttpClient` instrumentation. `/signalr` and requests no route took are left out. |
 | `shoko.job {JobType}` | One attempt of a queue job, linked to the span that queued it. |
+| `shoko.job.queue {JobType}` | A job being queued, with its type, priority and whether it is scheduled, under the span queuing it. Only when there is one, and never its arguments. A job already queued can still report this, as it is reported before the queue drops the duplicate. |
 | `anidb.udp {COMMAND}`, `anidb.http` | A request to AniDB, without the wait for its turn. |
-| `video.hash`, `release.search`, `image.download` | Hashing a file, searching for its release, fetching an image. |
+| `video.hash`, `video.hash {Provider}` | Hashing a file, and under it each hash provider's work with the hash types it was asked for. |
+| `release.search`, `image.download` | Searching for a file's release, fetching an image. |
 | `SELECT AnimeSeries`, `INSERT AniDB_Anime`, … | A statement, with `DatabaseSpansEnabled`, carrying its table, database and server. It ends when the statement returns, so reading a large result is not counted. |
-| `repository.populate {Entity}`, `repository.save {Entity}`, `repository.delete {Entity}` | A cached repository's work around its statements, with `DatabaseSpansEnabled`. Reads come from memory and are not reported. |
+| `repository.populate {Entity}`, `repository.save {Entity}`, `repository.delete {Entity}` | A cached repository's work around its statements, with `DatabaseSpansEnabled`. Reads come from memory and get no span of their own: the request or job span they are part of carries `shoko.repository.reads` and `shoko.repository.reads.by_entity` (`AnimeSeries=12,AniDB_Anime=3`). Reads outside any span are only counted in the metric. |
+| `cache.lookup` | A lookup in the web UI and server manifest caches (`webui-manifest.json`, …) or the AniDB release cache (`anidb-release`), with `shoko.cache.name` and `shoko.cache.result`: `hit`, `miss`, or `stale` for an expired copy used because the fetch failed. A fetch on a miss is a child span. |
 
 **Metrics**
 
@@ -51,8 +54,8 @@ A bad value logs a warning and turns the export off; it never stops the server f
 |---|---|
 | `Shoko.QueueProcessor` | `shoko.queue.job.duration`, `shoko.queue.jobs.waiting`, `.blocked`, `.scheduled`, `.executing`, `shoko.queue.workers.limit` |
 | `Shoko.Server.AniDB` | `shoko.anidb.request.duration`, `shoko.anidb.rate_limit.wait.duration`, `shoko.anidb.bans` (an empty UDP reply is assumed to be a ban, so this can count lost connections) |
-| `Shoko.Server` | `shoko.video.hash.duration`, `shoko.video.hash.size`, `shoko.release.search.duration`, `shoko.image.download.duration`, `shoko.suspension.active` |
-| `Shoko.Server.Database` | `db.client.operation.duration`, with `DatabaseSpansEnabled` |
+| `Shoko.Server` | `shoko.video.hash.duration`, `shoko.video.hash.size`, `shoko.release.search.duration`, `shoko.image.download.duration`, `shoko.suspension.active`, `shoko.cache.lookups` (by `shoko.cache.name` and `shoko.cache.result`) |
+| `Shoko.Server.Database` | `db.client.operation.duration` and `shoko.repository.reads` (by `shoko.repository.entity` and `shoko.repository.found`), with `DatabaseSpansEnabled`. The repositories hold every row, so a read that found nothing means no such row, not a trip to the database. |
 | Built in | `System.Runtime`, `System.Net.Http`, `System.Net.NameResolution`, `MySqlConnector`, and ASP.NET Core's hosting, Kestrel, routing, diagnostics, connections, authentication and authorization meters |
 
 Plugins following the `Shoko.*` naming convention are exported too.

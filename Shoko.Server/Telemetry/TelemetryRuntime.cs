@@ -221,7 +221,10 @@ internal sealed class TelemetryRuntime
             })
             .AddHttpClientInstrumentation(instrumentation => instrumentation.RecordException = false);
         if (options.Settings.DatabaseSpansEnabled)
+        {
             builder.AddEntityFrameworkCoreInstrumentation();
+            builder.AddProcessor(new RepositoryReadsProcessor());
+        }
 
         return builder
             .AddProcessor(new TelemetryRedactionProcessor(options.Settings.CaptureDatabaseStatements))

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -9,6 +11,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using Shoko.Abstractions.Plugin;
+using Shoko.Server.Providers.AniDB.Release;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Telemetry;
 using Shoko.Server.Telemetry.Database;
@@ -302,6 +308,164 @@ public class TelemetryRuntimeTests
         new TelemetryRedactionProcessor(captureDatabaseStatements: true).OnEnd(activity);
 
         Assert.Equal("SELECT * FROM x WHERE name = ?", activity.GetTagItem("db.query.text"));
+    }
+
+    private sealed class ReadItem
+    {
+        public int ID { get; init; }
+
+        public int Group { get; init; }
+    }
+
+    [Fact]
+    public void RepositoryReads_AreTalliedOnTheLocalRootSpanAndCounted()
+    {
+        using var source = new ActivitySource(nameof(RepositoryReads_AreTalliedOnTheLocalRootSpanAndCounted));
+        using var spans = new ActivityListener
+        {
+            ShouldListenTo = candidate => candidate == source,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+        };
+        ActivitySource.AddActivityListener(spans);
+
+        var counted = new List<bool?>();
+        using var meter = new MeterListener();
+        meter.InstrumentPublished = (instrument, listener) =>
+        {
+            if (instrument.Name == "shoko.repository.reads")
+                listener.EnableMeasurementEvents(instrument);
+        };
+        meter.SetMeasurementEventCallback<long>((_, _, tags, _) =>
+        {
+            var pairs = tags.ToArray();
+            if (Equals(pairs.Single(tag => tag.Key == "shoko.repository.entity").Value, nameof(ReadItem)))
+                counted.Add(pairs.Single(tag => tag.Key == "shoko.repository.found").Value as bool?);
+        });
+        meter.Start();
+
+        var cache = new PocoCache<int, ReadItem>([new() { ID = 1, Group = 5 }], item => item.ID);
+        var index = cache.CreateIndex(item => item.Group);
+        using var root = source.StartActivity("request")!;
+
+        // Off, nothing is kept.
+        cache.Get(1);
+        DatabaseTelemetry.WriteRepositoryReads(root);
+        Assert.Null(root.GetTagItem("shoko.repository.reads"));
+
+        DatabaseTelemetry.Enable(captureStatements: false);
+        try
+        {
+            using (source.StartActivity("child"))
+            {
+                cache.Get(1);
+                cache.Get(2);
+                cache.GetAll();
+                index.GetOne(5);
+                index.GetMultiple(6);
+            }
+        }
+        finally
+        {
+            DatabaseTelemetry.Disable();
+        }
+
+        new RepositoryReadsProcessor().OnEnd(root);
+
+        Assert.Equal(5L, root.GetTagItem("shoko.repository.reads"));
+        Assert.Equal($"{nameof(ReadItem)}=5", root.GetTagItem("shoko.repository.reads.by_entity"));
+        Assert.Equal(5, counted.Count);
+        Assert.Equal(2, counted.Count(found => found is false));
+    }
+
+    private sealed class ManifestHandler : HttpMessageHandler
+    {
+        public bool Fails { get; set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Fails
+                ? throw new HttpRequestException("down")
+                : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"Stable\":[],\"Dev\":[]}") });
+    }
+
+    [Fact]
+    public async Task TheManifestCache_ReportsItsHitsMissesAndStaleCopies()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var folder = Directory.CreateTempSubdirectory("shoko-telemetry-");
+        try
+        {
+            var name = $"{Guid.NewGuid()}.json";
+            var results = new List<object?>();
+            using var listener = new ActivityListener
+            {
+                ShouldListenTo = source => source.Name == ShokoTelemetry.ServerSourceName,
+                Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+                ActivityStopped = span =>
+                {
+                    if (Equals(span.GetTagItem("shoko.cache.name"), name))
+                        results.Add(span.GetTagItem("shoko.cache.result"));
+                },
+            };
+            ActivitySource.AddActivityListener(listener);
+
+            var handler = new ManifestHandler();
+            var clients = new Mock<IHttpClientFactory>();
+            clients.Setup(factory => factory.CreateClient(It.IsAny<string>())).Returns(() => new HttpClient(handler, disposeHandler: false));
+            var paths = new Mock<IApplicationPaths>();
+            paths.SetupGet(applicationPaths => applicationPaths.DataPath).Returns(folder.FullName);
+            var reader = new ReleaseManifestReader(NullLogger<ReleaseManifestReader>.Instance, clients.Object, paths.Object);
+
+            await reader.FetchManifestAsync("http://manifest.test/", name, false, cancellationToken);
+            await reader.FetchManifestAsync("http://manifest.test/", name, false, cancellationToken);
+            handler.Fails = true;
+            await reader.FetchManifestAsync("http://manifest.test/", name, true, cancellationToken);
+
+            Assert.Equal([ShokoTelemetry.CacheMiss, ShokoTelemetry.CacheHit, ShokoTelemetry.CacheStale], results);
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task TheAnidbReleaseCache_ReportsAMiss()
+    {
+        var results = new List<object?>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == ShokoTelemetry.ServerSourceName,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = span =>
+            {
+                if (Equals(span.GetTagItem("shoko.cache.name"), "anidb-release"))
+                    results.Add(span.GetTagItem("shoko.cache.result"));
+            },
+        };
+        ActivitySource.AddActivityListener(listener);
+        var provider = new AnidbReleaseProvider(null!, null!, null!, null!, null!, null!, null!);
+
+        // Not one of AniDB's, so it goes no further than the cache.
+        Assert.Null(await provider.GetReleaseInfoById("elsewhere://1", TestContext.Current.CancellationToken));
+
+        Assert.Equal([ShokoTelemetry.CacheMiss], results);
+    }
+
+    [Fact]
+    public void AHashProviderSpan_SaysWhatItWasAskedFor()
+    {
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == ShokoTelemetry.ServerSourceName,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        using var span = ShokoTelemetry.StartHashProvider("Built-In", ["SHA1", "ED2K"]);
+
+        Assert.Equal("video.hash Built-In", span!.OperationName);
+        Assert.Equal("Built-In", span.GetTagItem("shoko.video.hash.provider"));
+        Assert.Equal("ED2K,SHA1", span.GetTagItem("shoko.video.hash.types"));
     }
 
     [Fact]

@@ -21,6 +21,7 @@ using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry;
 
 namespace Shoko.Server.Providers.AniDB.Release;
 
@@ -60,6 +61,8 @@ public partial class AnidbReleaseProvider(
 
     public const string IdPrefix = "anidb://";
 
+    private const string ReleaseCacheName = "anidb-release";
+
     /// <inheritdoc/>
     public string Name => "AniDB";
 
@@ -94,9 +97,27 @@ public partial class AnidbReleaseProvider(
     /// <returns>The release info, or null if not found.</returns>
     private async Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, IVideo? video = null, CancellationToken cancellationToken = default)
     {
-        if (_memoryCache.TryGetValue(releaseId, out ReleaseInfo? releaseInfo))
-            return releaseInfo;
+        var span = ShokoTelemetry.StartCacheLookup(ReleaseCacheName);
+        var isCached = false;
+        Exception? failure = null;
+        try
+        {
+            isCached = _memoryCache.TryGetValue(releaseId, out ReleaseInfo? cached);
+            return isCached ? cached : await FetchReleaseInfoById(releaseId, video, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+            throw;
+        }
+        finally
+        {
+            ShokoTelemetry.FinishCacheLookup(span, ReleaseCacheName, isCached ? ShokoTelemetry.CacheHit : ShokoTelemetry.CacheMiss, failure);
+        }
+    }
 
+    private async Task<ReleaseInfo?> FetchReleaseInfoById(string releaseId, IVideo? video, CancellationToken cancellationToken)
+    {
         if (string.IsNullOrEmpty(releaseId) || !releaseId.StartsWith(IdPrefix))
             return null;
 
@@ -160,7 +181,7 @@ public partial class AnidbReleaseProvider(
                 creditless = false;
         }
 
-        releaseInfo = new ReleaseInfo()
+        var releaseInfo = new ReleaseInfo()
         {
             ID = IdPrefix + releaseId,
             ReleaseURI = $"{ReleasePrefix}{anidbFile.FileID}",
