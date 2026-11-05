@@ -37,6 +37,35 @@ public class LogServiceTests : IDisposable
     }
 
     [Theory]
+    [InlineData("file")]
+    [InlineData("console")]
+    [InlineData("signalr")]
+    public void ApplyLoggingSettings_ShouldApplyAChangedDefaultLevelOnItsOwn(string targetName)
+    {
+        var paths = new Mock<IApplicationPaths>();
+        paths.Setup(a => a.LogsPath).Returns(_tempDirectory);
+        LogService.InitLogger(paths.Object);
+        try
+        {
+            LogService.ApplyLoggingSettings(new()
+            {
+                DefaultFileLogLevel = targetName is "file" ? LogLevel.Error : null,
+                DefaultConsoleLogLevel = targetName is "console" ? LogLevel.Error : null,
+                DefaultSignalRLogLevel = targetName is "signalr" ? LogLevel.Error : null,
+            });
+
+            var rule = LogManager.Configuration!.LoggingRules.Single(a => a.LoggerNamePattern == "*" && a.Targets.Any(t => t.Name == targetName));
+            Assert.False(rule.IsLoggingEnabledForLevel(NLog.LogLevel.Warn));
+            Assert.True(rule.IsLoggingEnabledForLevel(NLog.LogLevel.Error));
+        }
+        finally
+        {
+            // The applied levels are kept in statics, so put them back for the other tests.
+            LogService.ApplyLoggingSettings(new());
+        }
+    }
+
+    [Theory]
     [InlineData(false, new[] { "a", "b", "c" }, "b")]
     [InlineData(true, new[] { "one", "two" }, "two")]
     public void ReadLogFile_ShouldApplyOffsetAndLimit(bool compressed, string[] messages, string expectedMessage)
