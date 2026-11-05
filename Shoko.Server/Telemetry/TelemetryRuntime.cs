@@ -35,6 +35,8 @@ internal sealed class TelemetryRuntime
     /// </summary>
     private const string ShokoNamePattern = "Shoko.*";
 
+    private const string DisableUriRedactionSwitch = "System.Net.Http.DisableUriRedaction";
+
     private static readonly string[] _builtInMeters =
     [
         "System.Runtime",
@@ -82,6 +84,10 @@ internal sealed class TelemetryRuntime
             _previousContextPropagator = DistributedContextPropagator.Current;
             Sdk.SetDefaultTextMapPropagator(new NoOutputTextMapPropagator());
             DistributedContextPropagator.Current = DistributedContextPropagator.CreateNoOutputPropagator();
+
+            // The runtime otherwise cuts every outgoing URL at the query, down to `?*`. TelemetryRedactionProcessor hides
+            // the secrets instead. The runtime reads this once, so a request made before this point keeps it redacted.
+            AppContext.SetSwitch(DisableUriRedactionSwitch, true);
             _tracerProvider = BuildTracerProvider(options, resource);
         }
 

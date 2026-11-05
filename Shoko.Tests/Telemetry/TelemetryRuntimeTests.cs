@@ -331,6 +331,30 @@ public class TelemetryRuntimeTests
         Assert.Equal("token=kept", activity.GetTagItem("other"));
     }
 
+    [Theory]
+    [InlineData(
+        "http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=anime&aid=1",
+        "http://api.anidb.net:9001/httpapi?client=animeplugin&clientver=1&protover=1&request=anime&aid=1"
+    )]
+    [InlineData(
+        "http://api.anidb.net:9001/httpapi?client=animeplugin&request=mylist&user=me&pass=hunter2",
+        "http://api.anidb.net:9001/httpapi?client=animeplugin&request=mylist&user=Redacted&pass=Redacted"
+    )]
+    [InlineData("https://a.example/3/tv/1?api_key=hunter2&language=en", "https://a.example/3/tv/1?api_key=Redacted&language=en")]
+    [InlineData("https://a.example/?X-Plex-Token=hunter2", "https://a.example/?X-Plex-Token=Redacted")]
+    [InlineData("https://a.example/?client_secret=hunter2&sessionId=hunter2&s=hunter2", "https://a.example/?client_secret=Redacted&sessionId=Redacted&s=Redacted")]
+    [InlineData("https://a.example/?api%5Fkey=hunter2", "https://a.example/?api%5Fkey=Redacted")]
+    [InlineData("?token=hunter2&page=2", "?token=Redacted&page=2")]
+    [InlineData("https://a.example/path", "https://a.example/path")]
+    public void AUrl_KeepsWhatWasAskedForButNotItsSecrets(string url, string expected)
+    {
+        using var activity = new Activity("a-span");
+        activity.SetTag("url.full", url);
+
+        new TelemetryRedactionProcessor().OnEnd(activity);
+
+        Assert.Equal(expected, activity.GetTagItem("url.full"));
+    }
 
     private sealed class CountingLogger : ILogger
     {
