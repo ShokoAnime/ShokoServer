@@ -93,6 +93,7 @@
     <PackageReference Include="NLog.Extensions.Logging" Version="6.2.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.1" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.1" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.20.1-beta.1" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.20.1" />
     <PackageReference Include="Polly" Version="8.8.0" />
     <PackageReference Include="Sentry" Version="6.11.0" />

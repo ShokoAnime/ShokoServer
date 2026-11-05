@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Server.Settings;
 using Shoko.Server.Telemetry;
+using Shoko.Server.Telemetry.Database;
 using Shoko.Server.Utilities;
 using Xunit;
 
@@ -172,6 +173,76 @@ public class TelemetryRuntimeTests
         => Assert.Equal(expected, TelemetrySecretScrubber.Scrub(input));
 
     [Fact]
+    public void WithoutCapturingStatements_TheRedactionProcessorRemovesThemFromEverySpan()
+    {
+        using var activity = new Activity("statement");
+        activity.SetTag("db.query.text", "SELECT 1");
+        activity.SetTag("db.statement", "SELECT 2");
+        activity.SetTag("db.system.name", "sqlite");
+
+        new TelemetryRedactionProcessor().OnEnd(activity);
+
+        Assert.Null(activity.GetTagItem("db.query.text"));
+        Assert.Null(activity.GetTagItem("db.statement"));
+        Assert.Equal("sqlite", activity.GetTagItem("db.system.name"));
+    }
+
+    [Theory]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(false, false, false)]
+    public void TheDatabaseTelemetry_OnlyTurnsOnWithASignalThatCanCarryIt(bool traces, bool metrics, bool expected)
+    {
+        var runtime = TelemetryRuntime.Start(
+            new()
+            {
+                Endpoint = $"http://127.0.0.1:{GetFreePort()}",
+                TracesEnabled = traces,
+                MetricsEnabled = metrics,
+                LogsEnabled = !traces && !metrics,
+                DatabaseSpansEnabled = true,
+            },
+            "1.0.0",
+            NullLogger.Instance
+        )!;
+        try
+        {
+            Assert.Equal(expected, DatabaseTelemetry.IsEnabled);
+        }
+        finally
+        {
+            runtime.Shutdown();
+        }
+
+        Assert.False(DatabaseTelemetry.IsEnabled);
+    }
+
+    [Fact]
+    public void WithoutTheDatabaseSetting_TheDatabaseTelemetryStaysOff()
+    {
+        var runtime = TelemetryRuntime.Start(new() { Endpoint = $"http://127.0.0.1:{GetFreePort()}", TracesEnabled = true }, "1.0.0", NullLogger.Instance)!;
+        try
+        {
+            Assert.False(DatabaseTelemetry.IsEnabled);
+        }
+        finally
+        {
+            runtime.Shutdown();
+        }
+    }
+
+    [Theory]
+    [InlineData("SELECT * FROM x", "SELECT")]
+    [InlineData("  \r\n  insert into x values (1)", "INSERT")]
+    [InlineData("WITH a AS (SELECT 1) SELECT * FROM a", "WITH")]
+    [InlineData("select(1)", "SELECT")]
+    [InlineData("hunter2 is not an operation", "OTHER")]
+    [InlineData("", "OTHER")]
+    [InlineData(null, "OTHER")]
+    public void TheOperation_IsTheStatementsFirstWordFromAClosedList(string? statement, string expected)
+        => Assert.Equal(expected, DatabaseTelemetry.GetOperation(statement));
+
+    [Fact]
     public void TheRedactionProcessor_HidesSecretsInUrlAndStatementAttributes()
     {
         using var activity = new Activity("a-span");
@@ -179,7 +250,7 @@ public class TelemetryRuntimeTests
         activity.SetTag("db.query.text", "SELECT 1 -- password=hunter2");
         activity.SetTag("other", "token=kept");
 
-        new TelemetryRedactionProcessor().OnEnd(activity);
+        new TelemetryRedactionProcessor(captureDatabaseStatements: true).OnEnd(activity);
 
         Assert.Equal("https://a.example/?token=Redacted", activity.GetTagItem("url.full"));
         Assert.Equal("SELECT 1 -- password=Redacted", activity.GetTagItem("db.query.text"));

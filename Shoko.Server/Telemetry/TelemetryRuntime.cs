@@ -14,6 +14,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry.Database;
 
 namespace Shoko.Server.Telemetry;
 
@@ -89,6 +90,10 @@ internal sealed class TelemetryRuntime
 
         if (options.Settings.LogsEnabled)
             LoggerFactory = BuildLoggerFactory(options, resource);
+
+        // The session factories are built later, in the late start, so this is in time for them.
+        if (options.Settings.DatabaseSpansEnabled && (HasTraces || HasMetrics))
+            DatabaseTelemetry.Enable(options.Settings.CaptureDatabaseStatements);
 
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
     }
@@ -179,6 +184,7 @@ internal sealed class TelemetryRuntime
         }
 
         _failureListener.Dispose();
+        DatabaseTelemetry.Disable();
         if (_previousTextMapPropagator is not null)
             Sdk.SetDefaultTextMapPropagator(_previousTextMapPropagator);
         if (_previousContextPropagator is not null)
@@ -195,7 +201,8 @@ internal sealed class TelemetryRuntime
         => Shutdown();
 
     private static TracerProvider BuildTracerProvider(TelemetryExportOptions options, ResourceBuilder resource)
-        => Sdk.CreateTracerProviderBuilder()
+    {
+        var builder = Sdk.CreateTracerProviderBuilder()
             .SetResourceBuilder(resource)
             .SetSampler(new TelemetrySampler(options.Settings.TraceSampleRatio, options.Settings.JobTraceSampleRatio))
             .AddSource(ShokoNamePattern)
@@ -206,10 +213,15 @@ internal sealed class TelemetryRuntime
                 instrumentation.Filter = IsTraced;
                 instrumentation.EnrichWithHttpResponse = DropWithoutEndpoint;
             })
-            .AddHttpClientInstrumentation(instrumentation => instrumentation.RecordException = false)
-            .AddProcessor(new TelemetryRedactionProcessor())
+            .AddHttpClientInstrumentation(instrumentation => instrumentation.RecordException = false);
+        if (options.Settings.DatabaseSpansEnabled)
+            builder.AddEntityFrameworkCoreInstrumentation();
+
+        return builder
+            .AddProcessor(new TelemetryRedactionProcessor(options.Settings.CaptureDatabaseStatements))
             .AddOtlpExporter(exporter => Configure(exporter, options, "traces"))
             .Build()!;
+    }
 
     private static MeterProvider BuildMeterProvider(TelemetryExportOptions options, ResourceBuilder resource)
         => Sdk.CreateMeterProviderBuilder()

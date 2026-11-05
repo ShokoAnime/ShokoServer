@@ -15,6 +15,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry.Database;
 
 // ReSharper disable InconsistentNaming
 
@@ -200,6 +201,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<SystemService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
+                if (DatabaseTelemetry.IsEnabled)
+                    prop.Batcher<TracingBatcherFactory>();
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
             }).SetInterceptor(new NHibernateDependencyInjector(ISystemService.StaticServices)))
             .BuildSessionFactory();

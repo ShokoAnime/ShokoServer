@@ -17,6 +17,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry.Database;
 
 // ReSharper disable InconsistentNaming
 
@@ -176,6 +177,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<SystemService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
+                if (DatabaseTelemetry.IsEnabled)
+                    prop.Batcher<TracingBatcherFactory>();
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
             })
             .SetInterceptor(new NHibernateDependencyInjector(ISystemService.StaticServices)))
