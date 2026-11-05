@@ -305,6 +305,7 @@ public class SystemService : ISystemService
             var settings = _settingsProvider.GetSettings();
 
             _telemetry = TelemetryRuntime.Start(settings.Telemetry, Version.Version.ToSemanticVersioningString(), _telemetryLogger);
+            LogService.ConnectOtlpExport(_telemetry?.LoggerFactory);
             startupSpan = ShokoTelemetry.Source.StartActivity("shoko.server.startup");
 
             LogService.ApplyLoggingSettings(settings.Logging);
