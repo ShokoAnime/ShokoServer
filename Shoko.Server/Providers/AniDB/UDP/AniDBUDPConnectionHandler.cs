@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
@@ -22,7 +21,7 @@ using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB.UDP;
 
-public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler, IUdpSessionTransport, IAniDbUdpRequestChannel
+public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler, IUdpSessionTransport, IAniDbUdpRequestChannel
 {
     /****
     * From Anidb wiki:
@@ -63,12 +62,6 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
     // lock.
     private Task? _inFlightPing;
     private Task? _inFlightLogout;
-
-    // IDK Rider said to use a GeneratedRegex attribute
-    private static readonly Regex s_logMask = GetLogRegex();
-
-    [GeneratedRegex("(?<=(\\bpass=|&pass=\\bs=|&s=))[^&]+", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
-    private static partial Regex GetLogRegex();
 
     public override string Type => "UDP";
     protected override UpdateType BanEnum => UpdateType.UDPBan;
@@ -375,7 +368,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
             }
 
             var start = DateTime.Now;
-            Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", MaskLog(command));
+            Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", AniDBLogMask.Mask(command));
             var bytesReceived = await socketHandler.SendAsync(sendBytes, cancellationToken);
 
             if (bytesReceived.All(a => a == 0))
@@ -390,7 +383,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
             if (decodedString[0] == 0xFEFF) decodedString = decodedString[1..];
 
             var ts = DateTime.Now - start;
-            Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedString}", ts, MaskLog(decodedString));
+            Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedString}", ts, AniDBLogMask.Mask(decodedString));
             return decodedString;
         }, forceShortDelay: isPing);
     }
@@ -581,9 +574,4 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
     private static bool IsTimeout(Exception exception, CancellationToken cancellationToken)
         => exception is SocketException { SocketErrorCode: SocketError.TimedOut }
            || (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested);
-
-    private static string MaskLog(string input)
-    {
-        return s_logMask.Replace(input, "****");
-    }
 }
