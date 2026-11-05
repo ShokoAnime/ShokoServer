@@ -142,7 +142,7 @@ internal sealed class Worker
                 }
 
                 jobTypeKey = JobTypeNames.Key(jobType);
-                span = QueueTelemetry.StartJob(jobTypeKey, _pool.Name);
+                span = QueueTelemetry.StartJob(jobTypeKey, _pool.Name, job.TraceParent);
 
                 // Chain jobs share a DI scope for their full lifetime; standalone jobs get a per-execution scope
                 scope = isChainJob

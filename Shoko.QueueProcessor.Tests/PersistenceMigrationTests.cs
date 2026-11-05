@@ -123,6 +123,29 @@ public class PersistenceMigrationTests
     }
 
     [Fact]
+    public async Task AddJobTraceContext_AddsANullableColumn()
+    {
+        var cs = NewCs();
+        using var keeper = new SqliteConnection(cs);
+        keeper.Open();
+        await using var ctx = new SqliteQueueDbContext(cs);
+
+        await ctx.GetService<IMigrator>().MigrateAsync("20260929000000_AddJobActor", TestContext.Current.CancellationToken);
+        Assert.DoesNotContain("TraceParent", await GetColumnsAsync(keeper, "Jobs"));
+
+        // A row queued before the upgrade keeps working and links to nothing.
+        using (var insert = keeper.CreateCommand())
+        {
+            insert.CommandText = "INSERT INTO Jobs (Id, JobType, JobKey, Priority, QueuedAt, RetryCount, IsChainFinally) VALUES (randomblob(16), 'T', 'old-key', 0, 0, 0, 0)";
+            await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        }
+
+        await ctx.Database.MigrateAsync(TestContext.Current.CancellationToken);
+
+        Assert.Null(Assert.Single(await ctx.Jobs.ToListAsync(TestContext.Current.CancellationToken)).TraceParent);
+    }
+
+    [Fact]
     public void Model_MatchesTheLatestMigration()
     {
         using var ctx = new SqliteQueueDbContext("Data Source=:memory:");

@@ -98,6 +98,23 @@ public class QueueTelemetryTests
         }
     }
 
+    public sealed class FollowedByJob(IQueueScheduler scheduler) : IQueueJob
+    {
+        public string Name { get; set; } = string.Empty;
+
+        public string? Then { get; set; }
+
+        public string TypeName => "FollowedBy";
+
+        public string Title => Name;
+
+        public async Task Process()
+        {
+            if (Then is { } next)
+                await scheduler.RunAfterCurrent<FollowedByJob>(job => job.Name = next);
+        }
+    }
+
     private sealed class Harness : IDisposable
     {
         private readonly ServiceProvider _provider;
@@ -116,10 +133,19 @@ public class QueueTelemetryTests
             repo.Setup(r => r.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
             repo.Setup(r => r.UpdateRetryAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
+            repo.Setup(r => r.ActivateChainChildrenAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+            repo.Setup(r => r.ReparentChainChildrenAsync(It.IsAny<IReadOnlyCollection<(Guid, Guid)>>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+            var chainRepo = new Mock<IJobChainContextRepository>();
+            chainRepo.Setup(r => r.GetOrCreateAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Guid id, CancellationToken _) => new JobChainContext(id));
+            chainRepo.Setup(r => r.SaveAsync(It.IsAny<JobChainContext>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+            chainRepo.Setup(r => r.DeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
             var services = new ServiceCollection();
             services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
             services.AddSingleton(repo.Object);
-            services.AddSingleton(new Mock<IJobChainContextRepository>().Object);
+            services.AddSingleton(chainRepo.Object);
+            services.AddSingleton<IQueueScheduler>(_ => Scheduler!);
             services.AddScoped<JobCancellationAccessor>();
             services.AddScoped<IJobCancellationAccessor>(sp => sp.GetRequiredService<JobCancellationAccessor>());
             services.AddScoped<JobProgressAccessor>();
@@ -130,6 +156,7 @@ public class QueueTelemetryTests
             services.AddTransient<FailJob>();
             services.AddTransient<RequeueOnceJob>();
             services.AddTransient<WaitForCancelJob>();
+            services.AddTransient<FollowedByJob>();
             _provider = services.BuildServiceProvider();
 
             var scopeFactory = _provider.GetRequiredService<IServiceScopeFactory>();
@@ -143,7 +170,7 @@ public class QueueTelemetryTests
 
             Scheduler = new QueueScheduler(orchestrator, chainScopes, scopeFactory, null);
             JobFactory = new JobFactory(_provider, orchestrator);
-            _pool = new WorkerPool("TelemetryPool", maxWorkers: 2, AcquisitionAttribute.LowestPriority, [typeof(SucceedJob), typeof(FailJob), typeof(RequeueOnceJob), typeof(WaitForCancelJob)], []);
+            _pool = new WorkerPool("TelemetryPool", maxWorkers: 2, AcquisitionAttribute.LowestPriority, [typeof(SucceedJob), typeof(FailJob), typeof(RequeueOnceJob), typeof(WaitForCancelJob), typeof(FollowedByJob)], []);
             orchestrator.Initialize([], [_pool]);
 
             // The workers start inside a span, which none of them may keep.
@@ -217,6 +244,16 @@ public class QueueTelemetryTests
             throw new TimeoutException($"No telemetry for {_jobType}.");
         }
 
+        public async Task<List<Activity>> WaitForSpans(int count)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            while (Spans.Count < count && stopwatch.Elapsed < _timeout)
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+
+            Assert.Equal(count, Spans.Count);
+            return [.. Spans];
+        }
+
         public void Dispose()
         {
             _spanListener.Dispose();
@@ -226,7 +263,122 @@ public class QueueTelemetryTests
 
     private static string NewName() => Guid.NewGuid().ToString("N");
 
+    private static void AssertLinksTo(Activity expected, Activity span)
+    {
+        var link = Assert.Single(span.Links);
+        Assert.Equal(expected.TraceId, link.Context.TraceId);
+        Assert.Equal(expected.SpanId, link.Context.SpanId);
+    }
+
     #endregion
+
+    [Fact]
+    public async Task AJobQueuedInsideASpan_LinksBackToItAndStaysARoot()
+    {
+        using var recorder = new Recorder(typeof(SucceedJob));
+        using var harness = new Harness();
+        using var source = new ActivitySource(QueueTelemetry.Name);
+        using var queuedBy = source.StartActivity("queued-by");
+
+        await harness.Scheduler.Enqueue<SucceedJob>(job => job.Name = NewName(), ct: TestContext.Current.CancellationToken);
+
+        var span = Assert.Single(await recorder.WaitForSpans(1));
+        Assert.Null(span.ParentId);
+        Assert.NotEqual(queuedBy!.TraceId, span.TraceId);
+        AssertLinksTo(queuedBy, span);
+    }
+
+    [Fact]
+    public async Task AJobQueuedOutsideASpan_HasNoLink()
+    {
+        using var recorder = new Recorder(typeof(SucceedJob));
+        using var harness = new Harness();
+
+        await harness.Scheduler.Enqueue<SucceedJob>(job => job.Name = NewName(), ct: TestContext.Current.CancellationToken);
+
+        Assert.Empty(Assert.Single(await recorder.WaitForSpans(1)).Links);
+    }
+
+    [Fact]
+    public void ASpanNotBeingKept_IsNotCaptured()
+    {
+        using var notRecorded = new Activity("not-recorded").Start();
+
+        Assert.False(notRecorded.Recorded);
+        Assert.Null(QueueTelemetry.CaptureTraceParent());
+    }
+
+    [Fact]
+    public void AStoredTraceContextThatCannotBeRead_StartsTheJobWithoutALink()
+    {
+        using var recorder = new Recorder(typeof(SucceedJob));
+
+        using var span = QueueTelemetry.StartJob(JobTypeNames.Key(typeof(SucceedJob)), "pool", "not-a-trace-context");
+
+        Assert.NotNull(span);
+        Assert.Empty(span.Links);
+    }
+
+    [Fact]
+    public async Task EveryAttemptOfARequeuedJob_LinksBackToWhatQueuedIt()
+    {
+        using var recorder = new Recorder(typeof(RequeueOnceJob));
+        using var harness = new Harness();
+        using var source = new ActivitySource(QueueTelemetry.Name);
+        using var queuedBy = source.StartActivity("queued-by");
+
+        await harness.Scheduler.Enqueue<RequeueOnceJob>(job => job.Name = NewName(), ct: TestContext.Current.CancellationToken);
+
+        var attempts = await recorder.WaitForSpans(2);
+        Assert.All(attempts, attempt => AssertLinksTo(queuedBy!, attempt));
+    }
+
+    [Fact]
+    public async Task AJobWithItsPriorityRaised_KeepsTheLinkOfWhatQueuedItFirst()
+    {
+        using var recorder = new Recorder(typeof(SucceedJob));
+        using var harness = new Harness();
+        using var source = new ActivitySource(QueueTelemetry.Name);
+        var name = NewName();
+        var queuedBy = source.StartActivity("queued-by");
+
+        await harness.Scheduler.Enqueue<SucceedJob>(job => job.Name = name, scheduledAt: DateTimeOffset.UtcNow.AddHours(1), ct: TestContext.Current.CancellationToken);
+        queuedBy!.Dispose();
+        await harness.Scheduler.EnqueueImmediate<SucceedJob>(job => job.Name = name, ct: TestContext.Current.CancellationToken).WaitAsync(_timeout, TestContext.Current.CancellationToken);
+
+        AssertLinksTo(queuedBy, Assert.Single(await recorder.WaitForSpans(1)));
+    }
+
+    [Fact]
+    public async Task AJobQueuedByAJob_LinksBackToThatJob()
+    {
+        using var recorder = new Recorder(typeof(FollowedByJob));
+        using var harness = new Harness();
+        using var source = new ActivitySource(QueueTelemetry.Name);
+        using var queuedBy = source.StartActivity("queued-by");
+
+        await harness.Scheduler.Enqueue<FollowedByJob>(job => (job.Name, job.Then) = (NewName(), NewName()), ct: TestContext.Current.CancellationToken);
+
+        var spans = await recorder.WaitForSpans(2);
+        var first = spans.Single(span => span.Links.Single().Context.SpanId == queuedBy!.SpanId);
+        AssertLinksTo(first, spans.Single(span => span != first));
+    }
+
+    [Fact]
+    public async Task EveryStepOfAChain_LinksBackToWhatCreatedIt()
+    {
+        using var recorder = new Recorder(typeof(FollowedByJob));
+        using var harness = new Harness();
+        using var source = new ActivitySource(QueueTelemetry.Name);
+        using var queuedBy = source.StartActivity("queued-by");
+
+        await harness.Scheduler.CreateJobChain()
+            .Then<FollowedByJob>(job => job.Name = NewName())
+            .Then<FollowedByJob>(job => job.Name = NewName())
+            .Enqueue();
+
+        Assert.All(await recorder.WaitForSpans(2), span => AssertLinksTo(queuedBy!, span));
+    }
 
     [Fact]
     public async Task ASucceedingJob_GetsARootSpanAndADuration()
