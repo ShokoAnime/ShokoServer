@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.588",
+      "tag": "v6.0.0-dev.588",
+      "commit": "f45f2218f417df186d6e46416cc38a177d4bb27d",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.588/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-05T16:20:11Z",
+      "releaseNotes": "\n`fix` (`buildtools`): **Report a list of rows drawn inline by default without a key**:\n\n- Reported `SHOKO0004` for a list of class items with no `[List]` display type or left on `Auto`, which the schema generator draws inline\n- Accepted an item holding a `TitleComponent` as keyed, and treated converter-serialized types as single values, as the generator does\n\n`chore` (`buildtools`): **Bump build tools analyzers version to v0.2.1**.\n"
+    },
+    {
       "version": "6.0.0.587",
       "tag": "v6.0.0-dev.587",
       "commit": "badd23e1fe45790d3fa6209f96e1d2b95033a16e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.559/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-27T12:34:57Z",
       "releaseNotes": "\n`fix` (`plugin`): **Keep a plugin's namespace once it is created**.\n"
-    },
-    {
-      "version": "6.0.0.558",
-      "tag": "v6.0.0-dev.558",
-      "commit": "e686d7aa0b541aec6a6a135bc1d46402c0188aba",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.558/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-27T12:01:05Z",
-      "releaseNotes": "\n`feat` (`buildtools`): **Stamp a plugin namespace from `PluginNamespace` or the manifest**:\n\n- Read `PluginNamespace`, else the manifest's `namespace`, and stamp it as `PackageNamespace`\n- Stopped the build on a namespace that is not 2 to 32 characters of kebab-case, or is `shoko`, `core` or `plugin`\n\n`feat` (`buildtools`): **Stamp and record the plugin namespace in `shoko-build`**:\n\n- Took `--namespace`, `PluginNamespace` or the manifest's `namespace`, checked it and stamped it as `PackageNamespace`\n- Wrote a stated namespace into the manifest, and added `namespace` to `manifest.schema.json`\n\n`feat` (`plugin`): **Read the plugin namespace and fail plugins that break it or share it**:\n\n- Read `PackageNamespace` into `LocalPluginInfo.Namespace` and the APIv3 `PluginInfo`\n- Failed a plugin whose namespace is not kebab-case of 2 to 32 characters, or is `shoko`, `core` or `plugin`\n- Failed every loaded plugin claiming the namespace of another, naming the others\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.7.0**.\n\n`chore` (`buildtools`): **Bump build tools version to v0.8.0**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.116**.\n"
     }
   ]
 }
