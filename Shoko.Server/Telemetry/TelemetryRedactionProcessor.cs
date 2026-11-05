@@ -14,7 +14,7 @@ namespace Shoko.Server.Telemetry;
 /// </param>
 internal sealed class TelemetryRedactionProcessor(bool captureDatabaseStatements = false) : BaseProcessor<Activity>
 {
-    private static readonly string[] _attributes = ["url.full", "url.query", "http.url", "db.query.text", "db.statement"];
+    private static readonly string[] _urlAttributes = ["url.full", "url.query", "http.url"];
 
     private static readonly string[] _statementAttributes = ["db.query.text", "db.statement"];
 
@@ -33,13 +33,13 @@ internal sealed class TelemetryRedactionProcessor(bool captureDatabaseStatements
         foreach (var attribute in _statementAttributes)
         {
             if (data.GetTagItem(attribute) is string statement)
-                data.SetTag(attribute, DatabaseTelemetry.SanitizeStatement(statement));
+                data.SetTag(attribute, TelemetrySecretScrubber.Scrub(DatabaseTelemetry.SanitizeStatement(statement)!));
         }
 
-        foreach (var attribute in _attributes)
+        foreach (var attribute in _urlAttributes)
         {
-            if (data.GetTagItem(attribute) is string value)
-                data.SetTag(attribute, TelemetrySecretScrubber.Scrub(value));
+            if (data.GetTagItem(attribute) is string url)
+                data.SetTag(attribute, TelemetrySecretScrubber.Scrub(TelemetrySecretScrubber.ScrubUrl(url)));
         }
     }
 }

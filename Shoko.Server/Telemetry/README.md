@@ -61,7 +61,8 @@ Plugins following the `Shoko.*` naming convention are exported too.
 
 - No `traceparent` goes to AniDB, TMDB, Plex or anything else the server calls.
 - Spans and metrics hold no file paths, job arguments, UDP arguments or exception messages. Failures report the exception's type.
-- Query strings stay redacted, and known secret parameters are hidden in URLs, statements and log messages.
+- Outgoing URLs keep their query, so a span shows what was asked for, such as `httpapi?client=animeplugin&request=anime&aid=1`. A parameter whose name suggests a secret or a person (`pass`, `user`, `api_key`, `token`, `session` and the like) has its value hidden; a secret under a name that does not say so stays. Incoming requests keep their route and path, with the values of their query redacted.
+- Known secret parameters are hidden in statements and log messages.
 - Statements carry placeholders rather than values: string and number literals in hand-written SQL are replaced too. Double-quoted text is left alone, so a MySQL statement writing a value in double quotes keeps it.
 - `Settings.*` log lines are not exported.
 
