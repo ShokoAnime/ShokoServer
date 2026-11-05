@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 
@@ -48,22 +49,32 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
 
             Logger.LogTrace("AniDB HTTP request: {Url}", AniDBLogMask.Mask(url));
 
-            using var message = await httpClient.GetAsync(url, cancellationToken);
-            Logger.LogTrace("AniDB HTTP response: {StatusCode} for {Url}", (int)message.StatusCode, AniDBLogMask.Mask(url));
+            var request = AniDBTelemetry.StartRequest(AniDBTelemetry.Http);
+            try
+            {
+                using var message = await httpClient.GetAsync(url, cancellationToken);
+                Logger.LogTrace("AniDB HTTP response: {StatusCode} for {Url}", (int)message.StatusCode, AniDBLogMask.Mask(url));
 
-            // AniDB signals a ban with 403; detect it before EnsureSuccessStatusCode
-            // throws a raw HttpRequestException with no ban state.
-            if (message.StatusCode is HttpStatusCode.Forbidden)
-                throw CreateBanException();
+                // AniDB signals a ban with 403; detect it before EnsureSuccessStatusCode
+                // throws a raw HttpRequestException with no ban state.
+                if (message.StatusCode is HttpStatusCode.Forbidden)
+                    throw CreateBanException();
 
-            message.EnsureSuccessStatusCode();
+                message.EnsureSuccessStatusCode();
 
-            var output = await message.Content.ReadAsStringAsync(cancellationToken);
+                var output = await message.Content.ReadAsStringAsync(cancellationToken);
 
-            if (ContainsBan(output))
-                throw CreateBanException();
+                if (ContainsBan(output))
+                    throw CreateBanException();
 
-            return new HttpResponse<string> { Response = output, Code = message.StatusCode };
+                AniDBTelemetry.FinishRequest(request);
+                return new HttpResponse<string> { Response = output, Code = message.StatusCode };
+            }
+            catch (Exception failure)
+            {
+                AniDBTelemetry.FinishRequest(request, failure);
+                throw;
+            }
         });
     }
 
