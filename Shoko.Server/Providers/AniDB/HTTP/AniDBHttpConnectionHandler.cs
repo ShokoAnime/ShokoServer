@@ -46,10 +46,10 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
             var httpClient = _httpClientFactory.CreateClient("AniDB");
             httpClient.BaseAddress = new Uri(_settingsProvider.GetSettings().AniDb.HTTPServerUrl);
 
-            Logger.LogTrace("AniDB HTTP request: {Url}", url);
+            Logger.LogTrace("AniDB HTTP request: {Url}", AniDBLogMask.Mask(url));
 
             using var message = await httpClient.GetAsync(url, cancellationToken);
-            Logger.LogTrace("AniDB HTTP response: {StatusCode} for {Url}", (int)message.StatusCode, url);
+            Logger.LogTrace("AniDB HTTP response: {StatusCode} for {Url}", (int)message.StatusCode, AniDBLogMask.Mask(url));
 
             // AniDB signals a ban with 403; detect it before EnsureSuccessStatusCode
             // throws a raw HttpRequestException with no ban state.
