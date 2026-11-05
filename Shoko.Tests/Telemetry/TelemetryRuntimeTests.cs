@@ -136,6 +136,18 @@ public class TelemetryRuntimeTests
         server.Prefixes.Add($"http://127.0.0.1:{port}/");
         server.Start();
         var received = server.GetContextAsync();
+        var requestSpans = new List<Activity>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "System.Net.Http",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = requestSpan =>
+            {
+                if (Equals(requestSpan.GetTagItem("server.port"), port))
+                    requestSpans.Add(requestSpan);
+            },
+        };
+        ActivitySource.AddActivityListener(listener);
 
         using var client = coreClient ? CoreHttpClientFactory.Instance.CreateClient(CoreHttpClientFactory.DefaultClientName) : null;
         var runtime = TelemetryRuntime.Start(new() { Endpoint = $"http://127.0.0.1:{GetFreePort()}", TracesEnabled = true }, "1.0.0", NullLogger.Instance)!;
@@ -153,6 +165,9 @@ public class TelemetryRuntimeTests
 
             Assert.DoesNotContain("traceparent", headers, StringComparer.OrdinalIgnoreCase);
             Assert.DoesNotContain("tracestate", headers, StringComparer.OrdinalIgnoreCase);
+
+            // Keeping the context to itself must not cost the request its span.
+            Assert.Equal(span.TraceId, Assert.Single(requestSpans).TraceId);
         }
         finally
         {
