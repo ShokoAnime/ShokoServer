@@ -38,6 +38,13 @@ public static class QueueTelemetry
 
     private const string OutcomeTag = "shoko.queue.job.outcome";
 
+    private const string PriorityTag = "shoko.queue.job.priority";
+
+    private const string ScheduledTag = "shoko.queue.job.scheduled";
+
+    // Not JobSpanPrefix, so these follow what queued them rather than being sampled as jobs.
+    private const string QueueSpanPrefix = "shoko.job.queue ";
+
     private const string ErrorTypeTag = "error.type";
 
     private static readonly ActivitySource _source = new(Name);
@@ -58,6 +65,31 @@ public static class QueueTelemetry
     /// <returns>The trace context, or <c>null</c> without a span being kept, as a link to it would lead nowhere.</returns>
     internal static string? CaptureTraceParent()
         => Activity.Current is { IdFormat: ActivityIdFormat.W3C, Recorded: true } span ? span.Id : null;
+
+    /// <summary>
+    /// Reports a job being queued, as a span under whatever queued it. Without a current span there is nothing to add
+    /// it to, and the background work queuing most jobs should not start a trace of its own for each.
+    /// </summary>
+    /// <param name="jobType">The job's type. Never its key, title or arguments, which can hold anything.</param>
+    /// <param name="priority">The job's priority.</param>
+    /// <param name="isScheduled">Whether it waits for a later time.</param>
+    internal static void ReportQueued(string jobType, int priority, bool isScheduled)
+    {
+        try
+        {
+            if (Activity.Current is null)
+                return;
+
+            using var span = _source.StartActivity(QueueSpanPrefix + jobType, ActivityKind.Producer);
+            span?.SetTag(JobTypeTag, jobType);
+            span?.SetTag(PriorityTag, priority);
+            span?.SetTag(ScheduledTag, isScheduled);
+        }
+        catch (Exception)
+        {
+            // See the class's remarks.
+        }
+    }
 
     /// <summary>
     /// Starts the span of a job, which is the current one until it is finished.
