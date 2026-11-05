@@ -8,9 +8,11 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Telemetry;
@@ -85,6 +87,9 @@ internal sealed class TelemetryRuntime
         if (options.Settings.MetricsEnabled)
             _meterProvider = BuildMeterProvider(options, resource);
 
+        if (options.Settings.LogsEnabled)
+            LoggerFactory = BuildLoggerFactory(options, resource);
+
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
     }
 
@@ -97,6 +102,11 @@ internal sealed class TelemetryRuntime
     /// Whether metrics are being exported.
     /// </summary>
     public bool HasMetrics => _meterProvider is not null;
+
+    /// <summary>
+    /// The factory of the logger exporting the server's logs, or <c>null</c> when they are not exported.
+    /// </summary>
+    public ILoggerFactory? LoggerFactory { get; }
 
     /// <summary>
     /// Starts exporting, if the settings ask for it. Never throws: telemetry is not worth failing a start over.
@@ -144,7 +154,16 @@ internal sealed class TelemetryRuntime
             return;
 
         AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
-        var tasks = new List<Task>(2);
+        var tasks = new List<Task>(3);
+        if (LoggerFactory is { } loggerFactory)
+        {
+            tasks.Add(Task.Run(() =>
+            {
+                LogService.ConnectOtlpExport(null);
+                loggerFactory.Dispose();
+            }));
+        }
+
         if (_tracerProvider is { } tracerProvider)
             tasks.Add(Task.Run(() => Stop(tracerProvider, tracerProvider.Shutdown)));
         if (_meterProvider is { } meterProvider)
@@ -205,6 +224,22 @@ internal sealed class TelemetryRuntime
                 reader.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds = options.Settings.MetricExportIntervalSeconds * 1000;
             })
             .Build()!;
+
+    /// <summary>
+    /// Builds the logger factory the logs of <see cref="OtlpLogTarget"/> go through. The logging rules already decided
+    /// which logs to export, so this takes every level.
+    /// </summary>
+    private static ILoggerFactory BuildLoggerFactory(TelemetryExportOptions options, ResourceBuilder resource)
+        => Microsoft.Extensions.Logging.LoggerFactory.Create(logging => logging
+            .SetMinimumLevel(LogLevel.Trace)
+            .AddOpenTelemetry(openTelemetry =>
+            {
+                openTelemetry.SetResourceBuilder(resource);
+                openTelemetry.IncludeFormattedMessage = true;
+                openTelemetry.AddProcessor(new OtlpLogTimestampProcessor());
+                openTelemetry.AddOtlpExporter(exporter => Configure(exporter, options, "logs"));
+            })
+        );
 
     /// <summary>
     /// Sets every exporter option explicitly, since the options otherwise read the standard <c>OTEL_EXPORTER_OTLP_*</c>
