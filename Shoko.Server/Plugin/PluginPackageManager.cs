@@ -1807,7 +1807,7 @@ public partial class PluginPackageManager(
             cancellationToken.ThrowIfCancellationRequested();
 
             var httpClient = httpClientFactory.CreateClient("Default");
-            var remoteManifests = await GetRemoteManifestAsync(httpClient, repositoryInfo.Url, allowArray: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var remoteManifests = await GetRemoteManifestAsync(httpClient, repositoryInfo.Url, cancellationToken).ConfigureAwait(false);
             var lastFetchedAt = DateTime.UtcNow;
             var manifests = new List<PackageManifestInfo>();
             foreach (var (remoteManifest, fetchedAt, source) in remoteManifests)
@@ -1857,78 +1857,31 @@ public partial class PluginPackageManager(
         return repositoryInfo;
     }
 
-    private async Task ReadManifestArrayAsync(HttpClient httpClient, JsonElement rootElement, string manifestUrl, DateTime lastFetchedAt, Action<RemotePackageManifestInfo, DateTime, string> addUnlessSeen, CancellationToken cancellationToken)
+    /// <summary>
+    ///   Fetches a repository's manifest: one package, or a list of packages.
+    ///   An entry without a name is left out.
+    /// </summary>
+    /// <param name="httpClient">The client to fetch with.</param>
+    /// <param name="manifestUrl">The manifest's address.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The packages, with when they were fetched and where from.</returns>
+    private async Task<IReadOnlyList<(RemotePackageManifestInfo Manifest, DateTime fetchedAt, string Source)>> GetRemoteManifestAsync(HttpClient httpClient, string manifestUrl, CancellationToken cancellationToken)
     {
-        foreach (var element in rootElement.EnumerateArray())
-        {
-            RemotePackageManifestInfo? manifest = null;
-            try
-            {
-                manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
-                if (manifest is { IsReference: true } && IsDowngrade(manifestUrl, manifest.ManifestUrl))
-                {
-                    _logger.LogWarning(
-                        "Left out the linked manifest at {ManifestUrl}: the manifest at {Source} is served over https, so it may not link one served over plain http.",
-                        manifest.ManifestUrl,
-                        manifestUrl
-                    );
-                }
-                else if (manifest is { IsReference: true })
-                {
-                    var subManifests = await GetRemoteManifestAsync(httpClient, manifest.ManifestUrl, allowArray: false, cancellationToken: cancellationToken).ConfigureAwait(false);
-                    foreach (var subManifest in subManifests)
-                        addUnlessSeen(subManifest.Manifest, subManifest.fetchedAt, manifest.ManifestUrl);
-                }
-                else if (manifest is not null)
-                    addUnlessSeen(manifest, lastFetchedAt, manifestUrl);
-            }
-            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
-            {
-                if (manifest is { IsReference: true })
-                    _logger.LogWarning(
-                        IsExpectedFetchFailure(ex) ? null : ex,
-                        "Could not fetch the linked manifest at {ManifestUrl}: {Reason}. Its packages are left out, since no earlier copy is cached. " +
-                        "The rest of the repository is not affected.",
-                        manifest.ManifestUrl,
-                        DescribeFetchFailure(ex)
-                    );
-                else
-                    _logger.LogWarning(ex, "Failed to parse package manifest from repository.");
-            }
-        }
-    }
-
-    private async Task<IReadOnlyList<(RemotePackageManifestInfo Manifest, DateTime fetchedAt, string Source)>> GetRemoteManifestAsync(HttpClient httpClient, string manifestUrl, bool allowArray, CancellationToken cancellationToken)
-    {
-        // Only a referenced manifest falls back on its cached copy: when the
-        // repository's own manifest fails, the last synced state stays as is.
-        var (document, lastFetchedAt) = await FetchManifestAsync(httpClient, manifestUrl, allowStaleCache: !allowArray, cancellationToken).ConfigureAwait(false);
+        var (document, lastFetchedAt) = await FetchManifestAsync(httpClient, manifestUrl, cancellationToken).ConfigureAwait(false);
         var manifests = new List<(RemotePackageManifestInfo Manifest, DateTime fetchedAt, string Source)>();
-        // Keyed by package *and* source, not by package alone. One package
-        // legitimately appears more than once in a repository - a stable
-        // manifest and a dev manifest are the same package at two addresses,
-        // and GetAvailablePackageManifests below is built to union their
-        // releases. What is never meaningful is the same package read twice
-        // from the same address: that is a repository listing an entry
-        // twice, and ingesting it duplicates every release it carries.
-        var seen = new HashSet<(Guid PackageID, string Source)>();
+        // A package listed twice is read once: its releases would be counted twice otherwise.
+        var seen = new HashSet<Guid>();
         try
         {
             var rootElement = document.RootElement;
             if (rootElement.ValueKind == JsonValueKind.Array)
             {
-                if (!allowArray)
-                    throw new InvalidOperationException("A referenced single-repository manifest cannot contain multiple manifests.");
-
-                await ReadManifestArrayAsync(httpClient, rootElement, manifestUrl, lastFetchedAt, AddUnlessSeen, cancellationToken).ConfigureAwait(false);
+                foreach (var element in rootElement.EnumerateArray())
+                    ReadPackage(element);
             }
             else if (rootElement.ValueKind == JsonValueKind.Object)
             {
-                var manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(rootElement.GetRawText())
-                    ?? throw new InvalidOperationException("Failed to parse repository manifest as object.");
-                if (manifest.IsReference)
-                    throw new InvalidOperationException("A single-repository manifest cannot reference another manifest.");
-                AddUnlessSeen(manifest, lastFetchedAt, manifestUrl);
+                ReadPackage(rootElement);
             }
             else
                 throw new InvalidOperationException($"Unexpected JSON structure in repository manifest: {rootElement.ValueKind}.");
@@ -1943,15 +1896,32 @@ public partial class PluginPackageManager(
 
         return manifests;
 
-        void AddUnlessSeen(RemotePackageManifestInfo manifest, DateTime fetchedAt, string source)
+        void ReadPackage(JsonElement element)
         {
-            if (!seen.Add((manifest.PackageID, source)))
+            RemotePackageManifestInfo? manifest;
+            try
             {
-                _logger.LogDebug("Skipped a duplicate manifest for package {PackageId} from {Source}.", manifest.PackageID, source);
+                manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
+            }
+            catch (Exception ex) when (ex is Newtonsoft.Json.JsonException)
+            {
+                _logger.LogWarning(ex, "Failed to parse a package of the repository manifest at {ManifestUrl}.", manifestUrl);
                 return;
             }
 
-            manifests.Add((manifest, fetchedAt, source));
+            if (manifest is not { Name.Length: > 0 })
+            {
+                _logger.LogWarning("Left out an entry of the repository manifest at {ManifestUrl} that is not a package: it has no name.", manifestUrl);
+                return;
+            }
+
+            if (!seen.Add(manifest.PackageID))
+            {
+                _logger.LogDebug("Skipped a duplicate manifest for package {PackageId} from {Source}.", manifest.PackageID, manifestUrl);
+                return;
+            }
+
+            manifests.Add((manifest, lastFetchedAt, manifestUrl));
         }
     }
 
@@ -1961,59 +1931,41 @@ public partial class PluginPackageManager(
     /// </summary>
     /// <param name="httpClient">The client to fetch with.</param>
     /// <param name="manifestUrl">The manifest's address.</param>
-    /// <param name="allowStaleCache">
-    ///   Whether to answer with the kept copy when the fetch fails.
-    /// </param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>
     ///   The manifest and when it was last fetched.
     /// </returns>
     /// <exception cref="HttpRequestException">
-    ///   Thrown if the fetch failed and no kept copy could be used.
+    ///   Thrown if the fetch failed.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    ///   Thrown if the answer is not JSON and no kept copy could be used.
+    ///   Thrown if the answer is not JSON.
     /// </exception>
-    private async Task<(JsonDocument Document, DateTime LastFetchedAt)> FetchManifestAsync(HttpClient httpClient, string manifestUrl, bool allowStaleCache, CancellationToken cancellationToken)
+    private async Task<(JsonDocument Document, DateTime LastFetchedAt)> FetchManifestAsync(HttpClient httpClient, string manifestUrl, CancellationToken cancellationToken)
     {
         var manifestId = UuidUtility.GetV5(manifestUrl);
         var jsonPath = Path.Join(_applicationPaths.PluginsPath, Repositories, "cache", manifestId + ".json");
         var etagPath = Path.ChangeExtension(jsonPath, ".etag");
         var cacheExists = File.Exists(jsonPath);
-        try
-        {
-            using var request = new HttpRequestMessage(HttpMethod.Get, manifestUrl);
-            if (cacheExists)
-                AddConditionalHeaders(request, jsonPath, etagPath);
+        using var request = new HttpRequestMessage(HttpMethod.Get, manifestUrl);
+        if (cacheExists)
+            AddConditionalHeaders(request, jsonPath, etagPath);
 
-            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-            if (cacheExists && response.StatusCode is HttpStatusCode.NotModified)
-                return ReadCachedManifest(jsonPath);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        if (cacheExists && response.StatusCode is HttpStatusCode.NotModified)
+            return ReadCachedManifest(jsonPath);
 
-            ThrowIfRefusedDowngradingRedirect(response);
-            response.EnsureSuccessStatusCode();
-            var contentType = response.Content.Headers.ContentType?.MediaType;
-            if (contentType is not ("application/json" or "text/plain" or "text/json"))
-                throw new InvalidOperationException($"Invalid content type: \"{contentType}\". Expected \"application/json\", \"text/plain\" or \"text/json\".");
+        ThrowIfRefusedDowngradingRedirect(response);
+        response.EnsureSuccessStatusCode();
+        var contentType = response.Content.Headers.ContentType?.MediaType;
+        if (contentType is not ("application/json" or "text/plain" or "text/json"))
+            throw new InvalidOperationException($"Invalid content type: \"{contentType}\". Expected \"application/json\", \"text/plain\" or \"text/json\".");
 
-            var content = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-            var jsonDoc = ParseManifest(content);
-            TryCacheManifest(content, response.Headers.ETag?.ToString(), jsonPath, etagPath, manifestUrl);
+        var content = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+        var jsonDoc = ParseManifest(content);
+        TryCacheManifest(content, response.Headers.ETag?.ToString(), jsonPath, etagPath, manifestUrl);
 
-            return (jsonDoc, DateTime.UtcNow);
-        }
-        catch (Exception ex) when (allowStaleCache && cacheExists && !cancellationToken.IsCancellationRequested && ex is HttpRequestException or InvalidOperationException or OperationCanceledException)
-        {
-            var cached = ReadCachedManifest(jsonPath);
-            _logger.LogWarning(
-                IsExpectedFetchFailure(ex) ? null : ex,
-                "Could not fetch the linked manifest at {ManifestUrl}: {Reason}. Kept its packages from the copy cached at {CachedAt}.",
-                manifestUrl,
-                DescribeFetchFailure(ex),
-                cached.LastFetchedAt
-            );
-            return cached;
-        }
+        return (jsonDoc, DateTime.UtcNow);
     }
 
     /// <summary>
@@ -2066,39 +2018,8 @@ public partial class PluginPackageManager(
     private static (JsonDocument Document, DateTime LastFetchedAt) ReadCachedManifest(string jsonPath)
         => (JsonDocument.Parse(File.ReadAllBytes(jsonPath)), File.GetLastWriteTimeUtc(jsonPath));
 
-    /// <summary>
-    ///   Whether a failed manifest fetch is the server answering with an error
-    ///   status, so the log line says enough without a stack trace.
-    /// </summary>
-    /// <param name="exception">The exception the fetch failed with.</param>
-    /// <returns>
-    ///   <c>true</c> when the exception carries an HTTP status code.
-    /// </returns>
-    private static bool IsExpectedFetchFailure(Exception exception)
-        => exception is HttpRequestException { StatusCode: not null };
-
-    /// <summary>
-    ///   Say in plain words why a manifest fetch failed.
-    /// </summary>
-    /// <param name="exception">The exception the fetch failed with.</param>
-    /// <returns>
-    ///   The reason, without a trailing period.
-    /// </returns>
-    private static string DescribeFetchFailure(Exception exception)
-        => exception switch
-        {
-            HttpRequestException { StatusCode: HttpStatusCode.NotFound } =>
-                "the server answered 404 (Not Found), so the address is wrong or the manifest is private or gone",
-            HttpRequestException { StatusCode: { } statusCode } => $"the server answered {(int)statusCode} ({statusCode})",
-            HttpRequestException => $"the server could not be reached ({exception.Message.TrimEnd('.')})",
-            OperationCanceledException => "the request timed out",
-            _ => exception.Message.TrimEnd('.'),
-        };
-
     private async Task<PackageManifestInfo?> ConvertRemoteToLocalAsync(RemotePackageManifestInfo manifestInfo, string source, Guid repositoryId, DateTime lastFetchedAt, CancellationToken cancellationToken)
     {
-        if (manifestInfo.IsReference)
-            return null;
         // `image_url` is deprecated but still honoured, so a manifest written before
         // the split keeps its image rather than silently losing it.
 #pragma warning disable CS0618

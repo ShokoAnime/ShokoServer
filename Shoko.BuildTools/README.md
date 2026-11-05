@@ -429,8 +429,8 @@ installs that release.
 Besides the fields above, a manifest may give `homepage_url`, a wide
 `thumbnail_url` and a square `icon_url` (readable at 24 pixels). The
 deprecated `image_url` is read as the thumbnail when there is no
-`thumbnail_url`. A manifest with `"type": "manifest"` and a `url` points at
-another manifest instead of describing a plugin. A release can also carry
+`thumbnail_url`. A package repository serves one such manifest, or a list
+of them. A release can also carry
 `source_revision`, `release_notes` and `is_meta`, which `shoko-build`
 writes when the build stamped it, and sums up in the manifest's own `is_meta`
 (see [Generated plugin class](#generated-plugin-class)).

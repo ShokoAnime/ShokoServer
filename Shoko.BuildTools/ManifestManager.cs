@@ -16,13 +16,6 @@ internal sealed class Manifest
     [JsonPropertyName("$schema")]
     public string? Schema { get; set; }
 
-    /// <summary>
-    ///   <c>package</c> for a full plugin definition, <c>manifest</c> for a
-    ///   reference to another manifest's URL. The schema discriminates on it.
-    /// </summary>
-    [JsonPropertyName("type")]
-    public string? Type { get; set; }
-
     [JsonPropertyName("id")]
     public required Guid ID { get; set; }
 

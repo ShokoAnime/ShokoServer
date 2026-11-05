@@ -15,20 +15,6 @@
       "type": "string",
       "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     },
-    "type": {
-      "description": "Manifest type. A 'package' is a full plugin definition. A 'manifest' is a reference to another manifest URL.",
-      "type": "string",
-      "enum": [
-        "package",
-        "manifest"
-      ],
-      "default": "package"
-    },
-    "url": {
-      "description": "Referenced manifest location. Required when type is 'manifest'. Must be an absolute http://, https:// or ftp:// URL.",
-      "type": "string",
-      "format": "uri"
-    },
     "name": {
       "description": "Package display name.",
       "type": "string"
@@ -106,52 +92,10 @@
       "type": "object"
     }
   },
-  "if": {
-    "required": [
-      "type"
-    ],
-    "properties": {
-      "type": {
-        "const": "manifest"
-      }
-    }
-  },
-  "then": {
-    "required": [
-      "id",
-      "type",
-      "url"
-    ],
-    "properties": {
-      "name": {
-        "description": "Ignored for reference manifests."
-      },
-      "overview": {
-        "description": "Ignored for reference manifests."
-      },
-      "namespace": {
-        "description": "Ignored for reference manifests."
-      },
-      "authors": {
-        "description": "Ignored for reference manifests."
-      },
-      "tags": {
-        "description": "Ignored for reference manifests."
-      },
-      "is_meta": {
-        "description": "Ignored for reference manifests."
-      },
-      "releases": {
-        "description": "Ignored for reference manifests."
-      }
-    }
-  },
-  "else": {
-    "required": [
-      "id",
-      "name"
-    ]
-  },
+  "required": [
+    "id",
+    "name"
+  ],
   "$defs": {
     "Dependency": {
       "title": "Plugin Dependency",

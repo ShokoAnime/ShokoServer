@@ -20,16 +20,11 @@ namespace Shoko.Tests.Plugin;
 
 /// <summary>
 /// Unit tests for <see cref="PluginPackageManager.SyncPackageRepository"/> on a
-/// repository whose manifest links to one manifest per package, some of them
-/// unavailable.
+/// repository whose manifest lists its packages.
 /// </summary>
 public class PackageRepositorySyncTests : IDisposable
 {
     private const string RepositoryUrl = "https://repo.test/manifest.json";
-
-    private const string FirstUrl = "https://first.test/manifest.json";
-
-    private const string SecondUrl = "https://second.test/manifest.json";
 
     private static readonly Guid _firstId = new("11111111-1111-1111-1111-111111111111");
 
@@ -60,15 +55,14 @@ public class PackageRepositorySyncTests : IDisposable
             Mock.Of<IApplicationPaths>(paths => paths.PluginsPath == _root),
             Mock.Of<IQueueScheduler>
         );
-        _host.Json[RepositoryUrl] = $$"""
-            [
-              { "id": "{{_firstId}}", "type": "manifest", "url": "{{FirstUrl}}" },
-              { "id": "{{_secondId}}", "type": "manifest", "url": "{{SecondUrl}}" }
-            ]
-            """;
-        _host.Json[FirstUrl] = PackageManifest(_firstId, "First");
-        _host.Json[SecondUrl] = PackageManifest(_secondId, "Second");
+        Serve(PackageManifest(_firstId, "First"), PackageManifest(_secondId, "Second"));
     }
+
+    /// <summary>
+    /// Serves the repository's manifest as a list of the given packages.
+    /// </summary>
+    private void Serve(params string[] packages)
+        => _host.Json[RepositoryUrl] = $"[{string.Join(",", packages)}]";
 
     public void Dispose()
         => Directory.Delete(_root, recursive: true);
@@ -86,26 +80,6 @@ public class PackageRepositorySyncTests : IDisposable
     }
 
     [Fact]
-    public async Task UnavailableLinkedManifestWithoutCacheIsSkipped()
-    {
-        _host.Json.Remove(SecondUrl);
-
-        Assert.Equal(["First"], await SyncAndListPackageNames());
-        Assert.NotNull(_repository.LastFetchedAt);
-    }
-
-    [Fact]
-    public async Task UnavailableLinkedManifestKeepsItsCachedCopy()
-    {
-        Assert.Equal(["First", "Second"], await SyncAndListPackageNames());
-
-        _host.Json[FirstUrl] = PackageManifest(_firstId, "First Renamed");
-        _host.Json.Remove(SecondUrl);
-
-        Assert.Equal(["First Renamed", "Second"], await SyncAndListPackageNames());
-    }
-
-    [Fact]
     public async Task UnavailableRepositoryManifestKeepsTheLastSync()
     {
         Assert.Equal(["First", "Second"], await SyncAndListPackageNames());
@@ -118,17 +92,25 @@ public class PackageRepositorySyncTests : IDisposable
     }
 
     [Fact]
-    public async Task LinkedHttpManifestOfAnHttpsRepositoryIsLeftOut()
+    public async Task AnEntryWithoutANameIsLeftOut()
     {
-        const string plainUrl = "http://plain.test/manifest.json";
-        var plainId = new Guid("33333333-3333-3333-3333-333333333333");
-        _host.Json[RepositoryUrl] = $$"""
-            [
-              { "id": "{{_firstId}}", "type": "manifest", "url": "{{FirstUrl}}" },
-              { "id": "{{plainId}}", "type": "manifest", "url": "{{plainUrl}}" }
-            ]
-            """;
-        _host.Json[plainUrl] = PackageManifest(plainId, "Plain");
+        Serve(PackageManifest(_firstId, "First"), $$"""{ "id": "{{_secondId}}" }""");
+
+        Assert.Equal(["First"], await SyncAndListPackageNames());
+    }
+
+    [Fact]
+    public async Task APackageListedTwiceIsReadOnce()
+    {
+        Serve(PackageManifest(_firstId, "First"), PackageManifest(_firstId, "First Again"));
+
+        Assert.Equal(["First"], await SyncAndListPackageNames());
+    }
+
+    [Fact]
+    public async Task ARepositoryOfOnePackageIsRead()
+    {
+        _host.Json[RepositoryUrl] = PackageManifest(_firstId, "First");
 
         Assert.Equal(["First"], await SyncAndListPackageNames());
     }
@@ -136,7 +118,7 @@ public class PackageRepositorySyncTests : IDisposable
     [Fact]
     public async Task HttpArchiveInAnHttpsManifestIsRefused()
     {
-        _host.Json[FirstUrl] = $$"""
+        Serve($$"""
             {
               "id": "{{_firstId}}", "name": "First", "overview": "Overview.", "authors": "Author", "tags": [],
               "releases": [
@@ -149,7 +131,7 @@ public class PackageRepositorySyncTests : IDisposable
                 }
               ]
             }
-            """;
+            """);
 
         await SyncAndListPackageNames();
         var manifests = await _manager.GetAvailablePackageManifests(allowSync: false, cancellationToken: TestContext.Current.CancellationToken);
@@ -162,7 +144,7 @@ public class PackageRepositorySyncTests : IDisposable
     [Fact]
     public async Task ExtensionsArePassedThroughAtEveryLevel()
     {
-        _host.Json[FirstUrl] = $$"""
+        Serve($$"""
             {
               "id": "{{_firstId}}", "name": "First", "overview": "Overview.", "authors": "Author", "tags": [],
               "extensions": { "badge": "gold" },
@@ -176,7 +158,7 @@ public class PackageRepositorySyncTests : IDisposable
                 }
               ]
             }
-            """;
+            """);
 
         await SyncAndListPackageNames();
         var manifests = await _manager.GetAvailablePackageManifests(allowSync: false, cancellationToken: TestContext.Current.CancellationToken);

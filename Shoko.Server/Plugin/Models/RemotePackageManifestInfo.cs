@@ -1,15 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
-
-using JsonConverter = System.Text.Json.Serialization.JsonConverterAttribute;
-using NewtonsoftJsonConverter = Newtonsoft.Json.JsonConverterAttribute;
 
 namespace Shoko.Server.Plugin.Models;
 
@@ -19,13 +13,6 @@ namespace Shoko.Server.Plugin.Models;
 public sealed class RemotePackageManifestInfo
 {
     /// <summary>
-    /// Manifest type.
-    /// </summary>
-    [JsonPropertyName("type")]
-    [JsonProperty("type")]
-    public PackageType Type { get; set; } = PackageType.Package;
-
-    /// <summary>
     /// Unique package identifier.
     /// </summary>
     [JsonPropertyName("id")]
@@ -33,45 +20,25 @@ public sealed class RemotePackageManifestInfo
     public Guid PackageID { get; set; }
 
     /// <summary>
-    ///   Determines if the manifest is a reference to another manifest.
-    /// </summary>
-    [MemberNotNullWhen(true, nameof(ManifestUrl))]
-    [MemberNotNullWhen(false, nameof(Name))]
-    [MemberNotNullWhen(false, nameof(Overview))]
-    [MemberNotNullWhen(false, nameof(Authors))]
-    [MemberNotNullWhen(false, nameof(Tags))]
-    [MemberNotNullWhen(false, nameof(Tags))]
-    [MemberNotNullWhen(false, nameof(Releases))]
-    public bool IsReference => Type is PackageType.Manifest;
-
-    /// <summary>
-    ///   Referenced manifest location. Must be an absolute <c>http://</c>,
-    ///   <c>https://</c> or <c>ftp://</c> resource location when set.
-    /// </summary>
-    [JsonPropertyName("url")]
-    [JsonProperty("url")]
-    public string? ManifestUrl { get; set; }
-
-    /// <summary>
     /// Package display name.
     /// </summary>
     [JsonPropertyName("name")]
     [JsonProperty("name")]
-    public string? Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// Describes what the package does at a high level.
     /// </summary>
     [JsonPropertyName("overview")]
     [JsonProperty("overview")]
-    public string? Overview { get; set; }
+    public string Overview { get; set; } = string.Empty;
 
     /// <summary>
     ///   The author(s) of the package and plugins contained within it.
     /// </summary>
     [JsonPropertyName("authors")]
     [JsonProperty("authors")]
-    public string? Authors { get; set; }
+    public string Authors { get; set; } = string.Empty;
 
     /// <summary>
     ///   The repository URL for the package and plugin releases contained
@@ -140,7 +107,7 @@ public sealed class RemotePackageManifestInfo
     /// </summary>
     [JsonPropertyName("releases")]
     [JsonProperty("releases")]
-    public IReadOnlyList<RemotePackageReleaseInfo>? Releases { get; set; }
+    public IReadOnlyList<RemotePackageReleaseInfo> Releases { get; set; } = [];
 
     /// <summary>
     ///   Free-form data about the package, kept as is and never read.
@@ -148,26 +115,4 @@ public sealed class RemotePackageManifestInfo
     [JsonProperty("extensions")]
     public JObject? Extensions { get; init; }
 
-}
-
-/// <summary>
-/// Type of package manifest.
-/// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
-[NewtonsoftJsonConverter(typeof(StringEnumConverter))]
-public enum PackageType
-{
-    /// <summary>
-    /// A full package definition with all details.
-    /// </summary>
-    [JsonStringEnumMemberName("package")]
-    [DataMember(Name = "package")]
-    Package = 0,
-
-    /// <summary>
-    /// A reference to a separate manifest file.
-    /// </summary>
-    [JsonStringEnumMemberName("manifest")]
-    [DataMember(Name = "manifest")]
-    Manifest = 1,
 }
