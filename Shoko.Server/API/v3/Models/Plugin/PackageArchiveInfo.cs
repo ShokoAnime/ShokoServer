@@ -71,6 +71,18 @@ public class PackageArchiveInfo(AbstractPackageReleaseInfo releaseInfo, Abstract
     public string ArchiveChecksum { get; init; } = archiveInfo.ArchiveChecksum;
 
     /// <summary>
+    ///   The archive's packed size, the zip's own, in bytes, or <c>null</c> when its manifest does
+    ///   not say.
+    /// </summary>
+    public long? PackedSize { get; init; } = archiveInfo.PackedSize > 0 ? archiveInfo.PackedSize : null;
+
+    /// <summary>
+    ///   The size of the archive's files once unpacked, in bytes, or
+    ///   <c>null</c> when its manifest does not say.
+    /// </summary>
+    public long? UnpackedSize { get; init; } = archiveInfo.UnpackedSize > 0 ? archiveInfo.UnpackedSize : null;
+
+    /// <summary>
     ///   Free-form data about the archive from its manifest, passed through as
     ///   is for frontends; the server never reads it. Left out when the
     ///   manifest has none.

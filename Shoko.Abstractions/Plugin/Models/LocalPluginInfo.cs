@@ -108,6 +108,18 @@ public sealed class LocalPluginInfo
     public required DateTime InstalledAt { get; init; }
 
     /// <summary>
+    ///   The size of the plugin on disk, in bytes, measured when the plugin
+    ///   was found: its folder, or its DLL with the files named after it (its
+    ///   symbols, dependency list, thumbnail and icon), or for the core's
+    ///   built-in plugin the server's application folder without the plugins
+    ///   and web UI it ships.
+    ///   It differs between builds of one server version, such as one with the
+    ///   .NET runtime included or MediaInfo bundled. <c>0</c> when it cannot
+    ///   be read.
+    /// </summary>
+    public long InstalledSize { get; init; }
+
+    /// <summary>
     /// When the plugin was uninstalled from the local system.
     /// </summary>
     public DateTime? UninstalledAt { get; internal set; }

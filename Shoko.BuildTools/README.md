@@ -22,9 +22,9 @@ auto-discovery of service interfaces, and manifest management.
    `EnableDynamicLoading=true`, injects the generated assembly info, restores
    and builds.
 5. **Packs** the build output into a `.zip` archive.
-6. **Computes** a SHA256 checksum of the zip.
+6. **Computes** a SHA256 checksum, the packed size of the zip and the size of its files unpacked.
 7. **Updates** `manifest.json` — creates or updates a release entry with the
-   archive URL, checksum, runtime, ABI version, dependencies, and whether the
+   archive URL, checksum, packed and unpacked sizes, runtime, ABI version, dependencies, and whether the
    release is a meta plugin (`is_meta`, read from the built assembly).
 8. **Prunes** old releases if `--prune` is set (per-channel or globally), naming
    every dropped version and its channel on stdout.
@@ -409,7 +409,9 @@ See `manifest.schema.json` in this directory for the full JSON Schema.
           "runtime": "any",
           "abstraction": "6.0.0",
           "url": "https://github.com/user/Shoko.Plugin.ExamplePlugin/releases/download/v1.0.5/plugin.zip",
-          "checksum": "sha256:<sha256>"
+          "checksum": "sha256:<sha256>",
+          "packed_size": 123456,
+          "unpacked_size": 345678
         }
       ],
       "dependencies": [

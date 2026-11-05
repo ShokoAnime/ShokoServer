@@ -289,6 +289,16 @@
           "type": "string",
           "pattern": "^(sha256:|sha1:|md5:)?[0-9a-fA-F]+$"
         },
+        "unpacked_size": {
+          "description": "The size of the archive's files once unpacked, in bytes: the sum of their contents, the zip entries' uncompressed lengths, not the disk space they take up. Optional; when given, the server refuses an archive unpacking to any other size, checks for the free space first and can show the size before installing.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "packed_size": {
+          "description": "The archive's packed size, the zip file's own length, in bytes. Optional; when given, the server refuses a download of any other size and can show the size before installing.",
+          "type": "integer",
+          "minimum": 1
+        },
         "extensions": {
           "description": "Free-form data about this archive for frontends and tooling, passed through by the server as is and never read by it. Any keys and values.",
           "type": "object"

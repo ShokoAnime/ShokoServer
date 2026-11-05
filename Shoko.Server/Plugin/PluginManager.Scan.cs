@@ -128,6 +128,7 @@ public partial class PluginManager
                         Tags = internalPluginInfo.Tags,
                         LoadOrder = _pluginTypes.Count,
                         InstalledAt = internalPluginInfo.InstalledAt,
+                        InstalledSize = MeasureInstalledSize(internalPluginInfo),
                         IsKept = internalPluginInfo.IsKept,
                         IsDependency = internalPluginInfo.IsDependency,
                         IsEnabledOnDemand = internalPluginInfo.IsEnabledOnDemand,
@@ -199,6 +200,7 @@ public partial class PluginManager
                     Tags = internalPluginInfo.Tags,
                     LoadOrder = _pluginTypes.Count,
                     InstalledAt = internalPluginInfo.InstalledAt,
+                    InstalledSize = MeasureInstalledSize(internalPluginInfo),
                     IsKept = internalPluginInfo.IsKept,
                     IsDependency = internalPluginInfo.IsDependency,
                     IsEnabledOnDemand = internalPluginInfo.IsEnabledOnDemand,
@@ -253,6 +255,88 @@ public partial class PluginManager
                 id => _loadContexts.GetValueOrDefault(id),
                 () => _loadContexts.Values
             );
+        }
+    }
+
+    /// <summary>
+    ///   Measures a plugin on disk: its folder; for a plugin that is a lone
+    ///   DLL in the plugins folder, the DLL and the files named after it; and
+    ///   for the core's built-in plugin the server's application folder
+    ///   without the plugins and web UI it ships, which are counted on their
+    ///   own.
+    /// </summary>
+    /// <param name="pluginInfo">The plugin.</param>
+    /// <returns>The size in bytes, or <c>0</c> when it cannot be read.</returns>
+    private long MeasureInstalledSize(InternalPluginInfo pluginInfo)
+        => pluginInfo.ID == CorePlugin.StaticID
+            ? MeasureInstalledSize(applicationPaths.ApplicationPath, "plugins", "webui")
+            : pluginInfo.ContainingDirectory is null && pluginInfo.DLLs is [{ } dllPath, ..]
+                ? MeasureLoneDllSize(dllPath)
+                : MeasureInstalledSize(pluginInfo.ContainingDirectory);
+
+    /// <summary>
+    ///   The files that come with a lone plugin DLL under its own name.
+    /// </summary>
+    private static readonly string[] _loneDllCompanions = [".pdb", ".xml", ".deps.json", ".runtimeconfig.json"];
+
+    /// <summary>
+    ///   Measures a plugin that is a lone DLL in the plugins folder: the DLL
+    ///   and the files that come with it under its name, its symbols,
+    ///   dependency list and thumbnail and icon among them.
+    /// </summary>
+    /// <param name="dllPath">The DLL.</param>
+    /// <returns>The size in bytes, or <c>0</c> when it cannot be read.</returns>
+    internal static long MeasureLoneDllSize(string dllPath)
+    {
+        try
+        {
+            var basePath = Path.ChangeExtension(dllPath, null);
+            var directory = Path.GetDirectoryName(dllPath)!;
+            var name = Path.GetFileName(basePath);
+            // The images sit beside the DLL as <name>.<kind>.<extension>, as PackageImageLoader reads and writes them.
+            var images = new[] { ThumbnailKind, IconKind }
+                .SelectMany(kind => Directory.EnumerateFiles(directory, $"{name}.{kind}.*"))
+                .Select(path => new FileInfo(path));
+            return _loneDllCompanions
+                .Select(extension => new FileInfo(basePath + extension))
+                .Prepend(new FileInfo(dllPath))
+                .Where(file => file.Exists)
+                .Concat(images)
+                .Sum(file => file.Length);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>
+    ///   Measures a folder on disk: every file in it and below, but for the
+    ///   folders left out at its top. Only the folder listings are read, never
+    ///   the files, so the cost is in the number of files, a few milliseconds
+    ///   for a few hundred.
+    /// </summary>
+    /// <param name="directory">The folder, or <c>null</c> for none.</param>
+    /// <param name="excludedFolders">The names of the folders at its top to leave out.</param>
+    /// <returns>The size in bytes, or <c>0</c> without a folder or when it cannot be read.</returns>
+    internal static long MeasureInstalledSize(string? directory, params string[] excludedFolders)
+    {
+        if (directory is null || !Directory.Exists(directory))
+            return 0;
+
+        try
+        {
+            var root = new DirectoryInfo(directory);
+            var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+            return root.EnumerateFiles().Sum(file => file.Length)
+                + root.EnumerateDirectories()
+                    .Where(folder => !excludedFolders.Contains(folder.Name, comparer))
+                    .SelectMany(folder => folder.EnumerateFiles("*", SearchOption.AllDirectories))
+                    .Sum(file => file.Length);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
         }
     }
 

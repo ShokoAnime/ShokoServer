@@ -42,6 +42,26 @@ public sealed class PackageArchiveInfo
     public required string ArchiveChecksum { get; init; }
 
     /// <summary>
+    ///   The archive's packed size, the zip's own, in bytes, or <c>0</c> when
+    ///   its manifest does not say. When known, a download of any other size
+    ///   is refused.
+    /// </summary>
+    [JsonPropertyName("packed_size")]
+    [JsonProperty("packed_size")]
+    public long PackedSize { get; init; }
+
+    /// <summary>
+    ///   The size of the archive's files once unpacked, in bytes: the sum of
+    ///   their contents, not the disk space they take up. <c>0</c> when its
+    ///   manifest does not say. When known, an archive unpacking to any other
+    ///   size is refused, and an install needing more space than is free is
+    ///   refused before downloading (<see cref="IPluginPackageManager.IsFreeSpaceCheckEnabled"/>).
+    /// </summary>
+    [JsonPropertyName("unpacked_size")]
+    [JsonProperty("unpacked_size")]
+    public long UnpackedSize { get; init; }
+
+    /// <summary>
     ///   Free-form data about the archive from its manifest's
     ///   <c>extensions</c>, for frontends and tooling. Passed through as is;
     ///   the server never reads it.

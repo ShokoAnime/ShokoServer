@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Exceptions;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Plugin;
@@ -140,6 +141,45 @@ public sealed class PackageInstallQueueTests : IDisposable
         Assert.False(Directory.Exists(Path.Join(_root, "plugins", "First-1.0.0-any")));
     }
 
+    [Fact]
+    public async Task APlanWithoutTheRoomForItIsRefusedBeforeDownloading()
+    {
+        var manager = CreatePackageManager();
+        _host.Release();
+        var plan = Plan(Package(Guid.NewGuid(), "Huge", "1.0.0", unpackedSize: long.MaxValue / 4));
+
+        await Assert.ThrowsAsync<IOException>(() => manager.InstallPackages(plan, TestContext.Current.CancellationToken));
+
+        Assert.Equal(0, _host.Requests);
+    }
+
+    [Fact]
+    public async Task ArchivesAreDownloadedToTheCacheFolder()
+    {
+        var manager = CreatePackageManager();
+        _host.Release();
+
+        await manager.InstallPackages(Plan(Package(Guid.NewGuid(), "First", "1.0.0")), TestContext.Current.CancellationToken);
+
+        Assert.True(Directory.Exists(Path.Join(_root, "cache", "plugin-downloads")));
+        Assert.Empty(Directory.GetFiles(Path.Join(_root, "plugins"), "*.zip"));
+    }
+
+    [Fact]
+    public async Task AnArchiveOfAnotherSizeThanTheManifestSaysIsRefused()
+    {
+        var manager = CreatePackageManager();
+        _host.Release();
+
+        Assert.Single(await manager.InstallPackages(Plan(Package(Guid.NewGuid(), "Right", "1.0.0", _host.Archive.Length)), TestContext.Current.CancellationToken));
+        var refused = await Assert.ThrowsAsync<InvalidArchiveSizeException>(
+            () => manager.InstallPackages(Plan(Package(Guid.NewGuid(), "Wrong", "1.0.0", _host.Archive.Length + 1)), TestContext.Current.CancellationToken)
+        );
+
+        Assert.Equal(_host.Archive.Length, refused.ActualSize);
+        Assert.False(Directory.Exists(Path.Join(_root, "plugins", "Wrong-1.0.0-any")));
+    }
+
     private static async Task<System.Collections.Generic.IReadOnlyList<PackageInstallQueueEntry>> WaitForRunning(PluginPackageManager manager)
     {
         for (var i = 0; i < 200; i++)
@@ -163,7 +203,7 @@ public sealed class PackageInstallQueueTests : IDisposable
             NullLogger<PluginPackageManager>.Instance,
             AniDBTestDoubles.HttpClientFactory(_host),
             pluginManager.Object,
-            Mock.Of<IApplicationPaths>(paths => paths.PluginsPath == Path.Join(_root, "plugins") && paths.ApplicationPath == Path.Join(_root, "app")),
+            Mock.Of<IApplicationPaths>(paths => paths.PluginsPath == Path.Join(_root, "plugins") && paths.ApplicationPath == Path.Join(_root, "app") && paths.CachePath == Path.Join(_root, "cache")),
             Mock.Of<IQueueScheduler>
         );
     }
@@ -177,7 +217,7 @@ public sealed class PackageInstallQueueTests : IDisposable
             OptionalDependencies = [],
         };
 
-    private PackageInfo Package(Guid id, string name, string version)
+    private PackageInfo Package(Guid id, string name, string version, long packedSize = 0, long unpackedSize = 0)
     {
         var release = new PackageReleaseInfo
         {
@@ -196,6 +236,8 @@ public sealed class PackageInstallQueueTests : IDisposable
                     AbstractionVersion = new(6, 0, 0),
                     ArchiveUrl = GatedArchiveHost.ArchiveUrl,
                     ArchiveChecksum = $"sha256:{Convert.ToHexString(SHA256.HashData(_host.Archive))}",
+                    PackedSize = packedSize,
+                    UnpackedSize = unpackedSize,
                 },
             ],
         };

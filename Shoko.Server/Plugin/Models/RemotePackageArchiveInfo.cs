@@ -46,6 +46,22 @@ public sealed class RemotePackageArchiveInfo
     public string ArchiveChecksum { get; set; } = string.Empty;
 
     /// <summary>
+    ///   The archive's packed size in bytes, or <c>0</c> when the manifest leaves it
+    ///   out.
+    /// </summary>
+    [JsonPropertyName("packed_size")]
+    [JsonProperty("packed_size")]
+    public long PackedSize { get; set; }
+
+    /// <summary>
+    ///   The sum of the archive's file contents once unpacked, in bytes, or <c>0</c>
+    ///   when the manifest leaves it out.
+    /// </summary>
+    [JsonPropertyName("unpacked_size")]
+    [JsonProperty("unpacked_size")]
+    public long UnpackedSize { get; set; }
+
+    /// <summary>
     ///   Free-form data about the archive, kept as is and never read.
     /// </summary>
     [JsonProperty("extensions")]

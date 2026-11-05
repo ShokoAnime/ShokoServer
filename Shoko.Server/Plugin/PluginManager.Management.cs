@@ -414,6 +414,7 @@ public partial class PluginManager
             Tags = internalPluginInfo.Tags,
             LoadOrder = _pluginTypes.Count,
             InstalledAt = internalPluginInfo.InstalledAt,
+            InstalledSize = MeasureInstalledSize(internalPluginInfo),
             IsKept = internalPluginInfo.IsKept,
             IsDependency = internalPluginInfo.IsDependency,
             IsEnabledOnDemand = internalPluginInfo.IsEnabledOnDemand,

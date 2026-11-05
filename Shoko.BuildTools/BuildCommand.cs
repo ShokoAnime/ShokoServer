@@ -392,8 +392,12 @@ internal static class BuildCommand
                     checksum = $"sha256:{Convert.ToHexString(hash).ToLowerInvariant()}";
                 }
 
+                var packedSize = new FileInfo(zipPath).Length;
+                long unpackedSize;
+                using (var packed = ZipFile.OpenRead(zipPath))
+                    unpackedSize = packed.Entries.Sum(entry => entry.Length);
                 Console.WriteLine($"Packed: {zipPath}");
-                Console.WriteLine($"  {entryCount} entries, {new FileInfo(zipPath).Length:N0} bytes");
+                Console.WriteLine($"  {entryCount} entries, {packedSize:N0} bytes, {unpackedSize:N0} bytes unpacked");
                 Console.WriteLine($"  Checksum: {checksum}");
 
                 var archiveUrl = Substitute(downloadUrl, subst);
@@ -412,7 +416,9 @@ internal static class BuildCommand
                         checksum,
                         resolvedChannel,
                         releaseTagOrVersion,
-                        releaseNotes);
+                        releaseNotes,
+                        packedSize,
+                        unpackedSize);
                 }
 
                 completed.Add(rid);

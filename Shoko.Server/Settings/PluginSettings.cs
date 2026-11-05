@@ -110,6 +110,16 @@ public class PluginSettings
         public bool SkipBundledPluginUpgrades { get; set; } = false;
 
         /// <summary>
+        ///   Whether a package install whose manifest gives its sizes is
+        ///   refused before downloading when the plugins folder has not got
+        ///   the free space for it. Turn it off where the free space reads
+        ///   wrong, such as on some network or overlay file systems.
+        /// </summary>
+        [DefaultValue(true)]
+        [EnvironmentVariable("SHOKO_PLUGIN_FREE_SPACE_CHECK_ENABLED")]
+        public bool IsFreeSpaceCheckEnabled { get; set; } = true;
+
+        /// <summary>
         ///   Default time before a repository's packages are considered stale.
         ///   Defaults to 12 hours.
         /// </summary>

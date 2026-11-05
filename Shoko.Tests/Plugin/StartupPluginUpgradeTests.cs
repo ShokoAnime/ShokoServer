@@ -125,7 +125,7 @@ public class StartupPluginUpgradeTests : IDisposable
             NullLogger<PluginPackageManager>.Instance,
             AniDBTestDoubles.HttpClientFactory(_host),
             pluginManager.Object,
-            Mock.Of<IApplicationPaths>(paths => paths.PluginsPath == PluginsPath && paths.ApplicationPath == Path.Join(_root, "app")),
+            Mock.Of<IApplicationPaths>(paths => paths.PluginsPath == PluginsPath && paths.ApplicationPath == Path.Join(_root, "app") && paths.CachePath == Path.Join(_root, "cache")),
             Mock.Of<IQueueScheduler>
         );
     }

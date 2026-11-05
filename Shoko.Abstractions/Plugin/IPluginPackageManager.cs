@@ -37,6 +37,14 @@ public interface IPluginPackageManager
     bool SkipBundledPluginUpgrades { get; set; }
 
     /// <summary>
+    ///   Whether a package install whose manifest gives its sizes is refused
+    ///   before downloading when the plugins folder has not got the free
+    ///   space for it, with a margin for the blocks the files take up. Turn
+    ///   it off where the free space reads wrong. Defaults to <c>true</c>.
+    /// </summary>
+    bool IsFreeSpaceCheckEnabled { get; set; }
+
+    /// <summary>
     ///   Default time before a repository's packages are considered stale.
     ///   Defaults to 12 hours.
     /// </summary>

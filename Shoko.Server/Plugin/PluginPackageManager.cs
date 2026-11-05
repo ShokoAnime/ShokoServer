@@ -106,6 +106,18 @@ public partial class PluginPackageManager(
     }
 
     /// <inheritdoc/>
+    public bool IsFreeSpaceCheckEnabled
+    {
+        get => configurationProvider.Load().Plugins.Updates.IsFreeSpaceCheckEnabled;
+        set
+        {
+            var config = configurationProvider.Load(copy: true);
+            config.Plugins.Updates.IsFreeSpaceCheckEnabled = value;
+            configurationProvider.Save(config);
+        }
+    }
+
+    /// <inheritdoc/>
     public bool SkipBundledPluginUpgrades
     {
         get => configurationProvider.Load().Plugins.Updates.SkipBundledPluginUpgrades;
@@ -426,7 +438,7 @@ public partial class PluginPackageManager(
         RaiseInstallationStarted(packageInfo, eventArgs, cancellationToken);
 
         var extractPath = GetExtractPath(packageInfo);
-        var zipPath = extractPath + ".zip";
+        var zipPath = GetDownloadPath(packageInfo);
         try
         {
             await DownloadAndExtractPackage(packageInfo, cancellationToken).ConfigureAwait(false);
@@ -889,6 +901,8 @@ public partial class PluginPackageManager(
     private async Task<IReadOnlyList<LocalPluginInfo>> RunInstallPlan(InstallRequest request, Action<PackageInfo> onStep)
     {
         var plan = request.Plan;
+        EnsureFreeSpaceForPlan(request);
+
         var installed = new List<LocalPluginInfo>(plan.Steps.Count);
         var added = new List<LocalPluginInfo>();
         try
@@ -929,6 +943,46 @@ public partial class PluginPackageManager(
     }
 
     /// <summary>
+    ///   Refuses a plan there is no room for before its first download: every
+    ///   package it unpacks, and the largest download, since each archive is
+    ///   removed once unpacked. Each step checks for itself again before its
+    ///   download, for the packages whose manifest gives no size.
+    /// </summary>
+    /// <param name="request">The queued install, with its plan.</param>
+    /// <exception cref="IOException">Thrown when there is not enough free space.</exception>
+    private void EnsureFreeSpaceForPlan(InstallRequest request)
+    {
+        var archives = request.Plan.Steps
+            .Where(step => !Directory.Exists(GetExtractPath(step.Package)) || !Directory.EnumerateFileSystemEntries(GetExtractPath(step.Package)).Any())
+            .Select(step => step.Package.Archive)
+            .ToList();
+        if (archives.Count == 0)
+            return;
+
+        try
+        {
+            EnsureFreeSpace(archives.Sum(archive => archive.UnpackedSize), archives.Max(archive => archive.PackedSize));
+        }
+        catch (IOException ex)
+        {
+            var package = request.Plan.Package;
+            _logger.LogWarning(ex, "Not installing package {PackageName}: {Reason}", package.Manifest.Name, ex.Message);
+            var now = DateTime.UtcNow;
+            _ = Task.Run(() => PackageInstallationFailed?.Invoke(null, new()
+            {
+                Package = package,
+                QueueEntryID = request.ID,
+                StartedAt = now,
+                Actor = request.Actor,
+                FailedAt = now,
+                Reason = ex.Message,
+                Exception = ex,
+            }), CancellationToken.None);
+            throw;
+        }
+    }
+
+    /// <summary>
     ///   The installed plugin versions, the way the planner and the upgrades
     ///   read them.
     /// </summary>
@@ -958,6 +1012,47 @@ public partial class PluginPackageManager(
         => Path.Join(_applicationPaths.PluginsPath, $"{packageInfo.Manifest.Name.ReplaceInvalidPathCharacters()}-{packageInfo.Release.Version}-{packageInfo.Archive.RuntimeIdentifier}");
 
     /// <summary>
+    ///   The folder package archives are downloaded to before they are
+    ///   unpacked: in the cache folder, which is kept on disk and sized for
+    ///   downloads, unlike the system's temporary folder, which may be in
+    ///   memory.
+    /// </summary>
+    private string DownloadsPath
+        => Path.Join(_applicationPaths.CachePath, "plugin-downloads");
+
+    /// <summary>
+    ///   Whether this run already cleared the downloads a previous run left
+    ///   behind.
+    /// </summary>
+    private int _downloadsCleared;
+
+    /// <summary>
+    ///   Gets the path a package's archive is downloaded to, creating the
+    ///   downloads folder, and on the first call of a run clearing what a
+    ///   previous run left in it.
+    /// </summary>
+    /// <param name="packageInfo">The package.</param>
+    /// <returns>The archive's path.</returns>
+    private string GetDownloadPath(PackageInfo packageInfo)
+    {
+        var downloadsPath = DownloadsPath;
+        if (Interlocked.Exchange(ref _downloadsCleared, 1) == 0 && Directory.Exists(downloadsPath))
+        {
+            try
+            {
+                Directory.Delete(downloadsPath, true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _logger.LogWarning(ex, "Could not clear the package downloads left by a previous run. ({Path})", downloadsPath);
+            }
+        }
+
+        Directory.CreateDirectory(downloadsPath);
+        return Path.Join(downloadsPath, Path.GetFileName(GetExtractPath(packageInfo)) + ".zip");
+    }
+
+    /// <summary>
     ///   Downloads, verifies and extracts a package to its directory, unless
     ///   the directory already holds it.
     /// </summary>
@@ -973,7 +1068,7 @@ public partial class PluginPackageManager(
     private async Task<string> DownloadAndExtractPackage(PackageInfo packageInfo, CancellationToken cancellationToken)
     {
         var extractPath = GetExtractPath(packageInfo);
-        var zipPath = extractPath + ".zip";
+        var zipPath = GetDownloadPath(packageInfo);
         // Cleanup old files before starting.
         if (File.Exists(zipPath))
             File.Delete(zipPath);
@@ -981,13 +1076,14 @@ public partial class PluginPackageManager(
         {
             if (Directory.Exists(extractPath))
                 Directory.Delete(extractPath, true);
-            await DownloadAndVerifyArchiveAsync(packageInfo.Archive.ArchiveUrl, zipPath, packageInfo.Archive.ArchiveChecksum, cancellationToken).ConfigureAwait(false);
+            EnsureFreeSpace(packageInfo.Archive.UnpackedSize, packageInfo.Archive.PackedSize);
+            await DownloadAndVerifyArchiveAsync(packageInfo.Archive.ArchiveUrl, zipPath, packageInfo.Archive.ArchiveChecksum, packageInfo.Archive.PackedSize, cancellationToken).ConfigureAwait(false);
             if (cancellationToken.IsCancellationRequested)
                 throw new OperationCanceledException("Installation cancelled during download or verification.");
 
             _logger.LogInformation($"Extracting plugin to {extractPath}");
 
-            ZipFile.ExtractToDirectory(zipPath, extractPath);
+            ExtractArchive(zipPath, extractPath, packageInfo.Archive.UnpackedSize, cancellationToken);
             MoveInnerDirectoryContentsToRoot(extractPath);
 
             File.Delete(zipPath);
@@ -1002,6 +1098,129 @@ public partial class PluginPackageManager(
         }
 
         return extractPath;
+    }
+
+    /// <summary>
+    ///   The share added to the unpacked size for the free space check, for
+    ///   the whole blocks each file takes up on disk beyond its contents.
+    /// </summary>
+    private const double UnpackedDiskUsageMargin = 0.1;
+
+    /// <summary>
+    ///   Refuses an install there is no room for: the unpacked files, with a
+    ///   margin for the blocks they take up, in the plugins folder, and the
+    ///   download in the downloads folder, or both together when the two are
+    ///   on one file system. Skipped when turned off
+    ///   (<see cref="IsFreeSpaceCheckEnabled"/>), when no size is known or
+    ///   when the free space cannot be read.
+    /// </summary>
+    /// <param name="unpackedSize">The size of the files to unpack, in bytes.</param>
+    /// <param name="packedSize">The size of the largest download on disk at once, in bytes.</param>
+    /// <exception cref="IOException">Thrown when there is not enough free space.</exception>
+    private void EnsureFreeSpace(long unpackedSize, long packedSize)
+    {
+        var unpackedNeeded = unpackedSize + (long)(unpackedSize * UnpackedDiskUsageMargin);
+        if ((unpackedNeeded <= 0 && packedSize <= 0) || !IsFreeSpaceCheckEnabled)
+            return;
+
+        if (ReadFreeSpace(_applicationPaths.PluginsPath) is not { } plugins || ReadFreeSpace(DownloadsPath) is not { } downloads)
+            return;
+
+        // Two file systems of the very same size and free space are taken to be one.
+        if (plugins == downloads)
+        {
+            ThrowIfShort(plugins.Available, unpackedNeeded + packedSize, "the plugins and download folders");
+            return;
+        }
+
+        ThrowIfShort(plugins.Available, unpackedNeeded, "the plugins folder");
+        ThrowIfShort(downloads.Available, packedSize, "the download folder");
+
+        static void ThrowIfShort(long available, long needed, string where)
+        {
+            if (available < needed)
+                throw new IOException($"Not enough free space in {where} to install the package: {needed} bytes needed, {available} bytes free. The check can be turned off with Plugins.Updates.IsFreeSpaceCheckEnabled.");
+        }
+    }
+
+    /// <summary>
+    ///   Reads the size and free space of the file system a folder is on,
+    ///   creating the folder.
+    /// </summary>
+    /// <param name="path">The folder.</param>
+    /// <returns>The size and free space in bytes, or <c>null</c> when they cannot be read.</returns>
+    private (long Total, long Available)? ReadFreeSpace(string path)
+    {
+        try
+        {
+            var directory = Directory.CreateDirectory(path).FullName;
+            // On Windows a drive is named by its root; elsewhere any path names the file system it is on.
+            var drive = new DriveInfo(OperatingSystem.IsWindows() ? Path.GetPathRoot(directory)! : directory);
+            return (drive.TotalSize, drive.AvailableFreeSpace);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Could not read the free space for {Path}; installing without checking it.", path);
+            return null;
+        }
+    }
+
+    /// <summary>
+    ///   Unpacks an archive file by file, refusing an entry that would land
+    ///   outside the folder, and an archive unpacking to another size than
+    ///   its manifest gives, stopping as soon as it goes past it.
+    /// </summary>
+    /// <param name="zipPath">The archive.</param>
+    /// <param name="extractPath">The folder to unpack it to.</param>
+    /// <param name="expectedUnpackedSize">The size its files unpack to, or <c>0</c> when unknown.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="InvalidArchiveSizeException">Thrown when the files unpack to another size.</exception>
+    /// <exception cref="IOException">Thrown when an entry would land outside the folder.</exception>
+    internal static void ExtractArchive(string zipPath, string extractPath, long expectedUnpackedSize, CancellationToken cancellationToken)
+    {
+        var root = Path.GetFullPath(extractPath);
+        var rootPrefix = Path.EndsInDirectorySeparator(root) ? root : root + Path.DirectorySeparatorChar;
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        Directory.CreateDirectory(root);
+
+        using var archive = ZipFile.OpenRead(zipPath);
+        var buffer = new byte[81920];
+        long written = 0;
+        foreach (var entry in archive.Entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var target = Path.GetFullPath(Path.Join(root, entry.FullName));
+            if (!target.StartsWith(rootPrefix, comparison))
+                throw new IOException($"The archive entry '{entry.FullName}' would land outside the plugin's folder.");
+
+            // A directory entry has no file name.
+            if (entry.Name.Length == 0)
+            {
+                Directory.CreateDirectory(target);
+                continue;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            using (var source = entry.Open())
+            using (var destination = File.Create(target))
+            {
+                int read;
+                while ((read = source.Read(buffer)) > 0)
+                {
+                    written += read;
+                    if (expectedUnpackedSize > 0 && written > expectedUnpackedSize)
+                        throw new InvalidArchiveSizeException(expectedUnpackedSize, written, isUnpackedSize: true);
+                    destination.Write(buffer, 0, read);
+                }
+            }
+
+            // Keep the entry's permissions, as unpacking the whole archive at once does.
+            if (!OperatingSystem.IsWindows() && ((entry.ExternalAttributes >> 16) & 0x1FF) is var mode and not 0)
+                File.SetUnixFileMode(target, (UnixFileMode)mode);
+        }
+
+        if (expectedUnpackedSize > 0 && written != expectedUnpackedSize)
+            throw new InvalidArchiveSizeException(expectedUnpackedSize, written, isUnpackedSize: true);
     }
 
     /// <summary>
@@ -1027,7 +1246,7 @@ public partial class PluginPackageManager(
         Directory.Delete(innerPath, true);
     }
 
-    private async Task DownloadAndVerifyArchiveAsync(string downloadUrl, string destinationPath, string checksum, CancellationToken cancellationToken)
+    private async Task DownloadAndVerifyArchiveAsync(string downloadUrl, string destinationPath, string checksum, long expectedPackedSize, CancellationToken cancellationToken)
     {
         var httpClient = httpClientFactory.CreateClient("Default");
 
@@ -1059,6 +1278,10 @@ public partial class PluginPackageManager(
         if (cancellationToken.IsCancellationRequested)
             throw new OperationCanceledException("Download cancelled during header check.");
 
+        // A known size refuses a download announced as another before reading it.
+        if (expectedPackedSize > 0 && response.Content.Headers.ContentLength is { } announcedSize && announcedSize != expectedPackedSize)
+            throw new InvalidArchiveSizeException(expectedPackedSize, announcedSize);
+
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         await using var fileStream = File.Create(destinationPath);
 
@@ -1071,10 +1294,16 @@ public partial class PluginPackageManager(
             if (cancellationToken.IsCancellationRequested)
                 throw new OperationCanceledException("Download cancelled during data read.");
 
+            totalBytesRead += bytesRead;
+            if (expectedPackedSize > 0 && totalBytesRead > expectedPackedSize)
+                throw new InvalidArchiveSizeException(expectedPackedSize, totalBytesRead);
+
             hashAlgorithm.TransformBlock(hashBytes, 0, bytesRead, hashBytes, 0);
             await fileStream.WriteAsync(hashBytes.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
-            totalBytesRead += bytesRead;
         }
+
+        if (expectedPackedSize > 0 && totalBytesRead != expectedPackedSize)
+            throw new InvalidArchiveSizeException(expectedPackedSize, totalBytesRead);
 
         hashAlgorithm.TransformFinalBlock([], 0, 0);
 
@@ -1937,6 +2166,7 @@ public partial class PluginPackageManager(
                             AbstractionVersion = remoteArchive.AbstractionVersion,
                             ArchiveUrl = remoteArchive.ArchiveUrl,
                             ArchiveChecksum = remoteArchive.ArchiveChecksum,
+                            PackedSize = Math.Max(remoteArchive.PackedSize, 0),
                             Extensions = remoteArchive.Extensions,
                         })
                         .ToList(),
@@ -2507,7 +2737,7 @@ public partial class PluginPackageManager(
         {
             try
             {
-                File.Delete(extractPath + ".zip");
+                File.Delete(GetDownloadPath(packageInfo));
                 if (Directory.Exists(extractPath))
                     Directory.Delete(extractPath, true);
             }

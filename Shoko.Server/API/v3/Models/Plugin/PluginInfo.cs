@@ -127,6 +127,14 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public DateTime InstalledAt { get; init; } = pluginInfo.InstalledAt;
 
     /// <summary>
+    ///   The size of the plugin on disk, in bytes: its folder, or its DLL with
+    ///   the files named after it, or for the core's built-in plugin the
+    ///   server's application folder without the plugins and web UI it ships.
+    /// </summary>
+    [Required]
+    public long InstalledSize { get; init; } = pluginInfo.InstalledSize;
+
+    /// <summary>
     ///   Indicates the plugin is currently installed. Will only be <c>false</c>
     ///   if the plugin has be uninstalled in the current session.
     /// </summary>

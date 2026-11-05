@@ -159,6 +159,12 @@ internal sealed class ManifestArchive
     [JsonPropertyName("checksum")]
     public string? Checksum { get; set; }
 
+    [JsonPropertyName("packed_size")]
+    public long? PackedSize { get; set; }
+
+    [JsonPropertyName("unpacked_size")]
+    public long? UnpackedSize { get; set; }
+
     /// <inheritdoc cref="Manifest.Extra" />
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Extra { get; set; }
@@ -219,7 +225,9 @@ internal static class ManifestManager
         string? checksum = null,
         ReleaseChannel? channel = null,
         string? tag = null,
-        string? releaseNotes = null)
+        string? releaseNotes = null,
+        long? packedSize = null,
+        long? unpackedSize = null)
     {
         manifest.Releases ??= [];
 
@@ -275,6 +283,10 @@ internal static class ManifestManager
                 existingArchive.Url = archiveUrl;
             if (checksum is not null)
                 existingArchive.Checksum = checksum;
+            if (packedSize is not null)
+                existingArchive.PackedSize = packedSize;
+            if (unpackedSize is not null)
+                existingArchive.UnpackedSize = unpackedSize;
         }
         else
         {
@@ -284,6 +296,8 @@ internal static class ManifestManager
                 Abstraction = abstractionStr,
                 Url = archiveUrl,
                 Checksum = checksum,
+                PackedSize = packedSize,
+                UnpackedSize = unpackedSize,
             });
         }
     }
