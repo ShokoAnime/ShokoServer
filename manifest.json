@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.587",
+      "tag": "v6.0.0-dev.587",
+      "commit": "badd23e1fe45790d3fa6209f96e1d2b95033a16e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.587/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-05T13:02:08Z",
+      "releaseNotes": "\n`fix` (`hashing`): **Remove the video record a rehash leaves without a location**:\n\n- Removed the record a file's location left when a rehash put it on another record, once no location points at it\n- Kept a record that still has another copy\n"
+    },
+    {
       "version": "6.0.0.586",
       "tag": "v6.0.0-dev.586",
       "commit": "e26842f617ebc335dac728ecaebd526a836a59fe",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.558/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-27T12:01:05Z",
       "releaseNotes": "\n`feat` (`buildtools`): **Stamp a plugin namespace from `PluginNamespace` or the manifest**:\n\n- Read `PluginNamespace`, else the manifest's `namespace`, and stamp it as `PackageNamespace`\n- Stopped the build on a namespace that is not 2 to 32 characters of kebab-case, or is `shoko`, `core` or `plugin`\n\n`feat` (`buildtools`): **Stamp and record the plugin namespace in `shoko-build`**:\n\n- Took `--namespace`, `PluginNamespace` or the manifest's `namespace`, checked it and stamped it as `PackageNamespace`\n- Wrote a stated namespace into the manifest, and added `namespace` to `manifest.schema.json`\n\n`feat` (`plugin`): **Read the plugin namespace and fail plugins that break it or share it**:\n\n- Read `PackageNamespace` into `LocalPluginInfo.Namespace` and the APIv3 `PluginInfo`\n- Failed a plugin whose namespace is not kebab-case of 2 to 32 characters, or is `shoko`, `core` or `plugin`\n- Failed every loaded plugin claiming the namespace of another, naming the others\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.7.0**.\n\n`chore` (`buildtools`): **Bump build tools version to v0.8.0**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.116**.\n"
-    },
-    {
-      "version": "6.0.0.557",
-      "tag": "v6.0.0-dev.557",
-      "commit": "37c03e700516816db1844e63025123535388e44e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.557/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-27T09:11:54Z",
-      "releaseNotes": "\n`fix` (`api`): **Leave the system's own mount points out of `/api/v3/Folder/MountPoints`**:\n\n- Matched the formats .NET reports today (`cgroup2`, `bpf`, `pstore`, `devtmpfs`, `autofs`, `efivarfs`, the desktop's `fuse.portal` and `fuse.gvfsd-fuse`), keeping the older names\n- Left out `/proc`, `/sys`, `/dev`, `/boot` and `/efi` by path, so FAT drives elsewhere still list\n- Dropped duplicate paths\n"
     }
   ]
 }
