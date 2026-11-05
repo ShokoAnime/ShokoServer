@@ -215,6 +215,32 @@ public class PluginPackageController(
     }
 
     /// <summary>
+    ///   Gets the install queue: the install running now first, if any, then
+    ///   the waiting ones in the order they were asked for. Asking for a
+    ///   package already queued joins its entry.
+    /// </summary>
+    /// <returns>The queue entries.</returns>
+    [HttpGet("Install/Queue")]
+    public ActionResult<List<PackageInstallQueueEntry>> GetInstallQueue()
+        => packageManager.GetInstallQueue()
+            .Select(entry => new PackageInstallQueueEntry(entry))
+            .ToList();
+
+    /// <summary>
+    ///   Cancels an install in the install queue: a waiting one is taken off
+    ///   the queue, and a running one is stopped and what it installed is
+    ///   uninstalled again.
+    /// </summary>
+    /// <param name="entryID">The queue entry's ID.</param>
+    /// <returns>
+    ///   <c>204 No Content</c>, or <c>404 Not Found</c> when nothing with that
+    ///   ID is queued or running.
+    /// </returns>
+    [HttpDelete("Install/Queue/{entryID}")]
+    public ActionResult CancelInstall([FromRoute] Guid entryID)
+        => packageManager.CancelInstall(entryID) ? NoContent() : NotFound();
+
+    /// <summary>
     ///   Gets all packages installed since the server startup.
     /// </summary>
     /// <returns>
@@ -456,18 +482,27 @@ public class PluginPackageController(
     /// <param name="includeOptionalDependencies">
     ///   Also install the optional dependencies that are not installed yet.
     /// </param>
+    /// <param name="immediate">
+    ///   Queue the install and answer at once, without waiting for it.
+    /// </param>
     /// <returns>
-    ///   The installed <see cref="PluginInfo"/> if successful, or
-    ///   <c>424 Failed Dependency</c> when the dependencies cannot be met.
+    ///   The installed <see cref="PluginInfo"/> if successful, the
+    ///   <see cref="PackageInstallQueueEntry"/> with <c>202 Accepted</c> when
+    ///   <paramref name="immediate"/> is set, <c>409 Conflict</c> when the
+    ///   install was cancelled, or <c>424 Failed Dependency</c> when the
+    ///   dependencies cannot be met.
     /// </returns>
     [HttpPost("{packageID}/Install")]
-    public async Task<ActionResult<PluginInfo>> InstallPackageByID(
+    [ProducesResponseType<PluginInfo>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PackageInstallQueueEntry>(StatusCodes.Status202Accepted)]
+    public async Task<ActionResult> InstallPackageByID(
         [FromRoute] Guid packageID,
         [FromQuery] string? runtimeIdentifier = null,
         [FromQuery] string? abstractionVersion = null,
         [FromQuery] string? releaseVersion = null,
         [FromQuery] bool autoResolveDependencies = true,
-        [FromQuery] bool includeOptionalDependencies = false
+        [FromQuery] bool includeOptionalDependencies = false,
+        [FromQuery] bool immediate = false
     )
     {
         var (error, package) = await SelectPackage(packageID, runtimeIdentifier, abstractionVersion, releaseVersion).ConfigureAwait(false);
@@ -478,10 +513,17 @@ public class PluginPackageController(
         if (!plan.CanInstall || (!autoResolveDependencies && plan.Steps.Count > 1))
             return StatusCode(StatusCodes.Status424FailedDependency);
 
+        if (immediate)
+            return Accepted(new PackageInstallQueueEntry(packageManager.QueueInstall(plan)));
+
         IReadOnlyList<LocalPluginInfo> installed;
         try
         {
             installed = await packageManager.InstallPackages(plan).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return Conflict("The install was cancelled.");
         }
         catch (InvalidOperationException ex)
         {
@@ -489,7 +531,7 @@ public class PluginPackageController(
             return StatusCode(500, "Failed to install package");
         }
 
-        return new PluginInfo(installed[^1]);
+        return Ok(new PluginInfo(installed[^1]));
     }
 
     /// <summary>

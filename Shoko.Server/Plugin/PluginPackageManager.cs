@@ -19,11 +19,13 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Events;
 using Shoko.Abstractions.Plugin.Exceptions;
 using Shoko.Abstractions.Plugin.Models;
+using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Plugin.Models;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -169,6 +171,20 @@ public partial class PluginPackageManager(
 
     private readonly List<PackageInfo> _installedPackages = [];
 
+    private readonly Lock _installQueueLock = new();
+
+    // The install running now first, then the waiting ones in the order they were asked for.
+    private readonly LinkedList<InstallRequest> _installQueue = new();
+
+    // The live entry of each ID. A cancelled entry still unwinding at the head of the queue is no longer here.
+    private readonly Dictionary<Guid, InstallRequest> _installsByID = [];
+
+    private bool _isInstallWorkerRunning;
+
+    public event EventHandler<PackageInstallationQueuedEventArgs>? PackageInstallationQueued;
+
+    public event EventHandler<PackageInstallationCancelledEventArgs>? PackageInstallationCancelled;
+
     public event EventHandler<PackageInstallationStartedEventArgs>? PackageInstallationStarted;
 
     public event EventHandler<PackageInstallationCompletedEventArgs>? PackageInstallationCompleted;
@@ -181,7 +197,18 @@ public partial class PluginPackageManager(
     /// <returns>
     ///   A list of the packages installed since the server startup till now.
     /// </returns>
-    public IReadOnlyList<PackageInfo> GetInstalledPackages() => _installedPackages;
+    public IReadOnlyList<PackageInfo> GetInstalledPackages()
+    {
+        lock (_installedPackages)
+            return [.. _installedPackages];
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<PackageInstallQueueEntry> GetInstallQueue()
+    {
+        lock (_installQueueLock)
+            return _installQueue.Where(request => !request.IsCancelled).Select(request => request.ToEntry()).ToList();
+    }
 
     /// <summary>
     ///   Gets all locally installed packages as <see cref="PackageInfo"/>.
@@ -314,8 +341,25 @@ public partial class PluginPackageManager(
     /// <exception cref="InvalidChecksumException">
     ///   Thrown when package checksum verification fails.
     /// </exception>
-    public Task<LocalPluginInfo?> InstallPackage(PackageInfo packageInfo, CancellationToken cancellationToken = default)
-        => InstallPackage(packageInfo, InstallReason.Explicit, [], cancellationToken);
+    public async Task<LocalPluginInfo?> InstallPackage(PackageInfo packageInfo, CancellationToken cancellationToken = default)
+    {
+        var plan = new PackageInstallPlan
+        {
+            Package = packageInfo,
+            Steps = [new() { Package = packageInfo, IsDependency = false, RequiredBy = [] }],
+            Problems = [],
+            OptionalDependencies = [],
+        };
+        try
+        {
+            var installed = await InstallPackages(plan, InstallReason.Explicit, cancellationToken).ConfigureAwait(false);
+            return installed[0];
+        }
+        catch (PackageNotLoadedException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>
     ///   Why a package is installed, which decides whether the installed
@@ -364,11 +408,12 @@ public partial class PluginPackageManager(
     /// <param name="packageInfo">The package and version to install.</param>
     /// <param name="reason">Why it is installed.</param>
     /// <param name="requiredBy">The plugins needing it, written to its marker.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="request">The queued install it is part of.</param>
     /// <returns>The installed version, or <c>null</c> if the installation failed.</returns>
-    private async Task<LocalPluginInfo?> InstallPackage(PackageInfo packageInfo, InstallReason reason, IReadOnlyList<Guid> requiredBy, CancellationToken cancellationToken)
+    private async Task<LocalPluginInfo?> InstallPackage(PackageInfo packageInfo, InstallReason reason, IReadOnlyList<Guid> requiredBy, InstallRequest request)
     {
-        var eventArgs = new PackageInstallationStartedEventArgs() { Package = packageInfo, StartedAt = DateTime.UtcNow };
+        var cancellationToken = request.Cancellation.Token;
+        var eventArgs = new PackageInstallationStartedEventArgs() { Package = packageInfo, QueueEntryID = request.ID, StartedAt = DateTime.UtcNow, Actor = request.Actor };
 
         _logger.LogInformation(
             "Installing package {PackageName}. (Id={PackageId}, Version={PackageVersion}, RuntimeId={PackageRuntimeId})",
@@ -390,19 +435,24 @@ public partial class PluginPackageManager(
             if (pluginInfo is null)
                 return null;
 
-            _installedPackages.Add(new PackageInfo
+            lock (_installedPackages)
             {
-                Manifest = packageInfo.Manifest,
-                Repository = packageInfo.Repository,
-                Archive = packageInfo.Archive,
-                Plugin = pluginInfo,
-                Release = packageInfo.Release,
-            });
+                _installedPackages.Add(new PackageInfo
+                {
+                    Manifest = packageInfo.Manifest,
+                    Repository = packageInfo.Repository,
+                    Archive = packageInfo.Archive,
+                    Plugin = pluginInfo,
+                    Release = packageInfo.Release,
+                });
+            }
 
             _ = Task.Run(() => PackageInstallationCompleted?.Invoke(null, new()
             {
                 Package = packageInfo,
+                QueueEntryID = eventArgs.QueueEntryID,
                 StartedAt = eventArgs.StartedAt,
+                Actor = eventArgs.Actor,
                 CompletedAt = DateTime.UtcNow,
                 Plugin = pluginInfo,
             }), CancellationToken.None);
@@ -419,11 +469,14 @@ public partial class PluginPackageManager(
                 packageInfo.Release.Version,
                 packageInfo.Archive.RuntimeIdentifier
             );
+            CleanUpFailedInstall(zipPath, extractPath);
 
             _ = Task.Run(() => PackageInstallationFailed?.Invoke(null, new()
             {
                 Package = packageInfo,
+                QueueEntryID = eventArgs.QueueEntryID,
                 StartedAt = eventArgs.StartedAt,
+                Actor = eventArgs.Actor,
                 FailedAt = DateTime.UtcNow,
                 Reason = "Package installation was cancelled during installation.",
                 Exception = ex,
@@ -444,7 +497,9 @@ public partial class PluginPackageManager(
             _ = Task.Run(() => PackageInstallationFailed?.Invoke(null, new()
             {
                 Package = packageInfo,
+                QueueEntryID = eventArgs.QueueEntryID,
                 StartedAt = eventArgs.StartedAt,
+                Actor = eventArgs.Actor,
                 FailedAt = DateTime.UtcNow,
                 Reason = "Failed to install package due to an exception occurring.",
                 Exception = ex,
@@ -481,7 +536,9 @@ public partial class PluginPackageManager(
             _ = Task.Run(() => PackageInstallationFailed?.Invoke(null, new()
             {
                 Package = packageInfo,
+                QueueEntryID = eventArgs.QueueEntryID,
                 StartedAt = eventArgs.StartedAt,
+                Actor = eventArgs.Actor,
                 FailedAt = DateTime.UtcNow,
                 Reason = "Package installation failed during the started event.",
                 Exception = ex,
@@ -505,7 +562,9 @@ public partial class PluginPackageManager(
             _ = Task.Run(() => PackageInstallationFailed?.Invoke(null, new()
             {
                 Package = packageInfo,
+                QueueEntryID = eventArgs.QueueEntryID,
                 StartedAt = eventArgs.StartedAt,
+                Actor = eventArgs.Actor,
                 FailedAt = DateTime.UtcNow,
                 Reason = "Package installation was cancelled by a started event consumer before starting.",
                 Exception = ex,
@@ -586,31 +645,263 @@ public partial class PluginPackageManager(
     public Task<IReadOnlyList<LocalPluginInfo>> InstallPackages(PackageInstallPlan plan, CancellationToken cancellationToken = default)
         => InstallPackages(plan, InstallReason.Explicit, cancellationToken);
 
+    /// <inheritdoc/>
+    public PackageInstallQueueEntry QueueInstall(PackageInstallPlan plan)
+    {
+        var request = Enqueue(plan, InstallReason.Explicit, wait: false);
+        lock (_installQueueLock)
+            return request.ToEntry();
+    }
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<LocalPluginInfo>?> WaitForInstall(Guid entryID, CancellationToken cancellationToken = default)
+    {
+        InstallRequest? request;
+        lock (_installQueueLock)
+        {
+            if (_installsByID.TryGetValue(entryID, out request))
+                request.Waiting++;
+        }
+
+        if (request is null)
+            return null;
+
+        return await WaitFor(request, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public bool CancelInstall(Guid entryID)
+    {
+        InstallRequest? request;
+        PackageInstallQueueEntry entry;
+        lock (_installQueueLock)
+        {
+            if (!_installsByID.Remove(entryID, out request))
+                return false;
+
+            // A waiting entry leaves at once; a running one stays at the head
+            // until it has undone what it installed, hidden from the listing.
+            request.IsCancelled = true;
+            if (request.StartedAt is null)
+                _installQueue.Remove(request);
+            entry = request.ToEntry();
+        }
+
+        _logger.LogInformation("Cancelling the install of package {PackageName}. (QueueEntryId={QueueEntryId})", request.Plan.Package.Manifest.Name, entryID);
+        request.Cancellation.Cancel();
+        request.Completion.TrySetCanceled();
+
+        var args = new PackageInstallationCancelledEventArgs { Entry = entry, CancelledAt = DateTime.UtcNow, Actor = ActorContext.CurrentActor };
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                PackageInstallationCancelled?.Invoke(this, args);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "A handler of the install cancelled event failed.");
+            }
+        }, CancellationToken.None);
+        return true;
+    }
+
     /// <summary>
-    ///   Carries out an install plan, all or nothing, installing the package
-    ///   asked for for a reason.
+    ///   Queues an install plan, or joins the entry already queued or running
+    ///   for the same plan, and waits for it.
     /// </summary>
     /// <param name="plan">The plan.</param>
     /// <param name="reason">Why the package asked for is installed.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken">Stops this caller from waiting; the install goes on.</param>
     /// <returns>The installed plugin versions, in the order of the plan's steps.</returns>
-    private async Task<IReadOnlyList<LocalPluginInfo>> InstallPackages(PackageInstallPlan plan, InstallReason reason, CancellationToken cancellationToken)
+    private Task<IReadOnlyList<LocalPluginInfo>> InstallPackages(PackageInstallPlan plan, InstallReason reason, CancellationToken cancellationToken)
+        => WaitFor(Enqueue(plan, reason, wait: true), cancellationToken);
+
+    /// <summary>
+    ///   Queues an install plan as the current actor, or joins the entry
+    ///   already queued or running for the same plan.
+    /// </summary>
+    /// <param name="plan">The plan.</param>
+    /// <param name="reason">Why the package asked for is installed.</param>
+    /// <param name="wait">Count the caller as waiting, in the same step, so the install cannot finish in between.</param>
+    /// <returns>The queued or joined install.</returns>
+    private InstallRequest Enqueue(PackageInstallPlan plan, InstallReason reason, bool wait)
     {
         if (!plan.CanInstall)
             throw new InvalidOperationException($"Unable to install package {plan.Package.Manifest.Name}: {string.Join(" ", plan.Problems.Select(problem => $"{problem.Name ?? problem.PluginID.ToString()}: {problem.Reason}"))}");
 
+        var entryID = GetInstallEntryID(plan);
+        PackageInstallQueueEntry? added = null;
+        InstallRequest? request;
+        var startWorker = false;
+        lock (_installQueueLock)
+        {
+            var isNew = !_installsByID.TryGetValue(entryID, out request);
+            if (request is null)
+            {
+                request = new(entryID, plan, reason, ActorContext.CurrentActor);
+                _installsByID[entryID] = request;
+                _installQueue.AddLast(request);
+                if (!_isInstallWorkerRunning)
+                    _isInstallWorkerRunning = startWorker = true;
+            }
+
+            if (wait)
+                request.Waiting++;
+            if (isNew)
+                added = request.ToEntry();
+        }
+
+        if (added is not null)
+        {
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    PackageInstallationQueued?.Invoke(this, new() { Entry = added });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "A handler of the install queued event failed.");
+                }
+            }, CancellationToken.None);
+        }
+
+        if (startWorker)
+        {
+            using (DetachedFlow.Suppress())
+                _ = Task.Run(RunInstallQueue, CancellationToken.None);
+        }
+
+        return request;
+    }
+
+    /// <summary>
+    ///   Waits for a queued install, counted in its <c>Waiting</c> until the
+    ///   wait ends.
+    /// </summary>
+    /// <param name="request">The install, already counted as waited for.</param>
+    /// <param name="cancellationToken">Stops this caller from waiting.</param>
+    /// <returns>The installed plugin versions, in the order of the plan's steps.</returns>
+    private async Task<IReadOnlyList<LocalPluginInfo>> WaitFor(InstallRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await request.Completion.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (_installQueueLock)
+                request.Waiting--;
+        }
+    }
+
+    /// <summary>
+    ///   Runs the queued installs one at a time, in the order they were asked
+    ///   for, until the queue is empty.
+    /// </summary>
+    private async Task RunInstallQueue()
+    {
+        while (true)
+        {
+            InstallRequest request;
+            lock (_installQueueLock)
+            {
+                if (_installQueue.First is not { } first)
+                {
+                    _isInstallWorkerRunning = false;
+                    return;
+                }
+
+                request = first.Value;
+                request.StartedAt = DateTime.UtcNow;
+            }
+
+            try
+            {
+                using (ActorContext.Begin(request.Actor))
+                    await RunInstallRequest(request).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                request.Completion.TrySetException(ex);
+            }
+
+            lock (_installQueueLock)
+            {
+                _installQueue.Remove(request);
+                if (_installsByID.TryGetValue(request.ID, out var current) && current == request)
+                    _installsByID.Remove(request.ID);
+            }
+
+            request.Cancellation.Dispose();
+        }
+    }
+
+    /// <summary>
+    ///   Carries out a queued install and hands every waiting caller its
+    ///   result.
+    /// </summary>
+    /// <param name="request">The queued install.</param>
+    private async Task RunInstallRequest(InstallRequest request)
+    {
+        try
+        {
+            var installed = await RunInstallPlan(request, package =>
+            {
+                lock (_installQueueLock)
+                    request.CurrentPackage = package;
+            }).ConfigureAwait(false);
+            request.Completion.TrySetResult(installed);
+        }
+        catch (OperationCanceledException) when (request.IsCancelled)
+        {
+            request.Completion.TrySetCanceled();
+        }
+        catch (Exception ex)
+        {
+            request.Completion.TrySetException(ex);
+        }
+    }
+
+    /// <summary>
+    ///   Gets the ID of the queue entry for a plan: a UUIDv5 of the package ID,
+    ///   version and runtime of every step, in a fixed order.
+    /// </summary>
+    /// <param name="plan">The plan.</param>
+    /// <returns>The entry ID.</returns>
+    internal static Guid GetInstallEntryID(PackageInstallPlan plan)
+        => ("PackageInstall=" + string.Join(
+            ",",
+            plan.Steps
+                .Select(step => $"{step.Package.Manifest.PackageID}@{step.Package.Release.Version}@{step.Package.Archive.RuntimeIdentifier}")
+                .Order(StringComparer.Ordinal)
+        )).ToUuidV5();
+
+    /// <summary>
+    ///   Carries out an install plan, all or nothing, installing the package
+    ///   asked for for a reason. Only the install queue calls it, so one plan
+    ///   runs at a time.
+    /// </summary>
+    /// <param name="request">The queued install, with its plan.</param>
+    /// <param name="onStep">Told which package each step installs.</param>
+    /// <returns>The installed plugin versions, in the order of the plan's steps.</returns>
+    private async Task<IReadOnlyList<LocalPluginInfo>> RunInstallPlan(InstallRequest request, Action<PackageInfo> onStep)
+    {
+        var plan = request.Plan;
         var installed = new List<LocalPluginInfo>(plan.Steps.Count);
         var added = new List<LocalPluginInfo>();
         try
         {
             foreach (var step in plan.Steps)
             {
+                onStep(step.Package);
                 var extractPath = GetExtractPath(step.Package);
                 var existed = _pluginManager.GetPluginInfos(step.Package.Manifest.PackageID)
                     .Any(info => info.IsInstalled && string.Equals(info.ContainingDirectory, extractPath, StringComparison.Ordinal));
-                var stepReason = step.IsDependency ? InstallReason.Dependency : reason;
-                var pluginInfo = await InstallPackage(step.Package, stepReason, step.RequiredBy, cancellationToken).ConfigureAwait(false)
-                    ?? throw new InvalidOperationException($"Failed to install package {step.Package.Manifest.Name} version {step.Package.Release.Version}.");
+                var stepReason = step.IsDependency ? InstallReason.Dependency : request.Reason;
+                var pluginInfo = await InstallPackage(step.Package, stepReason, step.RequiredBy, request).ConfigureAwait(false)
+                    ?? throw new PackageNotLoadedException($"Failed to install package {step.Package.Manifest.Name} version {step.Package.Release.Version}.");
                 installed.Add(pluginInfo);
                 if (!existed)
                     added.Add(pluginInfo);
@@ -2332,4 +2623,54 @@ public partial class PluginPackageManager(
     }
 
     #endregion
+
+    /// <summary>
+    ///   A package was installed but could not be loaded.
+    /// </summary>
+    /// <param name="message">The message.</param>
+    private sealed class PackageNotLoadedException(string message) : InvalidOperationException(message);
+
+    /// <summary>
+    ///   An install plan in the install queue, and everyone waiting for it.
+    /// </summary>
+    /// <param name="id">The entry ID.</param>
+    /// <param name="plan">The plan of the caller who asked first.</param>
+    /// <param name="reason">Why the package asked for is installed.</param>
+    /// <param name="actor">Who queued it.</param>
+    private sealed class InstallRequest(Guid id, PackageInstallPlan plan, InstallReason reason, ApiToken? actor)
+    {
+        public Guid ID { get; } = id;
+
+        public PackageInstallPlan Plan { get; } = plan;
+
+        public InstallReason Reason { get; } = reason;
+
+        public ApiToken? Actor { get; } = actor;
+
+        public TaskCompletionSource<IReadOnlyList<LocalPluginInfo>> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public CancellationTokenSource Cancellation { get; } = new();
+
+        public DateTime QueuedAt { get; } = DateTime.UtcNow;
+
+        public DateTime? StartedAt { get; set; }
+
+        public PackageInfo? CurrentPackage { get; set; }
+
+        public int Waiting { get; set; }
+
+        public bool IsCancelled { get; set; }
+
+        public PackageInstallQueueEntry ToEntry()
+            => new()
+            {
+                ID = ID,
+                Package = Plan.Package,
+                CurrentPackage = CurrentPackage,
+                QueuedAt = QueuedAt,
+                StartedAt = StartedAt,
+                Waiting = Waiting,
+                Actor = Actor,
+            };
+    }
 }

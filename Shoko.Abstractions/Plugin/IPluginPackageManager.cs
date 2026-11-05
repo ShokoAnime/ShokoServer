@@ -67,6 +67,19 @@ public interface IPluginPackageManager
     #region Package Installation
 
     /// <summary>
+    ///   Dispatched when a package install was added to the install queue.
+    ///   Asking for a plan already queued joins its entry and is not
+    ///   dispatched again.
+    /// </summary>
+    event EventHandler<PackageInstallationQueuedEventArgs>? PackageInstallationQueued;
+
+    /// <summary>
+    ///   Dispatched when an install queue entry was cancelled through
+    ///   <see cref="CancelInstall"/>.
+    /// </summary>
+    event EventHandler<PackageInstallationCancelledEventArgs>? PackageInstallationCancelled;
+
+    /// <summary>
     ///   Dispatched when a plugin installation starts. Ran in-thread, and can
     ///   be used to cancel the operation.
     /// </summary>
@@ -83,6 +96,66 @@ public interface IPluginPackageManager
     event EventHandler<PackageInstallationFailedEventArgs>? PackageInstallationFailed;
 
     /// <summary>
+    ///   Gets the install queue: the install running now first, if any, then
+    ///   the waiting ones in the order they were asked for.
+    /// </summary>
+    /// <returns>The queue entries.</returns>
+    IReadOnlyList<PackageInstallQueueEntry> GetInstallQueue();
+
+    /// <summary>
+    ///   Queues an install plan, or joins the entry already queued or running
+    ///   for the same plan, without waiting for it.
+    /// </summary>
+    /// <param name="plan">
+    ///   The plan, from <see cref="PlanInstall"/>.
+    /// </param>
+    /// <returns>
+    ///   The queue entry. Follow it with <see cref="WaitForInstall"/> or the
+    ///   install events, which carry its ID.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when the plan cannot be carried out.
+    /// </exception>
+    PackageInstallQueueEntry QueueInstall(PackageInstallPlan plan);
+
+    /// <summary>
+    ///   Waits for an install queue entry to finish.
+    /// </summary>
+    /// <param name="entryID">
+    ///   The entry's ID.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   Optional. Stops this caller from waiting; the install goes on.
+    /// </param>
+    /// <returns>
+    ///   The installed plugin versions, in the order of the plan's steps, or
+    ///   <c>null</c> when nothing with that ID is queued or running.
+    /// </returns>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when the entry was cancelled, or the
+    ///   <paramref name="cancellationToken"/> stopped this caller from waiting.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when a step failed.
+    /// </exception>
+    Task<IReadOnlyList<LocalPluginInfo>?> WaitForInstall(Guid entryID, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Cancels an install queue entry: a waiting one is taken off the queue,
+    ///   and a running one is stopped and what it installed is uninstalled
+    ///   again. Every caller waiting for it gets an
+    ///   <see cref="OperationCanceledException"/>.
+    /// </summary>
+    /// <param name="entryID">
+    ///   The entry's ID.
+    /// </param>
+    /// <returns>
+    ///   <c>true</c> if it was cancelled, or <c>false</c> when nothing with
+    ///   that ID is queued or running.
+    /// </returns>
+    bool CancelInstall(Guid entryID);
+
+    /// <summary>
     ///   Gets all packages installed since the server startup till now.
     /// </summary>
     /// <returns>
@@ -91,8 +164,9 @@ public interface IPluginPackageManager
     IReadOnlyList<PackageInfo> GetInstalledPackages();
 
     /// <summary>
-    ///   Installs or upgrades a plugin. Returns installed
-    ///   <see cref="LocalPluginInfo"/> or <c>null</c> on failure.
+    ///   Installs or upgrades a plugin, without its dependencies, through the
+    ///   install queue. Returns installed <see cref="LocalPluginInfo"/> or
+    ///   <c>null</c> on failure.
     /// </summary>
     /// <param name="packageInfo">
     ///   The package and version to install.
@@ -104,8 +178,8 @@ public interface IPluginPackageManager
     ///   The installed see, or <c>null</c> if installation failed.
     /// </returns>
     /// <exception cref="OperationCanceledException">
-    ///   Thrown if the installation was cancelled by the
-    ///   <paramref name="cancellationToken"/>.
+    ///   Thrown when the install was cancelled, or the
+    ///   <paramref name="cancellationToken"/> stopped this caller from waiting.
     /// </exception>
     /// <exception cref="InvalidChecksumException">
     ///   Thrown when package checksum verification fails.
@@ -144,6 +218,14 @@ public interface IPluginPackageManager
     ///   marked as installed as dependencies, then the package asked for. If
     ///   one fails, the versions this call installed are uninstalled again.
     /// </summary>
+    /// <remarks>
+    ///   Installs run one at a time through the install queue
+    ///   (<see cref="GetInstallQueue"/>), as the caller who queued them.
+    ///   Asking for a plan already queued or running joins that install, and
+    ///   every caller gets the same result. The
+    ///   <paramref name="cancellationToken"/> only stops this caller from
+    ///   waiting; <see cref="CancelInstall"/> stops the install.
+    /// </remarks>
     /// <param name="plan">
     ///   The plan, from <see cref="PlanInstall"/>.
     /// </param>
@@ -157,8 +239,8 @@ public interface IPluginPackageManager
     ///   Thrown when the plan cannot be carried out, or a step failed.
     /// </exception>
     /// <exception cref="OperationCanceledException">
-    ///   Thrown if the install was cancelled by the
-    ///   <paramref name="cancellationToken"/>.
+    ///   Thrown when the install was cancelled, or the
+    ///   <paramref name="cancellationToken"/> stopped this caller from waiting.
     /// </exception>
     /// <exception cref="InvalidChecksumException">
     ///   Thrown when a package's checksum verification fails.
