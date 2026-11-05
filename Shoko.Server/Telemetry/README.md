@@ -23,7 +23,7 @@ Under `Telemetry` in `settings-server.json`. Every setting needs a restart, exce
 | `JobTraceSampleRatio` | `1.0` | `SHOKO_OTLP_JOB_TRACE_SAMPLE_RATIO` | The same for queue jobs, each attempt on its own. Job metrics count every job either way. |
 | `MetricExportIntervalSeconds` | `60` | `SHOKO_OTLP_METRIC_INTERVAL_SECONDS` | How often metrics are sent. |
 | `DatabaseSpansEnabled` | `false` | `SHOKO_OTLP_DB_SPANS_ENABLED` | A span and a duration for every statement. Busy. |
-| `CaptureDatabaseStatements` | `false` | `SHOKO_OTLP_DB_STATEMENTS_ENABLED` | Keep each statement's text on its span. |
+| `CaptureDatabaseStatements` | `true` | `SHOKO_OTLP_DB_STATEMENTS_ENABLED` | Keep each statement's text on its span, such as `SELECT * FROM AniDB_Anime WHERE AnimeID = ?`, with placeholders for its values. Only with `DatabaseSpansEnabled`. |
 
 `Logging.DefaultOtlpLogLevel` (`LOGGING_OTLP_LOG_LEVEL`, Information by default) sets which logs are exported, and applies
 at once.
@@ -42,7 +42,8 @@ A bad value logs a warning and turns the export off; it never stops the server f
 | `shoko.job {JobType}` | One attempt of a queue job, linked to the span that queued it. |
 | `anidb.udp {COMMAND}`, `anidb.http` | A request to AniDB, without the wait for its turn. |
 | `video.hash`, `release.search`, `image.download` | Hashing a file, searching for its release, fetching an image. |
-| `SELECT`, `INSERT`, … | A statement, with `DatabaseSpansEnabled`. |
+| `SELECT AnimeSeries`, `INSERT AniDB_Anime`, … | A statement, with `DatabaseSpansEnabled`, carrying its table, database and server. It ends when the statement returns, so reading a large result is not counted. |
+| `repository.populate {Entity}`, `repository.save {Entity}`, `repository.delete {Entity}` | A cached repository's work around its statements, with `DatabaseSpansEnabled`. Reads come from memory and are not reported. |
 
 **Metrics**
 
@@ -61,6 +62,7 @@ Plugins following the `Shoko.*` naming convention are exported too.
 - No `traceparent` goes to AniDB, TMDB, Plex or anything else the server calls.
 - Spans and metrics hold no file paths, job arguments, UDP arguments or exception messages. Failures report the exception's type.
 - Query strings stay redacted, and known secret parameters are hidden in URLs, statements and log messages.
+- Statements carry placeholders rather than values: string and number literals in hand-written SQL are replaced too. Double-quoted text is left alone, so a MySQL statement writing a value in double quotes keeps it.
 - `Settings.*` log lines are not exported.
 
 Logs are exported as written, apart from those secrets. A stack trace in a log is not scrubbed, so treat your collector as

@@ -242,6 +242,80 @@ public class TelemetryRuntimeTests
     public void TheOperation_IsTheStatementsFirstWordFromAClosedList(string? statement, string expected)
         => Assert.Equal(expected, DatabaseTelemetry.GetOperation(statement));
 
+    [Theory]
+    [InlineData("select this_.ID as id1_0_ FROM AnimeSeries this_ WHERE this_.ID = ?", "AnimeSeries")]
+    [InlineData("INSERT INTO AnimeSeries (Name) VALUES (?)", "AnimeSeries")]
+    [InlineData("UPDATE AnimeSeries SET Name = ? WHERE ID = ?", "AnimeSeries")]
+    [InlineData("DELETE FROM AnimeSeries WHERE ID = @p0", "AnimeSeries")]
+    [InlineData("delete from [dbo].[AnimeSeries] where ID = @p0", "AnimeSeries")]
+    [InlineData("SELECT * FROM `AnimeSeries`", "AnimeSeries")]
+    [InlineData("CREATE TABLE IF NOT EXISTS AnimeSeries (ID INT)", "AnimeSeries")]
+    [InlineData("SELECT * FROM (SELECT * FROM AnimeSeries) a", "AnimeSeries")]
+    [InlineData("SELECT 'from secret' FROM AnimeSeries", "AnimeSeries")]
+    [InlineData("UPDATE x.y.z SET a = 1", null)]
+    [InlineData("SELECT 1", null)]
+    [InlineData("PRAGMA journal_mode", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void TheCollection_IsTheFirstTableAStatementNamesOutsideAnyString(string? statement, string? expected)
+        => Assert.Equal(expected, DatabaseTelemetry.GetCollection(DatabaseTelemetry.SanitizeStatement(statement)));
+
+    [Theory]
+    [InlineData("SELECT * FROM AniDB_Anime WHERE AnimeID = ?", "SELECT * FROM AniDB_Anime WHERE AnimeID = ?")]
+    [InlineData("SELECT * FROM x WHERE a = @p0 AND b = ?p1 AND c = :p2", "SELECT * FROM x WHERE a = @p0 AND b = ?p1 AND c = :p2")]
+    [InlineData("SELECT t1.id1_62_ FROM AniDB_Anime t1", "SELECT t1.id1_62_ FROM AniDB_Anime t1")]
+    [InlineData("SELECT * FROM x WHERE name = 'it''s hunter2' AND y = N'z'", "SELECT * FROM x WHERE name = ? AND y = N?")]
+    [InlineData("UPDATE x SET a = 12, b = 1.5, c = 0xFF WHERE d IN (1, 2)", "UPDATE x SET a = ?, b = ?, c = ? WHERE d IN (?, ?)")]
+    [InlineData("SELECT 'never closed hunter2", "SELECT ?")]
+    public void AStatement_KeepsItsShapeButNotItsValues(string statement, string expected)
+        => Assert.Equal(expected, DatabaseTelemetry.SanitizeStatement(statement));
+
+    [Fact]
+    public void ALongStatement_IsCut()
+        => Assert.Equal(8192, DatabaseTelemetry.SanitizeStatement(new string('x', 10000))!.Length);
+
+    [Fact]
+    public void Statements_AreCapturedByDefault()
+        => Assert.True(new TelemetrySettings().CaptureDatabaseStatements);
+
+    [Fact]
+    public void TheRedactionProcessor_ReplacesValuesInStatementsOfOtherInstrumentation()
+    {
+        using var activity = new Activity("statement");
+        activity.SetTag("db.query.text", "SELECT * FROM x WHERE name = 'hunter2'");
+
+        new TelemetryRedactionProcessor(captureDatabaseStatements: true).OnEnd(activity);
+
+        Assert.Equal("SELECT * FROM x WHERE name = ?", activity.GetTagItem("db.query.text"));
+    }
+
+    [Fact]
+    public void ARepositorySpan_WaitsForTheDatabaseTelemetry()
+    {
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == DatabaseTelemetry.Name,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        Assert.Null(DatabaseTelemetry.StartRepositorySpan("save", "AnimeSeries", 1));
+
+        DatabaseTelemetry.Enable(captureStatements: false);
+        try
+        {
+            using var span = DatabaseTelemetry.StartRepositorySpan("save", "AnimeSeries", 2);
+
+            Assert.Equal("repository.save AnimeSeries", span!.OperationName);
+            Assert.Equal("AnimeSeries", span.GetTagItem("shoko.repository.entity"));
+            Assert.Equal(2, span.GetTagItem("shoko.repository.count"));
+        }
+        finally
+        {
+            DatabaseTelemetry.Disable();
+        }
+    }
+
     [Fact]
     public void TheRedactionProcessor_HidesSecretsInUrlAndStatementAttributes()
     {
@@ -253,9 +327,10 @@ public class TelemetryRuntimeTests
         new TelemetryRedactionProcessor(captureDatabaseStatements: true).OnEnd(activity);
 
         Assert.Equal("https://a.example/?token=Redacted", activity.GetTagItem("url.full"));
-        Assert.Equal("SELECT 1 -- password=Redacted", activity.GetTagItem("db.query.text"));
+        Assert.Equal("SELECT ? -- password=Redacted", activity.GetTagItem("db.query.text"));
         Assert.Equal("token=kept", activity.GetTagItem("other"));
     }
+
 
     private sealed class CountingLogger : ILogger
     {

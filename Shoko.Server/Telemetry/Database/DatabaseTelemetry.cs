@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using MySqlConnector;
@@ -14,7 +15,7 @@ namespace Shoko.Server.Telemetry.Database;
 /// The spans and durations of the statements NHibernate runs. Nothing here throws, since a listener's failure must never
 /// fail a statement.
 /// </summary>
-internal static class DatabaseTelemetry
+internal static partial class DatabaseTelemetry
 {
     /// <summary>
     /// The name of the trace source and meter.
@@ -25,11 +26,25 @@ internal static class DatabaseTelemetry
 
     private const string OperationTag = "db.operation.name";
 
+    private const string CollectionTag = "db.collection.name";
+
+    private const string NamespaceTag = "db.namespace";
+
+    private const string ServerAddressTag = "server.address";
+
     private const string StatementTag = "db.query.text";
+
+    private const string RepositoryEntityTag = "shoko.repository.entity";
+
+    private const string RepositoryOperationTag = "shoko.repository.operation";
+
+    private const string RepositoryCountTag = "shoko.repository.count";
 
     private const string ErrorTypeTag = "error.type";
 
     private const string OtherOperation = "OTHER";
+
+    private const int MaxStatementLength = 8192;
 
     // A closed list, since the first word of a hand-written statement could be anything.
     private static readonly FrozenSet<string> _operations = FrozenSet.ToFrozenSet(
@@ -59,7 +74,7 @@ internal static class DatabaseTelemetry
     /// <summary>
     /// Turns the database telemetry on.
     /// </summary>
-    /// <param name="captureStatements">Whether spans keep the text of the statement. NHibernate's holds parameters, not values.</param>
+    /// <param name="captureStatements">Whether spans keep the text of the statement, with placeholders for its values.</param>
     public static void Enable(bool captureStatements)
     {
         _capturesStatements = captureStatements;
@@ -85,17 +100,20 @@ internal static class DatabaseTelemetry
         try
         {
             var system = GetSystem(command);
-            var operation = GetOperation(command?.CommandText);
-            var span = _source.StartActivity(operation, ActivityKind.Client);
+            var statement = SanitizeStatement(command?.CommandText);
+            var operation = GetOperation(statement);
+            var collection = GetCollection(statement);
+            var span = _source.StartActivity(collection is null ? operation : $"{operation} {collection}", ActivityKind.Client);
             if (span is { IsAllDataRequested: true })
             {
                 span.SetTag(SystemTag, system);
                 span.SetTag(OperationTag, operation);
+                span.SetTag(CollectionTag, collection);
                 if (_capturesStatements)
-                    span.SetTag(StatementTag, command?.CommandText);
+                    span.SetTag(StatementTag, statement);
             }
 
-            return new(span, Stopwatch.GetTimestamp(), system, operation);
+            return new(span, Stopwatch.GetTimestamp(), system, operation, collection, command);
         }
         catch (Exception)
         {
@@ -118,6 +136,13 @@ internal static class DatabaseTelemetry
             var errorType = failure?.GetType().FullName;
             if (operation.Span is { } span)
             {
+                // NHibernate only gives a command its connection as it runs it.
+                if (span.IsAllDataRequested)
+                {
+                    span.SetTag(NamespaceTag, operation.Command?.Connection?.Database);
+                    span.SetTag(ServerAddressTag, GetServerAddress(operation.Command));
+                }
+
                 if (errorType is not null)
                 {
                     span.SetTag(ErrorTypeTag, errorType);
@@ -127,11 +152,12 @@ internal static class DatabaseTelemetry
                 span.Dispose();
             }
 
-            var elapsed = Stopwatch.GetElapsedTime(operation.StartedAt).TotalSeconds;
-            if (errorType is null)
-                _duration.Record(elapsed, new(SystemTag, operation.System), new(OperationTag, operation.Name));
-            else
-                _duration.Record(elapsed, new(SystemTag, operation.System), new(OperationTag, operation.Name), new KeyValuePair<string, object?>(ErrorTypeTag, errorType));
+            var tags = new TagList { { SystemTag, operation.System }, { OperationTag, operation.Name } };
+            if (operation.Collection is not null)
+                tags.Add(CollectionTag, operation.Collection);
+            if (errorType is not null)
+                tags.Add(ErrorTypeTag, errorType);
+            _duration.Record(Stopwatch.GetElapsedTime(operation.StartedAt).TotalSeconds, tags);
         }
         catch (Exception)
         {
@@ -155,6 +181,93 @@ internal static class DatabaseTelemetry
         return _operations.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(word, out var operation) ? operation : OtherOperation;
     }
 
+    /// <summary>
+    /// Gets the table a statement is about, the first one it names.
+    /// </summary>
+    /// <param name="statement">The statement.</param>
+    /// <returns>The table, or <c>null</c> when none can be told.</returns>
+    internal static string? GetCollection(string? statement)
+    {
+        if (statement is null)
+            return null;
+
+        var match = CollectionRegex().Match(statement);
+        return match.Success ? match.Groups["name"].Value : null;
+    }
+
+    /// <summary>
+    /// Replaces the values written into a statement with placeholders, leaving the shape of the query to validate.
+    /// NHibernate already sends its own as parameters, so this is for hand-written SQL.
+    /// </summary>
+    /// <remarks>
+    /// Double-quoted text is left alone, as it names a table or column everywhere but in a MySQL string.
+    /// </remarks>
+    /// <param name="statement">The statement.</param>
+    /// <returns>The statement without its string and number literals, cut to <see cref="MaxStatementLength"/>.</returns>
+    internal static string? SanitizeStatement(string? statement)
+    {
+        if (statement is null)
+            return null;
+
+        var sanitized = LiteralRegex().Replace(statement, "?");
+        return sanitized.Length > MaxStatementLength ? sanitized[..MaxStatementLength] : sanitized;
+    }
+
+    /// <summary>
+    /// Starts the span of what a repository does as a whole, around the statements it runs. Off with the rest of the
+    /// database telemetry, as a refresh can save thousands of rows.
+    /// </summary>
+    /// <param name="operation">What it is doing.</param>
+    /// <param name="entity">The name of the entity it holds.</param>
+    /// <param name="count">How many entities it was handed, if any.</param>
+    /// <returns>The span, or <c>null</c> when it is off or no one is listening.</returns>
+    public static Activity? StartRepositorySpan(string operation, string entity, int? count = null)
+    {
+        try
+        {
+            if (!IsEnabled || !_source.HasListeners())
+                return null;
+
+            var span = _source.StartActivity($"repository.{operation} {entity}");
+            span?.SetTag(RepositoryOperationTag, operation);
+            span?.SetTag(RepositoryEntityTag, entity);
+            if (count is not null)
+                span?.SetTag(RepositoryCountTag, count);
+            return span;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Ends the span of what a repository did.
+    /// </summary>
+    /// <param name="span">The span, if there is one.</param>
+    /// <param name="failure">What it failed with, if it did. Only its type is kept.</param>
+    /// <param name="count">How many entities it ended up with, when only known now.</param>
+    public static void FinishRepositorySpan(Activity? span, Exception? failure = null, int? count = null)
+    {
+        try
+        {
+            if (span is not null && count is not null)
+                span.SetTag(RepositoryCountTag, count);
+        }
+        catch (Exception)
+        {
+            // See the class's remarks.
+        }
+
+        ShokoTelemetry.FinishSpan(span, failure);
+    }
+
+    /// <summary>
+    /// Gets the host a statement goes to. Never SQLite's data source, which is a path on disk.
+    /// </summary>
+    private static string? GetServerAddress(DbCommand? command)
+        => command is SqliteCommand ? null : command?.Connection?.DataSource?.Split(',')[0];
+
     private static string? GetSystem(DbCommand? command)
         => command switch
         {
@@ -163,6 +276,12 @@ internal static class DatabaseTelemetry
             SqlCommand => "microsoft.sql_server",
             _ => null,
         };
+
+    [GeneratedRegex(@"\b(?:FROM|INTO|UPDATE|TABLE|JOIN)\s+(?:(?:IF\s+(?:NOT\s+)?EXISTS|ONLY)\s+)?(?:[\[`""]?\w+[\]`""]?\.)?[\[`""]?(?<name>[A-Za-z_]\w{0,127})[\]`""]?(?=[\s();,]|$)", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture | RegexOptions.CultureInvariant)]
+    private static partial Regex CollectionRegex();
+
+    [GeneratedRegex(@"'(?:[^']|'')*(?:'|$)|(?<![\w@?$:.])(?:0x[0-9A-Fa-f]+|\d+(?:\.\d+)?)\b", RegexOptions.ExplicitCapture | RegexOptions.CultureInvariant)]
+    private static partial Regex LiteralRegex();
 }
 
 /// <summary>
@@ -172,4 +291,6 @@ internal static class DatabaseTelemetry
 /// <param name="StartedAt">When it started, as a <see cref="Stopwatch"/> timestamp.</param>
 /// <param name="System">The database system.</param>
 /// <param name="Name">The operation's name.</param>
-internal readonly record struct DatabaseOperation(Activity? Span, long StartedAt, string? System, string? Name);
+/// <param name="Collection">The table it is about, if that can be told.</param>
+/// <param name="Command">Its command.</param>
+internal readonly record struct DatabaseOperation(Activity? Span, long StartedAt, string? System, string? Name, string? Collection, DbCommand? Command);

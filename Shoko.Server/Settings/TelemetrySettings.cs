@@ -134,12 +134,12 @@ public class TelemetrySettings
     public bool DatabaseSpansEnabled { get; set; }
 
     /// <summary>
-    /// Include the SQL text in database spans, without its parameter values. Has no effect unless
-    /// <see cref="DatabaseSpansEnabled"/> is on.
+    /// Include the SQL text in database spans, with placeholders in place of its values, to validate the queries. Has
+    /// no effect unless <see cref="DatabaseSpansEnabled"/> is on.
     /// </summary>
     [Display(Name = "Capture Database Statements")]
     [RequiresRestart]
     [EnvironmentVariable("SHOKO_OTLP_DB_STATEMENTS_ENABLED")]
-    [DefaultValue(false)]
-    public bool CaptureDatabaseStatements { get; set; }
+    [DefaultValue(true)]
+    public bool CaptureDatabaseStatements { get; set; } = true;
 }
