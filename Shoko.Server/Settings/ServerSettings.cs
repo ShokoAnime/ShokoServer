@@ -209,4 +209,9 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, ICo
     [EnvironmentVariable("SENTRY_OPT_OUT")]
     [Display(Name = "Sentry Opt-Out")]
     public bool SentryOptOut { get; set; } = false;
+
+    /// <inheritdoc />
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    public TelemetrySettings Telemetry { get; set; } = new();
 }
