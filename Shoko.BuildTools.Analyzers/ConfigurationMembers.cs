@@ -37,13 +37,32 @@ internal static class ConfigurationMembers
     }
 
     /// <summary>
+    /// Whether a type holds a <c>TitleComponent</c> property, its own or inherited, which labels a
+    /// list entry in place of a <c>[Key]</c>, as the generator's <c>HoldsTitle</c> reads it.
+    /// </summary>
+    /// <param name="type">The list's element type.</param>
+    /// <param name="known">The known symbols.</param>
+    /// <returns><c>true</c> if the type holds a title.</returns>
+    public static bool HoldsTitle(ITypeSymbol? type, KnownSymbols known)
+    {
+        if (known.TitleComponent is null || CollectionShape.Unwrap(type) is not INamedTypeSymbol named)
+            return false;
+
+        return SelfAndBases(named)
+            .SelectMany(current => current.GetMembers().OfType<IPropertySymbol>())
+            .Any(property => property.DeclaredAccessibility is Accessibility.Public && !property.IsStatic
+                && SymbolEqualityComparer.Default.Equals(property.Type, known.TitleComponent));
+    }
+
+    /// <summary>
     /// Whether the schema generator will render the type as a section container, which is the
     /// condition the complex list display types check through <c>listElementType</c>.
     /// </summary>
     /// <remarks>
     /// Mirrors the registration condition in <c>ShokoJsonSchemaGenerator</c>: the type's schema has
     /// at least one property, and its full name is under neither <c>System.</c> nor
-    /// <c>Shoko.Abstractions.UI.Components.</c>.
+    /// <c>Shoko.Abstractions.UI.Components.</c>. A type a converter serializes, through
+    /// <c>[TypeConverter]</c> or a System.Text.Json <c>[JsonConverter]</c>, is a single value.
     /// </remarks>
     /// <param name="type">The type to test.</param>
     /// <param name="known">The symbols for the current compilation.</param>
@@ -60,6 +79,13 @@ internal static class ConfigurationMembers
         var fullName = named.ToDisplayString();
         if (fullName.StartsWith("System.", StringComparison.Ordinal) || fullName.StartsWith("Shoko.Abstractions.UI.Components.", StringComparison.Ordinal))
             return false;
+
+        foreach (var current in SelfAndBases(named))
+        {
+            if ((known.TypeConverterAttribute is not null && HasAttribute(current, known.TypeConverterAttribute))
+                || (known.SystemTextJsonConverterAttribute is not null && HasAttribute(current, known.SystemTextJsonConverterAttribute)))
+                return false;
+        }
 
         // Inherited properties are flattened into the derived type's schema, so the whole chain counts.
         foreach (var current in SelfAndBases(named))

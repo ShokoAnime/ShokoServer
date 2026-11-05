@@ -60,7 +60,8 @@ public static class Diagnostics
         helpLinkUri: HelpLinkPrefix + "shoko0003");
 
     /// <summary>
-    /// A complex <c>[List]</c> display type is used without anything to key the entries by.
+    /// A complex list, or a list of class items left to its automatic display, which is drawn
+    /// inline, has nothing to key the entries by.
     /// </summary>
     public static readonly DiagnosticDescriptor MissingPrimaryKey = new(
         id: "SHOKO0004",
@@ -69,7 +70,7 @@ public static class Diagnostics
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "A complex list needs to label each entry, which it takes from a property annotated with [Key]. The generator files a property's UI metadata under its reflected type, so a [Key] inherited from a base class never reaches the derived item type's primary key scan and does not count; the same goes for a [Key] on a property either JSON serializer ignores.",
+        description: "A complex list needs to label each entry, which it takes from a property annotated with [Key] or a TitleComponent the entry holds. A list of class items with no [List] display type, or [List] left on Auto, is drawn inline and needs one too. The generator files a property's UI metadata under its reflected type, so a [Key] inherited from a base class never reaches the derived item type's primary key scan and does not count; the same goes for a [Key] on a property either JSON serializer ignores.",
         helpLinkUri: HelpLinkPrefix + "shoko0004");
 
     /// <summary>

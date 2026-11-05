@@ -166,6 +166,8 @@ public class ConfigurationTypeAnalyzerTests
             }
 
             public class SelectComponent<TValue> where TValue : System.IEquatable<TValue> { }
+
+            public class TitleComponent { }
         }
 
         namespace Shoko.Abstractions.Metadata
@@ -285,6 +287,9 @@ public class ConfigurationTypeAnalyzerTests
 
             public class Section
             {
+                [System.ComponentModel.DataAnnotations.Key]
+                public string Id { get; set; } = "";
+
                 public List<string> Values { get; set; } = new();
             }
 
@@ -459,6 +464,83 @@ public class ConfigurationTypeAnalyzerTests
     }
 
     /// <summary>
+    /// A list of class items with no display type, or left on Auto, is drawn inline, so it
+    /// needs a key as an inline list does.
+    /// </summary>
+    [Fact]
+    public async Task AnAutomaticListOfClassItemsWithoutAPrimaryKey_IsReported()
+    {
+        await VerifyAsync("""
+            using System.Collections.Generic;
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+
+            public class Section
+            {
+                public string Name { get; set; } = "";
+            }
+
+            public class MyConfig : IConfiguration
+            {
+                public {|#0:List<Section>|} Sections { get; set; } = new();
+
+                [{|#1:List|}]
+                public List<Section> MoreSections { get; set; } = new();
+            }
+            """,
+            new DiagnosticResult(Diagnostics.MissingPrimaryKey)
+                .WithLocation(0)
+                .WithArguments("Sections", "Inline", "Section"),
+            new DiagnosticResult(Diagnostics.MissingPrimaryKey)
+                .WithLocation(1)
+                .WithArguments("MoreSections", "Inline", "Section"));
+    }
+
+    /// <summary>
+    /// An automatic list of values, converter-serialized types among them, is drawn flat, and an
+    /// entry holding a title is labelled by it, so none of them needs a key.
+    /// </summary>
+    [Fact]
+    public async Task AnAutomaticListOfValuesOrOfTitledItems_IsNotReported()
+    {
+        await VerifyAsync("""
+            using System.Collections.Generic;
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Components;
+
+            public class Titled
+            {
+                public TitleComponent Title { get; set; } = new();
+
+                public string Name { get; set; } = "";
+            }
+
+            [System.ComponentModel.TypeConverter(typeof(System.ComponentModel.TypeConverter))]
+            public class Converted
+            {
+                public string Value { get; set; } = "";
+            }
+
+            [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonConverter<object>))]
+            public class JsonConverted
+            {
+                public string Value { get; set; } = "";
+            }
+
+            public class MyConfig : IConfiguration
+            {
+                public List<string> Names { get; set; } = new();
+
+                public List<Titled> Titled { get; set; } = new();
+
+                public List<Converted> Converted { get; set; } = new();
+
+                public List<JsonConverted> JsonConverted { get; set; } = new();
+            }
+            """);
+    }
+
+    /// <summary>
     /// The schema flattens inheritance and the generator resolves an inherited key through
     /// the flattened property set, so a base-declared [Key] satisfies the requirement.
     /// </summary>
@@ -559,13 +641,14 @@ public class ConfigurationTypeAnalyzerTests
                 [List(ListType = DisplayListType.ComplexTab)]
                 public List<Section> Sections { get; set; } = new();
 
+                // An automatic list of rows is drawn inline, so its rows need a key.
                 [List(ListType = DisplayListType.Auto)]
-                public List<Section> Auto { get; set; } = new();
+                public List<Keyed> Auto { get; set; } = new();
 
                 [List(ListType = DisplayListType.Auto)]
                 public List<string> Names { get; set; } = new();
 
-                public List<Section> Unattributed { get; set; } = new();
+                public List<Keyed> Unattributed { get; set; } = new();
             }
             """);
     }
@@ -704,7 +787,7 @@ public class ConfigurationTypeAnalyzerTests
         using Shoko.Abstractions.Config;
         using Shoko.Abstractions.UI.Attributes;
 
-        public class Nested { public string Mode { get; set; } = ""; }
+        public class Nested { [System.ComponentModel.DataAnnotations.Key] public string Mode { get; set; } = ""; }
 
         public class MyConfig : IConfiguration
         {
@@ -790,7 +873,7 @@ public class ConfigurationTypeAnalyzerTests
         using Shoko.Abstractions.Config.Attributes;
         using Shoko.Abstractions.Config.Enums;
 
-        public class Nested { public string Mode { get; set; } = ""; }
+        public class Nested { [System.ComponentModel.DataAnnotations.Key] public string Mode { get; set; } = ""; }
 
         public class MyConfig : IConfiguration
         {

@@ -73,11 +73,13 @@ for dropdown, inline and checkbox lists).
 
 **Complex list display type has no primary key.**
 
-A complex list labels each entry with a `[Key]` property, declared on the entry
-type itself or on the list member. An inherited `[Key]` does not count.
+A complex list labels each entry with a `[Key]` property, on the entry type
+(its own or inherited) or on the list member, or with a `TitleComponent` the
+entry holds. A list of class items without a `[List]` display type, or left on
+`Auto`, is drawn inline, so it needs one too.
 
 ```csharp
-public class Entry { public string Name { get; set; } = ""; }  // reported on the list
+public class Entry { public string Name { get; set; } = ""; }  // reported on a List<Entry>
 
 public class Entry { [Key] public string Name { get; set; } = ""; }  // fixed
 ```

@@ -34,6 +34,12 @@ internal sealed class KnownSymbols
     public INamedTypeSymbol? KeyAttribute { get; }
 
     /// <summary>
+    /// <c>Shoko.Abstractions.UI.Components.TitleComponent</c>, if referenced. A list entry holding
+    /// one is labelled by it, so it needs no <c>[Key]</c>.
+    /// </summary>
+    public INamedTypeSymbol? TitleComponent { get; }
+
+    /// <summary>
     /// <c>Shoko.Abstractions.UI.Attributes.VisibilityAttribute</c>, if referenced.
     /// </summary>
     public INamedTypeSymbol? VisibilityAttribute { get; }
@@ -129,6 +135,12 @@ internal sealed class KnownSymbols
     public INamedTypeSymbol? NewtonsoftJsonIgnoreAttribute { get; }
 
     /// <summary>
+    /// <c>System.Text.Json.Serialization.JsonConverterAttribute</c>, if referenced. A type carrying
+    /// one is serialized by its converter, as a single value rather than a section.
+    /// </summary>
+    public INamedTypeSymbol? SystemTextJsonConverterAttribute { get; }
+
+    /// <summary>
     /// <c>System.Text.Json.Serialization.JsonIgnoreAttribute</c>, if referenced.
     /// </summary>
     public INamedTypeSymbol? SystemTextJsonIgnoreAttribute { get; }
@@ -156,6 +168,7 @@ internal sealed class KnownSymbols
         ExecutableAction = executableAction;
         ListAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.ListAttribute");
         KeyAttribute = compilation.GetTypeByMetadataName("System.ComponentModel.DataAnnotations.KeyAttribute");
+        TitleComponent = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Components.TitleComponent");
         VisibilityAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.VisibilityAttribute");
         CustomActionAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.CustomActionAttribute");
         ConfigurationActionAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.Config.Attributes.ConfigurationActionAttribute");
@@ -176,6 +189,7 @@ internal sealed class KnownSymbols
         SerializableInterface = compilation.GetTypeByMetadataName("System.Runtime.Serialization.ISerializable");
         NewtonsoftJsonIgnoreAttribute = compilation.GetTypeByMetadataName("Newtonsoft.Json.JsonIgnoreAttribute");
         SystemTextJsonIgnoreAttribute = compilation.GetTypeByMetadataName("System.Text.Json.Serialization.JsonIgnoreAttribute");
+        SystemTextJsonConverterAttribute = compilation.GetTypeByMetadataName("System.Text.Json.Serialization.JsonConverterAttribute");
         JsonSchemaIgnoreAttribute = compilation.GetTypeByMetadataName("NJsonSchema.Annotations.JsonSchemaIgnoreAttribute");
         MetadataKeyTypes = Resolve(
             compilation,

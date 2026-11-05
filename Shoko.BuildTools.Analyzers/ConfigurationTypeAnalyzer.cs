@@ -614,18 +614,23 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeListType(SymbolAnalysisContext context, IPropertySymbol property, INamedTypeSymbol owner, ITypeSymbol? element, KnownSymbols known, ConcurrentDictionary<string, byte> reported)
     {
-        if (known.ListAttribute is null || element is null)
+        if (element is null)
             return;
-        if (ConfigurationMembers.FindAttribute(property, known.ListAttribute) is not { } attribute)
-            return;
-        if (GetListType(attribute) is not { } listType)
-            return;
+        var attribute = known.ListAttribute is null ? null : ConfigurationMembers.FindAttribute(property, known.ListAttribute);
+        var listType = attribute is null ? DisplayListType.Auto : GetListType(attribute) ?? DisplayListType.Auto;
 
-        // Auto and Flat are the display types the generator never rejects.
-        if (listType is DisplayListType.Auto or DisplayListType.Flat)
+        // Flat is never rejected. Auto is drawn inline for a list of class items, as the
+        // generator resolves it, so that one needs a key like an inline list; any other Auto is fine.
+        if (listType is DisplayListType.Flat)
             return;
+        if (listType is DisplayListType.Auto)
+        {
+            if (!ConfigurationMembers.IsSectionContainer(element, known))
+                return;
+            listType = DisplayListType.ComplexInline;
+        }
 
-        var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
+        var location = attribute?.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
             ?? GetTypeLocation(property, owner, context.CancellationToken);
         var noun = GetListTypeNoun(listType);
         if (listType is DisplayListType.EnumCheckbox)
@@ -667,7 +672,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
 
         if (known.KeyAttribute is null)
             return;
-        if (ConfigurationMembers.HasAttribute(property, known.KeyAttribute) || ConfigurationMembers.DeclaresPrimaryKey(element, known))
+        if (ConfigurationMembers.HasAttribute(property, known.KeyAttribute) || ConfigurationMembers.DeclaresPrimaryKey(element, known)
+            || ConfigurationMembers.HoldsTitle(element, known))
             return;
 
         Report(context, reported, Diagnostic.Create(
