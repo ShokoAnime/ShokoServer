@@ -31,6 +31,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Shoko.Server.Telemetry.Database;
 
 namespace Shoko.Server.Utilities;
 
@@ -41,6 +42,8 @@ namespace Shoko.Server.Utilities;
 /// <typeparam name="TEntity">The entity type.</typeparam>
 public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
 {
+    private static readonly string _entityName = typeof(TEntity).Name;
+
     private readonly Dictionary<TKey, TEntity> _dict;
 
     private readonly Func<TEntity, TKey> _keyGetterFunc;
@@ -97,15 +100,19 @@ public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
     /// <returns>The entity, or <c>null</c> if not found.</returns>
     public TEntity? Get(TKey key)
     {
+        TEntity? entity;
         SyncRoot.EnterReadLock();
         try
         {
-            return _dict.GetValueOrDefault(key);
+            entity = _dict.GetValueOrDefault(key);
         }
         finally
         {
             SyncRoot.ExitReadLock();
         }
+
+        DatabaseTelemetry.RecordRepositoryRead(_entityName, entity is not null);
+        return entity;
     }
 
     /// <summary>
@@ -119,15 +126,19 @@ public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
     /// </summary>
     public IReadOnlyList<TEntity> GetAll()
     {
+        IReadOnlyList<TEntity> entities;
         SyncRoot.EnterReadLock();
         try
         {
-            return [.. _dict.Values];
+            entities = [.. _dict.Values];
         }
         finally
         {
             SyncRoot.ExitReadLock();
         }
+
+        DatabaseTelemetry.RecordRepositoryRead(_entityName, entities.Count > 0);
+        return entities;
     }
 
     /// <summary>
@@ -135,15 +146,19 @@ public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
     /// </summary>
     public IReadOnlyList<TKey> GetAllKeys()
     {
+        IReadOnlyList<TKey> keys;
         SyncRoot.EnterReadLock();
         try
         {
-            return [.. _dict.Keys];
+            keys = [.. _dict.Keys];
         }
         finally
         {
             SyncRoot.ExitReadLock();
         }
+
+        DatabaseTelemetry.RecordRepositoryRead(_entityName, keys.Count > 0);
+        return keys;
     }
 
     /// <summary>
@@ -265,6 +280,8 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
 {
     private static readonly List<TEntity> _emptyList = [];
 
+    private static readonly string _entityName = typeof(TEntity).Name;
+
     private readonly PocoCache<TKey, TEntity> _cache;
 
     private readonly ReaderWriterLockSlim _lock;
@@ -352,18 +369,22 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
     /// <returns>The entity, or <c>null</c> when none is indexed under the key.</returns>
     public TEntity? GetOne(TInverseKey key)
     {
+        TEntity? entity;
         _lock.EnterReadLock();
         try
         {
             if (key is null)
-                return _nullRows.Count > 0 ? _cache.GetUnsafe(_nullRows.First) : null;
-
-            return _rows.TryGetValue(key, out var rows) ? _cache.GetUnsafe(rows.First) : null;
+                entity = _nullRows.Count > 0 ? _cache.GetUnsafe(_nullRows.First) : null;
+            else
+                entity = _rows.TryGetValue(key, out var rows) ? _cache.GetUnsafe(rows.First) : null;
         }
         finally
         {
             _lock.ExitReadLock();
         }
+
+        DatabaseTelemetry.RecordRepositoryRead(_entityName, entity is not null);
+        return entity;
     }
 
     /// <summary>
@@ -373,18 +394,22 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
     /// <returns>A new list of the entities, or a shared empty list when none is indexed under a non-null key.</returns>
     public List<TEntity> GetMultiple(TInverseKey key)
     {
+        List<TEntity> entities;
         _lock.EnterReadLock();
         try
         {
             if (key is null)
-                return Resolve(_nullRows);
-
-            return _rows.TryGetValue(key, out var rows) ? Resolve(rows) : _emptyList;
+                entities = Resolve(_nullRows);
+            else
+                entities = _rows.TryGetValue(key, out var rows) ? Resolve(rows) : _emptyList;
         }
         finally
         {
             _lock.ExitReadLock();
         }
+
+        DatabaseTelemetry.RecordRepositoryRead(_entityName, entities.Count > 0);
+        return entities;
     }
 
     /// <summary>

@@ -777,10 +777,12 @@ public class VideoHashingService(
             File = fileInfo,
         };
         var startedAt = Stopwatch.GetTimestamp();
+        var span = ShokoTelemetry.StartHashProvider(providerInfo.Provider.Name, enabledHashTypes);
         try
         {
             var hashes = await providerInfo.Provider.GetHashesForVideo(request, cancellationToken);
             ShokoTelemetry.RecordHashDuration(providerInfo.Provider.Name, startedAt);
+            ShokoTelemetry.FinishSpan(span);
             return hashes
                 .Where(h => enabledHashTypes.Contains(h.Type))
                 .ToList();
@@ -788,6 +790,7 @@ public class VideoHashingService(
         catch (Exception failure)
         {
             ShokoTelemetry.RecordHashDuration(providerInfo.Provider.Name, startedAt, failure);
+            ShokoTelemetry.FinishSpan(span, failure);
             throw;
         }
     }

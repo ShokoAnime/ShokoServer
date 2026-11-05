@@ -24,6 +24,8 @@ internal static class ShokoTelemetry
 
     private const string HashProviderTag = "shoko.video.hash.provider";
 
+    private const string HashTypesTag = "shoko.video.hash.types";
+
     private const string ReleaseProviderTag = "shoko.release.provider";
 
     private const string ReleaseFoundTag = "shoko.release.found";
@@ -33,6 +35,25 @@ internal static class ShokoTelemetry
     private const string SuspensionProviderTag = "shoko.suspension.provider";
 
     private const string SuspensionKindTag = "shoko.suspension.kind";
+
+    private const string CacheNameTag = "shoko.cache.name";
+
+    private const string CacheResultTag = "shoko.cache.result";
+
+    /// <summary>
+    /// A cache lookup answered from the cache.
+    /// </summary>
+    public const string CacheHit = "hit";
+
+    /// <summary>
+    /// A cache lookup that had to get the value elsewhere.
+    /// </summary>
+    public const string CacheMiss = "miss";
+
+    /// <summary>
+    /// A cache lookup answered from an expired copy, as the value could not be got elsewhere.
+    /// </summary>
+    public const string CacheStale = "stale";
 
     /// <summary>
     /// The server's trace source.
@@ -67,6 +88,12 @@ internal static class ShokoTelemetry
         "shoko.image.download.duration",
         "s",
         "How long getting an image took."
+    );
+
+    private static readonly Counter<long> _cacheLookups = _meter.CreateCounter<long>(
+        "shoko.cache.lookups",
+        "{lookup}",
+        "How many lookups a cache had, by how each turned out."
     );
 
     /// <summary>
@@ -110,6 +137,70 @@ internal static class ShokoTelemetry
         {
             // See the class's remarks.
         }
+    }
+
+    /// <summary>
+    /// Starts the span of a lookup in a cache, around getting the value elsewhere if it comes to that.
+    /// </summary>
+    /// <param name="cache">The cache's name, from a short fixed list since it is also on a metric.</param>
+    /// <returns>The span, or <c>null</c> when no one is listening.</returns>
+    public static Activity? StartCacheLookup(string cache)
+    {
+        var span = StartSpan("cache.lookup");
+        try
+        {
+            span?.SetTag(CacheNameTag, cache);
+        }
+        catch (Exception)
+        {
+            // See the class's remarks.
+        }
+
+        return span;
+    }
+
+    /// <summary>
+    /// Ends the span of a lookup in a cache and counts it.
+    /// </summary>
+    /// <param name="span">The span, if there is one.</param>
+    /// <param name="cache">The cache's name.</param>
+    /// <param name="result">How it turned out: <see cref="CacheHit"/>, <see cref="CacheMiss"/> or <see cref="CacheStale"/>.</param>
+    /// <param name="failure">What getting the value elsewhere failed with, if it did. Only its type is kept.</param>
+    public static void FinishCacheLookup(Activity? span, string cache, string result, Exception? failure = null)
+    {
+        try
+        {
+            span?.SetTag(CacheResultTag, result);
+            _cacheLookups.Add(1, new(CacheNameTag, cache), new(CacheResultTag, result));
+        }
+        catch (Exception)
+        {
+            // See the class's remarks.
+        }
+
+        FinishSpan(span, failure);
+    }
+
+    /// <summary>
+    /// Starts the span of a hash provider working on a file, under the span of hashing the file.
+    /// </summary>
+    /// <param name="provider">The provider's name.</param>
+    /// <param name="hashTypes">The hash types it was asked for.</param>
+    /// <returns>The span, or <c>null</c> when no one is listening.</returns>
+    public static Activity? StartHashProvider(string provider, IEnumerable<string> hashTypes)
+    {
+        var span = StartSpan($"video.hash {provider}");
+        try
+        {
+            span?.SetTag(HashProviderTag, provider);
+            span?.SetTag(HashTypesTag, string.Join(',', hashTypes.Order(StringComparer.Ordinal)));
+        }
+        catch (Exception)
+        {
+            // See the class's remarks.
+        }
+
+        return span;
     }
 
     /// <summary>

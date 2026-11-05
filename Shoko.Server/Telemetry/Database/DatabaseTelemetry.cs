@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using MySqlConnector;
@@ -40,6 +43,12 @@ internal static partial class DatabaseTelemetry
 
     private const string RepositoryCountTag = "shoko.repository.count";
 
+    private const string RepositoryFoundTag = "shoko.repository.found";
+
+    private const string RepositoryReadsTag = "shoko.repository.reads";
+
+    private const string RepositoryReadsByEntityTag = "shoko.repository.reads.by_entity";
+
     private const string ErrorTypeTag = "error.type";
 
     private const string OtherOperation = "OTHER";
@@ -62,6 +71,14 @@ internal static partial class DatabaseTelemetry
         "How long a statement took.",
         advice: new() { HistogramBucketBoundaries = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10] }
     );
+
+    private static readonly Counter<long> _repositoryReads = _meter.CreateCounter<long>(
+        "shoko.repository.reads",
+        "{read}",
+        "How many reads the cached repositories answered from memory, and whether they found anything."
+    );
+
+    private static readonly Lock _repositoryReadsLock = new();
 
     private static bool _capturesStatements;
 
@@ -260,6 +277,70 @@ internal static partial class DatabaseTelemetry
         }
 
         ShokoTelemetry.FinishSpan(span, failure);
+    }
+
+    /// <summary>
+    /// Counts a read of a cached repository, and adds it to the tally of the request or job it is part of. A span for
+    /// each would be far too many, as a single request can read thousands of times.
+    /// </summary>
+    /// <param name="entity">The name of the entity read.</param>
+    /// <param name="found">Whether the read found anything.</param>
+    public static void RecordRepositoryRead(string entity, bool found)
+    {
+        if (!IsEnabled)
+            return;
+
+        try
+        {
+            _repositoryReads.Add(1, new(RepositoryEntityTag, entity), new(RepositoryFoundTag, found));
+            if (Activity.Current is not { IsAllDataRequested: true } span)
+                return;
+
+            while (span.Parent is { } parent)
+                span = parent;
+            GetRepositoryReads(span).AddOrUpdate(entity, 1, static (_, count) => count + 1);
+        }
+        catch (Exception)
+        {
+            // See the class's remarks.
+        }
+    }
+
+    /// <summary>
+    /// Writes the tally of a span's repository reads onto it, as it ends.
+    /// </summary>
+    /// <param name="span">The span.</param>
+    public static void WriteRepositoryReads(Activity span)
+    {
+        try
+        {
+            if (span.GetCustomProperty(RepositoryReadsTag) is not ConcurrentDictionary<string, long> reads)
+                return;
+
+            var counts = reads.OrderByDescending(pair => pair.Value).ThenBy(pair => pair.Key, StringComparer.Ordinal).ToList();
+            span.SetTag(RepositoryReadsTag, counts.Sum(pair => pair.Value));
+            span.SetTag(RepositoryReadsByEntityTag, string.Join(',', counts.Select(pair => $"{pair.Key}={pair.Value}")));
+        }
+        catch (Exception)
+        {
+            // See the class's remarks.
+        }
+    }
+
+    private static ConcurrentDictionary<string, long> GetRepositoryReads(Activity span)
+    {
+        if (span.GetCustomProperty(RepositoryReadsTag) is ConcurrentDictionary<string, long> reads)
+            return reads;
+
+        lock (_repositoryReadsLock)
+        {
+            if (span.GetCustomProperty(RepositoryReadsTag) is ConcurrentDictionary<string, long> existing)
+                return existing;
+
+            var created = new ConcurrentDictionary<string, long>();
+            span.SetCustomProperty(RepositoryReadsTag, created);
+            return created;
+        }
     }
 
     /// <summary>

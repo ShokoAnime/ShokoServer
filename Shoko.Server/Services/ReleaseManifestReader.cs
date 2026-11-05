@@ -12,6 +12,7 @@ using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Web;
+using Shoko.Server.Telemetry;
 
 namespace Shoko.Server.Services;
 
@@ -94,11 +95,15 @@ public class ReleaseManifestReader(ILogger<ReleaseManifestReader> logger, IHttpC
     {
         var cachedFilePath = Path.Join(applicationPaths.DataPath, localName);
         ManifestModel? manifest = null;
+        var span = ShokoTelemetry.StartCacheLookup(localName);
+        var result = ShokoTelemetry.CacheMiss;
+        Exception? failure = null;
         try
         {
             if (!force && File.Exists(cachedFilePath) && File.GetLastWriteTimeUtc(cachedFilePath) > DateTime.UtcNow.Subtract(_cacheTTL))
             {
                 manifest = JsonConvert.DeserializeObject<ManifestModel>(await File.ReadAllTextAsync(cachedFilePath, cancellationToken));
+                result = ShokoTelemetry.CacheHit;
             }
             else
             {
@@ -110,6 +115,7 @@ public class ReleaseManifestReader(ILogger<ReleaseManifestReader> logger, IHttpC
         }
         catch (Exception ex)
         {
+            failure = ex;
             if (ex is OperationCanceledException && cancellationToken.IsCancellationRequested)
                 logger.LogDebug("Gave up fetching the manifest from {ManifestUrl}", manifestUrl);
             else if (ex is not HttpRequestException { StatusCode: HttpStatusCode.NotFound })
@@ -121,12 +127,17 @@ public class ReleaseManifestReader(ILogger<ReleaseManifestReader> logger, IHttpC
             try
             {
                 manifest = JsonConvert.DeserializeObject<ManifestModel>(File.ReadAllText(cachedFilePath));
+                result = ShokoTelemetry.CacheStale;
             }
             catch (Exception ex2)
             {
                 logger.LogWarning(ex2, "Failed to parse cached manifest from {ManifestUrl}", manifestUrl);
                 return [];
             }
+        }
+        finally
+        {
+            ShokoTelemetry.FinishCacheLookup(span, localName, result, failure);
         }
 
         if (manifest is null)
