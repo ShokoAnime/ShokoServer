@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -120,6 +121,36 @@ public class SuspensionServiceTests
     }
 
     #endregion
+
+    [Fact]
+    public void TheGauge_ReportsEveryKindOfEveryProvider()
+    {
+        var measurements = new Dictionary<(string? Provider, string? Kind), int>();
+        using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, meterListener) =>
+        {
+            if (instrument.Name == "shoko.suspension.active")
+                meterListener.EnableMeasurementEvents(instrument);
+        };
+        listener.SetMeasurementEventCallback<int>((_, value, tags, _) =>
+        {
+            var values = tags.ToArray().ToDictionary(tag => tag.Key, tag => tag.Value as string);
+            lock (measurements)
+                measurements[(values["shoko.suspension.provider"], values["shoko.suspension.kind"])] = value;
+        });
+        listener.Start();
+        using var service = Service();
+        var reporter = new SuspensionReporter<HoldingProvider>(service);
+
+        reporter.Suspend(SuspensionKind.RateLimited, resumesAt: Now.AddMinutes(1));
+        listener.RecordObservableInstruments();
+        Assert.Equal(1, measurements[("Holding", nameof(SuspensionKind.RateLimited))]);
+        Assert.Equal(0, measurements[("Holding", nameof(SuspensionKind.Banned))]);
+
+        reporter.Resume(SuspensionKind.RateLimited);
+        listener.RecordObservableInstruments();
+        Assert.Equal(0, measurements[("Holding", nameof(SuspensionKind.RateLimited))]);
+    }
 
     [Fact]
     public void AReReportUpdatesTheSuspensionButKeepsWhenItWasRaised()

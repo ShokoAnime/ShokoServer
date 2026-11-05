@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -29,6 +30,7 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry;
 
 namespace Shoko.Server.Services;
 
@@ -712,9 +714,21 @@ public class VideoHashingService(
 
         existingHashes ??= [];
         var providers = GetAvailableProviders(onlyEnabled: true).ToList();
-        return ParallelMode ?
-            await GetHashesForFileParallel(fileInfo, existingHashes, providers, cancellationToken) :
-            await GetHashesForFileSequential(fileInfo, existingHashes, providers, cancellationToken);
+        var span = ShokoTelemetry.StartSpan("video.hash");
+        try
+        {
+            var hashes = ParallelMode ?
+                await GetHashesForFileParallel(fileInfo, existingHashes, providers, cancellationToken) :
+                await GetHashesForFileSequential(fileInfo, existingHashes, providers, cancellationToken);
+            ShokoTelemetry.RecordHashedFile(span, fileInfo);
+            ShokoTelemetry.FinishSpan(span);
+            return hashes;
+        }
+        catch (Exception failure)
+        {
+            ShokoTelemetry.FinishSpan(span, failure);
+            throw;
+        }
     }
 
     private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileParallel(FileInfo fileInfo, IReadOnlyList<IHashDigest> existingHashes, IList<HashProviderInfo> providers, CancellationToken cancellationToken)
@@ -758,10 +772,20 @@ public class VideoHashingService(
             ExistingHashes = existingHashes.Where(h => enabledHashTypes.Contains(h.Type)).ToList(),
             File = fileInfo,
         };
-        var hashes = await providerInfo.Provider.GetHashesForVideo(request, cancellationToken);
-        return hashes
-            .Where(h => enabledHashTypes.Contains(h.Type))
-            .ToList();
+        var startedAt = Stopwatch.GetTimestamp();
+        try
+        {
+            var hashes = await providerInfo.Provider.GetHashesForVideo(request, cancellationToken);
+            ShokoTelemetry.RecordHashDuration(providerInfo.Provider.Name, startedAt);
+            return hashes
+                .Where(h => enabledHashTypes.Contains(h.Type))
+                .ToList();
+        }
+        catch (Exception failure)
+        {
+            ShokoTelemetry.RecordHashDuration(providerInfo.Provider.Name, startedAt, failure);
+            throw;
+        }
     }
 
     #endregion
