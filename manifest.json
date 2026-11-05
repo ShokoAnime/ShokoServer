@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.586",
+      "tag": "v6.0.0-dev.586",
+      "commit": "e26842f617ebc335dac728ecaebd526a836a59fe",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.586/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-05T11:56:33Z",
+      "releaseNotes": "\n`fix` (`plugin`): **Keep a repository's own stale time on start**:\n\n- Applied `RepositoryStaleTimeOnStart` only to repositories without a stale time of their own\n\n`refactor` (`plugin`): **Read a repository's manifest as one package or a list of packages**:\n\n- Left out entries without a name, and read a package listed twice once\n- Dropped `type` and `url` from `manifest.schema.json`\n"
+    },
+    {
       "version": "6.0.0.585",
       "tag": "v6.0.0-dev.585",
       "commit": "4299635adb36cf203190e86579a1b04a16cc74d2",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.557/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-27T09:11:54Z",
       "releaseNotes": "\n`fix` (`api`): **Leave the system's own mount points out of `/api/v3/Folder/MountPoints`**:\n\n- Matched the formats .NET reports today (`cgroup2`, `bpf`, `pstore`, `devtmpfs`, `autofs`, `efivarfs`, the desktop's `fuse.portal` and `fuse.gvfsd-fuse`), keeping the older names\n- Left out `/proc`, `/sys`, `/dev`, `/boot` and `/efi` by path, so FAT drives elsewhere still list\n- Dropped duplicate paths\n"
-    },
-    {
-      "version": "6.0.0.556",
-      "tag": "v6.0.0-dev.556",
-      "commit": "0574ac99faaa1f0efcc0a8494982e1ebf0d112a7",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.556/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-26T11:03:58Z",
-      "releaseNotes": "\n`docs`: **Put every websocket under `/signalr`, whatever it speaks**: (_Skip CI_)\n\n- A plugin's sockets go under `/signalr/plugin/<namespace>/`, SignalR or not, since that is the path proxies upgrade\n- Plain HTTP routes stay under `/api`; `EnableSignalR` only mounts the core's own hubs\n\n`feat` (`abstractions`): **Let a code editor name its script kind and definitions file**:\n\n- Added `ScriptKind` (`script`, `module` or `function-body`) and `DefinitionsPath` to `CodeEditorAttribute` and `UiCodeEditorElement`\n- Both follow the editor's language: `DefinitionsPath` names a `.d.ts`, JSON Schema, Lua definitions or XML Schema served by the plugin, and data languages ignore `ScriptKind`\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.115**.\n"
     }
   ]
 }
