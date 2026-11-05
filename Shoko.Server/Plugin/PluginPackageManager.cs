@@ -2518,9 +2518,9 @@ public partial class PluginPackageManager(
         foreach (var repositoryInfo in ListPackageRepositories().Where(repositoryInfo => repositoryInfo.IsEnabled))
         {
             var lastFetchedAt = repositoryInfo.LastFetchedAt;
-            var staleTime = repositoryInfo.StaleTime ?? DefaultRepositoryStaleTime;
-            if (staleTimeOnStart < staleTime)
-                staleTime = staleTimeOnStart;
+            // The window on start only shortens the default; a stale time set on the repository is kept.
+            var staleTime = repositoryInfo.StaleTime
+                ?? (staleTimeOnStart < DefaultRepositoryStaleTime ? staleTimeOnStart : DefaultRepositoryStaleTime);
             if (lastFetchedAt.HasValue && DateTime.UtcNow - lastFetchedAt.Value <= staleTime)
                 continue;
 

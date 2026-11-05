@@ -127,10 +127,11 @@ public class PluginSettings
         public TimeSpan DefaultRepositoryStaleTime { get; set; } = TimeSpan.FromHours(12);
 
         /// <summary>
-        ///   How old a repository's packages may be when the server starts
-        ///   before the upgrades on start fetch them again; the repository's
-        ///   own stale time applies when shorter. Defaults to 5 minutes, so a
-        ///   start soon after another does not fetch them again.
+        ///   How old the packages of a repository without a stale time of its
+        ///   own may be when the server starts before the upgrades on start
+        ///   fetch them again; the default stale time applies when shorter,
+        ///   and a repository's own stale time is kept. Defaults to 5 minutes,
+        ///   so a start soon after another does not fetch them again.
         /// </summary>
         [DefaultValue("00:05:00.000000")]
         public TimeSpan RepositoryStaleTimeOnStart { get; set; } = TimeSpan.FromMinutes(5);

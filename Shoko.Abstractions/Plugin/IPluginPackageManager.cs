@@ -51,9 +51,10 @@ public interface IPluginPackageManager
     TimeSpan DefaultRepositoryStaleTime { get; set; }
 
     /// <summary>
-    ///   How long ago a repository must have been fetched for the start-up
-    ///   upgrade to fetch it again, unless its own stale time is shorter.
-    ///   Defaults to 5 minutes.
+    ///   How long ago a repository without a stale time of its own must have
+    ///   been fetched for the start-up upgrade to fetch it again, unless
+    ///   <see cref="DefaultRepositoryStaleTime"/> is shorter. A repository with
+    ///   its own stale time keeps it. Defaults to 5 minutes.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">
     ///   Thrown when set lower than zero.

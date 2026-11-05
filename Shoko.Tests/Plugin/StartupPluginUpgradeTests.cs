@@ -135,6 +135,9 @@ public class StartupPluginUpgradeTests : IDisposable
     /// whose manifest offers <paramref name="releases"/>.
     /// </summary>
     private void SetUpInstalledPluginAndRepository(DateTime? lastFetchedAt, params PackageReleaseInfo[] releases)
+        => SetUpInstalledPluginAndRepository(lastFetchedAt, null, releases);
+
+    private void SetUpInstalledPluginAndRepository(DateTime? lastFetchedAt, TimeSpan? staleTime, params PackageReleaseInfo[] releases)
     {
         var pluginDirectory = Directory.CreateDirectory(Path.Join(PluginsPath, "Plugin-1.0.0")).FullName;
         File.Copy(LegacyPlexDll, Path.Join(pluginDirectory, Path.GetFileName(LegacyPlexDll)));
@@ -146,7 +149,7 @@ public class StartupPluginUpgradeTests : IDisposable
             ID = repositoryID,
             Name = "Test",
             Url = RepositoryManifestUrl,
-            StaleTime = TimeSpan.FromHours(1),
+            StaleTime = staleTime,
             LastFetchedAt = lastFetchedAt,
         };
         File.WriteAllText(Path.Join(repositoryDirectory, "info.json"), JsonConvert.SerializeObject(repository));
@@ -264,12 +267,22 @@ public class StartupPluginUpgradeTests : IDisposable
     [Fact]
     public async Task ARepositoryNotFetchedSinceShortlyBeforeTheStartIsFetchedAgain()
     {
-        // Within the repository's own hour, but not within the five minutes on start.
+        // Within the default stale time, but not within the five minutes on start.
         SetUpInstalledPluginAndRepository(DateTime.UtcNow.AddMinutes(-30), ServeArchive("2.0.0"));
 
         await CreatePackageManager().UpgradePluginsBeforeStart(_ => { }, TimeSpan.FromSeconds(30));
 
         Assert.Equal(1, _host.ManifestRequests);
+    }
+
+    [Fact]
+    public async Task ARepositoryKeepsItsOwnStaleTimeOnStart()
+    {
+        SetUpInstalledPluginAndRepository(DateTime.UtcNow.AddMinutes(-30), TimeSpan.FromHours(1), ServeArchive("2.0.0"));
+
+        await CreatePackageManager().UpgradePluginsBeforeStart(_ => { }, TimeSpan.FromSeconds(30));
+
+        Assert.Equal(0, _host.ManifestRequests);
     }
 
     [Fact]
