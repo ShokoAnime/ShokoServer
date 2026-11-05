@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -11,6 +12,7 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry.Database;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
@@ -95,10 +97,21 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
             SystemService.StartupMessage = $"Database Cache - Caching  - {typeof(T).Name}...";
         }
 
-        // This is only called from main thread, so we don't need to lock
-        var settings = ISettingsProvider.Instance.GetSettings();
-        Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).SetTimeout(settings.CachingDatabaseTimeout).List<T>(), SelectKey);
-        PopulateIndexes();
+        var span = DatabaseTelemetry.StartRepositorySpan("populate", typeof(T).Name);
+        try
+        {
+            // This is only called from main thread, so we don't need to lock
+            var settings = ISettingsProvider.Instance.GetSettings();
+            var rows = session.CreateCriteria(typeof(T)).SetTimeout(settings.CachingDatabaseTimeout).List<T>();
+            Cache = new PocoCache<S, T>(rows, SelectKey);
+            PopulateIndexes();
+            DatabaseTelemetry.FinishRepositorySpan(span, count: rows.Count);
+        }
+        catch (Exception failure)
+        {
+            DatabaseTelemetry.FinishRepositorySpan(span, failure);
+            throw;
+        }
     }
 
     public virtual void Populate(bool displayName = true, CancellationToken cancellationToken = default)
@@ -165,10 +178,20 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
             return;
         }
 
-        OnBeginDelete(cr);
-        DeleteFromDatabaseUnsafe(cr);
-        CacheRemoved(cr);
-        OnEndDelete(cr);
+        var span = DatabaseTelemetry.StartRepositorySpan("delete", typeof(T).Name, 1);
+        try
+        {
+            OnBeginDelete(cr);
+            DeleteFromDatabaseUnsafe(cr);
+            CacheRemoved(cr);
+            OnEndDelete(cr);
+            DatabaseTelemetry.FinishRepositorySpan(span);
+        }
+        catch (Exception failure)
+        {
+            DatabaseTelemetry.FinishRepositorySpan(span, failure);
+            throw;
+        }
     }
 
     protected void DeleteFromCache(T cr)
@@ -188,21 +211,32 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
             return;
         }
 
-        foreach (var cr in objs)
+        var span = DatabaseTelemetry.StartRepositorySpan("delete", typeof(T).Name, objs.Count);
+        try
         {
-            OnBeginDelete(cr);
+            foreach (var cr in objs)
+            {
+                OnBeginDelete(cr);
+            }
+
+            DeleteFromDatabaseUnsafe(objs);
+
+            foreach (var cr in objs)
+            {
+                CacheRemoved(cr);
+            }
+
+            foreach (var cr in objs)
+            {
+                OnEndDelete(cr);
+            }
+
+            DatabaseTelemetry.FinishRepositorySpan(span);
         }
-
-        DeleteFromDatabaseUnsafe(objs);
-
-        foreach (var cr in objs)
+        catch (Exception failure)
         {
-            CacheRemoved(cr);
-        }
-
-        foreach (var cr in objs)
-        {
-            OnEndDelete(cr);
+            DatabaseTelemetry.FinishRepositorySpan(span, failure);
+            throw;
         }
     }
 
@@ -236,16 +270,29 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
 
     public virtual void Save(T obj)
     {
-        OnBeginSave(obj);
+        var span = DatabaseTelemetry.StartRepositorySpan("save", typeof(T).Name, 1);
+        try
+        {
+            OnBeginSave(obj);
 
-        using var session = _databaseFactory.SessionFactory.OpenSession();
-        using var transaction = session.BeginTransaction();
-        session.SaveOrUpdate(obj);
-        OnSaveWithOpenTransaction(session.Wrap(), obj);
-        transaction.Commit();
+            using (var session = _databaseFactory.SessionFactory.OpenSession())
+            using (var transaction = session.BeginTransaction())
+            {
+                session.SaveOrUpdate(obj);
+                OnSaveWithOpenTransaction(session.Wrap(), obj);
+                transaction.Commit();
 
-        CacheSaved(obj);
-        OnEndSave(obj);
+                CacheSaved(obj);
+                OnEndSave(obj);
+            }
+
+            DatabaseTelemetry.FinishRepositorySpan(span);
+        }
+        catch (Exception failure)
+        {
+            DatabaseTelemetry.FinishRepositorySpan(span, failure);
+            throw;
+        }
     }
 
     public virtual void Save(IReadOnlyCollection<T> objs)
@@ -255,29 +302,42 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
             return;
         }
 
-        foreach (var obj in objs)
+        var span = DatabaseTelemetry.StartRepositorySpan("save", typeof(T).Name, objs.Count);
+        try
         {
-            OnBeginSave(obj);
-        }
+            foreach (var obj in objs)
+            {
+                OnBeginSave(obj);
+            }
 
-        using var session = _databaseFactory.SessionFactory.OpenSession();
-        using var transaction = session.BeginTransaction();
-        var wrapper = session.Wrap();
-        foreach (var obj in objs)
-        {
-            session.SaveOrUpdate(obj);
-            OnSaveWithOpenTransaction(wrapper, obj);
-        }
-        transaction.Commit();
+            using (var session = _databaseFactory.SessionFactory.OpenSession())
+            using (var transaction = session.BeginTransaction())
+            {
+                var wrapper = session.Wrap();
+                foreach (var obj in objs)
+                {
+                    session.SaveOrUpdate(obj);
+                    OnSaveWithOpenTransaction(wrapper, obj);
+                }
+                transaction.Commit();
 
-        foreach (var obj in objs)
-        {
-            CacheSaved(obj);
-        }
+                foreach (var obj in objs)
+                {
+                    CacheSaved(obj);
+                }
 
-        foreach (var obj in objs)
+                foreach (var obj in objs)
+                {
+                    OnEndSave(obj);
+                }
+            }
+
+            DatabaseTelemetry.FinishRepositorySpan(span);
+        }
+        catch (Exception failure)
         {
-            OnEndSave(obj);
+            DatabaseTelemetry.FinishRepositorySpan(span, failure);
+            throw;
         }
     }
 

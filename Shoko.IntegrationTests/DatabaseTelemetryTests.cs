@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Internal;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Telemetry.Database;
 using Xunit;
 
@@ -80,8 +81,11 @@ public class DatabaseTelemetryTests(DatabaseMigrationFixture fixture)
 
         public void AssertOneNew(string operation)
         {
-            var spans = Spans.Where(span => span.OperationName == operation).ToList();
+            var spans = Named(operation);
             Assert.Single(spans);
+            Assert.Equal($"{operation} ScheduledAction", spans[0].OperationName);
+            Assert.Equal("ScheduledAction", spans[0].GetTagItem("db.collection.name"));
+            Assert.NotNull(spans[0].GetTagItem("db.namespace"));
             Assert.Equal(ActivityKind.Client, spans[0].Kind);
             Assert.Equal(operation, spans[0].GetTagItem("db.operation.name"));
             Assert.NotNull(spans[0].GetTagItem("db.system.name"));
@@ -89,6 +93,9 @@ public class DatabaseTelemetryTests(DatabaseMigrationFixture fixture)
             Assert.Null(spans[0].GetTagItem("db.query.text"));
             Assert.Single(Durations, duration => Equals(duration["db.operation.name"], operation));
         }
+
+        public List<Activity> Named(string operation)
+            => Spans.Where(span => Equals(span.GetTagItem("db.operation.name"), operation)).ToList();
 
         public void Clear()
         {
@@ -118,7 +125,7 @@ public class DatabaseTelemetryTests(DatabaseMigrationFixture fixture)
 
         // An identity insert runs right away.
         session.Save(action);
-        Assert.Contains(recorder.Spans, span => span.OperationName == "INSERT");
+        Assert.NotEmpty(recorder.Named("INSERT"));
         recorder.Clear();
 
         // A reader, going through the query's loader.
@@ -153,7 +160,7 @@ public class DatabaseTelemetryTests(DatabaseMigrationFixture fixture)
         using var transaction = session.BeginTransaction();
 
         await session.SaveAsync(action, cancellationToken);
-        Assert.Contains(recorder.Spans, span => span.OperationName == "INSERT");
+        Assert.NotEmpty(recorder.Named("INSERT"));
         recorder.Clear();
 
         await session.EvictAsync(action, cancellationToken);
@@ -175,6 +182,46 @@ public class DatabaseTelemetryTests(DatabaseMigrationFixture fixture)
     }
 
     [Fact]
+    public void ARepository_ReportsWhatItDoesAroundTheStatements()
+    {
+        Assert.True(fixture.Success, fixture.FailureMessage);
+        var repository = fixture.Services.GetRequiredService<ScheduledActionRepository>();
+        var action = NewAction();
+        var spans = new ConcurrentQueue<Activity>();
+        var thread = Environment.CurrentManagedThreadId;
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == DatabaseTelemetry.Name,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = span =>
+            {
+                if (Environment.CurrentManagedThreadId == thread)
+                    spans.Enqueue(span);
+            },
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        DatabaseTelemetry.Enable(captureStatements: false);
+        try
+        {
+            repository.Save(action);
+            repository.GetByActionID(action.ActionID);
+            repository.Delete(action);
+            repository.Populate(displayName: false, cancellationToken: TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            DatabaseTelemetry.Disable();
+        }
+
+        // Reads come from the cache, so nothing is reported for them.
+        Assert.Equal(["repository.save ScheduledAction", "repository.delete ScheduledAction", "repository.populate ScheduledAction"], spans.Select(span => span.OperationName));
+        Assert.Equal(1, spans.First().GetTagItem("shoko.repository.count"));
+        Assert.All(spans, span => Assert.Equal("ScheduledAction", span.GetTagItem("shoko.repository.entity")));
+        Assert.IsType<int>(spans.Last().GetTagItem("shoko.repository.count"));
+    }
+
+    [Fact]
     public void AFailingStatement_ReportsTheErrorsTypeButNotItsMessage()
     {
         using var session = SessionFactory.OpenSession();
@@ -182,11 +229,12 @@ public class DatabaseTelemetryTests(DatabaseMigrationFixture fixture)
 
         Assert.ThrowsAny<Exception>(() => session.CreateSQLQuery("DELETE FROM NoSuchTableForTelemetry").ExecuteUpdate());
 
-        var span = recorder.Spans.Single(span => span.OperationName == "DELETE");
+        var span = Assert.Single(recorder.Named("DELETE"));
         Assert.Equal(ActivityStatusCode.Error, span.Status);
         Assert.Null(span.StatusDescription);
+        Assert.Empty(span.Events);
         Assert.NotNull(span.GetTagItem("error.type"));
-        Assert.DoesNotContain(span.Tags, tag => tag.Value?.Contains("NoSuchTableForTelemetry") is true);
+        Assert.Equal("NoSuchTableForTelemetry", span.GetTagItem("db.collection.name"));
         Assert.Contains(recorder.Durations, duration => duration.ContainsKey("error.type"));
     }
 
@@ -196,21 +244,36 @@ public class DatabaseTelemetryTests(DatabaseMigrationFixture fixture)
         var sessionFactory = SessionFactory;
         using var session = sessionFactory.OpenSession();
         using var recorder = new Recorder();
-        const string Value = "telemetry-secret-value";
+        var value = Guid.NewGuid();
 
         DatabaseTelemetry.Enable(captureStatements: true);
         try
         {
-            session.CreateQuery("from ScheduledAction where PluginID = :id").SetParameter("id", Value).List<ScheduledAction>();
+            session.CreateQuery("from ScheduledAction where ActionID = :id").SetParameter("id", value).List<ScheduledAction>();
         }
         finally
         {
             DatabaseTelemetry.Disable();
         }
 
-        var statement = Assert.IsType<string>(recorder.Spans.Single(span => span.OperationName == "SELECT").GetTagItem("db.query.text"));
+        var statement = Assert.IsType<string>(Assert.Single(recorder.Named("SELECT")).GetTagItem("db.query.text"));
         Assert.Contains("ScheduledAction", statement);
-        Assert.DoesNotContain(Value, statement);
+        Assert.DoesNotContain(value.ToString(), statement, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ActionID", statement);
+
+        // Written into the statement by hand rather than as a parameter, as schema steps and fixes do.
+        recorder.Clear();
+        DatabaseTelemetry.Enable(captureStatements: true);
+        try
+        {
+            session.CreateSQLQuery($"SELECT * FROM ScheduledAction WHERE PluginID = '{value}'").List();
+        }
+        finally
+        {
+            DatabaseTelemetry.Disable();
+        }
+
+        Assert.Equal("SELECT * FROM ScheduledAction WHERE PluginID = ?", Assert.Single(recorder.Named("SELECT")).GetTagItem("db.query.text"));
     }
 
     #endregion

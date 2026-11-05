@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using OpenTelemetry;
+using Shoko.Server.Telemetry.Database;
 
 namespace Shoko.Server.Telemetry;
 
@@ -26,6 +27,13 @@ internal sealed class TelemetryRedactionProcessor(bool captureDatabaseStatements
                 if (data.GetTagItem(attribute) is not null)
                     data.SetTag(attribute, null);
             }
+        }
+
+        // Other instrumentation and plugins send statements as they are.
+        foreach (var attribute in _statementAttributes)
+        {
+            if (data.GetTagItem(attribute) is string statement)
+                data.SetTag(attribute, DatabaseTelemetry.SanitizeStatement(statement));
         }
 
         foreach (var attribute in _attributes)
