@@ -481,6 +481,9 @@ public class VideoHashingService(
 
         var isNewVideo = video.VideoLocalID is 0;
         var isNewFile = video.FileSize is 0;
+        // The record the location belongs to now. When the hashes put the location on another
+        // record, this one is removed once nothing points at it.
+        var previousVideo = isNewVideo ? null : video;
         if (!isNewVideo && video.FileSize != fileSize)
         {
             logger.LogTrace("File size changed for {VideoID}: {OldFileSize}→{NewFileSize}", video.VideoLocalID, video.FileSize, fileSize);
@@ -496,7 +499,6 @@ public class VideoHashingService(
         // Finding the video by its ED2K and saving it go together, so two hashing jobs
         // finishing for the same content at once share one video record instead of both
         // inserting one and breaking the unique hash index.
-        VideoLocal originalVideo;
         bool ed2kChanged;
         lock (_videoSaveLock)
         {
@@ -506,7 +508,6 @@ public class VideoHashingService(
                 video = otherVideo;
             }
 
-            originalVideo = video;
             ed2kChanged = !isNewVideo && ed2k.Value != video.Hash;
             if (ed2kChanged)
             {
@@ -553,6 +554,9 @@ public class VideoHashingService(
 
         videoLocation.VideoID = video.VideoLocalID;
         locationRepository.Save(videoLocation);
+
+        if (previousVideo is not null && previousVideo.VideoLocalID != video.VideoLocalID)
+            await _videoService.RemoveVideoWithoutLocations(previousVideo, skipEvents).ConfigureAwait(false);
 
         var wasDeleted = await DeduplicateAndCleanup(video, videoLocation, skipEvents: skipEvents, locationAvailable: true).ConfigureAwait(false);
         if (!wasDeleted)

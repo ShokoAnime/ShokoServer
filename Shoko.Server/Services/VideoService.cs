@@ -669,6 +669,40 @@ public class VideoService : IVideoService
         }
     }
 
+    /// <summary>
+    ///   Removes a video record that no location points at anymore, such as
+    ///   the one a location left when a rehash put it on another record, as
+    ///   removing its last location would. A record that still has a location
+    ///   is kept.
+    /// </summary>
+    /// <param name="video">The video record.</param>
+    /// <param name="skipEvents">Skip removing it from the AniDB MyList.</param>
+    /// <returns><c>true</c> if the record was removed.</returns>
+    internal async Task<bool> RemoveVideoWithoutLocations(VideoLocal video, bool skipEvents = false)
+    {
+        if (video.VideoLocalID is 0 || video.Places.Count is not 0)
+            return false;
+
+        _logger.LogInformation("Removing VideoLocal record {VideoID} ({Hash}), which no location points at anymore.", video.VideoLocalID, video.Hash);
+        if (!skipEvents)
+            await ScheduleRemovalFromMylist(video);
+
+        var seriesToUpdate = video.AnimeEpisodes
+            .DistinctBy(a => a.AnimeSeriesID)
+            .Select(a => a.AnimeSeries)
+            .WhereNotNull()
+            .ToList();
+        using (var session = _databaseFactory.SessionFactory.OpenSession())
+        {
+            using var transaction = session.BeginTransaction();
+            _videoLocalRepository.DeleteWithOpenTransaction(session, video);
+            transaction.Commit();
+        }
+
+        await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID, ct: CancellationToken.None)));
+        return true;
+    }
+
     public async Task RemoveRecord(VideoLocal_Place place, bool skipEvents = false)
     {
         _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.Path ?? place.ID.ToString());
