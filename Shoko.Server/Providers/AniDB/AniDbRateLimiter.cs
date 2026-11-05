@@ -6,12 +6,14 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry;
 
 namespace Shoko.Server.Providers.AniDB;
 
 public class AniDbRateLimiter
 {
     private readonly ILogger _logger;
+    private readonly string _transport;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
     private readonly object _settingsLock = new();
@@ -105,8 +107,9 @@ public class AniDbRateLimiter
         }
     }
 
-    public AniDbRateLimiter(ILogger logger, ConfigurationProvider<ServerSettings> settingsProvider, Func<IServerSettings, AnidbRateLimitSettings> settingsSelector)
+    public AniDbRateLimiter(ILogger logger, ConfigurationProvider<ServerSettings> settingsProvider, Func<IServerSettings, AnidbRateLimitSettings> settingsSelector, string transport)
     {
+        _transport = transport;
         _logger = logger;
         _requestWatch.Start();
         _activeTimeWatch.Start();
@@ -135,6 +138,7 @@ public class AniDbRateLimiter
 
     public async Task<T> EnsureRate<T>(Func<Task<T>> action, bool forceShortDelay = false)
     {
+        var waitingSince = Stopwatch.GetTimestamp();
         await _lock.WaitAsync();
         try
         {
@@ -146,6 +150,7 @@ public class AniDbRateLimiter
             {
                 _logger.LogTrace("Time since last request is {Delay} ms, not throttling", delay);
                 _logger.LogTrace("Sending AniDB command");
+                AniDBTelemetry.RecordRateLimitWait(_transport, waitingSince);
                 return await action();
             }
 
@@ -156,6 +161,7 @@ public class AniDbRateLimiter
             await Task.Delay(waitTime);
 
             _logger.LogTrace("Sending AniDB command");
+            AniDBTelemetry.RecordRateLimitWait(_transport, waitingSince);
             return await action();
         }
         finally

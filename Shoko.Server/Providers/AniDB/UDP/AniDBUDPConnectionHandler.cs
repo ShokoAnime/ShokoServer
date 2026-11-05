@@ -15,6 +15,7 @@ using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Telemetry;
 using Shoko.Server.Utilities;
 
 using Timer = System.Timers.Timer;
@@ -369,22 +370,32 @@ public class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandle
 
             var start = DateTime.Now;
             Logger.LogTrace("AniDB UDP Call: (Using {Unicode}) {Command}", needsUnicode ? "Unicode" : "ASCII", AniDBLogMask.Mask(command));
-            var bytesReceived = await socketHandler.SendAsync(sendBytes, cancellationToken);
-
-            if (bytesReceived.All(a => a == 0))
+            var request = AniDBTelemetry.StartRequest(AniDBTelemetry.Udp, command);
+            try
             {
-                // we are probably banned or have lost connection. We can't tell the difference, so we're assuming ban
-                throw AniDBBannedException.For(BanState);
+                var bytesReceived = await socketHandler.SendAsync(sendBytes, cancellationToken);
+
+                if (bytesReceived.All(a => a == 0))
+                {
+                    // we are probably banned or have lost connection. We can't tell the difference, so we're assuming ban
+                    throw AniDBBannedException.For(BanState);
+                }
+
+                // decode
+                var decodedString = AniDBSocketHandler.GetEncoding(bytesReceived).GetString(bytesReceived, 0, bytesReceived.Length);
+                // remove BOM
+                if (decodedString[0] == 0xFEFF) decodedString = decodedString[1..];
+
+                var ts = DateTime.Now - start;
+                Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedString}", ts, AniDBLogMask.Mask(decodedString));
+                AniDBTelemetry.FinishRequest(request);
+                return decodedString;
             }
-
-            // decode
-            var decodedString = AniDBSocketHandler.GetEncoding(bytesReceived).GetString(bytesReceived, 0, bytesReceived.Length);
-            // remove BOM
-            if (decodedString[0] == 0xFEFF) decodedString = decodedString[1..];
-
-            var ts = DateTime.Now - start;
-            Logger.LogTrace("AniDB Response: Received in {Time:ss'.'ffff}s\n{DecodedString}", ts, AniDBLogMask.Mask(decodedString));
-            return decodedString;
+            catch (Exception failure)
+            {
+                AniDBTelemetry.FinishRequest(request, failure);
+                throw;
+            }
         }, forceShortDelay: isPing);
     }
 

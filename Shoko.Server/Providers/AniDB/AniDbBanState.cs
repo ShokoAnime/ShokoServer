@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
+using Shoko.Server.Telemetry;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB;
@@ -137,7 +138,10 @@ public sealed class AniDbBanState
             _logger.LogWarning("AniDB {Type} Banned! (expires {Expires:u})", _type, _banExpiresUtc);
         }
         if (args is not null)
+        {
+            AniDBTelemetry.RecordBan(_type);
             BanOccurred?.Invoke(this, args);
+        }
     }
 
     /// <summary>
