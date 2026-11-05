@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Workers;
 
@@ -39,6 +41,10 @@ public sealed class JobFactory : IJobFactory
             catch { /* stack capture is best-effort */ }
         }
 
+        // A child of whatever runs it inline, with no duration of its own: that is part of its parent's.
+        var span = QueueTelemetry.StartJob(JobTypeNames.Key(typeof(T)), null);
+        var outcome = QueueTelemetry.OutcomeFailed;
+        Exception? failure = null;
         try
         {
             using var scope = _serviceProvider.CreateScope();
@@ -47,9 +53,18 @@ public sealed class JobFactory : IJobFactory
             instance.Setup(scope.ServiceProvider);
             instance.PostInit();
             await instance.Process().ConfigureAwait(false);
+            outcome = QueueTelemetry.OutcomeSuccess;
+        }
+        catch (Exception ex)
+        {
+            outcome = Worker.IsCancellation(ex) ? QueueTelemetry.OutcomeCancelled : QueueTelemetry.OutcomeFailed;
+            failure = Worker.IsCancellation(ex) ? null : ex;
+            throw;
         }
         finally
         {
+            QueueTelemetry.FinishSpan(span, outcome, failure);
+
             if (outerJobId != Guid.Empty)
                 SubExecutionTracker.ClearStack(outerJobId);
         }

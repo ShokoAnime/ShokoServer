@@ -125,6 +125,11 @@ internal sealed class Worker
             CancellationTokenSource? jobCancellation = null;
             JobExecutionState? execution = null;
             var thisEntry = default(ExecutingEntry);
+            // One span per attempt, so a retry or re-queue gets its own. Set in the outcome's own branch below.
+            Activity? span = null;
+            string? jobTypeKey = null;
+            var outcome = QueueTelemetry.OutcomeFailed;
+            Exception? failure = null;
             try
             {
                 // Resolve the job instance using the pool's pre-built type cache
@@ -135,6 +140,9 @@ internal sealed class Worker
                     _orchestrator.OnComplete(job.Id);
                     continue;
                 }
+
+                jobTypeKey = JobTypeNames.Key(jobType);
+                span = QueueTelemetry.StartJob(jobTypeKey, _pool.Name);
 
                 // Chain jobs share a DI scope for their full lifetime; standalone jobs get a per-execution scope
                 scope = isChainJob
@@ -184,6 +192,7 @@ internal sealed class Worker
                     await instance.Process().ConfigureAwait(false);
 
                 sw.Stop();
+                outcome = QueueTelemetry.OutcomeSuccess;
 
                 // Record success outcome in chain context and persist
                 if (isChainJob)
@@ -204,7 +213,7 @@ internal sealed class Worker
                 }
 
                 _orchestrator.OnComplete(job.Id);
-                _metrics.RecordCompletion(JobTypeNames.Key(jobType), _pool.Name, sw.Elapsed);
+                _metrics.RecordCompletion(jobTypeKey, _pool.Name, sw.Elapsed);
 
                 // Reuse the entry captured pre-Process: it carries TypeName/Title/Details set by
                 // UpdateExecutingItem, and by this point the orchestrator has already removed it
@@ -218,6 +227,7 @@ internal sealed class Worker
             catch (RequeueJobException requeueEx) when (execution?.CancellationRequested is not true)
             {
                 sw.Stop();
+                outcome = QueueTelemetry.OutcomeRequeued;
                 _logger.LogDebug(requeueEx, "Job {Id} ({JobType}) requested re-queue (no retry increment)", job.Id, job.JobType);
                 // No chain context update — transient; job will retry with same chain state
                 await _orchestrator.OnFailureAsync(job.Id, requeueEx, incrementRetry: false, ct: ct).ConfigureAwait(false);
@@ -228,6 +238,8 @@ internal sealed class Worker
                 // error (a provider wrapping the cancelled call) ends it as failed.
                 sw.Stop();
                 var failed = ex is not RequeueJobException && !IsCancellation(ex);
+                outcome = failed ? QueueTelemetry.OutcomeFailed : QueueTelemetry.OutcomeCancelled;
+                failure = failed ? ex : null;
                 if (failed)
                     _logger.LogWarning(ex, "Job {Id} ({JobType}) failed after its cancellation was requested; it is not retried", job.Id, job.JobType);
                 else
@@ -248,6 +260,8 @@ internal sealed class Worker
             {
                 sw.Stop();
                 var isCancellation = ct.IsCancellationRequested;
+                outcome = isCancellation ? QueueTelemetry.OutcomeCancelled : QueueTelemetry.OutcomeFailed;
+                failure = isCancellation ? null : ex;
 
                 if (!isCancellation)
                     _logger.LogError(ex, "Job {Id} ({JobType}) threw an exception", job.Id, job.JobType);
@@ -264,6 +278,10 @@ internal sealed class Worker
             }
             finally
             {
+                // Without a type there was no job to report on, only a stored row nothing can run.
+                if (jobTypeKey is not null)
+                    QueueTelemetry.FinishJob(span, jobTypeKey, _pool.Name, outcome, sw.Elapsed, failure);
+
                 // The orchestrator has let go of the job by now, so nothing can cancel the source any more.
                 jobCancellation?.Dispose();
                 SubExecutionTracker.ClearStack(job.Id);
