@@ -288,6 +288,59 @@ public class QueueTelemetryTests
         AssertLinksTo(queuedBy, span);
     }
 
+    private static ActivityListener ListenForQueueSpans(List<Activity> spans)
+    {
+        var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == QueueTelemetry.Name,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = span =>
+            {
+                if (span.OperationName.StartsWith("shoko.job.queue "))
+                    lock (spans)
+                        spans.Add(span);
+            },
+        };
+        ActivitySource.AddActivityListener(listener);
+        return listener;
+    }
+
+    [Fact]
+    public void QueuingAJobInsideASpan_ReportsItUnderThatSpanWithoutItsArguments()
+    {
+        var spans = new List<Activity>();
+        using var listener = ListenForQueueSpans(spans);
+        using var source = new ActivitySource(QueueTelemetry.Name);
+        using var queuedBy = source.StartActivity("queued-by");
+
+        var name = NewName();
+        var context = QueueScheduler.BuildContext(typeof(SucceedJob), name, new SucceedJob { Name = name }, 7, DateTimeOffset.UtcNow.AddHours(1));
+
+        var span = Assert.Single(spans, candidate => candidate.ParentSpanId == queuedBy!.SpanId);
+        Assert.Equal($"shoko.job.queue {JobTypeNames.Short(typeof(SucceedJob))}", span.OperationName);
+        Assert.Equal(ActivityKind.Producer, span.Kind);
+        Assert.Equal(7, span.GetTagItem("shoko.queue.job.priority"));
+        Assert.Equal(true, span.GetTagItem("shoko.queue.job.scheduled"));
+        Assert.DoesNotContain(span.TagObjects, tag => tag.Value?.ToString()?.Contains(name) is true);
+
+        // The job still links to what queued it, whatever was reported on the way.
+        Assert.Equal(queuedBy!.Id, context.Job.TraceParent);
+    }
+
+    [Fact]
+    public void QueuingAJobOutsideASpan_StartsNoTrace()
+    {
+        var spans = new List<Activity>();
+        using var listener = ListenForQueueSpans(spans);
+        Activity.Current = null;
+
+        var jobType = NewName();
+        QueueTelemetry.ReportQueued(jobType, 7, false);
+
+        lock (spans)
+            Assert.DoesNotContain(spans, span => span.OperationName.EndsWith(jobType));
+    }
+
     [Fact]
     public async Task AJobQueuedOutsideASpan_HasNoLink()
     {

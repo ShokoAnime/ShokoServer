@@ -138,6 +138,7 @@ public sealed class QueueScheduler(
     {
         var asmQualified = JobTypeNames.Stored(type);
         var shortTypeName = JobTypeNames.Short(type);
+        QueueTelemetry.ReportQueued(shortTypeName, priority, scheduledAt is not null);
         return new EnqueueContext
         {
             Type = type,
