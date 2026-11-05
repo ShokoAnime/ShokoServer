@@ -58,7 +58,6 @@ Rows with an empty license column are MIT.
 |  | F23.StringSimilarity |
 |  | JsonDiffPatch.Net |
 |  | MessagePack |
-|  | Microsoft.ApplicationInsights.AspNetCore |
 |  | Microsoft.AspNetCore.Mvc.NewtonsoftJson |
 |  | Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson |
 |  | Microsoft.Data.SqlClient |
