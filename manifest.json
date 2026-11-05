@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.585",
+      "tag": "v6.0.0-dev.585",
+      "commit": "4299635adb36cf203190e86579a1b04a16cc74d2",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.585/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-05T09:44:14Z",
+      "releaseNotes": "\n`feat` (`plugin`): **Queue package installs and share duplicate installs**:\n\n- Ran installs one at a time through a queue of their own, usable before the scheduler is up\n- Gave each entry a UUIDv5 of its plan, so a request for a queued plan joins it and shares its result\n- Added `QueueInstall`, `WaitForInstall`, `CancelInstall` and `GetInstallQueue`, with `?immediate=true` and `DELETE /api/v3/Plugin/Package/Install/Queue/{entryID}`\n- Carried the queue entry ID and actor on the install events, and sent the queue's events on the `plugin` feed\n\n`feat` (`plugin`): **Add archive sizes to package manifests and the installed size of plugins**:\n\n- Added optional `packed_size` and `unpacked_size` to archives, written by `shoko-build`, as `PackageArchiveInfo.PackedSize` and `UnpackedSize`\n- Refused a download of another packed size, and an archive unpacking to another size\n- Refused a plan, and each install, without the free space for it, unless `Plugins.Updates.IsFreeSpaceCheckEnabled` is off\n- Downloaded archives to the cache folder, and unpacked them file by file, refusing entries outside the plugin's folder\n- Added `LocalPluginInfo.InstalledSize`, measured from the plugin's folder or DLL and the files named after it, or the core plugin's from the app folder without `plugins` and `webui`\n\n`chore` (`buildtools`): **Bump build tools version to v0.8.4**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.126**.\n"
+    },
+    {
       "version": "6.0.0.584",
       "tag": "v6.0.0-dev.584",
       "commit": "949866fd58eafe7ae7cf08c8a536500c0773cecb",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.556/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-26T11:03:58Z",
       "releaseNotes": "\n`docs`: **Put every websocket under `/signalr`, whatever it speaks**: (_Skip CI_)\n\n- A plugin's sockets go under `/signalr/plugin/<namespace>/`, SignalR or not, since that is the path proxies upgrade\n- Plain HTTP routes stay under `/api`; `EnableSignalR` only mounts the core's own hubs\n\n`feat` (`abstractions`): **Let a code editor name its script kind and definitions file**:\n\n- Added `ScriptKind` (`script`, `module` or `function-body`) and `DefinitionsPath` to `CodeEditorAttribute` and `UiCodeEditorElement`\n- Both follow the editor's language: `DefinitionsPath` names a `.d.ts`, JSON Schema, Lua definitions or XML Schema served by the plugin, and data languages ignore `ScriptKind`\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.115**.\n"
-    },
-    {
-      "version": "6.0.0.555",
-      "tag": "v6.0.0-dev.555",
-      "commit": "9d754fa78abff8a001a1eafe515d39160fef5301",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.555/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-26T07:48:27Z",
-      "releaseNotes": "\n`fix` (`abstractions`): **Leave the key out of an `ApiToken` written as text**:\n\n- `ApiToken` writes its user, device and expiry for `ToString`, never `Token`, so a token in a log or a message carries no key\n"
     }
   ]
 }
