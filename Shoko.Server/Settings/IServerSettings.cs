@@ -141,4 +141,9 @@ public interface IServerSettings
     /// Opt out of sending error reports to Sentry.
     /// </summary>
     bool SentryOptOut { get; set; }
+
+    /// <summary>
+    /// Configure the OpenTelemetry export to a collector of the admin's own.
+    /// </summary>
+    TelemetrySettings Telemetry { get; set; }
 }

@@ -76,6 +76,15 @@ public class LoggingSettings
     public LogLevel? DefaultConsoleLogLevel { get; set; } = null;
 
     /// <summary>
+    /// Default log level for logs exported over OTLP, <see cref="LogLevel.Information"/> when not set. Only applies
+    /// while <see cref="TelemetrySettings.LogsEnabled"/> is on.
+    /// </summary>
+    [Display(Name = "Default OTLP Log Level")]
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    [EnvironmentVariable("LOGGING_OTLP_LOG_LEVEL", AllowOverride = true)]
+    public LogLevel? DefaultOtlpLogLevel { get; set; } = null;
+
+    /// <summary>
     /// Console layout format for runtime logs.
     /// </summary>
     [DefaultValue(LogSerializeFormat.Console)]

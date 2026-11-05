@@ -98,6 +98,7 @@ public static partial class SettingsMigrations
         { 29, (settings, _) => MigrateImageSourceSettingsToMetadata(settings) },
         { 30, (settings, paths) => MigrateWebUISettingsToUserConfiguration(settings, paths.DataPath) },
         { 31, MigrateWebUISettingsToWebUIService },
+        { 32, (settings, _) => MigrateAddTelemetrySection(settings) },
     };
 
     /// <summary>
@@ -824,6 +825,23 @@ public static partial class SettingsMigrations
     }
 
     #endregion
+
+    /// <summary>
+    ///   Adds an empty <c>Telemetry</c> section, as migration 32, since the
+    ///   environment variables of a section are only read when the file has
+    ///   that section.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <returns>The settings JSON with the section.</returns>
+    internal static string MigrateAddTelemetrySection(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings["Telemetry"] is JObject)
+            return settings;
+
+        currentSettings["Telemetry"] = new JObject();
+        return currentSettings.ToString();
+    }
 
     /// <summary>
     ///   The image switches, counts and language order TMDB kept in its own
