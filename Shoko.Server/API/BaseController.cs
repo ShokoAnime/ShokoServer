@@ -87,7 +87,9 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
 
     /// <summary>
     /// Sends a stored image's file, so that an SVG opened on its own runs no
-    /// script.
+    /// script. A file on disk is sent with its last write time and an entity
+    /// tag made from that time and its size, so a browser asking again for an
+    /// unchanged image gets a 304.
     /// </summary>
     /// <param name="stream">The image's file.</param>
     /// <param name="contentType">The image's media type.</param>
@@ -96,7 +98,13 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
     protected FileStreamResult ImageFile(Stream stream, string contentType)
     {
         SetSandboxHeaders();
-        return File(stream, contentType);
+        if (stream is not FileStream fileStream)
+            return File(stream, contentType);
+
+        // The file result answers a matching If-None-Match or If-Modified-Since with 304 by itself.
+        var lastModified = new DateTimeOffset(System.IO.File.GetLastWriteTimeUtc(fileStream.Name), TimeSpan.Zero);
+        var etag = new EntityTagHeaderValue($"\"{lastModified.UtcTicks:x}-{fileStream.Length:x}\"");
+        return File(stream, contentType, lastModified, etag);
     }
 
     /// <summary>
