@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.UI.Attributes;
@@ -30,4 +31,10 @@ public class MetadataServiceSettings : INewtonsoftJsonConfiguration
     /// </summary>
     [Visibility(DisplayVisibility.ReadOnly)]
     public Dictionary<Guid, MetadataImageContributorSettings> ImageContributors { get; set; } = [];
+
+    /// <summary>
+    /// How an anime's genres and studios are merged across its sources.
+    /// </summary>
+    [Display(Name = "Genres & Studios")]
+    public MetadataMergeSettings Merge { get; set; } = new();
 }

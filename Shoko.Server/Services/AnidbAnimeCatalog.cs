@@ -4,12 +4,14 @@ using System.Linq;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
@@ -478,7 +480,7 @@ public class AnidbAnimeCatalog(
     /// <param name="anime">The anime.</param>
     /// <param name="series">Its Shoko series, if any.</param>
     /// <returns>The overview, or <c>null</c> when there is none.</returns>
-    public string? GetOverview(AniDB_Anime anime, AnimeSeries? series)
+    public string? GetOverview(IAnidbAnime anime, IShokoSeries? series)
     {
         IWithOverviews entry = series is not null ? series : anime;
         return (textManager.GetPreferredOverview(entry) ?? entry.DefaultOverview)?.Value;
@@ -491,7 +493,7 @@ public class AnidbAnimeCatalog(
     /// <param name="anime">The anime.</param>
     /// <param name="series">Its Shoko series, if any.</param>
     /// <returns>The poster, or <c>null</c> when neither has one.</returns>
-    public IImage? GetPoster(AniDB_Anime anime, AnimeSeries? series)
+    public IImage? GetPoster(IAnidbAnime anime, IShokoSeries? series)
         => (series is not null ? GetImage(series, ImageEntityType.Primary) : null) ?? GetImage(anime, ImageEntityType.Primary);
 
     /// <summary>

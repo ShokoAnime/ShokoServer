@@ -863,7 +863,7 @@ public class AnidbAnimeCatalogTests
     public void StartSeasonOverride_TheCalendarServiceSeesIt()
     {
         using var harness = OverriddenHarness();
-        var calendar = new AiringCalendarService(harness.Catalog, AiringService(_ => []).Object);
+        var calendar = new AiringCalendarService(harness.Catalog, AiringService(_ => []).Object, Mock.Of<IMetadataService>(service => service.MergeOptions == new MetadataMergeOptions()));
 
         var summer = calendar.GetSeasonAnime(2015, YearlySeason.Summer, airingOptions: new() { At = _readAt }).ToDictionary(entry => entry.Anime.AnidbID);
         var sections = calendar.GetSeasonSections(2015, YearlySeason.Spring, airingOptions: new() { At = _readAt });
@@ -1000,18 +1000,25 @@ public class AnidbAnimeCatalogTests
         var configurationService = new Mock<IConfigurationService>();
         configurationService
             .Setup(service => service.Load(It.IsAny<ConfigurationInfo>(), It.IsAny<bool>()))
-            .Returns(new AiringScheduleServiceSettings { SeasonDetailSourceOrder = sourceOrder });
-        var builder = new SeasonAnimeBuilder(
+            .Returns(new MetadataServiceSettings { Merge = new() { SourceOrder = sourceOrder } });
+        var merger = new MetadataMerger(
             harness.Catalog,
             metadataService,
-            new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object)
+            new ConfigurationProvider<MetadataServiceSettings>(configurationService.Object)
         );
-        var calendar = new AiringCalendarService(harness.Catalog, airingService.Object);
+        var service = Mock.Get(metadataService);
+        service.Setup(entry => entry.MergeOptions).Returns(() => merger.Options);
+        service.Setup(entry => entry.GetMergedGenres(It.IsAny<int>(), It.IsAny<MetadataMergeOptions?>()))
+            .Returns((int animeID, MetadataMergeOptions? options) => merger.GetGenres(animeID, options));
+        service.Setup(entry => entry.GetMergedStudios(It.IsAny<int>(), It.IsAny<MetadataMergeOptions?>()))
+            .Returns((int animeID, MetadataMergeOptions? options) => merger.GetStudios(animeID, options));
+        var builder = new SeasonAnimeBuilder(harness.Catalog);
+        var calendar = new AiringCalendarService(harness.Catalog, airingService.Object, metadataService);
         return builder.Build(calendar.BuildEntries(harness.Catalog.GetAnime(), new EpisodeAiringFilteringOptions(), _readAt));
     }
 
     // A metadata service linking anime 1 to the given series, and nothing else.
-    private static IMetadataService Links(params SeasonAnimeBuilder.LinkedEntry[] series)
+    private static IMetadataService Links(params MetadataMerger.LinkedEntry[] series)
     {
         var service = new Mock<IMetadataService>();
         service
@@ -1041,26 +1048,30 @@ public class AnidbAnimeCatalogTests
             && tag.Kind == kind
             && tag.IsSpoiler == spoiler);
 
-    private static SeasonAnime.Studio AnidbStudio(string name)
-        => new() { Source = MetadataSource.AniDB, ID = name, Name = name };
+    private static IStudio AnidbStudio(string name)
+        => Mock.Of<IStudio>(studio => studio.ID == new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Studio, name)
+            && studio.Source == MetadataSource.AniDB
+            && studio.Name == name);
 
-    private static SeasonAnime.Tag AnidbGenre(string name)
-        => new() { Source = MetadataSource.AniDB, ID = name, Name = name };
+    private static ITag AnidbGenre(string name)
+        => Mock.Of<ITag>(tag => tag.ID == new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Tag, name)
+            && tag.Source == MetadataSource.AniDB
+            && tag.Name == name);
 
     // AniDB first, then the linked entries' sources in their order.
-    private static IReadOnlyList<MetadataSource> AnidbFirst(IEnumerable<SeasonAnimeBuilder.LinkedEntry> linked)
+    private static IReadOnlyList<MetadataSource> AnidbFirst(IEnumerable<MetadataMerger.LinkedEntry> linked)
         => [MetadataSource.AniDB, .. linked.Select(entry => entry.Source).Distinct()];
 
     [Fact]
     public void MergeStudios_AppendsAnimationStudiosOnlyTheLinkedSourcesName()
     {
-        var linked = new List<SeasonAnimeBuilder.LinkedEntry>
+        var linked = new List<MetadataMerger.LinkedEntry>
         {
             new(TestSources.AniList, [LinkedStudio(TestSources.AniList, "STUDIO ONE"), LinkedStudio(TestSources.AniList, "Financier", StudioType.Production)], []),
             new(MetadataSource.TMDB, [LinkedStudio(MetadataSource.TMDB, "Studio Three"), LinkedStudio(MetadataSource.TMDB, "Untyped", StudioType.None)], []),
         };
 
-        var merged = SeasonAnimeBuilder.MergeStudios([AnidbStudio("Studio One")], linked, AnidbFirst(linked));
+        var merged = MetadataMerger.MergeStudios([AnidbStudio("Studio One")], linked, AnidbFirst(linked));
 
         Assert.Equal(["Studio One", "Studio Three"], merged.Select(studio => studio.Name));
         Assert.Equal(MetadataSource.TMDB, merged[1].Source);
@@ -1069,7 +1080,7 @@ public class AnidbAnimeCatalogTests
     [Fact]
     public void MergeStudios_UntypedStudiosOnlyFillInFromTheTopRankedSourceWithAny()
     {
-        var linked = new List<SeasonAnimeBuilder.LinkedEntry>
+        var linked = new List<MetadataMerger.LinkedEntry>
         {
             new(TestSources.AniList, [LinkedStudio(TestSources.AniList, "Financier", StudioType.Production)], []),
             new(MetadataSource.TMDB, [LinkedStudio(MetadataSource.TMDB, "Publisher", StudioType.None)], []),
@@ -1078,15 +1089,15 @@ public class AnidbAnimeCatalogTests
             new(TestSources.Plugin, [LinkedStudio(TestSources.Plugin, "Lower Ranked", StudioType.None)], []),
         };
 
-        Assert.Equal(["Publisher", "Distributor"], SeasonAnimeBuilder.MergeStudios([], linked, AnidbFirst(linked)).Select(studio => studio.Name));
+        Assert.Equal(["Publisher", "Distributor"], MetadataMerger.MergeStudios([], linked, AnidbFirst(linked)).Select(studio => studio.Name));
         // AniDB naming an animation studio is enough to keep them out.
-        Assert.Equal(["Studio One"], SeasonAnimeBuilder.MergeStudios([AnidbStudio("Studio One")], linked, AnidbFirst(linked)).Select(studio => studio.Name));
+        Assert.Equal(["Studio One"], MetadataMerger.MergeStudios([AnidbStudio("Studio One")], linked, AnidbFirst(linked)).Select(studio => studio.Name));
     }
 
     [Fact]
     public void MergeGenres_RanksTheGenresMostSourcesAgreeOn()
     {
-        var linked = new List<SeasonAnimeBuilder.LinkedEntry>
+        var linked = new List<MetadataMerger.LinkedEntry>
         {
             new(
                 TestSources.Plugin,
@@ -1100,7 +1111,7 @@ public class AnidbAnimeCatalogTests
             ),
         };
 
-        var merged = SeasonAnimeBuilder.MergeGenres([AnidbGenre("comedy"), AnidbGenre("action"), AnidbGenre("fantasy")], linked, AnidbFirst(linked), 3);
+        var merged = MetadataMerger.MergeGenres([AnidbGenre("comedy"), AnidbGenre("action"), AnidbGenre("fantasy")], linked, AnidbFirst(linked), 3, new MetadataMergeOptions().ExcludedGenres);
 
         Assert.Equal(["action", "Drama", "comedy"], merged.Select(tag => tag.Name));
     }
@@ -1115,9 +1126,9 @@ public class AnidbAnimeCatalogTests
     [InlineData("IKIF+", "IKIF +")]
     public void MergeStudios_MatchesNamesWithoutCaseSpacesOrPunctuation(string anidbName, string linkedName)
     {
-        var linked = new List<SeasonAnimeBuilder.LinkedEntry> { new(TestSources.AniList, [LinkedStudio(TestSources.AniList, linkedName)], []) };
+        var linked = new List<MetadataMerger.LinkedEntry> { new(TestSources.AniList, [LinkedStudio(TestSources.AniList, linkedName)], []) };
 
-        var merged = SeasonAnimeBuilder.MergeStudios([AnidbStudio(anidbName)], linked, AnidbFirst(linked));
+        var merged = MetadataMerger.MergeStudios([AnidbStudio(anidbName)], linked, AnidbFirst(linked));
 
         Assert.Equal([(MetadataSource.AniDB, anidbName)], merged.Select(studio => (studio.Source, studio.Name)));
     }
@@ -1125,12 +1136,12 @@ public class AnidbAnimeCatalogTests
     [Fact]
     public void MergeStudios_NamesWithoutLettersOrDigitsMatchOnlyThemselves()
     {
-        var linked = new List<SeasonAnimeBuilder.LinkedEntry>
+        var linked = new List<MetadataMerger.LinkedEntry>
         {
             new(TestSources.AniList, [LinkedStudio(TestSources.AniList, "!!!"), LinkedStudio(TestSources.AniList, "???")], []),
         };
 
-        var merged = SeasonAnimeBuilder.MergeStudios([AnidbStudio("!!!")], linked, AnidbFirst(linked));
+        var merged = MetadataMerger.MergeStudios([AnidbStudio("!!!")], linked, AnidbFirst(linked));
 
         Assert.Equal(["!!!", "???"], merged.Select(studio => studio.Name));
     }
@@ -1138,9 +1149,9 @@ public class AnidbAnimeCatalogTests
     [Fact]
     public void MergeStudios_KeepsPlusApart()
     {
-        var linked = new List<SeasonAnimeBuilder.LinkedEntry> { new(TestSources.AniList, [LinkedStudio(TestSources.AniList, "IKIF")], []) };
+        var linked = new List<MetadataMerger.LinkedEntry> { new(TestSources.AniList, [LinkedStudio(TestSources.AniList, "IKIF")], []) };
 
-        var merged = SeasonAnimeBuilder.MergeStudios([AnidbStudio("IKIF+")], linked, AnidbFirst(linked));
+        var merged = MetadataMerger.MergeStudios([AnidbStudio("IKIF+")], linked, AnidbFirst(linked));
 
         Assert.Equal(["IKIF+", "IKIF"], merged.Select(studio => studio.Name));
     }
@@ -1148,12 +1159,12 @@ public class AnidbAnimeCatalogTests
     [Fact]
     public void MergeGenres_CountsPunctuatedSpellingsAsOneGenre()
     {
-        var linked = new List<SeasonAnimeBuilder.LinkedEntry>
+        var linked = new List<MetadataMerger.LinkedEntry>
         {
             new(TestSources.AniList, [], [LinkedTag(TestSources.AniList, "Slice-of-Life"), LinkedTag(TestSources.AniList, "ANIMATION!")]),
         };
 
-        var merged = SeasonAnimeBuilder.MergeGenres([AnidbGenre("comedy"), AnidbGenre("Slice of Life")], linked, AnidbFirst(linked), 3);
+        var merged = MetadataMerger.MergeGenres([AnidbGenre("comedy"), AnidbGenre("Slice of Life")], linked, AnidbFirst(linked), 3, new MetadataMergeOptions().ExcludedGenres);
 
         Assert.Equal(["Slice of Life", "comedy"], merged.Select(tag => tag.Name));
     }

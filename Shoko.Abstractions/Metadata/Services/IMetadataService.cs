@@ -497,6 +497,49 @@ public interface IMetadataService
 
     #endregion
 
+    #region Genres & Studios
+
+    /// <summary>
+    ///   The options <see cref="GetMergedGenres"/> and
+    ///   <see cref="GetMergedStudios"/> use when a call gives none. Setting
+    ///   them saves them.
+    /// </summary>
+    MetadataMergeOptions MergeOptions { get; set; }
+
+    /// <summary>
+    ///   Gets an AniDB anime's genres, merged with those of the series and
+    ///   movies of other sources it is linked to.
+    /// </summary>
+    /// <remarks>
+    ///   AniDB's genres are its verified genre tags that are neither spoilers nor
+    ///   plot tags, heaviest first; another source's are its genre tags that are
+    ///   neither spoilers nor restricted. Names are matched ignoring case,
+    ///   spacing, punctuation and diacritics, and the highest ranked source's
+    ///   spelling is kept. Genres are ranked by how many sources list them, then
+    ///   by source rank, then by the order a source lists them in.
+    /// </remarks>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <param name="options">The options to merge by, or <c>null</c> for <see cref="MergeOptions"/>.</param>
+    /// <returns>The genres, each from the highest ranked source listing it, the ones most sources agree on first, at most the options' limit.</returns>
+    IReadOnlyList<ITag> GetMergedGenres(int anidbAnimeID, MetadataMergeOptions? options = null);
+
+    /// <summary>
+    ///   Gets an AniDB anime's animation studios, merged with those of the
+    ///   series and movies of other sources it is linked to.
+    /// </summary>
+    /// <remarks>
+    ///   The animation studios of each source by rank, a name a higher ranked
+    ///   source gave not repeated, matched as genre names are; when no source
+    ///   names an animation studio, the untyped studios of the highest ranked
+    ///   source with any fill in.
+    /// </remarks>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <param name="options">The options to merge by, or <c>null</c> for <see cref="MergeOptions"/>.</param>
+    /// <returns>The studios, by source rank.</returns>
+    IReadOnlyList<IStudio> GetMergedStudios(int anidbAnimeID, MetadataMergeOptions? options = null);
+
+    #endregion
+
     #region Cross-References
 
     /// <summary>

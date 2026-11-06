@@ -76,10 +76,10 @@ public class SeasonAnime
     public required bool Restricted { get; init; }
 
     /// <summary>
-    /// The animation studios of AniDB and the linked sources in the season
-    /// detail source order, by source rank, AniDB first unless the order
-    /// places it, each named once. With none, the untyped studios of the
-    /// highest ranked source fill in.
+    /// The animation studios of AniDB and the linked sources, by source rank
+    /// in the merge's source order, AniDB first unless the order places it,
+    /// each named once. With none, the untyped studios of the highest ranked
+    /// source fill in.
     /// </summary>
     [Required]
     public required List<Studio> Studios { get; init; }
@@ -91,10 +91,9 @@ public class SeasonAnime
     public required SourceMaterial SourceMaterial { get; init; }
 
     /// <summary>
-    /// The genres most sources agree on, at most <see cref="TagLimit"/>,
-    /// without spoilers: AniDB's genre tags by weight and the genres of the
-    /// linked sources in the season detail source order, merged by name.
-    /// Ties go by source rank, AniDB first unless the order places it.
+    /// The genres most sources agree on, without spoilers: AniDB's genre tags
+    /// by weight and the genres of the linked sources, merged by name with the
+    /// saved merge options, which also set how many.
     /// </summary>
     [Required]
     public required List<Tag> Tags { get; init; }
@@ -144,11 +143,6 @@ public class SeasonAnime
     /// </summary>
     [Required]
     public required List<EpisodeAiring> OtherAirings { get; init; }
-
-    /// <summary>
-    /// How many genre tags an anime is sent with.
-    /// </summary>
-    public const int TagLimit = 5;
 
     #region Nested Types
 

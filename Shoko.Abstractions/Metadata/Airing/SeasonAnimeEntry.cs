@@ -64,4 +64,16 @@ public sealed record SeasonAnimeEntry
     ///   one on each other channel, in airing order.
     /// </summary>
     public required IReadOnlyList<IEpisodeAiring> OtherAirings { get; init; }
+
+    /// <summary>
+    ///   Its genres, merged across its sources by
+    ///   <see cref="Services.IMetadataService.GetMergedGenres"/> with the saved options.
+    /// </summary>
+    public required IReadOnlyList<ITag> Genres { get; init; }
+
+    /// <summary>
+    ///   Its animation studios, merged across its sources by
+    ///   <see cref="Services.IMetadataService.GetMergedStudios"/> with the saved options.
+    /// </summary>
+    public required IReadOnlyList<IStudio> Studios { get; init; }
 }

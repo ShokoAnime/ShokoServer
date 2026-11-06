@@ -18,10 +18,12 @@ namespace Shoko.Server.Services;
 /// </summary>
 /// <param name="catalog">The cached anime catalog.</param>
 /// <param name="airingScheduleService">The airing schedule service.</param>
+/// <param name="metadataService">The metadata service, for the merged genres and studios.</param>
 /// <param name="timeProvider">The clock, or <c>null</c> for the system's.</param>
 public class AiringCalendarService(
     AnidbAnimeCatalog catalog,
     IAiringScheduleService airingScheduleService,
+    IMetadataService metadataService,
     TimeProvider? timeProvider = null
 ) : IAiringCalendarService
 {
@@ -108,6 +110,8 @@ public class AiringCalendarService(
                 WithNext(airingOptions, new HashSet<AiringNextGrouping> { AiringNextGrouping.Channel }, at)
             )
             : new Dictionary<MetadataGuid, IReadOnlyList<IEpisodeAiring>>();
+        // Read once, so every entry is merged by the same options.
+        var mergeOptions = metadataService.MergeOptions;
         return
         [
             .. entries.Select(entry =>
@@ -127,6 +131,8 @@ public class AiringCalendarService(
                     Status = GetStatus(entry.Anime, next, today),
                     NextAiring = next,
                     OtherAirings = others,
+                    Genres = metadataService.GetMergedGenres(entry.Anime.AnimeID, mergeOptions),
+                    Studios = metadataService.GetMergedStudios(entry.Anime.AnimeID, mergeOptions),
                 };
             }),
         ];

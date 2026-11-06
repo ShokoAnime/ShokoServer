@@ -4,7 +4,7 @@ Every interface here is implemented by the server and called by you.
 
 | Interface | Use it to |
 |---|---|
-| `IMetadataService` | Look up entries of any source, Shoko's series, episodes and groups, and custom tags, and subscribe to metadata events |
+| `IMetadataService` | Look up entries of any source, Shoko's series, episodes and groups, and custom tags, merge an anime's genres and studios across its linked sources, and subscribe to metadata events |
 | `IShokoGroupManager` | Create, name, nest and delete groups, and move series between them |
 | `IImageManager` | Read, add, link and download images |
 | `IAiringScheduleService` | Read and write broadcast schedules ([`../Airing/README.md`](../Airing/README.md)) |
@@ -154,6 +154,17 @@ public class MyWatcher(IMetadataService metadataService, ILogger<MyWatcher> logg
 
 Subscribe from a hosted service, not from your `IPlugin` class; see the
 [abstractions README](../../README.md).
+
+## Genres and studios
+
+`GetMergedGenres(anidbAnimeID, options?)` and `GetMergedStudios(anidbAnimeID,
+options?)` merge an AniDB anime's genres and animation studios with those of
+the series and movies of other sources it is linked to, as the season view
+shows them. Genres come back as the `ITag` of the highest ranked source listing
+each, the ones most sources agree on first; studios as `IStudio`, by source
+rank. `MergeOptions` holds the saved `MetadataMergeOptions` (the source order,
+AniDB at its place or first, the genre limit and the excluded genres), used
+when a call gives none.
 
 ## Custom tags
 

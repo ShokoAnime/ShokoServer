@@ -100,6 +100,8 @@ public class MetadataService : IMetadataService
 
     private readonly Lazy<AnimeSeriesService>? _seriesService;
 
+    private readonly Lazy<MetadataMerger>? _merger;
+
     public MetadataService(
         AnimeGroupRepository groupRepository,
         AnimeSeriesRepository seriesRepository,
@@ -126,7 +128,8 @@ public class MetadataService : IMetadataService
         Lazy<IMetadataProviderManager> providerManager,
         ILogger<MetadataService> logger,
         Lazy<MetadataCollectionRefreshScheduler>? collectionScheduler = null,
-        Lazy<AnimeSeriesService>? seriesService = null
+        Lazy<AnimeSeriesService>? seriesService = null,
+        Lazy<MetadataMerger>? merger = null
     )
     {
         _groupRepository = groupRepository;
@@ -155,6 +158,7 @@ public class MetadataService : IMetadataService
         _logger = logger;
         _collectionScheduler = collectionScheduler;
         _seriesService = seriesService;
+        _merger = merger;
         (_coreLookups, _storedLookups) = BuildLookups();
 
         ShokoEventHandler.Instance.SeriesUpdated += OnSeriesUpdated;
@@ -1232,6 +1236,28 @@ public class MetadataService : IMetadataService
         var anidbSide = season.SeriesID.Source == MetadataSource.AniDB || season.SeriesID.Source == MetadataSource.Shoko;
         return [.. anidbSide ? projected : projected.Where(link => link.ProviderID == season.ID)];
     }
+
+    #endregion
+
+    #region Genres & Studios
+
+    /// <inheritdoc/>
+    public MetadataMergeOptions MergeOptions
+    {
+        get => Merger.Options;
+        set => Merger.Options = value;
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<ITag> GetMergedGenres(int anidbAnimeID, MetadataMergeOptions? options = null)
+        => Merger.GetGenres(anidbAnimeID, options);
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IStudio> GetMergedStudios(int anidbAnimeID, MetadataMergeOptions? options = null)
+        => Merger.GetStudios(anidbAnimeID, options);
+
+    private MetadataMerger Merger
+        => _merger?.Value ?? throw new InvalidOperationException("The metadata merger is not available.");
 
     #endregion
 

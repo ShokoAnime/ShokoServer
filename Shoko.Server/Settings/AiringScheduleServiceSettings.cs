@@ -161,18 +161,4 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration
     /// </summary>
     [Display(Name = "Include Date-Only Airings When Refreshing Anime Airing Soon")]
     public bool AiringSoonIncludeDateOnly { get; set; }
-
-    private List<MetadataSource> _seasonDetailSourceOrder = [MetadataSource.TMDB];
-
-    /// <summary>
-    /// The sources whose studios and genres the season view uses, highest
-    /// ranked first. A source not listed is not used, except AniDB, which is
-    /// always used: at its place when listed, else first. Duplicates are
-    /// dropped.
-    /// </summary>
-    public List<MetadataSource> SeasonDetailSourceOrder
-    {
-        get => _seasonDetailSourceOrder;
-        set => _seasonDetailSourceOrder = value.Distinct().ToList();
-    }
 }

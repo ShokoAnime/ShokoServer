@@ -41,6 +41,8 @@ public class AiringCalendarServiceTests
             Status = SeasonAnimeAiringStatus.Unknown,
             NextAiring = next,
             OtherAirings = [],
+            Genres = [],
+            Studios = [],
         };
 
     // A timed airing of an AniDB episode, or a date-only entry when it has no time.
