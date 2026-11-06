@@ -117,7 +117,7 @@ and should not be used for new code unless DI is not an option and only as a las
 9. `UseAuthentication` — custom "ShokoServer" scheme
 10. `ActorContextMiddleware` — makes the request's API token the current actor (`IActorContext`) until the request ends
 11. `UseAuthorization` — policies: `"admin"` (IsAdmin == 1), `"init"` (setup user only)
-12. `UseEndpoints` — `MapControllers`, plus the SignalR hubs when `EnableSignalR` is on: `/signalr/logging`, `/signalr/aggregate`
+12. `UseEndpoints` — `MapControllers` and the SignalR hubs: `/signalr/logging`, `/signalr/aggregate`
 13. Plugin middleware registration
 14. `UseMvc` (legacy, `EnableEndpointRouting = false`)
 
@@ -139,7 +139,7 @@ Plugin controllers are registered via `AddPluginControllers` during API setup.
 
 ### SignalR (Real-time Events)
 
-Two hubs, only mapped when `EnableSignalR` is on, each carrying its authorization as attributes on the hub class:
+Two hubs, each carrying its authorization as attributes on the hub class:
 
 - **`LoggingHub`** (`/signalr/logging`, admins only; `[InitFriendly]` and `[DatabaseBlockedExempt]`, so in setup and failure mode anyone, as the init user) — streams buffered server logs to connecting clients, separate from the aggregate hub because it can become noisy, fast.
 - **`AggregateHub`** (`/signalr/aggregate`, any authenticated user) — subscription only; clients call `feed.join_single` / `feed.join_many` etc. to subscribe to event categories, and cannot call into a feed. Every joining or leaving call answers with the connection's feeds afterwards, and `feed.joined` sends them once the connection has joined the ones its `feeds` query named. `feed.resend_initial` sends a connection already on a feed its `<feed>:connected` messages again, so a client sharing one connection among several listeners can give a late one its starting state.

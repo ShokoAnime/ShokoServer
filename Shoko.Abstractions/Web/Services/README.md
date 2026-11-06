@@ -51,10 +51,8 @@ language server or a protocol of its own, still goes under
 Microsoft recommends, and the one the server's own hubs use, so its name
 stands for "the server's sockets", as "to google" stands for searching the
 web. Plain HTTP routes stay under `/api`, even when they belong to the same
-feature as a socket. The core's `EnableSignalR` setting (`Web.EnableSignalR`
-in the server settings) only decides whether the core's own hubs are mounted;
-a plugin's sockets are its own to map, and SignalR stays configured either
-way.
+feature as a socket. The core's own hubs are always mounted; a plugin's
+sockets are its own to map.
 
 ### Mapping a SignalR hub
 

@@ -692,11 +692,8 @@ public static partial class APIExtensions
         app.UseEndpoints(conf =>
         {
             conf.MapControllers();
-            if (webSettings.EnableSignalR)
-            {
-                conf.MapHub<LoggingHub>("/signalr/logging");
-                conf.MapHub<AggregateHub>("/signalr/aggregate");
-            }
+            conf.MapHub<LoggingHub>("/signalr/logging");
+            conf.MapHub<AggregateHub>("/signalr/aggregate");
         });
 
         var registeredPlugins = false;

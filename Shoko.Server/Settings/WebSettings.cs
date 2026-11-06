@@ -78,16 +78,6 @@ public class WebSettings
     public List<string> TrustedProxies { get; set; } = [];
 
     /// <summary>
-    ///   Enable the built-in SignalR hubs available at <c>/signalr</c>.
-    /// </summary>
-    [Visibility(Advanced = true)]
-    [Display(Name = "Enable SignalR")]
-    [RequiresRestart]
-    [EnvironmentVariable("SHOKO_API_SIGNALR_ENABLED")]
-    [DefaultValue(true)]
-    public bool EnableSignalR { get; set; } = true;
-
-    /// <summary>
     /// Enable the API v2 endpoints.
     /// </summary>
     [Badge("Deprecated", Theme = DisplayColorTheme.Warning)]
