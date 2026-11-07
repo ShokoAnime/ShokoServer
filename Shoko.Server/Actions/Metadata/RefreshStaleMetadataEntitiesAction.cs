@@ -35,7 +35,8 @@ public sealed class RefreshStaleMetadataEntitiesAction(
 
     public ActionCategory Category => ActionCategory.Maintenance;
 
-    public IReadOnlyList<ActionTrigger> DefaultTriggers => [ActionTrigger.AtStartup, ActionTrigger.Every(TimeSpan.FromHours(24))];
+    // Weekly in the early hours, away from the start and the busier start of the week.
+    public IReadOnlyList<ActionTrigger> DefaultTriggers => [ActionTrigger.WeeklyOn(DayOfWeek.Thursday, new TimeOnly(3, 0))];
 
     public async Task Execute(IProgress<decimal> progress, CancellationToken token)
     {

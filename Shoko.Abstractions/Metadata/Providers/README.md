@@ -541,7 +541,7 @@ public class ExampleProvider(ExampleClient client, IMetadataPeopleStore people) 
   person's stub counts as unnamed while your source has stored no title for
   it.
 - **The library.** "Refresh Missing and Stale People, Studios, Networks and
-  Collections" runs at start-up and daily. It queues every stub and stale
+  Collections" runs weekly, on Thursdays at 03:00 by default. It queues every stub and stale
   entry something names, for each kind a provider of its source has turned
   on, and the fetch of every collection a linked film names that is not
   stored. `IMetadataRefreshService.RefreshEntry` takes these kinds
