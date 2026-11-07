@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.591",
+      "tag": "v6.0.0-dev.591",
+      "commit": "434182bca1bce0ad92a9423c26de1454d33b3135",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.591/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-07T23:15:01Z",
+      "releaseNotes": "\n`fix` (`api`): **Keep the lists of a holds body optional**:\n\n- Made `Pools` and `JobTypes` of `Queue.Input.HoldsBody` nullable, as the other optional lists of APIv3 bodies are, since reading a body with an omitted member set it to `null` over its empty initializer\n"
+    },
+    {
       "version": "6.0.0.590",
       "tag": "v6.0.0-dev.590",
       "commit": "a784df9ae7b60f5dcd99a471a97878bfc4eae60c",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.562/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-29T16:14:53Z",
       "releaseNotes": "\n`feat` (`webui`): **Serve a web UI per host, and trust forwarded headers from listed proxies**:\n\n- Added host overrides (`WebUIServiceSettings.HostOverrides`, `WebUIHostOverride`): a host, with an optional port, mapped to a web UI; the selected web UI stays the default for every other host\n- Served each host its own web UI, mount path and redirects, and installed the bundled release of every web UI in use\n- Answered `/api/v3/WebUI` and its release routes for the request's host; `PATCH /api/v3/WebUI/Provider` takes the overrides\n- Added `Web.TrustedProxies` (`SHOKO_TRUSTED_PROXIES`): forwarded headers are honoured only from the listed proxies, as the first step of the pipeline\n- `IWebUIService` gained per-host lookups and the overrides; its release methods take the web UI they are for\n\n`fix` (`config`): **Require a key on a list of rows that is drawn inline by default**:\n\n- Checked an automatic list of class items as an inline one: its rows need a `[Key]` member or a `TitleComponent`\n- Named the property in the error\n- Keyed `AiringTrackPreference.Kind` and `MetadataProviderAssignment.ProviderID`, which lacked one\n\n`fix`: **Skip types that cannot load when scanning the loaded assemblies**:\n\n- Added `ReflectionUtils.ScannableTypes` and `LoadableTypes`, used by every scan of the loaded assemblies\n- A plugin the server refused could leave a type whose dependency is missing, and `GetTypes()` then stopped the start with no web server up\n\n`feat` (`buildtools`): **Detect a meta plugin and stamp it as `PackageIsMeta`**:\n\n- Added `DetectMetaPlugin`, run before `CoreCompile` under `shoko-build` too\n- Stamped `true` when the project sets `PluginGenerateClass` and has no `Compile` item outside its intermediate folder, else `false`\n\n`feat` (`plugin`): **Read `PackageIsMeta` into `IsMeta`**:\n\n- Added `IsMeta` to `LocalPluginInfo` and the APIv3 `PluginInfo`, `null` when unmarked\n- Read the manifest's `is_meta`, on the package and on each release, into `PackageManifestInfo.IsMeta`, `PackageReleaseInfo.IsMeta` and their APIv3 models\n\n`feat` (`buildtools`): **Record `is_meta` on the release entry and the manifest in `shoko-build`**:\n\n- Read `PackageIsMeta` from the built assembly and wrote it to the release entry\n- Set the manifest's `is_meta` to `true` when every release is a meta plugin, `false` when any is not, and left it out otherwise\n- Added both to `manifest.schema.json`\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.117**.\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.7.2**.\n\n`chore` (`buildtools`): **Bump build tools version to v0.8.2**.\n"
-    },
-    {
-      "version": "6.0.0.561",
-      "tag": "v6.0.0-dev.561",
-      "commit": "0a9e95aff04cfa5ac4bd2b57cfacb878a3cb6e64",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.561/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-27T15:39:17Z",
-      "releaseNotes": "\n`fix` (`buildtools`): **Write a generated file only when its text changes**:\n\n- Left an unchanged plugin's generated sources alone, so it is no longer recompiled on every build\n\n`fix` (`buildtools`): **Hand the plugin namespace to the build as `PluginNamespace`**:\n\n- Passed the namespace from `--namespace`, the project or the manifest to targets that read the property\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.7.1**.\n\n`chore` (`buildtools`): **Bump build tools version to v0.8.1**.\n"
     }
   ]
 }
