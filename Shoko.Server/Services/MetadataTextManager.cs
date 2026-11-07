@@ -2678,6 +2678,10 @@ public class MetadataTextManager : IMetadataTextManager
                     Value = title.Value,
                     CountryCode = title.CountryCode,
                     Source = title.Source,
+                    // Still the entry's own title, only demoted.
+                    ID = title.ID,
+                    EntityID = title.EntityID,
+                    ReferenceID = title.ReferenceID,
                     Type = demotedTo,
                 }
                 : title;

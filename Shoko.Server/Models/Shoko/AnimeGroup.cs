@@ -481,6 +481,7 @@ public class AnimeGroup : IShokoGroup
                 {
                     if ((custom is not null || series.LocalID != mainSeriesId) && title.Type == TitleType.Main)
                     {
+                        // Still the title of the entry it came from, only relabelled for the group.
                         titles.Add(new TitleStub
                         {
                             Language = title.Language,
@@ -488,6 +489,9 @@ public class AnimeGroup : IShokoGroup
                             CountryCode = title.CountryCode,
                             Value = title.Value,
                             Source = title.Source,
+                            ID = title.ID,
+                            EntityID = title.EntityID,
+                            ReferenceID = title.ReferenceID,
                             Type = TitleType.Official,
                         });
                         continue;
