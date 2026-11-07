@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.590",
+      "tag": "v6.0.0-dev.590",
+      "commit": "a784df9ae7b60f5dcd99a471a97878bfc4eae60c",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.590/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-07T23:02:45Z",
+      "releaseNotes": "\n`refactor` (`queue`): **Share one pool status between the queue gauges**:\n\n- The five pool gauges now read one status of the pools per collection instead of taking one each, since each status counts the waiting jobs under every pool's lock\n"
+    },
+    {
       "version": "6.0.0.589",
       "tag": "v6.0.0-dev.589",
       "commit": "8687aa7a4570e0f59d5a325f0a00609c0a6c24ef",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.561/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-27T15:39:17Z",
       "releaseNotes": "\n`fix` (`buildtools`): **Write a generated file only when its text changes**:\n\n- Left an unchanged plugin's generated sources alone, so it is no longer recompiled on every build\n\n`fix` (`buildtools`): **Hand the plugin namespace to the build as `PluginNamespace`**:\n\n- Passed the namespace from `--namespace`, the project or the manifest to targets that read the property\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.7.1**.\n\n`chore` (`buildtools`): **Bump build tools version to v0.8.1**.\n"
-    },
-    {
-      "version": "6.0.0.560",
-      "tag": "v6.0.0-dev.560",
-      "commit": "f0fd90b8de8906d42c94cd78f19dc847f6871317",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.560/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-27T14:16:56Z",
-      "releaseNotes": "\n`fix` (`api`): **Name generic schemas with `Of`, `And` and `End`**:\n\n- Named generics from their type arguments, not the type's string form, which garbled generics with more than one argument\n- Replaced `ListResult_…_` with `ListResultOf…`, closing an argument with `End` only when another follows\n"
     }
   ]
 }
