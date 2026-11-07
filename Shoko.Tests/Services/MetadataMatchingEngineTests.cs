@@ -948,10 +948,11 @@ public class MetadataMatchingEngineTests
     }
 
     // Without a query, a short title or synonym must name the candidate exactly,
-    // while the same prefix of a main title still counts.
+    // while the same prefix of a main title still counts. A short title that
+    // does not leaves only the year, which is no match on its own.
     [Theory]
-    [InlineData(TitleType.Short, MatchRating.DateMatches)]
-    [InlineData(TitleType.Synonym, MatchRating.DateMatches)]
+    [InlineData(TitleType.Short, MatchRating.None)]
+    [InlineData(TitleType.Synonym, MatchRating.None)]
     [InlineData(TitleType.Main, MatchRating.DateAndTitleKindaMatches)]
     [InlineData(TitleType.Official, MatchRating.DateAndTitleKindaMatches)]
     public void MatchSeries_WithoutAQuery_TakesShortTitlesOnlyExactly(TitleType type, MatchRating expected)
@@ -978,7 +979,7 @@ public class MetadataMatchingEngineTests
             Title("Kaguya 2", MetadataSource.AniDB, "x-jat", "", TitleType.Synonym),
         ]);
         Assert.Equal(MatchRating.DateAndTitleMatches, Assert.Single(Matcher().MatchSeries(anime, [Series("1", "Air", aired: new(2006, 4, 11))])).Rating);
-        Assert.Equal(MatchRating.DateMatches, Assert.Single(Matcher().MatchSeries(anime, [Series("1", "Kaguya", aired: new(2006, 4, 11))])).Rating);
+        Assert.Equal(MatchRating.None, Assert.Single(Matcher().MatchSeries(anime, [Series("1", "Kaguya", aired: new(2006, 4, 11))])).Rating);
         Assert.Equal(MatchRating.DateAndTitleKindaMatches,
             Assert.Single(Matcher().MatchSeries(anime, [Series("1", "Air Gear", aired: new(2006, 4, 11))], new() { Query = "Air" })).Rating);
     }
@@ -1329,6 +1330,20 @@ public class MetadataMatchingEngineTests
 
     #endregion
 
+    // A date with no title behind it is a match only when it is close; the
+    // same year alone is not, as the Trigun movie is not Bleach's that year.
+    [Fact]
+    public void MatchSeries_ADateAloneMustBeClose()
+    {
+        var anime = SeriesAnime(new(2010, 4, 24), 1);
+        var far = Assert.Single(Matcher().MatchSeries(anime, [Series("1", "Bleach: Jigoku Hen", aired: new(2010, 12, 4))], new() { Query = "Trigun: Badlands Rumble" }));
+        var near = Assert.Single(Matcher().MatchSeries(anime, [Series("1", "Something Else", aired: new(2010, 4, 25))], new() { Query = "Trigun: Badlands Rumble" }));
+
+        Assert.Equal(MatchRating.None, far.Rating);
+        Assert.Equal(MatchRejectionReason.TitleMismatch, far.Rejection);
+        Assert.Equal(MatchRating.DateMatches, near.Rating);
+    }
+
     #region Films
 
     [Fact]
@@ -1352,6 +1367,17 @@ public class MetadataMatchingEngineTests
         var (series, second) = FilmAnime(new(2016, 8, 26), 2, episodeDate: new(2017, 1, 1));
         Assert.Equal(MatchRating.TitleMatches, Matcher().MatchMovies(series, second, [Movie("1", "Film", released: new(2016, 1, 1))], new() { Query = "Film" })[0].Rating);
         Assert.Equal(MatchRating.DateAndTitleMatches, Matcher().MatchMovies(series, second, [Movie("1", "Film", released: new(2017, 1, 1))], new() { Query = "Film" })[0].Rating);
+    }
+
+    [Fact]
+    public void MatchMovies_ADateAloneMustBeClose()
+    {
+        var (anime, episode) = FilmAnime(new(2016, 8, 26), 1);
+        var far = Assert.Single(Matcher().MatchMovies(anime, episode, [Movie("1", "Another Film", released: new(2016, 3, 1))], new() { Query = "Kimi no Na wa." }));
+        var near = Assert.Single(Matcher().MatchMovies(anime, episode, [Movie("1", "Another Film", released: new(2016, 9, 1))], new() { Query = "Kimi no Na wa." }));
+
+        Assert.Equal(MatchRating.None, far.Rating);
+        Assert.Equal(MatchRating.DateMatches, near.Rating);
     }
 
     [Fact]

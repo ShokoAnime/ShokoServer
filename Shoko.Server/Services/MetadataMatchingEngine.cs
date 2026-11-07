@@ -109,6 +109,19 @@ public class MetadataMatchingEngine(
     private const int AlignmentDayTolerance = 1;
 
     /// <summary>
+    ///   How many days apart a series' first episode and the anime's may have
+    ///   aired for the date to stand without a title.
+    /// </summary>
+    private const int MaxDaysApartForDateOnly = 3;
+
+    /// <summary>
+    ///   How many days apart a film's release and the anime's may be for the
+    ///   date to stand without a title, as premieres, festival showings and
+    ///   the general release often fall within a week.
+    /// </summary>
+    private const int MaxDaysApartForDateOnlyFilm = 7;
+
+    /// <summary>
     ///   How many different days have to line up before an alignment counts,
     ///   or every day the anime aired on when it has fewer.
     /// </summary>
@@ -202,21 +215,21 @@ public class MetadataMatchingEngine(
                 .ThenBy(season => year is { } known && season.FirstAiredAt?.Year == known ? 0 : 1)
                 .FirstOrDefault();
             var episodeDifference = bestSeason is null ? null : EpisodeDifference(episodeCount, bestSeason.EpisodeCount);
-            var dateMatches = year is { } wanted && (
+            var yearMatches = year is { } wanted && (
                 bestSeason?.FirstAiredAt?.Year == wanted ||
                 candidate.FirstAiredAt?.Year == wanted ||
                 candidate.SeasonYear == wanted
             );
 
-            // Where the years fail (a year-boundary premiere, a split cour),
-            // first episodes airing within days of each other still agree.
-            if (!dateMatches && bestSeason?.FirstEpisodeAiredAt is { } sourceDate && firstEpisodeDate is { } anidbDate)
-                dateMatches = Math.Abs(sourceDate.DayNumber - anidbDate.DayNumber) <= 3;
-
-            // And so do episodes aired on the same days as nearly all of the
-            // anime's, which is the stronger evidence of the two.
-            if (!dateMatches && alignedSeason is not null)
-                dateMatches = true;
+            // First episodes airing within days of each other agree where the
+            // years fail too (a year-boundary premiere, a split cour), and so
+            // do episodes aired on the same days as nearly all of the anime's,
+            // the stronger evidence of the two. Only these are close enough to
+            // stand without a title; a shared year alone is not.
+            var dateIsClose = alignedSeason is not null ||
+                (bestSeason?.FirstEpisodeAiredAt is { } sourceDate && firstEpisodeDate is { } anidbDate &&
+                    Math.Abs(sourceDate.DayNumber - anidbDate.DayNumber) <= MaxDaysApartForDateOnly);
+            var dateMatches = yearMatches || dateIsClose;
 
             // Separate-season sources keep the first season under the bare title,
             // so a match found only without the sequel suffix needs the dates to agree.
@@ -247,7 +260,7 @@ public class MetadataMatchingEngine(
             var alignmentText = datedEpisodes.Count > 0 && seasons.Any(season => season.Episodes is { Count: > 0 })
                 ? $" {DescribeAlignment(alignment, datedEpisodes)}"
                 : string.Empty;
-            judged.Add(new(candidate, index, Rate(title, dateMatches), title, dateMatches, episodeDifference, candidate.Seasons is null ? null : bestSeason?.SeasonNumber, filter)
+            judged.Add(new(candidate, index, Rate(title, dateMatches, dateIsClose), title, dateMatches, episodeDifference, candidate.Seasons is null ? null : bestSeason?.SeasonNumber, filter)
             {
                 Hinted = options.HintedIDs.Contains(candidate.ID),
                 FilterDetails = filter switch
@@ -337,6 +350,7 @@ public class MetadataMatchingEngine(
                 .Select(title => QueryVariants.Of(title.Value, isJapanese: false, withSubtitle: false, exactOnly: IsExactOnly(title)))
                 .ToList();
         var (year, dateText) = FilmDateOf(anime, episode);
+        var filmDay = FilmDayOf(anime, episode);
 
         var judged = new List<Judgement<MetadataMovieSearchResult>>(candidates.Count);
         for (var index = 0; index < candidates.Count; index++)
@@ -347,8 +361,13 @@ public class MetadataMatchingEngine(
                 candidate.ReleasedAt?.Year == wanted ||
                 candidate.OtherReleaseDates.Any(date => date.Year == wanted)
             );
+            // Only a release within days of the film's stands without a title.
+            var dateIsClose = filmDay is { } day && (
+                (candidate.ReleasedAt is { IsComplete: true } released && Math.Abs(released.ToDateOnly().DayNumber - day.DayNumber) <= MaxDaysApartForDateOnlyFilm) ||
+                candidate.OtherReleaseDates.Any(date => Math.Abs(date.DayNumber - day.DayNumber) <= MaxDaysApartForDateOnlyFilm)
+            );
             var filter = candidate.IsRestricted && !options.IncludeRestricted ? MatchRejectionReason.Restricted : MatchRejectionReason.None;
-            judged.Add(new(candidate, index, Rate(title, dateMatches), title, dateMatches, null, null, filter)
+            judged.Add(new(candidate, index, Rate(title, dateMatches, dateIsClose), title, dateMatches, null, null, filter)
             {
                 Hinted = options.HintedIDs.Contains(candidate.ID),
                 FilterDetails = filter is MatchRejectionReason.Restricted ? "It is marked as adult, and adult entries were not allowed." : null,
@@ -542,13 +561,18 @@ public class MetadataMatchingEngine(
         _ => 6,
     };
 
-    private static MatchRating Rate(TitleEvidence title, bool dateMatches)
+    /// <summary>
+    ///   Rates a candidate by its title and date evidence. A date with no
+    ///   title behind it rates only when it is close: entries sharing a year
+    ///   are too many to tell apart by that alone.
+    /// </summary>
+    private static MatchRating Rate(TitleEvidence title, bool dateMatches, bool dateIsClose)
         => (title >= TitleEvidence.ExactWithoutSuffix, title is TitleEvidence.Close, dateMatches) switch
         {
             (true, _, true) => MatchRating.DateAndTitleMatches,
             (true, _, false) => MatchRating.TitleMatches,
             (_, true, true) => MatchRating.DateAndTitleKindaMatches,
-            (_, _, true) => MatchRating.DateMatches,
+            (_, _, true) when dateIsClose => MatchRating.DateMatches,
             (_, true, false) => MatchRating.TitleKindaMatches,
             _ => MatchRating.None,
         };
@@ -606,6 +630,8 @@ public class MetadataMatchingEngine(
                 yield return (judgement, MatchRejectionReason.None, null);
             else if (judgement.Filter is not MatchRejectionReason.None)
                 yield return (judgement, judgement.Filter, judgement.FilterDetails);
+            else if (judgement.Rating is MatchRating.None && judgement.DateMatches)
+                yield return (judgement, MatchRejectionReason.TitleMismatch, $"Only its year agreed, which is not enough without its titles or a date within days. {judgement.Comparison}");
             else if (winner is null || judgement.Rating is MatchRating.None)
                 yield return (judgement, MatchRejectionReason.TitleMismatch, $"Neither its titles nor its date matched. {judgement.Comparison}");
             else if (Priority(judgement.Rating) == Priority(winner.Rating))
@@ -907,6 +933,25 @@ public class MetadataMatchingEngine(
 
         var (year, from) = found;
         return year is { } known ? (known, $"the year {known} (from {from})") : (null, "no year");
+    }
+
+    /// <summary>
+    ///   The day a film aired, as <see cref="FilmDateOf"/> picks it, when the
+    ///   day is known.
+    /// </summary>
+    private static DateOnly? FilmDayOf(IAnidbAnime anime, IAnidbEpisode episode)
+    {
+        var films = SafeEpisodes(anime)
+            .Where(film => film.Type is EpisodeType.Episode or EpisodeType.Special or EpisodeType.Other)
+            .OrderBy(film => film.Type)
+            .ThenBy(film => film.EpisodeNumber)
+            .ToList();
+        var isAnimeWide = films.Count is 1 ||
+            SafeTitles(episode).Any(title => title.Value.Contains("Complete Movie", StringComparison.InvariantCultureIgnoreCase));
+        var animeStart = AnidbRegularAirDates.RegularStartOf(anime.AirDate, films) is { IsComplete: true } regular ? regular.ToDateOnly() : (DateOnly?)null;
+        return isAnimeWide
+            ? animeStart ?? films.FirstOrDefault()?.AirDate
+            : episode.AirDate ?? animeStart;
     }
 
     private static IReadOnlyList<IAnidbEpisode> SafeEpisodes(IAnidbAnime anime)
