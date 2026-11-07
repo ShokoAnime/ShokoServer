@@ -25,6 +25,34 @@ public class AiringScheduleSweepEventArgs : EventArgs
     public required AiringScheduleSweepOutcome Outcome { get; init; }
 
     /// <summary>
+    ///   The sweep the chunk is part of, the same for every chunk from the
+    ///   first one after the walk began to the one that ended it.
+    /// </summary>
+    public required Guid SweepID { get; init; }
+
+    /// <summary>
+    ///   When the sweep's first chunk started, in UTC.
+    /// </summary>
+    public required DateTime SweepStartedAt { get; init; }
+
+    /// <summary>
+    ///   The chunk's place in its sweep, from <c>0</c> for the first.
+    /// </summary>
+    public required int ChunkIndex { get; init; }
+
+    /// <summary>
+    ///   Whether the chunk was the first of its sweep.
+    /// </summary>
+    public bool IsFirstChunk => ChunkIndex is 0;
+
+    /// <summary>
+    ///   How many chunks in a row, this one included, got nowhere in the walk.
+    ///   Once it reaches three the sweep is held back to the provider's own
+    ///   interval until it moves again.
+    /// </summary>
+    public required int NoProgressCount { get; init; }
+
+    /// <summary>
     ///   When the chunk started, in UTC.
     /// </summary>
     public required DateTime StartedAt { get; init; }

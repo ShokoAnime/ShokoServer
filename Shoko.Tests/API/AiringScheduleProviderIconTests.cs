@@ -90,7 +90,6 @@ public class AiringScheduleProviderIconTests
             null!,
             null!,
             null!,
-            null!,
             _paths,
             null!,
             null!,

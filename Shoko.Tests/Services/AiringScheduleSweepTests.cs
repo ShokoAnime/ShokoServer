@@ -12,6 +12,7 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Plugin;
@@ -194,6 +195,44 @@ public class AiringScheduleSweepTests
 
         Assert.Equal(AiringScheduleSweepOutcome.Failed, result!.Outcome);
         Assert.Equal("the source is down", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ExecuteSweep_TheSourceBeingUnavailableIsUnavailableAndKeepsTheCursor()
+    {
+        var provider = new ScriptedProvider("Alpha", (cursor, _) => cursor is null
+            ? Task.FromResult<string?>("page-2")
+            : throw new MetadataProviderUnavailableException(MetadataSource.AniDB, "rate limited"));
+        using var harness = new Harness(provider);
+
+        await harness.Service.ExecuteSweepAsync(harness.IDOf(provider), TestContext.Current.CancellationToken);
+        var result = await harness.Service.ExecuteSweepAsync(harness.IDOf(provider), TestContext.Current.CancellationToken);
+
+        Assert.Equal(AiringScheduleSweepOutcome.Unavailable, result!.Outcome);
+        Assert.False(result.IsFinished);
+        Assert.Equal(0, result.NoProgressCount);
+    }
+
+    [Fact]
+    public async Task ExecuteSweep_TheChunksOfOneSweepShareItsIDAndCountUp()
+    {
+        var provider = new ScriptedProvider("Alpha", (cursor, _) => Task.FromResult<string?>(cursor switch
+        {
+            null => "page-2",
+            "page-2" => "page-3",
+            _ => null,
+        }));
+        using var harness = new Harness(provider);
+
+        var chunks = new List<AiringScheduleSweepEventArgs>();
+        for (var round = 0; round < 4; round++)
+            chunks.Add((await harness.Service.ExecuteSweepAsync(harness.IDOf(provider), TestContext.Current.CancellationToken))!);
+
+        Assert.Equal([0, 1, 2, 0], chunks.Select(chunk => chunk.ChunkIndex));
+        Assert.Equal(chunks[0].SweepID, chunks[2].SweepID);
+        Assert.Equal(chunks[0].SweepStartedAt, chunks[2].SweepStartedAt);
+        Assert.NotEqual(chunks[0].SweepID, chunks[3].SweepID);
+        Assert.True(chunks[3].IsFirstChunk);
     }
 
     [Fact]

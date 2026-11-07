@@ -19,5 +19,8 @@ public class AiringScheduleSweepStateMap : ClassMap<AiringScheduleSweepState>
         Map(x => x.LastRunAt).Not.Nullable();
         Map(x => x.LastOutcome).CustomType<AiringScheduleSweepOutcome>().Not.Nullable();
         Map(x => x.NoProgressCount).Not.Nullable();
+        Map(x => x.SweepID).Nullable();
+        Map(x => x.SweepStartedAt).Nullable();
+        Map(x => x.ChunkIndex).Not.Nullable();
     }
 }

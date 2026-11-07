@@ -277,8 +277,10 @@ public partial class AiringScheduleService
     )
     {
         var key = GetRefreshKey(providerID, source, type, id);
+        var entityID = new MetadataGuid(source, type, id);
+        var startedAt = UtcNow;
         if (GetProviderInfo(providerID) is not { } info)
-            return Publish(key, new AiringScheduleProviderRefresh(providerID, providerID.ToString(), AiringScheduleRefreshState.Failed, "The provider is not registered."));
+            return Publish(key, entityID, startedAt, new AiringScheduleProviderRefresh(providerID, providerID.ToString(), AiringScheduleRefreshState.Failed, "The provider is not registered."));
 
         var context = new AiringReadContext(this, includeDisabled: true);
         var entity = type switch
@@ -289,7 +291,7 @@ public partial class AiringScheduleService
             _ => null,
         };
         if (entity is null)
-            return Publish(key, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Skipped, null));
+            return Publish(key, entityID, startedAt, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Skipped, null));
 
         try
         {
@@ -300,7 +302,7 @@ public partial class AiringScheduleService
                 IEpisode episode => await info.Provider.RefreshAsync(episode, cancellationToken).ConfigureAwait(false),
                 _ => false,
             };
-            return Publish(key, new AiringScheduleProviderRefresh(
+            return Publish(key, entityID, startedAt, new AiringScheduleProviderRefresh(
                 info.ID,
                 info.Name,
                 refreshed ? AiringScheduleRefreshState.Refreshed : AiringScheduleRefreshState.Skipped,
@@ -309,12 +311,12 @@ public partial class AiringScheduleService
         }
         catch (OperationCanceledException)
         {
-            Publish(key, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Cancelled, null));
+            Publish(key, entityID, startedAt, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Cancelled, null));
             throw;
         }
         catch (TimeoutException ex)
         {
-            return Publish(key, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.TimedOut, ex.Message));
+            return Publish(key, entityID, startedAt, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.TimedOut, ex.Message));
         }
         catch (Exception ex)
         {
@@ -335,25 +337,29 @@ public partial class AiringScheduleService
                 );
             else
                 logger.LogError(ex, "Provider {ProviderName} failed to refresh {EntityType} {EntitySource}:{EntityID}.", info.Name, type, source, id);
-            return Publish(key, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Failed, ex.Message));
+            return Publish(key, entityID, startedAt, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Failed, ex.Message));
         }
     }
 
     /// <summary>
-    /// Hand a refresh result to whoever is waiting on that provider and entity.
+    /// Hand a refresh result to whoever is waiting on that provider and entity,
+    /// and raise <see cref="RefreshCompleted"/>.
     /// </summary>
     /// <param name="key">The refresh's key.</param>
+    /// <param name="entityID">The entry that was refreshed.</param>
+    /// <param name="startedAt">When the refresh started, in UTC.</param>
     /// <param name="result">What the provider did.</param>
     /// <returns>The result, so a caller can return it in one line.</returns>
-    private AiringScheduleProviderRefresh Publish(string key, AiringScheduleProviderRefresh result)
+    private AiringScheduleProviderRefresh Publish(string key, MetadataGuid entityID, DateTime startedAt, AiringScheduleProviderRefresh result)
     {
-        if (!_refreshWaiters.TryGetValue(key, out var waiters))
-            return result;
+        if (_refreshWaiters.TryGetValue(key, out var waiters))
+        {
+            lock (waiters)
+                foreach (var waiter in waiters)
+                    waiter.TrySetResult(result);
+        }
 
-        lock (waiters)
-            foreach (var waiter in waiters)
-                waiter.TrySetResult(result);
-
+        RefreshCompleted?.Invoke(this, new() { EntityID = entityID, Refresh = result, StartedAt = startedAt, CompletedAt = UtcNow });
         return result;
     }
 

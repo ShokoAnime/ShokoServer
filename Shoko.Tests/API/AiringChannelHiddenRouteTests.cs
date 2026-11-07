@@ -58,7 +58,6 @@ public class AiringChannelHiddenRouteTests
             null!,
             null!,
             null!,
-            null!,
             _paths,
             null!,
             null!,

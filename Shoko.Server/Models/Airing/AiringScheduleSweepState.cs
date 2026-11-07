@@ -62,6 +62,22 @@ public class AiringScheduleSweepState
     /// </summary>
     public int NoProgressCount { get; set; }
 
+    /// <summary>
+    /// The sweep the stored cursor belongs to, the same for all its chunks;
+    /// <c>null</c> on a row from before sweeps had IDs.
+    /// </summary>
+    public Guid? SweepID { get; set; }
+
+    /// <summary>
+    /// When the sweep's first chunk started, in UTC.
+    /// </summary>
+    public DateTime? SweepStartedAt { get; set; }
+
+    /// <summary>
+    /// The last chunk's place in its sweep, from <c>0</c>.
+    /// </summary>
+    public int ChunkIndex { get; set; }
+
     #endregion
 
     #region Computed Properties

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Repositories;
@@ -33,6 +34,9 @@ public partial class AiringScheduleService
 
     /// <inheritdoc/>
     public event EventHandler<AiringScheduleSweepEventArgs>? SweepCompleted;
+
+    /// <inheritdoc/>
+    public event EventHandler<AiringScheduleRefreshEventArgs>? RefreshCompleted;
 
     /// <summary>
     /// Enqueue a chunk for every sweeping provider that is due one. This is
@@ -160,6 +164,11 @@ public partial class AiringScheduleService
         var cursor = state?.Cursor;
         var previousNoProgress = state?.NoProgressCount ?? 0;
         var startedAt = UtcNow;
+        // A sweep begins when there is no cursor to resume from; its chunks share an ID until it ends.
+        var isNewSweep = cursor is null || state?.SweepID is null;
+        var sweepID = isNewSweep ? Guid.NewGuid() : state!.SweepID!.Value;
+        var sweepStartedAt = isNewSweep ? startedAt : state!.SweepStartedAt ?? startedAt;
+        var chunkIndex = isNewSweep ? 0 : state!.ChunkIndex + 1;
         var outcome = AiringScheduleSweepOutcome.Completed;
         var nextCursor = cursor;
         string? errorMessage = null;
@@ -190,6 +199,13 @@ public partial class AiringScheduleService
                     : AiringScheduleSweepOutcome.Cancelled;
             nextCursor = cursor;
         }
+        catch (MetadataProviderUnavailableException ex)
+        {
+            // The source asked for a break; the walk keeps its place.
+            outcome = AiringScheduleSweepOutcome.Unavailable;
+            errorMessage = ex.Message;
+            nextCursor = cursor;
+        }
         catch (Exception ex)
         {
             // A provider that fails is reported, never thrown, so one source
@@ -213,11 +229,15 @@ public partial class AiringScheduleService
             // whether the walk can move, so the count is left as it was.
             _ => previousNoProgress,
         };
-        SaveSweepState(providerID, nextCursor, completedAt, outcome, noProgressCount);
+        SaveSweepState(providerID, nextCursor, completedAt, outcome, noProgressCount, sweepID, sweepStartedAt, chunkIndex);
 
         var args = new AiringScheduleSweepEventArgs()
         {
             Provider = info,
+            SweepID = sweepID,
+            SweepStartedAt = sweepStartedAt,
+            ChunkIndex = chunkIndex,
+            NoProgressCount = noProgressCount,
             Outcome = outcome,
             StartedAt = startedAt,
             CompletedAt = completedAt,
@@ -276,10 +296,25 @@ public partial class AiringScheduleService
     /// <param name="completedAt">When the chunk finished, in UTC.</param>
     /// <param name="outcome">How the chunk ended.</param>
     /// <param name="noProgressCount">How many chunks in a row have got nowhere.</param>
-    private static void SaveSweepState(Guid providerID, string? cursor, DateTime completedAt, AiringScheduleSweepOutcome outcome, int noProgressCount)
+    /// <param name="sweepID">The sweep the chunk is part of.</param>
+    /// <param name="sweepStartedAt">When the sweep's first chunk started.</param>
+    /// <param name="chunkIndex">The chunk's place in its sweep.</param>
+    private static void SaveSweepState(
+        Guid providerID,
+        string? cursor,
+        DateTime completedAt,
+        AiringScheduleSweepOutcome outcome,
+        int noProgressCount,
+        Guid sweepID,
+        DateTime sweepStartedAt,
+        int chunkIndex
+    )
     {
         var state = RepoFactory.AiringScheduleSweepState.GetByProviderID(providerID) ?? new() { ProviderID = providerID };
         state.Cursor = cursor;
+        state.SweepID = sweepID;
+        state.SweepStartedAt = sweepStartedAt;
+        state.ChunkIndex = chunkIndex;
         state.LastRunAt = completedAt;
         state.LastOutcome = outcome;
         state.NoProgressCount = noProgressCount;

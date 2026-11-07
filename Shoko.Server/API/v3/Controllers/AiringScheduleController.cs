@@ -53,7 +53,6 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="settingsProvider">Settings provider.</param>
 /// <param name="pluginManager">Plugin manager.</param>
 /// <param name="airingScheduleService">Airing schedule service.</param>
-/// <param name="configurationProvider">Airing schedule service settings provider.</param>
 /// <param name="anidbAnimes">AniDB anime repository.</param>
 /// <param name="animeSeries">Shoko series repository.</param>
 /// <param name="animeEpisodes">Shoko episode repository.</param>
@@ -71,7 +70,6 @@ public class AiringScheduleController(
     ISettingsProvider settingsProvider,
     IPluginManager pluginManager,
     IAiringScheduleService airingScheduleService,
-    ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider,
     AniDB_AnimeRepository anidbAnimes,
     AnimeSeriesRepository animeSeries,
     AnimeEpisodeRepository animeEpisodes,
@@ -1080,7 +1078,7 @@ public class AiringScheduleController(
     /// <returns>The preferred channels, best first.</returns>
     [HttpGet("Channel/Priority")]
     public ActionResult<List<Guid>> GetChannelPriority()
-        => configurationProvider.Load().PreferredChannels;
+        => airingScheduleService.PreferredChannels.ToList();
 
     /// <summary>
     /// Set the server's preferred channel order, best first.
@@ -1101,10 +1099,8 @@ public class AiringScheduleController(
             return ValidationProblem(ModelState);
         }
 
-        var config = configurationProvider.Load();
-        config.PreferredChannels = channels;
-        configurationProvider.Save(config);
-        return channels;
+        airingScheduleService.PreferredChannels = channels;
+        return airingScheduleService.PreferredChannels.ToList();
     }
 
     /// <summary>
@@ -1117,7 +1113,7 @@ public class AiringScheduleController(
     /// <returns>The preferred tracks, best first.</returns>
     [HttpGet("Track/Priority")]
     public ActionResult<List<TrackPreference>> GetTrackPriority()
-        => configurationProvider.Load().PreferredTracks
+        => airingScheduleService.PreferredTracks
             .Select(preference => new TrackPreference(preference))
             .ToList();
 
@@ -1132,14 +1128,8 @@ public class AiringScheduleController(
     [HttpPut("Track/Priority")]
     public ActionResult<List<TrackPreference>> SetTrackPriority([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] List<TrackPreference> body)
     {
-        var tracks = body
-            .Select(preference => preference.ToPreference())
-            .Distinct()
-            .ToList();
-        var config = configurationProvider.Load();
-        config.PreferredTracks = tracks;
-        configurationProvider.Save(config);
-        return tracks
+        airingScheduleService.PreferredTracks = [.. body.Select(preference => preference.ToPreference())];
+        return airingScheduleService.PreferredTracks
             .Select(preference => new TrackPreference(preference))
             .ToList();
     }

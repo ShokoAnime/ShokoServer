@@ -810,6 +810,37 @@ public partial class AiringScheduleService(
             .ToHashSet();
 
     /// <inheritdoc/>
+    public IReadOnlyList<Guid> PreferredChannels
+    {
+        get => [.. configurationProvider.Load().PreferredChannels];
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            var channels = value.Distinct().ToList();
+            var unknownChannels = channels.Where(channelID => RepoFactory.AiringChannel.GetByChannelID(channelID) is null).ToList();
+            if (unknownChannels.Count > 0)
+                throw new ArgumentException($"Unknown channels: {string.Join(", ", unknownChannels)}", nameof(value));
+
+            var config = configurationProvider.Load(copy: true);
+            config.PreferredChannels = channels;
+            configurationProvider.Save(config);
+        }
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<AiringTrackPreference> PreferredTracks
+    {
+        get => [.. configurationProvider.Load().PreferredTracks];
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            var config = configurationProvider.Load(copy: true);
+            config.PreferredTracks = [.. value.Distinct()];
+            configurationProvider.Save(config);
+        }
+    }
+
+    /// <inheritdoc/>
     public IAiringChannel AddChannelAliases(IAiringChannel channel, IEnumerable<string> aliases)
     {
         ArgumentNullException.ThrowIfNull(channel);

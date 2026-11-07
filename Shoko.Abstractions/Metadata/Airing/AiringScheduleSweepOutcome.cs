@@ -47,4 +47,13 @@ public enum AiringScheduleSweepOutcome : byte
     ///   The provider threw. Every other provider's sweep is unaffected.
     /// </summary>
     Failed = 4,
+
+    /// <summary>
+    ///   The source said it cannot take work right now, such as a rate limit
+    ///   or an outage, by throwing a
+    ///   <see cref="Providers.MetadataProviderUnavailableException"/>. The
+    ///   stored cursor is left as it was and it is not held against the
+    ///   provider, so the next chunk starts where this one would have.
+    /// </summary>
+    Unavailable = 5,
 }

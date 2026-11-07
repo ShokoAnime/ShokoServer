@@ -1429,6 +1429,9 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(178,   7, "ALTER TABLE Metadata_Character DROP COLUMN Description;"),
         new(179,   1, DatabaseFixes.MigrateStoredFilterParameters),
         new(180,   1, "ALTER TABLE ScheduledAction ADD COLUMN PluginID TEXT NULL;"),
+        new(181,   1, "ALTER TABLE AiringScheduleSweepState ADD COLUMN SweepID TEXT NULL;"),
+        new(181,   2, "ALTER TABLE AiringScheduleSweepState ADD COLUMN SweepStartedAt DATETIME NULL;"),
+        new(181,   3, "ALTER TABLE AiringScheduleSweepState ADD COLUMN ChunkIndex INTEGER NOT NULL DEFAULT 0;"),
     ];
 
     #endregion

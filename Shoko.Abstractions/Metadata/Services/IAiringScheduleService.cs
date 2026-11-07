@@ -59,6 +59,13 @@ public interface IAiringScheduleService
     event EventHandler<AiringScheduleSweepEventArgs>? SweepCompleted;
 
     /// <summary>
+    ///   Event raised once per provider each time it finishes refreshing an
+    ///   entry, whether the refresh was queued through
+    ///   <c>ScheduleRefresh</c> or waited on through <c>RefreshAsync</c>.
+    /// </summary>
+    event EventHandler<AiringScheduleRefreshEventArgs>? RefreshCompleted;
+
+    /// <summary>
     ///   List out all available providers, which kinds they have enabled, and
     ///   their source order.
     /// </summary>
@@ -292,6 +299,23 @@ public interface IAiringScheduleService
     ///   time.
     /// </remarks>
     IReadOnlySet<Guid> HiddenChannelIDs { get; }
+
+    /// <summary>
+    ///   The server's preferred channels, best first, used by every airing
+    ///   read that brings no channel preference of its own. Empty means no
+    ///   preference. Setting it saves it, each channel once.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Set to <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Set to a list naming a channel that does not exist.</exception>
+    IReadOnlyList<Guid> PreferredChannels { get; set; }
+
+    /// <summary>
+    ///   The server's preferred tracks, best first, used by every airing read
+    ///   that brings no track preference of its own. Empty means no
+    ///   preference. Setting it saves it, each preference once.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Set to <c>null</c>.</exception>
+    IReadOnlyList<AiringTrackPreference> PreferredTracks { get; set; }
 
     /// <summary>
     ///   Adds aliases to a channel. An alias equal to the channel's own name,
