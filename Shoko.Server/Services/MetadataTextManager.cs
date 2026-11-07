@@ -337,9 +337,26 @@ public class MetadataTextManager : IMetadataTextManager
 
     /// <inheritdoc />
     public IEnumerable<IText> GetAllTexts(TextKind kind, TextFilteringOptions? options = null)
+        => StoredTextsOf(_textStore.Cache.Enumerate().Select(entry => entry.Entity), kind, options ?? new());
+
+    /// <inheritdoc />
+    public IEnumerable<IText> GetAllTexts(TextKind kind, IEnumerable<MetadataGuid> entityIDs, TextFilteringOptions? options = null)
     {
-        options ??= new();
-        foreach (var (entity, _) in _textStore.Cache.Enumerate())
+        ArgumentNullException.ThrowIfNull(entityIDs);
+        return StoredTextsOf(entityIDs.Distinct(), kind, options ?? new());
+    }
+
+    /// <summary>
+    ///   The stored texts of the entries, without recording anything in the
+    ///   memo, so a walk over a large library keeps nothing.
+    /// </summary>
+    /// <param name="entities">The entries.</param>
+    /// <param name="kind">Titles or overviews.</param>
+    /// <param name="options">The filters.</param>
+    /// <returns>The texts, entry by entry.</returns>
+    private IEnumerable<IText> StoredTextsOf(IEnumerable<MetadataGuid> entities, TextKind kind, TextFilteringOptions options)
+    {
+        foreach (var entity in entities)
         {
             if ((options.EntitySource is not null && entity.Source != options.EntitySource) ||
                 (options.EntityType is not null && entity.EntityType != options.EntityType))

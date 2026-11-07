@@ -573,6 +573,8 @@ public class MetadataTextManagerStoreTests
         Assert.Null(harness.Manager.GetOverviewByID(title.ID!.Value + 1000));
         Assert.Equal(["A"], harness.Manager.GetAllTexts(TextKind.Title).Select(text => text.Value));
         Assert.Empty(harness.Manager.GetAllTexts(TextKind.Overview, new() { Source = TestSources.Plugin }));
+        Assert.Equal(["A"], harness.Manager.GetAllTexts(TextKind.Title, [_series, _other, _series]).Select(text => text.Value));
+        Assert.Equal(["B"], harness.Manager.GetAllTexts(TextKind.Overview, [_other]).Select(text => text.Value));
     }
 
     #endregion

@@ -250,6 +250,21 @@ public interface IMetadataTextManager
     /// <returns>The texts, entry by entry.</returns>
     IEnumerable<IText> GetAllTexts(TextKind kind, TextFilteringOptions? options = null);
 
+    /// <summary>
+    ///   Every stored text of one kind, on the given entries: what each entry's
+    ///   source, users and contributors stored for it, read straight from the
+    ///   store. Unlike <see cref="GetTitles(MetadataGuid, TextFilteringOptions?)"/>,
+    ///   it adds nothing from the entries an entry is linked to and no title
+    ///   made up for an entry without one, so a caller keeping texts by entry,
+    ///   such as a search index updating the entries a save names, gets each
+    ///   text once.
+    /// </summary>
+    /// <param name="kind">Titles or overviews.</param>
+    /// <param name="entityIDs">The entries. An entry named twice is listed once.</param>
+    /// <param name="options">Optional. Which texts to list; the default is never included here.</param>
+    /// <returns>The texts, entry by entry, in the order the entries were given.</returns>
+    IEnumerable<IText> GetAllTexts(TextKind kind, IEnumerable<MetadataGuid> entityIDs, TextFilteringOptions? options = null);
+
     #endregion
 
     #region Source Writes

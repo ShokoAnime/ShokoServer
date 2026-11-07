@@ -401,8 +401,10 @@ provider that saves an entry's row any other way calls `Invalidate`.
 
 A text is named by its kind and its `ID` (`GetTitleByID`, `GetOverviewByID`)
 and says which entry owns it (`EntityID`). `GetAllTexts` lists stored texts by
-filter; `GetTitles` and `GetOverviews` list what an entry is chosen from, the
-row's default first and a Shoko entry's linked entries included;
+filter, of every entry or of the entries given, each text once under the entry
+that owns it and without touching the text manager's memo, which suits an index
+built over the whole library; `GetTitles` and `GetOverviews` list what an entry
+is chosen from, the row's default first and a Shoko entry's linked entries included;
 `GetOrphanedEntries`, `PurgeOrphanedTexts` and `RemoveTexts` clean up. A
 default kept on a row has no ID: it can be picked (which stores a copy) but
 not changed, disabled or removed. `/api/v3/Text/Management` offers the same
