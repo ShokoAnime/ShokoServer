@@ -1030,13 +1030,12 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         {
             var config = new LoggingConfiguration();
 
-            var otlpTarget = new OtlpLogTarget();
-            var targets = new LoggingTargets(new NullTarget("void"), BuildFileTarget(applicationPaths), BuildConsoleTarget(LogSerializeFormat.Console), BuildSignalRTarget(), otlpTarget);
+            var targets = new LoggingTargets(new NullTarget("void"), BuildFileTarget(applicationPaths), BuildConsoleTarget(LogSerializeFormat.Console), BuildSignalRTarget(), new OtlpLogTarget());
             config.AddTarget(targets.File);
             config.AddTarget(targets.Console);
             config.AddTarget(targets.SignalR);
             config.AddTarget(targets.Void);
-            config.AddTarget(otlpTarget);
+            config.AddTarget(targets.Otlp);
 
             RebuildLoggingRules(null, config, GetDefaultLogLevelRules(), targets);
             ApplyMessageRedactionFilter(config, targets);
@@ -1115,8 +1114,10 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             return false;
         if (config.FindTargetByName<Target>("void") is not { } voidTarget)
             return false;
+        if (config.FindTargetByName<OtlpLogTarget>(OtlpLogTarget.TargetName) is not { } otlpTarget)
+            return false;
 
-        var targets = new LoggingTargets(voidTarget, fileTarget, consoleTarget, signalrTarget, config.FindTargetByName<OtlpLogTarget>(OtlpLogTarget.TargetName));
+        var targets = new LoggingTargets(voidTarget, fileTarget, consoleTarget, signalrTarget, otlpTarget);
 
         _traceLogging = logging.TraceLog;
         _defaultFileLogLevel = logging.DefaultFileLogLevel;
@@ -1213,7 +1214,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         config.LoggingRules.Add(new LoggingRule("*", ConvertLogLevel(logging?.DefaultSignalRLogLevel) ?? defaultLevel, targets.SignalR));
 
         // Information unless asked for, whatever TraceLog says: trace logs can hold raw responses, and these leave the server.
-        if (targets.Otlp is { IsActive: true })
+        if (targets.Otlp.IsActive)
             config.LoggingRules.Add(new LoggingRule("*", ConvertLogLevel(logging?.DefaultOtlpLogLevel) ?? NLogLevel.Info, targets.Otlp));
     }
 
@@ -1227,7 +1228,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             var hasFileTarget = loggingRule.Targets.Contains(targets.File);
             var hasConsoleTarget = loggingRule.Targets.Contains(targets.Console);
             var hasSignalRTarget = loggingRule.Targets.Contains(targets.SignalR);
-            var hasOtlpTarget = targets.Otlp is not null && loggingRule.Targets.Contains(targets.Otlp);
+            var hasOtlpTarget = loggingRule.Targets.Contains(targets.Otlp);
             if (!hasFileTarget && !hasConsoleTarget && !hasSignalRTarget && !hasOtlpTarget)
                 continue;
 
@@ -1249,7 +1250,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
     /// <param name="Console">The console.</param>
     /// <param name="SignalR">The live log of the web UI.</param>
     /// <param name="Otlp">The OTLP export, or <c>null</c> when the configuration has none.</param>
-    private sealed record LoggingTargets(Target Void, FileTarget File, ColoredConsoleTarget Console, Target SignalR, OtlpLogTarget? Otlp);
+    private sealed record LoggingTargets(Target Void, FileTarget File, ColoredConsoleTarget Console, Target SignalR, OtlpLogTarget Otlp);
 
     private static Layout GetConsoleLayout(LogSerializeFormat format)
         => format switch
