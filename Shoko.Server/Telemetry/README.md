@@ -58,7 +58,8 @@ A bad value logs a warning and turns the export off; it never stops the server f
 | `Shoko.Server.Database` | `db.client.operation.duration` and `shoko.repository.reads` (by `shoko.repository.entity` and `shoko.repository.found`), with `DatabaseSpansEnabled`. The repositories hold every row, so a read that found nothing means no such row, not a trip to the database. |
 | Built in | `System.Runtime`, `System.Net.Http`, `System.Net.NameResolution`, `MySqlConnector`, and ASP.NET Core's hosting, Kestrel, routing, diagnostics, connections, authentication and authorization meters |
 
-Plugins following the `Shoko.*` naming convention are exported too.
+Every loaded plugin's spans and metrics are exported too, from sources and meters named after the plugin's assembly,
+such as `MyPlugin` or `MyPlugin.Queue`. A disabled or failed plugin's are not, nor are sources named anything else.
 
 ## What is kept out
 

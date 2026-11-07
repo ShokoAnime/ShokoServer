@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -12,6 +13,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Shoko.Server.Plugin;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Telemetry.Database;
@@ -31,9 +33,10 @@ internal sealed class TelemetryRuntime
     private const int ShutdownBudgetMilliseconds = 3000;
 
     /// <summary>
-    /// Every plugin following the convention of naming its sources and meters after Shoko is exported too.
+    /// The core's own sources and meters: the server's and the queue's, and the names under them. A plugin's are named
+    /// after its assembly instead, and exported once the plugins are known (<see cref="ExportPlugins"/>).
     /// </summary>
-    private const string ShokoNamePattern = "Shoko.*";
+    private static readonly string[] _coreNames = ["Shoko.Server", "Shoko.Server.*", "Shoko.QueueProcessor", "Shoko.QueueProcessor.*"];
 
     private const string DisableUriRedactionSwitch = "System.Net.Http.DisableUriRedaction";
 
@@ -64,6 +67,18 @@ internal sealed class TelemetryRuntime
 
     private readonly TracerProvider? _tracerProvider;
 
+    // What the plugin providers are built with, once the plugins are known.
+    private readonly TelemetryExportOptions _options;
+
+    private readonly string _serviceVersion;
+
+    private readonly ILogger _logger;
+
+    // The plugins' own sources and meters, exported beside the server's.
+    private TracerProvider? _pluginTracerProvider;
+
+    private MeterProvider? _pluginMeterProvider;
+
     private readonly MeterProvider? _meterProvider;
 
     private readonly TelemetryExportFailureListener _failureListener;
@@ -76,7 +91,10 @@ internal sealed class TelemetryRuntime
 
     private TelemetryRuntime(TelemetryExportOptions options, string serviceVersion, ILogger logger)
     {
-        var resource = ResourceBuilder.CreateDefault().AddService(options.Settings.ServiceName, serviceVersion: serviceVersion);
+        _options = options;
+        _serviceVersion = serviceVersion;
+        _logger = logger;
+        var resource = Resource(options, serviceVersion);
         _failureListener = new(logger);
         if (options.Settings.TracesEnabled)
         {
@@ -104,6 +122,91 @@ internal sealed class TelemetryRuntime
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
     }
 
+    private static ResourceBuilder Resource(TelemetryExportOptions options, string serviceVersion)
+        => ResourceBuilder.CreateDefault().AddService(options.Settings.ServiceName, serviceVersion: serviceVersion);
+
+    /// <summary>
+    /// Exports the telemetry of a plugin manager's active plugins, once its scan has loaded them.
+    /// </summary>
+    /// <param name="pluginManager">The plugin manager.</param>
+    private void ExportPluginsOf(PluginManager pluginManager)
+    {
+        if (pluginManager.ArePluginsInitialized)
+        {
+            ExportPlugins(AssemblyNamesOf(pluginManager));
+            return;
+        }
+
+        void OnLoaded(object? sender, EventArgs eventArgs)
+        {
+            pluginManager.PluginsInitialized -= OnLoaded;
+            ExportPlugins(AssemblyNamesOf(pluginManager));
+        }
+
+        pluginManager.PluginsInitialized += OnLoaded;
+    }
+
+    private static IEnumerable<string> AssemblyNamesOf(PluginManager pluginManager)
+        => pluginManager.GetPluginInfos()
+            .Where(plugin => plugin is { IsActive: true, HasFailed: false, PluginType: not null })
+            .Select(plugin => plugin.PluginType!.Assembly.GetName().Name)
+            .OfType<string>();
+
+    /// <summary>
+    /// Exports the traces and metrics of the plugins too, from sources and meters named after their assemblies, such as
+    /// <c>MyPlugin</c> and <c>MyPlugin.Queue</c>. The
+    /// providers built at start cannot learn new sources, so these get providers of their own, with the same sampling,
+    /// redaction and exporter; a span still nests under the span it started in, whichever provider exports either.
+    /// </summary>
+    /// <param name="assemblyNames">The assembly names of the plugins loaded.</param>
+    private void ExportPlugins(IEnumerable<string> assemblyNames)
+    {
+        ArgumentNullException.ThrowIfNull(assemblyNames);
+        string[] names =
+        [
+            .. assemblyNames
+                .Where(name => !string.IsNullOrWhiteSpace(name) && !_coreNames.Contains(name))
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal)
+                .SelectMany(name => new[] { name, name + ".*" }),
+        ];
+        if (names.Length is 0 || Volatile.Read(ref _isShutDown) is not 0 || _pluginTracerProvider is not null || _pluginMeterProvider is not null)
+            return;
+
+        try
+        {
+            if (_tracerProvider is not null)
+            {
+                _pluginTracerProvider = Sdk.CreateTracerProviderBuilder()
+                    .SetResourceBuilder(Resource(_options, _serviceVersion))
+                    .SetSampler(new TelemetrySampler(_options.Settings.TraceSampleRatio, _options.Settings.JobTraceSampleRatio))
+                    .AddSource(names)
+                    .AddProcessor(new TelemetryRedactionProcessor(_options.Settings.CaptureDatabaseStatements))
+                    .AddOtlpExporter(exporter => Configure(exporter, _options, "traces"))
+                    .Build();
+            }
+
+            if (_meterProvider is not null)
+            {
+                _pluginMeterProvider = Sdk.CreateMeterProviderBuilder()
+                    .SetResourceBuilder(Resource(_options, _serviceVersion))
+                    .AddMeter(names)
+                    .AddOtlpExporter((exporter, reader) =>
+                    {
+                        Configure(exporter, _options, "metrics");
+                        reader.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds = _options.Settings.MetricExportIntervalSeconds * 1000;
+                    })
+                    .Build();
+            }
+
+            _logger.LogInformation("Exporting the telemetry of the plugins named {Names} too.", string.Join(", ", names.Where(name => !name.EndsWith(".*", StringComparison.Ordinal))));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not export the telemetry of the plugins; the server's own goes on.");
+        }
+    }
+
     /// <summary>
     /// Whether traces are being exported.
     /// </summary>
@@ -125,8 +228,9 @@ internal sealed class TelemetryRuntime
     /// <param name="settings">The telemetry settings.</param>
     /// <param name="serviceVersion">The server's version, to report the telemetry under.</param>
     /// <param name="logger">Told about bad settings and failing exports.</param>
+    /// <param name="pluginManager">Whose plugins' telemetry is exported too, once it has loaded them.</param>
     /// <returns>The runtime, or <c>null</c> when nothing is to be exported.</returns>
-    public static TelemetryRuntime? Start(TelemetrySettings settings, string serviceVersion, ILogger logger)
+    public static TelemetryRuntime? Start(TelemetrySettings settings, string serviceVersion, ILogger logger, PluginManager? pluginManager = null)
     {
         var options = TelemetryExportOptions.Create(settings, out var warnings);
         foreach (var warning in warnings)
@@ -137,6 +241,8 @@ internal sealed class TelemetryRuntime
         try
         {
             var runtime = new TelemetryRuntime(options, serviceVersion, logger);
+            if (pluginManager is not null)
+                runtime.ExportPluginsOf(pluginManager);
             logger.LogInformation(
                 "Exporting OpenTelemetry to {Endpoint} over {Protocol}. Traces: {Traces}, metrics: {Metrics}, logs: {Logs}.",
                 options.Endpoint,
@@ -165,7 +271,7 @@ internal sealed class TelemetryRuntime
             return;
 
         AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
-        var tasks = new List<Task>(3);
+        var tasks = new List<Task>(5);
         if (LoggerFactory is { } loggerFactory)
         {
             tasks.Add(Task.Run(() =>
@@ -179,6 +285,10 @@ internal sealed class TelemetryRuntime
             tasks.Add(Task.Run(() => Stop(tracerProvider, tracerProvider.Shutdown)));
         if (_meterProvider is { } meterProvider)
             tasks.Add(Task.Run(() => Stop(meterProvider, meterProvider.Shutdown)));
+        if (_pluginTracerProvider is { } pluginTracerProvider)
+            tasks.Add(Task.Run(() => Stop(pluginTracerProvider, pluginTracerProvider.Shutdown)));
+        if (_pluginMeterProvider is { } pluginMeterProvider)
+            tasks.Add(Task.Run(() => Stop(pluginMeterProvider, pluginMeterProvider.Shutdown)));
 
         try
         {
@@ -211,7 +321,7 @@ internal sealed class TelemetryRuntime
         var builder = Sdk.CreateTracerProviderBuilder()
             .SetResourceBuilder(resource)
             .SetSampler(new TelemetrySampler(options.Settings.TraceSampleRatio, options.Settings.JobTraceSampleRatio))
-            .AddSource(ShokoNamePattern)
+            .AddSource(_coreNames)
             .AddAspNetCoreInstrumentation(instrumentation =>
             {
                 // Exception text can hold anything, and the API already reports its failures in the logs.
@@ -235,7 +345,7 @@ internal sealed class TelemetryRuntime
     private static MeterProvider BuildMeterProvider(TelemetryExportOptions options, ResourceBuilder resource)
         => Sdk.CreateMeterProviderBuilder()
             .SetResourceBuilder(resource)
-            .AddMeter(ShokoNamePattern)
+            .AddMeter(_coreNames)
             .AddMeter(_builtInMeters)
             .AddView("http.client.open_connections", new MetricStreamConfiguration { TagKeys = _httpClientConnectionTags })
             .AddView("http.client.connection.duration", new MetricStreamConfiguration { TagKeys = _httpClientConnectionTags })

@@ -46,6 +46,17 @@ public partial class PluginManager
     internal event EventHandler? StateChanged;
 
     /// <summary>
+    ///   Raised once the enabled plugins are created and active, before any of
+    ///   their parts or start-up steps run.
+    /// </summary>
+    internal event EventHandler? PluginsInitialized;
+
+    /// <summary>
+    ///   Whether the plugins are created and active yet.
+    /// </summary>
+    internal bool ArePluginsInitialized => _pluginsInitialized;
+
+    /// <summary>
     ///   Brings the dependency refusals in line with what the next start would
     ///   refuse, then tells the <see cref="StateChanged"/> handlers.
     /// </summary>

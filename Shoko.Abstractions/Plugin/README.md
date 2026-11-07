@@ -455,6 +455,26 @@ installed again before the restart.
 
 ---
 
+## Telemetry
+
+When an admin turns on the OpenTelemetry export, the server also exports what a
+plugin reports through .NET's own `ActivitySource` and `Meter`, so a plugin
+needs nothing from Shoko for it:
+
+- Name the source and the meter after your assembly, or after a name under
+  it: `new ActivitySource("MyPlugin")`, `new Meter("MyPlugin.Queue")`.
+  Anything else is not exported, names under the core's own (`Shoko.Server`,
+  `Shoko.QueueProcessor`) included.
+- Check `ActivitySource.HasListeners()` (or `Instrument.Enabled`) before work
+  done only for a span or a measurement; both are `false` while nothing is
+  exported.
+- Keep secrets, file paths and people's details out of names and tags. The
+  server hides secrets in URLs and statements, but not in what you add.
+- A span you start inside a request or a queue job nests under it, and its
+  sampling follows the server's settings.
+
+---
+
 ## `IPluginManager`
 
 The registry of what is installed, loaded and exported. A plugin mostly uses it

@@ -470,10 +470,10 @@ interfaces, secrets and the `[Required]` trap.
   and `GetFeatures()` advertises `PluginFeature` entries; see
   [the plugin namespace](Plugin/README.md#pages).
 - **Traces and metrics.** A plugin needs no OpenTelemetry package: create an
-  `ActivitySource` and a `Meter` from `System.Diagnostics` with a name starting
-  with `Shoko.`, by convention `Shoko.Plugin.<YourPlugin>`, and they are
-  exported along with the server's when an admin turns that on. Until then they
-  cost next to nothing. Keep paths, credentials and anything a user typed out of
+  `ActivitySource` and a `Meter` from `System.Diagnostics` named after the
+  plugin's assembly, or a name under it (`MyPlugin`, `MyPlugin.Queue`), and they
+  are exported along with the server's when an admin turns that on; see
+  [Telemetry](Plugin/README.md#telemetry). Until then they cost next to nothing. Keep paths, credentials and anything a user typed out of
   them, and keep metric tags to a small set of values.
 
 ---

@@ -82,6 +82,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     private bool _pluginsLoaded;
 
+    private bool _pluginsInitialized;
+
     private SemverVersionComparer? _semverComparer;
 
     private static readonly Version _invalidVersion = new(0, 0, 0, 0);
@@ -706,6 +708,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
             logger.LogInformation("Initialized plugin \"{Name}\". ({DllName}, {Version})", pluginInstance.Name, dllName, localPluginInfo.Version);
         }
+
+        _pluginsInitialized = true;
+        PluginsInitialized?.Invoke(this, EventArgs.Empty);
 
         // Adding parts is a start-up step the host owns, so it is not on the service interfaces a
         // plugin can reach. Each service is resolved through its interface and only fed its parts
