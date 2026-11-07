@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Linq;
+using System.Threading;
 
 namespace Shoko.QueueProcessor.Analytics;
 
@@ -174,6 +175,7 @@ public static class QueueTelemetry
     /// <returns>The meter, to dispose of when the pools stop.</returns>
     internal static Meter CreatePoolGauges(Func<IReadOnlyDictionary<string, PoolStatus>> getStatus)
     {
+        var snapshot = new PoolStatusSnapshot(getStatus);
         var meter = new Meter(Name);
         Gauge("shoko.queue.jobs.waiting", "{job}", "Jobs ready to run.", status => status.WaitingCount);
         Gauge("shoko.queue.jobs.blocked", "{job}", "Jobs an acquisition filter keeps from running.", status => status.BlockedCount);
@@ -183,6 +185,34 @@ public static class QueueTelemetry
         return meter;
 
         void Gauge(string name, string unit, string description, Func<PoolStatus, int> read)
-            => meter.CreateObservableGauge(name, () => getStatus().Values.Select(status => new Measurement<int>(read(status), new KeyValuePair<string, object?>(PoolTag, status.Name))), unit, description);
+            => meter.CreateObservableGauge(name, () => snapshot.Get().Values.Select(status => new Measurement<int>(read(status), new KeyValuePair<string, object?>(PoolTag, status.Name))), unit, description);
+    }
+
+    /// <summary>
+    /// One status of the pools for every gauge of a collection. A collection reads the gauges one after another, and
+    /// each status counts the jobs waiting in every pool under its lock, so the gauges share one taken within the last
+    /// second rather than taking five.
+    /// </summary>
+    /// <param name="getStatus">Takes the status of every pool.</param>
+    private sealed class PoolStatusSnapshot(Func<IReadOnlyDictionary<string, PoolStatus>> getStatus)
+    {
+        private const long MaxAgeMilliseconds = 1000;
+
+        private readonly Lock _lock = new();
+
+        private IReadOnlyDictionary<string, PoolStatus>? _status;
+
+        private long _takenAt;
+
+        public IReadOnlyDictionary<string, PoolStatus> Get()
+        {
+            lock (_lock)
+            {
+                var now = Environment.TickCount64;
+                if (_status is null || now - _takenAt >= MaxAgeMilliseconds)
+                    (_status, _takenAt) = (getStatus(), now);
+                return _status;
+            }
+        }
     }
 }

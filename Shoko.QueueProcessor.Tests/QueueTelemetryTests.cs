@@ -577,12 +577,19 @@ public class QueueTelemetryTests
         listener.Start();
 
         var pool = "gauge-pool-" + NewName();
-        gauges = QueueTelemetry.CreatePoolGauges(() => new Dictionary<string, PoolStatus>
+        var taken = 0;
+        gauges = QueueTelemetry.CreatePoolGauges(() =>
         {
-            [pool] = new() { Name = pool, WaitingCount = 1, BlockedCount = 2, ScheduledCount = 3, ActiveWorkers = 4, MaxWorkers = 5 },
+            taken++;
+            return new Dictionary<string, PoolStatus>
+            {
+                [pool] = new() { Name = pool, WaitingCount = 1, BlockedCount = 2, ScheduledCount = 3, ActiveWorkers = 4, MaxWorkers = 5 },
+            };
         });
         using (gauges)
             listener.RecordObservableInstruments();
+
+        Assert.Equal(1, taken);
 
         Assert.Equal(1, measurements[("shoko.queue.jobs.waiting", pool)]);
         Assert.Equal(2, measurements[("shoko.queue.jobs.blocked", pool)]);
