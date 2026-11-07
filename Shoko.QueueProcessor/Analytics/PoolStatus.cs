@@ -24,6 +24,12 @@ public record PoolStatus
     /// </summary>
     public bool IsBlocked { get; init; }
 
+    /// <summary>Whether the whole pool is held by hand, through <see cref="Scheduling.QueueHolds"/>.</summary>
+    public bool IsHeld { get; init; }
+
+    /// <summary>The keys of this pool's job types held by hand, through <see cref="Scheduling.QueueHolds"/>.</summary>
+    public IReadOnlyList<string> HeldTypeNames { get; init; } = [];
+
     /// <summary>Number of jobs in this pool that are ready to run now (excludes blocked and scheduled).</summary>
     public int WaitingCount { get; init; }
 

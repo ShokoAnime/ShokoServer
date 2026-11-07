@@ -110,7 +110,7 @@ public class QueueControllerTests
 
             // The pool manager is only used to pause and resume, which these tests never do.
             Handler = new QueueHandler(Scheduler, orchestrator, null!, _provider);
-            Controller = new QueueController(new Mock<ISettingsProvider>().Object, Handler);
+            Controller = new QueueController(new Mock<ISettingsProvider>().Object, Handler, Scheduler, new());
         }
 
         public async Task<string> Enqueue<T>(int id, bool run = false) where T : class, IQueueJob

@@ -319,4 +319,73 @@ public class WorkerPoolAcquisitionTests
 
         Assert.Equal(0, pool.RunnableCount());
     }
+
+    // ── Holds ─────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void TryAcquire_HeldPool_WaitsUntilReleased()
+    {
+        var pool = MakePool(typeof(JobTypeA));
+        pool.TryRegisterExecuting = _ => true;
+        var job = MakeJob(typeof(JobTypeA));
+        pool.AddToQueue(job);
+
+        pool.SetHold(true, new HashSet<string>());
+        Assert.Null(pool.TryAcquire());
+        Assert.True(pool.GetStatus().IsHeld);
+        Assert.Equal(1, pool.GetStatus().BlockedCount);
+
+        pool.SetHold(false, new HashSet<string>());
+        Assert.Same(job, pool.TryAcquire());
+    }
+
+    [Fact]
+    public void TryAcquire_HeldJobType_LeavesTheOtherTypesRunning()
+    {
+        var pool = new WorkerPool("TestPool", maxWorkers: 2, workerPriority: AcquisitionAttribute.LowestPriority, handledTypes: [typeof(JobTypeA), typeof(JobTypeB)], acquisitionFilters: []);
+        pool.TryRegisterExecuting = _ => true;
+        var held = MakeJob(typeof(JobTypeA), priority: 10);
+        var other = MakeJob(typeof(JobTypeB));
+        pool.AddToQueue(held);
+        pool.AddToQueue(other);
+
+        pool.SetHold(false, new HashSet<string> { Builder.JobTypeNames.Key(typeof(JobTypeA)) });
+
+        Assert.Same(other, pool.TryAcquire());
+        Assert.Null(pool.TryAcquire());
+        Assert.Equal([Builder.JobTypeNames.Key(typeof(JobTypeA))], pool.GetStatus().HeldTypeNames);
+    }
+
+    [Fact]
+    public void QueueHolds_RaisesChangedOnlyWhenTheHoldsChange()
+    {
+        var holds = new Scheduling.QueueHolds();
+        var raised = 0;
+        holds.Changed += (_, _) => raised++;
+
+        Assert.True(holds.SetPoolHeld("Default", true));
+        Assert.False(holds.SetPoolHeld("default", true));
+        Assert.True(holds.SetJobTypeHeld("DownloadImageJob", true));
+        holds.Set(["DEFAULT"], ["DownloadImageJob"]);
+
+        Assert.Equal(2, raised);
+        Assert.True(holds.HeldPools.Contains("default"));
+    }
+
+    [Fact]
+    public void QueueHolds_OnceThePoolsAreKnown_RefuseUnknownNamesButKeepRestoredOnes()
+    {
+        var holds = new Scheduling.QueueHolds();
+        holds.Set(["Gone"], ["GoneJob"]);
+
+        var (pools, jobTypes) = holds.SetKnown(["Default"], ["DownloadImageJob"]);
+
+        Assert.Equal(["Gone"], pools);
+        Assert.Equal(["GoneJob"], jobTypes);
+        Assert.Throws<ArgumentException>(() => holds.SetPoolHeld("NoSuchPool", true));
+        Assert.Throws<ArgumentException>(() => holds.SetJobTypeHeld("NoSuchJob", true));
+        Assert.True(holds.SetPoolHeld("default", true));
+        Assert.True(holds.SetPoolHeld("Gone", false));
+        Assert.True(holds.SetJobTypeHeld("GoneJob", false));
+    }
 }

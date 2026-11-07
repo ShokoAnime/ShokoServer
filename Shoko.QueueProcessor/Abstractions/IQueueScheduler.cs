@@ -106,6 +106,38 @@ public interface IQueueScheduler
     bool IsPaused { get; }
 
     /// <summary>
+    /// The pools held by hand, by name: their jobs wait, shown as blocked, until released, while
+    /// the rest of the queue runs. Jobs already running finish.
+    /// </summary>
+    IReadOnlySet<string> HeldPools { get; }
+
+    /// <summary>
+    /// The job types held by hand, by <see cref="Builder.JobTypeNames.Key"/>, held in whatever pool
+    /// they run in.
+    /// </summary>
+    IReadOnlySet<string> HeldJobTypes { get; }
+
+    /// <summary>Raised after a pool or job type is held or released.</summary>
+    event EventHandler? HoldsChanged;
+
+    /// <summary>
+    /// Holds or releases a pool by name, ignoring case. Before the queue has found its pools any
+    /// name is taken; after, only a pool it has can be held, while any name can be released.
+    /// </summary>
+    /// <returns><c>true</c> if the holds changed.</returns>
+    /// <exception cref="ArgumentException">Holding a pool the queue does not have.</exception>
+    bool SetPoolHeld(string poolName, bool held);
+
+    /// <summary>
+    /// Holds or releases a job type by its <see cref="Builder.JobTypeNames.Key"/>. Before the queue
+    /// has found its pools any key is taken; after, only a registered job type can be held, while
+    /// any key can be released.
+    /// </summary>
+    /// <returns><c>true</c> if the holds changed.</returns>
+    /// <exception cref="ArgumentException">Holding a job type the queue does not have.</exception>
+    bool SetJobTypeHeld(string jobTypeKey, bool held);
+
+    /// <summary>
     /// Pause dispatching for the rest of the process lifetime; <see cref="Resume"/> has no effect
     /// afterwards. For states the process cannot recover from, such as a failed startup.
     /// </summary>

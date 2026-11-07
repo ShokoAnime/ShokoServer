@@ -1,13 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -28,9 +31,15 @@ public class QueueController : BaseController
 {
     private readonly QueueHandler _queueHandler;
 
-    public QueueController(ISettingsProvider settingsProvider, QueueHandler queueHandler) : base(settingsProvider)
+    private readonly IQueueScheduler _scheduler;
+
+    private readonly QueueHolds _holds;
+
+    public QueueController(ISettingsProvider settingsProvider, QueueHandler queueHandler, IQueueScheduler scheduler, QueueHolds holds) : base(settingsProvider)
     {
         _queueHandler = queueHandler;
+        _scheduler = scheduler;
+        _holds = holds;
     }
 
     /// <summary>
@@ -91,6 +100,72 @@ public class QueueController : BaseController
     public async Task<ActionResult> Pause()
     {
         await _queueHandler.Pause();
+        return Ok();
+    }
+
+    /// <summary>
+    /// Get the pools and job types held by hand, and which of them the queue does not have, such as
+    /// those of a plugin that is not loaded.
+    /// </summary>
+    /// <returns>The holds.</returns>
+    [Authorize("admin")]
+    [HttpGet("Holds")]
+    [InitFriendly]
+    public Queue.HoldList GetHolds()
+    {
+        var pools = _scheduler.HeldPools.Order(StringComparer.OrdinalIgnoreCase).ToList();
+        var jobTypes = _scheduler.HeldJobTypes.Order(StringComparer.Ordinal).ToList();
+        return new()
+        {
+            Pools = pools,
+            JobTypes = jobTypes,
+            UnknownPools = [.. pools.Where(name => !_holds.IsKnownPool(name))],
+            UnknownJobTypes = [.. jobTypes.Where(key => !_holds.IsKnownJobType(key))],
+        };
+    }
+
+    /// <summary>
+    /// Hold worker pools and job types: their jobs wait, shown as blocked, while the rest of the
+    /// queue runs. Jobs already running finish. The holds are kept across restarts.
+    /// </summary>
+    /// <param name="body">The pools and job types to hold.</param>
+    /// <returns>Void, or a <c>400</c> validation problem naming what the queue does not have, holding nothing.</returns>
+    [Authorize("admin")]
+    [HttpPost("Holds")]
+    [InitFriendly]
+    public ActionResult Hold([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Queue.Input.HoldsBody body)
+    {
+        var pools = body.Pools.Where(name => !string.IsNullOrWhiteSpace(name)).ToList();
+        var jobTypes = body.JobTypes.Where(key => !string.IsNullOrWhiteSpace(key)).ToList();
+        foreach (var name in pools.Where(name => !_holds.IsKnownPool(name)))
+            ModelState.AddModelError(nameof(body.Pools), $"The queue has no pool named \"{name}\".");
+        foreach (var key in jobTypes.Where(key => !_holds.IsKnownJobType(key)))
+            ModelState.AddModelError(nameof(body.JobTypes), $"The queue has no job type \"{key}\".");
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        foreach (var name in pools)
+            _scheduler.SetPoolHeld(name, true);
+        foreach (var key in jobTypes)
+            _scheduler.SetJobTypeHeld(key, true);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Release held worker pools and job types. Any name is taken, so a hold the queue no longer
+    /// knows can be cleared.
+    /// </summary>
+    /// <param name="body">The pools and job types to release.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpDelete("Holds")]
+    [InitFriendly]
+    public ActionResult Release([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Queue.Input.HoldsBody body)
+    {
+        foreach (var name in body.Pools.Where(name => !string.IsNullOrWhiteSpace(name)))
+            _scheduler.SetPoolHeld(name, false);
+        foreach (var key in body.JobTypes.Where(key => !string.IsNullOrWhiteSpace(key)))
+            _scheduler.SetJobTypeHeld(key, false);
         return Ok();
     }
 
@@ -220,6 +295,8 @@ public class QueueController : BaseController
             BlockedCount = p.BlockedCount,
             ScheduledCount = p.ScheduledCount,
             IsBlocked = p.IsBlocked,
+            IsHeld = p.IsHeld,
+            HeldTypeNames = p.HeldTypeNames,
             HandledTypeNames = p.HandledTypeNames,
             LastActiveAt = p.LastActiveAt?.UtcDateTime
         };

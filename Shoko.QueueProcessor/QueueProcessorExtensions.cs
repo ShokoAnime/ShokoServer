@@ -128,6 +128,7 @@ public static class QueueProcessorExtensions
             options.LimitedConcurrencyOverrides));
 
         // ── Scheduler facade ─────────────────────────────────────────────────
+        services.AddSingleton<QueueHolds>();
         services.AddSingleton<IQueueScheduler, QueueScheduler>();
         services.AddSingleton<IJobFactory, JobFactory>();
         services.AddSingleton<QueueHandler>();

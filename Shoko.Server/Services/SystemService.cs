@@ -40,6 +40,7 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Web.Services;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.FileProviders;
@@ -364,6 +365,17 @@ public class SystemService : ISystemService
             StartupMessage = "Initializing Web Host & Services.";
 
             _webHost = InitWebHost(settings);
+
+            // The pools and job types held by hand stay held across restarts.
+            var queueScheduler = _webHost.Services.GetRequiredService<IQueueScheduler>();
+            _webHost.Services.GetRequiredService<QueueHolds>().Set(settings.Queue.HeldPools, settings.Queue.HeldJobTypes);
+            queueScheduler.HoldsChanged += (_, _) =>
+            {
+                var saved = _settingsProvider.GetSettings(copy: true);
+                saved.Queue.HeldPools = [.. queueScheduler.HeldPools.Order(StringComparer.OrdinalIgnoreCase)];
+                saved.Queue.HeldJobTypes = [.. queueScheduler.HeldJobTypes.Order(StringComparer.Ordinal)];
+                _settingsProvider.SaveSettings(saved);
+            };
 
 #pragma warning disable CS0618 // Type or member is obsolete
             ISystemService.StaticServices = _webHost.Services;

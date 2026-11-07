@@ -12,6 +12,7 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.QueueProcessor.Storage;
 
 namespace Shoko.QueueProcessor.Workers;
@@ -47,6 +48,7 @@ public sealed class WorkerPoolManager : IHostedService
     private readonly IServiceProvider _serviceProvider;
     private readonly QueueJobTypeRegistry _jobTypeRegistry;
     private readonly QueueProcessorOptions _options;
+    private readonly QueueHolds _holds;
 
     private IReadOnlyList<WorkerPool> _pools = [];
     private CancellationTokenSource? _cts;
@@ -67,8 +69,10 @@ public sealed class WorkerPoolManager : IHostedService
         IChainScopeRegistry chainScopeRegistry,
         IServiceProvider serviceProvider,
         QueueJobTypeRegistry jobTypeRegistry,
-        QueueProcessorOptions options)
+        QueueProcessorOptions options,
+        QueueHolds? holds = null)
     {
+        _holds = holds ?? new();
         _logger = logger;
         _repo = repo;
         _orchestrator = orchestrator;
@@ -100,6 +104,13 @@ public sealed class WorkerPoolManager : IHostedService
 
         // Build pools
         _pools = _poolDiscovery.Discover(jobTypes, _acquisitionFilters);
+        var (unknownPools, unknownJobTypes) = _holds.SetKnown(_pools.Select(pool => pool.Name), jobTypes.Select(JobTypeNames.Key));
+        foreach (var name in unknownPools)
+            _logger.LogWarning("The pool {PoolName} is held, but the queue has no such pool; the hold is kept until it is released.", name);
+        foreach (var key in unknownJobTypes)
+            _logger.LogWarning("The job type {JobType} is held, but the queue has no such job type; the hold is kept until it is released.", key);
+        ApplyHolds();
+        _holds.Changed += OnHoldsChanged;
 
         await UpgradeLegacyJobKeys(persistedJobs, _pools, ct);
 
@@ -168,6 +179,17 @@ public sealed class WorkerPoolManager : IHostedService
 
         _events.InvokeQueuePaused();
         _logger.LogInformation("WorkerPoolManager stopped");
+    }
+
+    private void OnHoldsChanged(object? sender, EventArgs e) => ApplyHolds();
+
+    // Hands every pool the holds, so each excludes what is held of it.
+    private void ApplyHolds()
+    {
+        var heldPools = _holds.HeldPools;
+        var heldTypes = _holds.HeldJobTypes;
+        foreach (var pool in _pools)
+            pool.SetHold(heldPools.Contains(pool.Name), heldTypes);
     }
 
     public void Pause()

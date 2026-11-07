@@ -116,6 +116,20 @@ public class QueueProcessorSettings
     };
 
     /// <summary>
+    /// The worker pools held by hand, by name: their jobs wait until released, while the rest of
+    /// the queue runs. Set through the queue's hold routes.
+    /// </summary>
+    [Visibility(DisplayVisibility.ReadOnly, Advanced = true)]
+    public List<string> HeldPools { get; set; } = [];
+
+    /// <summary>
+    /// The job types held by hand, by their queue name, such as <c>DownloadImageJob</c>: their
+    /// jobs wait in whatever pool they run in until released. Set through the queue's hold routes.
+    /// </summary>
+    [Visibility(DisplayVisibility.ReadOnly, Advanced = true)]
+    public List<string> HeldJobTypes { get; set; } = [];
+
+    /// <summary>
     /// Gets the effective maximum of concurrent workers across all pools:
     /// <see cref="MaxTotalWorkers"/>, or the processor count plus four when it is not set.
     /// </summary>

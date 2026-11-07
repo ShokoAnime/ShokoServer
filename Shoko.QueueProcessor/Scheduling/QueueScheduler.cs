@@ -23,10 +23,27 @@ public sealed class QueueScheduler(
     IChainScopeRegistry _chainScopeRegistry,
     IServiceScopeFactory _scopeFactory,
     IJobActorAccessor? _actorAccessor = null,
-    QueueStateEventHandler? _events = null
+    QueueStateEventHandler? _events = null,
+    QueueHolds? _holds = null
 ) : IQueueScheduler
 {
+    private readonly QueueHolds _holdRegistry = _holds ?? new();
+
     public bool IsPaused => _orchestrator.IsPaused;
+
+    public IReadOnlySet<string> HeldPools => _holdRegistry.HeldPools;
+
+    public IReadOnlySet<string> HeldJobTypes => _holdRegistry.HeldJobTypes;
+
+    public event EventHandler? HoldsChanged
+    {
+        add => _holdRegistry.Changed += value;
+        remove => _holdRegistry.Changed -= value;
+    }
+
+    public bool SetPoolHeld(string poolName, bool held) => _holdRegistry.SetPoolHeld(poolName, held);
+
+    public bool SetJobTypeHeld(string jobTypeKey, bool held) => _holdRegistry.SetJobTypeHeld(jobTypeKey, held);
 
     public Task Enqueue<T>(Action<T>? configure = null, bool prioritize = false,
         DateTimeOffset? scheduledAt = null, CancellationToken ct = default)

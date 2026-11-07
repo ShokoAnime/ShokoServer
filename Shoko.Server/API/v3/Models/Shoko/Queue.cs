@@ -250,6 +250,18 @@ public class Queue
         public bool IsBlocked { get; init; }
 
         /// <summary>
+        /// Whether the whole pool is held by hand, through <c>POST /api/v3/Queue/Holds</c>.
+        /// </summary>
+        [Required]
+        public bool IsHeld { get; init; }
+
+        /// <summary>
+        /// The pool's job types held by hand, by their queue name.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> HeldTypeNames { get; init; } = [];
+
+        /// <summary>
         /// Short names of job types handled by this pool.
         /// </summary>
         [Required]
@@ -263,5 +275,57 @@ public class Queue
         /// </summary>
         [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime? LastActiveAt { get; init; }
+    }
+
+    /// <summary>
+    /// The pools and job types held by hand.
+    /// </summary>
+    public class HoldList
+    {
+        /// <summary>
+        /// The pools held, by name.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> Pools { get; init; } = [];
+
+        /// <summary>
+        /// The job types held, by their queue names.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> JobTypes { get; init; } = [];
+
+        /// <summary>
+        /// The held pools the queue does not have, such as a plugin's that is not loaded.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> UnknownPools { get; init; } = [];
+
+        /// <summary>
+        /// The held job types the queue does not have.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> UnknownJobTypes { get; init; } = [];
+    }
+
+    /// <summary>
+    /// Input models.
+    /// </summary>
+    public class Input
+    {
+        /// <summary>
+        /// The pools and job types to hold or release.
+        /// </summary>
+        public class HoldsBody
+        {
+            /// <summary>
+            /// The pools, as the queue's pools name them.
+            /// </summary>
+            public List<string> Pools { get; set; } = [];
+
+            /// <summary>
+            /// The job types, by the names <c>GET /api/v3/Queue/Types</c> lists them under.
+            /// </summary>
+            public List<string> JobTypes { get; set; } = [];
+        }
     }
 }

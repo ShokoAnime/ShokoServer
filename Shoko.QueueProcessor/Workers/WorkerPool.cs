@@ -44,6 +44,11 @@ public sealed class WorkerPool : IWorkerPool
     // Cached exclusion set from acquisition filters; rebuilt on filter StateChanged
     private volatile HashSet<Type> _filterExclusions = [];
 
+    // Held by hand, through Scheduling.QueueHolds: the whole pool, or some of its types.
+    private volatile bool _isHeld;
+
+    private volatile HashSet<Type> _heldTypes = [];
+
     // Taken in Start; while it cannot restore stored actors, jobs stored with one are held.
     private IJobActorAccessor? _actorAccessor;
     private volatile bool _holdActorJobs;
@@ -642,6 +647,8 @@ public sealed class WorkerPool : IWorkerPool
             BlockedCount = blocked,
             ScheduledCount = scheduled,
             IsBlocked = HandledTypes.Count > 0 && HandledTypes.All(t => exclusions.Contains(t)),
+            IsHeld = _isHeld,
+            HeldTypeNames = [.. _heldTypes.Select(Builder.JobTypeNames.Key)],
             HandledTypeNames = HandledTypes.Select(t => t.Name).ToList(),
             LastActiveAt = lastActiveTicks == 0 ? null : new DateTimeOffset(lastActiveTicks, TimeSpan.Zero)
         };
@@ -686,12 +693,33 @@ public sealed class WorkerPool : IWorkerPool
         Signal();
     }
 
+    /// <summary>
+    ///   Whether the whole pool is held by hand.
+    /// </summary>
+    public bool IsHeldByHand => _isHeld;
+
+    /// <summary>
+    ///   Holds the pool, or some of its job types, by hand, or releases them.
+    ///   Held jobs wait, shown as blocked; running ones finish.
+    /// </summary>
+    /// <param name="isHeld">Whether the whole pool is held.</param>
+    /// <param name="heldTypeKeys">The keys of the job types held, of any pool.</param>
+    public void SetHold(bool isHeld, IReadOnlySet<string> heldTypeKeys)
+    {
+        _isHeld = isHeld;
+        _heldTypes = [.. HandledTypes.Where(type => heldTypeKeys.Contains(Builder.JobTypeNames.Key(type)))];
+        RebuildExclusions();
+    }
+
     private void RebuildExclusions()
     {
         var set = new HashSet<Type>();
         foreach (var filter in AcquisitionFilters)
             foreach (var t in filter.GetTypesToExclude())
                 set.Add(t);
+        if (_isHeld)
+            set.UnionWith(HandledTypes);
+        set.UnionWith(_heldTypes);
         _filterExclusions = set;
         InvalidateCounts();
         Signal(); // wake workers to retry acquisition with updated exclusions
