@@ -79,7 +79,7 @@ public class MetadataPeopleStore(
     ///   written.
     /// </summary>
     /// <param name="saved">The creators and characters written. Empty raises nothing.</param>
-    private void OnEntitiesSaved(IReadOnlyList<MetadataGuid> saved)
+    internal void OnEntitiesSaved(IReadOnlyList<MetadataGuid> saved)
     {
         if (saved.Count is 0)
             return;

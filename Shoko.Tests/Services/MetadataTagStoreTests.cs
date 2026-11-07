@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
@@ -44,6 +45,18 @@ public class MetadataTagStoreTests
         var store = new MetadataTagStore(tags, entries, writer, new MetadataTextStore(new TextCache(), writer));
         store.SaveTags([Tag("1", "Mecha"), Tag("2", "Action", TagKind.Genre), Tag("3", "Twist", isSpoiler: true), Tag("4", "Drama", TagKind.Genre)]);
         return (store, tags, entries, writer);
+    }
+
+    [Fact]
+    public void SavingTagsRaisesEntitiesSavedWithThem()
+    {
+        var (store, _, _, _) = TagStore();
+        IReadOnlyList<MetadataGuid>? saved = null;
+        store.EntitiesSaved += (_, eventArgs) => saved = eventArgs.EntityIDs;
+
+        store.SaveTags([Tag("5", "Space"), Tag("1", "Mecha robots")]);
+
+        Assert.Equal([TagID("5"), TagID("1")], saved!.OrderBy(id => id.ID == "5" ? 0 : 1));
     }
 
     [Fact]

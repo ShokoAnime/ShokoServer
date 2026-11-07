@@ -40,6 +40,8 @@ public class AnimeCreator
     private readonly MetadataCrossReferenceStore _crossReferences;
     private readonly MetadataPeopleStore _peopleStore;
     private readonly MetadataStudioStore _studioStore;
+
+    private readonly MetadataTagStore _tagStore;
     private readonly ConcurrentDictionary<int, object> _updatingIDs = [];
 
     public AnimeCreator(
@@ -50,7 +52,8 @@ public class AnimeCreator
         MetadataTextStore textStore,
         MetadataCrossReferenceStore crossReferences,
         MetadataPeopleStore peopleStore,
-        MetadataStudioStore studioStore
+        MetadataStudioStore studioStore,
+        MetadataTagStore tagStore
     )
     {
         _logger = logger;
@@ -61,6 +64,7 @@ public class AnimeCreator
         _crossReferences = crossReferences;
         _peopleStore = peopleStore;
         _studioStore = studioStore;
+        _tagStore = tagStore;
     }
 
 
@@ -120,7 +124,7 @@ public class AnimeCreator
             _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-            updated = CreateTags(response.Tags, anime, _textStore) || updated;
+            updated = CreateTags(response.Tags, anime, _textStore, _tagStore) || updated;
             taskTimer.Stop();
             _logger.LogTrace("CreateTags in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
@@ -748,8 +752,9 @@ public class AnimeCreator
     /// <param name="rawTag">The tag as AniDB lists it.</param>
     /// <param name="textStore">Removes the core's names of the tags that go.</param>
     /// <param name="renames">Collects the core's name for each tag filled in, or <c>null</c> when it keeps its own.</param>
+    /// <param name="removed">Collects the tags that go.</param>
     /// <returns>The tag, not yet saved.</returns>
-    private static AniDB_Tag FindOrCreateTag(ResponseTag rawTag, MetadataTextStore textStore, Dictionary<int, string?> renames)
+    private static AniDB_Tag FindOrCreateTag(ResponseTag rawTag, MetadataTextStore textStore, Dictionary<int, string?> renames, List<MetadataGuid> removed)
     {
         var tag = RepoFactory.AniDB_Tag.GetByTagID(rawTag.TagID);
 
@@ -788,7 +793,10 @@ public class AnimeCreator
                 .ToList();
             RepoFactory.AniDB_Tag.Delete(tagsToDelete);
             foreach (var deletedTag in tagsToDelete.Where(a => a.TagID != rawTag.TagID))
+            {
                 textStore.RemoveEntry(((IMetadata)deletedTag).ID, MetadataSource.Shoko);
+                removed.Add(((IMetadata)deletedTag).ID);
+            }
 
             // Also clean up dead cross-references. They shouldn't exist,
             // but they sometime does for whatever reason. ¯\_(ツ)_/¯
@@ -821,8 +829,9 @@ public class AnimeCreator
     /// <param name="tags">The tags, as AniDB lists them, or <c>null</c> to leave them alone.</param>
     /// <param name="anime">The anime.</param>
     /// <param name="textStore">Stores the core's names for the tags it renames.</param>
+    /// <param name="tagStore">Tells the listeners which tags were saved or removed, or <c>null</c> to tell nobody.</param>
     /// <returns>Whether the anime's links to its tags changed.</returns>
-    public static bool CreateTags(List<ResponseTag>? tags, AniDB_Anime anime, MetadataTextStore textStore)
+    public static bool CreateTags(List<ResponseTag>? tags, AniDB_Anime anime, MetadataTextStore textStore, MetadataTagStore? tagStore = null)
     {
         if (tags == null)
             return false;
@@ -834,6 +843,7 @@ public class AnimeCreator
         var currentTags = RepoFactory.AniDB_Anime_Tag.GetByAnimeID(anime.AnimeID);
         var newTagIDs = new HashSet<int>();
         var renames = new Dictionary<int, string?>();
+        var removed = new List<MetadataGuid>();
         foreach (var rawtag in tags)
         {
             if (rawtag.TagID <= 0 || string.IsNullOrEmpty(rawtag.TagName))
@@ -841,7 +851,7 @@ public class AnimeCreator
 
             // The name the core gives a tag is stored before the tag is used,
             // as the tag's name is read from it.
-            var tag = FindOrCreateTag(rawtag, textStore, renames);
+            var tag = FindOrCreateTag(rawtag, textStore, renames, removed);
             if (renames.Remove(tag.TagID, out var rename))
                 SetTagRename(tag, rename, textStore);
 
@@ -871,6 +881,8 @@ public class AnimeCreator
 
         var xrefsToDelete = currentTags.Where(curTag => !newTagIDs.Contains(curTag.TagID)).ToList();
         RepoFactory.AniDB_Tag.Save(tagsToSave);
+        tagStore?.OnEntitiesSaved([.. tagsToSave.Select(tag => ((IMetadata)tag).ID)]);
+        tagStore?.OnEntitiesRemoved([.. removed.Except(tagsToSave.Select(tag => ((IMetadata)tag).ID)).Distinct()]);
         RepoFactory.AniDB_Anime_Tag.Save(xrefsToSave);
         RepoFactory.AniDB_Anime_Tag.Delete(xrefsToDelete);
         anime.ResetSourceMaterial();
@@ -1170,7 +1182,7 @@ public class AnimeCreator
             RepoFactory.AniDB_Anime_Character_Creator.Delete(xrefsCreatorToDelete);
 
             var creditsChanged = characterXrefsToSave.Count + xrefsToDelete.Count + creatorXrefsToSave.Count + xrefsCreatorToDelete.Count > 0;
-            RaiseCreditEvents(anime, creditsChanged, creatorsToRemove, charactersToRemove);
+            RaiseCreditEvents(anime, creditsChanged, creatorsToSave, charactersToSave, creatorsToRemove, charactersToRemove);
         }
         catch (Exception ex)
         {
@@ -1304,7 +1316,7 @@ public class AnimeCreator
             RepoFactory.AniDB_Anime_Staff.Save(creatorXrefsToSave);
             RepoFactory.AniDB_Anime_Staff.Delete(xrefsCreatorToDelete);
 
-            RaiseCreditEvents(anime, creatorXrefsToSave.Count + xrefsCreatorToDelete.Count > 0, creatorsToRemove, []);
+            RaiseCreditEvents(anime, creatorXrefsToSave.Count + xrefsCreatorToDelete.Count > 0, creatorsToSave, [], creatorsToRemove, []);
         }
         catch (Exception ex)
         {
@@ -1321,17 +1333,36 @@ public class AnimeCreator
     /// </summary>
     /// <param name="anime">The anime whose characters or staff were written.</param>
     /// <param name="creditsChanged">Whether any of the anime's character or staff links were saved or removed.</param>
+    /// <param name="creatorsSaved">The creators saved, the companies among them also saved as studios.</param>
+    /// <param name="charactersSaved">The characters saved.</param>
     /// <param name="creatorsRemoved">The creators removed, the companies among them also removed as studios.</param>
     /// <param name="charactersRemoved">The characters removed.</param>
     private void RaiseCreditEvents(
         AniDB_Anime anime,
         bool creditsChanged,
+        IReadOnlyList<AniDB_Creator> creatorsSaved,
+        IReadOnlyList<AniDB_Character> charactersSaved,
         IReadOnlyList<AniDB_Creator> creatorsRemoved,
         IReadOnlyList<AniDB_Character> charactersRemoved
     )
     {
         if (creditsChanged)
             _peopleStore.OnCreditsChanged([((IMetadata)anime).ID]);
+
+        var saved = creatorsSaved.DistinctBy(creator => creator.CreatorID).ToList();
+        _peopleStore.OnEntitiesSaved(
+            [
+                .. saved.Select(creator => ((IMetadata)creator).ID),
+                .. charactersSaved.DistinctBy(character => character.CharacterID).Select(character => ((IMetadata)character).ID),
+            ]
+        );
+        _studioStore.OnEntitiesSaved(
+            [
+                .. saved
+                    .Where(creator => creator.Type is CreatorType.Company)
+                    .Select(creator => ((IMetadata)new AniDB_Studio(creator)).ID),
+            ]
+        );
 
         var creators = creatorsRemoved.DistinctBy(creator => creator.CreatorID).ToList();
         _peopleStore.OnEntitiesRemoved(

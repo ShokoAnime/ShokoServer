@@ -69,6 +69,13 @@ public interface IMetadataStudioStore
     IStudio? GetStudio(MetadataGuid id);
 
     /// <summary>
+    ///   Every studio a source has stored; for AniDB, its companies.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>The studios, by name.</returns>
+    IReadOnlyList<IStudio> GetAllStudios(MetadataSource source);
+
+    /// <summary>
     ///   The studios that worked on an entry, each with its part in it.
     /// </summary>
     /// <param name="entry">The entry.</param>
@@ -92,6 +99,13 @@ public interface IMetadataStudioStore
     /// <returns>The network, or <c>null</c> when it is not stored.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     INetwork? GetNetwork(MetadataGuid id);
+
+    /// <summary>
+    ///   Every network a source has stored.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>The networks, by name.</returns>
+    IReadOnlyList<INetwork> GetAllNetworks(MetadataSource source);
 
     /// <summary>
     ///   The networks an entry aired or streamed on.

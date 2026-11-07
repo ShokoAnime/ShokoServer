@@ -78,7 +78,7 @@ public class MetadataStudioStore(
     ///   Raises <see cref="EntitiesSaved"/> for studios and networks written.
     /// </summary>
     /// <param name="saved">The studios and networks written. Empty raises nothing.</param>
-    private void OnEntitiesSaved(IReadOnlyList<MetadataGuid> saved)
+    internal void OnEntitiesSaved(IReadOnlyList<MetadataGuid> saved)
     {
         if (saved.Count is 0)
             return;
@@ -127,6 +127,16 @@ public class MetadataStudioStore(
     }
 
     /// <inheritdoc />
+    public IReadOnlyList<IStudio> GetAllStudios(MetadataSource source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        IEnumerable<IStudio> studios = source == MetadataSource.AniDB
+            ? anidbCreatorRepository.GetAll().Where(creator => creator.Type is CreatorType.Company).Select(creator => new AniDB_Studio(creator))
+            : source.IsCore ? [] : studioRepository.GetBySource(source);
+        return [.. studios.OrderBy(studio => studio.Name, StringComparer.OrdinalIgnoreCase).ThenBy(studio => studio.ID.ID, StringComparer.Ordinal)];
+    }
+
+    /// <inheritdoc />
     public IReadOnlyList<IStudio> GetStudios(MetadataGuid entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -172,6 +182,15 @@ public class MetadataStudioStore(
     {
         ArgumentNullException.ThrowIfNull(id);
         return id.EntityType == MetadataEntityType.Network ? networkRepository.GetByProviderID(id.Source, id.ID) : null;
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<INetwork> GetAllNetworks(MetadataSource source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return source.IsCore
+            ? []
+            : [.. networkRepository.GetBySource(source).Cast<INetwork>().OrderBy(network => network.Name, StringComparer.OrdinalIgnoreCase).ThenBy(network => network.ID.ID, StringComparer.Ordinal)];
     }
 
     /// <inheritdoc />

@@ -28,6 +28,16 @@ public interface IMetadataTagStore
     /// </remarks>
     event EventHandler<MetadataEntitiesRemovedEventArgs>? EntitiesRemoved;
 
+    /// <summary>
+    ///   Raised once per write that added or changed tags, of any source,
+    ///   AniDB's among them, with every one it saved.
+    /// </summary>
+    /// <remarks>
+    ///   Handlers run on the writer's thread after the write; an exception is
+    ///   logged.
+    /// </remarks>
+    event EventHandler<MetadataEntitiesSavedEventArgs>? EntitiesSaved;
+
     #endregion
 
     #region Reading
@@ -41,7 +51,7 @@ public interface IMetadataTagStore
     ITag? GetTag(MetadataGuid id);
 
     /// <summary>
-    ///   Every tag a source has stored.
+    ///   Every tag a source has stored; for AniDB, its own tags.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="kind">Optional. Only descriptive tags, only genres or only keywords.</param>

@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Services.MetadataStorage;
 
@@ -22,7 +23,15 @@ namespace Shoko.Server.Services;
 /// <param name="writer">Writes the changes.</param>
 /// <param name="textStore">Writes the tags, whose names and overviews stay on their rows, and tells the text manager.</param>
 /// <param name="logger">Where a handler's failure is logged.</param>
-public class MetadataTagStore(Metadata_TagRepository tagRepository, Metadata_Tag_EntryRepository entryRepository, MetadataRowWriter writer, MetadataTextStore textStore, ILogger<MetadataTagStore>? logger = null)
+/// <param name="anidbTagRepository">AniDB's own tags, listed for AniDB.</param>
+public class MetadataTagStore(
+    Metadata_TagRepository tagRepository,
+    Metadata_Tag_EntryRepository entryRepository,
+    MetadataRowWriter writer,
+    MetadataTextStore textStore,
+    ILogger<MetadataTagStore>? logger = null,
+    AniDB_TagRepository? anidbTagRepository = null
+)
     : IMetadataTagStore
 {
     /// <summary>
@@ -41,6 +50,35 @@ public class MetadataTagStore(Metadata_TagRepository tagRepository, Metadata_Tag
     /// <inheritdoc />
     public event EventHandler<MetadataEntitiesRemovedEventArgs>? EntitiesRemoved;
 
+    /// <inheritdoc />
+    public event EventHandler<MetadataEntitiesSavedEventArgs>? EntitiesSaved;
+
+    /// <summary>
+    ///   Raises <see cref="EntitiesSaved"/>, also for AniDB's tags, which an
+    ///   anime refresh writes past this store.
+    /// </summary>
+    /// <param name="saved">The tags saved.</param>
+    internal void OnEntitiesSaved(IReadOnlyList<MetadataGuid> saved)
+    {
+        if (saved.Count is 0)
+            return;
+
+        MetadataStoreEvents.Raise(EntitiesSaved, this, new() { EntityIDs = saved }, _logger, nameof(EntitiesSaved));
+    }
+
+    /// <summary>
+    ///   Raises <see cref="EntitiesRemoved"/> for AniDB's tags, which an anime
+    ///   refresh removes past this store.
+    /// </summary>
+    /// <param name="removed">The tags removed.</param>
+    internal void OnEntitiesRemoved(IReadOnlyList<MetadataGuid> removed)
+    {
+        if (removed.Count is 0)
+            return;
+
+        MetadataStoreEvents.Raise(EntitiesRemoved, this, new() { EntityIDs = removed }, _logger, nameof(EntitiesRemoved));
+    }
+
     #endregion
 
     #region Reading
@@ -55,10 +93,10 @@ public class MetadataTagStore(Metadata_TagRepository tagRepository, Metadata_Tag
     /// <inheritdoc />
     public IReadOnlyList<ITag> GetAllTags(MetadataSource source, TagKind? kind = null)
         => [
-            .. tagRepository.GetBySource(source)
+            .. (source == MetadataSource.AniDB && anidbTagRepository is not null ? anidbTagRepository.GetAll().Cast<ITag>() : tagRepository.GetBySource(source))
                 .Where(tag => kind is null || tag.Kind == kind)
                 .OrderBy(tag => tag.Name, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(tag => tag.ProviderID, StringComparer.Ordinal),
+                .ThenBy(tag => tag.ID.ID, StringComparer.Ordinal),
         ];
 
     /// <inheritdoc />
@@ -99,6 +137,7 @@ public class MetadataTagStore(Metadata_TagRepository tagRepository, Metadata_Tag
                 row.LastUpdatedAt = now;
             });
             textStore.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Tag>(tagRepository, saving, []));
+            OnEntitiesSaved([.. saving.Select(row => ((IMetadata)row).ID)]);
         }
     }
 
