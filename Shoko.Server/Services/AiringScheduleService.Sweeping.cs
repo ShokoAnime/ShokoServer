@@ -226,10 +226,11 @@ public partial class AiringScheduleService
         };
         if (outcome is AiringScheduleSweepOutcome.Failed)
             logger.LogError(
-                "Swept airing schedules with provider {ProviderName} for {Duration:0.###}s: {Outcome}, and the sweep was abandoned. {ErrorMessage}",
+                "Swept airing schedules with provider {ProviderName} for {Duration:0.###}s: {Outcome}, and the sweep {Progress}. {ErrorMessage}",
                 info.Name,
                 args.Duration.TotalSeconds,
                 outcome,
+                args.IsFinished ? "was abandoned" : "resumes where it was",
                 errorMessage
             );
         else

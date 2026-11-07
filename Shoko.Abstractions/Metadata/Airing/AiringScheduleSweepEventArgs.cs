@@ -35,8 +35,10 @@ public class AiringScheduleSweepEventArgs : EventArgs
     public required DateTime CompletedAt { get; init; }
 
     /// <summary>
-    ///   Whether the sweep is over, as opposed to resuming in a later chunk. A
-    ///   sweep that ended badly is also over, since the outcome says so.
+    ///   Whether the sweep is over, as opposed to resuming in a later chunk.
+    ///   A chunk that failed, timed out or was stopped keeps its place, so the
+    ///   sweep is not over and resumes there; only a cursor too long to store
+    ///   ends a failed sweep.
     /// </summary>
     public required bool IsFinished { get; init; }
 
