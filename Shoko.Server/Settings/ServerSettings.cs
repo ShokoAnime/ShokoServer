@@ -10,6 +10,7 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Enums;
+using Shoko.Server.Telemetry;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Settings;
@@ -64,6 +65,12 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, ICo
                 "Web.AuthenticationThrottle.InitialLockoutMinutes",
                 ["Web.AuthenticationThrottle.InitialLockoutMinutes cannot be greater than Web.AuthenticationThrottle.MaxLockoutMinutes."]
             );
+        if (TelemetryExportOptions.CheckEndpoint(config.Telemetry.Endpoint) is { Count: > 0 } endpointErrors)
+            errors.Add("Telemetry.Endpoint", endpointErrors);
+        if (TelemetryExportOptions.CheckHeaders(config.Telemetry.Headers) is { Count: > 0 } headersErrors)
+            errors.Add("Telemetry.Headers", headersErrors);
+        if (string.IsNullOrWhiteSpace(config.Telemetry.ServiceName))
+            errors.Add("Telemetry.ServiceName", ["Telemetry.ServiceName cannot be empty."]);
         return errors;
     }
 

@@ -90,6 +90,31 @@ internal sealed class TelemetryExportOptions
     private static bool IsRatio(double value)
         => value is >= 0 and <= 1;
 
+    /// <summary>
+    /// Checks an OTLP endpoint, as the settings hold it.
+    /// </summary>
+    /// <param name="value">The endpoint. Empty turns the export off and passes.</param>
+    /// <returns>What is wrong with it, without the value; empty when it is fine.</returns>
+    public static IReadOnlyList<string> CheckEndpoint(string? value)
+    {
+        var warnings = new List<string>();
+        if (!string.IsNullOrWhiteSpace(value))
+            ParseEndpoint(value.Trim(), warnings);
+        return warnings;
+    }
+
+    /// <summary>
+    /// Checks the OTLP headers, as the settings hold them.
+    /// </summary>
+    /// <param name="value">The headers. Empty passes.</param>
+    /// <returns>What is wrong with them, without any value; empty when they are fine.</returns>
+    public static IReadOnlyList<string> CheckHeaders(string? value)
+    {
+        var warnings = new List<string>();
+        ParseHeaders(value, warnings);
+        return warnings;
+    }
+
     private static Uri? ParseEndpoint(string value, List<string> warnings)
     {
         // Only says what is wrong with the address, since it could hold a password.
