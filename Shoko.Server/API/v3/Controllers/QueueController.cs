@@ -135,8 +135,8 @@ public class QueueController : BaseController
     [InitFriendly]
     public ActionResult Hold([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Queue.Input.HoldsBody body)
     {
-        var pools = body.Pools.Where(name => !string.IsNullOrWhiteSpace(name)).ToList();
-        var jobTypes = body.JobTypes.Where(key => !string.IsNullOrWhiteSpace(key)).ToList();
+        var pools = (body.Pools ?? []).Where(name => !string.IsNullOrWhiteSpace(name)).ToList();
+        var jobTypes = (body.JobTypes ?? []).Where(key => !string.IsNullOrWhiteSpace(key)).ToList();
         foreach (var name in pools.Where(name => !_holds.IsKnownPool(name)))
             ModelState.AddModelError(nameof(body.Pools), $"The queue has no pool named \"{name}\".");
         foreach (var key in jobTypes.Where(key => !_holds.IsKnownJobType(key)))
@@ -162,9 +162,9 @@ public class QueueController : BaseController
     [InitFriendly]
     public ActionResult Release([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Queue.Input.HoldsBody body)
     {
-        foreach (var name in body.Pools.Where(name => !string.IsNullOrWhiteSpace(name)))
+        foreach (var name in (body.Pools ?? []).Where(name => !string.IsNullOrWhiteSpace(name)))
             _scheduler.SetPoolHeld(name, false);
-        foreach (var key in body.JobTypes.Where(key => !string.IsNullOrWhiteSpace(key)))
+        foreach (var key in (body.JobTypes ?? []).Where(key => !string.IsNullOrWhiteSpace(key)))
             _scheduler.SetJobTypeHeld(key, false);
         return Ok();
     }

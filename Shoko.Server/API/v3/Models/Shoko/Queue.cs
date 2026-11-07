@@ -318,14 +318,14 @@ public class Queue
         public class HoldsBody
         {
             /// <summary>
-            /// The pools, as the queue's pools name them.
+            /// The pools, as the queue's pools name them. Leave out for none.
             /// </summary>
-            public List<string> Pools { get; set; } = [];
+            public List<string>? Pools { get; set; }
 
             /// <summary>
-            /// The job types, by the names <c>GET /api/v3/Queue/Types</c> lists them under.
+            /// The job types, by the names <c>GET /api/v3/Queue/Types</c> lists them under. Leave out for none.
             /// </summary>
-            public List<string> JobTypes { get; set; } = [];
+            public List<string>? JobTypes { get; set; }
         }
     }
 }
