@@ -58,33 +58,9 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     public override void RegenerateDb()
     {
-        SystemService.StartupMessage = $"Database - Validating - {nameof(VideoLocal)} Checking Media Info...";
         var count = 0;
         int max;
         IReadOnlyList<VideoLocal> list;
-
-        try
-        {
-            list = Cache.GetAll().Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaInfo == null).ToList();
-            max = list.Count;
-
-            var scheduler = ISystemService.StaticServices.GetRequiredService<IQueueScheduler>();
-            list.ForEach(
-                a =>
-                {
-                    scheduler.EnqueueWithPriority<MediaInfoJob>(
-                        c => c.VideoLocalID = a.VideoLocalID,
-                        JobPriorities.ForFileSize(a.FileSize, isNew: false, prioritize: false)
-                    ).GetAwaiter().GetResult();
-                    count++;
-                    SystemService.StartupMessage = $"Database - Validating - {nameof(VideoLocal)} Queuing Media Info Commands - {count}/{max}...";
-                }
-            );
-        }
-        catch
-        {
-            // ignore
-        }
 
         var locals = Cache.GetAll()
             .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
