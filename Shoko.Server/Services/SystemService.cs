@@ -669,6 +669,7 @@ public class SystemService : ISystemService
             services.AddSingleton<CoreWebUIProvider>();
             services.AddSingleton<WebUIService>();
             services.AddSingleton<IWebUIService>(sp => sp.GetRequiredService<WebUIService>());
+            services.AddSingleton<IThirdPartyNoticeService, ThirdPartyNoticeService>();
             services.AddSingleton<MetadataProviderManager>();
             services.AddSingleton<IMetadataProviderManager>(sp => sp.GetRequiredService<MetadataProviderManager>());
             services.AddSingleton<MetadataProviderScheduler>();

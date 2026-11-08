@@ -475,6 +475,32 @@ needs nothing from Shoko for it:
 
 ---
 
+## Third-party notices
+
+The server lists the licences of every third-party package it ships, the core's
+and each loaded plugin's, for signed-in users (`GET /api/v3/ThirdPartyNotice`,
+with the texts by key from `GET /api/v3/ThirdPartyNotice/Text?key=…`). A plugin
+built with `Shoko.BuildTools.Targets` needs nothing more: every build writes
+`third-party-notices.json.br` next to the assembly, which the server finds in the
+plugin's folder. A plugin built another way can write the file itself; the format
+is in the [build tools guide](../../Shoko.BuildTools/README.md#third-party-notices).
+
+A package whose licence the build cannot read fails CI. Set it by hand in the
+project:
+
+```xml
+<ItemGroup>
+  <ThirdPartyNoticeOverride Include="Some.Package" License="MIT" TextFile="licenses/some-package.txt" />
+  <ThirdPartyNotice Include="Some Font" License="OFL-1.1" TextFile="fonts/OFL.txt" />
+</ItemGroup>
+```
+
+`IThirdPartyNoticeService` reads the same notices: `GetSections()` gives one
+`ThirdPartyNoticeSection` per plugin, the core first, each headed by the plugin's
+own licence (`Project`), and `GetText(key)` a licence or notice text.
+
+---
+
 ## `IPluginManager`
 
 The registry of what is installed, loaded and exported. A plugin mostly uses it
