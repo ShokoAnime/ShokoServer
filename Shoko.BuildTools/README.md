@@ -560,3 +560,93 @@ server does, leaves the `.props` out, so a plugin built that way sets
 `EnableDynamicLoading` itself. It points `ShokoBuildToolsTasksAssembly` at the tasks it built,
 names the targets that put them there in `ShokoBuildToolsPrepareTargets`, and
 sets `ShokoBuildToolsUseTaskHost` to `true` so the tasks run out of process.
+
+### Third-party notices
+
+Every build also writes `third-party-notices.json.br` next to the assembly: the
+licences of the NuGet packages the build ships, which the server lists for its
+users together with its own. A plugin needs no code for it; the server finds the
+file in the plugin's folder.
+
+What is listed is what the build copies to its output (`RuntimeCopyLocalItems`
+and the native, resource and runtime-target ones), so the shared framework and
+packages referenced with `ExcludeAssets="runtime"` are left out. So are the
+packages the server ships itself, `ThirdPartyNoticesHostPackages`
+(`Shoko.Abstractions;Shoko.QueueProcessor` by default) and everything they depend
+on, as `project.assets.json` records it.
+
+For each package the targets read its nuspec (`<license type="expression">` or
+`<license type="file">`, the copyright and the project URL) and the licence and
+notice files at its root: `LICENSE*`, `LICENCE*` and `COPYING*` as licences,
+`NOTICE*`, `THIRD-PARTY*` and `AUTHORS*` as notices (an Apache-2.0 `NOTICE` has
+to be carried). What a package says is cached per exact ID and version in
+`ThirdPartyNoticesCacheDirectory` (`obj/third-party-notices-cache/` by default),
+which a clean or a rebuild leaves alone, since a package in the NuGet cache never
+changes. The notices themselves are only written again when
+`project.assets.json`, the project file or a listed text file changes.
+
+A package whose licence cannot be read, with no SPDX expression and no licence
+file but at most a URL, is warning `SHOKO0201`, and an error in CI
+(`ContinuousIntegrationBuild`, `CI` or `GITHUB_ACTIONS` set to `true`, or
+`ThirdPartyNoticesTreatMissingAsError`). Set its licence by hand, optionally for
+one version:
+
+```xml
+<ItemGroup>
+  <ThirdPartyNoticeOverride Include="Some.Package" License="MIT" TextFile="licenses/some-package.txt" />
+  <ThirdPartyNoticeOverride Include="Other.Package" Version="1.2.3" License="Apache-2.0" />
+</ItemGroup>
+```
+
+An asset no package carries, such as a font, is listed with `ThirdPartyNotice`:
+
+```xml
+<ItemGroup>
+  <ThirdPartyNotice Include="Some Font" Version="2.0" License="OFL-1.1" TextFile="fonts/OFL.txt" Url="https://example.com/font" />
+</ItemGroup>
+```
+
+Both take `License`, `TextFile` (read relative to the project), `Copyright` and
+`Url`. The project's own licence heads the file, from `PackageLicenseExpression`
+and the file `PackageLicenseFile` names among the packed `None` items, or
+`ThirdPartyNoticesProjectLicenseFile`. `GenerateThirdPartyNotices` set to `false`
+turns it all off.
+
+#### Notices file format
+
+A plugin built another way can write the file itself; the server reads the
+`third-party-notices.json.br` beside the plugin's assembly, in the plugin's own
+folder. It is UTF-8 JSON, Brotli compressed:
+
+```json
+{
+  "version": 1,
+  "project": { "id": "My.Plugin", "version": "1.0.0", "source": "project", "license": "MIT", "textKeys": ["<key>"] },
+  "packages": [
+    {
+      "id": "Some.Package",
+      "version": "1.2.3",
+      "source": "nuget",
+      "license": "Apache-2.0",
+      "copyright": "© Someone",
+      "url": "https://example.com",
+      "textKeys": ["<key>", "<key>"]
+    }
+  ],
+  "texts": { "<key>": "The licence text." }
+}
+```
+
+- `version`: the format version, `1`.
+- `project`: optional, the plugin's own licence, with `source` set to `project`.
+- `packages`: every package or asset, sorted by `id`. `source` is `nuget`,
+  `npm` or `asset`; `license` the SPDX expression as the package writes it;
+  `version`, `license`, `copyright` and `url` may be left out; `textKeys` lists
+  its texts in `texts`, the licence texts first.
+- `texts`: each licence or notice text once, by key: the first 16 bytes of the
+  SHA-256 of the text's UTF-8 bytes, as lowercase hex, after making its line
+  endings `\n` and trimming trailing white space. The same text gets the same
+  key in every file, so the server stores it once.
+
+The targets write the members in this order, compact, with no time stamps, so
+the same input always gives the same file.

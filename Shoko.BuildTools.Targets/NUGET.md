@@ -27,6 +27,10 @@ The plugin's identity and tags come from its `manifest.json`, or from its source
 
 A project setting `PluginGenerateClass` to `true` gets its `IPlugin` class generated: a `partial` class `Plugin` in its `RootNamespace` (or `PluginClassName`), whose ID, name and description come from the stamped identity. Add a main configuration or behaviour in a partial class of your own; with no other code, it is a meta plugin that only brings in its `PluginDependency` items. The targets detect that, with no property to set, and stamp `PackageIsMeta` as `true` or `false`, which the server shows as `IsMeta`. `PluginIcon` and `PluginThumbnail` name the image files to embed for the server to show. See [Generated plugin class](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#generated-plugin-class) and [Plugin images](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#plugin-images) in the guide.
 
+## Third-party notices
+
+Every build also writes `third-party-notices.json.br` next to the assembly, listing the licences of the NuGet packages it ships (less those the server ships itself), which the server shows its users. A package whose licence cannot be read is warning `SHOKO0201`, and an error in CI; set it by hand with `<ThirdPartyNoticeOverride Include="Some.Package" License="MIT" TextFile="…" />`, and list an asset no package carries with `<ThirdPartyNotice Include="…" License="OFL-1.1" TextFile="…" />`. See [Third-party notices](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md#third-party-notices) in the guide, which also describes the file format.
+
 ## Documentation
 
 - [Build tools guide](https://github.com/ShokoAnime/ShokoServer/blob/master/Shoko.BuildTools/README.md)

@@ -66,6 +66,10 @@
              Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
   <UsingTask TaskName="Shoko.BuildTools.Tasks.DetectMetaPlugin" AssemblyFile="$(ShokoBuildToolsTasksAssembly)" TaskFactory="TaskHostFactory"
              Condition="'$(ShokoBuildToolsUseTaskHost)' == 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.WriteThirdPartyNotices" AssemblyFile="$(ShokoBuildToolsTasksAssembly)"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.WriteThirdPartyNotices" AssemblyFile="$(ShokoBuildToolsTasksAssembly)" TaskFactory="TaskHostFactory"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' == 'true'" />
 
   <!-- Manifest metadata — generate .cs from manifest.json -->
   <Target Name="_ShokoStampManifestMetadata" BeforeTargets="CoreGenerateAssemblyInfo" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)"
@@ -174,6 +178,80 @@
                       OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.GitInfo.cs" />
     <ItemGroup>
       <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.GitInfo.cs" />
+    </ItemGroup>
+  </Target>
+
+
+  <!--
+    Third-party notices: the licences of the NuGet packages the build ships, in
+    third-party-notices.json.br next to the assembly, where the server reads them.
+    Left out: the packages the host ships (ThirdPartyNoticesHostPackages and
+    everything they depend on) and anything not copied to the output, such as
+    the shared framework and packages referenced with ExcludeAssets="runtime".
+
+    A package whose licence cannot be read (no SPDX expression and no licence
+    file, at most a URL) is a warning, and an error in CI. Set it by hand:
+
+      <ThirdPartyNoticeOverride Include="Some.Package" License="MIT" TextFile="licenses/some-package.txt" />
+
+    with an optional Version, Copyright and Url. An asset no package carries,
+    such as a font, is listed the same way:
+
+      <ThirdPartyNotice Include="Some Font" Version="2.0" License="OFL-1.1" TextFile="fonts/OFL.txt" />
+
+    GenerateThirdPartyNotices set to false turns it off. Each package's licence
+    is cached by exact ID and version in ThirdPartyNoticesCacheDirectory, which a
+    clean leaves alone, since a package in the NuGet cache never changes.
+  -->
+  <PropertyGroup>
+    <GenerateThirdPartyNotices Condition="'$(GenerateThirdPartyNotices)' == ''">true</GenerateThirdPartyNotices>
+    <ThirdPartyNoticesHostPackages Condition="'$(ThirdPartyNoticesHostPackages)' == ''">Shoko.Abstractions;Shoko.QueueProcessor</ThirdPartyNoticesHostPackages>
+    <ThirdPartyNoticesTreatMissingAsError Condition="'$(ThirdPartyNoticesTreatMissingAsError)' == '' and ('$(ContinuousIntegrationBuild)' == 'true' or '$(CI)' == 'true' or '$(GITHUB_ACTIONS)' == 'true')">true</ThirdPartyNoticesTreatMissingAsError>
+    <ThirdPartyNoticesCacheDirectory Condition="'$(ThirdPartyNoticesCacheDirectory)' == ''">$(BaseIntermediateOutputPath)third-party-notices-cache\</ThirdPartyNoticesCacheDirectory>
+  </PropertyGroup>
+
+  <Target Name="_ShokoThirdPartyNoticesInputs" DependsOnTargets="ResolvePackageAssets" Condition="'$(GenerateThirdPartyNotices)' == 'true'">
+    <PropertyGroup>
+      <_ShokoThirdPartyNoticesFile>$(IntermediateOutputPath)third-party-notices.json.br</_ShokoThirdPartyNoticesFile>
+      <_ShokoThirdPartyNoticesProjectLicenseFile>$(ThirdPartyNoticesProjectLicenseFile)</_ShokoThirdPartyNoticesProjectLicenseFile>
+    </PropertyGroup>
+    <ItemGroup>
+      <_ShokoThirdPartyNoticesPackageFiles Include="@(RuntimeCopyLocalItems);@(NativeCopyLocalItems);@(ResourceCopyLocalItems);@(RuntimeTargetsCopyLocalItems)" />
+      <_ShokoThirdPartyNoticesProjectLicense Include="@(None)" Condition="'$(_ShokoThirdPartyNoticesProjectLicenseFile)' == '' and '$(PackageLicenseFile)' != '' and '%(None.Pack)' == 'true' and '%(Filename)%(Extension)' == '$(PackageLicenseFile)'" />
+      <_ShokoThirdPartyNoticesTextFiles Include="@(ThirdPartyNoticeOverride->'%(TextFile)')" Condition="'%(ThirdPartyNoticeOverride.TextFile)' != ''" />
+      <_ShokoThirdPartyNoticesTextFiles Include="@(ThirdPartyNotice->'%(TextFile)')" Condition="'%(ThirdPartyNotice.TextFile)' != ''" />
+    </ItemGroup>
+    <PropertyGroup Condition="'$(_ShokoThirdPartyNoticesProjectLicenseFile)' == ''">
+      <_ShokoThirdPartyNoticesProjectLicenseFile>@(_ShokoThirdPartyNoticesProjectLicense->'%(FullPath)')</_ShokoThirdPartyNoticesProjectLicenseFile>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="_ShokoWriteThirdPartyNotices" DependsOnTargets="_ShokoThirdPartyNoticesInputs;$(ShokoBuildToolsPrepareTargets)"
+          Condition="'$(GenerateThirdPartyNotices)' == 'true'"
+          Inputs="$(ProjectAssetsFile);$(MSBuildProjectFullPath);$(_ShokoThirdPartyNoticesProjectLicenseFile);@(_ShokoThirdPartyNoticesTextFiles)"
+          Outputs="$(_ShokoThirdPartyNoticesFile)">
+    <WriteThirdPartyNotices OutputPath="$(_ShokoThirdPartyNoticesFile)"
+                            ProjectDirectory="$(MSBuildProjectDirectory)"
+                            PackageFiles="@(_ShokoThirdPartyNoticesPackageFiles)"
+                            ProjectAssetsFile="$(ProjectAssetsFile)"
+                            HostPackages="$(ThirdPartyNoticesHostPackages)"
+                            CacheDirectory="$(ThirdPartyNoticesCacheDirectory)"
+                            Overrides="@(ThirdPartyNoticeOverride)"
+                            Assets="@(ThirdPartyNotice)"
+                            TreatMissingAsError="$(ThirdPartyNoticesTreatMissingAsError)"
+                            ProjectName="$([MSBuild]::ValueOrDefault('$(PackageId)', '$(AssemblyName)'))"
+                            ProjectVersion="$(Version)"
+                            ProjectLicense="$(PackageLicenseExpression)"
+                            ProjectLicenseFile="$(_ShokoThirdPartyNoticesProjectLicenseFile)"
+                            ProjectCopyright="$(Copyright)"
+                            ProjectUrl="$([MSBuild]::ValueOrDefault('$(PackageProjectUrl)', '$(RepositoryUrl)'))" />
+  </Target>
+
+  <Target Name="_ShokoAddThirdPartyNotices" BeforeTargets="AssignTargetPaths" DependsOnTargets="_ShokoWriteThirdPartyNotices"
+          Condition="'$(GenerateThirdPartyNotices)' == 'true'">
+    <ItemGroup>
+      <None Include="$(_ShokoThirdPartyNoticesFile)" Link="third-party-notices.json.br" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+      <FileWrites Include="$(_ShokoThirdPartyNoticesFile)" />
     </ItemGroup>
   </Target>
 

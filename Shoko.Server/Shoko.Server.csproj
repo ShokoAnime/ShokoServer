@@ -149,6 +149,25 @@
     <ShokoBuildToolsUseTaskHost>true</ShokoBuildToolsUseTaskHost>
     <ShokoBuildToolsPrepareTargets>_ShokoCopyBuildToolsTasks</ShokoBuildToolsPrepareTargets>
   </PropertyGroup>
+  <!--
+    The core's own third-party notices: its licence heads them, and the packages that give only a
+    licence URL get theirs here, read from what the URL names. The CLI and the tray app build into
+    this project's output, so the file is beside them too.
+  -->
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://shokoanime.com</PackageProjectUrl>
+    <ThirdPartyNoticesProjectLicenseFile>$(MSBuildThisFileDirectory)..\LICENSE</ThirdPartyNoticesProjectLicenseFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ThirdPartyNoticeOverride Include="Antlr3.Runtime" License="BSD-3-Clause" TextFile="ThirdPartyLicenses\Antlr3.Runtime.txt" />
+    <ThirdPartyNoticeOverride Include="Iesi.Collections" TextFile="ThirdPartyLicenses\Iesi.Collections.txt" Url="https://github.com/nhibernate/iesi.collections" />
+    <ThirdPartyNoticeOverride Include="Mono.Posix.NETStandard" License="MIT" TextFile="ThirdPartyLicenses\Mono.Posix.NETStandard.txt" />
+    <ThirdPartyNoticeOverride Include="Remotion.Linq" License="Apache-2.0" />
+    <ThirdPartyNoticeOverride Include="Remotion.Linq.EagerFetching" License="LGPL-2.1" />
+    <ThirdPartyNoticeOverride Include="Microsoft.AspNetCore.Http;Microsoft.AspNetCore.Http.Abstractions;Microsoft.AspNetCore.Http.Extensions;Microsoft.AspNetCore.Http.Features;Microsoft.AspNetCore.ResponseCaching;Microsoft.AspNetCore.ResponseCaching.Abstractions;Microsoft.AspNetCore.WebUtilities;Microsoft.Net.Http.Headers"
+                              License="Apache-2.0" TextFile="ThirdPartyLicenses\AspNetCore-2.x.txt" />
+  </ItemGroup>
   <Import Project="..\Shoko.BuildTools.Targets\build\Shoko.BuildTools.Targets.targets" />
   <Target Name="_ShokoCopyBuildToolsTasks" DependsOnTargets="ResolveProjectReferences">
     <Error Condition="'@(ShokoBuildToolsTasksOutput)' == ''" Text="The build tools' tasks were not built." />
