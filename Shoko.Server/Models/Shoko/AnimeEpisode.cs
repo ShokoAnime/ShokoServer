@@ -326,7 +326,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     {
         get
         {
-            if (AniDB_Episode is { } anidbEpisode && anidbEpisode.GetRegularAirDateAsDate() is { } airDate)
+            if (AniDB_Episode is IEpisode { AirDateWithTime: { } airDate })
                 return airDate;
 
             // Else the first date a linked episode of another source gives, the

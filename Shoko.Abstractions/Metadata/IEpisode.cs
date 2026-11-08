@@ -83,8 +83,13 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     DateOnly? AirDate { get; }
 
     /// <summary>
-    ///   The precise day and time of the episode's regular broadcast in UTC,
-    ///   if available.
+    ///   The day and time of the episode's regular broadcast, in UTC (marked
+    ///   <see cref="DateTimeKind.Utc"/>), if available. Only some sources,
+    ///   such as AniList, know the time it aired. One that only knows the day,
+    ///   such as AniDB, gives that day at midnight UTC, and one may give
+    ///   nothing and leave the day to <see cref="AirDate"/>, as TMDB does, so
+    ///   midnight does not mean the episode aired at 00:00. For the times of
+    ///   broadcasts, read <c>IAiringScheduleService</c>.
     /// </summary>
     DateTime? AirDateWithTime { get; }
 

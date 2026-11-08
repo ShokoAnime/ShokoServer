@@ -91,9 +91,20 @@ public class Metadata_Episode : IEpisode<ISeries, IEpisode>, IMetadataStoreRow<M
     public DateOnly? AirDate { get; set; }
 
     /// <summary>
-    ///   The precise day and time the episode aired, in UTC, when known.
+    ///   The day and time the episode aired, in UTC, when the source knows
+    ///   the time. Always marked <see cref="DateTimeKind.Utc"/>: the database
+    ///   gives it back unmarked, and a time not marked local is taken as UTC.
     /// </summary>
-    public DateTime? AirDateWithTime { get; set; }
+    public DateTime? AirDateWithTime
+    {
+        get;
+        set => field = value is { } time ? time.Kind switch
+        {
+            DateTimeKind.Utc => time,
+            DateTimeKind.Local => time.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(time, DateTimeKind.Utc),
+        } : null;
+    }
 
     /// <summary>
     ///   The links to the episode elsewhere that its source gave.

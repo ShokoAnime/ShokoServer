@@ -377,7 +377,8 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 
     DateOnly? IEpisode.AirDate => GetRegularAirDateAsDate() is { } airDate ? DateOnly.FromDateTime(airDate) : null;
 
-    DateTime? IEpisode.AirDateWithTime => GetRegularAirDateAsDate();
+    // AniDB only knows the day: midnight UTC of it.
+    DateTime? IEpisode.AirDateWithTime => GetRegularAirDateAsDate() is { } airDate ? DateTime.SpecifyKind(airDate, DateTimeKind.Utc) : null;
 
     DateOnly? IEpisode.EarlyAirDate => GetEarlyAirDate();
 

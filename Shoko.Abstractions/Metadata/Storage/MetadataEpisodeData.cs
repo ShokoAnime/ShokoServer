@@ -81,7 +81,11 @@ public sealed record MetadataEpisodeData
     public DateOnly? AirDate { get; init; }
 
     /// <summary>
-    ///   The precise day and time the episode aired, in UTC, when known.
+    ///   The day and time the episode aired, in UTC, when the source knows
+    ///   the time. A source that only knows the day gives
+    ///   <see cref="AirDate"/> instead. A time not marked
+    ///   <see cref="DateTimeKind.Local"/> is taken as UTC, and read back
+    ///   marked <see cref="DateTimeKind.Utc"/>.
     /// </summary>
     public DateTime? AirDateWithTime { get; init; }
 
