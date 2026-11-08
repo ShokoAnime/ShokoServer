@@ -378,6 +378,10 @@ public class SystemService : ISystemService
 
             _webHost = InitWebHost(settings);
 
+            // The host is stopped on a thread of its own once it is told to stop; see StopHost.
+            _webHost.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping
+                .Register(() => RunOnOwnThread("Shoko host stop", StopHost));
+
             // The pools and job types held by hand stay held across restarts.
             var queueScheduler = _webHost.Services.GetRequiredService<IQueueScheduler>();
             _webHost.Services.GetRequiredService<QueueHolds>().Set(settings.Queue.HeldPools, settings.Queue.HeldJobTypes);
@@ -1265,6 +1269,9 @@ public class SystemService : ISystemService
 
     private static readonly TimeSpan _anidbShutdownTimeout = TimeSpan.FromSeconds(10);
 
+    // Set once the host has stopped. Continuations run on the thread that stopped it, never on the pool.
+    private readonly TaskCompletionSource _hostStopped = new();
+
     /// <inheritdoc/>
     public event EventHandler<CancelEventArgs>? ShutdownOrRestartRequested;
 
@@ -1308,14 +1315,67 @@ public class SystemService : ISystemService
             _logger.LogInformation("Shutdown request accepted");
             ShutdownPending = true;
             var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
-            Task.Run(lifetime.StopApplication, CancellationToken.None);
+            RunOnOwnThread("Shoko stop request", lifetime.StopApplication);
             return true;
         }
     }
 
     /// <inheritdoc/>
     public Task WaitForShutdownAsync()
-        => _webHost?.WaitForShutdownAsync(CancellationToken.None) ?? Task.CompletedTask;
+        => _webHost is null ? Task.CompletedTask : _hostStopped.Task;
+
+    /// <summary>
+    ///   Stops the web host and its hosted services, within the host's
+    ///   shutdown timeout, and lets <see cref="WaitForShutdownAsync"/> return.
+    ///   Not awaited on the thread pool as the host's own wait does, so a pool
+    ///   that blocked work has starved cannot hold the stop up.
+    /// </summary>
+    private void StopHost()
+    {
+        try
+        {
+            _webHost?.StopAsync(CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Not every service stopped cleanly within the shutdown timeout.");
+        }
+        finally
+        {
+            _hostStopped.TrySetResult();
+        }
+    }
+
+    /// <summary>
+    ///   Runs a step of stopping on a thread of its own, outside the thread
+    ///   pool, or on the calling thread when no thread can be started.
+    /// </summary>
+    /// <param name="name">The thread's name.</param>
+    /// <param name="action">The step.</param>
+    private void RunOnOwnThread(string name, Action action)
+    {
+        void Run()
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while stopping the server");
+            }
+        }
+
+        try
+        {
+            new Thread(Run) { Name = name, IsBackground = false }.Start();
+        }
+        catch (Exception ex) when (ex is OutOfMemoryException or ThreadStartException)
+        {
+            _logger.LogWarning(ex, "Could not start a thread to stop the server on; stopping on this one.");
+            Run();
+        }
+    }
 
     internal void OnShutdown()
     {
@@ -1399,7 +1459,7 @@ public class SystemService : ISystemService
             _logger.LogInformation("Restart request accepted");
             RestartPending = true;
             var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
-            Task.Run(lifetime.StopApplication, CancellationToken.None);
+            RunOnOwnThread("Shoko stop request", lifetime.StopApplication);
             return true;
         }
     }
