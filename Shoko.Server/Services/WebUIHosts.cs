@@ -141,9 +141,13 @@ internal static class WebUIHosts
     ///   Checks a list of host overrides before it is saved.
     /// </summary>
     /// <param name="overrides">The host overrides.</param>
-    /// <param name="isKnownProvider">Tells if a web UI with the ID is available.</param>
+    /// <param name="isKnownProvider">
+    ///   Tells if an entry's web UI may be named: given the entry's key from
+    ///   <see cref="TryParse"/> and the web UI's ID, true when the web UI is
+    ///   available, or the entry was saved before as it is.
+    /// </param>
     /// <returns>The errors, by the index of the entry they are for. Empty when the list is fine.</returns>
-    internal static IReadOnlyDictionary<int, string> Validate(IReadOnlyList<WebUIHostOverride> overrides, Func<Guid, bool> isKnownProvider)
+    internal static IReadOnlyDictionary<int, string> Validate(IReadOnlyList<WebUIHostOverride> overrides, Func<string, Guid, bool> isKnownProvider)
     {
         var errors = new Dictionary<int, string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -154,7 +158,7 @@ internal static class WebUIHosts
                 errors[index] = reason!;
             else if (!seen.Add(key))
                 errors[index] = $"The host \"{entry.Host}\" is listed more than once.";
-            else if (!isKnownProvider(entry.ProviderID))
+            else if (!isKnownProvider(key, entry.ProviderID))
                 errors[index] = $"No web UI with ID {entry.ProviderID} is available.";
         }
 

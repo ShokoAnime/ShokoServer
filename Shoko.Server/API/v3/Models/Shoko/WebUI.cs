@@ -1063,6 +1063,17 @@ public class WebUI
         public bool IsSelected { get; } = info.IsSelected;
 
         /// <summary>
+        /// Indicates the web UI is the one served by default when none is
+        /// picked, or when the picked one is gone or failed.
+        /// </summary>
+        public bool IsAutomatic { get; } = info.IsAutomatic;
+
+        /// <summary>
+        /// Indicates the web UI may be served by default without being picked.
+        /// </summary>
+        public bool IsDefaultCandidate { get; } = info.IsDefaultCandidate;
+
+        /// <summary>
         /// Templates for the web UI's pages, relative to the
         /// <see cref="MountPath"/>. A page type missing from it has no page in
         /// this web UI.
@@ -1091,12 +1102,56 @@ public class WebUI
     /// The web UIs the server can serve, which one it serves by default, and
     /// the web UIs served for some hosts instead.
     /// </summary>
-    public class WebUIProviderSelection(IWebUIService webUIService)
+    /// <param name="webUIService">The web UI service.</param>
+    /// <param name="requestHost">The request's host, after any trusted proxy's forwarding.</param>
+    public class WebUIProviderSelection(IWebUIService webUIService, string? requestHost)
     {
         /// <summary>
         /// Indicates the server serves a web UI.
         /// </summary>
         public bool IsEnabled { get; } = webUIService.IsEnabled;
+
+        /// <summary>
+        /// The ID of the web UI picked to serve by default, as saved, even when
+        /// it is gone or failed; <c>null</c> when none is picked.
+        /// </summary>
+        public Guid? SelectedProviderID { get; } = webUIService.SelectedProviderID;
+
+        /// <summary>
+        /// The ID of the web UI served by default when none is picked, or when
+        /// the picked one is gone or failed.
+        /// </summary>
+        public Guid AutomaticProviderID { get; } = webUIService.AutomaticProvider.ID;
+
+        /// <summary>
+        /// The host the server saw for this request, with its port when it
+        /// gave one, after any trusted proxy's forwarding.
+        /// </summary>
+        public string? RequestHost { get; } = string.IsNullOrWhiteSpace(requestHost) ? null : requestHost;
+
+        /// <summary>
+        /// The host override matching <see cref="RequestHost"/>, or
+        /// <c>null</c> when the request's host gets the default web UI.
+        /// </summary>
+        public WebUIHostOverride? RequestHostOverride { get; } = webUIService.GetHostOverride(requestHost) is { } entry ? new WebUIHostOverride(entry) : null;
+
+        /// <summary>
+        /// The settings an environment variable sets, which cannot be changed
+        /// while the server runs: <c>IsEnabled</c> and
+        /// <c>SelectedProviderID</c>, each mapped to its variable's name. Their
+        /// values are the ones above.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> EnvironmentVariables { get; } = GetEnvironmentVariables(webUIService);
+
+        private static Dictionary<string, string> GetEnvironmentVariables(IWebUIService webUIService)
+        {
+            var variables = new Dictionary<string, string>();
+            if (webUIService.IsEnabledFromEnvironment)
+                variables[nameof(IsEnabled)] = "SHOKO_WEBUI_ENABLED";
+            if (webUIService.IsSelectionFromEnvironment)
+                variables[nameof(SelectedProviderID)] = "SHOKO_WEBUI_PROVIDER";
+            return variables;
+        }
 
         /// <summary>
         /// Every available web UI, the server's own first.

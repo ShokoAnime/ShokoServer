@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -223,6 +224,47 @@ public sealed class WebUIServiceTests : IDisposable
 
         Assert.Throws<ArgumentException>(() => service.SetHostOverrides([new() { Host = "example.com", ProviderID = Guid.NewGuid() }]));
         Assert.Empty(service.HostOverrides);
+    }
+
+    [Fact]
+    public void HostOverride_KeptAsItWas_MayNameAWebUIThatIsGone()
+    {
+        var gone = Guid.NewGuid();
+        _serviceSettings = new() { HostOverrides = [new() { Host = "old.example.com", ProviderID = gone }] };
+        var service = Create(new FakeWebUI("/noren"));
+        var core = service.GetProviderInfo<CoreWebUIProvider>().ID;
+
+        service.SetHostOverrides([new() { Host = "OLD.example.com", ProviderID = gone }, new() { Host = "new.example.com", ProviderID = core }]);
+
+        Assert.Equal(["OLD.example.com", "new.example.com"], service.HostOverrides.Select(entry => entry.Host));
+        Assert.Throws<ArgumentException>(() => service.SetHostOverrides([new() { Host = "other.example.com", ProviderID = gone }]));
+    }
+
+    [Fact]
+    public void HostOverride_ForAHost_IsTheOneForItsPortFirst()
+    {
+        var service = Create(new FakeWebUI("/noren"));
+        var core = service.GetProviderInfo<CoreWebUIProvider>().ID;
+        service.SetHostOverrides([new() { Host = "example.com", ProviderID = core }, new() { Host = "example.com:8111", ProviderID = core }]);
+
+        Assert.Equal("example.com:8111", service.GetHostOverride("Example.com:8111")?.Host);
+        Assert.Equal("example.com", service.GetHostOverride("example.com:80")?.Host);
+        Assert.Null(service.GetHostOverride("other.example.com"));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AutomaticWebUI_IsThePluginsWhenItOptsIn_WhateverIsPicked(bool optsIn)
+    {
+        var webUI = new FakeWebUI("/noren") { IsDefaultCandidate = optsIn };
+        var service = Create(webUI);
+        service.SelectProvider(service.GetProviderInfo<CoreWebUIProvider>());
+
+        var automatic = service.AutomaticProvider;
+
+        Assert.Equal(optsIn, automatic.Provider == webUI);
+        Assert.Equal([automatic], service.GetAvailableProviders().Where(info => info.IsAutomatic));
     }
 
     [Fact]

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
@@ -233,7 +234,12 @@ public class WebUIService(
     /// <inheritdoc />
     public void SetHostOverrides(IReadOnlyList<WebUIHostOverride> overrides)
     {
-        var errors = WebUIHosts.Validate(overrides, providerID => GetProviderInfo(providerID) is not null);
+        // An entry saved before as it is may keep naming a web UI that is gone or failed since.
+        var saved = SavedHostOverrides();
+        var errors = WebUIHosts.Validate(
+            overrides,
+            (key, providerID) => GetProviderInfo(providerID) is not null || (saved.TryGetValue(key, out var entry) && entry.ProviderID == providerID)
+        );
         if (errors.Count > 0)
             throw new ArgumentException(string.Join(" ", errors.Values), nameof(overrides));
 
@@ -244,6 +250,50 @@ public class WebUIService(
         configurationProvider.Save(settings);
         Refresh();
     }
+
+    /// <inheritdoc />
+    public WebUIHostOverride? GetHostOverride(string? host)
+        => string.IsNullOrWhiteSpace(host) ? null : WebUIHosts.Resolve<WebUIHostOverride?>(SavedHostOverrides()!, new HostString(host.Trim()), null);
+
+    /// <summary>
+    ///   The saved host overrides that parse, by key from
+    ///   <see cref="WebUIHosts.TryParse"/>, the first of two with one key
+    ///   winning as when serving.
+    /// </summary>
+    /// <returns>The host overrides by key.</returns>
+    private Dictionary<string, WebUIHostOverride> SavedHostOverrides()
+    {
+        var entries = new Dictionary<string, WebUIHostOverride>(StringComparer.Ordinal);
+        foreach (var entry in configurationProvider.Load().HostOverrides)
+            if (WebUIHosts.TryParse(entry.Host, out var key, out _))
+                entries.TryAdd(key, new WebUIHostOverride { Host = entry.Host, ProviderID = entry.ProviderID });
+        return entries;
+    }
+
+    /// <inheritdoc />
+    public Guid? SelectedProviderID
+        => configurationProvider.Load().SelectedProviderID;
+
+    /// <inheritdoc />
+    public WebUIProviderInfo AutomaticProvider
+        => GetAvailableProviders().First(info => info.IsAutomatic);
+
+    /// <inheritdoc />
+    public bool IsEnabledFromEnvironment
+        => IsFromEnvironment(nameof(WebUIServiceSettings.IsEnabled));
+
+    /// <inheritdoc />
+    public bool IsSelectionFromEnvironment
+        => IsFromEnvironment(nameof(WebUIServiceSettings.SelectedProviderID));
+
+    /// <summary>
+    ///   Checks if a setting was read from its environment variable.
+    /// </summary>
+    /// <param name="propertyName">The setting's property.</param>
+    /// <returns><c>true</c> when its environment variable set it.</returns>
+    private bool IsFromEnvironment(string propertyName)
+        => typeof(WebUIServiceSettings).GetProperty(propertyName)?.GetCustomAttribute<EnvironmentVariableAttribute>() is { } attribute &&
+            configurationProvider.ConfigurationInfo.LoadedEnvironmentVariables.Contains(attribute.Name);
 
     /// <inheritdoc />
     public event EventHandler<WebUIActiveProviderChangedEventArgs>? ActiveProviderChanged;
@@ -298,9 +348,8 @@ public class WebUIService(
             var settings = configurationProvider.Load();
             var selectedID = settings.SelectedProviderID;
             var usable = providerInfos.Where(info => !info.PluginInfo.HasFailed).ToList();
-            var defaultActive = (selectedID is { } id ? usable.FirstOrDefault(info => info.ID == id) : null)
-                ?? usable.FirstOrDefault(info => info.Provider != coreProvider && info.Provider.IsDefaultCandidate)
-                ?? core;
+            var automatic = usable.FirstOrDefault(info => info.Provider != coreProvider && info.Provider.IsDefaultCandidate) ?? core;
+            var defaultActive = (selectedID is { } id ? usable.FirstOrDefault(info => info.ID == id) : null) ?? automatic;
 
             var warnings = new List<string>();
             var hostProviders = new Dictionary<string, WebUIProviderInfo>(StringComparer.Ordinal);
@@ -319,6 +368,7 @@ public class WebUIService(
             {
                 info.IsActive = inUse.Contains(info);
                 info.IsSelected = info.ID == selectedID;
+                info.IsAutomatic = info == automatic;
             }
 
             var isEnabled = settings.IsEnabled;

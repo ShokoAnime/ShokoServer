@@ -66,6 +66,20 @@ public class WebUIProviderInfo
     public bool IsSelected { get; internal set; }
 
     /// <summary>
+    ///   Indicates the web UI is the one served by default when none is
+    ///   picked: the first plugin web UI in load order that is a
+    ///   <see cref="IsDefaultCandidate"/>, else the server's own. See
+    ///   <see cref="Services.IWebUIService.AutomaticProvider"/>.
+    /// </summary>
+    public bool IsAutomatic { get; internal set; }
+
+    /// <summary>
+    ///   Indicates the web UI may be served by default without being picked.
+    ///   See <see cref="IWebUIProvider.IsDefaultCandidate"/>.
+    /// </summary>
+    public bool IsDefaultCandidate { get => Provider.IsDefaultCandidate; }
+
+    /// <summary>
     ///   The <see cref="IWebUIProvider"/> that this info is for.
     /// </summary>
     public required IWebUIProvider Provider { get; init; }

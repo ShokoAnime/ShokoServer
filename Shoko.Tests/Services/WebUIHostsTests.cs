@@ -43,7 +43,7 @@ public sealed class WebUIHostsTests
     [InlineData("192.168.1.10:65535")]
     [InlineData("[fe80::1]:1")]
     public void Validate_AcceptsWellFormedHosts(string host)
-        => Assert.Empty(WebUIHosts.Validate([new() { Host = host, ProviderID = _known }], id => id == _known));
+        => Assert.Empty(WebUIHosts.Validate([new() { Host = host, ProviderID = _known }], (_, id) => id == _known));
 
     [Theory]
     [InlineData("")]
@@ -57,7 +57,7 @@ public sealed class WebUIHostsTests
     [InlineData("http://example.com")]
     [InlineData("exa mple.com")]
     public void Validate_RefusesMalformedHosts(string host)
-        => Assert.Equal([0], WebUIHosts.Validate([new() { Host = host, ProviderID = _known }], id => id == _known).Keys);
+        => Assert.Equal([0], WebUIHosts.Validate([new() { Host = host, ProviderID = _known }], (_, id) => id == _known).Keys);
 
     [Fact]
     public void Validate_RefusesDuplicatesAndUnknownWebUIs()
@@ -70,7 +70,7 @@ public sealed class WebUIHostsTests
             new() { Host = "other.example.com", ProviderID = Guid.NewGuid() },
         ];
 
-        Assert.Equal([1, 3], WebUIHosts.Validate(overrides, id => id == _known).Keys);
+        Assert.Equal([1, 3], WebUIHosts.Validate(overrides, (_, id) => id == _known).Keys);
     }
 
     #endregion

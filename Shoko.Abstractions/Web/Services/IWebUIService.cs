@@ -61,6 +61,35 @@ public interface IWebUIService
     void SelectProvider(WebUIProviderInfo? webUI);
 
     /// <summary>
+    ///   The ID of the web UI picked to serve by default, as the admin saved
+    ///   it, even when that web UI is gone or failed; <c>null</c> when none is
+    ///   picked.
+    /// </summary>
+    Guid? SelectedProviderID { get; }
+
+    /// <summary>
+    ///   The web UI served by default when none is picked, or when the picked
+    ///   one is gone or failed: the first plugin web UI in load order that is a
+    ///   <see cref="IWebUIProvider.IsDefaultCandidate"/>, else the server's
+    ///   own.
+    /// </summary>
+    WebUIProviderInfo AutomaticProvider { get; }
+
+    /// <summary>
+    ///   Indicates an environment variable sets <see cref="IsEnabled"/>
+    ///   (<c>SHOKO_WEBUI_ENABLED</c>), so it cannot be changed while the
+    ///   server runs.
+    /// </summary>
+    bool IsEnabledFromEnvironment { get; }
+
+    /// <summary>
+    ///   Indicates an environment variable picks the web UI served by default
+    ///   (<c>SHOKO_WEBUI_PROVIDER</c>), so <see cref="SelectProvider"/> cannot
+    ///   change it while the server runs.
+    /// </summary>
+    bool IsSelectionFromEnvironment { get; }
+
+    /// <summary>
     ///   The web UIs served for some hosts instead of the
     ///   <see cref="ActiveProvider"/>, as the admin saved them.
     /// </summary>
@@ -72,12 +101,23 @@ public interface IWebUIService
     /// </summary>
     /// <param name="overrides">
     ///   The new host overrides, each a well-formed host with an optional port
-    ///   from 1 to 65535, listed once, and the ID of an available web UI.
+    ///   from 1 to 65535, listed once, and the ID of an available web UI. An
+    ///   override kept as it was may name a web UI that is gone or failed.
     /// </param>
     /// <exception cref="ArgumentException">
-    ///   An override is malformed, listed twice or names no available web UI.
+    ///   An override is malformed, listed twice, or is new or changed and
+    ///   names no available web UI.
     /// </exception>
     void SetHostOverrides(IReadOnlyList<WebUIHostOverride> overrides);
+
+    /// <summary>
+    ///   Gets the host override matching a host: the one for its name and
+    ///   port, else the one for its name alone. Its web UI may be gone or
+    ///   failed, in which case the host gets the default web UI.
+    /// </summary>
+    /// <param name="host">The host, with an optional port, after any trusted proxy's forwarding.</param>
+    /// <returns>The matching host override, or <c>null</c> when none matches.</returns>
+    WebUIHostOverride? GetHostOverride(string? host);
 
     /// <summary>
     ///   Dispatched once for each host whose served web UI changed: another

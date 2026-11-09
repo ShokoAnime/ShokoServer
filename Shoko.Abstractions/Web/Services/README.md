@@ -237,13 +237,20 @@ override. The flag is read when the server works out what to serve (at start,
 when the selection, host overrides or settings are saved, or when a mount path
 changes), not on every request as `MountPath` is. Two that opt in are ordered
 by the plugin load order. A picked web UI that is gone or failed falls back the
-same way.
+same way. `AutomaticProvider` is the web UI picked this way, whatever the admin
+picked (`WebUIProviderInfo.IsAutomatic`, and `IsDefaultCandidate` for the flag),
+and `SelectedProviderID` is the admin's pick as saved, even when that web UI is
+gone. When `SHOKO_WEBUI_ENABLED` or `SHOKO_WEBUI_PROVIDER` sets a setting, it
+cannot change while the server runs (`IsEnabledFromEnvironment`,
+`IsSelectionFromEnvironment`).
 
 `HostOverrides`, set through `SetHostOverrides` or the same route, serve
 another web UI to the requests for a host, such as `media.example.com` or
 `192.168.1.10:8111`. An entry with a port beats one without for the same host
 name, names compare ignoring case, and a host without an entry, or whose web UI
-is gone or failed, gets the default. Each host gets its own web UI's mount path
+is gone or failed, gets the default; `GetHostOverride(host)` gives the entry
+matching a host. An entry saved before may be saved again as it is while its
+web UI is gone, so one stale entry does not block changing the others. Each host gets its own web UI's mount path
 and redirects. Behind a reverse proxy, the host is the one the proxy forwarded
 when the admin listed the proxy in `Web.TrustedProxies`, and the proxy's own
 otherwise. `GetActiveProvider(host)` answers which web UI serves a host,

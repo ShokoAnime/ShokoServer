@@ -392,7 +392,7 @@ public partial class WebUIController(
     [InitFriendly]
     [HttpGet("Provider")]
     public ActionResult<WebUIProviderSelection> GetProviders()
-        => new WebUIProviderSelection(webUIService);
+        => new WebUIProviderSelection(webUIService, Request.Host.Value);
 
     /// <summary>
     /// Change which web UI the server serves by default, the web UIs served
@@ -410,29 +410,41 @@ public partial class WebUIController(
         var body = new Input.WebUIProviderSelectionBody
         {
             IsEnabled = webUIService.IsEnabled,
-            SelectedProviderID = webUIService.GetAvailableProviders().FirstOrDefault(info => info.IsSelected)?.ID,
+            SelectedProviderID = webUIService.SelectedProviderID,
             HostOverrides = webUIService.HostOverrides.Select(entry => new WebUIHostOverride(entry)).ToList(),
         };
         patchDocument.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        // A setting an environment variable sets cannot change, and a pick kept as it was may name a web UI that is gone.
+        if (body.IsEnabled != webUIService.IsEnabled && webUIService.IsEnabledFromEnvironment)
+            ModelState.AddModelError(nameof(body.IsEnabled), "SHOKO_WEBUI_ENABLED sets whether a web UI is served.");
+        var selectionChanged = body.SelectedProviderID != webUIService.SelectedProviderID;
+        if (selectionChanged && webUIService.IsSelectionFromEnvironment)
+            ModelState.AddModelError(nameof(body.SelectedProviderID), "SHOKO_WEBUI_PROVIDER sets the web UI served by default.");
         WebUIProviderInfo? selected = null;
-        if (body.SelectedProviderID is { } providerID && (selected = webUIService.GetProviderInfo(providerID)) is null)
+        if (selectionChanged && body.SelectedProviderID is { } providerID && (selected = webUIService.GetProviderInfo(providerID)) is null)
             ModelState.AddModelError(nameof(body.SelectedProviderID), $"No web UI with ID {providerID} is available.");
 
         var hostOverrides = (body.HostOverrides ?? [])
             .Select(entry => new Abstractions.Web.WebUIHostOverride { Host = entry.Host ?? string.Empty, ProviderID = entry.ProviderID })
             .ToList();
-        foreach (var (index, error) in WebUIHosts.Validate(hostOverrides, id => webUIService.GetProviderInfo(id) is not null))
+        var saved = webUIService.HostOverrides
+            .Select(entry => WebUIHosts.TryParse(entry.Host, out var key, out _) ? (key, entry.ProviderID) : default)
+            .ToHashSet();
+        var isKnownProvider = (string key, Guid id) => webUIService.GetProviderInfo(id) is not null || saved.Contains((key, id));
+        foreach (var (index, error) in WebUIHosts.Validate(hostOverrides, isKnownProvider))
             ModelState.AddModelError($"{nameof(body.HostOverrides)}[{index}]", error);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        webUIService.SelectProvider(selected);
+        if (selectionChanged)
+            webUIService.SelectProvider(selected);
         webUIService.SetHostOverrides(hostOverrides);
-        webUIService.IsEnabled = body.IsEnabled;
-        return new WebUIProviderSelection(webUIService);
+        if (body.IsEnabled != webUIService.IsEnabled)
+            webUIService.IsEnabled = body.IsEnabled;
+        return new WebUIProviderSelection(webUIService, Request.Host.Value);
     }
 
     /// <summary>
