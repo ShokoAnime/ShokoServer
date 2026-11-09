@@ -652,6 +652,7 @@ public sealed class WorkerPool : IWorkerPool
             IsHeld = _isHeld,
             HeldTypeNames = [.. _heldTypes.Select(Builder.JobTypeNames.Key)],
             HandledTypeNames = HandledTypes.Select(t => t.Name).ToList(),
+            HandledTypeKeys = [.. HandledTypes.Select(Builder.JobTypeNames.Key)],
             LastActiveAt = lastActiveTicks == 0 ? null : new DateTimeOffset(lastActiveTicks, TimeSpan.Zero)
         };
     }

@@ -283,7 +283,7 @@ public class QueueController : BaseController
         };
     }
 
-    private static Queue.PoolState ToPoolState(PoolStatus p)
+    internal static Queue.PoolState ToPoolState(PoolStatus p)
     {
         return new Queue.PoolState
         {
@@ -298,6 +298,7 @@ public class QueueController : BaseController
             IsHeld = p.IsHeld,
             HeldTypeNames = p.HeldTypeNames,
             HandledTypeNames = p.HandledTypeNames,
+            HandledTypeKeys = p.HandledTypeKeys,
             LastActiveAt = p.LastActiveAt?.UtcDateTime
         };
     }

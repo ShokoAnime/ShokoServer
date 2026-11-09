@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Abstractions.User;
 using Shoko.QueueProcessor;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Events;
 using Shoko.Server.API.SignalR.Models;
-using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.v3.Controllers;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
@@ -21,6 +22,7 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
 
     private readonly QueueStateEventHandler _queueStateEventHandler;
     private readonly QueueHandler _queueHandler;
+    private readonly IQueueScheduler _queueScheduler;
     private QueueStateSignalRModel? _lastQueueState;
 
     // Connections that opted in to per-pool detail. Empty by default — pool info is omitted unless
@@ -36,10 +38,11 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
     private bool _trailingScheduled;
     private bool _disposed;
 
-    public QueueEventEmitter(IHubContext<AggregateHub> hub, QueueStateEventHandler queueStateEventHandler, QueueHandler queueHandler) : base(hub)
+    public QueueEventEmitter(IHubContext<AggregateHub> hub, QueueStateEventHandler queueStateEventHandler, QueueHandler queueHandler, IQueueScheduler queueScheduler) : base(hub)
     {
         _queueStateEventHandler = queueStateEventHandler;
         _queueHandler = queueHandler;
+        _queueScheduler = queueScheduler;
         using (DetachedFlow.Suppress())
             _trailingTimer = new Timer(OnTrailingTick, null, Timeout.Infinite, Timeout.Infinite);
         _queueStateEventHandler.QueueItemsAdded += OnQueueItemsAddedEvent;
@@ -49,6 +52,7 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
         _queueStateEventHandler.QueueItemsRemoved += OnQueueItemsRemovedEvent;
         _queueStateEventHandler.JobProgressChanged += OnJobProgressChangedEvent;
         _queueStateEventHandler.JobCancellationRequested += OnJobCancellationRequestedEvent;
+        _queueScheduler.HoldsChanged += OnHoldsChanged;
     }
 
     public void Dispose()
@@ -60,6 +64,7 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
         _queueStateEventHandler.QueueItemsRemoved -= OnQueueItemsRemovedEvent;
         _queueStateEventHandler.JobProgressChanged -= OnJobProgressChangedEvent;
         _queueStateEventHandler.JobCancellationRequested -= OnJobCancellationRequestedEvent;
+        _queueScheduler.HoldsChanged -= OnHoldsChanged;
         lock (_throttleGate) _disposed = true;
         _trailingTimer.Dispose();
         GC.SuppressFinalize(this);
@@ -75,34 +80,11 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
             ScheduledCount = _queueHandler.ScheduledCount,
             TotalCount = _queueHandler.TotalCount,
             ThreadCount = _queueHandler.ThreadCount,
-            CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
-            {
-                Key = a.Key,
-                Type = a.TypeName ?? a.JobType ?? string.Empty,
-                Title = a.Title ?? string.Empty,
-                Details = a.Details ?? [],
-                IsRunning = true,
-                StartTime = a.StartTime?.ToUniversalTime(),
-                IsCancellable = a.Cancellable,
-                IsCancellationRequested = a.CancellationRequested,
-                Progress = a.Progress,
-            }).OrderBy(a => a.StartTime).ToList(),
+            CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(QueueController.ToQueueItem).OrderBy(a => a.StartTime).ToList(),
             // Per-pool detail is opt-in (it's the largest part of the payload and most clients
             // only need the aggregate counts). Omitted unless the connection requested it.
             Pools = includePools
-                ? _queueHandler.GetPoolStatus().Values.Select(p => new Queue.PoolState
-                {
-                    Name = p.Name,
-                    MaxWorkers = p.MaxWorkers,
-                    ActiveWorkers = p.ActiveWorkers,
-                    IdleWorkers = p.IdleWorkers,
-                    WaitingCount = p.WaitingCount,
-                    BlockedCount = p.BlockedCount,
-                    ScheduledCount = p.ScheduledCount,
-                    IsBlocked = p.IsBlocked,
-                    HandledTypeNames = p.HandledTypeNames,
-                    LastActiveAt = p.LastActiveAt?.UtcDateTime
-                }).OrderBy(p => p.Name).ToList()
+                ? _queueHandler.GetPoolStatus().Values.Select(QueueController.ToPoolState).OrderBy(p => p.Name).ToList()
                 : []
         };
     }
@@ -144,6 +126,8 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
     private void OnJobProgressChangedEvent(object? sender, QueueJobProgressEventArgs e) => RequestPush();
 
     private void OnJobCancellationRequestedEvent(object? sender, QueueJobCancellationEventArgs e) => RequestPush();
+
+    private void OnHoldsChanged(object? sender, EventArgs e) => RequestPush();
 
     /// <summary>
     /// Trailing-edge throttle. First call in a quiet period sends immediately; subsequent calls

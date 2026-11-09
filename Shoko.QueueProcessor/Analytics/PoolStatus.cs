@@ -43,6 +43,13 @@ public record PoolStatus
     public IReadOnlyList<string> HandledTypeNames { get; init; } = [];
 
     /// <summary>
+    ///   The keys of the job types handled by this pool, in the order of
+    ///   <see cref="HandledTypeNames"/>: what holding a job type takes, which
+    ///   for a generic job type is not its name.
+    /// </summary>
+    public IReadOnlyList<string> HandledTypeKeys { get; init; } = [];
+
+    /// <summary>
     /// UTC timestamp of the most recent job acquisition (stamped in <c>IncrementActive</c>).
     /// Null if the pool has never run a job. Lets throttled SignalR pushes report
     /// "this group was active in the last N ms" even when <see cref="ActiveWorkers"/> is back to 0.

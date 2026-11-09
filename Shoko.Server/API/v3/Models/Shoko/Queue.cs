@@ -268,6 +268,14 @@ public class Queue
         public IReadOnlyList<string> HandledTypeNames { get; init; } = [];
 
         /// <summary>
+        /// The keys of the job types the pool handles, in the order of
+        /// <see cref="HandledTypeNames"/>: what holding a job type takes, which
+        /// for a generic job type is not its name.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> HandledTypeKeys { get; init; } = [];
+
+        /// <summary>
         /// UTC timestamp of the most recent job acquisition. Null if the pool has never run a job.
         /// Use this to render a "Processing" indicator under server-side throttling: when the
         /// throttled snapshot arrives with <see cref="ActiveWorkers"/> back to 0, this still
