@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -439,7 +440,7 @@ public static class MediaInfoUtility
 
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    private static MediaContainer? GetMediaInfo_Internal(string filename)
+    private static MediaContainer? GetMediaInfo_Internal(string filename, CancellationToken cancellationToken)
     {
         try
         {
@@ -447,11 +448,22 @@ public static class MediaInfoUtility
             if (string.IsNullOrEmpty(exe))
                 return null;
 
-            var pProcess = GetProcess(exe, filename);
+            using var pProcess = GetProcess(exe, filename);
             pProcess.Start();
+            // Stopping kills MediaInfo, which ends the reads below.
+            using var stop = cancellationToken.Register(() =>
+            {
+                try
+                {
+                    if (!pProcess.HasExited)
+                        pProcess.Kill(entireProcessTree: true);
+                }
+                catch (InvalidOperationException) { }
+            });
             var output = pProcess.StandardOutput.ReadToEnd().Trim();
             //Wait for process to finish
             pProcess.WaitForExit();
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (pProcess.ExitCode != 0 || !output.StartsWith('{'))
             {
@@ -472,7 +484,7 @@ public static class MediaInfoUtility
 
             return GetMediaInfoForJson(output, filename);
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             Logger.Error($"MediaInfo threw an error on {filename}: {e}");
             return null;
@@ -601,26 +613,30 @@ public static class MediaInfoUtility
         return appPath;
     }
 
-    public static MediaContainer? GetMediaInfo(string filename)
+    /// <summary>
+    ///   Reads a file's media info with MediaInfo, giving up after the
+    ///   configured timeout. Giving up or being cancelled kills MediaInfo.
+    /// </summary>
+    /// <param name="filename">The file.</param>
+    /// <param name="cancellationToken">Stops the read, killing MediaInfo.</param>
+    /// <returns>The media info, or <c>null</c> when it could not be read in time.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public static MediaContainer? GetMediaInfo(string filename, CancellationToken cancellationToken = default)
     {
-        MediaContainer? m = null;
-        var mediaTask = Task.Run(() => GetMediaInfo_Internal(filename));
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var minutes = ISettingsProvider.Instance.GetSettings().Import.MediaInfoTimeoutMinutes;
+        if (minutes > 0)
+            timeout.CancelAfter(TimeSpan.FromMinutes(minutes));
 
-        var timeout = ISettingsProvider.Instance.GetSettings().Import.MediaInfoTimeoutMinutes;
-        if (timeout > 0)
+        try
         {
-            var task = Task.WhenAny(mediaTask, Task.Delay(TimeSpan.FromMinutes(timeout))).Result;
-            if (task == mediaTask)
-            {
-                m = mediaTask.Result;
-            }
+            return GetMediaInfo_Internal(filename, timeout.Token);
         }
-        else
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            m = mediaTask.Result;
+            Logger.Warn($"MediaInfo took longer than {minutes} minutes on {filename}; stopped it.");
+            return null;
         }
-
-        return m;
     }
 
     public static string? GetVersion()

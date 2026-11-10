@@ -6,6 +6,7 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
@@ -16,7 +17,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [LimitConcurrency(2)]
 [JobKeyGroup(JobKeyGroup.Import)]
 // Ranked as queued by JobPriorities.ForFileSize: a new file adds 50 on top of prioritized = default + 50.
-public class MediaInfoJob(IVideoService videoService, VideoLocalRepository videoLocals) : BaseJob
+public class MediaInfoJob(IVideoService videoService, VideoLocalRepository videoLocals, IJobCancellationAccessor cancellation) : BaseJob
 {
     private VideoLocal? _vlocal;
 
@@ -45,7 +46,7 @@ public class MediaInfoJob(IVideoService videoService, VideoLocalRepository video
             return Task.CompletedTask;
         }
 
-        if (((VideoService)videoService).RefreshMediaInfo(place, _vlocal))
+        if (((VideoService)videoService).RefreshMediaInfo(place, _vlocal, cancellation.Token))
             videoLocals.Save(_vlocal, true);
 
         return Task.CompletedTask;

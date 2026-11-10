@@ -1564,7 +1564,7 @@ public class VideoService : IVideoService
         }
     }
 
-    public bool RefreshMediaInfo(VideoLocal_Place place, VideoLocal video)
+    public bool RefreshMediaInfo(VideoLocal_Place place, VideoLocal video, CancellationToken cancellationToken = default)
     {
         _logger.LogTrace("Getting media info for: {Place}", place.Path ?? place.ID.ToString());
         if (!place.IsAvailable)
@@ -1576,7 +1576,7 @@ public class VideoService : IVideoService
         var path = place.Path;
         try
         {
-            var mediaInfo = MediaInfoUtility.GetMediaInfo(path);
+            var mediaInfo = MediaInfoUtility.GetMediaInfo(path, cancellationToken);
             if (mediaInfo is { GeneralStream: { Duration: 0, Format: "ogg" } })
                 mediaInfo.GeneralStream.Duration = CalculateDurationOggFile(path);
 
@@ -1591,7 +1591,7 @@ public class VideoService : IVideoService
                 return true;
             }
         }
-        catch (Exception e)
+        catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             _logger.LogError(e, "Unable to read the media information of file {Place} ERROR: {Ex}", path, e);
         }
