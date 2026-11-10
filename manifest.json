@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.595",
+      "tag": "v6.0.0-dev.595",
+      "commit": "fb53b4e38b8bc8b3f00b6421c247e12dcde175b9",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.595/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-10T20:40:12Z",
+      "releaseNotes": "\n`fix` (`hashing`): **Carry the 5.x hash types over on upgrade**:\n\n- Added settings migration 33, which takes `Import.Hasher` out of the settings and keeps its `MD5`, `SHA1` and `CRC` in a carry-over file\n- `VideoHashingService` turns those hash types on when it first seeds, then saves the seeded hashes and removes the file\n"
+    },
+    {
       "version": "6.0.0.594",
       "tag": "v6.0.0-dev.594",
       "commit": "aa5af2564afd619670a070026908379c6ea45eaf",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.566/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-31T13:02:22Z",
       "releaseNotes": "\n`feat` (`signalr`): **Let a client ask a feed for its initial state again**:\n\n- Added `feed.resend_initial` to the aggregate hub and `IEventEmitter.ResendInitialMessagesAsync`, which send a connection already on a feed its `<feed>:connected` messages again, so a client sharing one connection among several listeners can give a late one its own starting state\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.120**.\n"
-    },
-    {
-      "version": "6.0.0.565",
-      "tag": "v6.0.0-dev.565",
-      "commit": "4bffbb34a9bb976344c8c0c07f2eb6991692404f",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.565/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-31T11:43:07Z",
-      "releaseNotes": "\n`fix`: **Announce expired API tokens when they are removed**:\n\n- `CleanupExpiredTokensJob` and the lazy delete in `AuthTokensRepository.GetByToken` removed expired tokens without raising `IUserService.ApiTokenInvalidated`, so nothing listening heard about expiry\n- The cleanup now goes through `UserService.InvalidateExpiredApiTokens`, which raises the event per user; `GetByToken` treats an expired token as unknown and leaves its removal to the cleanup, off the authentication path\n"
     }
   ]
 }
