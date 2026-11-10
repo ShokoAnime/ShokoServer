@@ -41,6 +41,7 @@ public class VideoHashingService(
     IConfigurationService configurationService,
     IVideoReleaseService videoReleaseService,
     IPluginManager pluginManager,
+    IApplicationPaths applicationPaths,
     ISettingsProvider settingsProvider,
     IVideoRelocationService relocationService,
     ConfigurationProvider<VideoHashingServiceSettings> configurationProvider,
@@ -60,6 +61,10 @@ public class VideoHashingService(
     private const string ED2K = "ED2K";
 
     private const string CRC32 = "CRC32";
+
+    private const string MD5 = "MD5";
+
+    private const string SHA1 = "SHA1";
 
     private Dictionary<Guid, HashProviderInfo> _hashProviderInfos = [];
 
@@ -101,6 +106,7 @@ public class VideoHashingService(
     public void AddParts(IEnumerable<IHashProvider> providers)
     {
         if (_loaded) return;
+        var seeded = false;
         lock (_lock)
         {
             if (_loaded) return;
@@ -109,11 +115,19 @@ public class VideoHashingService(
             logger.LogInformation("Initializing providers.");
             var config = configurationProvider.Load();
             var enabled = config.EnabledHashes;
-            // Initialize the enabled hashes dict with the default values if it are empty.
+            // Initialize the enabled hashes dict with the default values if it are empty, or with the hash types a 5.x
+            // install had turned on when an upgrade carried them over.
             if (enabled.Count is 0)
             {
+                seeded = true;
+                var carried = SettingsMigrations.ReadHasherCarryOver(applicationPaths.DataPath);
                 enabled[ED2K] = _coreProviderID;
-                enabled[CRC32] = _coreProviderID;
+                if (carried?.CRC is not false)
+                    enabled[CRC32] = _coreProviderID;
+                if (carried?.MD5 is true)
+                    enabled[MD5] = _coreProviderID;
+                if (carried?.SHA1 is true)
+                    enabled[SHA1] = _coreProviderID;
             }
             _hashProviderInfos = providers
                 .Select((provider, priority) =>
@@ -150,6 +164,14 @@ public class VideoHashingService(
         }
 
         UpdateProviders(false);
+
+        // The seeded hashes are edited on the loaded instance, so nothing above sees them as a change; save them, so
+        // what an upgrade carried over is kept once its file is gone.
+        if (seeded)
+        {
+            configurationProvider.Save();
+            SettingsMigrations.ClearHasherCarryOver(applicationPaths.DataPath);
+        }
 
         logger.LogInformation("Loaded {ProviderCount} providers.", _hashProviderInfos.Count);
     }

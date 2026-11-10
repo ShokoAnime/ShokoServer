@@ -99,6 +99,7 @@ public static partial class SettingsMigrations
         { 30, (settings, paths) => MigrateWebUISettingsToUserConfiguration(settings, paths.DataPath) },
         { 31, MigrateWebUISettingsToWebUIService },
         { 32, (settings, _) => MigrateAddTelemetrySection(settings) },
+        { 33, (settings, paths) => MigrateHasherToCarryOver(settings, paths.DataPath) },
     };
 
     /// <summary>
@@ -841,6 +842,82 @@ public static partial class SettingsMigrations
 
         currentSettings["Telemetry"] = new JObject();
         return currentSettings.ToString();
+    }
+
+    /// <summary>
+    ///   The hash types a 5.x install had turned on, carried over by migration
+    ///   33 for the hashing service to apply when it first seeds.
+    /// </summary>
+    /// <param name="MD5">The old <c>Import.Hasher.MD5</c> value, if it was set.</param>
+    /// <param name="SHA1">The old <c>Import.Hasher.SHA1</c> value, if it was set.</param>
+    /// <param name="CRC">The old <c>Import.Hasher.CRC</c> value, if it was set.</param>
+    internal sealed record HasherCarryOver(bool? MD5, bool? SHA1, bool? CRC);
+
+    /// <summary>
+    ///   Where migration 33 leaves the hash types it takes out of the settings
+    ///   file, so a first boot that fails before seeding does not lose them.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>The carry-over file's path.</returns>
+    internal static string HasherCarryOverPath(string dataPath)
+        => Path.Combine(dataPath, "SettingsBackup", "hasher.v32.json");
+
+    /// <summary>
+    ///   Reads what migration 33 carried over.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>
+    ///   The carried-over hash types, or <c>null</c> when there is no file,
+    ///   either because nothing was migrated or because it was already applied.
+    /// </returns>
+    internal static HasherCarryOver? ReadHasherCarryOver(string dataPath)
+    {
+        var path = HasherCarryOverPath(dataPath);
+        return File.Exists(path)
+            ? JsonConvert.DeserializeObject<HasherCarryOver>(File.ReadAllText(path))
+            : null;
+    }
+
+    /// <summary>
+    ///   Removes the hasher carry-over once it has been applied and saved.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    internal static void ClearHasherCarryOver(string dataPath)
+    {
+        var path = HasherCarryOverPath(dataPath);
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
+    /// <summary>
+    ///   Takes the 5.x <c>Import.Hasher</c> section out of the settings and writes its
+    ///   hash types to the carry-over file, as migration 33, since the hashing
+    ///   service keys each hash type by its provider's ID, which is only known
+    ///   once the plugins are loaded.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>The settings JSON without the section.</returns>
+    internal static string MigrateHasherToCarryOver(string settings, string dataPath)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if ((currentSettings["Import"] as JObject)?.Property("Hasher") is not { } property)
+            return settings;
+
+        var hasher = property.Value as JObject;
+        var carry = new HasherCarryOver(Read(hasher, "MD5"), Read(hasher, "SHA1"), Read(hasher, "CRC"));
+        property.Remove();
+        if (carry.MD5 is not null || carry.SHA1 is not null || carry.CRC is not null)
+        {
+            var path = HasherCarryOverPath(dataPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonConvert.SerializeObject(carry, Formatting.Indented));
+        }
+
+        return currentSettings.ToString();
+
+        static bool? Read(JObject? parent, string name)
+            => parent?[name] is { Type: JTokenType.Boolean } value ? value.Value<bool>() : null;
     }
 
     /// <summary>
