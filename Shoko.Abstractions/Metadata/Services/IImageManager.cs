@@ -693,23 +693,69 @@ public interface IImageManager
     Task SchedulePurgeOfOrphanedImages(int daysOld = 7, MetadataSource? imageSource = null);
 
     /// <summary>
-    ///   Validate local image cache integrity. Invalid images that are both
+    ///   Validate local image cache integrity, for every image, as
+    ///   <see cref="ValidateImages"/> does. Invalid images that are both
     ///   enabled and desired are scheduled for forced re-download. Invalid
     ///   images that are disabled or undesired are cleaned locally without
     ///   re-download.
     /// </summary>
+    /// <param name="options">
+    ///   Optional. How to validate them; by default the contents are read and
+    ///   the missing or broken images re-downloaded.
+    /// </param>
+    /// <param name="progress">
+    ///   Optional. Told how far the validation is, as a percentage from 0 to 100.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   Stops the validation between two images.
+    /// </param>
     /// <returns>
     ///   The number of images queued for forced re-download.
     /// </returns>
-    Task<int> ValidateAllImages();
+    /// <exception cref="OperationCanceledException">
+    ///   <paramref name="cancellationToken"/> was cancelled.
+    /// </exception>
+    Task<int> ValidateAllImages(ImageValidationOptions? options = null, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Validate a set of images: refresh whether each file is there, check
+    ///   its contents when asked, removing a broken file, and queue a forced
+    ///   re-download of each enabled and desired image found missing or
+    ///   broken when asked. An image listed twice is validated once.
+    /// </summary>
+    /// <param name="images">
+    ///   The images, from any number of entities, already narrowed down to
+    ///   the ones to validate.
+    /// </param>
+    /// <param name="options">
+    ///   Optional. How to validate them; by default the contents are read and
+    ///   the missing or broken images re-downloaded.
+    /// </param>
+    /// <param name="progress">
+    ///   Optional. Told how far the validation is, as a percentage from 0 to 100.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   Stops the validation between two images.
+    /// </param>
+    /// <returns>
+    ///   The number of images queued for forced re-download.
+    /// </returns>
+    /// <exception cref="OperationCanceledException">
+    ///   <paramref name="cancellationToken"/> was cancelled.
+    /// </exception>
+    Task<int> ValidateImages(IEnumerable<IImage> images, ImageValidationOptions? options = null, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Schedule a background validation pass for all images in the cache.
     /// </summary>
+    /// <param name="options">
+    ///   Optional. How to validate them, carried by the job; by default the
+    ///   contents are read and the missing or broken images re-downloaded.
+    /// </param>
     /// <param name="prioritize">
     ///   Optional. Set to <c>true</c> to enqueue with high priority.
     /// </param>
-    Task ScheduleValidateAllImages(bool prioritize = true);
+    Task ScheduleValidateAllImages(ImageValidationOptions? options = null, bool prioritize = true);
 
     #endregion
 

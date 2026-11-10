@@ -1284,50 +1284,38 @@ public class ImageManager(
     }
 
     /// <inheritdoc/>
-    public Task<int> ValidateAllImages()
-        => ValidateAllImages(null, CancellationToken.None);
+    public Task<int> ValidateAllImages(ImageValidationOptions? options = null, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
+        => ValidateImages(GetAllImages(), options, progress, cancellationToken);
 
-    /// <summary>
-    ///   Validate local image cache integrity, as <see cref="ValidateAllImages()"/> does, reporting
-    ///   progress and stopping when cancelled.
-    /// </summary>
-    /// <param name="progress">
-    ///   Optional. Told how far the validation is, as a percentage from 0 to 100.
-    /// </param>
-    /// <param name="token">
-    ///   Stops the validation between two images.
-    /// </param>
-    /// <returns>
-    ///   The number of images queued for forced re-download.
-    /// </returns>
-    /// <exception cref="OperationCanceledException">
-    ///   <paramref name="token"/> was cancelled.
-    /// </exception>
-    public async Task<int> ValidateAllImages(IProgress<decimal>? progress, CancellationToken token)
+    /// <inheritdoc/>
+    public async Task<int> ValidateImages(IEnumerable<IImage> images, ImageValidationOptions? options = null, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
     {
+        options ??= new();
         var scanned = 0;
         var invalid = 0;
         var queuedForRedownload = 0;
 
-        logger.LogInformation("Validating local image cache integrity.");
-        var images = GetAllImages().ToList();
+        // An entity's images come wrapped with its link to them; validate the stored image under each.
+        var list = images
+            .DistinctBy(image => image.ID)
+            .Select(image => image as ShokoImage ?? imageRepository.GetByID(image.ID))
+            .OfType<ShokoImage>()
+            .ToList();
+        logger.LogInformation("Validating {Count} images in the local image cache.", list.Count);
         progress?.Report(0);
-        foreach (var image in images)
+        foreach (var shokoImage in list)
         {
-            token.ThrowIfCancellationRequested();
-            progress?.Report(100m * scanned / images.Count);
+            cancellationToken.ThrowIfCancellationRequested();
+            progress?.Report(100m * scanned / list.Count);
             if (scanned++ % 1000 == 0)
                 logger.LogInformation("Image validation in progress. Scanned={Scanned}, Invalid={Invalid}, QueuedForRedownload={QueuedForRedownload}", scanned, invalid, queuedForRedownload);
-
-            if (image is not ShokoImage shokoImage)
-                continue;
 
             var wasAvailable = shokoImage.IsAvailable;
             // Recompute the cached flag from disk (File.Exists + magic-byte check).
             var available = shokoImage.RefreshAvailability();
 
             // Deep-validate the file contents and drop it if it's corrupt.
-            if (available)
+            if (available && options.ReadContents)
             {
                 try
                 {
@@ -1353,7 +1341,7 @@ public class ImageManager(
                 _ = Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = shokoImage }), CancellationToken.None);
             }
 
-            if (!available && shokoImage.IsEnabled && shokoImage.IsDesired)
+            if (!available && options.Redownload && shokoImage.IsEnabled && shokoImage.IsDesired)
             {
                 await ScheduleDownloadOfImage(shokoImage, force: true).ConfigureAwait(false);
                 queuedForRedownload++;
@@ -1371,9 +1359,10 @@ public class ImageManager(
     }
 
     /// <inheritdoc/>
-    public async Task ScheduleValidateAllImages(bool prioritize = true)
+    public async Task ScheduleValidateAllImages(ImageValidationOptions? options = null, bool prioritize = true)
     {
-        await schedulerFactory.StartJob<ValidateAllImagesJob>(prioritize: prioritize).ConfigureAwait(false);
+        options ??= new();
+        await schedulerFactory.StartJob<ValidateAllImagesJob>(job => (job.ReadContents, job.Redownload) = (options.ReadContents, options.Redownload), prioritize: prioritize).ConfigureAwait(false);
     }
 
     #endregion

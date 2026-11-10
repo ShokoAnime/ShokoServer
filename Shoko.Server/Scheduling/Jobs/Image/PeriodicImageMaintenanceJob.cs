@@ -45,7 +45,7 @@ public class PeriodicImageMaintenanceJob(
         if (validate)
         {
             _logger.LogInformation("Validating image integrity...");
-            var queued = await imageManager.ValidateAllImages(stages, cancellation.Token).ConfigureAwait(false);
+            var queued = await imageManager.ValidateAllImages(progress: stages, cancellationToken: cancellation.Token).ConfigureAwait(false);
             _logger.LogInformation("Validation queued {Count} images for re-download.", queued);
         }
 
