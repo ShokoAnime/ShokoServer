@@ -294,13 +294,8 @@ public class SystemService : ISystemService
         Activity? startupSpan = null;
         try
         {
-            // Check if any of the DLL are blocked, common issue with daily builds.
-            if (!CheckBlockedFiles())
-            {
-                StartupMessage = "Failed to start. Check your logs for more information.";
-                StartupFailedException = new("Blocked DLL files found in server directory!");
-                return null;
-            }
+            // Files extracted from a downloaded zip carry Windows' "blocked" mark. .NET loads them all the same, so this only tidies up.
+            UnblockFiles();
 
             var settings = _settingsProvider.GetSettings();
 
@@ -513,35 +508,55 @@ public class SystemService : ISystemService
     public Task WaitForStartupAsync()
          => _startupTaskSource?.Task ?? Task.CompletedTask;
 
-    private bool CheckBlockedFiles()
+    /// <summary>
+    ///   Removes the "downloaded from the internet" mark (the
+    ///   <c>Zone.Identifier</c> stream) from the server's files on Windows. The
+    ///   runtime loads marked files anyway, so the files it cannot unblock,
+    ///   such as an install under Program Files without write access, only get
+    ///   a warning.
+    /// </summary>
+    private void UnblockFiles()
     {
         if (!PlatformUtility.IsWindows)
-            return true;
+            return;
 
-        var result = true;
-        var dllFiles = Directory.GetFiles(ApplicationPaths.Instance.ApplicationPath, "*.dll", SearchOption.AllDirectories);
-        foreach (var dllFile in dllFiles)
+        var stillBlocked = 0;
+        Exception? firstFailure = null;
+        string? firstFile = null;
+        foreach (var file in Directory.EnumerateFiles(ApplicationPaths.Instance.ApplicationPath, "*", SearchOption.AllDirectories))
         {
-            if (FileSystem.AlternateDataStreamExists(dllFile, "Zone.Identifier"))
-            {
-                try
-                {
-                    FileSystem.DeleteAlternateDataStream(dllFile, "Zone.Identifier");
-                }
-                catch
-                {
-                    // ignored
-                }
-            }
-
-            if (!FileSystem.AlternateDataStreamExists(dllFile, "Zone.Identifier"))
+            if (!(file.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)))
                 continue;
 
-            _logger.LogError("Found blocked DLL file: {DllFile}", dllFile);
-            result = false;
+            try
+            {
+                if (!FileSystem.AlternateDataStreamExists(file, "Zone.Identifier"))
+                    continue;
+
+                FileSystem.DeleteAlternateDataStream(file, "Zone.Identifier");
+                if (!FileSystem.AlternateDataStreamExists(file, "Zone.Identifier"))
+                    continue;
+            }
+            catch (Exception ex)
+            {
+                firstFailure ??= ex;
+            }
+
+            firstFile ??= file;
+            stillBlocked++;
         }
 
-        return result;
+        if (stillBlocked is 0)
+            return;
+
+        _logger.LogWarning(
+            firstFailure,
+            "{Count} files in {Path} are marked as downloaded from the internet and could not be unblocked, e.g. {File}. The server runs anyway; to clear the mark, run this in a PowerShell started as administrator: Get-ChildItem -LiteralPath '{Path}' -Recurse | Unblock-File",
+            stillBlocked,
+            ApplicationPaths.Instance.ApplicationPath,
+            firstFile,
+            ApplicationPaths.Instance.ApplicationPath
+        );
     }
 
     /// <summary>
