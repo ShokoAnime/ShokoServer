@@ -439,7 +439,7 @@ AnidbProcessFileJob  (Shoko.Server/Scheduling/Jobs/Shoko/AnidbProcessFileJob.cs)
 FinalizeReleaseSearchJob  (Shoko.Server/Scheduling/Jobs/Shoko/FinalizeReleaseSearchJob.cs)
   Always the last entry in every provider chain
   Fires IVideoReleaseService.SearchCompleted; triggers relocation if configured
-        │  [on new AnimeID — enqueued by provider jobs]
+        │  [per anime the saved release links — AnimeMetadataOrchestrator.ScheduleForXrefs]
         ▼
 GetAniDBAnimeJob  (Shoko.Server/Scheduling/Jobs/AniDB/GetAniDBAnimeJob.cs)
   Fetches full AniDB_Anime + all AniDB_Episode records via AniDB HTTP API
@@ -470,7 +470,7 @@ DownloadMetadataImagesJob<TProvider>  (Shoko.Server/Scheduling/Jobs/Metadata/Dow
 
 ### Orchestration Pattern
 
-Jobs do not use a central orchestrator. Each job enqueues its successor via `IQueueScheduler.RunAfterCurrent<T>()` or `IJobChainBuilder`. The provider job chain is built by `VideoReleaseService` using `CreateJobChain()`: one entry per enabled `IReleaseInfoProvider` (using the provider's dedicated `IVideoReleaseProviderJob<TProvider>` class if registered, otherwise the closed `ProcessReleaseProviderJob<TProvider>` that `PluginManager` registers for it through `ReleaseProviderJobs`), with `FinalizeReleaseSearchJob` appended as the terminal step. Provider jobs read the `AnimeID` from the release info and enqueue `GetAniDBAnimeJob` when a new anime is encountered.
+Jobs do not use a central orchestrator. Each job enqueues its successor via `IQueueScheduler.RunAfterCurrent<T>()` or `IJobChainBuilder`. The provider job chain is built by `VideoReleaseService` using `CreateJobChain()`: one entry per enabled `IReleaseInfoProvider` (using the provider's dedicated `IVideoReleaseProviderJob<TProvider>` class if registered, otherwise the closed `ProcessReleaseProviderJob<TProvider>` that `PluginManager` registers for it through `ReleaseProviderJobs`), with `FinalizeReleaseSearchJob` appended as the terminal step. Saving a release (`IVideoReleaseService.SaveReleaseForVideo`) hands its `CrossRef_File_Episode` rows to `AnimeMetadataOrchestrator.ScheduleForXrefs`, which queues `GetAniDBAnimeJob` (creating the series) and the supplementary metadata for each anime they link.
 
 **Import sweep.** What the live pipeline missed is caught by scheduled actions of their own, run by hand or on the triggers an admin sets. The legacy `RunImport` routes queue these in the old import's order through `LegacyScheduledActions.InvokeImport` (`Shoko.Server/API/LegacyScheduledActions.cs`), logging any that fails and going on: "Hash Unhashed Files", "Scan Managed Folders" (`IVideoService.ScheduleScanForManagedFolders()`: drop sources in full, the rest for new files), "Search for Metadata Matches" (every source that auto-links), "Purge Expired Orphaned Metadata", "Download All Images", "Check for Previously Ignored Files" and "Check AniDB File Updates" (release searches for files without an episode, then the anime those files need). "Import New Files" scans for new files only.
 
