@@ -71,8 +71,9 @@ internal static class PackageImageLoader
 
     /// <summary>
     ///   Find a plugin's image of the given kind: a file shipped beside the
-    ///   plugin, or the bytes it embedded, which are written out so both cases
-    ///   end up being served from a path.
+    ///   plugin, or the bytes it embedded, served from memory. Nothing is
+    ///   written, so a plugin installed where the server may not write (such
+    ///   as under Program Files) keeps its images.
     /// </summary>
     /// <param name="containingDirectory">
     ///   The plugin's own directory, when it has one. A plugin installed as a
@@ -80,13 +81,24 @@ internal static class PackageImageLoader
     /// </param>
     /// <param name="dll">The plugin's main dll.</param>
     /// <param name="imageBytes">The embedded bytes, when the plugin supplied any.</param>
-    /// <param name="kind">The image's kind, which is both the file name looked for and the one written.</param>
+    /// <param name="kind">The image's kind, which is the file name looked for.</param>
     /// <param name="applicationPaths">Gives the folders the path is recorded against.</param>
-    /// <returns>The image, or <c>null</c> when there is none.</returns>
-    /// <exception cref="IOException">
-    ///   The embedded bytes could not be written beside the plugin.
-    /// </exception>
-    public static PackageImageInfo? Load(string? containingDirectory, string dll, byte[]? imageBytes, string kind, IApplicationPaths applicationPaths)
+    /// <param name="logger">Logs an image that could not be read.</param>
+    /// <returns>The image, or <c>null</c> when there is none or it cannot be read.</returns>
+    public static PackageImageInfo? Load(string? containingDirectory, string dll, byte[]? imageBytes, string kind, IApplicationPaths applicationPaths, ILogger logger)
+    {
+        try
+        {
+            return LoadUnguarded(containingDirectory, dll, imageBytes, kind, applicationPaths);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to load the {Kind} of {Dll}; going on without it.", kind, dll);
+            return null;
+        }
+    }
+
+    private static PackageImageInfo? LoadUnguarded(string? containingDirectory, string dll, byte[]? imageBytes, string kind, IApplicationPaths applicationPaths)
     {
         var hasDirectory = !string.IsNullOrEmpty(containingDirectory);
         var directory = hasDirectory ? containingDirectory! : Path.GetDirectoryName(dll)!;
@@ -113,12 +125,19 @@ internal static class PackageImageLoader
         if (!ContentTypeHelper.TryGetExtensionForMimeType(mime, out var extName))
             return null;
 
-        var targetName = hasDirectory
+        // Named as the file it would be beside the plugin, for anything reading the path.
+        var name = hasDirectory
             ? Path.Combine(containingDirectory!, kind + extName)
             : Path.ChangeExtension(dll, "." + kind + extName);
-        File.WriteAllBytes(targetName, imageBytes);
-
-        return ToImageInfo(targetName, (int)imageInfo.Width, (int)imageInfo.Height, mime, applicationPaths);
+        var embedded = ToImageInfo(name, (int)imageInfo.Width, (int)imageInfo.Height, mime, applicationPaths);
+        return new()
+        {
+            Height = embedded.Height,
+            Width = embedded.Width,
+            FilePath = embedded.FilePath,
+            MimeType = embedded.MimeType,
+            Data = imageBytes,
+        };
     }
 
     /// <summary>
@@ -148,7 +167,7 @@ internal static class PackageImageLoader
         try
         {
             var bytes = ReadEmbedded(assembly, assembly.GetName().Name!, resourceName, kind, dlls[0], logger);
-            return Load(pluginInfo.ContainingDirectory, dlls[0], bytes, kind, applicationPaths);
+            return Load(pluginInfo.ContainingDirectory, dlls[0], bytes, kind, applicationPaths, logger);
         }
         catch (Exception ex)
         {

@@ -442,8 +442,8 @@ public partial class PluginManager
             ContainingDirectory = internalPluginInfo.ContainingDirectory,
             DLLs = internalPluginInfo.DLLs,
             Types = existingPluginInfo?.Types ?? [],
-            Thumbnail = PackageImageLoader.Load(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail, ThumbnailKind, applicationPaths),
-            Icon = PackageImageLoader.Load(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Icon, IconKind, applicationPaths),
+            Thumbnail = PackageImageLoader.Load(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail, ThumbnailKind, applicationPaths, logger),
+            Icon = PackageImageLoader.Load(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Icon, IconKind, applicationPaths, logger),
             Dependencies = internalPluginInfo.Dependencies,
         };
         if (existingPluginInfo is not null && _pluginTypes.IndexOf(existingPluginInfo) is { } index && index is not -1)

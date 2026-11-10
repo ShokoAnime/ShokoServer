@@ -39,10 +39,22 @@ public sealed class PackageImageInfo
     public required string FilePath { get; init; }
 
     /// <summary>
+    ///   The image itself, when it is embedded in the plugin rather than a
+    ///   file: served from memory, so nothing is written beside the plugin.
+    ///   Not part of a manifest.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
+    public byte[]? Data { get; init; }
+
+    /// <summary>
     /// Get the image stream.
     /// </summary>
     public Stream? GetStream(IApplicationPaths applicationPaths)
     {
+        if (Data is { Length: > 0 } data)
+            return new MemoryStream(data, writable: false);
+
         var filePath = FilePath
             .Replace("%PluginsPath%", applicationPaths.PluginsPath)
             .Replace("%ApplicationPaths%", applicationPaths.ApplicationPath);

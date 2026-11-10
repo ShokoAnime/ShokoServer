@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using ImageMagick;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Plugin;
@@ -42,22 +43,26 @@ public sealed class PackageImageLoaderTests : IDisposable
     #region Plugin Images
 
     [Fact]
-    public void AnEmbeddedImageIsWrittenIntoThePluginDirectory()
+    public void AnEmbeddedImageIsServedFromMemory_NothingIsWritten()
     {
         var directory = PluginDirectory();
 
-        var image = PackageImageLoader.Load(directory, Path.Combine(directory, "Example.dll"), Png(), "icon", _paths);
+        var image = PackageImageLoader.Load(directory, Path.Combine(directory, "Example.dll"), Png(), "icon", _paths, NullLogger.Instance);
 
         Assert.NotNull(image);
         Assert.Equal(("image/png", 2, 2), (image.MimeType, image.Width, image.Height));
         Assert.Equal("%PluginsPath%/Example/icon.png", image.FilePath.Replace('\\', '/'));
-        Assert.True(File.Exists(Path.Combine(directory, "icon.png")));
+        Assert.False(File.Exists(Path.Combine(directory, "icon.png")));
+        using var stream = image.GetStream(_paths);
+        using var copy = new MemoryStream();
+        stream!.CopyTo(copy);
+        Assert.Equal(Png(), copy.ToArray());
     }
 
     [Fact]
     public void AnEmbeddedImageOfALooseDllIsNamedAfterIt()
     {
-        var image = PackageImageLoader.Load(null, Path.Combine(_root, "Example.dll"), Png(), "thumbnail", _paths);
+        var image = PackageImageLoader.Load(null, Path.Combine(_root, "Example.dll"), Png(), "thumbnail", _paths, NullLogger.Instance);
 
         Assert.Equal("%PluginsPath%/Example.thumbnail.png", image?.FilePath.Replace('\\', '/'));
     }
@@ -68,14 +73,18 @@ public sealed class PackageImageLoaderTests : IDisposable
         var directory = PluginDirectory();
         File.WriteAllBytes(Path.Combine(directory, "icon.png"), Png());
 
-        var image = PackageImageLoader.Load(directory, Path.Combine(directory, "Example.dll"), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "icon", _paths);
+        var image = PackageImageLoader.Load(directory, Path.Combine(directory, "Example.dll"), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "icon", _paths, NullLogger.Instance);
 
         Assert.Equal("%PluginsPath%/Example/icon.png", image?.FilePath.Replace('\\', '/'));
     }
 
     [Fact]
+    public void AnImageThatCannotBeRead_IsNoImage_NotAnError()
+        => Assert.Null(PackageImageLoader.Load(PluginDirectory(), Path.Combine(_root, "Example", "Example.dll"), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], "icon", _paths, NullLogger.Instance));
+
+    [Fact]
     public void NothingEmbeddedAndNothingBesideIsNoImage()
-        => Assert.Null(PackageImageLoader.Load(PluginDirectory(), Path.Combine(_root, "Example", "Example.dll"), null, "icon", _paths));
+        => Assert.Null(PackageImageLoader.Load(PluginDirectory(), Path.Combine(_root, "Example", "Example.dll"), null, "icon", _paths, NullLogger.Instance));
 
     #endregion
 
@@ -87,11 +96,11 @@ public sealed class PackageImageLoaderTests : IDisposable
         var directory = PluginDirectory();
         var kind = MetadataProviderManager.SourceIconKind(TestSources.AniList);
 
-        var icon = PackageImageLoader.Load(directory, Path.Combine(directory, "Example.dll"), Png(), kind, _paths);
+        var icon = PackageImageLoader.Load(directory, Path.Combine(directory, "Example.dll"), Png(), kind, _paths, NullLogger.Instance);
 
         Assert.Equal("%PluginsPath%/Example/anilist-icon.png", icon?.FilePath.Replace('\\', '/'));
         // The plugin's own icon is not taken for it.
-        Assert.Null(PackageImageLoader.Load(directory, Path.Combine(directory, "Example.dll"), null, "icon", _paths));
+        Assert.Null(PackageImageLoader.Load(directory, Path.Combine(directory, "Example.dll"), null, "icon", _paths, NullLogger.Instance));
     }
 
     [Fact]
@@ -99,7 +108,7 @@ public sealed class PackageImageLoaderTests : IDisposable
     {
         var kind = MetadataProviderManager.SourceIconKind(TestSources.AniList);
 
-        var icon = PackageImageLoader.Load(null, Path.Combine(_root, "Example.dll"), Png(), kind, _paths);
+        var icon = PackageImageLoader.Load(null, Path.Combine(_root, "Example.dll"), Png(), kind, _paths, NullLogger.Instance);
 
         Assert.Equal("%PluginsPath%/Example.anilist-icon.png", icon?.FilePath.Replace('\\', '/'));
     }
@@ -114,18 +123,18 @@ public sealed class PackageImageLoaderTests : IDisposable
         var directory = PluginDirectory();
         var dll = Path.Combine(directory, "Example.dll");
 
-        var icon = PackageImageLoader.Load(directory, dll, Png(), MetadataImageContributorManager.IconKind(TestSources.AniList), _paths);
+        var icon = PackageImageLoader.Load(directory, dll, Png(), MetadataImageContributorManager.IconKind(TestSources.AniList), _paths, NullLogger.Instance);
 
         Assert.Equal("%PluginsPath%/Example/anilist.images-icon.png", icon?.FilePath.Replace('\\', '/'));
         // Neither the source's icon nor the plugin's is taken for it.
-        Assert.Null(PackageImageLoader.Load(directory, dll, null, MetadataProviderManager.SourceIconKind(TestSources.AniList), _paths));
-        Assert.Null(PackageImageLoader.Load(directory, dll, null, "icon", _paths));
+        Assert.Null(PackageImageLoader.Load(directory, dll, null, MetadataProviderManager.SourceIconKind(TestSources.AniList), _paths, NullLogger.Instance));
+        Assert.Null(PackageImageLoader.Load(directory, dll, null, "icon", _paths, NullLogger.Instance));
     }
 
     [Fact]
     public void AContributorIconOfALooseDllIsNamedAfterTheDllAndItsSource()
     {
-        var icon = PackageImageLoader.Load(null, Path.Combine(_root, "Example.dll"), Png(), MetadataImageContributorManager.IconKind(TestSources.AniList), _paths);
+        var icon = PackageImageLoader.Load(null, Path.Combine(_root, "Example.dll"), Png(), MetadataImageContributorManager.IconKind(TestSources.AniList), _paths, NullLogger.Instance);
 
         Assert.Equal("%PluginsPath%/Example.anilist.images-icon.png", icon?.FilePath.Replace('\\', '/'));
     }
@@ -141,11 +150,11 @@ public sealed class PackageImageLoaderTests : IDisposable
         var dll = Path.Combine(directory, "Example.dll");
         File.WriteAllBytes(Path.Combine(directory, "icon.png"), Png());
 
-        var icon = PackageImageLoader.Load(directory, dll, Png(), AiringScheduleService.IconKind(typeof(PackageImageLoaderTests)), _paths);
+        var icon = PackageImageLoader.Load(directory, dll, Png(), AiringScheduleService.IconKind(typeof(PackageImageLoaderTests)), _paths, NullLogger.Instance);
 
         Assert.Equal("%PluginsPath%/Example/PackageImageLoaderTests.airing-icon.png", icon?.FilePath.Replace('\\', '/'));
         // The plugin's own icon is not taken for it; the service falls back to that one itself.
-        Assert.Null(PackageImageLoader.Load(directory, dll, null, AiringScheduleService.IconKind(typeof(MagickImage)), _paths));
+        Assert.Null(PackageImageLoader.Load(directory, dll, null, AiringScheduleService.IconKind(typeof(MagickImage)), _paths, NullLogger.Instance));
     }
 
     #endregion
