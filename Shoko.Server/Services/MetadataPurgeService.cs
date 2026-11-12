@@ -10,6 +10,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Settings;
 
@@ -37,6 +38,7 @@ namespace Shoko.Server.Services;
 /// <param name="cleanup">Unlinks the images of the people, studios and networks removed.</param>
 /// <param name="entryLocks">Keeps a refresh and a purge of the same series apart.</param>
 /// <param name="providerScheduler">Queues the purges.</param>
+/// <param name="releases">The stored releases, whose links keep an entry in use.</param>
 /// <param name="settingsProvider">Holds how long a person, studio or network may stay orphaned.</param>
 /// <param name="logger">Where the purges are reported.</param>
 public class MetadataPurgeService(
@@ -58,6 +60,7 @@ public class MetadataPurgeService(
     MetadataEntityCleanup cleanup,
     MetadataEntryLocks entryLocks,
     MetadataProviderScheduler providerScheduler,
+    StoredReleaseInfoRepository releases,
     ISettingsProvider settingsProvider,
     ILogger<MetadataPurgeService> logger
 ) : IMetadataPurgeService
@@ -86,9 +89,9 @@ public class MetadataPurgeService(
         bool Wanted(MetadataEntityType kind) => entityType is null || entityType == kind;
         var unused = (Wanted(MetadataEntityType.Series) ? metadataService.GetAllSeriesForSource(source).Cast<IMetadata>() : [])
             .Concat(Wanted(MetadataEntityType.Movie) ? metadataService.GetAllMoviesForSource(source) : [])
-            .Where(entry => !crossReferences.IsLinked(entry.ID))
+            .Where(entry => !crossReferences.IsLinked(releases, metadataService, entry.ID))
             .Concat(Wanted(MetadataEntityType.Collection) && !source.IsCore
-                ? collectionStore.GetAllCollections(source).Where(collection => !crossReferences.IsCollectionInUse(collectionStore, collection.ID))
+                ? collectionStore.GetAllCollections(source).Where(collection => !crossReferences.IsCollectionInUse(releases, metadataService, collectionStore, collection.ID))
                 : [])
             .Where(entry => olderThan is not { } cutoff || GetLastTouchedAt(entry) is not { } touchedAt || touchedAt < cutoff)
             .Select(entry => entry.ID)
@@ -252,7 +255,7 @@ public class MetadataPurgeService(
             if (!IsLeftoverSeries(entry))
                 continue;
 
-            if (crossReferences.IsLinked(entry))
+            if (crossReferences.IsLinked(releases, metadataService, entry))
             {
                 linked.Add(entry);
                 continue;

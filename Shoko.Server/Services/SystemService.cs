@@ -739,6 +739,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IMetadataMatchingEngine, MetadataMatchingEngine>();
             services.AddSingleton<IVideoService, VideoService>();
             services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
+            services.AddSingleton<ReleaseCrossReferenceValidators>();
             services.AddSingleton<IVideoStreamPipelineService, VideoStreamPipelineService>();
             services.AddSingleton<VideoStreamSessionManager>();
             // Sweeps idle sessions on its own clock, so a paused or busy queue never leaves them open.

@@ -13,6 +13,8 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Workers;
+using Shoko.Server.Models.Release;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -179,6 +181,7 @@ public class PurgeUnusedMetadataJobTests
             null!,
             null!,
             scheduler,
+            CachedRepo.Build<StoredReleaseInfoRepository, int, StoredReleaseInfo>(release => release.StoredReleaseInfoID),
             null!,
             NullLogger<MetadataPurgeService>.Instance
         );

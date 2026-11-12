@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
+using Shoko.Abstractions.Video;
 
 namespace Shoko.Abstractions.Metadata;
 
@@ -50,6 +51,16 @@ public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     ///   typed by its place in the group.
     /// </summary>
     IReadOnlyList<IEpisode> Episodes { get; }
+
+    /// <summary>
+    ///   The videos linked directly to the season's episodes, by a
+    ///   cross-reference of their stored release naming one. A release never
+    ///   names a season itself, so these are all there is.
+    /// </summary>
+    IReadOnlyList<IMetadataVideoCrossReference> MetadataVideoCrossReferences
+    {
+        get => [.. Episodes.SelectMany(episode => episode.MetadataVideoCrossReferences).DistinctBy(link => (link.Release, string.Join(',', link.IDs)))];
+    }
 
     /// <summary>
     ///   When the core last refreshed the season's series in full from its

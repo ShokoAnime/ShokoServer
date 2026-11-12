@@ -48,8 +48,10 @@ deserialised into `TConfig` and handed to you on the `RelocationContext<TConfig>
 
 Auto-relocation is skipped entirely, without ever reaching a provider, when
 `RelocateOnImport` is off, when every file for the video sits in an `Excluded`
-folder, when no providers are registered, or when the file is unrecognised and
-no registered provider sets `SupportsUnrecognized`.
+folder, when no providers are registered, or when the file has no AniDB links
+and no registered provider takes it: an unrecognised file needs
+`SupportsUnrecognized`, and a file linked only to entries of other sources
+needs `SupportsNonAnidbLinkedVideos`.
 
 A provider is only called while it is available
 (`IVideoRelocationService.GetAvailability`). Return `false` from
@@ -170,16 +172,27 @@ if your own code resolves the provider, and never register it under the
 `SupportsUnrecognized` and `SupportsIncompleteMetadata` are checked by the
 service *before* your `GetPath` is called, so they are guards, not hints:
 
-- **`SupportsUnrecognized = false`** (the default) means a file with no
-  cross-references never reaches you. The check happens twice: once when
-  deciding whether to schedule auto-relocation at all (across every registered
+- **`SupportsUnrecognized = false`** (the default) means an unrecognised file,
+  one with neither an AniDB link nor a stored release (`IVideo.IsRecognized`
+  is `false`), never reaches you. The check happens twice: once when deciding
+  whether to schedule auto-relocation at all (across every registered
   provider), and once when running the preset (against your provider alone).
   Set it to `true` only if `GetPath` genuinely handles empty `Episodes` and
   `Series`, for instance by laying unrecognised files out by filename.
+- **`SupportsNonAnidbLinkedVideos = false`** (the default) means a recognised
+  file with no AniDB link, one whose release links it only to entries of other
+  sources, never reaches you, checked the same two times. Such a file is not
+  unrecognised, so `SupportsUnrecognized` does not let it through. `Episodes`,
+  `Series` and `Groups` are the AniDB-linked ones, so they are empty; set it to
+  `true` only if `GetPath` reads the file's entries from
+  `context.Video.MetadataCrossReferences`. A renamer built before this flag
+  existed reads it as `false` and never sees these files.
 - **`SupportsIncompleteMetadata = false`** (the default) means the service
-  refuses when the file has cross-references but some of them do not resolve to
-  a `IShokoEpisode` yet, which is the normal state while AniDB data is still
-  being fetched. Set it to `true` only if a partial `Episodes` list is enough
+  refuses a file in import limbo (`IVideo.IsInImportLimbo`): one with an entry
+  it is linked to not stored yet, such as an AniDB episode whose Shoko episode
+  is not there while AniDB data is still being fetched, or a link of another
+  source whose entry, or the parent it names, is missing. Set it to `true` only
+  if a partial `Episodes` list, or a link whose entry is missing, is enough
   for you.
 
 `SupportsMoving` and `SupportsRenaming` work on the result instead. The

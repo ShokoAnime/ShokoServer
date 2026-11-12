@@ -47,15 +47,27 @@ public interface IRelocationProvider
     string? NotConfiguredReason { get => null; }
 
     /// <summary>
-    ///   This should be true if the renamer supports operating on unrecognized
-    ///   files.
+    ///   This should be true if the renamer supports operating on
+    ///   unrecognized files: linked to nothing, with neither an AniDB link nor
+    ///   a stored release (<see cref="IVideo.IsRecognized"/> is false).
     /// </summary>
     bool SupportsUnrecognized { get => false; }
 
     /// <summary>
-    ///   This should be true if the renamer can handle cases where part of or
-    ///   all the metadata for the episodes and/or series linked to the video
-    ///   is missing.
+    ///   This should be true if the renamer supports operating on recognized
+    ///   files with no AniDB link: their stored release links them only to
+    ///   entries of other sources, which it reads through
+    ///   <see cref="IVideo.MetadataCrossReferences"/>, while the AniDB-linked
+    ///   episodes, series and groups of the context are empty. Such a file is
+    ///   not unrecognized, so <see cref="SupportsUnrecognized"/> does not let
+    ///   it through.
+    /// </summary>
+    bool SupportsNonAnidbLinkedVideos { get => false; }
+
+    /// <summary>
+    ///   This should be true if the renamer can handle a video in import
+    ///   limbo (<see cref="IVideo.IsInImportLimbo"/>): one with an entry it is
+    ///   linked to, of any source, not stored yet.
     /// </summary>
     bool SupportsIncompleteMetadata { get => false; }
 

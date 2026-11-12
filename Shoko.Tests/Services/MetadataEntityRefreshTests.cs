@@ -7,18 +7,22 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Video.Release;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Actions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Release;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Shoko.Server.Repositories.Direct.Metadata;
@@ -505,6 +509,7 @@ public class MetadataEntityRefreshTests
             CachedRepo.Build<Metadata_CollectionRepository, int, Metadata_Collection>(row => row.Metadata_CollectionID),
             CachedRepo.Build<Metadata_MovieRepository, int, Metadata_Movie>(row => row.Metadata_MovieID),
             new(() => NoLinks.Build().Object),
+            CachedRepo.Build<StoredReleaseInfoRepository, int, StoredReleaseInfo>(release => release.StoredReleaseInfoID),
             NullLogger<MetadataCollectionRefreshScheduler>.Instance
         );
 

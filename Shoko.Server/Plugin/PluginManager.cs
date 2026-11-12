@@ -769,6 +769,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 videoReleaseService.AddParts(CreateExports<IReleaseInfoProvider>());
         });
 
+        AddParts(unattributed, "registering its release cross-reference validators", () =>
+            services.GetRequiredService<ReleaseCrossReferenceValidators>().AddParts(CreateExports<IReleaseCrossReferenceValidator>()));
+
         AddParts(unattributed, "registering its hash providers", () =>
         {
             if (services.GetRequiredService<IVideoHashingService>() is VideoHashingService videoHashingService)

@@ -430,6 +430,7 @@ The source probe maps Shoko service interfaces to discovery tags:
 | Interface | Tag |
 |-----------|-----|
 | `IReleaseInfoProvider` | `release-provider` |
+| `IReleaseCrossReferenceValidator` | `release-validator` |
 | `IHashProvider` | `hasher` |
 | `IRelocationProvider` | `relocator` |
 | `IManagedFolderIgnoreRule` | `managed-folder-ignore-rule` |

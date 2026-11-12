@@ -722,9 +722,11 @@ public partial class MetadataEntryController : BaseController
             .OfType<AnimeEpisode>();
 
     /// <summary>
-    /// The files of some AniDB episodes, filtered, sorted and paged as asked.
+    /// The files of some AniDB episodes, and those a release links to the
+    /// entry directly, filtered, sorted and paged as asked.
     /// </summary>
     /// <param name="anidbEpisodeIDs">The AniDB episode IDs.</param>
+    /// <param name="directLinks">The entry's direct links to videos, through their releases.</param>
     /// <param name="pageSize">The page size; 0 for everything.</param>
     /// <param name="page">The page, from 1.</param>
     /// <param name="include">Items to include that are left out by default.</param>
@@ -735,6 +737,7 @@ public partial class MetadataEntryController : BaseController
     /// <returns>The page of files.</returns>
     private ListResult<File> ShokoFiles(
         IEnumerable<int> anidbEpisodeIDs,
+        IEnumerable<IMetadataVideoCrossReference> directLinks,
         int pageSize,
         int page,
         FileNonDefaultIncludeType[]? include,
@@ -748,6 +751,7 @@ public partial class MetadataEntryController : BaseController
         var videos = ShokoEpisodeRows(anidbEpisodeIDs)
             .Where(episode => episode.AnimeSeries is { } series && user.AllowedSeries(series))
             .SelectMany(episode => episode.VideoLocals)
+            .Concat(directLinks.Select(link => link.Video).OfType<VideoLocal>())
             .DistinctBy(video => video.VideoLocalID);
         return ModelHelper.FilterFiles(videos, user, pageSize, page, include, exclude, includeOnly, releaseProviders, sortOrder);
     }

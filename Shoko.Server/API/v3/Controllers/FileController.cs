@@ -2090,7 +2090,7 @@ public class FileController(
             return NotFound(FileNotFoundWithFileID);
 
         if (_videoReleaseService.GetCurrentReleaseForVideo(video) is null)
-            return ValidationProblem("The file is not linked to any episodes.");
+            return ValidationProblem("The file is not linked to anything.");
 
         await _videoReleaseService.ClearReleaseForVideo(video);
 

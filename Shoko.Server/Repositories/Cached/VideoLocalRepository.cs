@@ -281,9 +281,10 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
                 if (a.IsIgnored)
                     return false;
 
+                // A video linked only to other sources than AniDB is broken while one of their entries is missing.
                 var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(a.Hash);
                 if (!xrefs.Any())
-                    return true;
+                    return !a.IsRecognized || (includeBrokenXRefs && a.IsInImportLimbo);
 
                 if (includeBrokenXRefs)
                     return !xrefs.Any(IsImported);
@@ -341,15 +342,18 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     public IReadOnlyList<VideoLocal> GetVideosWithoutEpisodeUnsorted()
         => Cache.GetAll()
-            .Where(a => !a.IsIgnored && !RepoFactory.CrossRef_File_Episode.GetByEd2k(a.Hash).Any())
+            .Where(a => !a.IsIgnored && !a.IsRecognized)
             .ToList();
 
+    /// <summary>
+    ///   Gets the videos not marked as ignored whose stored release was made
+    ///   by hand, whatever source it links to.
+    /// </summary>
+    /// <returns>The videos, each once.</returns>
     public IReadOnlyList<VideoLocal> GetManuallyLinkedVideos()
-        => RepoFactory.CrossRef_File_Episode.GetAll()
-                .Select(a => GetByEd2k(a.Hash))
-                .WhereNotNull()
-                .Where(a => a.ReleaseInfo is { } releaseInfo && !(releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false))
-                .ToList();
+        => Cache.GetAll()
+            .Where(video => !video.IsIgnored && video.IsManuallyLinked)
+            .ToList();
 
     public IReadOnlyList<VideoLocal> GetIgnoredVideos()
         => _ignored!.GetMultiple(true);

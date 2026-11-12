@@ -10,6 +10,7 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Connectivity;
 using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Plugin;
@@ -43,7 +44,6 @@ namespace Shoko.Server.Services;
 public class VideoReleaseService(
     ILogger<VideoReleaseService> logger,
     IConfigurationService configurationService,
-    IUDPConnectionHandler udpConnection,
     ISettingsProvider settingsProvider,
     ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
     IQueueScheduler schedulerFactory,
@@ -62,6 +62,7 @@ public class VideoReleaseService(
     AnimeEpisodeRepository animeEpisodeRepository,
     CrossRef_File_EpisodeRepository xrefRepository,
     AnimeMetadataOrchestrator animeMetadataOrchestrator,
+    ReleaseCrossReferenceValidators crossReferenceValidators,
     Lazy<ISuspensionService> suspensionService
 ) : IVideoReleaseService
 {
@@ -77,8 +78,6 @@ public class VideoReleaseService(
 
     // Maps IReleaseInfoProvider concrete type → job type, a job class of its own or the generic one
     private Dictionary<Type, Type> _providerJobTypes = [];
-
-    private readonly HashSet<int> _unknownEpisodeIDs = [];
 
     private readonly Lock _lock = new();
 
@@ -367,6 +366,22 @@ public class VideoReleaseService(
 
     public IReleaseInfo? GetReleaseByHashAndSize(string ed2k, long fileSize)
         => releaseInfoRepository.GetByEd2kAndFileSize(ed2k, fileSize);
+
+    public IReadOnlyList<IReleaseInfo> GetReleasesByMetadataID(MetadataGuid id)
+        => releaseInfoRepository.GetByMetadataID(id);
+
+    public IReadOnlyList<IVideo> GetVideosByMetadataID(MetadataGuid id)
+        => releaseInfoRepository.GetByMetadataID(id)
+            .DistinctBy(release => (release.ED2K, release.FileSize))
+            .Select(release => videoRepository.GetByEd2kAndSize(release.ED2K, release.FileSize))
+            .WhereNotNull()
+            .ToList<IVideo>();
+
+    public IReadOnlyList<IMetadataVideoCrossReference> GetMetadataVideoCrossReferences(MetadataGuid id)
+        => releaseInfoRepository.GetByMetadataID(id).SelectMany(release => MetadataVideoCrossReference.For(release, id)).ToList();
+
+    public IReadOnlyList<IMetadataVideoCrossReference> GetMetadataVideoCrossReferences(IVideo video)
+        => releaseInfoRepository.GetByEd2kAndFileSize(video.ED2K, video.Size) is { } release ? MetadataVideoCrossReference.For(release).ToList() : [];
 
     public IVideo? GetVideoForRelease(IReleaseInfo release)
         => release is StoredReleaseInfo stored ? videoRepository.GetByEd2kAndSize(stored.ED2K, stored.FileSize) : null;
@@ -869,9 +884,7 @@ public class VideoReleaseService(
         // Convert back to IReleaseInfo so StoredReleaseInfo can consume it.
         var preparedRelease = release as ReleaseInfoWithProvider ?? new ReleaseInfoWithProvider(release);
         var releaseInfo = new StoredReleaseInfo(video, preparedRelease);
-        var (validXrefs, legacyXrefs, invalidXrefs) = await CheckCrossReferencesAsync(video, releaseInfo);
-        if (!validXrefs)
-            throw new InvalidOperationException($"Release have {invalidXrefs} invalid cross reference(s).");
+        var legacyXrefs = await CheckCrossReferencesAsync(video, preparedRelease, releaseInfo);
 
         var missingAnidbReleaseGroupId = await CheckReleaseGroupAsync(releaseInfo);
 
@@ -933,6 +946,7 @@ public class VideoReleaseService(
         try
         {
             await animeMetadataOrchestrator.ScheduleForXrefs(legacyXrefs);
+            await animeMetadataOrchestrator.ScheduleForCrossReferences(releaseInfo.CrossReferences);
         }
         catch (Exception ex)
         {
@@ -973,77 +987,24 @@ public class VideoReleaseService(
 
     #region Save Release | Internals
 
-    private async Task<(bool, List<CrossRef_File_Episode>, int)> CheckCrossReferencesAsync(IVideo video, StoredReleaseInfo releaseInfo, CancellationToken cancellationToken = default)
+    /// <summary>
+    ///   Tidies the cross-references of a release, runs the validators over
+    ///   them and keeps what they corrected, and builds the
+    ///   <see cref="CrossRef_File_Episode"/> rows of the AniDB ones.
+    /// </summary>
+    /// <param name="video">The video the release is saved for.</param>
+    /// <param name="release">The release as given.</param>
+    /// <param name="releaseInfo">The release to save, whose cross-references are replaced.</param>
+    /// <param name="cancellationToken">Cancels the validation.</param>
+    /// <returns>The rows for the AniDB cross-references.</returns>
+    /// <exception cref="ReleaseValidationException">The validators refused the release.</exception>
+    private async Task<List<CrossRef_File_Episode>> CheckCrossReferencesAsync(IVideo video, IReleaseInfo release, StoredReleaseInfo releaseInfo, CancellationToken cancellationToken = default)
     {
-        var legacyXrefs = new List<CrossRef_File_Episode>();
-        var invalidXrefs = 0;
-
-        var legacyOrder = 0;
-        var embeddedXrefs = new List<EmbeddedCrossReference>();
-        foreach (var xrefGroup in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>().GroupBy(xref => xref.AnidbEpisodeID))
-        {
-            var firstXref = xrefGroup.First();
-            var episodeID = xrefGroup.Key;
-            if (episodeID is <= 0)
+        var tidied = releaseInfo.CrossReferences
+            .Select(IReleaseVideoCrossReference (crossReference) =>
             {
-                logger.LogError("Negative or zero episode id: {EpisodeID}!", episodeID);
-                invalidXrefs += xrefGroup.Count();
-                continue;
-            }
+                var xref = new EmbeddedCrossReference(crossReference);
 
-            if (_unknownEpisodeIDs.Contains(firstXref.AnidbEpisodeID))
-            {
-                logger.LogError("Unknown episode id: {EpisodeID}!", firstXref.AnidbEpisodeID);
-                invalidXrefs += xrefGroup.Count();
-                continue;
-            }
-
-            // Provider's PrepareForSave should have resolved AniDB_Anime for any cross-references
-            // where it was missing. Use the most common non-zero value from the group.
-            var animeID = xrefGroup
-                .Select(xref => xref.AnidbAnimeID ?? 0)
-                .Where(id => id > 0)
-                .GroupBy(id => id)
-                .OrderByDescending(g => g.Count())
-                .FirstOrDefault()?
-                .Key;
-            if (animeID is null)
-            {
-                if (anidbEpisodeRepository.GetByEpisodeID(firstXref.AnidbEpisodeID) is { } episode)
-                {
-                    animeID = episode.AnimeID;
-                }
-                else if (udpConnection.IsBanned)
-                {
-                    logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, but we're UDP banned, so deferring fetch to later!", firstXref.AnidbEpisodeID);
-                }
-                else
-                {
-                    logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, downloading more info…", firstXref.AnidbEpisodeID);
-                    try
-                    {
-                        var episodeResponse = await requestFactory
-                            .Create<RequestGetEpisode>(r => r.EpisodeID = firstXref.AnidbEpisodeID)
-                            .SendAsync(cancellationToken);
-                        animeID = episodeResponse.Response?.AnimeID;
-                        if (episodeResponse.Code is UDPReturnCode.NO_SUCH_EPISODE)
-                        {
-                            logger.LogError("Unknown episode with id {EpisodeID}!", firstXref.AnidbEpisodeID);
-                            _unknownEpisodeIDs.Add(firstXref.AnidbEpisodeID);
-                            invalidXrefs += xrefGroup.Count();
-                            continue;
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        logger.LogError(e, "Could not get Episode Info for {EpisodeID}!", firstXref.AnidbEpisodeID);
-                    }
-                }
-            }
-
-            var xrefList = new List<EmbeddedCrossReference>();
-            foreach (var xref in xrefGroup)
-            {
                 // The percentage range must be between 0 and 100.
                 xref.PercentageStart = Math.Clamp(xref.PercentageStart, 0, 100);
                 xref.PercentageEnd = Math.Clamp(xref.PercentageEnd, 0, 100);
@@ -1056,8 +1017,18 @@ public class VideoReleaseService(
                 if (xref.PercentageEnd == xref.PercentageStart)
                     (xref.PercentageStart, xref.PercentageEnd) = (0, 100);
 
-                xrefList.Add(xref);
-            }
+                return xref;
+            })
+            .ToList();
+        var validated = await crossReferenceValidators.Validate(video, release, tidied, cancellationToken);
+
+        var embeddedXrefs = new List<EmbeddedCrossReference>();
+        var groups = validated
+            .Select(xref => new EmbeddedCrossReference(xref))
+            .GroupBy(xref => xref.AnidbEpisodeID is > 0 and var episodeID ? $"anidb:{episodeID}" : string.Join(' ', xref.IDs.Order()));
+        foreach (var xrefGroup in groups)
+        {
+            var xrefList = xrefGroup.ToList();
 
             // A provider may list the same episode both as the base episode and as a related
             // episode. That's allowed, and the related entry overrides the base entry's range,
@@ -1067,39 +1038,79 @@ public class VideoReleaseService(
                 xrefList.Any(xref => xref is { PercentageStart: 0, PercentageEnd: 100 }) &&
                 xrefList.Any(xref => xref is not { PercentageStart: 0, PercentageEnd: 100 })
             )
-            {
-                while (xrefList.FindIndex(xref => xref is { PercentageStart: 0, PercentageEnd: 100 }) is { } index && index is not -1)
-                    xrefList.RemoveAt(index);
-            }
+                xrefList.RemoveAll(xref => xref is { PercentageStart: 0, PercentageEnd: 100 });
 
             // Entries that overlap exactly collapse into one. This is the same override as above,
             // for when the base and related entries happen to share a range.
             foreach (var xref in xrefList.DistinctBy(xref => (xref.PercentageStart, xref.PercentageEnd)))
-            {
-                // If we got this far and the anime ID is set, then apply it now.
-                if (animeID is not null)
-                    xref.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = animeID.Value.ToString();
-
                 embeddedXrefs.Add(xref);
-                legacyXrefs.Add(new()
-                {
-                    Hash = video.ED2K,
-                    AnimeID = animeID ?? 0,
-                    EpisodeID = episodeID,
-                    Percentage = xref.PercentageEnd - xref.PercentageStart,
-                    EpisodeOrder = legacyOrder++,
-                    FileSize = video.Size,
-                });
-            }
         }
 
-        // Collapsing overlapping entries above is deliberate, not a failure, so only
-        // cross-references we actually rejected count against the release.
-        if (invalidXrefs > 0 || embeddedXrefs.Count < 1)
-            return (false, legacyXrefs, invalidXrefs);
-
         releaseInfo.CrossReferences = embeddedXrefs;
-        return (true, legacyXrefs, invalidXrefs);
+        return BuildLegacyCrossReferences(video, embeddedXrefs);
+    }
+
+    /// <summary>
+    ///   Builds the <see cref="CrossRef_File_Episode"/> rows the AniDB-bound
+    ///   views read, one for each AniDB cross-reference, in order.
+    /// </summary>
+    /// <param name="video">The video.</param>
+    /// <param name="crossReferences">The release's cross-references, as stored.</param>
+    /// <returns>The rows.</returns>
+    private static List<CrossRef_File_Episode> BuildLegacyCrossReferences(IVideo video, IEnumerable<IReleaseVideoCrossReference> crossReferences)
+    {
+        var legacyXrefs = new List<CrossRef_File_Episode>();
+        foreach (var xref in crossReferences)
+        {
+            if (xref.AnidbEpisodeID is not > 0)
+                continue;
+
+            legacyXrefs.Add(new()
+            {
+                Hash = video.ED2K,
+                AnimeID = xref.AnidbAnimeID ?? 0,
+                EpisodeID = xref.AnidbEpisodeID,
+                Percentage = xref.PercentageEnd - xref.PercentageStart,
+                EpisodeOrder = legacyXrefs.Count,
+                FileSize = video.Size,
+            });
+        }
+
+        return legacyXrefs;
+    }
+
+    /// <summary>
+    ///   Asks the validators again about a stored release, to fill in what its
+    ///   cross-references lack, such as the series of an episode, and saves
+    ///   their corrections, with its AniDB link rows rebuilt to match. Nothing
+    ///   refuses the release: a step that would is logged and left out.
+    /// </summary>
+    /// <param name="releaseInfo">The stored release.</param>
+    /// <param name="cancellationToken">Cancels the checks.</param>
+    /// <returns><c>true</c> when a validator corrected it.</returns>
+    internal async Task<bool> HealRelease(StoredReleaseInfo releaseInfo, CancellationToken cancellationToken = default)
+    {
+        if (videoRepository.GetByEd2kAndSize(releaseInfo.ED2K, releaseInfo.FileSize) is not { } video)
+            return false;
+
+        IReadOnlyList<IReleaseVideoCrossReference> stored = releaseInfo.CrossReferences;
+        var healed = (await crossReferenceValidators.Validate(video, releaseInfo, stored, cancellationToken, heal: true).ConfigureAwait(false))
+            .Select(xref => new EmbeddedCrossReference(xref))
+            .ToList();
+        if (healed.Count == stored.Count && healed.Zip(stored).All(pair =>
+            pair.First.PercentageStart == pair.Second.PercentageStart &&
+            pair.First.PercentageEnd == pair.Second.PercentageEnd &&
+            pair.First.IDs.SequenceEqual(pair.Second.IDs)))
+            return false;
+
+        var legacyXrefs = BuildLegacyCrossReferences(video, healed);
+        var oldXrefs = xrefRepository.GetByEd2k(releaseInfo.ED2K).Where(xref => xref.FileSize == releaseInfo.FileSize).ToList();
+        releaseInfo.CrossReferences = healed;
+        releaseInfoRepository.Save(releaseInfo);
+        xrefRepository.Delete(oldXrefs);
+        xrefRepository.Save(legacyXrefs);
+        logger.LogInformation("Healed the cross-references of the release of video {Video}.", video.VideoLocalID);
+        return true;
     }
 
     private async Task<int?> CheckReleaseGroupAsync(StoredReleaseInfo releaseInfo, CancellationToken cancellationToken = default)
@@ -1210,16 +1221,31 @@ public class VideoReleaseService(
         }
     }
 
+    /// <summary>
+    ///   The other videos of the episodes and movies a release links a video
+    ///   to: those of each AniDB episode, and those a release links to the
+    ///   same main episode or movie of another source.
+    /// </summary>
+    /// <param name="video">The video.</param>
+    /// <param name="releaseInfo">Its release.</param>
+    /// <returns>The other videos, each once.</returns>
+    internal IReadOnlyList<IVideo> GetVideosOfTheSameEntries(IVideo video, IReleaseInfo releaseInfo)
+        => releaseInfo.CrossReferences
+            .SelectMany(xref => videoRepository.GetByAniDBEpisodeID(xref.AnidbEpisodeID))
+            .WhereNotNull()
+            .Cast<IVideo>()
+            .Concat(releaseInfo.CrossReferences
+                .Where(xref => !xref.IsAnidb && xref.MainID is { } main && (main.EntityType == MetadataEntityType.Episode || main.EntityType == MetadataEntityType.Movie))
+                .SelectMany(xref => GetVideosByMetadataID(xref.MainID!)))
+            .Where(other => other.ED2K != video.ED2K)
+            .DistinctBy(other => other.ED2K)
+            .ToList();
+
     private void SetWatchedStateIfNeeded(IVideo video, IReleaseInfo releaseInfo)
     {
         if (!_settings.Import.UseExistingFileWatchedStatus) return;
 
-        var otherVideos = releaseInfo.CrossReferences
-            .SelectMany(xref => videoRepository.GetByAniDBEpisodeID(xref.AnidbEpisodeID))
-            .WhereNotNull()
-            .ExceptBy([video.ED2K], v => v.Hash)
-            .Cast<IVideo>()
-            .ToList();
+        var otherVideos = GetVideosOfTheSameEntries(video, releaseInfo);
 
         // The episode-level watched record outlives every file of the episode, so it
         // can still carry the watched state after the watched release was deleted.

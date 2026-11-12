@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
@@ -22,6 +23,7 @@ using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Video.Release;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Workers;
@@ -29,6 +31,7 @@ using Shoko.Server.Actions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -333,6 +336,7 @@ public class MetadataProviderJobTests
                 ContributorScheduler(Contributors, ContributorJobs),
                 Queue.Collections(links, [info], Collections, Movies),
                 new StubSettingsProvider(Settings),
+                CachedRepo.Build<StoredReleaseInfoRepository, int, StoredReleaseInfo>(release => release.StoredReleaseInfoID),
                 NoCancellation()
             ));
     }
@@ -1584,6 +1588,8 @@ public class MetadataProviderJobTests
                 Orderings.Build(() => Metadata.Object),
                 Locks,
                 Queue.Build(Links, infos),
+                CachedRepo.Build<StoredReleaseInfoRepository, int, StoredReleaseInfo>(release => release.StoredReleaseInfoID),
+                Metadata.Object,
                 NoCancellation(),
                 LinkChanges
             ));
@@ -1903,6 +1909,7 @@ public class MetadataProviderJobTests
                 CachedRepo.Build<Metadata_CollectionRepository, int, Metadata_Collection>(row => row.Metadata_CollectionID, collections ?? []),
                 CachedRepo.Build<Metadata_MovieRepository, int, Metadata_Movie>(row => row.Metadata_MovieID, movies ?? []),
                 new(() => links.Object),
+                CachedRepo.Build<StoredReleaseInfoRepository, int, StoredReleaseInfo>(release => release.StoredReleaseInfoID),
                 NullLogger<MetadataCollectionRefreshScheduler>.Instance
             );
 
@@ -2032,6 +2039,7 @@ public class MetadataProviderJobTests
                 ),
                 new MetadataEntryLocks(),
                 Build(links, infos),
+                CachedRepo.Build<StoredReleaseInfoRepository, int, StoredReleaseInfo>(release => release.StoredReleaseInfoID),
                 new StubSettingsProvider(settings ?? new()),
                 NullLogger<MetadataPurgeService>.Instance
             );
@@ -2043,7 +2051,8 @@ public class MetadataProviderJobTests
             Mock<IMetadataCollectionStore>? collections = null,
             IMetadataService? metadata = null,
             int[]? notInLibrary = null,
-            MetadataImageContributorScheduler? contributors = null
+            MetadataImageContributorScheduler? contributors = null,
+            StoredReleaseInfo[]? releases = null
         )
         {
             if (metadata is null)
@@ -2070,7 +2079,8 @@ public class MetadataProviderJobTests
                     Mock.Of<IMetadataService>(),
                     Mock.Of<IQueueScheduler>(),
                     NullLogger<MetadataImageContributorScheduler>.Instance
-                )
+                ),
+                CachedRepo.Build<StoredReleaseInfoRepository, int, StoredReleaseInfo>(release => release.StoredReleaseInfoID, releases ?? [])
             );
         }
     }
@@ -2763,6 +2773,25 @@ public class MetadataProviderJobTests
         Assert.All(jobs, job => Assert.False(job.Force));
         Assert.All(jobs, job => Assert.Equal(MetadataRefreshReason.Requested, job.Reason));
         Assert.All(jobs, job => Assert.False(job.AllowUnlinked));
+    }
+
+    [Fact]
+    public async Task TheLibraryRefreshAndImages_TakeTheSeriesAReleaseLinksAVideoTo()
+    {
+        var harness = new SchedulerHarness();
+        var infos = new[] { Info(new FakeProvider()) };
+        var links = Links();
+        links.Setup(s => s.GetAllSeriesLinks(Source)).Returns([]);
+        links.Setup(s => s.GetAllMovieLinks(Source)).Returns([]);
+        StoredReleaseInfo[] releases =
+        [
+            new() { StoredReleaseInfoID = 1, ED2K = "AAAA", FileSize = 1, CrossReferences = [ReleaseVideoCrossReference.For([ID(MetadataEntityType.Episode, "7"), ID(MetadataEntityType.Series, "4")])] },
+        ];
+        var service = harness.Service(links, infos, releases: releases);
+
+        Assert.Equal(1, await service.RefreshAllLinked(Source, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await service.DownloadAllImages(Source, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(ID(MetadataEntityType.Series, "4").ToString(), ((IMetadataRefreshJob)harness.Queued[0].Job).EntryID);
     }
 
     [Fact]

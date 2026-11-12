@@ -33,6 +33,6 @@ public sealed class DownloadMissingAnidbAnimeDataAction(ActionService actionServ
         var stages = new StagedProgress(progress, 2);
         await actionService.DownloadMissingAnidbAnimeXmls(stages, token);
         stages.NextStage();
-        await actionService.ScheduleMissingAnidbAnimeForFiles(stages, token);
+        await actionService.ScheduleMissingMetadataForFiles(stages, token);
     }
 }

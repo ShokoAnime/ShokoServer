@@ -43,6 +43,7 @@ public class DashboardController(
     CrossRef_File_EpisodeRepository _crossRefFileEpisodes,
     VideoLocalRepository _videoLocals,
     VideoLocal_PlaceRepository _videoLocalPlaces,
+    StoredReleaseInfoRepository _storedReleaseInfos,
     IMetadataProviderManager _providerManager
 ) : BaseController(settingsProvider)
 {
@@ -75,11 +76,31 @@ public class DashboardController(
             .Where(f => !string.IsNullOrEmpty(f.Hash) && allowedHashes.Contains(f.Hash))
             .GroupBy(f => f.Hash)
             .ToDictionary(g => g.Key, g => g.First());
-        var totalFileSize = fileByHash.Values.Sum(f => f.FileSize);
 
         // Unrecognized files — computed from already-loaded data, avoiding GetVideosWithoutEpisodeUnsorted()
         // which would call CrossRef_File_Episode.GetByEd2k() (ReadLock) for every video local.
-        var unrecognizedFiles = allVideoLocals.Count(f => !f.IsIgnored && !string.IsNullOrEmpty(f.Hash) && !allCrossRefHashes.Contains(f.Hash));
+        // A file with a stored release is recognised too, whatever source the release names.
+        var releasedFiles = _storedReleaseInfos.GetAll()
+            .Select(release => (release.ED2K, release.FileSize))
+            .ToHashSet();
+        var unrecognizedFiles = allVideoLocals.Count(f =>
+            !f.IsIgnored &&
+            !string.IsNullOrEmpty(f.Hash) &&
+            !allCrossRefHashes.Contains(f.Hash) &&
+            !releasedFiles.Contains((f.Hash, f.FileSize))
+        );
+
+        // The files linked only through releases naming other sources count towards the collection when the user may see them.
+        var releaseOnlyFiles = allVideoLocals
+            .Where(f =>
+                !string.IsNullOrEmpty(f.Hash) &&
+                !allCrossRefHashes.Contains(f.Hash) &&
+                releasedFiles.Contains((f.Hash, f.FileSize)) &&
+                User.IsAllowedToSee(f)
+            )
+            .DistinctBy(f => f.Hash)
+            .ToList();
+        var totalFileSize = fileByHash.Values.Sum(f => f.FileSize) + releaseOnlyFiles.Sum(f => f.FileSize);
 
         // Places — one GetAll() + filter instead of one ReadLock per file via VideoLocal.Places.
         var collectionFileIds = fileByHash.Values.Select(f => f.VideoLocalID).ToHashSet();
@@ -185,7 +206,7 @@ public class DashboardController(
 
         return new()
         {
-            FileCount = fileByHash.Count,
+            FileCount = fileByHash.Count + releaseOnlyFiles.Count,
             FileSize = totalFileSize,
             SeriesCount = allSeries.Count,
             GroupCount = groupCount,

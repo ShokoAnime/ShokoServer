@@ -125,6 +125,12 @@ public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithL
     IReadOnlyList<IMetadataMovieCrossReference> MetadataMovieCrossReferences { get; }
 
     /// <summary>
+    /// The videos linked to the movie directly, by a cross-reference of
+    /// their stored release naming it.
+    /// </summary>
+    IReadOnlyList<IMetadataVideoCrossReference> MetadataVideoCrossReferences { get => MetadataVideoLinks.To(ID); }
+
+    /// <summary>
     /// Get all videos linked to the movie, if any.
     /// </summary>
     IReadOnlyList<IVideo> Videos { get; }

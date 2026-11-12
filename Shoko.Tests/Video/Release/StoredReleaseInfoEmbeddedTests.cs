@@ -13,7 +13,7 @@ public class StoredReleaseInfoEmbeddedTests
     private const string ED2K = "0880F299DD50D50943069183F979BB8D";
 
     private const string CrossReferencesText =
-        """[{"ProviderIDs":{"AniDB_Episode":"230182","AniDB_Anime":"15107"},"PercentageStart":0,"PercentageEnd":100},{"ProviderIDs":{"AniDB_Episode":"230183"},"PercentageStart":0,"PercentageEnd":50}]""";
+        """[{"IDs":["anidb://episode/230182","anidb://series/15107"],"PercentageStart":0,"PercentageEnd":100},{"IDs":["anidb://episode/230183"],"PercentageStart":0,"PercentageEnd":50}]""";
 
     private const string HashesText =
         """[{"Type":"ED2K","Value":"0880F299DD50D50943069183F979BB8D","Metadata":null},{"Type":"MD5","Value":"F27798EA3796DB35C7409271254985BA","Metadata":null},{"Type":"CRC32","Value":"C859A673","Metadata":"x"}]""";
@@ -36,8 +36,8 @@ public class StoredReleaseInfoEmbeddedTests
     }
 
     [Theory]
-    [InlineData("""[ {"ProviderIDs": {"AniDB_Episode": "1"}, "PercentageStart": 0, "PercentageEnd": 100} ]""")]
-    [InlineData("""[{"PercentageStart":0,"PercentageEnd":100,"ProviderIDs":{"AniDB_Episode":"1"}}]""")]
+    [InlineData("""[ {"IDs": ["anidb://episode/1"], "PercentageStart": 0, "PercentageEnd": 100} ]""")]
+    [InlineData("""[{"PercentageStart":0,"PercentageEnd":100,"IDs":["anidb://episode/1"]}]""")]
     [InlineData("null")]
     public void TextTheListWouldWriteDifferentlyIsKept(string text)
     {
@@ -102,13 +102,12 @@ public class StoredReleaseInfoEmbeddedTests
     }
 
     [Fact]
-    public void RepeatedProviderIDsShareOneInstance()
+    public void RepeatedIDsShareOneInstance()
     {
         var first = Stored(CrossReferencesText, null);
         var second = Stored(CrossReferencesText, null);
 
-        Assert.Same(first.CrossReferences[0].ProviderIDs.Keys.First(), second.CrossReferences[0].ProviderIDs.Keys.First());
-        Assert.Same(first.CrossReferences[0].ProviderIDs["AniDB_Anime"], second.CrossReferences[0].ProviderIDs["AniDB_Anime"]);
+        Assert.Same(first.CrossReferences[0].IDs[1], second.CrossReferences[0].IDs[1]);
     }
 
     #endregion
@@ -142,36 +141,6 @@ public class StoredReleaseInfoEmbeddedTests
 
         Assert.False(stored == unlisted);
         Assert.False(stored == pinned);
-    }
-
-    #endregion
-
-    #region Provider IDs
-
-    [Fact]
-    public void ProviderIDsBehaveAsADictionary()
-    {
-        var ids = new ProviderIDDictionary { ["b"] = "1", ["a"] = "2" };
-        ids["b"] = "3";
-        ids.Add("c", "4");
-
-        Assert.Equal(["b", "a", "c"], ids.Keys);
-        Assert.Equal("3", ids["b"]);
-        Assert.Throws<System.ArgumentException>(() => ids.Add("a", "5"));
-        Assert.Throws<KeyNotFoundException>(() => ids["z"]);
-        Assert.True(ids.Remove("a"));
-        Assert.False(ids.Remove("a"));
-        Assert.Equal(new Dictionary<string, string> { ["b"] = "3", ["c"] = "4" }, ids);
-        Assert.Equal("""{"b":"3","c":"4"}""", JsonConvert.SerializeObject(ids));
-    }
-
-    [Fact]
-    public void ProviderIDsReadFromJsonInOrder()
-    {
-        var ids = JsonConvert.DeserializeObject<ProviderIDDictionary>("""{"x":"1","AniDB_Episode":"2"}""")!;
-
-        Assert.Equal(["x", "AniDB_Episode"], ids.Keys);
-        Assert.Equal("2", ((IReadOnlyDictionary<string, string>)ids)["AniDB_Episode"]);
     }
 
     #endregion

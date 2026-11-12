@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Video.Release;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Databases;
@@ -32,8 +33,7 @@ public class StoredReleaseInfoRepository(DatabaseFactory databaseFactory, IServi
     private PocoIndex<int, StoredReleaseInfo, string>? _ed2k;
     private PocoIndex<int, StoredReleaseInfo, (string groupId, string source)>? _groupIDs;
     private PocoIndex<int, StoredReleaseInfo, string?>? _releaseURIs;
-    private PocoIndex<int, StoredReleaseInfo, int>? _anidbEpisodeIDs;
-    private PocoIndex<int, StoredReleaseInfo, int>? _anidbAnimeIDs;
+    private PocoIndex<int, StoredReleaseInfo, MetadataGuid>? _metadataIDs;
 
     protected override int SelectKey(StoredReleaseInfo entity)
         => entity.StoredReleaseInfoID;
@@ -43,8 +43,7 @@ public class StoredReleaseInfoRepository(DatabaseFactory databaseFactory, IServi
         _ed2k = Cache.CreateIndex(a => a.ED2K);
         _groupIDs = Cache.CreateIndex(a => (a.GroupID ?? string.Empty, a.GroupSource ?? string.Empty));
         _releaseURIs = Cache.CreateIndex(a => a.ReleaseURI);
-        _anidbEpisodeIDs = Cache.CreateIndex(a => a.CrossReferences.Select(b => b.AnidbEpisodeID).Where(id => id > 0));
-        _anidbAnimeIDs = Cache.CreateIndex(a => a.CrossReferences.Select(b => b.AnidbAnimeID).WhereNotNull().Distinct());
+        _metadataIDs = Cache.CreateIndex(a => a.CrossReferences.SelectMany(b => b.IDs).Distinct());
     }
 
     public IReadOnlyList<StoredReleaseInfo> GetByEd2k(string ed2k)
@@ -70,14 +69,23 @@ public class StoredReleaseInfoRepository(DatabaseFactory databaseFactory, IServi
             ? _releaseURIs!.GetMultiple(releaseUri)
             : [];
 
+    /// <summary>
+    ///   Gets the releases with a cross-reference naming an entry, of any
+    ///   source.
+    /// </summary>
+    /// <param name="id">The entry.</param>
+    /// <returns>The releases.</returns>
+    public IReadOnlyList<StoredReleaseInfo> GetByMetadataID(MetadataGuid id)
+        => _metadataIDs!.GetMultiple(id);
+
     public IReadOnlyList<StoredReleaseInfo> GetByAnidbEpisodeID(int episodeId)
         => episodeId > 0
-            ? _anidbEpisodeIDs!.GetMultiple(episodeId)
+            ? GetByMetadataID(new(MetadataSource.AniDB, MetadataEntityType.Episode, episodeId.ToString()))
             : [];
 
     public IReadOnlyList<StoredReleaseInfo> GetByAnidbAnimeID(int animeId)
         => animeId > 0
-            ? _anidbAnimeIDs!.GetMultiple(animeId)
+            ? GetByMetadataID(new(MetadataSource.AniDB, MetadataEntityType.Series, animeId.ToString()))
             : [];
 
     public IReadOnlyList<IReleaseGroup> GetReleaseGroups(IReadOnlySet<string>? sources)

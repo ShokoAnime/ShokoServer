@@ -16,15 +16,16 @@ namespace Shoko.Tests.API;
 
 /// <summary>
 /// Covers who the file feed sends a file's events to, by the anime the file
-/// is linked to and the restricted tags of each user.
+/// is linked to and the restricted tags of each user. A file linked to no
+/// known anime reaches only unrestricted users, as the API shows it.
 /// </summary>
 public class FileEventEmitterTests
 {
     [Theory]
     [InlineData(new[] { HiddenAnimeID }, false)]
     [InlineData(new[] { HiddenAnimeID, VisibleAnimeID }, true)]
-    [InlineData(new int[0], true)]
-    [InlineData(new[] { UnknownAnimeID }, true)]
+    [InlineData(new int[0], false)]
+    [InlineData(new[] { UnknownAnimeID }, false)]
     public async Task Hashed_ReachesTheRestrictedUserOnlyWhenTheFileIsVisible(int[] animeIDs, bool restrictedReceives)
     {
         var harness = await Harness.Create();
@@ -46,7 +47,7 @@ public class FileEventEmitterTests
     [InlineData(new int[0], new[] { HiddenAnimeID }, false)]
     [InlineData(new[] { UnknownAnimeID }, new int[0], false)]
     [InlineData(new int[0], new[] { HiddenAnimeID, VisibleAnimeID }, true)]
-    [InlineData(new int[0], new int[0], true)]
+    [InlineData(new int[0], new int[0], false)]
     public async Task Deleted_IsCheckedAgainstTheCapturedSeriesAndHidesUnknownAnime(int[] videoAnimeIDs, int[] seriesAnimeIDs, bool restrictedReceives)
     {
         var harness = await Harness.Create();
@@ -60,7 +61,7 @@ public class FileEventEmitterTests
     [Theory]
     [InlineData(new[] { HiddenAnimeID }, false)]
     [InlineData(new[] { HiddenAnimeID, VisibleAnimeID }, true)]
-    [InlineData(new int[0], true)]
+    [InlineData(new int[0], false)]
     public async Task Updated_ReachesTheRestrictedUserOnlyWhenTheVideoIsVisible(int[] animeIDs, bool restrictedReceives)
     {
         var harness = await Harness.Create();
@@ -80,6 +81,7 @@ public class FileEventEmitterTests
         video.Setup(v => v.Episodes).Returns([]);
         video.Setup(v => v.Series).Returns([]);
         video.Setup(v => v.Groups).Returns([]);
+        video.Setup(v => v.MetadataCrossReferences).Returns([]);
         return video.Object;
     }
 

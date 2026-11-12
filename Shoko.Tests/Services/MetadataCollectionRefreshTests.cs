@@ -5,13 +5,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Video.Release;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Release;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Shoko.Server.Scheduling.Jobs.Metadata;
@@ -70,7 +74,7 @@ public class MetadataCollectionRefreshTests
 
         public MetadataCollectionRefreshScheduler Scheduler { get; }
 
-        public World(bool collectionsOn = true, Metadata_Collection[]? collections = null, Metadata_Movie[]? movies = null)
+        public World(bool collectionsOn = true, Metadata_Collection[]? collections = null, Metadata_Movie[]? movies = null, StoredReleaseInfo[]? releases = null)
         {
             Movies = CachedRepo.Build<Metadata_MovieRepository, int, Metadata_Movie>(row => row.Metadata_MovieID, movies ?? []);
             Collections = CachedRepo.Build<Metadata_CollectionRepository, int, Metadata_Collection>(row => row.Metadata_CollectionID, collections ?? []);
@@ -117,6 +121,7 @@ public class MetadataCollectionRefreshTests
                 Collections,
                 Movies,
                 new(() => Links.Object),
+                CachedRepo.Build<StoredReleaseInfoRepository, int, StoredReleaseInfo>(release => release.StoredReleaseInfoID, releases ?? []),
                 NullLogger<MetadataCollectionRefreshScheduler>.Instance
             );
         }
@@ -180,6 +185,19 @@ public class MetadataCollectionRefreshTests
 
         Assert.Empty(world.Queued);
         Assert.False(world.Scheduler.IsWanted(s_collection));
+    }
+
+    [Fact]
+    public void ACollectionAMovieNames_IsFetched_WhenOnlyAReleaseLinksTheMovie()
+    {
+        var world = new World(releases: [new() { StoredReleaseInfoID = 1, ED2K = "AAAA", FileSize = 1, CrossReferences = [ReleaseVideoCrossReference.For([s_movie])] }]);
+        using var scope = world.Scope();
+        world.Links.Setup(store => store.GetLinksTo(s_movie)).Returns([]);
+
+        world.MovieStore().SaveMovie(new() { ID = s_movie, CollectionID = s_collection });
+
+        Assert.Equal([s_collection.ToString()], world.Queued);
+        Assert.True(world.Scheduler.IsWanted(s_collection));
     }
 
     #endregion

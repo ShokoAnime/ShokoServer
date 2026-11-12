@@ -1762,6 +1762,32 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(204,   1, "ALTER TABLE `AiringScheduleSweepState` ADD COLUMN `SweepID` VARCHAR(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL;"),
         new(204,   2, "ALTER TABLE `AiringScheduleSweepState` ADD COLUMN `SweepStartedAt` DATETIME NULL;"),
         new(204,   3, "ALTER TABLE `AiringScheduleSweepState` ADD COLUMN `ChunkIndex` INT NOT NULL DEFAULT 0;"),
+        new(205,   1, """
+                       UPDATE `StoredReleaseInfo` sri
+                       SET sri.`CrossReferences` = (
+                           SELECT JSON_ARRAYAGG(
+                               JSON_OBJECT(
+                                   'IDs', CASE
+                                       WHEN x.episode > 0 AND x.anime > 0
+                                       THEN JSON_ARRAY(CONCAT('anidb://episode/', x.episode), CONCAT('anidb://series/', x.anime))
+                                       WHEN x.episode > 0
+                                       THEN JSON_ARRAY(CONCAT('anidb://episode/', x.episode))
+                                       WHEN x.anime > 0
+                                       THEN JSON_ARRAY(CONCAT('anidb://series/', x.anime))
+                                       ELSE JSON_ARRAY()
+                                   END,
+                                   'PercentageStart', JSON_EXTRACT(x.val, '$.PercentageStart') + 0,
+                                   'PercentageEnd', JSON_EXTRACT(x.val, '$.PercentageEnd') + 0
+                               )
+                           )
+                           FROM JSON_TABLE(sri.`CrossReferences`, '$[*]' COLUMNS (
+                               val JSON PATH '$',
+                               episode BIGINT PATH '$.ProviderIDs.AniDB_Episode' NULL ON EMPTY NULL ON ERROR,
+                               anime BIGINT PATH '$.ProviderIDs.AniDB_Anime' NULL ON EMPTY NULL ON ERROR
+                           )) AS x
+                       )
+                       WHERE sri.`CrossReferences` LIKE '%"ProviderIDs"%'
+                       """),
     ];
 
     #endregion

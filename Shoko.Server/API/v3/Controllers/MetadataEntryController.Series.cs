@@ -652,7 +652,7 @@ public partial class MetadataEntryController
         CancellationToken cancellationToken = default
     )
         => await Get<ISeries>(source, MetadataEntityType.Series, id, cancellationToken).ConfigureAwait(false) is { } series
-            ? ShokoFiles(series.MetadataEpisodeCrossReferences.Select(link => link.AnidbEpisodeID), pageSize, page, include, exclude, include_only, releaseProviders, sortOrder)
+            ? ShokoFiles(series.MetadataEpisodeCrossReferences.Select(link => link.AnidbEpisodeID), series.MetadataVideoCrossReferences, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder)
             : NotFound(SeriesNotFound);
 
     #endregion

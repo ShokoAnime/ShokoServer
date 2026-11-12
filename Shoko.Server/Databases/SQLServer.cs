@@ -1744,6 +1744,30 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(202,   1, "ALTER TABLE AiringScheduleSweepState ADD SweepID NVARCHAR(40) COLLATE Latin1_General_100_BIN2 NULL;"),
         new(202,   2, "ALTER TABLE AiringScheduleSweepState ADD SweepStartedAt DATETIME NULL;"),
         new(202,   3, "ALTER TABLE AiringScheduleSweepState ADD ChunkIndex INT NOT NULL CONSTRAINT DF_AiringScheduleSweepState_ChunkIndex DEFAULT 0;"),
+        new(203,   1, """
+                       UPDATE sri
+                       SET CrossReferences = (
+                           SELECT
+                               JSON_QUERY(
+                                   '[' + CONCAT_WS(',',
+                                       CASE
+                                           WHEN TRY_CAST(JSON_VALUE(x.value, '$.ProviderIDs.AniDB_Episode') AS int) > 0
+                                           THEN '"anidb://episode/' + CAST(TRY_CAST(JSON_VALUE(x.value, '$.ProviderIDs.AniDB_Episode') AS int) AS nvarchar(11)) + '"'
+                                       END,
+                                       CASE
+                                           WHEN TRY_CAST(JSON_VALUE(x.value, '$.ProviderIDs.AniDB_Anime') AS int) > 0
+                                           THEN '"anidb://series/' + CAST(TRY_CAST(JSON_VALUE(x.value, '$.ProviderIDs.AniDB_Anime') AS int) AS nvarchar(11)) + '"'
+                                       END
+                                   ) + ']'
+                               ) AS IDs,
+                               CAST(JSON_VALUE(x.value, '$.PercentageStart') AS int) AS PercentageStart,
+                               CAST(JSON_VALUE(x.value, '$.PercentageEnd') AS int) AS PercentageEnd
+                           FROM OPENJSON(sri.CrossReferences) AS x
+                           FOR JSON PATH
+                       )
+                       FROM StoredReleaseInfo sri
+                       WHERE sri.CrossReferences LIKE '%"ProviderIDs"%'
+                       """),
     ];
 
     #endregion

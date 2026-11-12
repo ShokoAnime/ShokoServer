@@ -279,7 +279,7 @@ public partial class MetadataEntryController
         CancellationToken cancellationToken = default
     )
         => await Get<ISeason>(source, MetadataEntityType.Season, id, cancellationToken).ConfigureAwait(false) is { } season
-            ? ShokoFiles(season.Episodes.SelectMany(episode => episode.MetadataEpisodeCrossReferences).Select(link => link.AnidbEpisodeID), pageSize, page, include, exclude, include_only, releaseProviders, sortOrder)
+            ? ShokoFiles(season.Episodes.SelectMany(episode => episode.MetadataEpisodeCrossReferences).Select(link => link.AnidbEpisodeID), season.Episodes.SelectMany(episode => episode.MetadataVideoCrossReferences), pageSize, page, include, exclude, include_only, releaseProviders, sortOrder)
             : NotFound(SeasonNotFound);
 
     #endregion
@@ -600,7 +600,7 @@ public partial class MetadataEntryController
         CancellationToken cancellationToken = default
     )
         => await Get<IEpisode>(source, MetadataEntityType.Episode, id, cancellationToken).ConfigureAwait(false) is { } episode
-            ? ShokoFiles(episode.MetadataEpisodeCrossReferences.Select(link => link.AnidbEpisodeID), pageSize, page, include, exclude, include_only, releaseProviders, sortOrder)
+            ? ShokoFiles(episode.MetadataEpisodeCrossReferences.Select(link => link.AnidbEpisodeID), episode.MetadataVideoCrossReferences, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder)
             : NotFound(EpisodeNotFound);
 
     #endregion

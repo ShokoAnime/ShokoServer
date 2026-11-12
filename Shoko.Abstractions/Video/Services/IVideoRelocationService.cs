@@ -256,6 +256,8 @@ public interface IVideoRelocationService
 
     /// <summary>
     ///   Get the location of the folder that contains a file for the latest (airdate) episode in the current collection.
+    ///   A file with no AniDB series looks at the other files of the series or movie of another source its release
+    ///   links it to directly instead.
     /// </summary>
     /// <remarks>
     ///   Will only look for files in managed folders of type <see cref="DropFolderType.Excluded"/> or <see cref="DropFolderType.Destination"/>.

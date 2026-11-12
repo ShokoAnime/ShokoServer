@@ -13,6 +13,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Workers;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Metadata;
@@ -43,6 +44,8 @@ public class PurgeMetadataJob(
     MetadataOrderingService orderings,
     MetadataEntryLocks entryLocks,
     MetadataProviderScheduler providerScheduler,
+    StoredReleaseInfoRepository releases,
+    IMetadataService metadataService,
     IJobCancellationAccessor cancellationAccessor,
     MetadataLinkChangeTracker? linkChanges = null
 ) : BaseJob
@@ -102,8 +105,8 @@ public class PurgeMetadataJob(
             await RemoveLinksTo(entry, token).ConfigureAwait(false);
 
         var inUse = !Force && (entry.EntityType == MetadataEntityType.Collection
-            ? crossReferences.IsCollectionInUse(collectionStore, entry)
-            : crossReferences.IsLinked(entry));
+            ? crossReferences.IsCollectionInUse(releases, metadataService, collectionStore, entry)
+            : crossReferences.IsLinked(releases, metadataService, entry));
         if (inUse)
         {
             _logger.LogInformation("Not purging {Entry}, which is still linked.", entry);

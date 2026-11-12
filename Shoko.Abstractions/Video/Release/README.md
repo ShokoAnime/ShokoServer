@@ -99,21 +99,13 @@ Web UI to render that configuration on the provider's own page.
 
 ---
 
-## Cross-references and ProviderIDs
+## Cross-references and their IDs
 
 Each `ReleaseInfo.CrossReferences` entry maps a segment of the file to content.
-The mapping is expressed as a string-to-string dictionary (`ProviderIDs`) so
-any provider can store its own keys without breaking consumers that don't know
-about them. Consumers ignore keys they don't recognise.
-
-### Well-known keys
-
-`CrossReferenceIDs` defines constants for the AniDB keys the server understands:
-
-| Constant | Value | Meaning |
-|---|---|---|
-| `CrossReferenceIDs.AniDB_Episode` | `"AniDB_Episode"` | AniDB episode ID (integer string) |
-| `CrossReferenceIDs.AniDB_Anime` | `"AniDB_Anime"` | AniDB anime ID (integer string) |
+The mapping is a list of `MetadataGuid`s (`IDs`), each naming one entry of one
+source, written `<source>://<kind>/<id>`: an AniDB episode is
+`anidb://episode/123` and its anime `anidb://series/456`. A cross-reference
+names at least one entry, of any source; it need not name an AniDB one.
 
 ### Creating AniDB cross-references
 
@@ -131,29 +123,92 @@ ReleaseVideoCrossReference.ForAniDB(episodeID: 123, animeID: 456,
 
 `ForAniDB` is called **on the type, not on an instance**: it is a static member
 of a C# 14 `extension(...)` block, a factory returning a new cross-reference.
-The `this`-style extension in the next section is the older form, called on an
-instance.
+The `AnidbEpisodeID` and `AnidbAnimeID` members read the first AniDB episode
+and anime ID of any cross-reference, and set them on a
+`ReleaseVideoCrossReference`.
 
-### Adding your own provider IDs
+### Linking entries of other sources
 
-Define your own constants and a matching extension method:
+Add their IDs to the list, or use `ReleaseVideoCrossReference.For`:
 
 ```csharp
-public static class MyProviderIDs
-{
-    public const string Episode = "MyProvider_Episode";
-    public const string Anime   = "MyProvider_Anime";
-}
+var source = MetadataSource.Get("my-source");
+ReleaseVideoCrossReference.For([new MetadataGuid(source, MetadataEntityType.Episode, "e12")])
+```
 
-public static class MyProviderCrossReferenceExtensions
+Every source and kind a cross-reference names needs a validator (see
+[Validating cross-references](#validating-cross-references)), or the release is
+refused when it is saved.
+
+## Validating cross-references
+
+A release is checked when it is saved, whoever saves it: a provider's search, a
+user through the API, or a plugin. The core first tidies each cross-reference's
+percentage range, then runs every `IReleaseCrossReferenceValidator`.
+
+- **Only series, episodes and movies.** A cross-reference may name a series,
+  an episode or a movie, of any source, and nothing else: a season, a
+  collection or any other kind refuses the release, whatever a validator's
+  scope says. An episode usually comes with its series, which a validator may
+  fill in, as the core's AniDB one does with the anime.
+- **A source and kind needs a validator.** A validator's `Scope` (a
+  `MetadataEntityScope`) is what lets cross-references name entries of those
+  sources and kinds. A cross-reference naming an entry no validator takes, or
+  naming no entry at all, refuses the release.
+- **Order.** Validators run in plugin load order, the core's first. Each is
+  asked about every cross-reference naming an entry of its scope, with the
+  whole release in view (`ReleaseCrossReferenceValidationContext`).
+- **Results.** `null` means "not my concern". Otherwise
+  `ReleaseCrossReferenceValidationResult.IsValid` decides. An invalid result
+  carries a `Reason` and refuses the whole release. A valid one may correct
+  the cross-reference:
+  - `Corrected(ids)` gives the IDs to save in its place, keeping its range.
+    Only IDs of the validator's own scope may be added or removed.
+  - `Corrected(ids, start, end)` also gives the range. The range belongs to the
+    whole cross-reference, whatever IDs sit in it, so any validator taking one
+    of them may change it.
+- **Overlaps.** Several validators may take the same source and kind. All of
+  them must find a cross-reference valid, and corrections chain: each sees the
+  cross-references as the ones before corrected them. When a validator changes
+  a range, the validators that already found the cross-reference valid are
+  asked again. If one of them changes the range again, the two disagree and
+  the release is refused, naming it.
+- **Failures.** A refused release throws `ReleaseValidationException`, naming
+  the validator that refused it. A validator that throws refuses the release
+  too, and is logged. When the service a validator needs cannot be reached,
+  it should find the cross-reference valid as it is.
+- **Only on save, and when healing.** Stored releases are never refused after
+  the fact, so those naming a source whose plugin is gone still load. The
+  "Download Missing Metadata for Files" action asks the validators again about
+  a stored release whose cross-reference names an episode without its series
+  (`ReleaseCrossReferenceValidationContext.IsHealing`): their corrections are
+  saved, with the AniDB link rows rebuilt to match, while an invalid result or
+  a throw only leaves that cross-reference as it was. A validator fills in
+  what it can then, such as the series of a stored episode, and otherwise
+  finds it valid as it is.
+
+Validators belong to the plugin using the links, not to the metadata provider
+of the source. The core's `AniDB` validator takes AniDB episodes and anime:
+each cross-reference names one AniDB episode AniDB knows, and at most one
+anime, which it fills in from the episode when missing (left out while AniDB
+bans us). Only AniDB cross-references get `CrossRef_File_Episode` rows and
+queue the AniDB anime after the save, so a release naming only another
+source's entries links nothing on the AniDB side.
+
+```csharp
+public class MySourceValidator : IReleaseCrossReferenceValidator
 {
-    public static ReleaseVideoCrossReference ForMyProvider(
-        this ReleaseVideoCrossReference xref, int episodeId, int animeId)
-    {
-        xref.ProviderIDs[MyProviderIDs.Episode] = episodeId.ToString();
-        xref.ProviderIDs[MyProviderIDs.Anime]   = animeId.ToString();
-        return xref;
-    }
+    public string Name => "MyPlugin";
+
+    public MetadataEntityScope Scope { get; } =
+        MetadataEntityScope.Single(MetadataSource.Get("my-source"), MetadataEntityType.Episode);
+
+    public Task<ReleaseCrossReferenceValidationResult?> Validate(
+        ReleaseCrossReferenceValidationContext context, CancellationToken cancellationToken)
+        => Task.FromResult<ReleaseCrossReferenceValidationResult?>(
+            context.CrossReference.IDs.All(IsKnown)
+                ? ReleaseCrossReferenceValidationResult.Valid()
+                : ReleaseCrossReferenceValidationResult.Invalid("Unknown episode."));
 }
 ```
 
@@ -172,9 +227,10 @@ multiple files together make up one episode:
 ## Provider lifecycle
 
 A provider's job is matching, and nothing else. Saving the result, keeping
-`CrossRef_File_Episode` in sync, resolving a missing anime ID from an episode
-ID, running auto-management and scheduling relocation all live in
-`IVideoReleaseService` and apply uniformly to every provider.
+`CrossRef_File_Episode` in sync, validating the cross-references (the core's
+AniDB validator resolves a missing anime ID from an episode ID), running
+auto-management and scheduling relocation all live in `IVideoReleaseService`
+and apply uniformly to every provider.
 
 `GetRescanDelay` is the one optional hook that remains:
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Connectivity;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Release;
@@ -203,6 +204,55 @@ public interface IVideoReleaseService
     IReleaseInfo? GetReleaseByHashAndSize(string ed2k, long fileSize);
 
     /// <summary>
+    ///   Gets the stored releases with a cross-reference naming an entry, of
+    ///   any source, such as an AniDB episode or a plugin's movie.
+    /// </summary>
+    /// <param name="id">
+    ///   The entry.
+    /// </param>
+    /// <returns>
+    ///   The releases, empty if none names the entry.
+    /// </returns>
+    IReadOnlyList<IReleaseInfo> GetReleasesByMetadataID(MetadataGuid id);
+
+    /// <summary>
+    ///   Gets the videos in Shoko whose stored release has a cross-reference
+    ///   naming an entry, of any source.
+    /// </summary>
+    /// <param name="id">
+    ///   The entry.
+    /// </param>
+    /// <returns>
+    ///   The videos, empty if no video's release names the entry.
+    /// </returns>
+    IReadOnlyList<IVideo> GetVideosByMetadataID(MetadataGuid id);
+
+    /// <summary>
+    ///   Gets the direct links to an entry of any source: one for each
+    ///   cross-reference of a stored release naming it, whether the release's
+    ///   video is in Shoko or not.
+    /// </summary>
+    /// <param name="id">
+    ///   The entry.
+    /// </param>
+    /// <returns>
+    ///   The links, empty if no release names the entry.
+    /// </returns>
+    IReadOnlyList<IMetadataVideoCrossReference> GetMetadataVideoCrossReferences(MetadataGuid id);
+
+    /// <summary>
+    ///   Gets the direct links of a video: one for each entry each
+    ///   cross-reference of its stored release names, AniDB's included.
+    /// </summary>
+    /// <param name="video">
+    ///   The video.
+    /// </param>
+    /// <returns>
+    ///   The links, empty if the video has no stored release.
+    /// </returns>
+    IReadOnlyList<IMetadataVideoCrossReference> GetMetadataVideoCrossReferences(IVideo video);
+
+    /// <summary>
     ///   Gets the video a stored release belongs to.
     /// </summary>
     /// <param name="release">
@@ -390,8 +440,12 @@ public interface IVideoReleaseService
     ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <exception cref="InvalidOperationException">
-    ///   Release does not have at least one cross reference or have invalid
-    ///   cross references.
+    ///   The release has no cross-reference.
+    /// </exception>
+    /// <exception cref="ReleaseValidationException">
+    ///   A cross-reference names no entry, or an entry no release
+    ///   cross-reference validator takes, or a validator found one invalid or
+    ///   threw.
     /// </exception>
     /// <returns>
     ///   The saved release.
@@ -417,7 +471,12 @@ public interface IVideoReleaseService
     ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <exception cref="InvalidOperationException">
-    ///   Release does not have at least one cross reference or have invalid cross references.
+    ///   The release has no cross-reference.
+    /// </exception>
+    /// <exception cref="ReleaseValidationException">
+    ///   A cross-reference names no entry, or an entry no release
+    ///   cross-reference validator takes, or a validator found one invalid or
+    ///   threw.
     /// </exception>
     /// <returns>
     ///   The saved release.

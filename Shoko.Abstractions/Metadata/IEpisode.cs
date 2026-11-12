@@ -167,6 +167,12 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     IReadOnlyList<IMetadataMovieCrossReference> MetadataMovieCrossReferences { get; }
 
     /// <summary>
+    /// The videos linked to the episode directly, by a cross-reference of
+    /// their stored release naming it.
+    /// </summary>
+    IReadOnlyList<IMetadataVideoCrossReference> MetadataVideoCrossReferences { get => MetadataVideoLinks.To(ID); }
+
+    /// <summary>
     /// Get all videos linked to the episode, if any.
     /// </summary>
     IReadOnlyList<IVideo> Videos { get; }

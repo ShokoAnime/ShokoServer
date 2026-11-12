@@ -9,6 +9,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 
@@ -34,6 +35,7 @@ namespace Shoko.Server.Services;
 /// <param name="collections">The stored collections.</param>
 /// <param name="movies">The stored films, to find those naming a collection.</param>
 /// <param name="crossReferences">The links, to tell a linked film.</param>
+/// <param name="releases">The stored releases, which link films to videos directly.</param>
 /// <param name="logger">The logger.</param>
 public class MetadataCollectionRefreshScheduler(
     IMetadataProviderManager providerManager,
@@ -42,6 +44,7 @@ public class MetadataCollectionRefreshScheduler(
     Metadata_CollectionRepository collections,
     Metadata_MovieRepository movies,
     Lazy<IMetadataCrossReferenceStore> crossReferences,
+    StoredReleaseInfoRepository releases,
     ILogger<MetadataCollectionRefreshScheduler> logger
 )
 {
@@ -62,7 +65,8 @@ public class MetadataCollectionRefreshScheduler(
 
     /// <summary>
     ///   Whether the core keeps a collection: one that is stored, or that a
-    ///   stored film something links to names.
+    ///   stored film something links to names, an anime or a release linking
+    ///   a video to it directly.
     /// </summary>
     /// <param name="collectionID">The collection.</param>
     /// <returns><c>true</c> when it does.</returns>
@@ -78,7 +82,8 @@ public class MetadataCollectionRefreshScheduler(
 
         return movies.GetBySource(collectionID.Source)
             .Where(movie => string.Equals(movie.ExtraData?.CollectionID, collectionID.ID, StringComparison.Ordinal))
-            .Any(movie => crossReferences.Value.IsLinked(new(movie.Source, MetadataEntityType.Movie, movie.ProviderID)));
+            .Select(movie => new MetadataGuid(movie.Source, MetadataEntityType.Movie, movie.ProviderID))
+            .Any(movie => crossReferences.Value.IsLinked(movie) || releases.GetByMetadataID(movie).Count > 0);
     }
 
     /// <summary>

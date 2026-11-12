@@ -255,12 +255,17 @@ public interface IVideoService
     IReadOnlyList<IVideo> GetIgnoredVideos();
 
     /// <summary>
-    ///   Gets the videos not marked as ignored that no episode is linked to,
-    ///   sorted by path.
+    ///   Gets the videos not marked as ignored and not
+    ///   <see cref="IVideo.IsRecognized"/>, sorted by path: linked to no AniDB
+    ///   episode and without a stored release. A video whose release names
+    ///   only entries of other sources than AniDB, or whose release is
+    ///   provisional, is recognised.
     /// </summary>
     /// <param name="includeBrokenLinks">
-    ///   <c>true</c> to also get the videos whose every link is to an episode
-    ///   or series not in the collection, or has no stored release.
+    ///   <c>true</c> to also get the videos whose every AniDB link is to an
+    ///   episode or series not in the collection, or has no stored release,
+    ///   and those linked only to other sources than AniDB while one of their
+    ///   entries is not stored (<see cref="IVideo.IsInImportLimbo"/>).
     /// </param>
     /// <returns>
     ///   The unrecognized videos.

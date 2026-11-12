@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
@@ -180,6 +181,15 @@ public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     /// All known episodes for the series.
     /// </summary>
     IReadOnlyList<IEpisode> Episodes { get; }
+
+    /// <summary>
+    /// The videos linked to the series, or to one of its episodes, directly,
+    /// by a cross-reference of their stored release naming it.
+    /// </summary>
+    IReadOnlyList<IMetadataVideoCrossReference> MetadataVideoCrossReferences
+    {
+        get => [.. MetadataVideoLinks.To(ID).Concat(Episodes.SelectMany(episode => episode.MetadataVideoCrossReferences)).DistinctBy(link => (link.Release, string.Join(',', link.IDs)))];
+    }
 
     /// <summary>
     /// Get all videos linked to the series, if any.

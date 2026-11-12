@@ -309,6 +309,20 @@ taking an optional source. From the other end, the
 `IMovie` say which Shoko entries claim a provider's entry; a film is a level
 of its own, so it only shows up in the film lists. `IVideoCrossReference`
 carries the links of the anime and episode a file is linked to.
+
+A file can also be linked to an entry of any source directly, by a
+cross-reference of its stored release naming the entry
+([`../Video/Release/README.md`](../Video/Release/README.md)).
+`IMetadataVideoCrossReference` is one such link, one per cross-reference, to
+its main entry: AniDB first, and within a source the episode or movie before
+the season or collection, before the series (`ReleaseCrossReferenceIDComparer`;
+stored releases keep their IDs in that order). A cross-reference naming an
+AniDB episode and its anime gives one link, to the episode, which the anime's
+links include too. `IVideo.MetadataCrossReferences` lists a file's, and
+`MetadataVideoCrossReferences` on `IEpisode`, `IMovie` and `ISeries` (its own
+and its episodes', once each) an entry's, also found through
+`IVideoReleaseService.GetMetadataVideoCrossReferences`. A stored entry's
+`Videos` holds the files linked directly and those linked through AniDB.
 `IMetadataService` has the lookups by AniDB ID and
 `GetCrossReferencesForProviderEntry`.
 

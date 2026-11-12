@@ -129,7 +129,7 @@ public class RawFile : BaseDirectory
         updated = vl.DateTimeUpdated;
         duration = vl.Duration;
 
-        if (vl.ReleaseGroup is { Source: "AniDB " } releaseGroup)
+        if (vl.ReleaseGroup is { Source: "AniDB" } releaseGroup)
         {
             group_full = releaseGroup.Name;
             group_short = releaseGroup.ShortName;
@@ -156,7 +156,7 @@ public class RawFile : BaseDirectory
         url = APIV2Helper.ConstructVideoLocalStream(ctx, uid, vl.VideoLocalID.ToString(),
             "file" + Path.GetExtension(filename));
 
-        recognized = e != null || vl.EpisodeCrossReferences.Count != 0;
+        recognized = e != null || vl.IsRecognized;
 
         if (vl.MediaInfo?.GeneralStream == null || level < 0)
         {

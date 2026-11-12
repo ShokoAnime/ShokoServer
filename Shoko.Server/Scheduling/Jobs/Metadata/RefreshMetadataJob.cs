@@ -15,6 +15,7 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Workers;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
@@ -49,6 +50,7 @@ public class RefreshMetadataJob<TProvider>(
     MetadataImageContributorScheduler contributorScheduler,
     MetadataCollectionRefreshScheduler collectionScheduler,
     ISettingsProvider settingsProvider,
+    StoredReleaseInfoRepository releases,
     IJobCancellationAccessor cancellationAccessor
 ) : BaseJob, IMetadataRefreshJob, IJobMerge where TProvider : class, IMetadataProvider
 {
@@ -267,7 +269,8 @@ public class RefreshMetadataJob<TProvider>(
 
     /// <summary>
     ///   Whether an entry is still something the core refreshes: a series or
-    ///   film something links to, a series episode links point into, or a
+    ///   film something links to, a series episode links point into or a
+    ///   stored release names (it or one of its episodes), or a
     ///   collection that is stored or that a linked film names.
     /// </summary>
     /// <param name="entry">The entry.</param>
@@ -275,7 +278,7 @@ public class RefreshMetadataJob<TProvider>(
     private bool IsStillLinked(MetadataGuid entry)
         => entry.EntityType == MetadataEntityType.Collection
             ? metadataService.GetEntry(entry) is ICollection || collectionScheduler.IsWanted(entry)
-            : crossReferences.IsLinked(entry);
+            : crossReferences.IsLinked(releases, metadataService, entry);
 
     /// <summary>
     ///   Queues what follows a refresh: a series' episode link sync; unless it

@@ -62,7 +62,7 @@ public class CheckAniDBFileUpdatesJob(
         }
 
         stages.NextStage();
-        await actionService.ScheduleMissingAnidbAnimeForFiles(stages, cancellation.Token);
+        await actionService.ScheduleMissingMetadataForFiles(stages, cancellation.Token);
         stages.Complete();
     }
 }

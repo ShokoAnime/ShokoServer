@@ -918,14 +918,14 @@ public partial class DatabaseFixes
                     .OrderBy(x => x.CrossRef_File_EpisodeID)
                     .Select(xref =>
                     {
-                        var embedded = new EmbeddedCrossReference
+                        var embedded = new ReleaseVideoCrossReference
                         {
+                            AnidbEpisodeID = xref.EpisodeID,
+                            AnidbAnimeID = xref.AnimeID,
                             PercentageStart = xref.PercentageRange.Start,
                             PercentageEnd = xref.PercentageRange.End,
                         };
-                        embedded.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = xref.EpisodeID.ToString();
-                        embedded.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = xref.AnimeID.ToString();
-                        return embedded;
+                        return new EmbeddedCrossReference(embedded);
                     })
                     .ToList(),
                 CreatedAt = importedAt,

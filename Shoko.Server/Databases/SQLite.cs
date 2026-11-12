@@ -1435,6 +1435,31 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(181,   1, "ALTER TABLE AiringScheduleSweepState ADD COLUMN SweepID TEXT NULL;"),
         new(181,   2, "ALTER TABLE AiringScheduleSweepState ADD COLUMN SweepStartedAt DATETIME NULL;"),
         new(181,   3, "ALTER TABLE AiringScheduleSweepState ADD COLUMN ChunkIndex INTEGER NOT NULL DEFAULT 0;"),
+        new(182,   1, """
+                       UPDATE StoredReleaseInfo
+                       SET CrossReferences = (
+                           SELECT json_group_array(
+                               json_object(
+                                   'IDs', json(CASE
+                                       WHEN CAST(json_extract(x.value, '$.ProviderIDs.AniDB_Episode') AS INTEGER) > 0
+                                            AND CAST(json_extract(x.value, '$.ProviderIDs.AniDB_Anime') AS INTEGER) > 0
+                                       THEN json_array(
+                                           'anidb://episode/' || CAST(json_extract(x.value, '$.ProviderIDs.AniDB_Episode') AS INTEGER),
+                                           'anidb://series/' || CAST(json_extract(x.value, '$.ProviderIDs.AniDB_Anime') AS INTEGER))
+                                       WHEN CAST(json_extract(x.value, '$.ProviderIDs.AniDB_Episode') AS INTEGER) > 0
+                                       THEN json_array('anidb://episode/' || CAST(json_extract(x.value, '$.ProviderIDs.AniDB_Episode') AS INTEGER))
+                                       WHEN CAST(json_extract(x.value, '$.ProviderIDs.AniDB_Anime') AS INTEGER) > 0
+                                       THEN json_array('anidb://series/' || CAST(json_extract(x.value, '$.ProviderIDs.AniDB_Anime') AS INTEGER))
+                                       ELSE json_array()
+                                   END),
+                                   'PercentageStart', CAST(json_extract(x.value, '$.PercentageStart') AS INTEGER),
+                                   'PercentageEnd', CAST(json_extract(x.value, '$.PercentageEnd') AS INTEGER)
+                               )
+                           )
+                           FROM json_each(StoredReleaseInfo.CrossReferences) AS x
+                       )
+                       WHERE CrossReferences LIKE '%"ProviderIDs"%'
+                       """),
     ];
 
     #endregion

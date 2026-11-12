@@ -83,19 +83,21 @@ public sealed class EventAudience
         => new(() => group.AllSeries.Select(series => series.AnidbAnimeID), getAnime, Fallback.Hidden);
 
     /// <summary>
-    /// The users who may see a video: everyone when it is linked to no known
-    /// anime, or those who may see any anime it is linked to.
+    /// The users who may see a video, by the rule of
+    /// <see cref="JMMUser.IsAllowedToSee(IVideo)"/>: those who may see any
+    /// known anime it is linked to. A video linked to no known anime, an
+    /// unrecognised one or one linked only to other sources among them, is
+    /// hidden from restricted users.
     /// </summary>
     /// <param name="video">The video, if any.</param>
     /// <param name="getAnime">Looks up an AniDB anime by ID.</param>
     /// <param name="moreAnimeIDs">More anime the video is linked to, such as those of a release or a snapshot taken before a removal.</param>
-    /// <param name="isRemoval">Hides the video from restricted users when it is linked but none of its anime is known any more.</param>
     /// <returns>The audience.</returns>
-    public static EventAudience ForVideo(IVideo? video, Func<int, IAnidbAnime?> getAnime, Func<IEnumerable<int>>? moreAnimeIDs = null, bool isRemoval = false)
+    public static EventAudience ForVideo(IVideo? video, Func<int, IAnidbAnime?> getAnime, Func<IEnumerable<int>>? moreAnimeIDs = null)
         => new(
             () => (video?.CrossReferences.Select(xref => xref.AnidbAnimeID) ?? []).Concat(moreAnimeIDs?.Invoke() ?? []),
             getAnime,
-            isRemoval ? Fallback.VisibleWhenUnlinked : Fallback.Visible
+            Fallback.Hidden
         );
 
     /// <summary>
@@ -137,7 +139,7 @@ public sealed class EventAudience
             IShokoSeries series => ForSeries(series, getAnime),
             ISeason<IShokoSeries, IShokoEpisode> season => ForSeries(season.Series, getAnime),
             IShokoEpisode episode => ForEpisode(episode, getAnime),
-            IVideo video => ForVideo(video, getAnime, isRemoval: isRemoval),
+            IVideo video => ForVideo(video, getAnime),
             _ => Everyone,
         };
         if (!isRemoval || entry is IVideo || ReferenceEquals(audience, Everyone))

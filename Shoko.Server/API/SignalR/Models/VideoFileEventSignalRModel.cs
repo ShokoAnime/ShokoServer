@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Release;
 
 namespace Shoko.Server.API.SignalR.Models;
 
@@ -32,6 +33,7 @@ public class VideoFileEventSignalRModel
                 GroupID = animeToGroupDict.TryGetValue(xref.AnidbAnimeID, out tuple) ? tuple.ParentGroupID : null,
             })
             .ToList();
+        MetadataCrossReferences = eventArgs.Video.MetadataCrossReferences.Select(link => new ReleaseVideoCrossReference(link)).ToList();
     }
 
     /// <summary>
@@ -58,6 +60,14 @@ public class VideoFileEventSignalRModel
     /// Cross references of episodes linked to this file.
     /// </summary>
     public IReadOnlyList<FileCrossReferenceSignalRModel> CrossReferences { get; }
+
+    /// <summary>
+    /// The entries of any source the file is linked to directly, one per
+    /// cross-reference of its stored release, its main entry first, with the
+    /// range it covers. A file linked only to other sources than AniDB has
+    /// these and no <see cref="CrossReferences"/>.
+    /// </summary>
+    public IReadOnlyList<ReleaseVideoCrossReference> MetadataCrossReferences { get; }
 }
 
 public class FileCrossReferenceSignalRModel

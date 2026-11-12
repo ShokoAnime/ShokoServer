@@ -148,6 +148,54 @@ public class VideoLocal : IVideo
     public IReadOnlyList<CrossRef_File_Episode> EpisodeCrossReferences =>
         string.IsNullOrEmpty(Hash) ? [] : RepoFactory.CrossRef_File_Episode.GetByEd2k(Hash);
 
+    /// <inheritdoc cref="IVideo.IsRecognized"/>
+    public bool IsRecognized
+        => EpisodeCrossReferences.Count > 0 || ReleaseInfo is not null;
+
+    /// <inheritdoc cref="IVideo.IsManuallyLinked"/>
+    public bool IsManuallyLinked
+        => ReleaseInfo?.HasProviderName("User") is true;
+
+    /// <inheritdoc cref="IVideo.IsInImportLimbo"/>
+    public bool IsInImportLimbo
+        => IsInImportLimboFor(EpisodeCrossReferences, ReleaseInfo?.CrossReferences ?? [], MetadataEntryResolver.Resolve);
+
+    /// <summary>
+    ///   Whether a video with these links is in import limbo: an AniDB link
+    ///   whose anime or episode row, or Shoko episode, is missing, or a cross-reference of
+    ///   another source whose main entry, or the series of the same source
+    ///   the cross-reference names, does not resolve. AniDB
+    ///   cross-references are left to their AniDB link rows.
+    /// </summary>
+    /// <param name="anidbLinks">The video's AniDB link rows.</param>
+    /// <param name="crossReferences">The cross-references of its stored release.</param>
+    /// <param name="resolve">Resolves an entry, or gives <c>null</c>.</param>
+    /// <returns><c>true</c> when the video is in import limbo.</returns>
+    internal static bool IsInImportLimboFor(
+        IEnumerable<CrossRef_File_Episode> anidbLinks,
+        IEnumerable<IReleaseVideoCrossReference> crossReferences,
+        Func<MetadataGuid, IMetadata?> resolve
+    )
+    {
+        if (anidbLinks.Any(xref => xref.AniDBAnime is null || xref.AniDBEpisode is null || xref.AnimeEpisode is null))
+            return true;
+
+        foreach (var crossReference in crossReferences)
+        {
+            if (crossReference.MainID is not { } main || main.Source == MetadataSource.AniDB)
+                continue;
+
+            if (resolve(main) is null)
+                return true;
+
+            // The series of the main entry's source the cross-reference names, such as the show of an episode.
+            if (crossReference.IDs.Any(id => id != main && id.Source == main.Source && id.EntityType == MetadataEntityType.Series && resolve(id) is null))
+                return true;
+        }
+
+        return false;
+    }
+
     public VideoLocal_Place? FirstValidPlace
         => Places.FirstOrDefault(p => !string.IsNullOrEmpty(p?.Path));
 

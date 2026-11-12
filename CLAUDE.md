@@ -362,11 +362,13 @@ ShokoManagedFolder (1) ──< VideoLocal_Place >── (1) VideoLocal
 **`StoredReleaseInfo`** is the source of truth for a file's episode mapping. It caches the full response from a release provider for a given ED2K hash + file size, including:
 - Precise episode percentage ranges
 - Release group, video/audio codec, language, and quality information
-- Cross-references to anime/episodes
+- Cross-references to entries of any source, each a list of `MetadataGuid`s (`IReleaseVideoCrossReference.IDs`, e.g. `anidb://episode/1` and `anidb://series/1`), kept in the `CrossReferences` JSON column
 
-A single file can map to multiple episodes (e.g., a combined OVA file). Multiple files can map to the same episode (alternative releases).
+A single file can map to multiple episodes (e.g., a combined OVA file). Multiple files can map to the same episode (alternative releases). A release need not name an AniDB entry.
 
-**`CrossRef_File_Episode`** is a backwards-compatible join table kept in sync with `StoredReleaseInfo`. It stores a simplified view of the same mapping, keyed by ED2K hash + file size (not VideoLocalID):
+**Validation on save.** `SaveReleaseForVideo` tidies the percentage ranges, then `ReleaseCrossReferenceValidators` runs every plugin's `IReleaseCrossReferenceValidator` (collected by `PluginManager` like release providers, in plugin load order, the core's first) over the cross-references naming an entry of its `MetadataEntityScope`: an ID no validator takes refuses the release, overlapping validators must all agree, corrections chain, and an invalid result or a throw refuses the release (`ReleaseValidationException`). The core's `AnidbReleaseCrossReferenceValidator` checks the AniDB episode and fills in its anime (valid but uncorrected while AniDB bans us). Stored rows are never validated again.
+
+**`CrossRef_File_Episode`** is a backwards-compatible join table kept in sync with the AniDB cross-references of `StoredReleaseInfo`. It stores a simplified view of the same mapping, keyed by ED2K hash + file size (not VideoLocalID):
 - `Percentage` — what fraction of the episode this file covers (100 for a single-episode file, 50 for a 2-part release)
 - `EpisodeOrder` — which part this file is in a multi-file episode
 - `IsManuallyLinked` — indicates the user was involved in creating this link
@@ -500,7 +502,7 @@ Several models exist solely to avoid redundant I/O or external API calls. Jobs c
 
 ### Unrecognized Files
 
-If no release provider returns a match, the provider chain completes without creating a `StoredReleaseInfo` record and the file is considered unrecognized. The file can be linked to one or more episodes via the API or by plugins.
+If no release provider returns a match, the provider chain completes without creating a `StoredReleaseInfo` record and the file is considered unrecognized. A file with a `CrossRef_File_Episode` row, or with any stored release (whatever source it names, provisional included), is recognized (`IVideo.IsRecognized`): the unrecognized-file sweeps (`VideoLocalRepository.GetVideosWithoutEpisode`, `CheckAniDBFileUpdatesJob`, the dashboard count), the APIv3 file filters and APIv2's `recognized` flag follow it. `IVideo.IsManuallyLinked` is a release by the `User` provider, and `IVideo.IsInImportLimbo` a recognized file with a link whose main entry, or a parent of it the link names, cannot be read yet. Relocation hands an unrecognized file only to providers with `SupportsUnrecognized`, and a file linked only to other sources than AniDB only to providers with `SupportsNonAnidbLinkedVideos` (off by default, so renamers built before it never see such files). The file can be linked to one or more episodes via the API or by plugins.
 
 **AVDump** (`AVDumpFilesJob`) is an on-demand utility that submits a file's media info and hashes to AniDB for manual entry. It is unrelated to unrecognized file handling and only runs on explicit user/plugin request.
 

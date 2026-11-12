@@ -273,7 +273,8 @@ public class EpisodeAiring
         };
         SequenceNumber = airing.SequenceNumber;
         IsResolved = airing.EpisodeID is not null;
-        VideoCount = episode?.Videos.Count ?? 0;
+        // The AniDB episode's videos, and those linked directly to the schedule's own episode of another source.
+        VideoCount = (episode?.Videos ?? []).Concat(airing.Episode is { } scheduled && scheduled != episode ? scheduled.Videos : []).DistinctBy(video => video.ID).Count();
         Number = airing.AnidbEpisodeNumber ?? episode?.EpisodeNumber ?? airing.EpisodeNumber;
         Type = episode?.Type ?? (Number is null ? null : EpisodeType.Episode);
         EpisodeTitle = episodeTitle;

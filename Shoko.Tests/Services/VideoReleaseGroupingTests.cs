@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Moq;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Release;
@@ -153,13 +154,7 @@ public class VideoReleaseGroupingTests
             EpisodeType.Other => 5000,
             _ => 0,
         };
-        var ecr = new EmbeddedCrossReference
-        {
-            PercentageStart = 0,
-            PercentageEnd = 100,
-        };
-        ecr.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = (typeOffset + number).ToString();
-        return ecr;
+        return new EmbeddedCrossReference(ReleaseVideoCrossReference.ForAniDB(typeOffset + number, percentStart: 0, percentEnd: 100));
     }
 
     /// <summary>

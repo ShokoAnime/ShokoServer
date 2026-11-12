@@ -42,15 +42,19 @@ public class RelocationProviderInfo
     public string? NotConfiguredReason { get => Provider.IsConfigured ? null : Provider.NotConfiguredReason; }
 
     /// <summary>
-    ///   This should be true if the renamer supports operating on unrecognized
-    ///   files.
+    ///   This should be true if the renamer supports operating on
+    ///   unrecognized files: linked to nothing, with neither an AniDB link nor
+    ///   a stored release (<see cref="IVideo.IsRecognized"/> is false).
     /// </summary>
     public bool SupportsUnrecognized { get => Provider.SupportsUnrecognized; }
 
+    /// <inheritdoc cref="IRelocationProvider.SupportsNonAnidbLinkedVideos"/>
+    public bool SupportsNonAnidbLinkedVideos { get => Provider.SupportsNonAnidbLinkedVideos; }
+
     /// <summary>
-    ///   This should be true if the renamer can handle cases where part of or
-    ///   all the metadata for the episodes and/or series linked to the video
-    ///   is missing.
+    ///   This should be true if the renamer can handle a video in import
+    ///   limbo (<see cref="IVideo.IsInImportLimbo"/>): one with an entry it is
+    ///   linked to, of any source, not stored yet.
     /// </summary>
     public bool SupportsIncompleteMetadata { get => Provider.SupportsIncompleteMetadata; }
 

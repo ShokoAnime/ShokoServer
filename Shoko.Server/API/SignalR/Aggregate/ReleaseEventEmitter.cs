@@ -74,7 +74,7 @@ public class ReleaseEventEmitter : BaseEventEmitter, IDisposable
     {
         try
         {
-            var audience = EventAudience.ForVideo(e.Video, _anidbAnime.GetByAnimeID, () => AnimeIDsOf(e.ReleaseInfo).Concat(AnimeIDsOf(e.NewReleaseInfo)), isRemoval: true);
+            var audience = EventAudience.ForVideo(e.Video, _anidbAnime.GetByAnimeID, () => AnimeIDsOf(e.ReleaseInfo).Concat(AnimeIDsOf(e.NewReleaseInfo)));
             await SendToAudienceAsync(audience, "removed", new ReleaseDeletedSignalRModel(e));
         }
         catch (Exception ex)

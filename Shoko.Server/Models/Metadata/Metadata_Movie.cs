@@ -314,7 +314,7 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>, IMetada
 
     IReadOnlyList<IMetadataMovieCrossReference> IMovie.MetadataMovieCrossReferences => [.. Links.OfType<IMetadataMovieCrossReference>()];
 
-    IReadOnlyList<IVideo> IMovie.Videos => MetadataStoredEntry.Videos(((IMovie)this).VideoCrossReferences);
+    IReadOnlyList<IVideo> IMovie.Videos => MetadataStoredEntry.Videos(((IMovie)this).VideoCrossReferences, ((IMovie)this).MetadataVideoCrossReferences);
 
     #endregion
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Video.Release;
 
@@ -9,7 +10,7 @@ namespace Shoko.Abstractions.Video.Release;
 public class ReleaseVideoCrossReference : IReleaseVideoCrossReference
 {
     /// <inheritdoc />
-    public Dictionary<string, string> ProviderIDs { get; set; } = new();
+    public List<MetadataGuid> IDs { get; set; } = [];
 
     /// <summary>
     /// Where in the mapped content the video starts covering.
@@ -35,7 +36,7 @@ public class ReleaseVideoCrossReference : IReleaseVideoCrossReference
     /// <inheritdoc />
     public ReleaseVideoCrossReference(IReleaseVideoCrossReference reference)
     {
-        ProviderIDs = new Dictionary<string, string>(reference.ProviderIDs);
+        IDs = [.. reference.IDs];
         if (reference is ReleaseVideoCrossReference vRef)
         {
             PercentageStart = vRef.PercentageStart;
@@ -50,7 +51,7 @@ public class ReleaseVideoCrossReference : IReleaseVideoCrossReference
 
     #region IReleaseVideoCrossReference Implementation
 
-    IReadOnlyDictionary<string, string> IReleaseVideoCrossReference.ProviderIDs => ProviderIDs;
+    IReadOnlyList<MetadataGuid> IReleaseVideoCrossReference.IDs => IDs;
 
     int IReleaseVideoCrossReference.PercentageStart => PercentageStart ?? 0;
 

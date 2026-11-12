@@ -282,6 +282,16 @@ internal static class MetadataStoredEntry
     internal static IReadOnlyList<IVideo> Videos(IEnumerable<IVideoCrossReference> links)
         => [.. links.Select(link => link.Video).WhereNotNull().DistinctBy(video => video.ID)];
 
+    /// <summary>
+    ///   The videos some file links point at, and those linked to the entry
+    ///   directly by their stored release.
+    /// </summary>
+    /// <param name="links">The file links through AniDB.</param>
+    /// <param name="direct">The direct links.</param>
+    /// <returns>The videos, each once.</returns>
+    internal static IReadOnlyList<IVideo> Videos(IEnumerable<IVideoCrossReference> links, IEnumerable<IMetadataVideoCrossReference> direct)
+        => [.. links.Select(link => link.Video).Concat(direct.Select(link => link.Video)).WhereNotNull().DistinctBy(video => video.ID)];
+
     #endregion
 
     #region Comparing

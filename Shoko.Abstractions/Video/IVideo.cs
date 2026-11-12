@@ -51,6 +51,28 @@ public interface IVideo : IMetadata, IWithBackdropImage, IWithCreationDate, IWit
     bool IsIgnored { get; }
 
     /// <summary>
+    /// Whether the video is recognised: linked to an AniDB episode, or with a
+    /// stored release of any source, provisional or not.
+    /// </summary>
+    bool IsRecognized { get; }
+
+    /// <summary>
+    /// Whether the video's stored release was made by hand, by the
+    /// <c>User</c> provider. Implies <see cref="IsRecognized"/>.
+    /// </summary>
+    bool IsManuallyLinked { get; }
+
+    /// <summary>
+    /// Whether the video is recognised but some entry it is linked to cannot
+    /// be read yet: for an AniDB link, its anime, episode or Shoko episode;
+    /// for another source, the main entry of one of its
+    /// <see cref="MetadataCrossReferences"/>, or a parent of it the same
+    /// cross-reference names.
+    /// Implies <see cref="IsRecognized"/>.
+    /// </summary>
+    bool IsInImportLimbo { get; }
+
+    /// <summary>
     /// Gets the audio languages associated with the video, either from the
     /// release info's media info, or from our local media info. If the video
     /// has multiple audio streams with the same language, then it will still
@@ -100,6 +122,13 @@ public interface IVideo : IMetadata, IWithBackdropImage, IWithCreationDate, IWit
     /// All cross-references linked to the video.
     /// </summary>
     IReadOnlyList<IVideoCrossReference> CrossReferences { get; }
+
+    /// <summary>
+    /// The entries of any source the video is linked to directly, one per
+    /// cross-reference of its stored release, to its main entry, AniDB's
+    /// included.
+    /// </summary>
+    IReadOnlyList<IMetadataVideoCrossReference> MetadataCrossReferences { get => MetadataVideoLinks.Of(this); }
 
     /// <summary>
     /// All episodes linked to the video.

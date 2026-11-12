@@ -366,7 +366,7 @@ public class Metadata_Series : ISeries<ISeries, IEpisode>, IMetadataStoreRow<Met
 
     IReadOnlyList<IEpisode> ISeries<ISeries, IEpisode>.Episodes => StoredEpisodes;
 
-    IReadOnlyList<IVideo> ISeries.Videos => MetadataStoredEntry.Videos(((ISeries)this).VideoCrossReferences);
+    IReadOnlyList<IVideo> ISeries.Videos => MetadataStoredEntry.Videos(((ISeries)this).VideoCrossReferences, ((ISeries)this).MetadataVideoCrossReferences);
 
     EpisodeCounts ISeries.EpisodeCounts
     {

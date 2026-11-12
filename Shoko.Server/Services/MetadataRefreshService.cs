@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Utilities;
+using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Services;
 
@@ -31,6 +32,8 @@ public class MetadataRefreshService : IMetadataRefreshService
 
     private readonly MetadataImageContributorScheduler _contributorScheduler;
 
+    private readonly StoredReleaseInfoRepository _releases;
+
     /// <summary>
     ///   Asks the providers through the core's jobs.
     /// </summary>
@@ -45,6 +48,7 @@ public class MetadataRefreshService : IMetadataRefreshService
     /// <param name="entryLocks">Tells when an entry is being refreshed or purged.</param>
     /// <param name="refreshState">When each entry was last refreshed.</param>
     /// <param name="contributorScheduler">Queues the image contributors' jobs.</param>
+    /// <param name="releases">The stored releases, whose direct links name entries too.</param>
     public MetadataRefreshService(
         IMetadataProviderManager providerManager,
         IMetadataCrossReferenceStore crossReferences,
@@ -52,7 +56,8 @@ public class MetadataRefreshService : IMetadataRefreshService
         MetadataProviderScheduler providerScheduler,
         MetadataEntryLocks entryLocks,
         IMetadataRefreshState refreshState,
-        MetadataImageContributorScheduler contributorScheduler
+        MetadataImageContributorScheduler contributorScheduler,
+        StoredReleaseInfoRepository releases
     )
     {
         _providerManager = providerManager;
@@ -62,6 +67,7 @@ public class MetadataRefreshService : IMetadataRefreshService
         _entryLocks = entryLocks;
         _refreshState = refreshState;
         _contributorScheduler = contributorScheduler;
+        _releases = releases;
     }
 
     #region Refresh
@@ -250,8 +256,9 @@ public class MetadataRefreshService : IMetadataRefreshService
 
     /// <summary>
     ///   Every series and film linked on a source to an anime in the library,
-    ///   once for each anime linking to it. A link imported for an anime the
-    ///   user does not have is left for when they add it.
+    ///   once for each anime linking to it, and every series and film a
+    ///   stored release links a video to directly. A link imported for an
+    ///   anime the user does not have is left for when they add it.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>The entries.</returns>
@@ -265,8 +272,26 @@ public class MetadataRefreshService : IMetadataRefreshService
                     inLibrary[pair.AnidbAnimeID] = found = _metadataService.GetShokoSeriesByAnidbID(pair.AnidbAnimeID) is not null;
                 return found;
             })
-            .Select(pair => pair.Entry);
+            .Select(pair => pair.Entry)
+            .Concat(GetEntriesLinkedByReleases(source));
     }
+
+    /// <summary>
+    ///   The series and films of a source the stored releases link videos to
+    ///   directly, as a saved release queues them.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>The entries.</returns>
+    private IEnumerable<MetadataGuid> GetEntriesLinkedByReleases(MetadataSource source)
+        => source == MetadataSource.AniDB
+            ? []
+            : AnimeMetadataOrchestrator.GetRefreshTargets(
+                _releases.GetAll()
+                    .SelectMany(release => release.CrossReferences)
+                    .Where(crossReference => crossReference.IDs.Any(id => id.Source == source)),
+                _metadataService.GetEntry,
+                out _
+            ).Where(entry => entry.Source == source);
 
     #endregion
 

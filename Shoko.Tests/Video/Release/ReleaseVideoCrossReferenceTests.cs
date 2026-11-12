@@ -1,4 +1,5 @@
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Models.Release;
 using Xunit;
@@ -6,21 +7,21 @@ using Xunit;
 namespace Shoko.Tests.Video.Release;
 
 /// <summary>
-/// Unit tests for the <see cref="CrossReferenceIDs"/> constants,
-/// <see cref="ReleaseVideoCrossReferenceExtensions.ForAniDB"/> extension, and the
-/// <see cref="ReleaseVideoCrossReferenceExtensions"/> helpers.
+/// Unit tests for the AniDB helpers of
+/// <see cref="ReleaseVideoCrossReferenceExtensions"/> over the typed IDs.
 /// </summary>
 public class ReleaseVideoCrossReferenceTests
 {
+    private static readonly MetadataGuid _plugin = new(MetadataSource.TMDB, MetadataEntityType.Episode, "77");
+
     // ── ForAniDB factory ──────────────────────────────────────────────────────
 
     [Fact]
-    public void ForAniDB_WithAnimeID_SetsBothProviderIDs()
+    public void ForAniDB_WithAnimeID_PutsTheEpisodeBeforeTheAnime()
     {
         var xref = ReleaseVideoCrossReference.ForAniDB(132456, 69);
 
-        Assert.Equal("132456", xref.ProviderIDs[CrossReferenceIDs.AniDB_Episode]);
-        Assert.Equal("69", xref.ProviderIDs[CrossReferenceIDs.AniDB_Anime]);
+        Assert.Equal(["anidb://episode/132456", "anidb://series/69"], xref.IDs.ConvertAll(id => id.ToString()));
     }
 
     [Fact]
@@ -28,8 +29,8 @@ public class ReleaseVideoCrossReferenceTests
     {
         var xref = ReleaseVideoCrossReference.ForAniDB(132456, null);
 
-        Assert.Equal("132456", xref.ProviderIDs[CrossReferenceIDs.AniDB_Episode]);
-        Assert.False(xref.ProviderIDs.ContainsKey(CrossReferenceIDs.AniDB_Anime));
+        Assert.Equal(["anidb://episode/132456"], xref.IDs.ConvertAll(id => id.ToString()));
+        Assert.Null(xref.AnidbAnimeID);
     }
 
     [Fact]
@@ -41,86 +42,77 @@ public class ReleaseVideoCrossReferenceTests
         Assert.Equal(100, xref.PercentageEnd);
     }
 
-    // ── GetAnidbEpisodeID extension ───────────────────────────────────────────
+    // ── Reading the AniDB IDs ─────────────────────────────────────────────────
 
     [Theory]
     [InlineData("132456", 132456)]
-    [InlineData(null, 0)] // No key stored.
+    [InlineData(null, 0)]
     [InlineData("not-a-number", 0)]
-    public void GetAnidbEpisodeID_ReturnsZero_UnlessTheStoredValueIsNumeric(string? storedValue, int expected)
+    [InlineData("0", 0)]
+    public void AnidbEpisodeID_IsZero_UnlessTheIDIsAPositiveNumber(string? id, int expected)
     {
-        var xref = new ReleaseVideoCrossReference();
-        if (storedValue is not null)
-            xref.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = storedValue;
+        var xref = new ReleaseVideoCrossReference { IDs = [_plugin] };
+        if (id is not null)
+            xref.IDs.Add(new(MetadataSource.AniDB, MetadataEntityType.Episode, id));
 
         Assert.Equal(expected, xref.AnidbEpisodeID);
     }
 
-    // ── GetAnidbAnimeID extension ─────────────────────────────────────────────
-
     [Theory]
     [InlineData("69", 69)]
-    [InlineData(null, null)] // No key stored.
+    [InlineData(null, null)]
     [InlineData("xyz", null)]
-    public void GetAnidbAnimeID_ReturnsNull_UnlessTheStoredValueIsNumeric(string? storedValue, int? expected)
+    public void AnidbAnimeID_IsNull_UnlessTheIDIsAPositiveNumber(string? id, int? expected)
     {
-        var xref = new ReleaseVideoCrossReference();
-        if (storedValue is not null)
-            xref.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = storedValue;
+        var xref = new ReleaseVideoCrossReference { IDs = [_plugin] };
+        if (id is not null)
+            xref.IDs.Add(new(MetadataSource.AniDB, MetadataEntityType.Series, id));
 
         Assert.Equal(expected, xref.AnidbAnimeID);
     }
 
-    // ── EmbeddedCrossReference ────────────────────────────────────────────────
+    // ── Setting the AniDB IDs ─────────────────────────────────────────────────
 
     [Fact]
-    public void EmbeddedCrossReference_ProviderIDs_StoresAndReturnsEpisodeID()
+    public void SettingAnAnidbID_ReplacesItAndKeepsTheOtherSources()
     {
-        var ecr = new EmbeddedCrossReference();
-        ecr.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = "5001";
+        var xref = new ReleaseVideoCrossReference { IDs = [_plugin] };
+        xref.AnidbEpisodeID = 1;
+        xref.AnidbAnimeID = 2;
+        xref.AnidbEpisodeID = 3;
+        xref.AnidbAnimeID = 4;
 
-        Assert.Equal("5001", ecr.ProviderIDs[CrossReferenceIDs.AniDB_Episode]);
-        Assert.Equal(5001, ecr.AnidbEpisodeID);
+        Assert.Equal(["anidb://episode/3", "tmdb://episode/77", "anidb://series/4"], xref.IDs.ConvertAll(id => id.ToString()));
+
+        xref.AnidbEpisodeID = 0;
+        xref.AnidbAnimeID = null;
+
+        Assert.Equal([_plugin], xref.IDs);
     }
 
-    [Fact]
-    public void EmbeddedCrossReference_CopyConstructor_ClonesProviderIDs()
-    {
-        var original = new EmbeddedCrossReference();
-        original.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = "42";
-        original.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = "7";
-
-        var copy = new EmbeddedCrossReference(original);
-
-        Assert.Equal("42", copy.ProviderIDs[CrossReferenceIDs.AniDB_Episode]);
-        Assert.Equal("7", copy.ProviderIDs[CrossReferenceIDs.AniDB_Anime]);
-    }
+    // ── Copies ────────────────────────────────────────────────────────────────
 
     [Fact]
-    public void EmbeddedCrossReference_CopyConstructor_ProviderIDsAreIndependent()
-    {
-        var original = new EmbeddedCrossReference();
-        original.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = "42";
-
-        var copy = new EmbeddedCrossReference(original);
-        copy.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = "99";
-
-        Assert.Equal("42", original.ProviderIDs[CrossReferenceIDs.AniDB_Episode]);
-    }
-
-    // ── ReleaseVideoCrossReference copy constructor ───────────────────────────
-
-    [Fact]
-    public void CopyConstructor_FromInterface_ClonesProviderIDs()
+    public void CopyConstructor_FromInterface_CopiesTheIDsAndRange()
     {
         var original = ReleaseVideoCrossReference.ForAniDB(132456, 69, 0, 50);
-        IReleaseVideoCrossReference iface = original;
 
-        var copy = new ReleaseVideoCrossReference(iface);
+        var copy = new ReleaseVideoCrossReference((IReleaseVideoCrossReference)original);
+        copy.AnidbEpisodeID = 99;
 
-        Assert.Equal("132456", copy.ProviderIDs[CrossReferenceIDs.AniDB_Episode]);
-        Assert.Equal("69", copy.ProviderIDs[CrossReferenceIDs.AniDB_Anime]);
+        Assert.Equal(132456, original.AnidbEpisodeID);
+        Assert.Equal(69, copy.AnidbAnimeID);
         Assert.Equal(0, ((IReleaseVideoCrossReference)copy).PercentageStart);
         Assert.Equal(50, ((IReleaseVideoCrossReference)copy).PercentageEnd);
+    }
+
+    [Fact]
+    public void EmbeddedCrossReference_SharesPooledIDs()
+    {
+        var first = new EmbeddedCrossReference(ReleaseVideoCrossReference.ForAniDB(5001, 7));
+        var second = new EmbeddedCrossReference(ReleaseVideoCrossReference.ForAniDB(5001, 7));
+
+        Assert.Same(first.IDs[1], second.IDs[1]);
+        Assert.Equal(5001, first.AnidbEpisodeID);
     }
 }

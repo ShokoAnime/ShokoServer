@@ -339,7 +339,7 @@ public class Metadata_Episode : IEpisode<ISeries, IEpisode>, IMetadataStoreRow<M
     // A film claims no episode of a provider's, only the AniDB one standing for it.
     IReadOnlyList<IMetadataMovieCrossReference> IEpisode.MetadataMovieCrossReferences => [];
 
-    IReadOnlyList<IVideo> IEpisode.Videos => MetadataStoredEntry.Videos(((IEpisode)this).VideoCrossReferences);
+    IReadOnlyList<IVideo> IEpisode.Videos => MetadataStoredEntry.Videos(((IEpisode)this).VideoCrossReferences, ((IEpisode)this).MetadataVideoCrossReferences);
 
     #endregion
 }

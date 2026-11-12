@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
@@ -155,12 +156,10 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     #region IReleaseVideoCrossReference implementation
 
-    IReadOnlyDictionary<string, string> IReleaseVideoCrossReference.ProviderIDs =>
-        new Dictionary<string, string>
-        {
-            [CrossReferenceIDs.AniDB_Episode] = EpisodeID.ToString(),
-            [CrossReferenceIDs.AniDB_Anime] = (AnimeID is 0 ? AniDBEpisode?.AnimeID ?? 0 : AnimeID).ToString(),
-        };
+    IReadOnlyList<MetadataGuid> IReleaseVideoCrossReference.IDs
+        => (AnimeID is 0 ? AniDBEpisode?.AnimeID ?? 0 : AnimeID) is var animeID and > 0
+            ? [new(MetadataSource.AniDB, MetadataEntityType.Episode, EpisodeID.ToString()), new(MetadataSource.AniDB, MetadataEntityType.Series, animeID.ToString())]
+            : [new(MetadataSource.AniDB, MetadataEntityType.Episode, EpisodeID.ToString())];
 
     int IReleaseVideoCrossReference.PercentageStart => PercentageRange.Start;
 

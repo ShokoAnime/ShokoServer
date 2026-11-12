@@ -476,7 +476,7 @@ public partial class MetadataEntryController
         CancellationToken cancellationToken = default
     )
         => await Get<IMovie>(source, MetadataEntityType.Movie, id, cancellationToken).ConfigureAwait(false) is { } movie
-            ? ShokoFiles(movie.MetadataMovieCrossReferences.Select(link => link.AnidbEpisodeID), pageSize, page, include, exclude, include_only, releaseProviders, sortOrder)
+            ? ShokoFiles(movie.MetadataMovieCrossReferences.Select(link => link.AnidbEpisodeID), movie.MetadataVideoCrossReferences, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder)
             : NotFound(MovieNotFound);
 
     #endregion

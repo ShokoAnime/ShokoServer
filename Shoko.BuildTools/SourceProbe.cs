@@ -16,6 +16,7 @@ internal static class SourceProbe
     private static readonly Dictionary<string, string[]> InterfaceTagMap = new()
     {
         ["IReleaseInfoProvider"] = ["release-provider"],
+        ["IReleaseCrossReferenceValidator"] = ["release-validator"],
         ["IHashProvider"] = ["hasher"],
         ["IRelocationProvider"] = ["relocator"],
         ["IManagedFolderIgnoreRule"] = ["managed-folder-ignore-rule"],

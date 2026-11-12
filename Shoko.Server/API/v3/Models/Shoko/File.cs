@@ -40,6 +40,15 @@ public partial class File
     public List<FileCrossReference>? SeriesIDs { get; set; }
 
     /// <summary>
+    /// The entries of any source the file is linked to directly, one per
+    /// cross-reference of its stored release: the IDs it names, its main entry
+    /// first, and the range it covers. A file linked only to entries of other
+    /// sources than AniDB has these and no <see cref="SeriesIDs"/>.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public List<ReleaseCrossReference>? MetadataCrossReferences { get; set; }
+
+    /// <summary>
     /// The Filesize in bytes
     /// </summary>
     [Required]
@@ -185,7 +194,10 @@ public partial class File
         Created = file.CreatedAt.ToUniversalTime();
         Updated = file.LastUpdatedAt.ToUniversalTime();
         if (withXRefs)
+        {
             SeriesIDs = FileCrossReference.From(file.CrossReferences);
+            MetadataCrossReferences = [.. file.MetadataCrossReferences.Select(link => new ReleaseCrossReference(link))];
+        }
 
         if (includeReleaseInfo && file.ReleaseInfo is { } releaseInfo)
             Release = new(releaseInfo);

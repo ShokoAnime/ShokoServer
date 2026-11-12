@@ -72,7 +72,7 @@ extension point and discovery does the rest.
 |---|---|---|
 | `IVideoService` | `IManagedFolderIgnoreRule` | [`../README.md`](../README.md) |
 | `IVideoHashingService` | `IHashProvider` | [`../Hashing/README.md`](../Hashing/README.md) |
-| `IVideoReleaseService` | `IReleaseInfoProvider` | [`../Release/README.md`](../Release/README.md) |
+| `IVideoReleaseService` | `IReleaseInfoProvider`, `IReleaseCrossReferenceValidator` | [`../Release/README.md`](../Release/README.md) |
 | `IVideoRelocationService` | `IRelocationProvider` | [`../Relocation/README.md`](../Relocation/README.md) |
 | `IVideoStreamPipelineService` | `IVideoStreamTransform`, `IPlaybackObserver` | [`../Streaming/README.md`](../Streaming/README.md) |
 
@@ -103,7 +103,7 @@ The same file copied into two managed folders is one `IVideo` with two
 |---|---|
 | `GetVideoByID`, `GetAllVideos` | Straight lookups over the video records |
 | `GetIgnoredVideos` | The videos marked as ignored, read from an index rather than a walk over every video |
-| `GetUnrecognizedVideos(includeBrokenLinks)` | The videos not ignored that no episode is linked to, sorted by path; with `includeBrokenLinks`, also those linked only to episodes or series the collection lacks. A walk over every video |
+| `GetUnrecognizedVideos(includeBrokenLinks)` | The videos not ignored and not `IsRecognized` (no AniDB episode and no stored release of any source), sorted by path; with `includeBrokenLinks`, also those linked only to episodes or series the collection lacks. A walk over every video |
 | `GetVideosWithMissingFiles(onlyFullyMissing)` | The videos with a file no longer on disk, or with no file at all; with `onlyFullyMissing`, only those with nothing left on disk. Checks the disk for every file |
 | `GetVideoByHash(hash, algorithm)` | Returns a video **only if exactly one** matches; ambiguity gives `null`, not a first hit |
 | `GetVideoByHashAndSize(hash, size, algorithm)` | Same, narrowed by file size. Prefer this one |
@@ -315,6 +315,7 @@ The consuming half of the release pipeline. Writing a provider is
 | `GetCurrentReleaseForVideo(video)` | The stored release for the file, or `null` if it is unrecognised |
 | `GetReleasesByURI(uri)` | Every stored release with that URI; several videos can share one, such as a release copied onto a variant |
 | `GetReleaseByHashAndSize(ed2k, size)` | The stored release for that video, even once the video is gone from Shoko |
+| `GetReleasesByMetadataID(id)`, `GetVideosByMetadataID(id)` | The stored releases with a cross-reference naming an entry of any source (a `MetadataGuid`), and the videos in Shoko they belong to |
 | `GetVideoForRelease(release)` | The video a stored release belongs to, or `null` when it is gone or the release was never stored |
 | `GetReleaseGroups(sources?, isUsed?)` | The release groups of the stored releases, each once, sorted by name; `isUsed` keeps the groups with a release whose video is in Shoko, or gone |
 | `GetReleaseGroup(source, groupID)`, `GetReleasesByGroup(source, groupID)` | One group, and the stored releases from it |

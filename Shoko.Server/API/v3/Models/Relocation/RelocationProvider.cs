@@ -51,6 +51,13 @@ public class RelocationProvider(RelocationProviderInfo info, ProviderAvailabilit
     public bool SupportsUnrecognized { get; init; } = info.SupportsUnrecognized;
 
     /// <summary>
+    ///   This should be true if the renamer supports operating on recognized
+    ///   files with no AniDB link, linked only to entries of other sources.
+    /// </summary>
+    [Required]
+    public bool SupportsNonAnidbLinkedVideos { get; init; } = info.SupportsNonAnidbLinkedVideos;
+
+    /// <summary>
     ///   This should be true if the renamer can handle cases where part of or
     ///   all the metadata for the episodes and/or series linked to the video
     ///   is missing.

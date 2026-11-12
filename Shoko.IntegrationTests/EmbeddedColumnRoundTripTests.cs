@@ -21,9 +21,9 @@ public class EmbeddedColumnRoundTripTests(DatabaseMigrationFixture fixture)
     private const string ED2K = "E3BEDDED0000000000000000000000AA";
 
     // Spaced out, so the cache cannot write it back from its list.
-    private const string LooseCrossReferences = """[ {"ProviderIDs": {"AniDB_Episode": "990501"}, "PercentageStart": 0, "PercentageEnd": 100} ]""";
+    private const string LooseCrossReferences = """[ {"IDs": ["anidb://episode/990501"], "PercentageStart": 0, "PercentageEnd": 100} ]""";
 
-    private const string CrossReferences = """[{"ProviderIDs":{"AniDB_Episode":"990502","AniDB_Anime":"990500"},"PercentageStart":0,"PercentageEnd":100}]""";
+    private const string CrossReferences = """[{"IDs":["anidb://episode/990502","anidb://series/990500"],"PercentageStart":0,"PercentageEnd":100}]""";
 
     private const string Hashes = """[{"Type":"ED2K","Value":"E3BEDDED0000000000000000000000AA","Metadata":null},{"Type":"CRC32","Value":"C859A673","Metadata":null}]""";
 

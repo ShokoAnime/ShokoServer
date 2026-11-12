@@ -15,6 +15,7 @@ using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Shoko;
@@ -924,19 +925,46 @@ public class ActionService(
     }
 
     /// <summary>
-    ///   Fills in the anime of file cross-references that lack it, asking
-    ///   AniDB for an episode not stored, then queues a refresh of every
-    ///   anime the files need that is missing its series or episodes.
+    ///   Heals the stored releases linking an episode without its series,
+    ///   through the validators, fills in the anime of file cross-references
+    ///   that lack it, asking AniDB for an episode not stored, then queues a
+    ///   refresh of every anime the files need that is missing its series or
+    ///   episodes, and of the entries of other sources the files in import
+    ///   limbo link to.
     /// </summary>
     /// <param name="progress">Told how far the run is, from 0 to 100.</param>
-    /// <param name="token">Stops the run between two episodes or anime.</param>
+    /// <param name="token">Stops the run between two releases, episodes or anime.</param>
     /// <returns>A task that completes once the refreshes are queued.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
-    public async Task ScheduleMissingAnidbAnimeForFiles(IProgress<decimal>? progress = null, CancellationToken token = default)
+    public async Task ScheduleMissingMetadataForFiles(IProgress<decimal>? progress = null, CancellationToken token = default)
     {
-        // Attempt to fix cross-references with incomplete data.
-        var stages = new StagedProgress(progress, 2);
+        var stages = new StagedProgress(progress, 4);
         stages.Report(0);
+
+        // Heal the releases linking an episode without its series, through the validators of their sources.
+        var broken = _storedReleaseInfos.GetAll()
+            .Where(release => release.CrossReferences.Any(xref => xref.IDs.Any(id =>
+                id.EntityType == MetadataEntityType.Episode &&
+                !xref.IDs.Any(other => other.Source == id.Source && other.EntityType == MetadataEntityType.Series))))
+            .ToList();
+        _logger.LogInformation("Healing {Count} releases linking an episode without its series…", broken.Count);
+        var healItems = new ItemProgress(stages, broken.Count);
+        var healed = 0;
+        if (_videoReleaseService is VideoReleaseService releaseService)
+        {
+            foreach (var release in broken)
+            {
+                token.ThrowIfCancellationRequested();
+                if (await releaseService.HealRelease(release, token).ConfigureAwait(false))
+                    healed++;
+                healItems.Increment();
+            }
+        }
+
+        _logger.LogInformation("Healed {Healed} of {Count} releases.", healed, broken.Count);
+
+        // Attempt to fix cross-references with incomplete data.
+        stages.NextStage();
         var index = 0;
         var videos = _videoLocals.GetVideosWithMissingCrossReferenceData();
         var unknownEpisodeDict = videos
@@ -1012,6 +1040,24 @@ public class ActionService(
 
             await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
             animeItems.Increment();
+        }
+
+        // Queue the entries of other sources the files in import limbo link to, in case the refresh queued
+        // when their release was saved failed, or their provider was off then.
+        stages.NextStage();
+        var orchestrator = _services.GetRequiredService<AnimeMetadataOrchestrator>();
+        var inLimbo = _videoLocals.GetAll()
+            .Where(video => video is { IsIgnored: false } && video.IsInImportLimbo)
+            .Select(video => video.ReleaseInfo)
+            .WhereNotNull()
+            .ToList();
+        _logger.LogInformation("Queueing the metadata of {Count} files in import limbo…", inLimbo.Count);
+        var limboItems = new ItemProgress(stages, inLimbo.Count);
+        foreach (var release in inLimbo)
+        {
+            token.ThrowIfCancellationRequested();
+            await orchestrator.ScheduleForCrossReferences(release.CrossReferences).ConfigureAwait(false);
+            limboItems.Increment();
         }
 
         stages.Complete();

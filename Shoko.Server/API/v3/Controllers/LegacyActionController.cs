@@ -351,7 +351,7 @@ public class LegacyActionController(
     public ActionResult UpdateMissingAnidbXml()
     {
         Task.Run(ActorContext.Carry(() => _actionService.DownloadMissingAnidbAnimeXmls()));
-        Task.Run(ActorContext.Carry(() => _actionService.ScheduleMissingAnidbAnimeForFiles()));
+        Task.Run(ActorContext.Carry(() => _actionService.ScheduleMissingMetadataForFiles()));
 
         return Ok();
     }

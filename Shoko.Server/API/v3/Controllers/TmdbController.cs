@@ -21,6 +21,7 @@ using Shoko.Abstractions.Metadata.Image.Options;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Video;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -30,6 +31,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.API.v3.Models.TMDB.Input;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -697,6 +699,7 @@ public partial class TmdbController(
             .Select(xref => xref.AnimeEpisode)
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
+            .Concat(DirectVideos(((IMovie)movie).MetadataVideoCrossReferences))
             .DistinctBy(video => video.VideoLocalID);
         return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
     }
@@ -1870,6 +1873,7 @@ public partial class TmdbController(
             .Select(xref => xref.AnimeEpisode)
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
+            .Concat(DirectVideos(((ISeries)show).MetadataVideoCrossReferences))
             .DistinctBy(video => video.VideoLocalID);
         return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
     }
@@ -2534,6 +2538,7 @@ public partial class TmdbController(
                 .Select(xref => xref.AnimeEpisode)
                 .WhereNotNull()
                 .SelectMany(xref => xref.VideoLocals)
+                .Concat(DirectVideos(altOrderSeason.ListedEpisodes.SelectMany(episode => ((IEpisode)episode).MetadataVideoCrossReferences)))
                 .DistinctBy(video => video.VideoLocalID);
             return ModelHelper.FilterFiles(videoLocals1, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
         }
@@ -2550,6 +2555,7 @@ public partial class TmdbController(
             .Select(xref => xref.AnimeEpisode)
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
+            .Concat(DirectVideos(season.TmdbEpisodes.SelectMany(episode => ((IEpisode)episode).MetadataVideoCrossReferences)))
             .DistinctBy(video => video.VideoLocalID);
         return ModelHelper.FilterFiles(videoLocals0, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
     }
@@ -3049,6 +3055,7 @@ public partial class TmdbController(
             .Select(xref => xref.AnimeEpisode)
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
+            .Concat(DirectVideos(((IEpisode)episode).MetadataVideoCrossReferences))
             .DistinctBy(video => video.VideoLocalID);
         return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
     }
@@ -3141,4 +3148,13 @@ public partial class TmdbController(
     }
 
     #endregion
+
+    /// <summary>
+    ///   The videos a release links to an entry directly, besides those of the
+    ///   AniDB episodes linked to it.
+    /// </summary>
+    /// <param name="links">The entry's direct links.</param>
+    /// <returns>The videos.</returns>
+    private static IEnumerable<VideoLocal> DirectVideos(IEnumerable<IMetadataVideoCrossReference> links)
+        => links.Select(link => link.Video).OfType<VideoLocal>();
 }

@@ -311,13 +311,23 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     [Authorize("admin")]
     [ProducesResponseType(404)]
     [ProducesResponseType(201)]
+    [ProducesResponseType(400)]
     [HttpPost("File/{fileID}")]
     public async Task<ActionResult<ReleaseInfo>> SaveReleaseInfoByFileID([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ReleaseInfo body)
     {
         if (videoRepository.GetByID(fileID) is not { } video)
             return NotFound("File not found!");
 
-        var r = await videoReleaseService.SaveReleaseForVideo(video, body);
+        IReleaseInfo r;
+        try
+        {
+            r = await videoReleaseService.SaveReleaseForVideo(video, body);
+        }
+        catch (ReleaseValidationException ex)
+        {
+            ModelState.AddModelError(nameof(body.CrossReferences), ex.Message);
+            return ValidationProblem(ModelState);
+        }
 
         return Created(Url.Action(nameof(GetReleaseInfoByFileID), new { fileID = video.VideoLocalID }), new ReleaseInfo(r));
     }

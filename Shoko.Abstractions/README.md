@@ -295,7 +295,7 @@ or middleware must not assume `Setup` succeeded.
 
 ## Contracts the server discovers for you
 
-Eleven contracts are found by reflection rather than through DI. For each,
+Twelve contracts are found by reflection rather than through DI. For each,
 `PluginManager.GetExports<T>()` takes every exported type implementing `T`,
 calls `ActivatorUtilities.GetServiceOrCreateInstance` on the **concrete** type,
 and hands the result to the owning service, which holds it for the life of the
@@ -304,6 +304,7 @@ process. Implementing the contract is the whole of it.
 | Contract | Owning service | Folder |
 |---|---|---|
 | [`IReleaseInfoProvider`](Video/Release/IReleaseInfoProvider.cs) | `IVideoReleaseService` | [`Video/Release/`](Video/Release/README.md) |
+| [`IReleaseCrossReferenceValidator`](Video/Release/IReleaseCrossReferenceValidator.cs) | `IVideoReleaseService` | [`Video/Release/`](Video/Release/README.md#validating-cross-references) |
 | [`IHashProvider`](Video/Hashing/IHashProvider.cs) | `IVideoHashingService` | `Video/Hashing/` |
 | [`IRelocationProvider`](Video/Relocation/IRelocationProvider.cs) | `IVideoRelocationService` | `Video/Relocation/` |
 | [`IManagedFolderIgnoreRule`](Video/IManagedFolderIgnoreRule.cs) | `IVideoService` | `Video/` |

@@ -2,14 +2,17 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Services;
 
 /// <summary>
 ///   Reads over <see cref="IMetadataCrossReferenceStore"/> the core's jobs
 ///   and actions share, which count the series an episode link points into as
-///   linked.
+///   linked, and, in the overloads taking the stored releases, the entries a
+///   release links a video to directly.
 /// </summary>
 internal static class MetadataCrossReferenceStoreExtensions
 {
@@ -22,6 +25,45 @@ internal static class MetadataCrossReferenceStoreExtensions
     /// <returns><c>true</c> when something links to it.</returns>
     public static bool IsLinked(this IMetadataCrossReferenceStore store, MetadataGuid entry)
         => store.GetLinksTo(entry).Count > 0 || store.GetEpisodeLinksInto(entry).Count > 0;
+
+    /// <summary>
+    ///   Whether anything still links to a provider's series or film, as
+    ///   <see cref="IsLinked(IMetadataCrossReferenceStore, MetadataGuid)"/>
+    ///   counts, or a stored release names it or, for a series, one of its
+    ///   episodes, linking a video to it directly.
+    /// </summary>
+    /// <param name="store">The cross-reference store.</param>
+    /// <param name="releases">The stored releases.</param>
+    /// <param name="metadataService">Resolves a series to its episodes.</param>
+    /// <param name="entry">The series or film.</param>
+    /// <returns><c>true</c> when something links to it.</returns>
+    public static bool IsLinked(this IMetadataCrossReferenceStore store, StoredReleaseInfoRepository releases, IMetadataService metadataService, MetadataGuid entry)
+        => store.IsLinked(entry) || IsNamedByRelease(releases, metadataService, entry);
+
+    /// <summary>
+    ///   Whether anything still links to one of a stored collection's members,
+    ///   counting the releases naming them, as
+    ///   <see cref="IsLinked(IMetadataCrossReferenceStore, StoredReleaseInfoRepository, IMetadataService, MetadataGuid)"/>
+    ///   does.
+    /// </summary>
+    /// <param name="store">The cross-reference store.</param>
+    /// <param name="releases">The stored releases.</param>
+    /// <param name="metadataService">Resolves a series to its episodes.</param>
+    /// <param name="collections">The collection store.</param>
+    /// <param name="collection">The collection.</param>
+    /// <returns><c>true</c> when a member is linked.</returns>
+    public static bool IsCollectionInUse(this IMetadataCrossReferenceStore store, StoredReleaseInfoRepository releases, IMetadataService metadataService, IMetadataCollectionStore collections, MetadataGuid collection)
+        => collections.GetMembers(collection).Any(member => store.IsLinked(releases, metadataService, member));
+
+    /// <summary>
+    ///   Whether a stored release names the entry, or one of its episodes when
+    ///   it is a series.
+    /// </summary>
+    private static bool IsNamedByRelease(StoredReleaseInfoRepository releases, IMetadataService metadataService, MetadataGuid entry)
+        => releases.GetByMetadataID(entry).Count > 0 ||
+            (entry.EntityType == MetadataEntityType.Series &&
+                metadataService.GetEntry(entry) is ISeries series &&
+                series.Episodes.Any(episode => releases.GetByMetadataID(episode.ID).Count > 0));
 
     /// <summary>
     ///   Whether anything still links to one of a stored collection's members,

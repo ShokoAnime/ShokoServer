@@ -329,10 +329,11 @@ public class VideoService : IVideoService
 
         var settings = _settingsProvider.GetSettings();
         var videoIsKnown = !string.IsNullOrEmpty(video.Hash) && video.FileSize > 0;
-        var hasXrefs = videoIsKnown && video.EpisodeCrossReferences is { Count: > 0 };
+        // Linked through a release of any source, not only AniDB.
+        var isRecognized = videoIsKnown && video.IsRecognized;
         var shouldSave = videoIsKnown && locationAvailable && videoLocation.ID is 0;
         var shouldHash = !videoIsKnown || (video.Hashes is { } hashes && (hashes.Count == 0 || _videoHashingService.AllEnabledHashTypes.Any(a => !hashes.Any(b => b.Type == a))));
-        var shouldRelocate = hasXrefs && !shouldHash && locationAvailable;
+        var shouldRelocate = isRecognized && !shouldHash && locationAvailable;
         if (locationAvailable)
         {
             if (videoLocation.ID is 0)
@@ -347,7 +348,7 @@ public class VideoService : IVideoService
                 }
             }
 
-            if (hasXrefs && !video.DateTimeImported.HasValue)
+            if (isRecognized && !video.DateTimeImported.HasValue)
             {
                 video.DateTimeImported = DateTime.Now;
                 shouldSave = true;
@@ -384,7 +385,7 @@ public class VideoService : IVideoService
             await _relocationService.ScheduleAutoRelocationForVideoFile(videoLocation);
         }
 
-        if (hasXrefs)
+        if (isRecognized)
         {
             _logger.LogTrace("Found existing video file with hashes and release info: {Path} (ED2K={ED2K}, Size={Size})", absolutePath, video.Hash, video.FileSize);
             return;

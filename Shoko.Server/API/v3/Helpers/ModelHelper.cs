@@ -529,8 +529,6 @@ public static class ModelHelper
                 if (!user.IsAllowedToSee(video))
                     return false;
 
-                var xrefs = video.EpisodeCrossReferences;
-
                 // this one is special because ignored files are excluded by default
                 if (!include_only.Contains(FileIncludeOnlyType.Ignored) && !include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Ignored) && !video.IsIgnored) return false;
@@ -538,33 +536,19 @@ public static class ModelHelper
                 if (exclude.Contains(FileExcludeTypes.Duplicates) && locations!.Count > 1) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Duplicates) && locations!.Count <= 1) return false;
 
-                if (exclude.Contains(FileExcludeTypes.Unrecognized) && xrefs.Count == 0) return false;
-                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && !(
-                    (
-                        xrefs.Count == 0
-                    ) || (
-                        include_only.Contains(FileIncludeOnlyType.ImportLimbo) &&
-                        xrefs.Count > 0 &&
-                        xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null)
-                    )
-                )) return false;
+                // A video linked through a release of any source is recognised; limbo is a recognised one with an entry not read yet.
+                var isRecognized = video.IsRecognized;
+                var isInImportLimbo = isRecognized && video.IsInImportLimbo;
+
+                if (exclude.Contains(FileExcludeTypes.Unrecognized) && !isRecognized) return false;
+                if (include_only.Contains(FileIncludeOnlyType.Unrecognized) && !(!isRecognized || (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && isInImportLimbo))) return false;
 
                 // this one is also special because files in import limbo are excluded by default
-                if (!include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !include.Contains(FileNonDefaultIncludeType.ImportLimbo) && xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null)) return false;
-                if (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !(
-                    (
-                        xrefs.Count > 0 &&
-                        xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null)
-                    ) || (
-                        include_only.Contains(FileIncludeOnlyType.Unrecognized) &&
-                        xrefs.Count == 0
-                    )
-                )) return false;
+                if (!include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !include.Contains(FileNonDefaultIncludeType.ImportLimbo) && isInImportLimbo) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !(isInImportLimbo || (include_only.Contains(FileIncludeOnlyType.Unrecognized) && !isRecognized))) return false;
 
-                if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
-                    xrefs.All(xref => xref.IsManuallyLinked)) return false;
-                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) &&
-                    (xrefs.Count == 0 || xrefs.All(xref => !xref.IsManuallyLinked))) return false;
+                if (exclude.Contains(FileExcludeTypes.ManualLinks) && video.IsManuallyLinked) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) && !video.IsManuallyLinked) return false;
 
                 if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;

@@ -18,6 +18,7 @@ using Shoko.Abstractions.Connectivity;
 using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Utilities;
@@ -29,6 +30,7 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.MediaInfo.Subtitles;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories.Cached;
@@ -545,9 +547,9 @@ public class VideoRelocationService(
             return;
         }
 
-        if (video.CrossReferences.Count == 0 && !availableProviders.Any(p => p.SupportsUnrecognized))
+        if (!availableProviders.Any(provider => CanHandle(provider, video)))
         {
-            logger.LogTrace("File is unrecognized and no available renamer supports unrecognized files. Skipping relocation for video: {FileName} (Video={VideoID})", fileName, video.LocalID);
+            logger.LogTrace("File is {State} and no available renamer supports such files. Skipping relocation for video: {FileName} (Video={VideoID})", DescribeUnlinked(video), fileName, video.LocalID);
             return;
         }
 
@@ -587,9 +589,9 @@ public class VideoRelocationService(
             return;
         }
 
-        if (file.Video.CrossReferences.Count == 0 && !availableProviders.Any(p => p.SupportsUnrecognized))
+        if (!availableProviders.Any(provider => CanHandle(provider, file.Video)))
         {
-            logger.LogTrace("File is unrecognized and no available renamer supports unrecognized files. Skipping relocation for video file: {Path}. (Video={VideoID}, Location={LocationID})", locationPath, file.VideoID, file.ID);
+            logger.LogTrace("File is {State} and no available renamer supports such files. Skipping relocation for video file: {Path}. (Video={VideoID}, Location={LocationID})", DescribeUnlinked(file.Video), locationPath, file.VideoID, file.ID);
             return;
         }
 
@@ -791,12 +793,14 @@ public class VideoRelocationService(
             .ToList();
 
         // We don't have all the data yet, so don't try to relocate yet if the provider doesn't support handling incomplete metadata.
-        if (xrefs.Count != episodes.Count && !providerInfo.SupportsIncompleteMetadata)
-            return RelocationResponse.FromError($"Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes.");
+        if (!providerInfo.SupportsIncompleteMetadata && videoLocal.IsInImportLimbo)
+            return RelocationResponse.FromError("Not enough data to do renaming for the recognized file. An entry it is linked to has not been stored yet.");
 
-        // Don't try to relocate if the provider doesn't support unrecognized files and the file is unrecognized.
-        if (xrefs.Count == 0 && !providerInfo.SupportsUnrecognized)
-            return RelocationResponse.FromError("Configured renamer does not support unrecognized files, and the file is unrecognized.");
+        // Don't try to relocate an unrecognized file, or one linked only to other sources than AniDB, with a provider that doesn't support it.
+        if (!CanHandle(providerInfo, videoLocal))
+            return RelocationResponse.FromError(videoLocal.IsRecognized
+                ? "Configured renamer does not support files linked only to other sources than AniDB, and the file is."
+                : "Configured renamer does not support unrecognized files, and the file is unrecognized.");
 
         var anime = xrefs
             .DistinctBy(x => x.AnidbAnimeID)
@@ -1414,25 +1418,49 @@ public class VideoRelocationService(
 
     public (IManagedFolder ManagedFolder, string RelativePath)? GetExistingSeriesLocationWithSpace(RelocationContext args)
     {
-        var series = args.Series.Select(s => s.AnidbAnime).FirstOrDefault();
-        if (series is null)
-            return null;
-
-        // sort the episodes by air date, so that we will move the file to the location of the latest episode
-        var allEps = series.Episodes
-            .OrderByDescending(a => a.AirDate ?? DateOnly.MinValue)
-            .ToList();
-
         var skipDiskSpaceChecks = settingsProvider.GetSettings().Import.SkipDiskSpaceChecks;
-        foreach (var ep in allEps)
+        var series = args.Series.Select(s => s.AnidbAnime).FirstOrDefault();
+        if (series is not null)
         {
-            var videoList = ep.Videos;
-            // check if this episode belongs to more than one anime
-            // if it does, we will ignore it
-            if (videoList.SelectMany(v => v.Series).DistinctBy(s => s.AnidbAnimeID).Count() > 1)
-                continue;
+            // sort the episodes by air date, so that we will move the file to the location of the latest episode
+            foreach (var ep in series.Episodes.OrderByDescending(a => a.AirDate ?? DateOnly.MinValue))
+            {
+                var videoList = ep.Videos;
+                // check if this episode belongs to more than one anime
+                // if it does, we will ignore it
+                if (videoList.SelectMany(v => v.Series).DistinctBy(s => s.AnidbAnimeID).Count() > 1)
+                    continue;
 
-            foreach (var vid in videoList)
+                if (FindLocation(videoList) is { } location)
+                    return location;
+            }
+
+            return null;
+        }
+
+        // A file linked only to other sources than AniDB: the files of the same series, latest episode first, or movie.
+        var crossReferences = args.File.Video.ReleaseInfo?.CrossReferences ?? [];
+        foreach (var entryID in AnimeMetadataOrchestrator.GetRefreshTargets(crossReferences, MetadataEntryResolver.Resolve, out _))
+        {
+            var location = MetadataEntryResolver.Resolve(entryID) switch
+            {
+                ISeries otherSeries => otherSeries.Episodes
+                    .OrderByDescending(episode => episode.AirDate ?? DateOnly.MinValue)
+                    .Select(episode => FindLocation(episode.Videos))
+                    .FirstOrDefault(found => found is not null),
+                IMovie movie => FindLocation(movie.Videos),
+                _ => null,
+            };
+            if (location is not null)
+                return location;
+        }
+
+        return null;
+
+        // The folder of another of the videos, outside drop sources, with space for the file and not where it already is.
+        (IManagedFolder ManagedFolder, string RelativePath)? FindLocation(IEnumerable<IVideo> videos)
+        {
+            foreach (var vid in videos)
             {
                 if (vid.ED2K == args.File.Video.ED2K) continue;
 
@@ -1458,9 +1486,9 @@ public class VideoRelocationService(
 
                 return (placeFld, Path.GetRelativePath(placeFld.Path, placeDir));
             }
-        }
 
-        return null;
+            return null;
+        }
     }
 
     #endregion
@@ -1486,4 +1514,32 @@ public class VideoRelocationService(
         => UuidUtility.GetV5($"RelocationProvider={typeFullName}", pluginID);
 
     #endregion ID Helpers
+
+    /// <summary>
+    ///   Whether a provider takes a video: one linked to AniDB always; an
+    ///   unrecognized one when it supports unrecognized files; and one linked
+    ///   only to other sources when it supports those.
+    /// </summary>
+    /// <param name="provider">The provider.</param>
+    /// <param name="video">The video.</param>
+    /// <returns><c>true</c> when it takes it.</returns>
+    private static bool CanHandle(RelocationProviderInfo provider, IVideo video)
+        => CanHandle(provider.SupportsUnrecognized, provider.SupportsNonAnidbLinkedVideos, video);
+
+    /// <summary>
+    ///   Whether a provider with these capabilities takes a video, as
+    ///   <see cref="CanHandle(RelocationProviderInfo, IVideo)"/> decides.
+    /// </summary>
+    /// <param name="supportsUnrecognized">Whether the provider supports unrecognized files.</param>
+    /// <param name="supportsNonAnidbLinkedVideos">Whether it supports files linked only to other sources than AniDB.</param>
+    /// <param name="video">The video.</param>
+    /// <returns><c>true</c> when it takes it.</returns>
+    internal static bool CanHandle(bool supportsUnrecognized, bool supportsNonAnidbLinkedVideos, IVideo video)
+        => video.CrossReferences.Count > 0 || (video.IsRecognized ? supportsNonAnidbLinkedVideos : supportsUnrecognized);
+
+    /// <summary>
+    ///   How a video without AniDB links reads in the logs.
+    /// </summary>
+    private static string DescribeUnlinked(IVideo video)
+        => video.IsRecognized ? "linked only to other sources than AniDB" : "unrecognized";
 }

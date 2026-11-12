@@ -92,7 +92,7 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
     {
         try
         {
-            var audience = EventAudience.ForVideo(e.Video, _anidbAnime.GetByAnimeID, () => e.Series.Select(series => series.AnidbAnimeID), isRemoval: true);
+            var audience = EventAudience.ForVideo(e.Video, _anidbAnime.GetByAnimeID, () => e.Series.Select(series => series.AnidbAnimeID));
             await SendToAudienceAsync(audience, "deleted", new VideoFileEventSignalRModel(e));
         }
         catch (Exception ex)
