@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.596",
+      "tag": "v6.0.0-dev.596",
+      "commit": "297621038a543130676a30cb17fa521e79047e60",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.596/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-12T14:08:35Z",
+      "releaseNotes": "\n`feat` (`buildtools`): **Add manifest write hooks for release extensions**:\n\n- `shoko-build` runs `ShokoBeforeAssetWrite` once per runtime with the pending archive, then `ShokoBeforeReleaseWrite` once per release with the whole release, and takes back only their `extensions`\n- `ShokoAfterReleaseWrite` runs once per release after the manifest is saved\n- Nothing extra runs when no target attaches to them\n\n`chore` (`buildtools`): **Bump build tools version to v0.9.0**.\n"
+    },
+    {
       "version": "6.0.0.595",
       "tag": "v6.0.0-dev.595",
       "commit": "fb53b4e38b8bc8b3f00b6421c247e12dcde175b9",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.567/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-10-31T13:44:28Z",
       "releaseNotes": "\n`fix` (`buildtools`): **Find a project's sources from its own folder in `shoko-build`**:\n\n- `shoko-build` resolved the project's source files, its generated targets file and its fallback output paths against the working directory, so a build started outside the project's folder (`shoko-build ./Plugin/Plugin.csproj` from a repository root) found no sources and stamped none of the auto-detected tags\n\n`chore` (`buildtools`): **Bump build tools version to v0.8.3**.\n"
-    },
-    {
-      "version": "6.0.0.566",
-      "tag": "v6.0.0-dev.566",
-      "commit": "6b552a6ff88d02af88b051920d45fac2c3d517bb",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.566/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-10-31T13:02:22Z",
-      "releaseNotes": "\n`feat` (`signalr`): **Let a client ask a feed for its initial state again**:\n\n- Added `feed.resend_initial` to the aggregate hub and `IEventEmitter.ResendInitialMessagesAsync`, which send a connection already on a feed its `<feed>:connected` messages again, so a client sharing one connection among several listeners can give a late one its own starting state\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.120**.\n"
     }
   ]
 }
