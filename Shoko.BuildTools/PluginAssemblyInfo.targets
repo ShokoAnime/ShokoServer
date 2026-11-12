@@ -10,4 +10,17 @@
       <Compile Include="$(ShokoBuildAssemblyInfoFile)" />
     </ItemGroup>
   </Target>
+
+  <!--
+    Hooks around the manifest write, run by Shoko.BuildTools without building
+    again: ShokoBeforeAssetWrite once per runtime on its built project, then
+    ShokoBeforeReleaseWrite and, after the write, ShokoAfterReleaseWrite once
+    per release on the project without a runtime. Attach with AfterTargets or
+    through the DependsOn property. See the README's "Manifest hooks".
+  -->
+  <Target Name="ShokoBeforeAssetWrite" DependsOnTargets="$(ShokoBeforeAssetWriteDependsOn)" />
+
+  <Target Name="ShokoBeforeReleaseWrite" DependsOnTargets="$(ShokoBeforeReleaseWriteDependsOn)" />
+
+  <Target Name="ShokoAfterReleaseWrite" DependsOnTargets="$(ShokoAfterReleaseWriteDependsOn)" />
 </Project>

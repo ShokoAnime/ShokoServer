@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Compression;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -24,6 +25,7 @@ internal static class BuildCommand
         PluginMetadataInput metadataInput,
         string[] forwardArgs)
     {
+        var heldCollections = new List<ProjectCollection>();
         try
         {
             // Where the build was started from; the project's own folder is project.DirectoryPath.
@@ -247,6 +249,10 @@ internal static class BuildCommand
             var templateName = pluginName?.Replace(" ", "") ?? "plugin";
 
             var completed = new List<string>();
+            // The releases this run recorded an archive in, by their manifest key, for the release hooks.
+            var recordedReleases = new Dictionary<string, (string Version, List<string> Runtimes)>();
+            var verbosity = ParseVerbosity(Environment.GetEnvironmentVariable("SHOKO_BUILD_VERBOSITY"))
+                ?? LoggerVerbosity.Minimal;
 
             foreach (var rid in rids)
             {
@@ -265,9 +271,6 @@ internal static class BuildCommand
                 // "any" is not a RID; a portable build passes none at all.
                 if (!portable)
                     ridProperties["RuntimeIdentifier"] = rid;
-
-                var verbosity = ParseVerbosity(Environment.GetEnvironmentVariable("SHOKO_BUILD_VERBOSITY"))
-                    ?? LoggerVerbosity.Minimal;
 
                 // The assets file is per-RID, so a matrix restores per RID.
                 if (restore && !RunRestore(projectFile, ridProperties, verbosity))
@@ -307,8 +310,9 @@ internal static class BuildCommand
                 var requestData = new BuildRequestData(instance, [.. targets]);
 
                 var result = BuildManager.DefaultBuildManager.Build(buildParams, requestData);
-                ridCollection.UnloadAllProjects();
-                ridCollection.Dispose();
+
+                // Kept until the end, so the manifest hooks can run on the built instance.
+                heldCollections.Add(ridCollection);
 
                 if (result.OverallResult != BuildResultCode.Success)
                 {
@@ -405,8 +409,12 @@ internal static class BuildCommand
                 // Update manifest with archive entry
                 if (manifest is not null && manifestFullPath is not null)
                 {
-                    ManifestManager.UpdateOrAddRelease(
-                        manifest,
+                    var assetHook = ManifestHooks.IsAttached(instance, ManifestHooks.BeforeAssetWrite);
+
+                    // A runtime whose hook fails leaves the manifest as it was.
+                    var updated = assetHook ? ManifestManager.Clone(manifest) : manifest;
+                    var release = ManifestManager.UpdateOrAddRelease(
+                        updated,
                         metadata.Version,
                         metadata.AbstractionVersion,
                         rid,
@@ -419,6 +427,52 @@ internal static class BuildCommand
                         releaseNotes,
                         packedSize,
                         unpackedSize);
+                    var releaseVersion = metadata.Version.Revision > 0
+                        ? $"{metadata.Version.Major}.{metadata.Version.Minor}.{metadata.Version.Build}-dev.{metadata.Version.Revision}"
+                        : release.Version;
+
+                    if (assetHook)
+                    {
+                        var archive = release.Archives!.Single(a => a.Runtime == rid);
+                        var pendingPath = Path.Combine(objDir, $"pending-asset.{SanitizeRid(rid)}.json");
+                        ManifestHooks.WritePendingAsset(archive, pendingPath);
+                        var assetProperties = new Dictionary<string, string>
+                        {
+                            ["ShokoManifestPath"] = manifestFullPath,
+                            ["ShokoPendingAssetPath"] = pendingPath,
+                            ["ShokoReleaseKey"] = release.Version,
+                            ["ShokoReleaseVersion"] = releaseVersion,
+                            ["ShokoReleaseChannel"] = release.Channel.ToString(),
+                            ["ShokoReleaseRuntime"] = rid,
+                            ["ShokoAssetName"] = Path.GetFileName(zipPath),
+                            ["ShokoAssetPath"] = zipPath,
+                            ["ShokoAssetUrl"] = archiveUrl,
+                            ["ShokoAssetSize"] = packedSize.ToString(CultureInfo.InvariantCulture),
+                            ["ShokoAssetUnpackedSize"] = unpackedSize.ToString(CultureInfo.InvariantCulture),
+                            ["ShokoAssetChecksum"] = checksum,
+                        };
+
+                        if (!ManifestHooks.Run(instance, ManifestHooks.BeforeAssetWrite, assetProperties, verbosity))
+                        {
+                            Console.Error.WriteLine($"{ManifestHooks.BeforeAssetWrite} failed for {rid}. Not recording this archive.");
+                            continue;
+                        }
+
+                        if (ManifestHooks.MergePendingAsset(archive, pendingPath) is { } mergeError)
+                        {
+                            Console.Error.WriteLine(
+                                $"The pending archive {pendingPath} a {ManifestHooks.BeforeAssetWrite} hook left for {rid} " +
+                                $"could not be read back: {mergeError}. Not recording this archive.");
+                            continue;
+                        }
+
+                        File.Delete(pendingPath);
+                        manifest = updated;
+                    }
+
+                    if (!recordedReleases.TryGetValue(release.Version, out var recorded))
+                        recordedReleases[release.Version] = recorded = (releaseVersion, []);
+                    recorded.Runtimes.Add(rid);
                 }
 
                 completed.Add(rid);
@@ -442,9 +496,94 @@ internal static class BuildCommand
                     }
                 }
 
+                // The release hooks run on the project as evaluated for the whole
+                // build, without a runtime, since a release spans them all.
+                ProjectInstance? releaseInstance = null;
+                var releaseHooks = new List<(ManifestRelease Release, Dictionary<string, string> Properties)>();
+                var beforeReleaseHook = false;
+                var afterReleaseHook = false;
+                if (recordedReleases.Count > 0)
+                {
+                    var releaseProperties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["EnableDynamicLoading"] = "true",
+                    };
+                    if (pluginNamespace is not null)
+                        releaseProperties["PluginNamespace"] = pluginNamespace;
+
+                    var releaseCollection = new ProjectCollection(releaseProperties);
+                    heldCollections.Add(releaseCollection);
+                    var releaseProject = new Project(projectFile, releaseProperties, null, releaseCollection);
+                    releaseProject.Xml.AddImport(targetsFile);
+                    releaseInstance = releaseProject.CreateProjectInstance();
+                    beforeReleaseHook = ManifestHooks.IsAttached(releaseInstance, ManifestHooks.BeforeReleaseWrite);
+                    afterReleaseHook = ManifestHooks.IsAttached(releaseInstance, ManifestHooks.AfterReleaseWrite);
+                }
+
+                if (beforeReleaseHook || afterReleaseHook)
+                {
+                    foreach (var (key, (version, runtimes)) in recordedReleases)
+                    {
+                        // Pruned away; nothing of it gets written.
+                        if (manifest.Releases?.FirstOrDefault(r => r.Version == key) is not { } release)
+                            continue;
+
+                        releaseHooks.Add((release, new Dictionary<string, string>
+                        {
+                            ["ShokoManifestPath"] = manifestFullPath,
+                            ["ShokoPendingReleasePath"] = "",
+                            ["ShokoReleaseKey"] = key,
+                            ["ShokoReleaseVersion"] = version,
+                            ["ShokoReleaseChannel"] = release.Channel.ToString(),
+                            ["ShokoReleaseRuntimes"] = string.Join(';', runtimes),
+                        }));
+                    }
+                }
+
+                if (beforeReleaseHook)
+                {
+                    foreach (var (release, releaseProperties) in releaseHooks)
+                    {
+                        var pendingPath = Path.Combine(objDir, $"pending-release.{SanitizeRid(release.Version)}.json");
+                        ManifestHooks.WritePendingRelease(release, pendingPath);
+                        var beforeProperties = new Dictionary<string, string>(releaseProperties)
+                        {
+                            ["ShokoPendingReleasePath"] = pendingPath,
+                        };
+
+                        if (!ManifestHooks.Run(releaseInstance!, ManifestHooks.BeforeReleaseWrite, beforeProperties, verbosity))
+                        {
+                            Console.Error.WriteLine($"{ManifestHooks.BeforeReleaseWrite} failed for {release.Version}. Not writing the manifest.");
+                            return 1;
+                        }
+
+                        if (ManifestHooks.MergePendingRelease(release, pendingPath) is { } mergeError)
+                        {
+                            Console.Error.WriteLine(
+                                $"The pending release {pendingPath} a {ManifestHooks.BeforeReleaseWrite} hook left for {release.Version} " +
+                                $"could not be read back: {mergeError}. Not writing the manifest.");
+                            return 1;
+                        }
+
+                        File.Delete(pendingPath);
+                    }
+                }
+
                 ManifestManager.SyncIsMeta(manifest);
                 ManifestManager.Save(manifest, manifestFullPath);
                 Console.WriteLine($"Updated manifest: {manifestFullPath}");
+
+                if (afterReleaseHook)
+                {
+                    foreach (var (release, releaseProperties) in releaseHooks)
+                    {
+                        if (!ManifestHooks.Run(releaseInstance!, ManifestHooks.AfterReleaseWrite, releaseProperties, verbosity))
+                        {
+                            Console.Error.WriteLine($"{ManifestHooks.AfterReleaseWrite} failed for {release.Version}.");
+                            return 1;
+                        }
+                    }
+                }
             }
 
             var missing = rids.Where(r => !completed.Contains(r)).ToList();
@@ -461,6 +600,14 @@ internal static class BuildCommand
         {
             Console.Error.WriteLine($"Build failed: {ex.Message}");
             return 1;
+        }
+        finally
+        {
+            foreach (var collection in heldCollections)
+            {
+                collection.UnloadAllProjects();
+                collection.Dispose();
+            }
         }
     }
 

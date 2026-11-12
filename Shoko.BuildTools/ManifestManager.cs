@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Shoko.BuildTools;
@@ -202,12 +203,24 @@ internal static class ManifestManager
     }
 
     /// <summary>
+    ///   A deep copy of <paramref name="manifest" />, made through its JSON.
+    /// </summary>
+    public static Manifest Clone(Manifest manifest)
+        => JsonSerializer.Deserialize<Manifest>(JsonSerializer.Serialize(manifest, JsonOptions), JsonOptions)!;
+
+    /// <summary>
+    ///   <paramref name="entry" /> as the manifest writes it.
+    /// </summary>
+    public static JsonObject ToNode<T>(T entry) where T : class
+        => JsonSerializer.SerializeToNode(entry, JsonOptions)!.AsObject();
+
+    /// <summary>
     ///   Add or update a release entry for the given version/ABI/runtime.
     ///   If the release version already exists, adds or updates the
     ///   architecture-specific archive. If the release doesn't exist, creates
-    ///   a new release entry.
+    ///   a new release entry. Returns the release entry.
     /// </summary>
-    public static void UpdateOrAddRelease(
+    public static ManifestRelease UpdateOrAddRelease(
         Manifest manifest,
         Version version,
         Version abstractionVersion,
@@ -293,6 +306,8 @@ internal static class ManifestManager
                 UnpackedSize = unpackedSize,
             });
         }
+
+        return release;
     }
 
     /// <summary>

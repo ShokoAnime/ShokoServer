@@ -358,6 +358,71 @@ MSBuild diagnostics are forwarded at `Minimal` verbosity. Set
 `SHOKO_BUILD_VERBOSITY` (`Quiet`, `Minimal`, `Normal`, `Detailed`,
 `Diagnostic`) to change that.
 
+### Manifest hooks
+
+A plugin's build can add its own data to the `extensions` of a release
+and of its archives. Without a manifest, or with nothing attached to a
+hook, that hook does not run.
+
+The hooks run in this order, none of them building again:
+
+1. **`ShokoBeforeAssetWrite`** runs once per runtime, on that runtime's
+   built project, as soon as its archive is packed. Its pending file,
+   `ShokoPendingAssetPath`, holds the archive entry as the manifest writes
+   it.
+2. **`ShokoBeforeReleaseWrite`** runs once per release, after every
+   runtime, on the project evaluated without a runtime. Its pending file,
+   `ShokoPendingReleasePath`, holds the release entry with all of its
+   archives, the asset hooks' `extensions` included.
+3. **The manifest is saved.**
+4. **`ShokoAfterReleaseWrite`** runs once per release, with the same
+   properties as `ShokoBeforeReleaseWrite`, except that the pending file is
+   empty.
+
+Attach to a hook with `AfterTargets="<hook>"` or through
+`<hook>DependsOn`, and edit the pending file in place.
+
+**What is read back.** Only `extensions` are taken from a pending file:
+the archive's from an asset file, and from a release file the release's
+and each archive's, matched by `runtime`. Each is merged key by key into
+what the manifest has:
+- objects merge;
+- a `null` removes the key;
+- anything else replaces it.
+
+Every other field stays as the tool wrote it.
+
+**When a hook fails.** This covers a failed hook, a pending file that is
+not valid JSON, and an `extensions` that is not an object:
+- an asset hook: its runtime is not recorded, as if its build had failed;
+- the release hook: the manifest is not written;
+- the after hook: the tool exits non-zero.
+
+Properties set for the hooks:
+
+| Property | Hooks | Value |
+|----------|-------|-------|
+| `ShokoManifestPath` | all | The manifest's full path. |
+| `ShokoPendingAssetPath` | asset | The pending archive file. |
+| `ShokoPendingReleasePath` | release | The pending release file. Empty in `ShokoAfterReleaseWrite`. |
+| `ShokoReleaseKey` | all | The release's `version` in the manifest, e.g. `0.1.0.5`. |
+| `ShokoReleaseVersion` | all | The same as semver, e.g. `0.1.0-dev.5`. |
+| `ShokoReleaseChannel` | all | `Stable`, `Dev` or `Debug`. |
+| `ShokoReleaseRuntime` | asset | The runtime identifier, or `any`. |
+| `ShokoReleaseRuntimes` | release | The runtimes this run recorded, separated by `;`. |
+| `ShokoAssetName` | asset | The archive's file name. |
+| `ShokoAssetPath` | asset | The archive's full path. |
+| `ShokoAssetUrl` | asset | The archive's download URL. |
+| `ShokoAssetSize` | asset | The archive's size in bytes (`packed_size`). |
+| `ShokoAssetUnpackedSize` | asset | The sum of its files' sizes in bytes (`unpacked_size`). |
+| `ShokoAssetChecksum` | asset | The archive's `checksum`, e.g. `sha256:…`. |
+
+```xml
+<Target Name="StampMyExtensions" AfterTargets="ShokoBeforeReleaseWrite">
+  <!-- Read $(ShokoPendingReleasePath), set extensions.my-plugin, write it back. -->
+</Target>
+```
+
 ### Auto-detected tags
 
 The source probe maps Shoko service interfaces to discovery tags:
