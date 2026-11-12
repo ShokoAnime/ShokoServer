@@ -206,7 +206,7 @@ public class ShokoTextMigrationTests(DatabaseMigrationFixture fixture)
         }
         finally
         {
-            ReleasedTextSchema.Drop(fixture, connection);
+            ReleasedTextSchema.Drop(connection, fixture.Backend);
             if (episodes.GetByID(namedEpisode.AnimeEpisodeID) is { } leftEpisode)
                 episodes.Delete(leftEpisode);
             foreach (var series in (AnimeSeries[])[namedSeries, autoSeries])

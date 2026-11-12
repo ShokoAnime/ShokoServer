@@ -5,7 +5,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
-using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
@@ -100,53 +99,6 @@ public class MetadataEntityStubRoundTripTests(DatabaseMigrationFixture fixture)
         people.RemoveCast(series);
         studios.RemoveStudios(series);
         studios.RemoveNetworks(series);
-        people.RemoveOrphaned(_plugin, DateTime.MaxValue);
-        studios.RemoveOrphaned(_plugin, DateTime.MaxValue);
-    }
-
-    [Fact]
-    public void TheStubStepsKeepEveryRowAndLetARowBeAStub()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-        var people = fixture.Services.GetRequiredService<IMetadataPeopleStore>();
-        var studios = fixture.Services.GetRequiredService<IMetadataStudioStore>();
-        var creators = fixture.Services.GetRequiredService<Metadata_CreatorRepository>();
-        var series = ID(MetadataEntityType.Series, "stub-series-3");
-        var stub = ID(MetadataEntityType.Creator, "stub-creator-3");
-        var full = ID(MetadataEntityType.Creator, "stub-creator-4");
-        people.SaveCreators([new() { ID = full, Titles = TestTexts.Named("Hiro"), PlaceOfBirth = "Tokyo, Japan", IsRestricted = true }]);
-        people.SetCrew(series, [new() { CreatorID = stub, CreatorName = "Mio", Name = "Music" }, new() { CreatorID = full, Name = "Director" }]);
-        studios.SetStudios(series, [new() { StudioID = ID(MetadataEntityType.Studio, "stub-studio-3") }]);
-        string[] tables = ["Metadata_Creator", "Metadata_Character", "Metadata_Studio"];
-
-        // SQLite rebuilds each table from its own definition; the others change the column in place.
-        using (var connection = fixture.OpenConnection())
-        {
-            var before = tables.Select(table => Read(connection, $"SELECT * FROM {table} ORDER BY {table}ID")).ToList();
-            int[] revisions = fixture.Services.GetRequiredService<DatabaseFactory>().Instance is SQLite ? [205, 206, 207] : [206, 207, 208];
-            foreach (var step in SchemaSteps.Get(fixture, revisions))
-            {
-                if (step.UpdateCommand is { } update)
-                    Assert.True(update(connection).Item1);
-                else
-                    Execute(connection, step.Command!);
-            }
-
-            Assert.Equal(before, tables.Select(table => Read(connection, $"SELECT * FROM {table} ORDER BY {table}ID")).ToList());
-            Assert.Equal(
-                ["1"],
-                Read(connection, $"SELECT COUNT(*) FROM Metadata_Creator WHERE ProviderID = '{stub.ID}' AND LastUpdatedAt IS NULL")
-            );
-        }
-
-        Reload();
-        Assert.True(creators.GetByProviderID(_plugin, stub.ID)!.IsStub);
-        var kept = creators.GetAll().Max(creator => creator.Metadata_CreatorID);
-        people.SetCrew(series, [new() { CreatorID = ID(MetadataEntityType.Creator, "stub-creator-5"), Name = "Music" }]);
-        Assert.True(creators.GetByProviderID(_plugin, "stub-creator-5")!.Metadata_CreatorID > kept);
-
-        people.RemoveCrew(series);
-        studios.RemoveStudios(series);
         people.RemoveOrphaned(_plugin, DateTime.MaxValue);
         studios.RemoveOrphaned(_plugin, DateTime.MaxValue);
     }

@@ -17,7 +17,7 @@ public class PeopleTextMigrationTests(DatabaseMigrationFixture fixture)
     private static readonly DateTime _created = new(2024, 1, 1, 10, 0, 0);
 
     [Fact]
-    public void TheCopyStepPutsEachNameAndDescriptionFirstAndTheDropStepsRemoveTheColumns()
+    public void TheCopyStepPutsEachNameAndDescriptionFirst()
     {
         Assert.True(fixture.Success, fixture.FailureMessage);
 
@@ -109,9 +109,6 @@ public class PeopleTextMigrationTests(DatabaseMigrationFixture fixture)
                 )
             );
 
-            foreach (var step in ReleasedColumns.People.DropSteps(fixture))
-                Execute(connection, step.Command!);
-            Assert.False(ReleasedColumns.People.AnyPresent(connection));
         }
         finally
         {

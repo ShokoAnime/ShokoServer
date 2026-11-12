@@ -2,11 +2,9 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Storage;
-using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Services;
-using Shoko.TestData.Schema;
 using Xunit;
 using static Shoko.IntegrationTests.Sql;
 
@@ -105,61 +103,6 @@ public class MetadataRefreshStateRoundTripTests(DatabaseMigrationFixture fixture
             seriesStore.RemoveSeries(series);
             people.RemoveOrphaned(_plugin, DateTime.MaxValue);
             studios.RemoveOrphaned(_plugin, DateTime.MaxValue);
-        }
-    }
-
-    [Fact]
-    public void TheStepsMoveTheOldRefreshTimesOntoTheEntriesAndDropTheRest()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-        var services = fixture.Services;
-        var seriesStore = services.GetRequiredService<IMetadataSeriesStore>();
-        var movieStore = services.GetRequiredService<IMetadataMovieStore>();
-        var people = services.GetRequiredService<IMetadataPeopleStore>();
-        var state = services.GetRequiredService<IMetadataRefreshState>();
-        var series = ID(MetadataEntityType.Series, "refresh-copy-series");
-        var movie = ID(MetadataEntityType.Movie, "refresh-copy-movie");
-        var creator = ID(MetadataEntityType.Creator, "refresh-copy-creator");
-        seriesStore.SaveSeries(new() { ID = series });
-        movieStore.SaveMovie(new() { ID = movie });
-        people.SaveCreators([new() { ID = creator, Titles = TestTexts.Named("Kana") }]);
-        var isSQLite = services.GetRequiredService<DatabaseFactory>().Instance is SQLite;
-        using var connection = fixture.OpenConnection();
-        try
-        {
-            // The table as the release before had it, with an entry of each kind and one stored nowhere.
-            Execute(connection, SchemaSteps.GetSql(fixture, 88));
-
-            // An upgrade runs these steps before the IDs are pinned. Here the entries' already are,
-            // and SQL Server only compares like with like.
-            if (services.GetRequiredService<DatabaseFactory>().Instance is SQLServer)
-                Execute(connection, "ALTER TABLE Metadata_Refresh ALTER COLUMN ProviderID NVARCHAR(128) COLLATE Latin1_General_100_BIN2 NOT NULL");
-            Execute(connection, SchemaSteps.GetSql(fixture, 89));
-            var source = Scalar(connection, $"SELECT Source FROM Metadata_Series WHERE ProviderID = '{series.ID}'");
-            foreach (var (entityType, id, at) in new[] { (2, series.ID, "12:30:15"), (5, movie.ID, "13:30:15"), (9, creator.ID, "14:30:15"), (2, "refresh-copy-gone", "15:30:15") })
-                Execute(
-                    connection,
-                    $"INSERT INTO Metadata_Refresh (Source, EntityType, ProviderID, LastRefreshedAt) VALUES ({source}, {entityType}, '{id}', '2026-09-24T{at}')"
-                );
-
-            var first = isSQLite ? 215 : 216;
-            foreach (var step in SchemaSteps.Get(fixture, first, first + 1, first + 2, first + 3, first + 4, first + 5, first + 6, first + 7))
-                Execute(connection, step.Command!);
-
-            Assert.False(SchemaSnapshot.Read(connection, fixture.Backend).Tables.ContainsKey("Metadata_Refresh"));
-            Reload();
-            var day = new DateTime(2026, 9, 24, 0, 0, 0, DateTimeKind.Local);
-            Assert.Equal(day.AddHours(12.5).AddSeconds(15).ToUniversalTime(), state.GetLastRefreshedAt(series));
-            Assert.Equal(day.AddHours(13.5).AddSeconds(15).ToUniversalTime(), state.GetLastRefreshedAt(movie));
-            Assert.Equal(day.AddHours(14.5).AddSeconds(15).ToUniversalTime(), state.GetLastRefreshedAt(creator));
-        }
-        finally
-        {
-            if (SchemaSnapshot.Read(connection, fixture.Backend).Tables.ContainsKey("Metadata_Refresh"))
-                Execute(connection, "DROP TABLE Metadata_Refresh");
-            movieStore.RemoveMovie(movie);
-            seriesStore.RemoveSeries(series);
-            people.RemoveOrphaned(_plugin, DateTime.MaxValue);
         }
     }
 

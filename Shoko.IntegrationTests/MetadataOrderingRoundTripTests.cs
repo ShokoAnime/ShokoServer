@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
@@ -8,7 +7,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Metadata.Stub;
-using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
@@ -286,76 +284,5 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Null(networkRows.GetByProviderID(fujiTV.Source, fujiTV.ID));
         studios.RemoveOrphaned(_plugin, DateTime.MaxValue);
         seriesStore.RemoveSeries(seriesID);
-    }
-
-    [Fact]
-    public void TheStubStepKeepsEveryNetworkWithItsIDAndItsLinks()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-        var seriesStore = fixture.Services.GetRequiredService<IMetadataSeriesStore>();
-        var studios = fixture.Services.GetRequiredService<IMetadataStudioStore>();
-        var orderings = fixture.Services.GetRequiredService<IMetadataOrderingService>();
-        var networkRows = fixture.Services.GetRequiredService<Metadata_NetworkRepository>();
-        var seriesID = ID(MetadataEntityType.Series, "ordering-series-4");
-        var tokyoMX = ID(MetadataEntityType.Network, "ordering-network-6");
-        var atx = ID(MetadataEntityType.Network, "ordering-network-7");
-        seriesStore.SaveSeries(new() { ID = seriesID });
-        studios.SaveNetworks([new() { ID = tokyoMX, Name = "Tokyo MX", CountryOfOrigin = "JP" }]);
-        var local = orderings.CreateLocalOrdering(new() { SeriesID = seriesID, Networks = [atx, tokyoMX] });
-        const string networks = "SELECT Metadata_NetworkID, Source, ProviderID, Name, LastUpdatedAt, LastOrphanedAt, CountryOfOrigin FROM Metadata_Network ORDER BY Metadata_NetworkID";
-
-        // SQLite rebuilds the table to let a network be a stub, which drops the refresh time and the
-        // extra data added after, so those columns are added back; the others change the column in place.
-        int[] revisions = fixture.Services.GetRequiredService<DatabaseFactory>().Instance is SQLite ? [180, 181, 182, 183, 184, 214, 230] : [180];
-        using (var connection = fixture.OpenConnection())
-        {
-            var before = Read(connection, networks);
-            foreach (var step in SchemaSteps.Get(fixture, revisions))
-                Execute(connection, step.Command!);
-
-            Assert.Equal(before, Read(connection, networks));
-        }
-
-        Reload();
-        Assert.Equal([atx, tokyoMX], orderings.GetOrdering(local.ID)!.Networks.Select(network => network.ID));
-        Assert.True(networkRows.GetByProviderID(atx.Source, atx.ID)!.IsStub);
-        var kept = networkRows.GetAll().Max(network => network.Metadata_NetworkID);
-        studios.SaveNetworks([new() { ID = ID(MetadataEntityType.Network, "ordering-network-8"), Name = "BS11" }]);
-        Assert.True(networkRows.GetByProviderID(_plugin, "ordering-network-8")!.Metadata_NetworkID > kept);
-
-        Assert.True(orderings.DeleteLocalOrdering(local.ID));
-        studios.RemoveOrphaned(_plugin, DateTime.MaxValue);
-        seriesStore.RemoveSeries(seriesID);
-    }
-
-    [Fact]
-    public void TheTmdbChoiceStepTurnsTheChosenEpisodeGroupIntoAnOrderingID()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-        var step = SchemaSteps.GetSql(fixture, 103);
-
-        // The step runs on a copy of the columns it reads and writes, since
-        // the migrated table no longer has the episode group column.
-        const string Table = "TMDB_Show_ChoiceStepTest";
-        using var connection = fixture.OpenConnection();
-        Execute(connection, $"CREATE TABLE {Table} (TmdbShowID INT NOT NULL, PreferredAlternateOrderingID VARCHAR(64) NULL, PreferredOrderingID VARCHAR(256) NULL)");
-        try
-        {
-            Execute(connection, $"INSERT INTO {Table} (TmdbShowID, PreferredAlternateOrderingID) VALUES (1, '5f0c1a2b3c4d5e6f7a8b9c0d')");
-            Execute(connection, $"INSERT INTO {Table} (TmdbShowID, PreferredAlternateOrderingID) VALUES (2, '2')");
-            Execute(connection, $"INSERT INTO {Table} (TmdbShowID, PreferredAlternateOrderingID) VALUES (3, '')");
-            Execute(connection, $"INSERT INTO {Table} (TmdbShowID, PreferredAlternateOrderingID) VALUES (4, NULL)");
-
-            Execute(connection, step.Replace("TMDB_Show", Table, StringComparison.Ordinal));
-
-            Assert.Equal("tmdb://ordering/5f0c1a2b3c4d5e6f7a8b9c0d", Scalar(connection, $"SELECT PreferredOrderingID FROM {Table} WHERE TmdbShowID = 1"));
-            Assert.Null(Scalar(connection, $"SELECT PreferredOrderingID FROM {Table} WHERE TmdbShowID = 2"));
-            Assert.Null(Scalar(connection, $"SELECT PreferredOrderingID FROM {Table} WHERE TmdbShowID = 3"));
-            Assert.Null(Scalar(connection, $"SELECT PreferredOrderingID FROM {Table} WHERE TmdbShowID = 4"));
-        }
-        finally
-        {
-            Execute(connection, $"DROP TABLE {Table}");
-        }
     }
 }

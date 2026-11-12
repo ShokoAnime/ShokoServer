@@ -239,7 +239,7 @@ public class AnidbTextMigrationTests(DatabaseMigrationFixture fixture)
         finally
         {
             Cleanup(connection);
-            ReleasedTextSchema.Drop(fixture, connection);
+            ReleasedTextSchema.Drop(connection, fixture.Backend);
             texts.Populate(false, TestContext.Current.CancellationToken);
             tags.Populate(false, TestContext.Current.CancellationToken);
             tags.Delete(tags.GetByTagID(RenamedTagID)!);

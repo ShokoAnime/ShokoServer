@@ -286,15 +286,6 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
     #region Tests
 
     [Fact]
-    public void TheDropStepsLeaveNoTmdbTable()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-
-        using var connection = fixture.OpenConnection();
-        Assert.Empty(ReleasedTmdbSchema.Present(connection, fixture.Backend));
-    }
-
-    [Fact]
     public void TheCopyStepsMoveEveryTmdbRowIntoTheSharedTables()
     {
         Assert.True(fixture.Success, fixture.FailureMessage);

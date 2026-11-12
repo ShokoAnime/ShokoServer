@@ -242,7 +242,7 @@ public class TmdbTextMigrationTests(DatabaseMigrationFixture fixture)
         finally
         {
             Cleanup(connection);
-            ReleasedTextSchema.Drop(fixture, connection);
+            ReleasedTextSchema.Drop(connection, fixture.Backend);
             ReleasedTmdbSchema.Drop(connection, restored);
         }
     }

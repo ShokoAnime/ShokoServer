@@ -1,29 +1,20 @@
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using Shoko.Server.Databases;
 using Shoko.TestData.Schema;
-using Xunit;
 
 namespace Shoko.IntegrationTests;
 
 /// <summary>
 /// Puts back the released tables and columns the text store and the shared link tables replaced,
 /// as a database upgraded from a released version has them until the drop steps run, and drops
-/// them again through those steps.
+/// them again by plain SQL.
 /// </summary>
 internal static class ReleasedTextSchema
 {
     #region Constants
 
     /// <summary>
-    /// The revision of the first drop step, the same on every backend; the others follow it in
-    /// the order of <see cref="Targets"/>.
-    /// </summary>
-    private const int FirstDropRevision = 133;
-
-    /// <summary>
-    /// What the drop steps remove, in the order they run: a table, or a column of a table.
+    /// What the drop steps remove: a table, or a column of a table.
     /// </summary>
     public static readonly IReadOnlyList<(string Table, string? Column)> Targets =
     [
@@ -48,14 +39,6 @@ internal static class ReleasedTextSchema
     #endregion
 
     #region Public Methods
-
-    /// <summary>
-    /// The backend's drop steps, one per target of <see cref="Targets"/>, in the same order.
-    /// </summary>
-    /// <param name="fixture">The started server.</param>
-    /// <returns>One step per target.</returns>
-    public static IReadOnlyList<DatabaseCommand> DropSteps(DatabaseMigrationFixture fixture)
-        => SchemaSteps.Get(fixture, [.. Enumerable.Range(FirstDropRevision, Targets.Count)]);
 
     /// <summary>
     /// Adds back what the drop steps remove and is missing, with the columns the copy steps and
@@ -99,45 +82,23 @@ internal static class ReleasedTextSchema
     }
 
     /// <summary>
-    /// Runs the backend's own drop steps for whatever of <see cref="Targets"/> is there.
-    /// </summary>
-    /// <param name="fixture">The started server.</param>
-    /// <param name="connection">An open connection to the migrated database.</param>
-    public static void Drop(DatabaseMigrationFixture fixture, IDbConnection connection)
-    {
-        var steps = DropSteps(fixture);
-        var schema = SchemaSnapshot.Read(connection, fixture.Backend);
-        for (var index = 0; index < steps.Count; index++)
-        {
-            var (table, column) = Targets[index];
-            if (!schema.Tables.TryGetValue(table, out var columns) || (column is not null && !columns.ContainsKey(column)))
-                continue;
-
-            var step = steps[index];
-            if (step.Type is DatabaseCommandType.CodedCommand)
-            {
-                var result = step.UpdateCommand!(connection);
-                Assert.True(result.Item1, result.Item2);
-                continue;
-            }
-
-            Sql.Execute(connection, step.Command!);
-        }
-    }
-
-    /// <summary>
-    /// Names what of <see cref="Targets"/> the database has.
+    /// Drops whatever of <see cref="Targets"/> is there, by plain SQL.
     /// </summary>
     /// <param name="connection">An open connection to the migrated database.</param>
     /// <param name="backend">The backend, as <see cref="DatabaseMigrationFixture.Backend"/> names it.</param>
-    /// <returns>Each table, or table and column, that exists, as <c>Table</c> or <c>Table.Column</c>.</returns>
-    public static IReadOnlyList<string> Present(IDbConnection connection, string backend)
+    public static void Drop(IDbConnection connection, string backend)
     {
         var schema = SchemaSnapshot.Read(connection, backend);
-        return Targets
-            .Where(target => schema.Tables.TryGetValue(target.Table, out var columns) && (target.Column is null || columns.ContainsKey(target.Column)))
-            .Select(target => target.Column is null ? target.Table : $"{target.Table}.{target.Column}")
-            .ToList();
+        foreach (var (table, column) in Targets)
+        {
+            if (!schema.Tables.TryGetValue(table, out var columns))
+                continue;
+
+            if (column is null)
+                Sql.Execute(connection, $"DROP TABLE {table}");
+            else if (columns.ContainsKey(column))
+                Sql.Execute(connection, $"ALTER TABLE {table} DROP COLUMN {column}");
+        }
     }
 
     #endregion

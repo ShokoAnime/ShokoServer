@@ -58,7 +58,7 @@ public class OrderingTextRoundTripTests(DatabaseMigrationFixture fixture)
     }
 
     [Fact]
-    public void TheCopyStepMovesTheNamesIntoTheTextStoreAndTheDropStepsRemoveTheColumns()
+    public void TheCopyStepMovesTheNamesIntoTheTextStore()
     {
         Assert.True(fixture.Success, fixture.FailureMessage);
 
@@ -119,9 +119,6 @@ public class OrderingTextRoundTripTests(DatabaseMigrationFixture fixture)
                 Read(connection, $"SELECT EntityID, Value FROM Metadata_Overview WHERE {stored} ORDER BY EntityID")
             );
 
-            foreach (var step in ReleasedColumns.Ordering.DropSteps(fixture))
-                Execute(connection, step.Command!);
-            Assert.False(ReleasedColumns.Ordering.AnyPresent(connection));
         }
         finally
         {

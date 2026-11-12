@@ -5,14 +5,13 @@ using System.Linq;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using MySqlConnector;
-using Shoko.Server.Databases;
 using Shoko.TestData.Schema;
 
 namespace Shoko.IntegrationTests;
 
 /// <summary>
 /// Puts back text columns rows kept before the text store took their texts, as a database upgraded
-/// from a released version has them until the drop steps run, and drops them again.
+/// from a released version has them until the drop steps run, and drops them again by plain SQL.
 /// </summary>
 /// <param name="targets">What the drop steps remove, in the order they run.</param>
 internal sealed class ReleasedColumns(IReadOnlyList<(string Table, string Column)> targets)
@@ -79,22 +78,6 @@ internal sealed class ReleasedColumns(IReadOnlyList<(string Table, string Column
             Sql.Execute(dbConnection, $"ALTER TABLE {table} DROP COLUMN {column}");
         return new(true, null);
     }
-
-    /// <summary>
-    /// The backend's own drop steps, one per target, in the same order.
-    /// </summary>
-    /// <param name="fixture">The started server.</param>
-    /// <returns>One step per target.</returns>
-    public IReadOnlyList<DatabaseCommand> DropSteps(DatabaseMigrationFixture fixture)
-        => [.. targets.Select(target => SchemaSteps.Find(fixture, $"ALTER TABLE {target.Table} DROP COLUMN {target.Column};"))];
-
-    /// <summary>
-    /// Whether the database has any of the columns.
-    /// </summary>
-    /// <param name="connection">An open connection to the migrated database.</param>
-    /// <returns><c>true</c> when one is there.</returns>
-    public bool AnyPresent(IDbConnection connection)
-        => Columns(connection, Backend(connection), present: true).Any();
 
     #endregion
 
