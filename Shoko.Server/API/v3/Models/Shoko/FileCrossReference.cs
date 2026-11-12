@@ -129,34 +129,6 @@ public class FileCrossReference
         public Series.SeriesIDs.TmdbSeriesIDs TMDB { get; set; } = new();
     }
 
-    private static int PercentageToFileCount(int percentage)
-        => percentage switch
-        {
-            100 => 1,
-            99 => 1,
-            51 => 2,
-            50 => 2,
-            49 => 2,
-            34 => 3,
-            33 => 3,
-            32 => 3,
-            26 => 4,
-            25 => 4,
-            24 => 4,
-            21 => 5,
-            20 => 5,
-            19 => 5,
-            17 => 6,
-            16 => 6,
-            15 => 7,
-            14 => 7,
-            13 => 8,
-            12 => 8,
-            // 11 => 9, // 9 also overlaps with 12%, so we skip this for now.
-            10 => 10,
-            _ => 0, // anything below this we can't reliably measure.
-        };
-
     public static List<FileCrossReference> From(IEnumerable<IVideoCrossReference> crossReferences)
         => crossReferences
                 .Where(xref => xref.Video is not null)
@@ -164,7 +136,7 @@ public class FileCrossReference
                 {
                     // Percentages.
                     var releaseGroup = xref.Release.Group is { Source: "AniDB" } group && int.TryParse(group.ID, out var releaseGroupId) ? releaseGroupId : (int?)null;
-                    var assumedFileCount = PercentageToFileCount(xref.Percentage);
+                    var assumedFileCount = xref.PercentageGroupSize;
                     var shokoEpisode = xref.ShokoEpisode as AnimeEpisode;
                     return (
                         xref,
