@@ -339,11 +339,16 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// <param name="strict">Whether to use strict search or not.</param>
     /// <param name="isAutomatic">Whether this is an automatic search or not.</param>
     /// <param name="providerIDs">Optional. List of provider IDs to search with.</param>
-    /// <returns>The current automatic <see cref="ReleaseInfo"/> for the <paramref name="fileID"/>, or a 204 response if none is available.</returns>
+    /// <returns>
+    /// The current automatic <see cref="ReleaseInfo"/> for the <paramref name="fileID"/>, or a 204 response if none is available.
+    /// A provider that fails the search answers a 502 validation problem whose error is keyed
+    /// <c>providerIDs[&lt;provider ID&gt;]</c>, with the provider's name and what it threw.
+    /// </returns>
     [Authorize("admin")]
     [ProducesResponseType(404)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ReleaseInfo), 200)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), 502)]
     [HttpPost("File/{fileID}/AutoPreview")]
     public async Task<ActionResult<ReleaseInfo>> AutoPreviewReleaseInfoByFileID(
         [FromRoute, Range(1, int.MaxValue)] int fileID,
@@ -374,7 +379,20 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
             providers = videoReleaseService.GetAvailableProviders(onlyEnabled: true).ToList();
         }
 
-        if (await videoReleaseService.FindReleaseForVideo(video, providers, saveRelease: false, isAutomatic: isAutomatic, cancellationToken: HttpContext.RequestAborted) is not { } releaseInfo)
+        IReleaseInfo? releaseInfo;
+        try
+        {
+            releaseInfo = await videoReleaseService.FindReleaseForVideo(video, providers, saveRelease: false, isAutomatic: isAutomatic, cancellationToken: HttpContext.RequestAborted);
+        }
+        catch (ReleaseProviderFailedException ex)
+        {
+            // The request was fine; the provider behind it failed, so name it for the client.
+            var failure = ex.InnerException!;
+            ModelState.AddModelError($"{nameof(providerIDs)}[{ex.ProviderID}]", $"{ex.ProviderName} failed while searching: {failure.GetType().Name}: {failure.Message}");
+            return ValidationProblem(title: "A release provider failed.", statusCode: 502, modelStateDictionary: ModelState);
+        }
+
+        if (releaseInfo is null)
             return NoContent();
 
         return Ok(new ReleaseInfo(releaseInfo));

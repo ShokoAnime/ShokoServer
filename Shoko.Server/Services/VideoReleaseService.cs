@@ -870,7 +870,7 @@ public class VideoReleaseService(
                 // A provider suspended by its own failure, such as AniDB once its UDP login fails, is skipped when
                 // more providers are left to ask, rather than failing the whole search.
                 if (!ShouldSkipFailedProvider(index, providers.Count, IsProviderCurrentlyUsable(providerInfo)))
-                    throw;
+                    throw new ReleaseProviderFailedException(providerInfo.ID, provider.Name, failure);
 
                 logger.LogWarning(failure, "Skipping release provider {ProviderName}: it was suspended while searching for the video, so the next provider is asked. (Video={VideoID}.Provider={ProviderID})", provider.Name, request.Video.LocalID, providerInfo.ID);
                 continue;

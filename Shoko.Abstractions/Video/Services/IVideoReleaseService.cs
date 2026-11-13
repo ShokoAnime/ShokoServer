@@ -422,6 +422,11 @@ public interface IVideoReleaseService
     /// <returns>
     ///   The found release, or <c>null</c> if none could be found.
     /// </returns>
+    /// <exception cref="ReleaseProviderFailedException">
+    ///   A provider threw while searching and the search stopped there. A
+    ///   provider suspended while searching is skipped instead when another
+    ///   provider is left to ask.
+    /// </exception>
     Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = false, bool skipEvents = false, bool isAutomatic = true, CancellationToken cancellationToken = default);
 
     /// <summary>
