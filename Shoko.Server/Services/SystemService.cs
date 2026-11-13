@@ -60,6 +60,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Server;
 using Shoko.Server.Services.Airing;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Services.Connectivity;
@@ -909,6 +910,36 @@ public class SystemService : ISystemService
         using (DetachedFlow.Suppress())
             Task.Factory.StartNew(LateStart, TaskCreationOptions.LongRunning);
         return true;
+    }
+
+    /// <inheritdoc/>
+    public DatabaseConnectionTestResult TestDatabaseConnection(IConfiguration? serverSettings = null)
+    {
+        var settings = serverSettings switch
+        {
+            null => _settingsProvider.GetSettings(),
+            ServerSettings given => given,
+            _ => throw new ArgumentException($"Expected the server settings, got {serverSettings.GetType().Name}.", nameof(serverSettings)),
+        };
+        var error = settings.Database.Type switch
+        {
+            Constants.DatabaseType.MySQL => MySQL.FindConnectionError(settings.Database),
+            Constants.DatabaseType.SQLServer => SQLServer.FindConnectionError(settings.Database),
+            Constants.DatabaseType.SQLite => null,
+            _ => $"Unknown database type {settings.Database.Type}.",
+        };
+        return new(error is null, error);
+    }
+
+    /// <inheritdoc/>
+    public void SetDefaultUserCredentials(string username, string password)
+    {
+        if (!InSetupMode)
+            throw new InvalidOperationException("The default user's credentials can only be set in setup mode.");
+
+        var settings = _settingsProvider.GetSettings();
+        settings.Database.DefaultUserUsername = username;
+        settings.Database.DefaultUserPassword = password;
     }
 
     #endregion

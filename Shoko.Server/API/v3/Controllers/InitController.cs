@@ -13,7 +13,6 @@ using Shoko.Abstractions.Web.Attributes;
 using Shoko.Abstractions.Web.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Databases;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;
@@ -311,14 +310,5 @@ public class InitController(
     [Authorize("init")]
     [HttpGet("Database/Test")]
     public ActionResult TestDatabaseConnection()
-    {
-        var settings = SettingsProvider.GetSettings();
-        return settings.Database.Type switch
-        {
-            Constants.DatabaseType.MySQL when new MySQL(_systemService).TestConnection() => Ok(),
-            Constants.DatabaseType.SQLServer when new SQLServer(_systemService).TestConnection() => Ok(),
-            Constants.DatabaseType.SQLite when new SQLite(_systemService).TestConnection() => Ok(),
-            _ => BadRequest("Failed to Connect")
-        };
-    }
+        => _systemService.TestDatabaseConnection().IsSuccess ? Ok() : BadRequest("Failed to Connect");
 }

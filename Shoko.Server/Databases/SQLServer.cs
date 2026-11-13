@@ -121,30 +121,39 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
     }
 
     public override bool TestConnection()
+        => FindConnectionError(ISettingsProvider.Instance.GetSettings().Database) is null;
+
+    /// <summary>
+    /// Connects to the server the database settings name, without opening the core's database.
+    /// </summary>
+    /// <param name="settings">The database settings.</param>
+    /// <returns>Why the connection failed, or <c>null</c> when it succeeded.</returns>
+    internal static string? FindConnectionError(DatabaseSettings settings)
     {
         try
         {
-            using var connection = new SqlConnection(GetTestConnectionString());
+            using var connection = new SqlConnection(GetTestConnectionString(settings));
             const string Sql = "select 1";
             var command = new SqlCommand(Sql, connection);
             connection.Open();
             command.ExecuteScalar();
-            return true;
+            return null;
         }
-        catch
+        catch (Exception ex)
         {
-            // ignored
+            return ex.Message;
         }
-        return false;
     }
 
     public override string GetTestConnectionString()
+        => GetTestConnectionString(ISettingsProvider.Instance.GetSettings().Database);
+
+    private static string GetTestConnectionString(DatabaseSettings settings)
     {
-        var settings = ISettingsProvider.Instance.GetSettings();
         // we are assuming that if you have overridden the connection string, you know what you're doing, and have set up the database and perms
-        if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
-            return settings.Database.OverrideConnectionString;
-        return $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog=master;user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True;TrustServerCertificate=True";
+        if (!string.IsNullOrWhiteSpace(settings.OverrideConnectionString))
+            return settings.OverrideConnectionString;
+        return $"data source={settings.Hostname},{settings.Port};Initial Catalog=master;user id={settings.Username};password={settings.Password};persist security info=True;MultipleActiveResultSets=True;TrustServerCertificate=True";
     }
 
     public override string GetConnectionString()

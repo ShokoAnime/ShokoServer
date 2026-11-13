@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
+using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Core.Events;
 using Shoko.Abstractions.Core.Exceptions;
 using Shoko.Abstractions.Plugin;
@@ -148,6 +149,38 @@ public interface ISystemService
     ///   process was completed, otherwise <c>false</c>.
     /// </returns>
     bool CompleteSetup();
+
+    /// <summary>
+    ///   Tests a connection to the database server the database settings name,
+    ///   without opening or creating the core's database, so it works in setup
+    ///   mode before the database exists. A SQLite database always passes.
+    /// </summary>
+    /// <param name="serverSettings">
+    ///   The server settings to test, such as unsaved ones from
+    ///   <see cref="Config.Services.IConfigurationService.Deserialize"/>, or
+    ///   <c>null</c> to test the current settings.
+    /// </param>
+    /// <returns>
+    ///   The outcome, with why the connection failed.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="serverSettings"/> is not the server settings.
+    /// </exception>
+    DatabaseConnectionTestResult TestDatabaseConnection(IConfiguration? serverSettings = null);
+
+    /// <summary>
+    ///   Sets the credentials of the default user, the first admin, created
+    ///   with the database once setup completes. Kept in memory only, never in
+    ///   the settings file.
+    /// </summary>
+    /// <param name="username">The default user's username.</param>
+    /// <param name="password">
+    ///   The default user's password, or an empty string for none.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    ///   The server is not in setup mode.
+    /// </exception>
+    void SetDefaultUserCredentials(string username, string password);
 
     #endregion
 

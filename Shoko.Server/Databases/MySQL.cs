@@ -51,22 +51,28 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
     }
 
     public override bool TestConnection()
+        => FindConnectionError(ISettingsProvider.Instance.GetSettings().Database) is null;
+
+    /// <summary>
+    /// Connects to the server the database settings name, without opening the core's database.
+    /// </summary>
+    /// <param name="settings">The database settings.</param>
+    /// <returns>Why the connection failed, or <c>null</c> when it succeeded.</returns>
+    internal static string? FindConnectionError(DatabaseSettings settings)
     {
         try
         {
-            using var conn = new MySqlConnection(GetTestConnectionString());
+            using var conn = new MySqlConnection(GetTestConnectionString(settings));
             const string Sql = "select 1";
             var cmd = new MySqlCommand(Sql, conn);
             conn.Open();
             cmd.ExecuteScalar();
-            return true;
+            return null;
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore
+            return ex.Message;
         }
-
-        return false;
     }
 
     protected override Tuple<bool, string?> ExecuteCommand(MySqlConnection connection, string command)
@@ -158,14 +164,16 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
     }
 
     public override string GetTestConnectionString()
+        => GetTestConnectionString(ISettingsProvider.Instance.GetSettings().Database);
+
+    private static string GetTestConnectionString(DatabaseSettings settings)
     {
-        var settings = ISettingsProvider.Instance.GetSettings();
         // we are assuming that if you have overridden the connection string, you know what you're doing, and have set up the database and perms
-        if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
-            return settings.Database.OverrideConnectionString;
+        if (!string.IsNullOrWhiteSpace(settings.OverrideConnectionString))
+            return settings.OverrideConnectionString;
 
         return
-            $"Server={settings.Database.Hostname};Port={settings.Database.Port};Database=information_schema;User ID={settings.Database.Username};Password={settings.Database.Password};Default Command Timeout=3600";
+            $"Server={settings.Hostname};Port={settings.Port};Database=information_schema;User ID={settings.Username};Password={settings.Password};Default Command Timeout=3600";
     }
 
     public override bool HasVersionsTable()
