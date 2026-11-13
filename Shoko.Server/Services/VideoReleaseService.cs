@@ -9,6 +9,7 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Connectivity;
 using Shoko.Abstractions.Connectivity.Services;
+using Shoko.Abstractions.Connectivity.Suspensions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
@@ -829,21 +830,62 @@ public class VideoReleaseService(
 
     private async Task<(IReleaseInfo?, ReleaseProviderInfo?)> FileReleaseForVideoSequential(ReleaseInfoContext request, IReadOnlyList<ReleaseProviderInfo> providers, CancellationToken cancellationToken)
     {
-        foreach (var providerInfo in providers)
+        for (var index = 0; index < providers.Count; index++)
         {
+            var providerInfo = providers[index];
             logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", providerInfo.Provider.Name, request.Video.LocalID, providerInfo.ID);
             var provider = providerInfo.Provider;
             var startedAt = Stopwatch.GetTimestamp();
+
+            // Stop waiting on a provider that gets suspended while it searches, such as AniDB once its UDP login
+            // fails, when another provider is left to ask; the last provider is waited on as before.
+            using var providerCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            void OnSuspensionChanged(object? sender, SuspensionChangedEventArgs e)
+            {
+                try
+                {
+                    if (!IsProviderCurrentlyUsable(providerInfo))
+                        providerCancellation.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The provider already finished.
+                }
+            }
+
+            var canSkip = index < providers.Count - 1;
+            if (canSkip)
+                suspensionService.Value.SuspensionChanged += OnSuspensionChanged;
+
             ReleaseInfo? release;
             try
             {
-                release = await provider.GetReleaseInfoForVideo(request, cancellationToken);
+                release = await provider.GetReleaseInfoForVideo(request, providerCancellation.Token);
                 ShokoTelemetry.RecordReleaseSearch(provider.Name, startedAt, release is { CrossReferences.Count: > 0 });
             }
-            catch (Exception failure)
+            catch (Exception failure) when (!cancellationToken.IsCancellationRequested)
             {
                 ShokoTelemetry.RecordReleaseSearch(provider.Name, startedAt, false, failure);
-                throw;
+
+                // A provider suspended by its own failure, such as AniDB once its UDP login fails, is skipped when
+                // more providers are left to ask, rather than failing the whole search.
+                if (!ShouldSkipFailedProvider(index, providers.Count, IsProviderCurrentlyUsable(providerInfo)))
+                    throw;
+
+                logger.LogWarning(failure, "Skipping release provider {ProviderName}: it was suspended while searching for the video, so the next provider is asked. (Video={VideoID}.Provider={ProviderID})", provider.Name, request.Video.LocalID, providerInfo.ID);
+                continue;
+            }
+            finally
+            {
+                if (canSkip)
+                    suspensionService.Value.SuspensionChanged -= OnSuspensionChanged;
+            }
+
+            // A provider that swallowed the cancellation and answered nothing was suspended too; the next one is asked.
+            if (providerCancellation.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            {
+                logger.LogWarning("Skipping release provider {ProviderName}: it was suspended while searching for the video, so the next provider is asked. (Video={VideoID}.Provider={ProviderID})", provider.Name, request.Video.LocalID, providerInfo.ID);
+                continue;
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -856,6 +898,18 @@ public class VideoReleaseService(
 
         return default;
     }
+
+    /// <summary>
+    ///   Whether a search goes on past a provider that failed: only when it is
+    ///   no longer usable, suspended or held by its own failure, and another
+    ///   provider is left to ask. Otherwise the failure fails the search.
+    /// </summary>
+    /// <param name="index">The provider's place in the search.</param>
+    /// <param name="count">How many providers the search asks.</param>
+    /// <param name="isStillUsable">Whether the provider is still usable after failing.</param>
+    /// <returns><c>true</c> to skip it.</returns>
+    internal static bool ShouldSkipFailedProvider(int index, int count, bool isStillUsable)
+        => !isStillUsable && index < count - 1;
 
     #endregion Find Release
 
