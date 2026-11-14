@@ -552,7 +552,7 @@ public class SystemService : ISystemService
 
         _logger.LogWarning(
             firstFailure,
-            "{Count} files in {Path} are marked as downloaded from the internet and could not be unblocked, e.g. {File}. The server runs anyway; to clear the mark, run this in a PowerShell started as administrator: Get-ChildItem -LiteralPath '{Path}' -Recurse | Unblock-File",
+            "{Count} files in {Path} are marked as downloaded from the internet and could not be unblocked, e.g. {File}. The server runs anyway; to clear the mark, run this in a PowerShell started as administrator: Get-ChildItem -LiteralPath '{CommandPath}' -Recurse | Unblock-File",
             stillBlocked,
             ApplicationPaths.Instance.ApplicationPath,
             firstFile,
