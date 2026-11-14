@@ -135,6 +135,73 @@ public class MetadataRefreshService : IMetadataRefreshService
     }
 
     /// <summary>
+    ///   Queues a refresh of each entry an anime in the library links to that
+    ///   is not stored, on the source of every enabled provider: the series or
+    ///   film a link names, or the series of a linked episode not stored.
+    /// </summary>
+    /// <param name="progress">The queuing's progress.</param>
+    /// <param name="cancellationToken">Stops the queuing.</param>
+    /// <returns>How many refreshes were queued.</returns>
+    internal async Task<int> RefreshMissingLinked(IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
+    {
+        var options = MetadataProviderScheduler.FullRefresh(MetadataRefreshReason.Linked);
+        var queued = 0;
+        var providers = _providerManager.MetadataProviders.Where(info => info.Enabled && info.Source != MetadataSource.AniDB).ToList();
+        var stages = new StagedProgress(progress, Math.Max(providers.Count, 1));
+        stages.Report(0);
+        var inLibrary = new Dictionary<int, bool>();
+        bool InLibrary(int anidbAnimeID)
+        {
+            if (!inLibrary.TryGetValue(anidbAnimeID, out var found))
+                inLibrary[anidbAnimeID] = found = _metadataService.GetShokoSeriesByAnidbID(anidbAnimeID) is not null;
+            return found;
+        }
+
+        foreach (var info in providers)
+        {
+            var entries = SelectMissingLinkedEntries(
+                _crossReferences.GetAllLinkedEntries(info.Source),
+                _crossReferences.GetAllEpisodeLinks(info.Source).Select(link => (link.AnidbAnimeID, link.ProviderID, link.ProviderParentID)),
+                InLibrary,
+                entry => _metadataService.GetEntry(entry) is not null
+            );
+            var items = new ItemProgress(stages, entries.Count);
+            queued += await ScheduleLinkedRefreshes(info, entries, [], items, false, options, cancellationToken).ConfigureAwait(false);
+            stages.NextStage();
+        }
+
+        stages.Complete();
+        return queued;
+    }
+
+    /// <summary>
+    ///   The entries to fetch for the links of anime in the library: each
+    ///   linked series or film not stored, and the series of each linked
+    ///   episode not stored, each once.
+    /// </summary>
+    /// <param name="linkedEntries">Each anime and the series or film it links to.</param>
+    /// <param name="episodeLinks">Each anime with the episode it links to and that episode's series.</param>
+    /// <param name="inLibrary">Whether an anime has a series in the library.</param>
+    /// <param name="isStored">Whether an entry is stored.</param>
+    /// <returns>The entries to refresh.</returns>
+    internal static IReadOnlyList<MetadataGuid> SelectMissingLinkedEntries(
+        IEnumerable<(int AnidbAnimeID, MetadataGuid Entry)> linkedEntries,
+        IEnumerable<(int AnidbAnimeID, MetadataGuid? Episode, MetadataGuid? Series)> episodeLinks,
+        Func<int, bool> inLibrary,
+        Func<MetadataGuid, bool> isStored
+    )
+        =>
+        [
+            .. linkedEntries
+                .Where(link => inLibrary(link.AnidbAnimeID) && !isStored(link.Entry))
+                .Select(link => link.Entry)
+                .Concat(episodeLinks
+                    .Where(link => link is { Episode: not null, Series: not null } && inLibrary(link.AnidbAnimeID) && !isStored(link.Episode))
+                    .Select(link => link.Series!))
+                .Distinct(),
+        ];
+
+    /// <summary>
     ///   Schedules the refresh of each linked entry and stored collection of one provider.
     /// </summary>
     /// <returns>How many refreshes were queued.</returns>
