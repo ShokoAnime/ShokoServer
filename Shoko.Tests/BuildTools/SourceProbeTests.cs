@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using Microsoft.Build.Evaluation;
-using Microsoft.Build.Locator;
 using Shoko.BuildTools;
 using Xunit;
 
@@ -13,13 +12,6 @@ namespace Shoko.Tests.BuildTools;
 /// </summary>
 public class SourceProbeTests : IDisposable
 {
-    static SourceProbeTests()
-    {
-        // Evaluating a project needs MSBuild's own assemblies, which only an SDK holds.
-        if (!MSBuildLocator.IsRegistered)
-            MSBuildLocator.RegisterDefaults();
-    }
-
     private readonly string _root = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"shoko-source-probe-{Guid.NewGuid():N}")).FullName;
 
     public void Dispose()

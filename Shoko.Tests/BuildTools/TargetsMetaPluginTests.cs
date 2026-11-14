@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Locator;
 using Moq;
 using Shoko.BuildTools.Tasks;
 using Xunit;
@@ -14,13 +13,6 @@ namespace Shoko.Tests.BuildTools;
 /// </summary>
 public class TargetsMetaPluginTests : IDisposable
 {
-    static TargetsMetaPluginTests()
-    {
-        // The tasks run on MSBuild's own assemblies, which only an SDK holds.
-        if (!MSBuildLocator.IsRegistered)
-            MSBuildLocator.RegisterDefaults();
-    }
-
     private readonly string _projectDir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"shoko-targets-metadata-{Guid.NewGuid():N}")).FullName;
 
     public void Dispose()
