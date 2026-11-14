@@ -130,20 +130,20 @@ public interface IServerSettings
     WebSettings Web { get; set; }
 
     /// <summary>
+    /// Configure the error reports sent to Sentry.
+    /// </summary>
+    SentrySettings Sentry { get; set; }
+
+    /// <summary>
+    /// Configure the OpenTelemetry export to a collector of the admin's own.
+    /// </summary>
+    TelemetrySettings Telemetry { get; set; }
+
+    /// <summary>
     /// Dump the settings to the log file on startup.
     /// </summary>
     /// <remarks>
     /// This is useful for debugging issues with the server configuration.
     /// </remarks>
     bool DumpSettingsOnStart { get; set; }
-
-    /// <summary>
-    /// Opt out of sending error reports to Sentry.
-    /// </summary>
-    bool SentryOptOut { get; set; }
-
-    /// <summary>
-    /// Configure the OpenTelemetry export to a collector of the admin's own.
-    /// </summary>
-    TelemetrySettings Telemetry { get; set; }
 }

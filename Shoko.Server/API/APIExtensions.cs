@@ -41,6 +41,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Plugin;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
+using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
@@ -567,7 +568,7 @@ public static partial class APIExtensions
         if (trustedProxies.Count > 0)
             app.UseForwardedHeaders(TrustedProxies.CreateOptions(trustedProxies));
 
-        if (!settings.SentryOptOut)
+        if (SentryInit.GetReporting(settings.Sentry, PluginManager.GetVersionInformation()) is not null)
         {
             app.Use(async (context, next) =>
             {

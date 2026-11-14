@@ -100,6 +100,7 @@ public static partial class SettingsMigrations
         { 31, MigrateWebUISettingsToWebUIService },
         { 32, (settings, _) => MigrateAddTelemetrySection(settings) },
         { 33, (settings, paths) => MigrateHasherToCarryOver(settings, paths.DataPath) },
+        { 34, (settings, _) => MigrateSentryOptOutToSentrySection(settings) },
     };
 
     /// <summary>
@@ -841,6 +842,24 @@ public static partial class SettingsMigrations
             return settings;
 
         currentSettings["Telemetry"] = new JObject();
+        return currentSettings.ToString();
+    }
+
+    /// <summary>
+    ///   Moves <c>SentryOptOut</c> into the new <c>Sentry</c> section: an
+    ///   install that opted out gets <c>off</c> as its <c>Dsn</c>, which turns
+    ///   reporting off, and one that did not keeps the built-in one.
+    /// </summary>
+    /// <param name="settings">The settings JSON.</param>
+    /// <returns>The migrated settings JSON.</returns>
+    internal static string MigrateSentryOptOutToSentrySection(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var sentry = currentSettings["Sentry"] as JObject ?? new JObject();
+        if (currentSettings["SentryOptOut"] is { Type: JTokenType.Boolean } optOut && optOut.Value<bool>())
+            sentry["Dsn"] = "off";
+        currentSettings.Remove("SentryOptOut");
+        currentSettings["Sentry"] = sentry;
         return currentSettings.ToString();
     }
 

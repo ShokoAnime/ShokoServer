@@ -197,6 +197,16 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, ICo
     /// <inheritdoc />
     public WebSettings Web { get; set; } = new();
 
+    /// <inheritdoc />
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    public SentrySettings Sentry { get; set; } = new();
+
+    /// <inheritdoc />
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    public TelemetrySettings Telemetry { get; set; } = new();
+
     /// <summary>
     /// Dump the settings to the log file on startup.
     /// </summary>
@@ -207,18 +217,4 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, ICo
     [Display(Name = "Dump Settings On Start")]
     [DefaultValue(true)]
     public bool DumpSettingsOnStart { get; set; } = true;
-
-    /// <summary>
-    /// Disable Sentry error reporting in the server. This will not affect the
-    /// web UI error reporting.
-    /// </summary>
-    [RequiresRestart]
-    [EnvironmentVariable("SENTRY_OPT_OUT")]
-    [Display(Name = "Sentry Opt-Out")]
-    public bool SentryOptOut { get; set; } = false;
-
-    /// <inheritdoc />
-    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
-    [Visibility(Advanced = true)]
-    public TelemetrySettings Telemetry { get; set; } = new();
 }

@@ -7,10 +7,12 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
+using Newtonsoft.Json;
 using NHibernate.Exceptions;
 using Sentry;
 using Sentry.AspNetCore;
@@ -23,14 +25,30 @@ using Shoko.Server.Settings;
 
 namespace Shoko.Server.Services.ErrorHandling;
 
-public static class SentryInit
+public static partial class SentryInit
 {
+    /// <summary>
+    ///   The share of errors reported to the Shoko team's Sentry.
+    /// </summary>
+    internal const double BuiltInSampleRate = 0.5;
+
+    /// <summary>
+    ///   The plugins whose own errors are reported, set when Sentry starts;
+    ///   the first-party ones until then.
+    /// </summary>
+    private static IReadOnlySet<Guid>? _reportedPlugins;
+
+    /// <summary>
+    ///   Where and how the server reports its errors.
+    /// </summary>
+    /// <param name="Dsn">The DSN to report to.</param>
+    /// <param name="SampleRate">The share of errors reported.</param>
+    /// <param name="ReportedPlugins">The plugins whose own errors are reported.</param>
+    internal sealed record SentryReporting(string Dsn, double SampleRate, IReadOnlySet<Guid> ReportedPlugins);
+
     public static IServiceCollection AddSentryConfig(this IServiceCollection services, ISettingsProvider settingsProvider)
     {
-        var settings = settingsProvider.GetSettings();
-
-        // Only try to set up Sentry if the user DID NOT OPT __OUT__.
-        if (settings.SentryOptOut || !Constants.SentryDsn.StartsWith("https://"))
+        if (GetReporting(settingsProvider.GetSettings().Sentry, PluginManager.GetVersionInformation()) is null)
             return services;
 
         services.AddSentry();
@@ -40,28 +58,18 @@ public static class SentryInit
 
     public static IWebHostBuilder UseSentryConfig(this IWebHostBuilder webHost, ISettingsProvider settingsProvider)
     {
-        var settings = settingsProvider.GetSettings();
-
-        // Only try to set up Sentry if the user DID NOT OPT __OUT__.
-        if (settings.SentryOptOut || !Constants.SentryDsn.StartsWith("https://"))
-            return webHost;
-
         // Get the release and extra info from the assembly.
         var versionInfo = PluginManager.GetVersionInformation();
-
-        // Only initialize the SDK if we're not on a debug build.
-        //
-        // If the release channel is not set or if it's set to "stable" or "dev" then
-        // it's considered to be a debug build.
-        if (versionInfo.Channel is not ReleaseChannel.Stable and not ReleaseChannel.Dev)
+        if (GetReporting(settingsProvider.GetSettings().Sentry, versionInfo) is not { } reporting)
             return webHost;
 
+        _reportedPlugins = reporting.ReportedPlugins;
         return webHost.UseSentry(Action);
 
         void Action(SentryAspNetCoreOptions opts)
         {
             // Assign the DSN key and release version.
-            opts.Dsn = Constants.SentryDsn;
+            opts.Dsn = reporting.Dsn;
             opts.Environment = versionInfo.Channel is ReleaseChannel.Stable ? "stable" : "dev";
             opts.Release = versionInfo.Version.ToSemanticVersioningString();
 
@@ -69,11 +77,51 @@ public static class SentryInit
             if (versionInfo.SourceRevision is { Length: > 0 } gitCommit) opts.DefaultTags.Add("commit", gitCommit);
             if (versionInfo.ReleaseTag is { Length: > 0 } gitTag) opts.DefaultTags.Add("commit.tag", gitTag);
 
-            opts.SampleRate = 0.5f;
+            opts.SampleRate = (float)reporting.SampleRate;
 
             opts.SetBeforeSend(BeforeSentrySend);
         }
     }
+
+    private static bool OptedOutByEnvironment()
+        => bool.TryParse(Environment.GetEnvironmentVariable("SENTRY_OPT_OUT"), out var optOut) && optOut;
+
+    /// <summary>
+    ///   Where and how the server reports, or <c>null</c> when it reports nothing. A usable DSN the admin set is used on
+    ///   any build, with the admin's sample rate and plugins, and any other non-empty value turns reporting off. With
+    ///   an empty or <c>null</c> DSN, a stable or dev build reports to the built-in DSN with the built-in sample rate
+    ///   and the first-party plugins, and a debug build reports nothing.
+    /// </summary>
+    /// <param name="settings">The Sentry settings.</param>
+    /// <param name="versionInfo">The build's version information.</param>
+    /// <param name="optedOutByEnvironment">Whether the legacy <c>SENTRY_OPT_OUT</c> environment variable is true.</param>
+    /// <returns>The reporting, or <c>null</c>.</returns>
+    internal static SentryReporting? GetReporting(SentrySettings settings, VersionInformation versionInfo, bool? optedOutByEnvironment = null)
+    {
+        if (optedOutByEnvironment ?? OptedOutByEnvironment())
+            return null;
+        if (settings.Dsn?.Trim() is { Length: > 0 } dsn)
+            return IsUsableDsn(dsn)
+                ? new(dsn, Math.Clamp(settings.SampleRate, 0, 1), settings.ReportedPlugins.ToHashSet())
+                : null;
+        if (versionInfo.Channel is not ReleaseChannel.Stable and not ReleaseChannel.Dev)
+            return null;
+        return IsUsableDsn(Constants.SentryDsn)
+            ? new(Constants.SentryDsn, BuiltInSampleRate, FirstPartyPluginIDs)
+            : null;
+    }
+
+    /// <summary>
+    ///   Whether a DSN is one to report to: it starts with <c>http://</c> or
+    ///   <c>https://</c>. Any other value turns reporting off.
+    /// </summary>
+    /// <param name="dsn">The DSN.</param>
+    /// <returns><c>true</c> for a usable DSN.</returns>
+    internal static bool IsUsableDsn(string dsn)
+        => UsableDsnRegex().IsMatch(dsn);
+
+    [GeneratedRegex(@"^https?://")]
+    private static partial Regex UsableDsnRegex();
 
     private static readonly HashSet<Type> _ignoredEvents = new() {
         typeof(FileNotFoundException),
@@ -98,19 +146,19 @@ public static class SentryInit
     ///   The plugins whose failures are reported: the ones the Shoko team
     ///   ships. Legacy Plex, TMDB, AniList, the Offline Importer and WebAOM.
     /// </summary>
-    internal static readonly IReadOnlySet<Guid> FirstPartyPluginIDs = new HashSet<Guid>
-    {
-        new("d5b194ef-6f9d-455b-beb3-b23af899bb21"),
-        new("85d0c34f-240f-4da3-8512-d0b45118a9f4"),
-        new("e73c1e23-111a-4cf0-bab8-054b738c5101"),
-        new("72a6ff39-2bff-534c-9216-d03cd38e7346"),
-        new("8c8d75f2-cd0c-5c0b-9a9e-8c2c6d3e5f1a"),
-    };
+    internal static readonly IReadOnlySet<Guid> FirstPartyPluginIDs = JsonConvert.DeserializeObject<List<Guid>>(FirstPartyPluginIDsJson)!.ToHashSet();
+
+    /// <summary>
+    ///   <see cref="FirstPartyPluginIDs"/> as a JSON array, the default of
+    ///   <see cref="SentrySettings.ReportedPlugins"/>.
+    /// </summary>
+    internal const string FirstPartyPluginIDsJson =
+        """["d5b194ef-6f9d-455b-beb3-b23af899bb21","85d0c34f-240f-4da3-8512-d0b45118a9f4","e73c1e23-111a-4cf0-bab8-054b738c5101","72a6ff39-2bff-534c-9216-d03cd38e7346","8c8d75f2-cd0c-5c0b-9a9e-8c2c6d3e5f1a"]""";
 
     private static SentryEvent? BeforeSentrySend(SentryEvent arg)
     {
         var ex = arg.Exception;
-        if (ex is not null && !ThrownByReportedCode(ex)) return null;
+        if (ex is not null && !ThrownByReportedCode(ex, _reportedPlugins ?? FirstPartyPluginIDs)) return null;
         if (ExceptionAllowed(ex)) return arg;
         if (arg.Logger is not null && arg.Level >= SentryLevel.Fatal) return arg;
 
@@ -123,8 +171,9 @@ public static class SentryInit
     ///   third-party plugin. The innermost exception's throw site decides.
     /// </summary>
     /// <param name="exception">The failure.</param>
-    /// <returns><c>false</c> when a third-party plugin threw it.</returns>
-    internal static bool ThrownByReportedCode(Exception exception)
+    /// <param name="reportedPlugins">The plugins whose own failures are reported.</param>
+    /// <returns><c>false</c> when another plugin threw it.</returns>
+    internal static bool ThrownByReportedCode(Exception exception, IReadOnlySet<Guid> reportedPlugins)
     {
         var chain = new List<Exception>();
         for (var current = exception; current is not null; current = current.InnerException)
@@ -137,7 +186,7 @@ public static class SentryInit
                 .Select(frame => frame.GetMethod()?.Module.Assembly)
                 .OfType<Assembly>()
                 .Select(assembly => (assembly.GetName().Name ?? string.Empty, (AssemblyLoadContext.GetLoadContext(assembly) as PluginLoadContext)?.PluginID));
-            if (DecideFromFrames(frames) is { } decision)
+            if (DecideFromFrames(frames, reportedPlugins) is { } decision)
                 return decision;
         }
 
@@ -152,14 +201,15 @@ public static class SentryInit
     ///   runs through the server's dependencies is reported.
     /// </summary>
     /// <param name="frames">Each frame's assembly name, and its plugin's ID when a plugin loaded it.</param>
+    /// <param name="reportedPlugins">The plugins whose own failures are reported.</param>
     /// <returns>Whether to report it, or <c>null</c> when no frame decides.</returns>
-    internal static bool? DecideFromFrames(IEnumerable<(string AssemblyName, Guid? PluginID)> frames)
+    internal static bool? DecideFromFrames(IEnumerable<(string AssemblyName, Guid? PluginID)> frames, IReadOnlySet<Guid> reportedPlugins)
     {
         var seenDependency = false;
         foreach (var (assemblyName, pluginID) in frames)
         {
             if (pluginID is { } id)
-                return FirstPartyPluginIDs.Contains(id);
+                return reportedPlugins.Contains(id);
             if (IsRuntimeAssembly(assemblyName))
                 continue;
             if (assemblyName.StartsWith("Shoko.", StringComparison.Ordinal))

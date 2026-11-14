@@ -17,27 +17,27 @@ public class SentryPluginFilterTests
 
     [Fact]
     public void AThirdPartyPluginThrowingThroughTheRuntime_IsNotReported()
-        => Assert.False(SentryInit.DecideFromFrames([("System.Linq", null), ("CulturedRenamer", ThirdParty), ("Shoko.Server", null)]));
+        => Assert.False(SentryInit.DecideFromFrames([("System.Linq", null), ("CulturedRenamer", ThirdParty), ("Shoko.Server", null)], SentryInit.FirstPartyPluginIDs));
 
     [Fact]
     public void AFirstPartyPluginsOwnDependency_IsReported()
-        => Assert.True(SentryInit.DecideFromFrames([("System.Net.Http", null), ("TMDbLib", Tmdb), ("Shoko.Plugin.Tmdb", Tmdb)]));
+        => Assert.True(SentryInit.DecideFromFrames([("System.Net.Http", null), ("TMDbLib", Tmdb), ("Shoko.Plugin.Tmdb", Tmdb)], SentryInit.FirstPartyPluginIDs));
 
     [Fact]
     public void TheServerCallingAThirdPartyPlugin_IsReported()
-        => Assert.True(SentryInit.DecideFromFrames([("System.Private.CoreLib", null), ("Shoko.Server", null), ("ShokoRelay", ThirdParty)]));
+        => Assert.True(SentryInit.DecideFromFrames([("System.Private.CoreLib", null), ("Shoko.Server", null), ("ShokoRelay", ThirdParty)], SentryInit.FirstPartyPluginIDs));
 
     [Fact]
     public void AServerDependency_IsReportedUntilAPluginFrameDecides()
     {
-        Assert.True(SentryInit.DecideFromFrames([("NHibernate", null), ("Shoko.Server", null)]));
-        Assert.False(SentryInit.DecideFromFrames([("Newtonsoft.Json", null), ("ShokoRelay", ThirdParty)]));
-        Assert.True(SentryInit.DecideFromFrames([("NHibernate", null)]));
+        Assert.True(SentryInit.DecideFromFrames([("NHibernate", null), ("Shoko.Server", null)], SentryInit.FirstPartyPluginIDs));
+        Assert.False(SentryInit.DecideFromFrames([("Newtonsoft.Json", null), ("ShokoRelay", ThirdParty)], SentryInit.FirstPartyPluginIDs));
+        Assert.True(SentryInit.DecideFromFrames([("NHibernate", null)], SentryInit.FirstPartyPluginIDs));
     }
 
     [Fact]
     public void OnlyRuntimeFrames_DecideNothing()
-        => Assert.Null(SentryInit.DecideFromFrames([("System.Private.CoreLib", null), ("Microsoft.AspNetCore.Mvc.Core", null)]));
+        => Assert.Null(SentryInit.DecideFromFrames([("System.Private.CoreLib", null), ("Microsoft.AspNetCore.Mvc.Core", null)], SentryInit.FirstPartyPluginIDs));
 
     [Fact]
     public void AFailureThrownByTheServersOwnCode_IsReported()
@@ -52,6 +52,6 @@ public class SentryPluginFilterTests
             thrown = ex;
         }
 
-        Assert.True(SentryInit.ThrownByReportedCode(new AggregateException(thrown)));
+        Assert.True(SentryInit.ThrownByReportedCode(new AggregateException(thrown), SentryInit.FirstPartyPluginIDs));
     }
 }
