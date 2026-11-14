@@ -1462,6 +1462,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                        """),
         new(182,   2, "ALTER TABLE VideoLocal_User DROP COLUMN ClientData;"),
         new(182,   3, "ALTER TABLE VideoLocal_User ADD COLUMN UserTags TEXT NOT NULL DEFAULT '';"),
+        new(182,   4, "ALTER TABLE Metadata_Season ADD COLUMN Resources TEXT NULL;"),
     ];
 
     #endregion

@@ -10,8 +10,14 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Season Metadata.
 /// </summary>
-public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithYearlySeasons, IWithCreationDate, IWithUpdateDate, IMetadata
+public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithResources, IWithYearlySeasons, IWithCreationDate, IWithUpdateDate, IMetadata
 {
+    /// <summary>
+    ///   Links to the season elsewhere, such as its trailers or its page on
+    ///   another site. Empty unless the season's source keeps any.
+    /// </summary>
+    IReadOnlyList<Resource> IWithResources.Resources => [];
+
     /// <summary>
     ///   The series the season belongs to.
     /// </summary>

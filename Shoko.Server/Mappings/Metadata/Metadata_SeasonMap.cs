@@ -1,4 +1,5 @@
 using FluentNHibernate.Mapping;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Metadata.Embedded;
@@ -21,5 +22,6 @@ public class Metadata_SeasonMap : ClassMap<Metadata_Season>
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
         Map(x => x.ExtraData).CustomType<JsonObjectConverter<Metadata_SeasonExtra>>().Nullable();
+        Map(x => x.Resources).CustomType<JsonListConverter<Resource>>().Nullable();
     }
 }

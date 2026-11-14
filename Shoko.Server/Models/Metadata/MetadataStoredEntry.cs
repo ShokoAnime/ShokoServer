@@ -306,6 +306,7 @@ internal static class MetadataStoredEntry
         => first.Count == second.Count && first.Zip(second).All(pair =>
             pair.First.Type == pair.Second.Type &&
             pair.First.Name == pair.Second.Name &&
+            pair.First.Title == pair.Second.Title &&
             pair.First.Url == pair.Second.Url &&
             pair.First.ID == pair.Second.ID &&
             pair.First.LanguageCode == pair.Second.LanguageCode);

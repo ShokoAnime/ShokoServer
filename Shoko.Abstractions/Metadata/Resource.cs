@@ -16,10 +16,16 @@ public sealed class Resource
     public required ResourceType Type { get; init; }
 
     /// <summary>
-    ///   The display name of the resource (e.g. the site or service
-    ///   name).
+    ///   The name of the site or service the resource is on, e.g.
+    ///   <c>YouTube</c> or <c>Wikipedia</c>.
     /// </summary>
     public required string Name { get; init; }
+
+    /// <summary>
+    ///   The resource's own title, such as a trailer's, when it has one
+    ///   apart from the site's <see cref="Name"/>. <c>null</c> otherwise.
+    /// </summary>
+    public string? Title { get; init; }
 
     /// <summary>
     ///   The URL to the resource. Empty when the source gives only an ID

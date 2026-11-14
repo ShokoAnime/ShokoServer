@@ -36,6 +36,12 @@ public sealed record MetadataSeasonData
     public IReadOnlyList<IText> Overviews { get; init; } = [];
 
     /// <summary>
+    ///   Links to the season elsewhere, such as its trailers or its page on
+    ///   another site.
+    /// </summary>
+    public IReadOnlyList<Resource> Resources { get; init; } = [];
+
+    /// <summary>
     ///   The source's resource ID of the season's default image of each type,
     ///   which becomes its pinned default and is always the first downloaded
     ///   within the type's limit. <c>null</c> leaves the stored defaults as

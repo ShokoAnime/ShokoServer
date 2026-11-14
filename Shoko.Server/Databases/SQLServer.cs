@@ -1779,6 +1779,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
                        """),
         new(203,   2, "ALTER TABLE VideoLocal_User DROP COLUMN ClientData;"),
         new(203,   3, "ALTER TABLE VideoLocal_User ADD UserTags nvarchar(max) NOT NULL CONSTRAINT DF_VideoLocal_User_UserTags DEFAULT '';"),
+        new(203,   4, "ALTER TABLE Metadata_Season ADD Resources NVARCHAR(MAX) NULL;"),
     ];
 
     #endregion

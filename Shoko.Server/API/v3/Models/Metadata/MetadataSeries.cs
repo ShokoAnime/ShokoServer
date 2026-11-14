@@ -235,6 +235,12 @@ public class MetadataSeason : MetadataEntry
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IReadOnlyList<SeasonWithYear>? YearlySeasons { get; init; }
+
+    /// <summary>
+    /// The external resources, when asked for.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Resource>? Resources { get; init; }
 }
 
 /// <summary>

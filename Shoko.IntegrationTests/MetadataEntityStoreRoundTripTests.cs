@@ -88,7 +88,7 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
             ContentRatings = [new() { CountryCode = "US", Rating = "TV-14" }, new() { CountryCode = "JP", Rating = "R15+", LanguageCode = "ja" }],
             Seasons =
             [
-                new() { ID = ID(MetadataEntityType.Season, "entity-season-1"), SeasonNumber = 1, Titles = [Title("Part 1")] },
+                new() { ID = ID(MetadataEntityType.Season, "entity-season-1"), SeasonNumber = 1, Titles = [Title("Part 1")], Resources = [new() { Type = ResourceType.Trailer, Name = "YouTube", Title = "Part 1 Trailer", Url = "https://www.youtube.com/watch?v=part1", ID = "part1", LanguageCode = "ja" }] },
                 new() { ID = ID(MetadataEntityType.Season, longID), SeasonNumber = 2 },
             ],
             Episodes =
@@ -176,6 +176,8 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal([("US", "TV-14"), ("JP", "R15+")], storedSeries.ContentRatings.Select(rating => (rating.CountryCode, rating.Value)));
         Assert.Equal("ja", storedSeries.ContentRatings[1].LanguageCode);
         Assert.Equal(["entity-season-1", longID], storedSeries.Seasons.Select(season => season.ID.ID));
+        var trailer = Assert.Single(Assert.IsType<Metadata_Season>(storedSeries.Seasons[0]).Resources);
+        Assert.Equal(("YouTube", "Part 1 Trailer", "part1", "ja"), (trailer.Name, trailer.Title, trailer.ID, trailer.LanguageCode));
         Assert.Equal(3, storedSeries.Episodes.Count);
 
         var episode = seriesStore.GetEpisode(ID(MetadataEntityType.Episode, "entity-episode-1"));

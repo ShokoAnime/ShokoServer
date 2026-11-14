@@ -1,16 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Models.Metadata;
 
 /// <summary>
@@ -62,6 +66,11 @@ public class Metadata_Season : ISeason<ISeries, IEpisode>, IMetadataStoreRow<Met
     /// </summary>
     public Metadata_SeasonExtra? ExtraData { get; set; }
 
+    /// <summary>
+    ///   Links to the season elsewhere, as the source gave them.
+    /// </summary>
+    public List<Resource> Resources { get; set; } = [];
+
     #endregion
 
     #region Helpers
@@ -82,6 +91,7 @@ public class Metadata_Season : ISeason<ISeries, IEpisode>, IMetadataStoreRow<Met
             ProviderID == other.ProviderID &&
             SeriesID == other.SeriesID &&
             SeasonNumber == other.SeasonNumber &&
+            MetadataStoredEntry.SameResources(Resources, other.Resources) &&
             Equals(ExtraData, other.ExtraData);
 
     /// <summary>
@@ -162,6 +172,13 @@ public class Metadata_Season : ISeason<ISeries, IEpisode>, IMetadataStoreRow<Met
     IReadOnlyList<ICast> IWithCastAndCrew.Cast => MetadataStoredEntry.Cast(ID);
 
     IReadOnlyList<ICrew> IWithCastAndCrew.Crew => MetadataStoredEntry.Crew(ID);
+
+    #endregion
+
+    #region IWithResources Implementation
+
+    IReadOnlyList<Resource> IWithResources.Resources
+        => [.. Resources, .. ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this)];
 
     #endregion
 

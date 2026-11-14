@@ -151,6 +151,7 @@ public sealed class MetadataModelBuilder(
             Cast = include.Contains(MetadataIncludeDetails.Cast) ? [.. season.Cast.Select(Cast)] : null,
             Crew = include.Contains(MetadataIncludeDetails.Crew) ? [.. season.Crew.Select(Crew)] : null,
             YearlySeasons = include.Contains(MetadataIncludeDetails.YearlySeasons) ? season.YearlySeasons.ToV3Dto() : null,
+            Resources = include.Contains(MetadataIncludeDetails.Resources) ? Resources(season) : null,
         }, season, include, language);
     }
 

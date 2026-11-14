@@ -149,6 +149,19 @@ public partial class MetadataEntryController
             : NotFound(SeasonNotFound);
 
     /// <summary>
+    /// Get the external resources of a stored season.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="id">The source's ID for the season.</param>
+    /// <param name="cancellationToken">Stops the wait for a running refresh.</param>
+    /// <returns>The resources.</returns>
+    [HttpGet("Season/{id}/Resources")]
+    public async Task<ActionResult<IReadOnlyList<Resource>>> GetSeasonResources([FromRoute] MetadataSource source, [FromRoute] string id, CancellationToken cancellationToken = default)
+        => await Get<ISeason>(source, MetadataEntityType.Season, id, cancellationToken).ConfigureAwait(false) is { } season
+            ? Ok(MetadataModelBuilder.Resources(season))
+            : NotFound(SeasonNotFound);
+
+    /// <summary>
     /// Get the days of the week a stored season aired episodes on.
     /// </summary>
     /// <param name="source">The source.</param>

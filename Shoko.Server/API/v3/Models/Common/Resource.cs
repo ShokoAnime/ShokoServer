@@ -17,10 +17,15 @@ public class Resource
     public string Type { get; init; } = string.Empty;
 
     /// <summary>
-    /// site name
+    /// The name of the site or service the resource is on.
     /// </summary>
     [Required]
     public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The resource's own title, such as a trailer's, when it has one.
+    /// </summary>
+    public string? Title { get; init; }
 
     /// <summary>
     /// the url to the series page
@@ -52,6 +57,7 @@ public class Resource
     public Resource(AbstractResource resource)
         : this(resource.Type.ToString(), resource.Name, resource.Url)
     {
+        Title = resource.Title;
         ID = resource.ID;
         LanguageCode = resource.LanguageCode;
     }

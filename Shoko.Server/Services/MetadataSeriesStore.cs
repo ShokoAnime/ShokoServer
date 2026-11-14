@@ -141,6 +141,7 @@ public class MetadataSeriesStore(
 
         var originalLanguageCode = MetadataEntries.CheckLanguageCode(series.OriginalLanguageCode, nameof(series));
         var resources = MetadataEntries.CheckResources(series.Resources, nameof(series));
+        var seasonResources = seasons.Values.ToDictionary(season => season.ID, season => MetadataEntries.CheckResources(season.Resources, nameof(series)));
         var crossSourceIDs = MetadataEntries.CheckCrossSourceIDs(series.CrossSourceIDs, nameof(series));
         var countries = MetadataEntries.CheckCountries(series.ProductionCountries, nameof(series));
         var contentRatings = MetadataContentRatings.Check(series.ContentRatings, nameof(series));
@@ -191,6 +192,7 @@ public class MetadataSeriesStore(
                 row.ProviderID = season.ID.ID;
                 row.SeriesID = series.ID.ID;
                 row.SeasonNumber = season.SeasonNumber;
+                row.Resources = seasonResources[season.ID];
                 row.ExtraData = MetadataDefaultImages.Apply(row.ExtraData ?? new(), season.DefaultImageResourceIDs).NullIfEmpty();
                 return (Stored: stored, Row: row);
             }).ToList();
