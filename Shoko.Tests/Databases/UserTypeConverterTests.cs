@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Newtonsoft.Json.Linq;
 using NHibernate.UserTypes;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
@@ -82,11 +81,6 @@ public class UserTypeConverterTests
         { typeof(DateOnlyConverter).FullName!, new DateOnly(2024, 5, 1), new DateOnly(2024, 5, 1) },
         { typeof(PooledStringType).FullName!, "image/jpeg", new string("image/jpeg".AsSpan()) },
         {
-            typeof(JTokenDictionaryConverter).FullName!,
-            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },
-            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) }
-        },
-        {
             typeof(JsonObjectConverter<Metadata_EpisodeExtra>).FullName!,
             new Metadata_EpisodeExtra { AirsBeforeSeasonNumber = 1 },
             new Metadata_EpisodeExtra { AirsBeforeSeasonNumber = 1 }
@@ -116,16 +110,6 @@ public class UserTypeConverterTests
         { typeof(FuzzyDateOnlyConverter).FullName!, new FuzzyDateOnly(null, 5, 1), new FuzzyDateOnly(2024, 5, 1) },
         { typeof(DateOnlyConverter).FullName!, new DateOnly(2024, 5, 1), new DateOnly(2024, 5, 2) },
         { typeof(PooledStringType).FullName!, "image/jpeg", "image/png" },
-        {
-            typeof(JTokenDictionaryConverter).FullName!,
-            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },
-            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(2) }
-        },
-        {
-            typeof(JTokenDictionaryConverter).FullName!,
-            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },
-            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1), ["b"] = JToken.FromObject(2) }
-        },
         { typeof(TitleTypeConverter).FullName!, TitleType.Main, TitleType.Official },
         { typeof(TitleLanguageConverter).FullName!, TitleLanguage.English, TitleLanguage.Japanese },
         { typeof(MessagePackConverter<MediaContainer>).FullName!, new MediaContainer(), new MediaContainer { media = new() } },
@@ -347,21 +331,6 @@ public class UserTypeConverterTests
     [Fact]
     public void AnUnknownTypeNameReadsBackAsNull()
         => Assert.Null(new TypeStringConverter().ConvertFrom(null, CultureInfo.InvariantCulture, "Nothing.Called.This"));
-
-    [Fact]
-    public void AJTokenDictionarySurvivesARoundTrip()
-    {
-        var converter = new JTokenDictionaryConverter();
-        var original = new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1), ["b"] = JToken.FromObject("two") };
-
-        var stored = converter.ConvertTo(null, CultureInfo.InvariantCulture, original, typeof(string));
-        var restored = converter.ConvertFrom(null, CultureInfo.InvariantCulture, stored!);
-
-        var dictionary = Assert.IsAssignableFrom<IDictionary<string, JToken?>>(restored);
-        Assert.Equal(2, dictionary.Count);
-        Assert.True(JToken.DeepEquals(original["a"], dictionary["a"]));
-        Assert.True(JToken.DeepEquals(original["b"], dictionary["b"]));
-    }
 
     [Fact]
     public void AJsonObjectReadsBackWithMissingAndUnknownPropertiesAndStoresNullAsNull()

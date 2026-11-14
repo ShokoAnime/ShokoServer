@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.User.Enums;
 
 namespace Shoko.Abstractions.User.Update;
@@ -150,25 +149,9 @@ public class VideoUserDataUpdate
     }
 
     /// <summary>
-    ///   When set to <c>true</c>, will clear all client data stored for this
-    ///   video.
+    ///   Override the unique tags assigned to the video by the user.
     /// </summary>
-    public bool ClearClientData { get; set; }
-
-    internal Dictionary<string, JToken?> _pendingClientData = new();
-
-    /// <summary>
-    ///   Gets the pending client data changes (key-value pairs).
-    /// </summary>
-    public IReadOnlyDictionary<string, JToken?> PendingClientData => _pendingClientData;
-
-    /// <summary>
-    ///   Set a client-specific data value. Pass a <c>null</c> reference to
-    ///   remove the key. To store an explicit JSON <c>null</c>, pass a
-    ///   <see cref="JValue"/> created via <see cref="JValue.CreateNull"/>.
-    /// </summary>
-    public void SetClientData(string clientKey, JToken? value)
-        => _pendingClientData[clientKey] = value;
+    public IEnumerable<string>? UserTags { get; set; }
 
     /// <summary>
     ///   Initializes a new instance of the <see cref="VideoUserDataUpdate"/> class.

@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Shoko;
@@ -231,27 +230,14 @@ public class UserDataService(
             }
         }
 
-        // Clear all client data if requested.
-        if (userDataUpdate.ClearClientData)
+        // Set the user tags if the update has them.
+        if (userDataUpdate.UserTags is not null)
         {
-            if (userData.ClientData.Count > 0)
+            var list = userDataUpdate.UserTags.Distinct().Order().ToList();
+            if (!list.SequenceEqual(userData.UserTags))
             {
-                userData.ClearClientDataInternal();
+                userData.UserTags = list;
                 shouldSave = true;
-            }
-        }
-
-        // Apply pending client data changes (per-key merge, never replace whole dict).
-        if (userDataUpdate.PendingClientData is { Count: > 0 })
-        {
-            foreach (var kvp in userDataUpdate.PendingClientData)
-            {
-                var key = kvp.Key;
-                var value = kvp.Value;
-                var before = userData.GetClientData(key);
-                userData.SetClientDataInternal(key, value);
-                if (!JToken.DeepEquals(before, userData.GetClientData(key)))
-                    shouldSave = true;
             }
         }
 
@@ -516,6 +502,21 @@ public class UserDataService(
 
     public Task<IEpisodeUserData> SetEpisodeAsFavorite(IShokoEpisode episode, IUser user, bool value)
         => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { IsFavorite = value });
+
+    public Task<IVideoUserData> AddUserTagsForVideo(IVideo video, IUser user, params string[] tags)
+        => SaveVideoUserData(video, user, new VideoUserDataUpdate { UserTags = (videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, video.LocalID)?.UserTags ?? []).Union(tags) });
+
+    public Task<IVideoUserData> AddUserTagsForVideo(IVideo video, IUser user, IEnumerable<string>? tags)
+        => SaveVideoUserData(video, user, new VideoUserDataUpdate { UserTags = (videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, video.LocalID)?.UserTags ?? []).Union(tags ?? []) });
+
+    public Task<IVideoUserData> RemoveUserTagsForVideo(IVideo video, IUser user, params string[] tags)
+        => SaveVideoUserData(video, user, new VideoUserDataUpdate { UserTags = (videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, video.LocalID)?.UserTags ?? []).Except(tags) });
+
+    public Task<IVideoUserData> RemoveUserTagsForVideo(IVideo video, IUser user, IEnumerable<string>? tags)
+        => SaveVideoUserData(video, user, new VideoUserDataUpdate { UserTags = (videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, video.LocalID)?.UserTags ?? []).Except(tags ?? []) });
+
+    public Task<IVideoUserData> SetUserTagsForVideo(IVideo video, IUser user, IEnumerable<string>? tags)
+        => SaveVideoUserData(video, user, new VideoUserDataUpdate { UserTags = tags });
 
     public Task<IEpisodeUserData> AddUserTagsForEpisode(IShokoEpisode episode, IUser user, params string[] tags)
         => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = (episodeUserDataRepository.GetByUserAndEpisodeID(user.LocalID, episode.LocalID)?.UserTags ?? []).Union(tags) });

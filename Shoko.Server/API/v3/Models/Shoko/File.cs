@@ -409,6 +409,12 @@ public partial class File
         /// </summary>
         public int? LastSubtitleStreamIndex { get; set; }
 
+        /// <summary>
+        /// The unique tags assigned to the file by the user.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> UserTags { get; set; }
+
         public FileUserData() : this(null) { }
 
         public FileUserData(IVideoUserData? userData)
@@ -420,6 +426,7 @@ public partial class File
             LastVideoStreamIndex = userData?.LastVideoStreamIndex;
             LastAudioStreamIndex = userData?.LastAudioStreamIndex;
             LastSubtitleStreamIndex = userData?.LastSubtitleStreamIndex;
+            UserTags = userData?.UserTags ?? [];
         }
 
         public FileUserData MergeWithExisting(JMMUser user, VideoLocal file)
@@ -434,6 +441,7 @@ public partial class File
                 LastVideoStreamIndex = LastVideoStreamIndex,
                 LastAudioStreamIndex = LastAudioStreamIndex,
                 LastSubtitleStreamIndex = LastSubtitleStreamIndex,
+                UserTags = UserTags,
             };
             var userData = userDataService.SaveVideoUserData(file, user, update).GetAwaiter().GetResult();
             return new(userData);

@@ -107,13 +107,13 @@ var update = new VideoUserDataUpdate
     ProgressPosition = TimeSpan.FromMinutes(12),  // sets HasProgressPosition
     LastAudioStreamIndex = 1,
 };
-update.SetClientData("my-player", JToken.FromObject(new { theme = "dark" }));
 
 await userDataService.SaveVideoUserData(video, user, update, VideoUserDataSaveReason.PlaybackProgress);
 ```
 
-`SetClientData(key, null)` removes a key; `ClearClientData` wipes every
-client's data for that video, not just yours.
+`UserTags`, when set, replaces the video's tags for the user; the service's
+`AddUserTagsForVideo`, `RemoveUserTagsForVideo` and `SetUserTagsForVideo` do
+the same for one change, as they do for episodes and series.
 
 ### The completion rule
 

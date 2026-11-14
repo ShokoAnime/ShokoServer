@@ -22,6 +22,6 @@ public class VideoLocal_UserMap : ClassMap<VideoLocal_User>
         Map(x => x.LastVideoStreamIndex);
         Map(x => x.LastAudioStreamIndex);
         Map(x => x.LastSubtitleStreamIndex);
-        Map(Reveal.Member<VideoLocal_User>("_clientData")).Access.Field().CustomType<JTokenDictionaryConverter>().Column("ClientData");
+        Map(x => x.UserTags).Not.Nullable().CustomType<StringListConverter>();
     }
 }

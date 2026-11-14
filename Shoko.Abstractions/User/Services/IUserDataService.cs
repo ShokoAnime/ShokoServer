@@ -167,6 +167,113 @@ public interface IUserDataService
     /// </returns>
     Task<IVideoUserData> ImportVideoUserData(IVideo video, IUser user, VideoUserDataUpdate userDataUpdate, string importSource, bool updateStatsNow = true);
 
+    /// <summary>
+    ///   Adds any new unique tags to the user's user data for the video.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to add the tags for.
+    /// </param>
+    /// <param name="user">
+    ///   The user to add the tags for.
+    /// </param>
+    /// <param name="tags">
+    ///   The tags to add.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="video"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user data for the video and user, with any new tags added.
+    /// </returns>
+    Task<IVideoUserData> AddUserTagsForVideo(IVideo video, IUser user, params string[] tags);
+
+    /// <summary>
+    ///   Adds any new unique tags to the user's user data for the video.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to add the tags for.
+    /// </param>
+    /// <param name="user">
+    ///   The user to add the tags for.
+    /// </param>
+    /// <param name="tags">
+    ///   The tags to add.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="video"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user data for the video and user, with any new tags added.
+    /// </returns>
+    Task<IVideoUserData> AddUserTagsForVideo(IVideo video, IUser user, IEnumerable<string>? tags);
+
+    /// <summary>
+    ///   Removes the selected tags from the user's user data for the video.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to remove the tags for.
+    /// </param>
+    /// <param name="user">
+    ///   The user to remove the tags for.
+    /// </param>
+    /// <param name="tags">
+    ///   The tags to remove.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="video"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user data for the video and user, with any removed tags removed.
+    /// </returns>
+    Task<IVideoUserData> RemoveUserTagsForVideo(IVideo video, IUser user, params string[] tags);
+
+    /// <summary>
+    ///   Removes the selected tags from the user's user data for the video.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to remove the tags for.
+    /// </param>
+    /// <param name="user">
+    ///   The user to remove the tags for.
+    /// </param>
+    /// <param name="tags">
+    ///   The tags to remove.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="video"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user data for the video and user, with any removed tags removed.
+    /// </returns>
+    Task<IVideoUserData> RemoveUserTagsForVideo(IVideo video, IUser user, IEnumerable<string>? tags);
+
+    /// <summary>
+    ///   Sets the tags for the user's user data for the video.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to set the tags for.
+    /// </param>
+    /// <param name="user">
+    ///   The user to set the tags for.
+    /// </param>
+    /// <param name="tags">
+    ///   The tags to set. Duplicates will be ignored. Set to an empty
+    ///   collection to remove all user tags.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="video"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user data for the video and user, with the user tags updated to
+    ///   an unique and sorted list of the provided tags.
+    /// </returns>
+    Task<IVideoUserData> SetUserTagsForVideo(IVideo video, IUser user, IEnumerable<string>? tags);
+
     #endregion
 
     #region Episode User Data

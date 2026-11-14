@@ -1796,6 +1796,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
                        )
                        WHERE sri.`CrossReferences` LIKE '%"ProviderIDs"%'
                        """),
+        new(205,   2, "ALTER TABLE `VideoLocal_User` DROP COLUMN `ClientData`;"),
+        new(205,   3, "ALTER TABLE `VideoLocal_User` ADD COLUMN `UserTags` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
     ];
 
     #endregion

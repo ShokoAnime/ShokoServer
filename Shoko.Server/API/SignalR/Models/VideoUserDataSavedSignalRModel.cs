@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.User.Enums;
@@ -54,4 +55,9 @@ public class VideoUserDataSavedSignalRModel(VideoUserDataSavedEventArgs args)
     /// Gets the date and time when the user data was last updated.
     /// </summary>
     public DateTime LastUpdatedAt { get; } = args.UserData.LastUpdatedAt.ToUniversalTime();
+
+    /// <summary>
+    /// The unique tags assigned to the video by the user.
+    /// </summary>
+    public IReadOnlyList<string> UserTags { get; } = args.UserData.UserTags;
 }

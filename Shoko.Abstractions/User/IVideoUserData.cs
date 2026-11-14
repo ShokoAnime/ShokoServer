@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Video;
 
 namespace Shoko.Abstractions.User;
@@ -58,10 +57,7 @@ public interface IVideoUserData : IUserData
     int? LastSubtitleStreamIndex { get; }
 
     /// <summary>
-    ///   Gets a read-only dictionary of client-specific data associated with
-    ///   this video for the user. Each value is an opaque <see cref="JToken"/>
-    ///   owned by the client/plugin that wrote it; the server does not
-    ///   interpret its contents.
+    ///   Gets the unique tags assigned to the video by the user.
     /// </summary>
-    IReadOnlyDictionary<string, JToken> ClientData { get; }
+    IReadOnlyList<string> UserTags { get; }
 }

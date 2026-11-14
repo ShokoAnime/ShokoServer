@@ -1460,6 +1460,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                        )
                        WHERE CrossReferences LIKE '%"ProviderIDs"%'
                        """),
+        new(182,   2, "ALTER TABLE VideoLocal_User DROP COLUMN ClientData;"),
+        new(182,   3, "ALTER TABLE VideoLocal_User ADD COLUMN UserTags TEXT NOT NULL DEFAULT '';"),
     ];
 
     #endregion
