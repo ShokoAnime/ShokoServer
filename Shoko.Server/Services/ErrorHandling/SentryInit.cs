@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Runtime.Loader;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
@@ -91,14 +94,86 @@ public static class SentryInit
         typeof(UnexpectedUDPResponseException)
     };
 
+    /// <summary>
+    ///   The plugins whose failures are reported: the ones the Shoko team
+    ///   ships. Legacy Plex, TMDB, AniList, the Offline Importer and WebAOM.
+    /// </summary>
+    internal static readonly IReadOnlySet<Guid> FirstPartyPluginIDs = new HashSet<Guid>
+    {
+        new("d5b194ef-6f9d-455b-beb3-b23af899bb21"),
+        new("85d0c34f-240f-4da3-8512-d0b45118a9f4"),
+        new("e73c1e23-111a-4cf0-bab8-054b738c5101"),
+        new("72a6ff39-2bff-534c-9216-d03cd38e7346"),
+        new("8c8d75f2-cd0c-5c0b-9a9e-8c2c6d3e5f1a"),
+    };
+
     private static SentryEvent? BeforeSentrySend(SentryEvent arg)
     {
         var ex = arg.Exception;
+        if (ex is not null && !ThrownByReportedCode(ex)) return null;
         if (ExceptionAllowed(ex)) return arg;
         if (arg.Logger is not null && arg.Level >= SentryLevel.Fatal) return arg;
 
         return null;
     }
+
+    /// <summary>
+    ///   Whether a failure was thrown by code whose failures are reported: the
+    ///   server, its dependencies, or a first-party plugin, rather than a
+    ///   third-party plugin. The innermost exception's throw site decides.
+    /// </summary>
+    /// <param name="exception">The failure.</param>
+    /// <returns><c>false</c> when a third-party plugin threw it.</returns>
+    internal static bool ThrownByReportedCode(Exception exception)
+    {
+        var chain = new List<Exception>();
+        for (var current = exception; current is not null; current = current.InnerException)
+            chain.Add(current);
+
+        // The innermost exception was thrown first, so its stack is read first.
+        for (var index = chain.Count - 1; index >= 0; index--)
+        {
+            var frames = new StackTrace(chain[index], false).GetFrames()
+                .Select(frame => frame.GetMethod()?.Module.Assembly)
+                .OfType<Assembly>()
+                .Select(assembly => (assembly.GetName().Name ?? string.Empty, (AssemblyLoadContext.GetLoadContext(assembly) as PluginLoadContext)?.PluginID));
+            if (DecideFromFrames(frames) is { } decision)
+                return decision;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///   Decides from the assemblies of a stack's frames, the throw site first,
+    ///   whether its failure is reported. The runtime's own frames are skipped.
+    ///   The first frame of the server or of a plugin decides: the server's are
+    ///   reported, a plugin's only for a first-party plugin. A stack that only
+    ///   runs through the server's dependencies is reported.
+    /// </summary>
+    /// <param name="frames">Each frame's assembly name, and its plugin's ID when a plugin loaded it.</param>
+    /// <returns>Whether to report it, or <c>null</c> when no frame decides.</returns>
+    internal static bool? DecideFromFrames(IEnumerable<(string AssemblyName, Guid? PluginID)> frames)
+    {
+        var seenDependency = false;
+        foreach (var (assemblyName, pluginID) in frames)
+        {
+            if (pluginID is { } id)
+                return FirstPartyPluginIDs.Contains(id);
+            if (IsRuntimeAssembly(assemblyName))
+                continue;
+            if (assemblyName.StartsWith("Shoko.", StringComparison.Ordinal))
+                return true;
+            seenDependency = true;
+        }
+
+        return seenDependency ? true : null;
+    }
+
+    private static bool IsRuntimeAssembly(string assemblyName)
+        => assemblyName is "mscorlib" or "netstandard" ||
+            assemblyName.StartsWith("System.", StringComparison.Ordinal) || assemblyName == "System" ||
+            assemblyName.StartsWith("Microsoft.", StringComparison.Ordinal);
 
     private static bool ExceptionAllowed(Exception? ex)
     {
