@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.599",
+      "tag": "v6.0.0-dev.599",
+      "commit": "2483e7faeccf2012d41e5078d5909bc1be5edf2f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.599/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-14T23:43:32Z",
+      "releaseNotes": "\n`fix` (`core`): **Stop reporting third-party plugin failures to Sentry**:\n\n- Decided by where the innermost exception was thrown: the first frame of the server or of a plugin, skipping the runtime's own frames\n- Reported the server, its dependencies and the first-party plugins (Legacy Plex, TMDB, AniList, Offline Importer and WebAOM), told apart by their `PluginLoadContext`\n\n`refactor` (`core`): **Move the Sentry settings into a `Sentry` section**:\n\n- Replaced `SentryOptOut` with `Sentry.Dsn`: empty or `null` reports to the built-in DSN, an `http://` or `https://` DSN reports there from any build, and any other value turns reporting off; settings migration 34 turns an opt-out into `off`, and `SENTRY_OPT_OUT` still turns reporting off\n- Added `Sentry.SampleRate` and `Sentry.ReportedPlugins`, which only apply with a DSN of the admin's own and are read-only in the UI until one is set\n- Each has an environment variable: `SHOKO_SENTRY_DSN`, `SHOKO_SENTRY_SAMPLE_RATE` and `SHOKO_SENTRY_PLUGINS`\n- Moved `DumpSettingsOnStart` to the end of the settings\n"
+    },
+    {
       "version": "6.0.0.598",
       "tag": "v6.0.0-dev.598",
       "commit": "11a1fd4b6a25c09657628bfe672c229f1fe012a2",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.570/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-01T16:16:13Z",
       "releaseNotes": "\n`refactor`: **Fix sonarcloud blocker and complexity issues**:\n\nReduced cognitive complexity of 43 methods by extracting helpers and using guard clauses, with no behavior change.\n\n- Read `value` in empty setters and event accessors of `IJobActorAccessor`, `MetadataTextRow` and the job `Key` properties (S3237)\n- Disposed the previous `CancellationTokenSource` in `WorkerPool` and `WorkerPoolManager` before replacing it (S2930)\n- Split long methods in plugin management, airing schedule, ordering, web UI, metadata and AniDB code (S3776)\n\n`merge`: **Merge pull request #1467 from ShokoAnime/fix/sonar-issues**:\n\nrefactor: fix sonarcloud blocker and complexity issues\n"
-    },
-    {
-      "version": "6.0.0.569",
-      "tag": "v6.0.0-dev.569",
-      "commit": "565b066fce965e930303af55887edbb8bfa16c4a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.569/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T15:38:08Z",
-      "releaseNotes": "\n`fix` (`plugin`): **Leave unfit optional dependencies out of a plugin's load context**:\n\n- An optional dependency outside the plugin's range, or missing what the plugin refers to, is no longer shared with it, instead of failing the start\n- The contract check now also looks at assemblies the dependency exports when the plugin ships its own copy\n\n`fix` (`plugin`): **Read a plugin whose types use another plugin's contract**:\n\n- The scan's plugin reader now finds an assembly another installed plugin exports when the plugin being read does not ship it\n- A plugin with a public type holding an enum from a dependency's contract no longer fails as missing dependencies\n\n`refactor` (`signalr`): **Carry the hubs' authorization on the hub classes**:\n\n- `AggregateHub` and `LoggingHub` now declare their authorization as attributes instead of in `UseAPI`\n- `LoggingHub` is `[InitFriendly]` and `[DatabaseBlockedExempt]`, so the logs can be followed in setup and failure mode\n\n`feat` (`abstractions`): **Keep the startup messages until a while after start**:\n\n- Added `ISystemService.StartupMessages`, every message shown while starting with its time, kept through a failed start and cleared about 10 seconds after the server has started\n- `StartupMessageChangedEventArgs` now carries the `StartupMessageEntry`, recorded in order as the event may reach its handlers out of order\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.121**.\n\n`docs` (`plugin`): **Document the DLL list overload of `FindDependencyMismatch`**.\n\n`misc`: **Update build-daily.yml for Trusted Publishing on Nuget**.\n\n`misc`: **Update build-daily.yml for tag creation**.\n\n`misc`: **Refactor NuGet publishing to use OIDC token for stable**:\n\nUpdated NuGet publishing workflow to use OIDC for API key issuance and adjusted permissions.\n"
     }
   ]
 }
