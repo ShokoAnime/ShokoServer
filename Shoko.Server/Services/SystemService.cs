@@ -311,7 +311,8 @@ public class SystemService : ISystemService
             CultureInfo.DefaultThreadCurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentUICulture = culture;
 
-            // Files extracted from a downloaded zip carry Windows' "blocked" mark. .NET loads them all the same, so this only tidies up.
+            // Files extracted from a downloaded zip carry Windows' "blocked" mark, which makes Explorer ask before starting
+            // the server's executables. .NET loads marked libraries all the same.
             UnblockFiles();
 
             // Start the OpenTelemetry runtime, if it is turned on.
@@ -516,10 +517,12 @@ public class SystemService : ISystemService
 
     /// <summary>
     ///   Removes the "downloaded from the internet" mark (the
-    ///   <c>Zone.Identifier</c> stream) from the server's files on Windows. The
-    ///   runtime loads marked files anyway, so the files it cannot unblock,
-    ///   such as an install under Program Files without write access, only get
-    ///   a warning.
+    ///   <c>Zone.Identifier</c> stream) from the server's executables on
+    ///   Windows, so starting them from Explorer, a shortcut or the tray app's
+    ///   autostart does not ask first. The runtime loads marked libraries
+    ///   anyway, so those are left alone, and the executables it cannot
+    ///   unblock, such as an install under Program Files without write access,
+    ///   are only logged.
     /// </summary>
     private void UnblockFiles()
     {
@@ -531,7 +534,7 @@ public class SystemService : ISystemService
         string? firstFile = null;
         foreach (var file in Directory.EnumerateFiles(ApplicationPaths.Instance.ApplicationPath, "*", SearchOption.AllDirectories))
         {
-            if (!(file.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)))
+            if (!file.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             try
@@ -557,7 +560,7 @@ public class SystemService : ISystemService
 
         _logger.LogDebug(
             firstFailure,
-            "{Count} files in {Path} are marked as downloaded from the internet and could not be unblocked, e.g. {File}. The server runs anyway; to clear the mark, run this in a PowerShell started as administrator: Get-ChildItem -LiteralPath '{CommandPath}' -Recurse | Unblock-File",
+            "{Count} executables in {Path} are marked as downloaded from the internet and could not be unblocked, e.g. {File}. The server runs anyway; to clear the mark, run this in a PowerShell started as administrator: Get-ChildItem -LiteralPath '{CommandPath}' -Recurse | Unblock-File",
             stillBlocked,
             ApplicationPaths.Instance.ApplicationPath,
             firstFile,
