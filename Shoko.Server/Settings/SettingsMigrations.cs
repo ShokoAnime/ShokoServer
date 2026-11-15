@@ -385,6 +385,17 @@ public static partial class SettingsMigrations
     ];
 
     /// <summary>
+    ///   The download switches of the <c>TMDB</c> section that the TMDB
+    ///   plugin's configuration reads under another name. The old keys are
+    ///   copied too, and migration 28 turns them into provider kinds.
+    /// </summary>
+    internal static readonly IReadOnlyList<(string Key, string PluginKey)> TmdbRenamedPluginConfigurationKeys =
+    [
+        ("AutoDownloadCrewAndCast", "DownloadCastAndCrew"),
+        ("AutoDownloadNetworks", "DownloadNetworks"),
+    ];
+
+    /// <summary>
     ///   Where the TMDB plugin keeps its configuration.
     /// </summary>
     /// <param name="applicationPaths">The application paths.</param>
@@ -395,7 +406,9 @@ public static partial class SettingsMigrations
     /// <summary>
     ///   Moves the <c>TMDB</c> section to the TMDB plugin's configuration file,
     ///   and its <c>ImageCdnUrl</c> to the image template URL for TMDB, as
-    ///   migration 26. The user's API key moves as it is, without being logged.
+    ///   migration 26. The download switches for cast and crew and for
+    ///   networks are also written under the plugin's own names. The user's
+    ///   API key moves as it is, without being logged.
     /// </summary>
     /// <remarks>
     ///   An existing plugin file is kept, and a section with nothing to carry
@@ -422,6 +435,12 @@ public static partial class SettingsMigrations
         {
             if (tmdb.Property(key) is { } property)
                 configuration[key] = property.Value.DeepClone();
+        }
+
+        foreach (var (key, pluginKey) in TmdbRenamedPluginConfigurationKeys)
+        {
+            if (tmdb.Property(key) is { Value.Type: JTokenType.Boolean } property)
+                configuration[pluginKey] = property.Value.DeepClone();
         }
 
         var path = TmdbPluginConfigurationPath(applicationPaths);
