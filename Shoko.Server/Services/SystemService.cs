@@ -142,7 +142,7 @@ public class SystemService : ISystemService
         _restartReasons = new(loggerFactory.CreateLogger<RestartReasonTracker>(), _configurationService, _pluginManager) { Sender = this };
         _pluginManager.StateChanged += (_, _) => _restartReasons.RefreshPluginState();
         _logService = new(loggerFactory.CreateLogger<LogService>(), ApplicationPaths.Instance, _settingsProvider);
-        _databaseBlockingTasks.Add(_startupTaskSource!.Task);
+        _databaseBlockingTasks.Add(_startupTaskSource.Task);
 
         CanShutdown = args.Contains("--shutdown-enabled");
         CanRestart = args.Contains("--restart-enabled");
@@ -176,7 +176,12 @@ public class SystemService : ISystemService
 
     #region Startup
 
-    private TaskCompletionSource? _startupTaskSource = new();
+    /// <summary>
+    ///   Completes once the server has started, or faults with the
+    ///   <see cref="StartupFailedException"/>. Kept after it completes, so
+    ///   <see cref="WaitForStartupAsync"/> tells a later caller how it ended.
+    /// </summary>
+    private readonly TaskCompletionSource _startupTaskSource = new();
 
     public event EventHandler<StartupFailedEventArgs>? StartupFailed;
 
@@ -273,8 +278,7 @@ public class SystemService : ISystemService
             Task.Run(() => StartupFailed?.Invoke(this, new(value)), CancellationToken.None);
 
             _logger.LogError(value, "Failed to Start Server: {Message}", value.Message);
-            _startupTaskSource?.SetException(value);
-            _startupTaskSource = null;
+            _startupTaskSource.TrySetException(value);
 
             // The queue's hosted services are already up by the time most startup failures happen, and
             // nothing in this process will ever be able to serve a job now, so stop dispatching for good.
@@ -507,7 +511,7 @@ public class SystemService : ISystemService
     }
 
     public Task WaitForStartupAsync()
-         => _startupTaskSource?.Task ?? Task.CompletedTask;
+         => _startupTaskSource.Task;
 
     /// <summary>
     ///   Removes the "downloaded from the internet" mark (the
@@ -1063,8 +1067,7 @@ public class SystemService : ISystemService
             StartupMessage = "Startup Complete!";
             StartupMessage = null;
 
-            _startupTaskSource?.SetResult();
-            _startupTaskSource = null;
+            _startupTaskSource.TrySetResult();
         }
         catch (Exception ex)
         {
@@ -1159,8 +1162,7 @@ public class SystemService : ISystemService
 
         // Complete the startup task so the database unblock loop (and anything else waiting on
         // startup) finishes while the host shuts down.
-        _startupTaskSource?.TrySetResult();
-        _startupTaskSource = null;
+        _startupTaskSource.TrySetResult();
 
         _webHost?.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication();
         return true;
