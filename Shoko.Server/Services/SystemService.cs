@@ -299,14 +299,7 @@ public class SystemService : ISystemService
         Activity? startupSpan = null;
         try
         {
-            // Files extracted from a downloaded zip carry Windows' "blocked" mark. .NET loads them all the same, so this only tidies up.
-            UnblockFiles();
-
             var settings = _settingsProvider.GetSettings();
-
-            _telemetry = TelemetryRuntime.Start(settings.Telemetry, Version.Version.ToSemanticVersioningString(), _telemetryLogger, _pluginManager);
-            LogService.ConnectOtlpExport(_telemetry?.LoggerFactory);
-            startupSpan = ShokoTelemetry.Source.StartActivity("shoko.server.startup");
 
             LogService.ApplyLoggingSettings(settings.Logging);
 
@@ -317,6 +310,14 @@ public class SystemService : ISystemService
             var culture = CultureInfo.GetCultureInfo(settings.Culture);
             CultureInfo.DefaultThreadCurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentUICulture = culture;
+
+            // Files extracted from a downloaded zip carry Windows' "blocked" mark. .NET loads them all the same, so this only tidies up.
+            UnblockFiles();
+
+            // Start the OpenTelemetry runtime, if it is turned on.
+            _telemetry = TelemetryRuntime.Start(settings.Telemetry, Version.Version.ToSemanticVersioningString(), _telemetryLogger, _pluginManager);
+            LogService.ConnectOtlpExport(_telemetry?.LoggerFactory);
+            startupSpan = ShokoTelemetry.Source.StartActivity("shoko.server.startup");
 
             // Raise the thread pool's minimum thread count so bursts of concurrent
             // work don't stall behind the runtime's gradual hill-climbing thread
@@ -554,7 +555,7 @@ public class SystemService : ISystemService
         if (stillBlocked is 0)
             return;
 
-        _logger.LogWarning(
+        _logger.LogDebug(
             firstFailure,
             "{Count} files in {Path} are marked as downloaded from the internet and could not be unblocked, e.g. {File}. The server runs anyway; to clear the mark, run this in a PowerShell started as administrator: Get-ChildItem -LiteralPath '{CommandPath}' -Recurse | Unblock-File",
             stillBlocked,
