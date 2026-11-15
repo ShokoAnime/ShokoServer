@@ -122,6 +122,15 @@ public class MetadataMatchingEngine(
     private const int MaxDaysApartForDateOnlyFilm = 7;
 
     /// <summary>
+    ///   How many days apart the anime and an entry may have started for the
+    ///   date to back a title: less than a cour, so the previous cour of a
+    ///   split series does not count. A shared year counts only when either
+    ///   start is not known to the day, since a film and the series it
+    ///   belongs to often share a title and a year.
+    /// </summary>
+    private const int MaxDaysApartForTitleAndDate = 60;
+
+    /// <summary>
     ///   How many different days have to line up before an alignment counts,
     ///   or every day the anime aired on when it has fewer.
     /// </summary>
@@ -215,11 +224,16 @@ public class MetadataMatchingEngine(
                 .ThenBy(season => year is { } known && season.FirstAiredAt?.Year == known ? 0 : 1)
                 .FirstOrDefault();
             var episodeDifference = bestSeason is null ? null : EpisodeDifference(episodeCount, bestSeason.EpisodeCount);
-            var yearMatches = year is { } wanted && (
-                bestSeason?.FirstAiredAt?.Year == wanted ||
-                candidate.FirstAiredAt?.Year == wanted ||
-                candidate.SeasonYear == wanted
-            );
+            var candidateStart = bestSeason?.FirstEpisodeAiredAt ??
+                (bestSeason?.FirstAiredAt is { IsComplete: true } bestStarted ? bestStarted.ToDateOnly() : (DateOnly?)null) ??
+                (candidate.FirstAiredAt is { IsComplete: true } candidateStarted ? candidateStarted.ToDateOnly() : null);
+            var yearMatches = candidateStart is { } entryBegan && animeStart is { } animeBegan
+                ? Math.Abs(entryBegan.DayNumber - animeBegan.DayNumber) <= MaxDaysApartForTitleAndDate
+                : year is { } wanted && (
+                    bestSeason?.FirstAiredAt?.Year == wanted ||
+                    candidate.FirstAiredAt?.Year == wanted ||
+                    candidate.SeasonYear == wanted
+                );
 
             // First episodes airing within days of each other agree where the
             // years fail too (a year-boundary premiere, a split cour), and so
@@ -246,14 +260,15 @@ public class MetadataMatchingEngine(
             var seasonStart = candidate.Seasons is null
                 ? startedAt
                 : bestSeason?.FirstEpisodeAiredAt ?? (bestSeason?.FirstAiredAt is { IsComplete: true } seasonStarted ? seasonStarted.ToDateOnly() : null);
-            var daysEarly = alignedSeason is null && seasonStart is { } seasonBegan && animeStart is { } animeBegan
-                ? animeBegan.DayNumber - seasonBegan.DayNumber
+            var daysEarly = alignedSeason is null && seasonStart is { } seasonBegan && animeStart is { } animeStarted
+                ? animeStarted.DayNumber - seasonBegan.DayNumber
                 : 0;
             var candidateNumbers = NamesOf(candidate).Select(TitleVariants.SequelNumber).OfType<int>().ToHashSet();
             var filter = candidate switch
             {
                 { IsRestricted: true } when !options.IncludeRestricted => MatchRejectionReason.Restricted,
                 { Type: AnimeType.MusicVideo } when anime.Type is not AnimeType.MusicVideo => MatchRejectionReason.TypeMismatch,
+                _ when options.SeasonsAreSeparateEntries && IsFilmAgainstSeries(anime.Type, candidate.Type) => MatchRejectionReason.TypeMismatch,
                 _ => MatchRejectionReason.None,
             };
             var candidateText = DescribeSeries(candidate, candidate.Seasons is null ? null : bestSeason);
@@ -266,7 +281,9 @@ public class MetadataMatchingEngine(
                 FilterDetails = filter switch
                 {
                     MatchRejectionReason.Restricted => "It is marked as adult, and adult entries were not allowed.",
-                    MatchRejectionReason.TypeMismatch => "It is a music video, and the anime is not.",
+                    MatchRejectionReason.TypeMismatch when candidate.Type is AnimeType.MusicVideo => "It is a music video, and the anime is not.",
+                    MatchRejectionReason.TypeMismatch when candidate.Type is AnimeType.Movie => "It is a film, and the anime is a TV series.",
+                    MatchRejectionReason.TypeMismatch => "It is a TV series, and the anime is a film.",
                     _ => null,
                 },
                 StartedLate = startedLate
@@ -357,10 +374,15 @@ public class MetadataMatchingEngine(
         {
             var candidate = candidates[index];
             var title = JudgeTitles(queries, NamesOf(candidate));
-            var dateMatches = year is { } wanted && (
-                candidate.ReleasedAt?.Year == wanted ||
-                candidate.OtherReleaseDates.Any(date => date.Year == wanted)
-            );
+            var releaseDays = candidate.OtherReleaseDates
+                .Concat(candidate.ReleasedAt is { IsComplete: true } releasedOn ? [releasedOn.ToDateOnly()] : [])
+                .ToList();
+            var dateMatches = filmDay is { } filmReleased && releaseDays.Count > 0
+                ? releaseDays.Any(date => Math.Abs(date.DayNumber - filmReleased.DayNumber) <= MaxDaysApartForTitleAndDate)
+                : year is { } wanted && (
+                    candidate.ReleasedAt?.Year == wanted ||
+                    candidate.OtherReleaseDates.Any(date => date.Year == wanted)
+                );
             // Only a release within days of the film's stands without a title.
             var dateIsClose = filmDay is { } day && (
                 (candidate.ReleasedAt is { IsComplete: true } released && Math.Abs(released.ToDateOnly().DayNumber - day.DayNumber) <= MaxDaysApartForDateOnlyFilm) ||
@@ -524,11 +546,26 @@ public class MetadataMatchingEngine(
             if (exactOnly)
                 return new(title, null, null, ExactOnly: true);
 
+            // A shorter form that is only a word such as "movie" names no work.
             var withoutSuffix = TitleVariants.WithoutSequelSuffix(title);
             var withoutSubtitle = withSubtitle ? TitleVariants.WithoutSubtitle(withoutSuffix ?? title, isJapanese) : null;
-            return new(title, string.IsNullOrEmpty(withoutSuffix) ? null : withoutSuffix, string.IsNullOrEmpty(withoutSubtitle) ? null : withoutSubtitle);
+            return new(
+                title,
+                string.IsNullOrEmpty(withoutSuffix) || TitleVariants.IsFormatWordsOnly(withoutSuffix) ? null : withoutSuffix,
+                string.IsNullOrEmpty(withoutSubtitle) || TitleVariants.IsFormatWordsOnly(withoutSubtitle) ? null : withoutSubtitle
+            );
         }
     }
+
+    /// <summary>
+    ///   Whether one is a film and the other a TV series, which a source
+    ///   keeping every entry apart never lists as one.
+    /// </summary>
+    /// <param name="animeType">The anime's type.</param>
+    /// <param name="candidateType">The entry's type.</param>
+    /// <returns><c>true</c> when they cannot be the same work.</returns>
+    private static bool IsFilmAgainstSeries(AnimeType animeType, AnimeType? candidateType)
+        => (animeType, candidateType) is (AnimeType.Movie, AnimeType.TV) or (AnimeType.TV, AnimeType.Movie);
 
     /// <summary>
     ///   Whether one of the anime's own titles only counts when it matches a

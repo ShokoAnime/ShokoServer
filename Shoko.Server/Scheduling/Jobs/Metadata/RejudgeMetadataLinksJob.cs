@@ -7,6 +7,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Matching;
 using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
@@ -21,15 +22,19 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 
 /// <summary>
 ///   Judges again, by the matching rules as they are now, the series and
-///   movie links the auto-linker made on dates alone, and removes the ones
-///   the rules no longer take.
+///   movie links the auto-linker made with a date behind them, and removes
+///   the ones the rules no longer take.
 /// </summary>
 /// <remarks>
-///   Only links rated <see cref="MatchRating.DateMatches"/> or
-///   <see cref="MatchRating.DateKindaMatches"/> are judged, since those stand
-///   on the date rules alone and the stored entry says all they need; a link
-///   with title evidence, one a user verified and one taken from AniDB's own
-///   resources are left as they are. Each is judged from the stored entry,
+///   Only links rated on a date, alone or with a title
+///   (<see cref="JudgedRatings"/>), are judged, since the stored entry says
+///   all the date and title rules need; one matched by its title alone, one
+///   a user verified and one taken from AniDB's own resources are left as
+///   they are. A series is described with its stored seasons and their
+///   dated episodes, so a later season is judged by its own start. An entry
+///   with no seasons of its own comes from a source
+///   keeping every entry apart, so a film and a TV series are not taken for
+///   one there. Each is judged from the stored entry,
 ///   without asking its provider. A link the rules now turn down is removed
 ///   and a search is queued for its anime on the source; one they rate
 ///   otherwise keeps its new rating.
@@ -73,15 +78,16 @@ public class RejudgeMetadataLinksJob(
     /// <summary>
     ///   The ratings that stand on a date alone, and so are judged again.
     /// </summary>
-    internal static readonly HashSet<MatchRating> DateOnlyRatings = [MatchRating.DateMatches, MatchRating.DateKindaMatches];
+    internal static readonly HashSet<MatchRating> JudgedRatings =
+        [MatchRating.DateMatches, MatchRating.DateKindaMatches, MatchRating.DateAndTitleMatches, MatchRating.DateAndTitleKindaMatches];
 
     /// <inheritdoc />
     public override async Task Execute()
     {
         var token = cancellationAccessor.Token;
         var links = new List<IMetadataCrossReference>();
-        links.AddRange(crossReferences.GetAllSeriesLinks().Where(link => DateOnlyRatings.Contains(link.MatchRating)));
-        links.AddRange(crossReferences.GetAllMovieLinks().Where(link => DateOnlyRatings.Contains(link.MatchRating)));
+        links.AddRange(crossReferences.GetAllSeriesLinks().Where(link => JudgedRatings.Contains(link.MatchRating)));
+        links.AddRange(crossReferences.GetAllMovieLinks().Where(link => JudgedRatings.Contains(link.MatchRating)));
 
         var (kept, rerated, removed) = (0, 0, 0);
         var searches = new HashSet<(MetadataSource Source, int AnimeID)>();
@@ -130,7 +136,7 @@ public class RejudgeMetadataLinksJob(
             await providerScheduler.ScheduleSearch(source, animeID, cancellationToken: token).ConfigureAwait(false);
 
         progressAccessor.Progress?.Report(100);
-        _logger.LogInformation("Re-judged {Count} date-only metadata links: {Kept} kept, {Rerated} re-rated and {Removed} removed.", links.Count, kept, rerated, removed);
+        _logger.LogInformation("Re-judged {Count} dated metadata links: {Kept} kept, {Rerated} re-rated and {Removed} removed.", links.Count, kept, rerated, removed);
     }
 
     /// <summary>
@@ -146,7 +152,10 @@ public class RejudgeMetadataLinksJob(
                     return null;
                 return matchingEngine.MatchMovies(anime, episode, [Describe(providerID, movie)]).FirstOrDefault()?.Rating ?? MatchRating.None;
             case ISeries series:
-                return matchingEngine.MatchSeries(anime, [Describe(providerID, series)]).FirstOrDefault()?.Rating ?? MatchRating.None;
+                var options = new SeriesMatchOptions { IncludeRestricted = true, SeasonsAreSeparateEntries = series.Seasons.Count is 0 };
+                return matchingEngine.MatchSeries(anime, [Describe(providerID, series)], options).FirstOrDefault() is { } match
+                    ? match.Rejection is MatchRejectionReason.TypeMismatch ? MatchRating.None : match.Rating
+                    : MatchRating.None;
             default:
                 return null;
         }
@@ -162,7 +171,24 @@ public class RejudgeMetadataLinksJob(
             FirstAiredAt = series.AirDate,
             Type = series.Type,
             EpisodeCount = series.EpisodeCounts.Episodes > 0 ? series.EpisodeCounts.Episodes : null,
+            Seasons = series.Seasons.Count is 0 ? null : [.. series.Seasons.Select(Describe)],
         };
+
+    // Its regular episodes, dated, so the season the anime is can be found
+    // and lined up as when the source was searched.
+    private static MetadataSearchResultSeason Describe(ISeason season)
+    {
+        var episodes = season.Episodes.Where(episode => episode.Type is EpisodeType.Episode).OrderBy(episode => episode.EpisodeNumber).ToList();
+        var firstAired = episodes.FirstOrDefault(episode => episode.AirDate is not null)?.AirDate;
+        return new()
+        {
+            SeasonNumber = season.SeasonNumber,
+            EpisodeCount = episodes.Count > 0 ? episodes.Count : null,
+            FirstAiredAt = firstAired is { } aired ? new PartialDateOnly(aired) : null,
+            FirstEpisodeAiredAt = firstAired,
+            Episodes = [.. episodes.Select(episode => new MetadataSearchResultEpisode { EpisodeNumber = episode.EpisodeNumber, AiredAt = episode.AirDate, Title = episode.Title })],
+        };
+    }
 
     internal static MetadataMovieSearchResult Describe(MetadataGuid providerID, IMovie movie)
         => new()

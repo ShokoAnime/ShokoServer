@@ -840,18 +840,20 @@ public class MetadataMatchingEngineTests
         Assert.Equal(4, match.SeasonNumber);
     }
 
-    // Across new year, first episodes airing within three days still agree,
-    // but only once the source has the first episode's date.
+    // Across new year, starts within weeks of each other still agree, by the
+    // first episode or the season's own date, while a season known only by
+    // its year does not.
     [Fact]
     public void MatchSeries_FallsBackOnTheFirstEpisodeAcrossNewYear()
     {
         var anime = SeriesAnime(new(2020, 1, 1), 12);
-        MetadataSeriesSearchResult Candidate(DateOnly? firstEpisode)
-            => Series("1", "Kaguya", aired: new(2015, 1, 1), seasons: [new() { SeasonNumber = 2, EpisodeCount = 12, FirstAiredAt = new(2019, 12, 30), FirstEpisodeAiredAt = firstEpisode }]);
+        MetadataSeriesSearchResult Candidate(DateOnly? firstEpisode, PartialDateOnly seasonAired)
+            => Series("1", "Kaguya", aired: new(2015, 1, 1), seasons: [new() { SeasonNumber = 2, EpisodeCount = 12, FirstAiredAt = seasonAired, FirstEpisodeAiredAt = firstEpisode }]);
 
-        Assert.Equal(MatchRating.TitleMatches, Matcher().MatchSeries(anime, [Candidate(null)], new() { Query = "Kaguya" })[0].Rating);
-        Assert.Equal(MatchRating.DateAndTitleMatches, Matcher().MatchSeries(anime, [Candidate(new(2019, 12, 30))], new() { Query = "Kaguya" })[0].Rating);
-        Assert.Equal(MatchRating.TitleMatches, Matcher().MatchSeries(anime, [Candidate(new(2019, 12, 20))], new() { Query = "Kaguya" })[0].Rating);
+        Assert.Equal(MatchRating.TitleMatches, Matcher().MatchSeries(anime, [Candidate(null, new(2019))], new() { Query = "Kaguya" })[0].Rating);
+        Assert.Equal(MatchRating.DateAndTitleMatches, Matcher().MatchSeries(anime, [Candidate(null, new(2019, 12, 30))], new() { Query = "Kaguya" })[0].Rating);
+        Assert.Equal(MatchRating.DateAndTitleMatches, Matcher().MatchSeries(anime, [Candidate(new(2019, 12, 20), new(2019))], new() { Query = "Kaguya" })[0].Rating);
+        Assert.Equal(MatchRating.TitleMatches, Matcher().MatchSeries(anime, [Candidate(new(2019, 10, 1), new(2019))], new() { Query = "Kaguya" })[0].Rating);
     }
 
     [Fact]
@@ -1344,6 +1346,45 @@ public class MetadataMatchingEngineTests
         Assert.Equal(MatchRating.DateMatches, near.Rating);
     }
 
+    // A title and the same year are not enough when both starts are known to
+    // the day: a film and the series it belongs to share both.
+    [Fact]
+    public void MatchSeries_ASharedYearMonthsApartIsNoDate()
+    {
+        var anime = SeriesAnime(new(1990, 1, 7), 12);
+        var match = Assert.Single(Matcher().MatchSeries(anime, [Series("1", "Chibi Maruko-chan", aired: new(1990, 12, 15))], new() { Query = "Chibi Maruko-chan" }));
+
+        Assert.Equal(MatchRating.TitleMatches, match.Rating);
+    }
+
+    // A source keeping every entry apart never lists a film and a TV series as
+    // one, while one keeping seasons together may hold a film's anime as a show.
+    [Theory]
+    [InlineData(true, MatchRejectionReason.TypeMismatch)]
+    [InlineData(false, MatchRejectionReason.None)]
+    public void MatchSeries_AFilmIsNotATvSeriesWhereEntriesAreApart(bool separateEntries, MatchRejectionReason expected)
+    {
+        var anime = SeriesAnime(new(2025, 6, 27), 12);
+        var film = Series("1", "Maidragon", aired: new(2025, 6, 27)) with { Type = AnimeType.Movie };
+
+        var match = Assert.Single(Matcher().MatchSeries(anime, [film], new() { Query = "Maidragon", SeasonsAreSeparateEntries = separateEntries }));
+
+        Assert.Equal(expected, match.Rejection);
+    }
+
+    // A Japanese title cut at its first space leaves "映画" alone, which
+    // begins the titles of many other films.
+    [Fact]
+    public void MatchSeries_AFormatWordAloneMatchesNoTitle()
+    {
+        var anime = SeriesAnime(new(2020, 12, 25), 1);
+        var match = Assert.Single(Matcher().MatchSeries(anime, [Series("1", "映画 ギヴン", aired: new(2020, 12, 25))],
+            new() { Query = "映画 えんとつ町のプペル", QueryLanguage = TitleLanguage.Japanese }));
+
+        Assert.NotEqual(MatchRating.DateAndTitleKindaMatches, match.Rating);
+        Assert.NotEqual(MatchRating.DateAndTitleMatches, match.Rating);
+    }
+
     #region Films
 
     [Fact]
@@ -1362,10 +1403,10 @@ public class MetadataMatchingEngineTests
     public void MatchMovies_DatesTheFilmByTheAnimeOrTheEpisode()
     {
         var (single, only) = FilmAnime(new(2016, 8, 26), 1, episodeDate: new(2017, 1, 1));
-        Assert.Equal(MatchRating.DateAndTitleMatches, Matcher().MatchMovies(single, only, [Movie("1", "Film", released: new(2016, 1, 1))], new() { Query = "Film" })[0].Rating);
+        Assert.Equal(MatchRating.DateAndTitleMatches, Matcher().MatchMovies(single, only, [Movie("1", "Film", released: new(2016, 8, 1))], new() { Query = "Film" })[0].Rating);
 
         var (series, second) = FilmAnime(new(2016, 8, 26), 2, episodeDate: new(2017, 1, 1));
-        Assert.Equal(MatchRating.TitleMatches, Matcher().MatchMovies(series, second, [Movie("1", "Film", released: new(2016, 1, 1))], new() { Query = "Film" })[0].Rating);
+        Assert.Equal(MatchRating.TitleMatches, Matcher().MatchMovies(series, second, [Movie("1", "Film", released: new(2016, 8, 1))], new() { Query = "Film" })[0].Rating);
         Assert.Equal(MatchRating.DateAndTitleMatches, Matcher().MatchMovies(series, second, [Movie("1", "Film", released: new(2017, 1, 1))], new() { Query = "Film" })[0].Rating);
     }
 

@@ -176,4 +176,25 @@ internal static partial class TitleVariants
     }
 
     #endregion
+
+    #region Format words
+
+    /// <summary>
+    ///   Words that say what kind of work a title is rather than which,
+    ///   such as "movie", "劇場版" or "OVA".
+    /// </summary>
+    /// <returns>The expression.</returns>
+    [GeneratedRegex(@"^(?:\s|[:!・\-])*(?:(?:the|gekijouban|gekijoban|eiga|movie|film|ova|oad|ona|tv|special|specials|劇場版|劇場|映画|特別編|スペシャル)(?:\s|[:!・\-])*)+$", RegexOptions.IgnoreCase)]
+    private static partial Regex FormatWordsRegex();
+
+    /// <summary>
+    ///   Whether a title holds nothing but words that say what kind of work
+    ///   it is, which name no work and begin the titles of many.
+    /// </summary>
+    /// <param name="title">The title.</param>
+    /// <returns><c>true</c> when it is only such words.</returns>
+    public static bool IsFormatWordsOnly(string title)
+        => FormatWordsRegex().IsMatch(title);
+
+    #endregion
 }
