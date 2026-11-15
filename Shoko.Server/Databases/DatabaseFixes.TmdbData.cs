@@ -435,8 +435,50 @@ public partial class DatabaseFixes
             SqlConnection => SQLServer.AddCreatedAtIfMissing(connection, "Metadata_Creator"),
             _ => new(true, null),
         };
-        return added.Item1 ? CopyTmdbPeopleRows(connection) : added;
+        if (!added.Item1)
+            return added;
+
+        var people = CopyTmdbPeopleRows(connection);
+        return people.Item1 ? CopyTmdbCharacterRows(connection) : people;
     }
+
+    /// <summary>
+    ///   Makes a stub in <c>Metadata_Character</c> for each character TMDB's
+    ///   cast credits name, keyed by the credit's ID, as the TMDB plugin names
+    ///   them: TMDB has no characters of its own, and a show's regular and
+    ///   recurring cast keep one credit across its episodes. Named after the
+    ///   first role seen with the credit.
+    /// </summary>
+    /// <param name="connection">The open connection to the database.</param>
+    /// <returns>Whether it ran, and the error when it did not.</returns>
+    private static Tuple<bool, string?> CopyTmdbCharacterRows(object connection)
+        => RunTmdbDataCopy(connection, "characters", "Metadata_Character", (transaction, report) =>
+        {
+            Execute(transaction, $"DELETE FROM Metadata_Character WHERE Source = {TmdbNumber}");
+            var now = DateTime.Now;
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var rows = new List<object?[]>();
+            var credits = Read(transaction, "SELECT TmdbCreditID, CharacterName FROM TMDB_Episode_Cast ORDER BY TMDB_Episode_CastID")
+                .Concat(Read(transaction, "SELECT TmdbCreditID, CharacterName FROM TMDB_Movie_Cast ORDER BY TMDB_Movie_CastID"));
+            foreach (var row in credits)
+            {
+                if (NullIfEmpty(row[0]) is not { } creditID || !seen.Add(creditID))
+                    continue;
+
+                rows.Add([TmdbNumber, creditID, TmdbCharacterName(row[1]), 0, now, now]);
+            }
+
+            return TmdbInsert(transaction, "Metadata_Character", ["Source", "ProviderID", "Name", "Type", "CreatedAt", "LastOrphanedAt"], rows);
+        });
+
+    /// <summary>
+    ///   A character's name from the role TMDB credits, without the
+    ///   <c> (voice)</c> TMDB adds to voice roles, as the TMDB plugin names it.
+    /// </summary>
+    /// <param name="character">The credited role.</param>
+    /// <returns>The name.</returns>
+    private static string TmdbCharacterName(object? character)
+        => (character as string)?.Replace(" (voice)", string.Empty, StringComparison.Ordinal).Trim() ?? string.Empty;
 
     /// <summary>
     ///   Copies TMDB's people into <c>Metadata_Creator</c>, as
@@ -635,13 +677,14 @@ public partial class DatabaseFixes
             var episode = KindNumber(MetadataEntityType.Episode);
             Execute(transaction, $"DELETE FROM Metadata_Cast WHERE Source = {TmdbNumber} AND EntityType = {episode}");
             var creators = ReadTmdbRowIDs(transaction, "Metadata_Creator", "Metadata_CreatorID");
+            var characters = ReadTmdbRowIDs(transaction, "Metadata_Character", "Metadata_CharacterID");
             var languages = ReadTmdbLanguages(transaction, "TMDB_Show", "TmdbShowID");
             var copied = 0;
-            var columns = "TmdbEpisodeID, TmdbShowID, TmdbPersonID, CharacterName, IsGuestRole";
+            var columns = "TmdbEpisodeID, TmdbShowID, TmdbPersonID, CharacterName, IsGuestRole, TmdbCreditID";
             foreach (var page in ReadTmdbPages(transaction, "TMDB_Episode_Cast", "TmdbEpisodeID", columns, "TmdbEpisodeID, IsGuestRole, Ordering, TMDB_Episode_CastID", report, "Copying TMDB episode cast"))
             {
                 var rows = page.GroupBy(row => AsInt(row[0])).SelectMany(group => group.Select((row, ordering) =>
-                    CastRow(episode, group.Key, creators, AsInt(row[2]), row[3], AsBool(row[4]), languages.GetValueOrDefault(AsInt(row[1])), ordering)));
+                    CastRow(episode, group.Key, creators, characters, AsInt(row[2]), row[5], row[3], AsBool(row[4]), languages.GetValueOrDefault(AsInt(row[1])), ordering)));
                 copied += TmdbInsert(transaction, "Metadata_Cast", _castColumns, rows);
             }
 
@@ -687,12 +730,13 @@ public partial class DatabaseFixes
             var movie = KindNumber(MetadataEntityType.Movie);
             Execute(transaction, $"DELETE FROM Metadata_Cast WHERE Source = {TmdbNumber} AND EntityType = {movie}");
             var creators = ReadTmdbRowIDs(transaction, "Metadata_Creator", "Metadata_CreatorID");
+            var characters = ReadTmdbRowIDs(transaction, "Metadata_Character", "Metadata_CharacterID");
             var languages = ReadTmdbLanguages(transaction, "TMDB_Movie", "TmdbMovieID");
             var copied = 0;
-            foreach (var page in ReadTmdbPages(transaction, "TMDB_Movie_Cast", "TmdbMovieID", "TmdbMovieID, TmdbPersonID, CharacterName", "TmdbMovieID, Ordering, TMDB_Movie_CastID", report, "Copying TMDB movie cast"))
+            foreach (var page in ReadTmdbPages(transaction, "TMDB_Movie_Cast", "TmdbMovieID", "TmdbMovieID, TmdbPersonID, CharacterName, TmdbCreditID", "TmdbMovieID, Ordering, TMDB_Movie_CastID", report, "Copying TMDB movie cast"))
             {
                 var rows = page.GroupBy(row => AsInt(row[0])).SelectMany(group => group.Select((row, ordering) =>
-                    CastRow(movie, group.Key, creators, AsInt(row[1]), row[2], false, languages.GetValueOrDefault(group.Key), ordering)));
+                    CastRow(movie, group.Key, creators, characters, AsInt(row[1]), row[3], row[2], false, languages.GetValueOrDefault(group.Key), ordering)));
                 copied += TmdbInsert(transaction, "Metadata_Cast", _castColumns, rows);
             }
 
@@ -745,9 +789,10 @@ public partial class DatabaseFixes
             var season = KindNumber(MetadataEntityType.Season);
             Execute(transaction, $"DELETE FROM Metadata_Cast WHERE Source = {TmdbNumber} AND EntityType IN ({series}, {season})");
             var creators = ReadTmdbRowIDs(transaction, "Metadata_Creator", "Metadata_CreatorID");
+            var characters = ReadTmdbRowIDs(transaction, "Metadata_Character", "Metadata_CharacterID");
             var languages = ReadTmdbLanguages(transaction, "TMDB_Show", "TmdbShowID");
             var copied = 0;
-            var columns = "TmdbShowID, TmdbSeasonID, TmdbEpisodeID, TmdbPersonID, CharacterName, IsGuestRole, Ordering";
+            var columns = "TmdbShowID, TmdbSeasonID, TmdbEpisodeID, TmdbPersonID, CharacterName, IsGuestRole, Ordering, TmdbCreditID";
             foreach (var page in ReadTmdbPages(transaction, "TMDB_Episode_Cast", "TmdbShowID", columns, "TmdbShowID, TmdbEpisodeID, Ordering, TMDB_Episode_CastID", report, "Gathering TMDB show cast", 200))
             {
                 var rows = new List<object?[]>();
@@ -757,13 +802,13 @@ public partial class DatabaseFixes
                     rows.AddRange(AggregateCast(show)
                         .OrderBy(credit => credit.Place)
                         .ThenBy(credit => credit.PersonID)
-                        .Select((credit, ordering) => CastRow(series, show.Key, creators, credit.PersonID, credit.Character, credit.Guest, language, ordering)));
+                        .Select((credit, ordering) => CastRow(series, show.Key, creators, characters, credit.PersonID, credit.CreditID, credit.Character, credit.Guest, language, ordering)));
 
                     foreach (var seasonRows in show.GroupBy(row => AsInt(row[1])).OrderBy(group => group.Key))
                         rows.AddRange(AggregateCast(seasonRows)
                             .OrderBy(credit => credit.PersonID)
                             .ThenBy(credit => credit.Place)
-                            .Select((credit, ordering) => CastRow(season, seasonRows.Key, creators, credit.PersonID, credit.Character, credit.Guest, language, ordering)));
+                            .Select((credit, ordering) => CastRow(season, seasonRows.Key, creators, characters, credit.PersonID, credit.CreditID, credit.Character, credit.Guest, language, ordering)));
                 }
 
                 copied += TmdbInsert(transaction, "Metadata_Cast", _castColumns, rows);
@@ -771,11 +816,11 @@ public partial class DatabaseFixes
 
             return copied;
 
-            // Each person in each role once, as first seen, with their place on that episode.
-            static IEnumerable<(int PersonID, string Character, bool Guest, int Place)> AggregateCast(IEnumerable<object?[]> rows)
+            // Each person in each role once, as first seen, with their place on that episode and that credit.
+            static IEnumerable<(int PersonID, string Character, bool Guest, int Place, object? CreditID)> AggregateCast(IEnumerable<object?[]> rows)
                 => rows
                     .GroupBy(row => (Person: AsInt(row[3]), Character: row[4] as string ?? string.Empty, Guest: AsBool(row[5])))
-                    .Select(group => (group.Key.Person, group.Key.Character, group.Key.Guest, Place: AsInt(group.First()[6])));
+                    .Select(group => (group.Key.Person, group.Key.Character, group.Key.Guest, Place: AsInt(group.First()[6]), CreditID: group.First()[7]));
         });
 
     /// <summary>
@@ -834,7 +879,7 @@ public partial class DatabaseFixes
     ///   The columns every cast row is written with, in the order
     ///   <see cref="CastRow"/> gives them.
     /// </summary>
-    private static readonly string[] _castColumns = ["Source", "EntityType", "EntityID", "CreatorID", "Name", "RoleType", "LanguageCode", "Ordering", "RoleNotes"];
+    private static readonly string[] _castColumns = ["Source", "EntityType", "EntityID", "CreatorID", "Name", "RoleType", "LanguageCode", "Ordering", "RoleNotes", "CharacterID"];
 
     /// <summary>
     ///   The columns every crew row is written with, in the order
@@ -848,16 +893,30 @@ public partial class DatabaseFixes
     /// <param name="entityType">The number of the entry's kind.</param>
     /// <param name="entityID">The entry's TMDB ID.</param>
     /// <param name="creators">The creators' row IDs, by TMDB ID.</param>
+    /// <param name="characters">The characters' row IDs, by TMDB credit ID.</param>
     /// <param name="personID">The person's TMDB ID.</param>
-    /// <param name="character">The character's name.</param>
+    /// <param name="creditID">The TMDB credit ID, which names the character.</param>
+    /// <param name="character">The role's name.</param>
     /// <param name="guest">Whether it is a guest star's role.</param>
     /// <param name="languageCode">The language of the performance, or <c>null</c>.</param>
     /// <param name="ordering">Where the credit sits among the entry's.</param>
     /// <returns>The row's values.</returns>
-    private static object?[] CastRow(int entityType, int entityID, IReadOnlyDictionary<string, int> creators, int personID, object? character, bool guest, string? languageCode, int ordering)
+    private static object?[] CastRow(
+        int entityType,
+        int entityID,
+        IReadOnlyDictionary<string, int> creators,
+        IReadOnlyDictionary<string, int> characters,
+        int personID,
+        object? creditID,
+        object? character,
+        bool guest,
+        string? languageCode,
+        int ordering
+    )
         => [
             TmdbNumber, entityType, Text(entityID), creators.TryGetValue(Text(personID), out var creatorID) ? creatorID : null, character as string ?? string.Empty,
             (int)CastRoleType.None, languageCode, ordering, guest ? TmdbGuestStarNotes : null,
+            NullIfEmpty(creditID) is { } credit && characters.TryGetValue(credit, out var characterID) ? characterID : null,
         ];
 
     /// <summary>

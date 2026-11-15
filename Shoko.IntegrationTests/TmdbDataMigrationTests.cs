@@ -408,6 +408,18 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
                     Credit(MetadataEntityType.Episode, SecondEpisodeID, AliceID, "Directing, Director", 0),
                     Credit(MetadataEntityType.Movie, MovieID, BobID, "Writing, Screenplay", 0)),
                 Credits("Metadata_Crew", "Name"));
+            // Each cast credit names a character keyed by TMDB's credit ID, a show's and a season's by the credit first seen.
+            Assert.Equal(
+                string.Join("; ",
+                    $"{Kind(MetadataEntityType.Series)}|{ShowID}|c{FirstEpisodeID}-{AliceID}", $"{Kind(MetadataEntityType.Series)}|{ShowID}|c{FirstEpisodeID}-{BobID}",
+                    $"{Kind(MetadataEntityType.Series)}|{ShowID}|c{SecondEpisodeID}-{UnknownPersonID}",
+                    $"{Kind(MetadataEntityType.Episode)}|{FirstEpisodeID}|c{FirstEpisodeID}-{AliceID}", $"{Kind(MetadataEntityType.Episode)}|{FirstEpisodeID}|c{FirstEpisodeID}-{BobID}",
+                    $"{Kind(MetadataEntityType.Movie)}|{MovieID}|m1"),
+                string.Join("; ", Read(connection,
+                    $"SELECT e.EntityType, e.EntityID, ch.ProviderID FROM Metadata_Cast e LEFT JOIN Metadata_Character ch ON ch.Metadata_CharacterID = e.CharacterID " +
+                    $"WHERE e.Source = {tmdb} AND (e.EntityType IN ({Kind(MetadataEntityType.Series)}, {Kind(MetadataEntityType.Movie)}) OR e.EntityID = '{FirstEpisodeID}') " +
+                    "ORDER BY e.EntityType, e.EntityID, e.Ordering")));
+            Assert.Equal(["0"], Read(connection, $"SELECT COUNT(*) FROM Metadata_Cast {Where()} AND CharacterID IS NULL"));
             Assert.Equal(["ja"], Read(connection, $"SELECT DISTINCT LanguageCode FROM Metadata_Cast {Where()}"));
             Assert.Equal(["Villain|Guest star"], Read(connection, $"SELECT DISTINCT Name, RoleNotes FROM Metadata_Cast {Where()} AND RoleNotes IS NOT NULL"));
             Assert.Equal(
