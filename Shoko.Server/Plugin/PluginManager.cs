@@ -420,7 +420,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (assembly == typeof(PluginManager).Assembly)
                 continue; //Skip the current assembly, as this is registered implicitly.
 
-            logger.LogTrace("Scanning plugin assembly for queue jobs. ({DllName})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]));
             try
             {
                 serviceCollection.AddQueueJobsFromAssembly(pluginInfo.PluginType!.Assembly);
@@ -648,7 +647,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (!localPluginInfo.IsEnabled)
             {
                 if (localPluginInfo.CanLoad)
-                    logger.LogInformation("Skipping disabled plugin \"{Name}\". ({DllName}, {Version})", localPluginInfo.Name, dllName, localPluginInfo.Version);
+                    logger.LogDebug("Skipping disabled plugin \"{Name}\". ({DllName}, {Version})", localPluginInfo.Name, dllName, localPluginInfo.Version);
                 continue;
             }
 
