@@ -25,9 +25,12 @@ public class EmbeddedCrossReference : IReleaseVideoCrossReference
     }
 
     /// <inheritdoc/>
+    // MySQL and MariaDB wrote these as floats when the cross-references were rewritten (schema step 205/1).
+    [JsonConverter(typeof(WholeNumberJsonConverter))]
     public int PercentageStart { get; set; }
 
     /// <inheritdoc/>
+    [JsonConverter(typeof(WholeNumberJsonConverter))]
     public int PercentageEnd { get; set; } = 100;
 
     public EmbeddedCrossReference() { }
