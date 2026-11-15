@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.603",
+      "tag": "v6.0.0-dev.603",
+      "commit": "eff8b5dd77e855086ee63f6692cdf7bb94c2168e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.603/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-15T16:03:25Z",
+      "releaseNotes": "\n`fix` (`core`): **Carry the 5.x TMDB cast and network switches to the plugin**:\n\nMigration 26 now also writes `AutoDownloadCrewAndCast` and\n`AutoDownloadNetworks` as the plugin's `DownloadCastAndCrew` and\n`DownloadNetworks`, so a switch turned off in 5.x stays off.\n"
+    },
+    {
       "version": "6.0.0.602",
       "tag": "v6.0.0-dev.602",
       "commit": "b377eeb95b92ad82d38e8be22d51ac6e7055adf1",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.574/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-01T18:11:58Z",
       "releaseNotes": "\n`fix` (`images`): **Answer `404` for the empty image ID instead of `500`**.\n\n`fix` (`plugin`): **Never download over plain http what an https manifest names**:\n\n- A manifest served over https may no longer link a manifest, offer an archive or name an image over plain http; they are left out, and `PackageReleaseInfo.Refusals` says why for each archive\n- A redirect from https to http is refused by name instead of failing as a bare redirect status\n\n`refactor` (`abstractions`): **Set user avatars through the image manager**:\n\n- Removed the avatar members from `UserUpdate` and their handling in `UserService`; a user's avatar and banner are images set through `IImageManager`\n- APIv3's user create and update routes now upload the avatar and set it as the user's preferred primary image themselves, and build the data url `User.Avatar` returns\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.122**.\n"
-    },
-    {
-      "version": "6.0.0.573",
-      "tag": "v6.0.0-dev.573",
-      "commit": "5b519e033ac77582f65db5655c4a57088bdb3b06",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.573/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T18:00:19Z",
-      "releaseNotes": "\n`fix`: **Opt out of cancellation explicitly where it must not apply**:\n\nResolved `S8949` and the last high-severity `S6680` without changing behavior.\n\n- Passed `CancellationToken.None` to fire-and-forget event raises, shutdown calls and `finally` enqueues in `SystemService`, `PluginPackageManager`, `AnidbService`, `VideoService`, `MylistService`, `ScheduledActionService`, `ImageManager` and `AniDBUDPConnectionHandler`, where a cancelled token would drop the event or abort the work\n- Passed the in-scope token to `StartJob`, `EnqueueWithPriority` and `EvaluateFilterWithTuples` in `ActionService`, `ImageManager` and `MetadataFilteringService`, where the method already checks cancellation before the call\n- Bounded the loop in `MylistService.ValidatePlan` by a counter and moved the data check into its body (`S6680`)\n\n`merge`: **Merge pull request #1470 from ShokoAnime/fix/sonar-batch-2**:\n\nfix: resolve sonarcloud S8949 and S6680 (batch 2)\n"
     }
   ]
 }
