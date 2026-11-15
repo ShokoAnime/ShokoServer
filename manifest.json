@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.602",
+      "tag": "v6.0.0-dev.602",
+      "commit": "b377eeb95b92ad82d38e8be22d51ac6e7055adf1",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.602/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-15T15:07:26Z",
+      "releaseNotes": "\n`feat` (`core`): **Give the TMDB cast copied from 5.x its characters**:\n\n- The 5.x TMDB data copy makes a character stub for each cast credit, keyed by TMDB's credit ID as the TMDB plugin names them, and points the copied episode, movie, show and season cast at it\n\n`fix` (`core`): **Read release percentages MySQL wrote as floats**:\n\n- Read a stored release's `PercentageStart` and `PercentageEnd` written as `100.0`, as the release cross-references rewrite (schema step 205/1) left them on MySQL 8, which kept the server from starting\n"
+    },
+    {
       "version": "6.0.0.601",
       "tag": "v6.0.0-dev.601",
       "commit": "b1c60add49b9f15f07118fafb5f91300fae00a8f",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.573/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-01T18:00:19Z",
       "releaseNotes": "\n`fix`: **Opt out of cancellation explicitly where it must not apply**:\n\nResolved `S8949` and the last high-severity `S6680` without changing behavior.\n\n- Passed `CancellationToken.None` to fire-and-forget event raises, shutdown calls and `finally` enqueues in `SystemService`, `PluginPackageManager`, `AnidbService`, `VideoService`, `MylistService`, `ScheduledActionService`, `ImageManager` and `AniDBUDPConnectionHandler`, where a cancelled token would drop the event or abort the work\n- Passed the in-scope token to `StartJob`, `EnqueueWithPriority` and `EvaluateFilterWithTuples` in `ActionService`, `ImageManager` and `MetadataFilteringService`, where the method already checks cancellation before the call\n- Bounded the loop in `MylistService.ValidatePlan` by a counter and moved the data check into its body (`S6680`)\n\n`merge`: **Merge pull request #1470 from ShokoAnime/fix/sonar-batch-2**:\n\nfix: resolve sonarcloud S8949 and S6680 (batch 2)\n"
-    },
-    {
-      "version": "6.0.0.572",
-      "tag": "v6.0.0-dev.572",
-      "commit": "cba0dbe9925fb62d60082b2cbc38dcaa11c3206c",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.572/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T17:27:21Z",
-      "releaseNotes": "\n`fix`: **Resolve sonarcloud reliability and security issues**:\n\nCleared the issues behind the E reliability and D security ratings, with no behavior change for valid input.\n\n- Disposed `_databaseTasksChangedCTS` on every exit path of the database unblock loop in `SystemService` (S2930)\n- Replaced `lock (this)` in `AnimeSeriesService` with a dedicated lock object (S2551)\n- Renamed fields that clashed with accessors in `GetAniDBImagesJob`, `PurgeAniDBAnimeJob` and `CRC32` (S4275)\n- Guarded `AnimeSeries.AllGroupsAbove` against a cyclic parent chain (S6680)\n- Passed the in-scope token to `StartJob` and `TrySetCanceled` where cancellation was already honored (S8949)\n- Suppressed S4790 on the non-security dedupe keys, keeping the algorithm so persisted keys stay valid\n- Pinned `NuGet/login` and `docker/login-action` to full commit SHAs (S7637)\n- Moved secrets out of `run` blocks into step `env` in the workflows (S7636)\n- Used a private temp directory and `usedforsecurity=False` in `scripts/text_snapshots.py` (S5443, S4790)\n\n`fix`: **Address sonarcloud findings on the batch**:\n\n- Left the disposal of `changedSignal` to the `finally` block in `SystemService` instead of also disposing on the early returns (`S3966`)\n- Moved the justification out of the `NOSONAR` comments in `scripts/text_snapshots.py` (`S7632`)\n- Marked the bounded parent walk in `AnimeSeries.AllGroupsAbove` for `S6680`\n\n`fix`: **Satisfy remaining sonarcloud findings on the batch**:\n\n- Created the replacement `CancellationTokenSource` before disposing the old one in `SystemService`, so the `finally` never sees a disposed signal (`S3966`)\n- Capped the parent walk in `AnimeSeries.AllGroupsAbove` at `MaxGroupDepth` instead of suppressing `S6680`\n\n`fix`: **Drop the visited set from the parent group walk**:\n\nKept the `MaxGroupDepth` cap as the loop bound in `AnimeSeries.AllGroupsAbove`; the `HashSet` was itself flagged as a sink by `S6680`.\n\n`fix`: **Bound the parent group walk by depth alone**:\n\nMoved the `groupID` check into the body of the loop in `AnimeSeries.AllGroupsAbove`, so the loop condition no longer reads a stored ID (`S6680`).\n\n`merge`: **Merge pull request #1469 from ShokoAnime/fix/sonar-batch-1**:\n\nfix: resolve sonarcloud reliability and security issues (batch 1)\n"
     }
   ]
 }
