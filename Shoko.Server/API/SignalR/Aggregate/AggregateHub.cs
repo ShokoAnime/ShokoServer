@@ -50,6 +50,8 @@ public class AggregateHub : Hub
     {
         foreach (var emitter in _allFeeds.Values)
             await emitter.DisconnectAsync(Context.ConnectionId);
+        if (_allFeeds.TryGetValue("queue", out var queue) && queue is QueueEventEmitter queueEmitter)
+            queueEmitter.ForgetConnection(Context.ConnectionId);
         await base.OnDisconnectedAsync(exception);
     }
 

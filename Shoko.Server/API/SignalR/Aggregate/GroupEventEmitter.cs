@@ -46,7 +46,7 @@ public class GroupEventEmitter : BaseEventEmitter, IDisposable
     {
         try
         {
-            var eventName = e.Reason is UpdateReason.None ? "group.updated" : "group." + e.Reason.ToString().ToLower();
+            var eventName = ReasonSubject("group", e.Reason);
             await SendToAudienceAsync(EventAudience.ForGroup(e.GroupInfo, _anidbAnime.GetByAnimeID), eventName, new GroupInfoUpdatedEventSignalRModel(e));
         }
         catch (Exception ex)

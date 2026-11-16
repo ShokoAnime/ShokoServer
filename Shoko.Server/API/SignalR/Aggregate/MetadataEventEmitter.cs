@@ -108,7 +108,7 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
     {
         try
         {
-            var eventName = e.Reason is UpdateReason.None ? "series.updated" : "series." + e.Reason.ToString().ToLower();
+            var eventName = ReasonSubject("series", e.Reason);
             var audience = EventAudience.ForEntry(e.SeriesInfo, _anidbAnime.GetByAnimeID, e.Reason is UpdateReason.Removed);
             await SendToAudienceAsync(audience, eventName, new SeriesInfoUpdatedEventSignalRModel(e));
         }
@@ -122,7 +122,7 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
     {
         try
         {
-            var eventName = e.Reason is UpdateReason.None ? "episode.updated" : "episode." + e.Reason.ToString().ToLower();
+            var eventName = ReasonSubject("episode", e.Reason);
             var audience = EventAudience.ForEntry(e.EpisodeInfo, _anidbAnime.GetByAnimeID, e.Reason is UpdateReason.Removed);
             await SendToAudienceAsync(audience, eventName, new EpisodeInfoUpdatedEventSignalRModel(e));
         }
@@ -166,7 +166,7 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
     {
         try
         {
-            var eventName = e.Reason is UpdateReason.None ? "movie.updated" : "movie." + e.Reason.ToString().ToLower();
+            var eventName = ReasonSubject("movie", e.Reason);
             var audience = EventAudience.ForEntry(e.MovieInfo, _anidbAnime.GetByAnimeID, e.Reason is UpdateReason.Removed);
             await SendToAudienceAsync(audience, eventName, new MovieInfoUpdatedEventSignalRModel(e));
         }
@@ -184,7 +184,7 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
 
         try
         {
-            var eventName = e.Reason is UpdateReason.None ? "collection.updated" : "collection." + e.Reason.ToString().ToLower();
+            var eventName = ReasonSubject("collection", e.Reason);
             var audience = EventAudience.ForEntry(e.CollectionInfo, _anidbAnime.GetByAnimeID, e.Reason is UpdateReason.Removed);
             await SendToAudienceAsync(audience, eventName, new CollectionInfoUpdatedEventSignalRModel(e));
         }

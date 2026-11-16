@@ -102,7 +102,11 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
         RequestPush();
     }
 
-    protected override void OnConnectionRemoved(string connectionId)
+    /// <summary>
+    /// Forgets a connection's choice of per-pool detail once the connection has closed. The choice outlives leaving
+    /// and joining the feed again, but never the connection.
+    /// </summary>
+    public void ForgetConnection(string connectionId)
         => _poolSubscribers.TryRemove(connectionId, out _);
 
     protected override object[] GetInitialMessages()
@@ -177,7 +181,8 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
         var withoutPools = GetQueueState(includePools: false);
         _lastQueueState = withoutPools;
 
-        var poolIds = _poolSubscribers.Keys.ToArray();
+        // Only connections on the feed get its messages, whatever they opted into.
+        var poolIds = _poolSubscribers.Keys.Where(IsListening).ToArray();
         if (poolIds.Length == 0)
         {
             await SendAsync("state.changed", withoutPools);

@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Moq;
+using Shoko.Abstractions.User;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.SignalR.Models;
@@ -40,11 +41,20 @@ public class QueueEventEmitterTests
             clients.Setup(c => c.Group(It.IsAny<string>())).Returns(group.Object);
             clients.Setup(c => c.GroupExcept(It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>())).Returns(group.Object);
             clients.Setup(c => c.Clients(It.IsAny<IReadOnlyList<string>>())).Returns(group.Object);
+            clients.Setup(c => c.Client(It.IsAny<string>())).Returns(Mock.Of<ISingleClientProxy>());
             var hub = new Mock<IHubContext<AggregateHub>>();
             hub.Setup(h => h.Clients).Returns(clients.Object);
+            // The plain context the feed joins connections through, as the hub's registry attaches it.
+            var attached = new Mock<IHubContext>();
+            attached.Setup(h => h.Clients).Returns(clients.Object);
+            attached.Setup(h => h.Groups).Returns(Mock.Of<IGroupManager>());
 
             Emitter = new QueueEventEmitter(hub.Object, Queue.Events, Queue.Handler, Queue.Scheduler);
+            Emitter.Attach(attached.Object);
         }
+
+        public Task Join(string connectionId)
+            => Emitter.ConnectAsync(connectionId, Mock.Of<IUser>());
 
         public void Dispose()
         {
@@ -80,6 +90,7 @@ public class QueueEventEmitterTests
     {
         using var harness = new Harness();
         using var cts = new CancellationTokenSource(_timeout);
+        await harness.Join("connection");
         harness.Emitter.SetIncludePools("connection", true);
         while (harness.Sent.IsEmpty)
             await Task.Delay(10, cts.Token);
@@ -94,6 +105,23 @@ public class QueueEventEmitterTests
             await Task.Delay(10, cts.Token);
         var pool = Assert.Single(harness.Sent.First(state => state.Pools.Count > 0).Pools);
         Assert.Equal(harness.Queue.Pool.HandledTypes.Select(JobTypeNames.Key), pool.HandledTypeKeys);
+    }
+
+    [Fact]
+    public async Task PoolDetail_OnlyGoesToConnectionsOnTheFeed()
+    {
+        using var harness = new Harness();
+        using var cts = new CancellationTokenSource(_timeout);
+        // Opted in, but never joined the feed.
+        harness.Emitter.SetIncludePools("stranger", true);
+        while (harness.Sent.IsEmpty)
+            await Task.Delay(10, cts.Token);
+        await Task.Delay(300, cts.Token);
+
+        Assert.True(harness.Queue.Scheduler.SetPoolHeld(harness.Queue.Pool.Name, true));
+        await Task.Delay(300, cts.Token);
+
+        Assert.All(harness.Sent, state => Assert.Empty(state.Pools));
     }
 
     #endregion

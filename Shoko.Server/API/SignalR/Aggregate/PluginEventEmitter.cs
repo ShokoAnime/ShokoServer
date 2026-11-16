@@ -46,17 +46,17 @@ public class PluginEventEmitter : BaseEventEmitter, IDisposable
     }
 
     private void OnPackageInstallationQueued(object? sender, PackageInstallationQueuedEventArgs e)
-        => Send("install-queued", new PackageInstallSignalRModel(e.Entry.ID, e.Entry.Package, e.Entry.QueuedAt));
+        => Send("installQueued", new PackageInstallSignalRModel(e.Entry.ID, e.Entry.Package, e.Entry.QueuedAt));
 
     // Raised inside the install, so the send goes off on its own.
     private void OnPackageInstallationStarted(object? sender, PackageInstallationStartedEventArgs e)
-        => Send("install-started", new PackageInstallSignalRModel(e.QueueEntryID, e.Package, e.StartedAt));
+        => Send("installStarted", new PackageInstallSignalRModel(e.QueueEntryID, e.Package, e.StartedAt));
 
     private void OnPackageInstallationFailed(object? sender, PackageInstallationFailedEventArgs e)
-        => Send("install-failed", new PackageInstallSignalRModel(e.QueueEntryID, e.Package, e.FailedAt, e.Reason));
+        => Send("installFailed", new PackageInstallSignalRModel(e.QueueEntryID, e.Package, e.FailedAt, e.Reason));
 
     private void OnPackageInstallationCancelled(object? sender, PackageInstallationCancelledEventArgs e)
-        => Send("install-cancelled", new PackageInstallSignalRModel(e.Entry.ID, e.Entry.Package, e.CancelledAt));
+        => Send("installCancelled", new PackageInstallSignalRModel(e.Entry.ID, e.Entry.Package, e.CancelledAt));
 
     private void Send(string eventName, PackageInstallSignalRModel model)
         => _ = Task.Run(async () =>

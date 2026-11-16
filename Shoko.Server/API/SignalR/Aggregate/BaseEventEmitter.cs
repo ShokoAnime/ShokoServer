@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Web.SignalR;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
@@ -26,6 +27,19 @@ public abstract class BaseEventEmitter : EventEmitter
     {
         Hub = hub;
         Attach(new AggregateHubContext(hub));
+    }
+
+    /// <summary>
+    ///   An event subject for an entity and why it changed, in camelCase like
+    ///   every other subject, such as <c>series.imageAdded</c>.
+    /// </summary>
+    /// <param name="entity">The entity, such as <c>series</c>.</param>
+    /// <param name="reason">Why it changed; <see cref="UpdateReason.None"/> reads as updated.</param>
+    /// <returns>The subject.</returns>
+    protected static string ReasonSubject(string entity, UpdateReason reason)
+    {
+        var name = (reason is UpdateReason.None ? UpdateReason.Updated : reason).ToString();
+        return entity + "." + char.ToLowerInvariant(name[0]) + name[1..];
     }
 
     /// <summary>
