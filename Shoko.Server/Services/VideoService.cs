@@ -1206,7 +1206,7 @@ public class VideoService : IVideoService
     /// </summary>
     /// <param name="folder">The managed folder to scan.</param>
     /// <param name="relativePath">Only scan below this path in the folder, when set.</param>
-    /// <param name="onlyNewFiles">Only look at files that have no record yet.</param>
+    /// <param name="onlyNewFiles">Only look at files that have no record yet, keeping the records of missing files.</param>
     /// <param name="skipEvents">Skip the events and the MyList updates.</param>
     /// <param name="cleanUpStructure">Remove empty folders afterwards; the import setting when <c>null</c>.</param>
     /// <param name="checkFileSize">Look again at files whose size changed; the import setting when <c>null</c>.</param>
@@ -1259,7 +1259,8 @@ public class VideoService : IVideoService
                     continue;
                 }
 
-                if (!location.IsAvailable)
+                // A scan for new files only adds; missing files are left to a full scan or "Remove Missing Files".
+                if (!onlyNewFiles && !location.IsAvailable)
                 {
                     _logger.LogInformation("Removing missing path for VideoLocal_Place; {Path} (Video={VideoID}, Place={PlaceID}, ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
                     await RemoveRecord(location, skipEvents: skipEvents);

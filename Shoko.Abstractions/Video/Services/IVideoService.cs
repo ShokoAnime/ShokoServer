@@ -580,7 +580,8 @@ public interface IVideoService
     ///   The relative path within the managed folder to scan.
     /// </param>
     /// <param name="onlyNewFiles">
-    ///   Whether to only scan for new files.
+    ///   Whether to only scan for new files. Such a scan only adds files: it
+    ///   keeps the records of missing files, which a full scan removes.
     /// </param>
     /// <param name="skipEvents">
     ///   Whether to skip adding the discovered files to the provider-specific post-save state sync.
@@ -617,7 +618,8 @@ public interface IVideoService
     ///   The relative path within the managed folder to scan.
     /// </param>
     /// <param name="onlyNewFiles">
-    ///   Whether to only scan for new files.
+    ///   Whether to only scan for new files. Such a scan only adds files: it
+    ///   keeps the records of missing files, which a full scan removes.
     /// </param>
     /// <param name="skipEvents">
     ///   Whether to skip provider-specific post-save state sync.
@@ -655,7 +657,8 @@ public interface IVideoService
     ///   <see cref="DropFolderType.Source"/> set.
     /// </param>
     /// <param name="onlyNewFiles">
-    ///   Whether to only scan for new video files.
+    ///   Whether to only scan for new video files, keeping the records of
+    ///   missing files, which a full scan removes.
     /// </param>
     /// <param name="skipEvents">
     ///   Whether to skip provider-specific post-save state sync.
