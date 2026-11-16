@@ -139,10 +139,11 @@ Plugin controllers are registered via `AddPluginControllers` during API setup.
 
 ### SignalR (Real-time Events)
 
-Two hubs, each carrying its authorization as attributes on the hub class:
+Three hubs, each carrying its authorization as attributes on the hub class:
 
 - **`LoggingHub`** (`/signalr/logging`, admins only; `[InitFriendly]` and `[DatabaseBlockedExempt]`, so in setup and failure mode anyone, as the init user) — streams buffered server logs to connecting clients, separate from the aggregate hub because it can become noisy, fast.
 - **`AggregateHub`** (`/signalr/aggregate`, any authenticated user) — subscription only; clients call `feed.join_single` / `feed.join_many` etc. to subscribe to event categories, and cannot call into a feed. Every joining or leaving call answers with the connection's feeds afterwards, and `feed.joined` sends them once the connection has joined the ones its `feeds` query named. `feed.resend_initial` sends a connection already on a feed its `<feed>:connected` messages again, so a client sharing one connection among several listeners can give a late one its starting state.
+- **`StartupHub`** (`/signalr/startup`, `[InitFriendly]`, the `startup` policy: anyone until the server has started, nobody after, and while a setup token guards setup or failure mode only a caller who gave it) — sends only, the client calls nothing: `Backlog` (every `ISystemService.StartupMessages` entry so far) once, then `State` (`Waiting`/`Starting`/`Started`/`Failed`, as `Init/Status` gives it, with the message) and each new `Message`. `StartupEmitter` reads the ordered message list rather than trusting event order, queues each connection's sends one at a time, and closes every connection 2 seconds after sending `started`; setup and failure mode keep it open.
 
 Event emitters (`Shoko.Server/API/SignalR/Aggregate/`) bridge internal domain events to SignalR: `ActionEventEmitter`, `AiringEventEmitter`, `AnidbEventEmitter`, `AvdumpEventEmitter`, `ConfigurationEventEmitter`, `FileEventEmitter`, `FilterEventEmitter`, `GroupEventEmitter`, `ManagedFolderEventEmitter`, `MetadataEventEmitter`, `NetworkEventEmitter`, `PluginEventEmitter`, `QueueEventEmitter`, `RelocationEventEmitter`, `ReleaseEventEmitter`, `RestartEventEmitter`, `SuspensionEventEmitter`, `UserDataEventEmitter`, `UserEventEmitter`. An emitter can refuse a user by overriding `CanConnect`, as the admin-only `action`, `relocation` and `restart` feeds do.
 

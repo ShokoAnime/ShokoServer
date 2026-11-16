@@ -8,6 +8,7 @@ using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -56,6 +57,7 @@ public static partial class APIExtensions
     public static IServiceCollection AddAPI(this IServiceCollection services, IPluginManager pluginManager)
     {
         services.AddSingleton<LoggingEmitter>();
+        services.AddSingleton<StartupEmitter>();
         services.AddSingleton<IEventEmitter, AiringEventEmitter>();
         services.AddSingleton<IEventEmitter, AnidbEventEmitter>();
         services.AddSingleton<IEventEmitter, AvdumpEventEmitter>();
@@ -95,6 +97,14 @@ public static partial class APIExtensions
             auth.AddPolicy("init",
                 policy => policy.Requirements.Add(new UserHandler(user =>
                     user.JMMUserID == 0 && user.Username == "init")));
+            // Anyone until the server has started, and nobody after. While a setup token guards setup or failure mode,
+            // only a caller the handler signed in with it.
+            auth.AddPolicy("startup",
+                policy => policy.RequireAssertion(context =>
+                    context.Resource is HttpContext { RequestServices: var services } &&
+                    services.GetRequiredService<ISystemService>() is { IsStarted: false } systemService &&
+                    (!(systemService.InSetupMode || systemService.StartupFailedException is not null) ||
+                        !systemService.HasSetupToken || context.User.Identity?.IsAuthenticated is true)));
         });
 
         // Before MVC reads its route templates.
@@ -695,6 +705,7 @@ public static partial class APIExtensions
             conf.MapControllers();
             conf.MapHub<LoggingHub>("/signalr/logging");
             conf.MapHub<AggregateHub>("/signalr/aggregate");
+            conf.MapHub<StartupHub>("/signalr/startup");
         });
 
         var registeredPlugins = false;
