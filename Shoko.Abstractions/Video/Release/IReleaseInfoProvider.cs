@@ -48,6 +48,20 @@ public interface IReleaseInfoProvider
     string? NotConfiguredReason { get => null; }
 
     /// <summary>
+    ///   Why you cannot answer the searches the core runs on its own, for
+    ///   new files and from the queue, in words a person can act on, such as
+    ///   "No auto-match rules are set up.", or <c>null</c> while you can.
+    /// </summary>
+    /// <remarks>
+    ///   Read every time the core is about to search on its own. While it is
+    ///   set, those searches pass you by and none of your jobs are queued,
+    ///   while a search a person starts, such as when linking files by hand,
+    ///   still asks you; it is shown in your availability meanwhile. An empty
+    ///   text counts as none. The default is <c>null</c>.
+    /// </remarks>
+    string? CannotAutoMatchReason { get => null; }
+
+    /// <summary>
     ///   How many of the core's jobs for you may run at once, or
     ///   <c>null</c> for no limit of your own.
     /// </summary>

@@ -63,6 +63,16 @@ public class ProviderAvailabilitiesTests
         => Assert.Null(ProviderAvailabilities.Get("A", true, true, null, [Suspended("S", DateTime.UtcNow), Suspended("T", null)]).ResumesAt);
 
     [Fact]
+    public void ManualOnly_ComesAfterSuspended_AndKeepsTheProvidersReason()
+    {
+        Assert.Equal(ProviderAvailabilityKind.Suspended, ProviderAvailabilities.Get("A", true, true, null, [Suspended("S", null)], false, "No rules.").Kind);
+
+        var availability = ProviderAvailabilities.Get("A", true, true, null, [], false, "No rules.");
+        Assert.Equal(ProviderAvailabilityKind.ManualOnly, availability.Kind);
+        Assert.Equal("No rules.", availability.Reason);
+    }
+
+    [Fact]
     public void Available_WhenNothingStopsIt()
         => Assert.True(ProviderAvailabilities.Get("A", true, true, null, []).IsAvailable);
 }

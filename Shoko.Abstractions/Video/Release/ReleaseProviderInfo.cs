@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Plugin.Models;
 
@@ -65,6 +66,19 @@ public class ReleaseProviderInfo
     ///   <c>false</c>, or <c>null</c>.
     /// </summary>
     public string? NotConfiguredReason { get => Provider.IsConfigured ? null : Provider.NotConfiguredReason; }
+
+    /// <summary>
+    ///   Whether the provider can answer the searches the core runs on its
+    ///   own.
+    /// </summary>
+    [MemberNotNullWhen(false, nameof(CannotAutoMatchReason))]
+    public bool CanAutoMatch { get => string.IsNullOrEmpty(CannotAutoMatchReason); }
+
+    /// <summary>
+    ///   Why the provider cannot answer the core's own searches, or
+    ///   <c>null</c> while it can.
+    /// </summary>
+    public string? CannotAutoMatchReason { get => Provider.CannotAutoMatchReason; }
 
     /// <summary>
     ///   How many of the core's jobs for the provider may run at once, or

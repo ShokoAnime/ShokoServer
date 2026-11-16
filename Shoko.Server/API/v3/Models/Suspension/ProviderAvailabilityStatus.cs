@@ -30,7 +30,8 @@ public class ProviderAvailabilityStatus
 
     /// <summary>
     /// Whether the provider can be used, and if not, what stops it: an admin
-    /// turned it off, it is not configured, or a suspension holds it back.
+    /// turned it off, it is not configured, a suspension holds it back, or a
+    /// release provider only answers searches a person starts.
     /// </summary>
     [Required]
     public ProviderAvailabilityKind Kind { get; init; }

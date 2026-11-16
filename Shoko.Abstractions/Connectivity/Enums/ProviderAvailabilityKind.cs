@@ -32,4 +32,11 @@ public enum ProviderAvailabilityKind : byte
     ///   during a ban, until the suspension ends or is lifted.
     /// </summary>
     Suspended = 3,
+
+    /// <summary>
+    ///   The release provider only answers searches a person starts, not the
+    ///   ones the core runs on its own, such as while it has no rules for
+    ///   matching by itself.
+    /// </summary>
+    ManualOnly = 4,
 }

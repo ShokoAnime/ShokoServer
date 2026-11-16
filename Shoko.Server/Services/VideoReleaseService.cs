@@ -575,7 +575,9 @@ public class VideoReleaseService(
             provider.Enabled,
             provider.Provider.IsConfigured,
             provider.Provider.NotConfiguredReason,
-            suspensionService.Value.GetHolding(provider.Provider.GetType())
+            suspensionService.Value.GetHolding(provider.Provider.GetType()),
+            provider.CanAutoMatch,
+            provider.CannotAutoMatchReason
         );
     }
 
@@ -587,10 +589,11 @@ public class VideoReleaseService(
             (!_providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) || !schedulerFactory.IsJobTypeBlocked(jobType));
 
     // A provider without a job type, whose job's stored name is too long for
-    // the queue, is never queued, nor is one that is not configured. A
-    // suspended one is, and its job waits.
+    // the queue, is never queued, nor is one that is not configured or only
+    // answers searches a person starts. A suspended one is, and its job waits.
     private bool IsProviderQueueable(ReleaseProviderInfo provider)
         => IsProviderConfigured(provider) &&
+            CanProviderAutoMatch(provider) &&
             _providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) &&
             !schedulerFactory.IsJobTypeBlocked(jobType);
 
@@ -600,6 +603,15 @@ public class VideoReleaseService(
             return true;
 
         logger.LogTrace("Passing by release provider {ProviderName}, as it is not configured. (Provider={ProviderID})", provider.Name, provider.ID);
+        return false;
+    }
+
+    private bool CanProviderAutoMatch(ReleaseProviderInfo provider)
+    {
+        if (provider.CanAutoMatch)
+            return true;
+
+        logger.LogTrace("Passing by release provider {ProviderName}, as it only answers searches a person starts. (Provider={ProviderID})", provider.Name, provider.ID);
         return false;
     }
 
@@ -724,7 +736,7 @@ public class VideoReleaseService(
         // Reconfigure the providers in case we got them "out of order" by the
         // user or another plugin. So we can trust the set priority/order later.
         var providerList = providers
-            .Where(IsProviderCurrentlyUsable)
+            .Where(provider => IsProviderCurrentlyUsable(provider) && (!isAutomatic || CanProviderAutoMatch(provider)))
             .DistinctBy(p => p.ID)
             .Select((provider, index) => new ReleaseProviderInfo()
             {

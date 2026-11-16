@@ -253,6 +253,14 @@ and your queued jobs wait. The AniDB provider does both: it is not configured
 without AniDB credentials, and the `AniDB UDP` suspension holds it during a
 ban.
 
+Set `CannotAutoMatchReason` when you can only answer searches a person starts
+(`ReleaseInfoContext.IsAutomatic` is `false`), such as while you have no rules
+for matching on your own, in words a person can act on. The core's own
+searches, for new files and from the queue, then pass you by and none of your
+jobs are queued, while linking files by hand still asks you. Your availability
+reads `ManualOnly` with that reason meanwhile, and
+`ReleaseProviderInfo.CanAutoMatch` reads `false`.
+
 A search runs one job per video, so an import can queue hundreds of yours at
 once. Set `MaxConcurrentJobs` to cap how many run at the same time, such as
 one for a provider calling a slow or paid service. A job class of your own
