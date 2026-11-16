@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.605",
+      "tag": "v6.0.0-dev.605",
+      "commit": "89901b743fa1e65787f5fc24e003cb61d89ad7e9",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.605/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-16T21:32:38Z",
+      "releaseNotes": "\n`feat` (`core`): **Add a startup feed hub at `/signalr/startup`**:\n\n- Sends the startup message backlog, then each new message and the start's state, while the server is not started\n- Closes its connections once the server has started; refused afterwards, and guarded by the setup token while one is set\n\n`fix` (`api`): **Name every SignalR event in camelCase and fix two feed leaks**:\n\n- Image events read `series.imageAdded` and the like, and the plugin feed's `install-*` events `installQueued` and the like\n- Queue pool detail only goes to connections on the `queue` feed, and a connection's opt-in is forgotten when it closes\n- The logging hub follows a replaced logging configuration\n"
+    },
+    {
       "version": "6.0.0.604",
       "tag": "v6.0.0-dev.604",
       "commit": "ea4653fc6475dba82955f90df8ecd034b2a39ab4",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.576/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-01T19:44:14Z",
       "releaseNotes": "\n`fix`: **Resolve remaining sonarcloud cancellation, regex and smell issues**:\n\nCleared the rest of the `S8949` sites and a mix of lower-severity issues, with no behavior change for normal input.\n\n- Passed `CancellationToken.None`, or the consumer and request token where safe, in `RecoveringFileSystemWatcher`, `ServerNotRunningFilter`, the APIv2 filter and group models and `FilterFactory` (S8949)\n- Added a 5 second match timeout to ten `Regex` uses (S6444)\n- Removed dead null checks and branches in `SeasonWithYear`, `WebThemeService`, `ImageManager` and `UserDataService` (S2583)\n- Renamed duplicate log template placeholders in `MetadataService`, `ActionService` and `VideoRelocationService` (S6677)\n- Locked a dedicated object in `AnimeGroupCreator` (S2445), collapsed identical branches in `AnimeGroup` (S3923), simplified single-iteration loops (S1751), made `ScheduleCreators` return `Task` (S3168) and narrowed the `TagFilter` blacklists to `internal` (S3887)\n\n`fix`: **Leave the identical `PluginNamespaceRules` copies alone**:\n\nReverted the `S6444` timeout in the three copies of `PluginNamespaceRules`, since editing a triplicated file counts as new duplicated code and fails the quality gate.\n\n`fix`: **Leave the copy-pasted APIv2 filter models alone**:\n\nReverted the `S8949` edits in `Filter`, `Filters` and `Group`, whose near-identical blocks count as new duplicated code.\n\n`fix`: **Leave the duplicated blocks in `SQLite`, `UserDataService` and `ImageManager` alone**:\n\nReverted edits that fall inside blocks Sonar counts as duplicated, which fail the new code duplication gate.\n\n`merge`: **Merge pull request #1471 from ShokoAnime/fix/sonar-batch-3**:\n\nfix: resolve remaining sonarcloud issues (batch 3)\n"
-    },
-    {
-      "version": "6.0.0.575",
-      "tag": "v6.0.0-dev.575",
-      "commit": "43f830f6cd5f8180c94f38820e775ab10f756ba4",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.575/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T18:57:16Z",
-      "releaseNotes": "\n`feat` (`plugin`): **Pass a manifest's `extensions` through untouched**:\n\n- Package manifests may carry an `extensions` object on the package, each release and each archive; the schema allows it there only\n- The core passes it through as `Extensions` on the abstractions' package models and APIv3's, and never reads it\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.123**.\n"
     }
   ]
 }
