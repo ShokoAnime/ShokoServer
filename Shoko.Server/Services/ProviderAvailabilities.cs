@@ -13,23 +13,20 @@ namespace Shoko.Server.Services;
 internal static class ProviderAvailabilities
 {
     /// <summary>
-    ///   The availability of a provider: off when disabled, then not
-    ///   configured, then suspended, then manual only, else available.
+    ///   The availability of a provider, whether or not an admin turned it on
+    ///   anywhere: not configured, then suspended, then manual only, else
+    ///   available.
     /// </summary>
     /// <param name="name">The provider's name, for the reasons.</param>
-    /// <param name="isEnabled">Whether an admin left the provider on.</param>
     /// <param name="isConfigured">Whether the provider says it is configured.</param>
     /// <param name="notConfiguredReason">What the provider says it is missing, if anything.</param>
     /// <param name="holding">The suspended statuses holding the provider back.</param>
     /// <param name="canAutoMatch">Whether the provider answers the core's own searches.</param>
     /// <param name="cannotAutoMatchReason">Why it does not, if it says.</param>
     /// <returns>The availability.</returns>
-    public static ProviderAvailability Get(string name, bool isEnabled, bool isConfigured, string? notConfiguredReason, IReadOnlyList<SuspensionStatus> holding,
+    public static ProviderAvailability Get(string name, bool isConfigured, string? notConfiguredReason, IReadOnlyList<SuspensionStatus> holding,
         bool canAutoMatch = true, string? cannotAutoMatchReason = null)
     {
-        if (!isEnabled)
-            return new() { Kind = ProviderAvailabilityKind.Disabled, Reason = $"{name} is disabled." };
-
         if (!isConfigured)
             return new() { Kind = ProviderAvailabilityKind.NotConfigured, Reason = notConfiguredReason is { Length: > 0 } reason ? reason : $"{name} is not configured." };
 

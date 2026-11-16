@@ -10,7 +10,7 @@ using Xunit;
 namespace Shoko.Tests.Services;
 
 /// <summary>
-/// A provider is off when disabled, then unconfigured, then suspended, in that
+/// A provider is unconfigured, then suspended, then manual only, in that
 /// order, and a suspension with no end leaves the resume time open.
 /// </summary>
 public class ProviderAvailabilitiesTests
@@ -32,16 +32,9 @@ public class ProviderAvailabilitiesTests
         };
 
     [Fact]
-    public void Disabled_WinsOverEverythingElse()
-        => Assert.Equal(
-            ProviderAvailabilityKind.Disabled,
-            ProviderAvailabilities.Get("A", false, false, null, [Suspended("S", null)]).Kind
-        );
-
-    [Fact]
     public void NotConfigured_WinsOverSuspended_AndKeepsTheProvidersReason()
     {
-        var availability = ProviderAvailabilities.Get("A", true, false, "No key.", [Suspended("S", null)]);
+        var availability = ProviderAvailabilities.Get("A", false, "No key.", [Suspended("S", null)]);
 
         Assert.Equal(ProviderAvailabilityKind.NotConfigured, availability.Kind);
         Assert.Equal("No key.", availability.Reason);
@@ -51,7 +44,7 @@ public class ProviderAvailabilitiesTests
     public void Suspended_ResumesWhenTheLastSuspensionEnds()
     {
         var end = new DateTime(2026, 10, 25, 12, 0, 0, DateTimeKind.Utc);
-        var availability = ProviderAvailabilities.Get("A", true, true, null, [Suspended("S", end.AddHours(-1)), Suspended("T", end)]);
+        var availability = ProviderAvailabilities.Get("A", true, null, [Suspended("S", end.AddHours(-1)), Suspended("T", end)]);
 
         Assert.Equal(ProviderAvailabilityKind.Suspended, availability.Kind);
         Assert.Equal(end, availability.ResumesAt);
@@ -60,19 +53,19 @@ public class ProviderAvailabilitiesTests
 
     [Fact]
     public void Suspended_WithoutAnEnd_HasNoResumeTime()
-        => Assert.Null(ProviderAvailabilities.Get("A", true, true, null, [Suspended("S", DateTime.UtcNow), Suspended("T", null)]).ResumesAt);
+        => Assert.Null(ProviderAvailabilities.Get("A", true, null, [Suspended("S", DateTime.UtcNow), Suspended("T", null)]).ResumesAt);
 
     [Fact]
     public void ManualOnly_ComesAfterSuspended_AndKeepsTheProvidersReason()
     {
-        Assert.Equal(ProviderAvailabilityKind.Suspended, ProviderAvailabilities.Get("A", true, true, null, [Suspended("S", null)], false, "No rules.").Kind);
+        Assert.Equal(ProviderAvailabilityKind.Suspended, ProviderAvailabilities.Get("A", true, null, [Suspended("S", null)], false, "No rules.").Kind);
 
-        var availability = ProviderAvailabilities.Get("A", true, true, null, [], false, "No rules.");
+        var availability = ProviderAvailabilities.Get("A", true, null, [], false, "No rules.");
         Assert.Equal(ProviderAvailabilityKind.ManualOnly, availability.Kind);
         Assert.Equal("No rules.", availability.Reason);
     }
 
     [Fact]
     public void Available_WhenNothingStopsIt()
-        => Assert.True(ProviderAvailabilities.Get("A", true, true, null, []).IsAvailable);
+        => Assert.True(ProviderAvailabilities.Get("A", true, null, []).IsAvailable);
 }

@@ -572,7 +572,6 @@ public class VideoReleaseService(
 
         return ProviderAvailabilities.Get(
             provider.Name,
-            provider.Enabled,
             provider.Provider.IsConfigured,
             provider.Provider.NotConfiguredReason,
             suspensionService.Value.GetHolding(provider.Provider.GetType()),
