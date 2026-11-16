@@ -130,6 +130,7 @@ public class PluginDependencyListTests
     [InlineData("~1.2.3")]
     [InlineData("1.5.0")]
     [InlineData("1.2.3.4")]
+    [InlineData(">=1.0.0-dev.1")]
     public void Validate_AcceptsEveryRangeTheServerEvaluates(string range)
         => Assert.Empty(PluginDependencyList.Validate([new PluginDependencyEntry(_first, range, false)]));
 
@@ -139,7 +140,7 @@ public class PluginDependencyListTests
     [InlineData("1")]
     [InlineData("^")]
     [InlineData("latest")]
-    [InlineData("1.0.0-dev.1")]
+    [InlineData("1.0.0-dev")]
     public void Validate_RejectsARangeTheServerCannotEvaluate(string range)
         => Assert.Contains("is not a version range", Assert.Single(PluginDependencyList.Validate([new PluginDependencyEntry(_first, range, false)])));
 

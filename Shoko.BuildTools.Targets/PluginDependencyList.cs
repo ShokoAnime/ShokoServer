@@ -17,7 +17,7 @@ internal readonly record struct PluginDependencyEntry(Guid PluginID, string Vers
 ///   <c>Shoko.Server</c> reads the metadata with another, each with what its
 ///   side uses; keep the format the same in all three.
 /// </summary>
-internal static class PluginDependencyList
+internal static partial class PluginDependencyList
 {
     private const string Optional = "optional";
 
@@ -137,7 +137,8 @@ internal static class PluginDependencyList
 
     /// <summary>
     ///   Whether <paramref name="range" /> is one of <c>&gt;=V</c>,
-    ///   <c>^V</c>, <c>~V</c> or <c>V</c>, the forms the server evaluates.
+    ///   <c>^V</c>, <c>~V</c> or <c>V</c>, the forms the server evaluates, a
+    ///   version giving a prerelease as a fourth part or as <c>-dev.N</c>.
     /// </summary>
     public static bool IsValidVersionRange(string range)
     {
@@ -147,8 +148,11 @@ internal static class PluginDependencyList
         else if (spec.StartsWith('^') || spec.StartsWith('~'))
             spec = spec[1..];
 
-        return Version.TryParse(spec, out _);
+        return Version.TryParse(spec, out _) || PrereleaseRegex().IsMatch(spec);
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^\d+\.\d+\.\d+-dev\.[1-9]\d*$")]
+    private static partial System.Text.RegularExpressions.Regex PrereleaseRegex();
 
     private static bool TryParseEntry(string entry, out PluginDependencyEntry dependency, out string error)
     {

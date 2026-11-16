@@ -75,18 +75,11 @@ internal static class PluginDependencyList
 
     /// <summary>
     ///   Whether <paramref name="range" /> is one of <c>&gt;=V</c>,
-    ///   <c>^V</c>, <c>~V</c> or <c>V</c>, the forms the server evaluates.
+    ///   <c>^V</c>, <c>~V</c> or <c>V</c>, the forms the server evaluates, a
+    ///   version giving a prerelease as a fourth part or as <c>-dev.N</c>.
     /// </summary>
     public static bool IsValidVersionRange(string range)
-    {
-        var spec = range.Trim();
-        if (spec.StartsWith(">="))
-            spec = spec[2..];
-        else if (spec.StartsWith('^') || spec.StartsWith('~'))
-            spec = spec[1..];
-
-        return Version.TryParse(spec, out _);
-    }
+        => PluginVersionRange.IsValid(range);
 
     private static bool TryParseEntry(string entry, out PluginDependencyEntry dependency, out string error)
     {
