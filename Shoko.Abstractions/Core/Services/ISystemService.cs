@@ -141,6 +141,29 @@ public interface ISystemService
     bool InSetupMode { get; }
 
     /// <summary>
+    ///   Whether a setup token is set: while one is, setup mode and failure
+    ///   mode only take requests that give it as their API key. The token
+    ///   itself is never handed out.
+    /// </summary>
+    bool HasSetupToken { get; }
+
+    /// <summary>
+    ///   Sets the setup token, or clears it with <c>null</c> or an empty
+    ///   string. It is saved to the server's settings and applies at once, to
+    ///   the current setup or failure mode as well as later ones.
+    /// </summary>
+    /// <remarks>
+    ///   While the <c>SHOKO_SETUP_TOKEN</c> environment variable sets the
+    ///   token, it cannot be changed here.
+    /// </remarks>
+    /// <param name="token">The new token, or <c>null</c> or empty to clear it.</param>
+    /// <returns>
+    ///   <c>true</c> if the token was set or cleared, <c>false</c> while the
+    ///   environment variable sets it.
+    /// </returns>
+    bool SetSetupToken(string? token);
+
+    /// <summary>
     ///   Indicates to the server that the setup process has been completed, and
     ///   it can continue with the startup process.
     /// </summary>

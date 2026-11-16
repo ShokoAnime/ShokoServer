@@ -78,6 +78,19 @@ public class WebSettings
     public List<string> TrustedProxies { get; set; } = [];
 
     /// <summary>
+    ///   The token setup mode and failure mode require as the API key of
+    ///   every request while it is set. Empty or <c>null</c> leaves both modes
+    ///   open to anyone who can reach the server, as they always were.
+    /// </summary>
+    [Visibility(Advanced = true)]
+    [Display(Name = "Setup Token")]
+    [PasswordPropertyText]
+    [RequiresRestart]
+    [EnvironmentVariable("SHOKO_SETUP_TOKEN")]
+    [DefaultValue(null)]
+    public string? SetupToken { get; set; }
+
+    /// <summary>
     /// Enable the API v2 endpoints.
     /// </summary>
     [Badge("Deprecated", Theme = DisplayColorTheme.Warning)]

@@ -118,11 +118,14 @@ public class InitController(
             if (message!.Equals("Complete!")) message = null;
             state = ServerStatus.StartupState.Starting;
         }
+        var requiresSetupToken = !isLoggedIn && _systemService.SetupToken.IsRequired &&
+            (_systemService.InSetupMode || _systemService.StartupFailedException is not null) && !_systemService.IsStarted;
         if (!isLoggedIn)
             return new()
             {
                 State = state,
                 StartupMessage = message,
+                RequiresSetupToken = requiresSetupToken,
             };
         return new()
         {

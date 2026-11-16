@@ -19,6 +19,13 @@ public class ServerStatus
     public string? StartupMessage { get; set; }
 
     /// <summary>
+    /// Whether the request has to give the setup token as its API key: setup
+    /// mode or failure mode, with a setup token set, and the request
+    /// without it.
+    /// </summary>
+    public bool RequiresSetupToken { get; set; }
+
+    /// <summary>
     /// Indicates that we can perform a controlled shutdown.
     /// </summary>
     /// <remarks>

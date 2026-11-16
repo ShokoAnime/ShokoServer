@@ -44,6 +44,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.Authentication;
 using Shoko.Server.API.FileProviders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Databases;
@@ -278,6 +279,8 @@ public class SystemService : ISystemService
             Task.Run(() => StartupFailed?.Invoke(this, new(value)), CancellationToken.None);
 
             _logger.LogError(value, "Failed to Start Server: {Message}", value.Message);
+            if (SetupToken.IsRequired)
+                _logger.LogInformation("Failure mode requires the setup token as the API key.");
             _startupTaskSource.TrySetException(value);
 
             // The queue's hosted services are already up by the time most startup failures happen, and
@@ -305,6 +308,9 @@ public class SystemService : ISystemService
 
             // Set the setup mode flag before proceeding.
             InSetupMode = settings.FirstRun;
+            SetupToken = new(settings.Web.SetupToken);
+            if (InSetupMode && SetupToken.IsRequired)
+                _logger.LogInformation("Setup mode requires the setup token as the API key.");
 
             // Set default culture.
             var culture = CultureInfo.GetCultureInfo(settings.Culture);
@@ -902,6 +908,32 @@ public class SystemService : ISystemService
 
     public bool InSetupMode { get; private set; }
 
+    /// <summary>
+    ///   The setup token setup mode and failure mode require as the API key
+    ///   while one is set, as read when the server started.
+    /// </summary>
+    internal SetupToken SetupToken { get; private set; } = new(null);
+
+    /// <inheritdoc/>
+    public bool HasSetupToken => SetupToken.IsRequired;
+
+    /// <inheritdoc/>
+    public bool SetSetupToken(string? token)
+    {
+        if (Environment.GetEnvironmentVariable("SHOKO_SETUP_TOKEN") is not null)
+            return false;
+
+        if (string.IsNullOrEmpty(token))
+            token = null;
+
+        var settings = _settingsProvider.GetSettings();
+        settings.Web.SetupToken = token;
+        _settingsProvider.SaveSettings(settings);
+        SetupToken = new(token);
+        _logger.LogInformation(token is null ? "The setup token was cleared." : "The setup token was set.");
+        return true;
+    }
+
     /// <inheritdoc/>
     public bool CompleteSetup()
     {
@@ -1129,7 +1161,7 @@ public class SystemService : ISystemService
         PasswordResetRequest? resetRequest;
         try
         {
-            resetRequest = JsonSerializer.Deserialize<PasswordResetRequest>(File.ReadAllText(filePath), _passwordResetJsonOptions);
+            resetRequest = JsonSerializer.Deserialize<PasswordResetRequest>(File.ReadAllText(filePath), _tokenResetJsonOptions);
         }
         catch (Exception ex)
         {
@@ -1175,7 +1207,7 @@ public class SystemService : ISystemService
         return true;
     }
 
-    private static readonly JsonSerializerOptions _passwordResetJsonOptions = new()
+    private static readonly JsonSerializerOptions _tokenResetJsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip,

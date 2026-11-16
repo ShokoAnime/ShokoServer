@@ -12,6 +12,7 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.API.Authentication;
 
@@ -35,11 +36,25 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        // Collect auth tokens from the request headers and query parameters.
+        var authKeys = Request.Headers["apikey"]
+            .Union(Request.Headers.Authorization.OfType<string>().Where(a => a.StartsWith(BearerPrefix)).Select(a => a[BearerPrefix.Length..]))
+            .Union(Request.Query["apikey"])
+            .ToList();
+
+        // SignalR auth handling.
+        if (authKeys.Count is 0 && Request.HttpContext.GetEndpoint()?.Metadata.GetMetadata<HubMetadata>() is not null)
+            authKeys = Request.Query["access_token"].ToList();
+
         if (!_systemService.IsStarted)
         {
-            // In setup mode or if setup fails, give access to any APIs with the setup role.
+            // In setup mode or if setup fails, give access to any APIs with the setup role, with the setup token as
+            // the key while one is set.
             if (_systemService.InSetupMode || _systemService.StartupFailedException is not null)
             {
+                if ((_systemService as SystemService)?.SetupToken is { IsRequired: true } setupToken && !authKeys.Any(setupToken.Matches))
+                    return Task.FromResult(authKeys.Count is 0 ? AuthenticateResult.NoResult() : AuthenticateResult.Fail("Invalid Authentication key"));
+
                 var initPrincipal = new ClaimsPrincipal(new ClaimsIdentity(
                     [
                         new(ClaimTypes.Role, "init"),
@@ -52,16 +67,6 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
 
             return Task.FromResult(AuthenticateResult.Fail("Server not fully started yet"));
         }
-
-        // Collect auth tokens from the request headers and query parameters.
-        var authKeys = Request.Headers["apikey"]
-            .Union(Request.Headers.Authorization.OfType<string>().Where(a => a.StartsWith(BearerPrefix)).Select(a => a[BearerPrefix.Length..]))
-            .Union(Request.Query["apikey"])
-            .ToList();
-
-        // SignalR auth handling.
-        if (authKeys.Count is 0 && Request.HttpContext.GetEndpoint()?.Metadata.GetMetadata<HubMetadata>() is not null)
-            authKeys = Request.Query["access_token"].ToList();
 
         if (authKeys.Count is 0)
             return Task.FromResult(AuthenticateResult.NoResult());

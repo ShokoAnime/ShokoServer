@@ -128,7 +128,7 @@ and should not be used for new code unless DI is not an option and only as a las
 **Authentication** (`Shoko.Server/API/Authentication/`):
 - `CustomAuthHandler` extracts API key from: `apikey` header, `Bearer` token, `apikey` query param, or `access_token` query param (SignalR)
 - Validates against `AuthTokensRepository`; builds `ClaimsPrincipal` with user ID, role, device name
-- During first-run setup, `InitUser` (synthetic admin) is used — no real auth required
+- In setup mode and failure mode, `InitUser` (synthetic admin) is used: no real auth required, unless `Web.SetupToken` (`SHOKO_SETUP_TOKEN`) is set, in which case a request must give that token as its API key (`SetupToken`, read once at start; `APIHelper.GetUser` then only returns `InitUser` for such requests). `GET /api/v3/Init/Status` reports `RequiresSetupToken`. Plugins read and change it through `ISystemService.HasSetupToken` / `SetSetupToken` (saved to the settings and applied at once; refused while the environment variable is set)
 - No cookie sessions; every request is authenticated by API key
 
 **API versioning**: `v0` (version-less: auth), `v2` (legacy REST, including the `/Stream` routes, can be kill-switched), `v3` (current, all new endpoints). APIv1 has been removed. Version can be resolved from query string, `api-version` header, or custom `ShokoApiReader`. `ApiVersionControllerFeatureProvider` excludes disabled controllers at startup via individual flags (`EnableAPIv2`, `EnableAPIv3`). The legacy Plex routes at `/plex` are the `Shoko.Plugin.LegacyPlex` plugin's, version-neutral, and are turned off by disabling the plugin. The default API version (`1.0`) applies to every unversioned controller, in plugins and in the core alike, so do not change it.

@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.API;
@@ -41,7 +42,9 @@ public static class APIHelper
         var systemService = ISystemService.StaticServices.GetRequiredService<ISystemService>();
         if (!systemService.IsStarted)
         {
-            if (systemService.InSetupMode || systemService.StartupFailedException is not null)
+            // While a setup token is set, only a request the handler took it from is the init user.
+            if ((systemService.InSetupMode || systemService.StartupFailedException is not null) &&
+                (identity?.Identity?.IsAuthenticated is true || (systemService as SystemService)?.SetupToken.IsRequired is not true))
                 return InitUser.Instance;
             return null!;
         }
