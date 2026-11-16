@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.604",
+      "tag": "v6.0.0-dev.604",
+      "commit": "ea4653fc6475dba82955f90df8ecd034b2a39ab4",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.604/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-16T19:33:16Z",
+      "releaseNotes": "\n`fix` (`core`): **Stop the auto-linker taking a film for its series**:\n\n- A title and date match needs the starts within 60 days when both are known to the day, not the same year\n- A film and a TV series are a type mismatch where a source keeps every entry apart\n- A title cut down to words like \"映画\" or \"Movie\" no longer matches another title\n- `RejudgeMetadataLinksJob` also judges links rated on a date and a title, as \"Re-judge Dated Metadata Links\"\n\n`fix` (`plugin`): **Compare dependency ranges by semantic versioning**:\n\n- `PluginVersionRange` orders versions as `SemverVersionComparer` does, so `0.1.0` satisfies `>=0.1.0.3`\n- Ranges also take a prerelease as `-dev.N`, in the server, `shoko-build` and `Shoko.BuildTools.Targets`\n\n`fix` (`abstractions`): **Count unset version parts as 0 in `SemverVersionComparer`**:\n\n- `0.1.0` now equals `0.1.0.0` and sorts above `0.1.0.3`; only a revision above 0 is a prerelease\n- `ToSemanticVersioningString` writes an unset build as 0\n\n`fix` (`core`): **Keep the server up when a background service throws**:\n\n- A plugin service waiting on a start that failed no longer stops the host, so failure mode keeps its web host\n\n`chore` (`buildtools`): **Bump build tools targets version to v0.8.1**.\n\n`chore` (`buildtools`): **Bump build tools version to v0.9.2**.\n\n`feat` (`abstractions`): **Let a release provider answer only searches a person starts**:\n\n- Added `CannotAutoMatchReason` to `IReleaseInfoProvider`, read through `ReleaseProviderInfo.CanAutoMatch`\n- The core's own searches pass such a provider by and never queue its jobs\n- Its availability reads the new `ManualOnly` kind, with the reason\n\n`fix` (`core`): **Keep missing files on a scan for new files only**:\n\n- `ScanManagedFolder` removed the records of missing files before looking at `onlyNewFiles`, so \"Import New Files\" and the new-files part of \"Scan Managed Folders\" dropped them too\n- Invalid and orphaned records are still removed\n\n`refactor` (`core`): **Drop `SENTRY_OPT_OUT` and leave reporting to the DSN**:\n\n- Only `Sentry.Dsn` (`SHOKO_SENTRY_DSN`) decides now\n- Settings migration 35 sets the DSN to `off` when `SENTRY_OPT_OUT` is true and no DSN is set\n\n`feat` (`core`): **Report every plugin's errors when the reported plugin list is empty**:\n\n- An empty `Sentry.ReportedPlugins` (`SHOKO_SENTRY_PLUGINS=[]`) now sends every plugin's errors to a DSN of your own instead of none\n\n`feat` (`abstractions`): **Let a setup token protect setup and failure mode**:\n\n- Added `Web.SetupToken` (`SHOKO_SETUP_TOKEN`), off while empty\n- While set, setup and failure mode only take requests giving it as their API key\n- `GET /api/v3/Init/Status` reports `RequiresSetupToken`\n- Added `HasSetupToken` and `SetSetupToken` to `ISystemService`; setting saves the token and applies at once, refused while `SHOKO_SETUP_TOKEN` is set\n\n`refactor` (`abstractions`): **Keep enablement out of provider availability**:\n\n- Removed `ProviderAvailabilityKind.Disabled` and renumbered the other kinds from 0\n- A release provider's availability no longer depends on it being ticked for auto-linking, which `Enabled` already reports\n- Relocation providers already ignored it\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.132**.\n"
+    },
+    {
       "version": "6.0.0.603",
       "tag": "v6.0.0-dev.603",
       "commit": "eff8b5dd77e855086ee63f6692cdf7bb94c2168e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.575/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-01T18:57:16Z",
       "releaseNotes": "\n`feat` (`plugin`): **Pass a manifest's `extensions` through untouched**:\n\n- Package manifests may carry an `extensions` object on the package, each release and each archive; the schema allows it there only\n- The core passes it through as `Extensions` on the abstractions' package models and APIv3's, and never reads it\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.123**.\n"
-    },
-    {
-      "version": "6.0.0.574",
-      "tag": "v6.0.0-dev.574",
-      "commit": "58e5d25df9349ce8d8971b40d474fc2efb74dce4",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.574/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T18:11:58Z",
-      "releaseNotes": "\n`fix` (`images`): **Answer `404` for the empty image ID instead of `500`**.\n\n`fix` (`plugin`): **Never download over plain http what an https manifest names**:\n\n- A manifest served over https may no longer link a manifest, offer an archive or name an image over plain http; they are left out, and `PackageReleaseInfo.Refusals` says why for each archive\n- A redirect from https to http is refused by name instead of failing as a bare redirect status\n\n`refactor` (`abstractions`): **Set user avatars through the image manager**:\n\n- Removed the avatar members from `UserUpdate` and their handling in `UserService`; a user's avatar and banner are images set through `IImageManager`\n- APIv3's user create and update routes now upload the avatar and set it as the user's preferred primary image themselves, and build the data url `User.Avatar` returns\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.122**.\n"
     }
   ]
 }
