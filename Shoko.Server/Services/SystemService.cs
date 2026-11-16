@@ -646,6 +646,9 @@ public class SystemService : ISystemService
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            // A background service that throws, a plugin's waiting on a start that failed among them,
+            // is logged and leaves the server running, so failure mode keeps its web host up.
+            services.Configure<HostOptions>(options => options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
             services.AddSingleton(systemService);
             services.AddSingleton<ISystemService>(systemService);
             services.AddSingleton(logService);
