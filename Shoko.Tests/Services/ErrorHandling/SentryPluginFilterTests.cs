@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Shoko.Server.Services.ErrorHandling;
 using Xunit;
 
@@ -34,6 +35,10 @@ public class SentryPluginFilterTests
         Assert.False(SentryInit.DecideFromFrames([("Newtonsoft.Json", null), ("ShokoRelay", ThirdParty)], SentryInit.FirstPartyPluginIDs));
         Assert.True(SentryInit.DecideFromFrames([("NHibernate", null)], SentryInit.FirstPartyPluginIDs));
     }
+
+    [Fact]
+    public void AnEmptyPluginList_ReportsEveryPlugin()
+        => Assert.True(SentryInit.DecideFromFrames([("System.Linq", null), ("CulturedRenamer", ThirdParty)], new HashSet<Guid>()));
 
     [Fact]
     public void OnlyRuntimeFrames_DecideNothing()

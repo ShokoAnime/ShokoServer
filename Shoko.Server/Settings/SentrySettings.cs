@@ -46,9 +46,9 @@ public class SentrySettings
     public double SampleRate { get; set; } = SentryInit.BuiltInSampleRate;
 
     /// <summary>
-    /// The plugins, by ID, whose own errors are reported. Errors thrown by any other plugin are left out. Only applies
-    /// with a <see cref="Dsn"/> of your own; the Shoko team's gets the first-party plugins'. Set through the
-    /// environment variable as a JSON array of IDs.
+    /// The plugins, by ID, whose own errors are reported. Errors thrown by any other plugin are left out, and an empty
+    /// list reports every plugin's. Only applies with a <see cref="Dsn"/> of your own; the Shoko team's gets the
+    /// first-party plugins'. Set through the environment variable as a JSON array of IDs, <c>[]</c> for every plugin.
     /// </summary>
     [Visibility(
         Visibility = DisplayVisibility.ReadOnly,

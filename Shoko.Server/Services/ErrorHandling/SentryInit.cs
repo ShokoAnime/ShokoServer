@@ -43,7 +43,7 @@ public static partial class SentryInit
     /// </summary>
     /// <param name="Dsn">The DSN to report to.</param>
     /// <param name="SampleRate">The share of errors reported.</param>
-    /// <param name="ReportedPlugins">The plugins whose own errors are reported.</param>
+    /// <param name="ReportedPlugins">The plugins whose own errors are reported, or every plugin's when empty.</param>
     internal sealed record SentryReporting(string Dsn, double SampleRate, IReadOnlySet<Guid> ReportedPlugins);
 
     public static IServiceCollection AddSentryConfig(this IServiceCollection services, ISettingsProvider settingsProvider)
@@ -165,7 +165,7 @@ public static partial class SentryInit
     ///   third-party plugin. The innermost exception's throw site decides.
     /// </summary>
     /// <param name="exception">The failure.</param>
-    /// <param name="reportedPlugins">The plugins whose own failures are reported.</param>
+    /// <param name="reportedPlugins">The plugins whose own failures are reported, or every plugin's when empty.</param>
     /// <returns><c>false</c> when another plugin threw it.</returns>
     internal static bool ThrownByReportedCode(Exception exception, IReadOnlySet<Guid> reportedPlugins)
     {
@@ -191,11 +191,12 @@ public static partial class SentryInit
     ///   Decides from the assemblies of a stack's frames, the throw site first,
     ///   whether its failure is reported. The runtime's own frames are skipped.
     ///   The first frame of the server or of a plugin decides: the server's are
-    ///   reported, a plugin's only for a first-party plugin. A stack that only
-    ///   runs through the server's dependencies is reported.
+    ///   reported, a plugin's only for a plugin in <paramref name="reportedPlugins"/>,
+    ///   or for any plugin when it is empty. A stack that only runs through the
+    ///   server's dependencies is reported.
     /// </summary>
     /// <param name="frames">Each frame's assembly name, and its plugin's ID when a plugin loaded it.</param>
-    /// <param name="reportedPlugins">The plugins whose own failures are reported.</param>
+    /// <param name="reportedPlugins">The plugins whose own failures are reported, or every plugin's when empty.</param>
     /// <returns>Whether to report it, or <c>null</c> when no frame decides.</returns>
     internal static bool? DecideFromFrames(IEnumerable<(string AssemblyName, Guid? PluginID)> frames, IReadOnlySet<Guid> reportedPlugins)
     {
@@ -203,7 +204,7 @@ public static partial class SentryInit
         foreach (var (assemblyName, pluginID) in frames)
         {
             if (pluginID is { } id)
-                return reportedPlugins.Contains(id);
+                return reportedPlugins.Count is 0 || reportedPlugins.Contains(id);
             if (IsRuntimeAssembly(assemblyName))
                 continue;
             if (assemblyName.StartsWith("Shoko.", StringComparison.Ordinal))
