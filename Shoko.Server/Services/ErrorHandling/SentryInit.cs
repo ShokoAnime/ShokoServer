@@ -83,9 +83,6 @@ public static partial class SentryInit
         }
     }
 
-    private static bool OptedOutByEnvironment()
-        => bool.TryParse(Environment.GetEnvironmentVariable("SENTRY_OPT_OUT"), out var optOut) && optOut;
-
     /// <summary>
     ///   Where and how the server reports, or <c>null</c> when it reports nothing. A usable DSN the admin set is used on
     ///   any build, with the admin's sample rate and plugins, and any other non-empty value turns reporting off. With
@@ -94,12 +91,9 @@ public static partial class SentryInit
     /// </summary>
     /// <param name="settings">The Sentry settings.</param>
     /// <param name="versionInfo">The build's version information.</param>
-    /// <param name="optedOutByEnvironment">Whether the legacy <c>SENTRY_OPT_OUT</c> environment variable is true.</param>
     /// <returns>The reporting, or <c>null</c>.</returns>
-    internal static SentryReporting? GetReporting(SentrySettings settings, VersionInformation versionInfo, bool? optedOutByEnvironment = null)
+    internal static SentryReporting? GetReporting(SentrySettings settings, VersionInformation versionInfo)
     {
-        if (optedOutByEnvironment ?? OptedOutByEnvironment())
-            return null;
         if (settings.Dsn?.Trim() is { Length: > 0 } dsn)
             return IsUsableDsn(dsn)
                 ? new(dsn, Math.Clamp(settings.SampleRate, 0, 1), settings.ReportedPlugins.ToHashSet())

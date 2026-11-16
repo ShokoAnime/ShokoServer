@@ -12,7 +12,6 @@ namespace Shoko.Server.Settings;
 /// <summary>
 /// Settings for reporting the server's errors to Sentry. Without a <see cref="Dsn"/> of the admin's own, the server
 /// reports to the Shoko team's Sentry with the built-in sample rate and plugins, and only from stable and dev builds.
-/// The legacy <c>SENTRY_OPT_OUT</c> environment variable, when true, turns reporting off.
 /// </summary>
 [Section(DisplaySectionType.Minimal)]
 public class SentrySettings

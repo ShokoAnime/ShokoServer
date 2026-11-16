@@ -36,7 +36,7 @@ public class SentryReportingTests
     [InlineData("off")]
     [InlineData("sentry.example.com/2")]
     public void ADsnThatIsNotAUrl_TurnsReportingOff(string dsn)
-        => Assert.Null(SentryInit.GetReporting(new() { Dsn = dsn }, Build(ReleaseChannel.Stable), false));
+        => Assert.Null(SentryInit.GetReporting(new() { Dsn = dsn }, Build(ReleaseChannel.Stable)));
 
     [Theory]
     [InlineData(null)]
@@ -46,21 +46,17 @@ public class SentryReportingTests
     {
         var settings = new SentrySettings { Dsn = dsn, SampleRate = 1, ReportedPlugins = [ThirdParty] };
 
-        Assert.Null(SentryInit.GetReporting(settings, Build(ReleaseChannel.Debug), false));
+        Assert.Null(SentryInit.GetReporting(settings, Build(ReleaseChannel.Debug)));
         // A build from source has no built-in DSN, so a stable one reports nowhere either.
-        Assert.Equal(SentryInit.IsUsableDsn(Shoko.Server.Server.Constants.SentryDsn), SentryInit.GetReporting(settings, Build(ReleaseChannel.Stable), false) is { SampleRate: SentryInit.BuiltInSampleRate });
+        Assert.Equal(SentryInit.IsUsableDsn(Shoko.Server.Server.Constants.SentryDsn), SentryInit.GetReporting(settings, Build(ReleaseChannel.Stable)) is { SampleRate: SentryInit.BuiltInSampleRate });
     }
-
-    [Fact]
-    public void TheLegacyOptOut_TurnsReportingOff_EvenWithADsnSet()
-        => Assert.Null(SentryInit.GetReporting(new() { Dsn = Custom }, Build(ReleaseChannel.Stable), optedOutByEnvironment: true));
 
     [Theory]
     [InlineData(ReleaseChannel.Debug)]
     [InlineData(ReleaseChannel.Dev)]
     public void TheAdminsDsn_IsUsedOnAnyBuild_WithTheAdminsValues(ReleaseChannel channel)
     {
-        var reporting = SentryInit.GetReporting(new() { Dsn = $" {Custom} ", SampleRate = 1, ReportedPlugins = [ThirdParty] }, Build(channel), false);
+        var reporting = SentryInit.GetReporting(new() { Dsn = $" {Custom} ", SampleRate = 1, ReportedPlugins = [ThirdParty] }, Build(channel));
 
         Assert.NotNull(reporting);
         Assert.Equal((Custom, 1.0), (reporting.Dsn, reporting.SampleRate));
@@ -69,7 +65,7 @@ public class SentryReportingTests
 
     [Fact]
     public void ADebugBuildWithoutADsn_ReportsNowhere()
-        => Assert.Null(SentryInit.GetReporting(new() { SampleRate = 1, ReportedPlugins = [ThirdParty] }, Build(ReleaseChannel.Debug), false));
+        => Assert.Null(SentryInit.GetReporting(new() { SampleRate = 1, ReportedPlugins = [ThirdParty] }, Build(ReleaseChannel.Debug)));
 
     [Fact]
     public void TheDefaultPlugins_AreTheFirstPartyOnes()

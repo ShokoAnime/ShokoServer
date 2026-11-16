@@ -101,6 +101,7 @@ public static partial class SettingsMigrations
         { 32, (settings, _) => MigrateAddTelemetrySection(settings) },
         { 33, (settings, paths) => MigrateHasherToCarryOver(settings, paths.DataPath) },
         { 34, (settings, _) => MigrateSentryOptOutToSentrySection(settings) },
+        { 35, (settings, _) => MigrateSentryOptOutEnvironmentVariable(settings, Environment.GetEnvironmentVariable("SENTRY_OPT_OUT")) },
     };
 
     /// <summary>
@@ -878,6 +879,30 @@ public static partial class SettingsMigrations
         if (currentSettings["SentryOptOut"] is { Type: JTokenType.Boolean } optOut && optOut.Value<bool>())
             sentry["Dsn"] = "off";
         currentSettings.Remove("SentryOptOut");
+        currentSettings["Sentry"] = sentry;
+        return currentSettings.ToString();
+    }
+
+    /// <summary>
+    ///   Carries the retired <c>SENTRY_OPT_OUT</c> environment variable over
+    ///   to the settings, so an install that opted out through it keeps
+    ///   reporting off once only the DSN decides: a true value with no DSN of
+    ///   the admin's own sets the DSN to <c>off</c>.
+    /// </summary>
+    /// <param name="settings">The settings JSON.</param>
+    /// <param name="optOut">The <c>SENTRY_OPT_OUT</c> environment variable's value.</param>
+    /// <returns>The migrated settings JSON.</returns>
+    internal static string MigrateSentryOptOutEnvironmentVariable(string settings, string? optOut)
+    {
+        if (!bool.TryParse(optOut, out var optedOut) || !optedOut)
+            return settings;
+
+        var currentSettings = JObject.Parse(settings);
+        var sentry = currentSettings["Sentry"] as JObject ?? new JObject();
+        if (sentry["Dsn"]?.Value<string>() is { Length: > 0 } dsn && !string.IsNullOrWhiteSpace(dsn))
+            return settings;
+
+        sentry["Dsn"] = "off";
         currentSettings["Sentry"] = sentry;
         return currentSettings.ToString();
     }
