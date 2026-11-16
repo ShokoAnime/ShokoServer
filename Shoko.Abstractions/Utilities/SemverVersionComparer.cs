@@ -4,8 +4,10 @@ using System.Collections.Generic;
 namespace Shoko.Abstractions.Utilities;
 
 /// <summary>
-///   Compares two versions using Semantic Versioning rules, where a revision of
-///   0 is considered higher than a revision of &gt; 0 or &lt; 0.
+///   Compares two versions using Semantic Versioning rules: a revision above
+///   0 is a prerelease, <c>X.Y.Z-dev.N</c>, and sorts below the release
+///   without one. A part left unset (<c>-1</c>) counts as 0, so <c>1.2</c>,
+///   <c>1.2.0</c> and <c>1.2.0.0</c> are one version.
 /// </summary>
 public class SemverVersionComparer : IComparer<Version>
 {
@@ -25,18 +27,17 @@ public class SemverVersionComparer : IComparer<Version>
         if (value != 0)
             return value;
 
-        if (x.Build != y.Build)
-            return x.Build.CompareTo(y.Build);
+        value = Math.Max(x.Build, 0).CompareTo(Math.Max(y.Build, 0));
+        if (value != 0)
+            return value;
 
-        if (x.Revision is 0 && y.Revision is 0)
-            return 0;
-
-        if (x.Revision is 0 && y.Revision is not 0)
-            return 1;
-
-        if (x.Revision is not 0 && y.Revision is 0)
-            return -1;
-
-        return x.Revision.CompareTo(y.Revision);
+        var (xPrerelease, yPrerelease) = (Math.Max(x.Revision, 0), Math.Max(y.Revision, 0));
+        return (xPrerelease, yPrerelease) switch
+        {
+            (0, 0) => 0,
+            (0, _) => 1,
+            (_, 0) => -1,
+            _ => xPrerelease.CompareTo(yPrerelease),
+        };
     }
 }

@@ -451,8 +451,8 @@ public static class StringExtensions
     /// <returns>The version stringified in a semantic versioning compatible manner.</returns>
     public static string ToSemanticVersioningString(this Version version)
         => version.Revision is <= 0
-            ? $"{version.Major}.{version.Minor}.{version.Build}"
-            : $"{version.Major}.{version.Minor}.{version.Build}-dev.{version.Revision}";
+            ? $"{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}"
+            : $"{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}-dev.{version.Revision}";
 
     /// <summary>
     /// Converts a camelCase string to a natural string.
