@@ -1230,6 +1230,64 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
+    public void AnEstimateIsListedOnce_WhenTheSourceListsTheEpisodeAnOffsetPlacesWithoutLinkingIt()
+    {
+        using var harness = new Harness();
+        var crunchyroll = harness.Service.FindOrRegisterChannel("Crunchyroll", AiringChannelType.Streaming);
+        var schedule = harness.Schedule(
+            harness.Primary,
+            "crunchyroll",
+            crunchyroll.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(1, 14, 30)),
+            (1, harness.Air(8, 14, 30))
+        );
+        harness.UseLinkedAnime(1, (1, 1), (2, 2));
+        // The source lists its third episode but links it to nothing, while
+        // the offset the linked episodes give places AniDB's third episode at
+        // the same number on the schedule.
+        Mock.Get(harness.Episodes[2]).SetupGet(entry => entry.ShokoEpisodes).Returns([]);
+
+        var inRange = harness.Service.GetAiringsInRange(harness.Air(15, 0), harness.Air(16, 0));
+        var onSchedule = harness.Service.GetAiringsForSchedule(schedule.ID).Where(airing => airing.AiredAt == harness.Air(15, 14, 30)).ToList();
+
+        var airing = Assert.Single(inRange);
+        Assert.Equal((true, schedule.ID, harness.Air(15, 14, 30)), (airing.IsEstimated, airing.Schedule?.ID, airing.AiredAt));
+        Assert.Equal(new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Episode, "8003"), airing.EpisodeID);
+        Assert.Equal(airing.ID, Assert.Single(onSchedule).ID);
+        Assert.Equal(airing.EpisodeID, harness.Service.GetAiringByID(airing.ID)?.EpisodeID);
+    }
+
+    [Fact]
+    public void AnEstimateTheSourceListsWithoutLinkingGivesWayToARealAiringOnItsChannel()
+    {
+        using var harness = new Harness();
+        var crunchyroll = harness.Service.FindOrRegisterChannel("Crunchyroll", AiringChannelType.Streaming);
+        harness.Schedule(
+            harness.Primary,
+            "crunchyroll",
+            crunchyroll.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(1, 14, 30)),
+            (1, harness.Air(8, 14, 30))
+        );
+        var anidbEpisodes = harness.UseLinkedAnime(1, (1, 1), (2, 2));
+        Mock.Get(harness.Episodes[2]).SetupGet(entry => entry.ShokoEpisodes).Returns([]);
+        // Another provider's real airing of AniDB's third episode, on the
+        // channel the estimate is for, is the same slot.
+        var anime = new Mock<ISeries>();
+        anime.SetupGet(series => series.ID).Returns(new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Series, Harness.LinkedAnimeID.ToString()));
+        anime.SetupGet(series => series.Source).Returns(MetadataSource.AniDB);
+        anime.SetupGet(series => series.EntityType).Returns(MetadataEntityType.Series);
+        var real = harness.Service.AddOrUpdateSchedule(harness.Secondary, harness.ScheduleData("crunchyroll", crunchyroll.ChannelID, series: anime.Object));
+        harness.Service.SetAirings(harness.Secondary, real, [new EpisodeAiringData() { Episode = anidbEpisodes[2], AiredAt = harness.Air(15, 14, 30) }]);
+
+        var airing = Assert.Single(harness.Service.GetAiringsInRange(harness.Air(15, 0), harness.Air(16, 0)));
+
+        Assert.Equal((false, real.ID), (airing.IsEstimated, airing.Schedule?.ID));
+    }
+
+    [Fact]
     public void AnUnresolvedAiringIsAnnouncedOnceItsEpisodeIsListed()
     {
         using var harness = new Harness();

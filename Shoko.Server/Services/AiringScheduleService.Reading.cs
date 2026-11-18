@@ -196,7 +196,7 @@ public partial class AiringScheduleService
     )
     {
         var coverage = GetCoverage(context, row, airings);
-        foreach (var episode in GetScheduleEpisodes(context, row))
+        foreach (var episode in GetEstimableScheduleEpisodes(context, row))
         {
             var key = GetEntityKey(episode);
             if (coverage.Covers(key, episode))
@@ -1336,7 +1336,7 @@ public partial class AiringScheduleService
             var windowStart = AddClamped(fromUtc, -slack);
             var windowEnd = AddClamped(toUtc, slack);
             var coverage = GetCoverage(context, row, airings);
-            var episodes = GetScheduleEpisodes(context, row)
+            var episodes = GetEstimableScheduleEpisodes(context, row)
                 .Select(episode => (Episode: episode, Number: (int?)null))
                 .Concat(GetUnlinkedEpisodes(context, row).Select(entry => (Episode: (IEpisode)entry.Episode, Number: (int?)entry.Number)));
             foreach (var (episode, number) in episodes)
@@ -2246,6 +2246,27 @@ public partial class AiringScheduleService
                     yield return (episode, number);
             }
         }
+    }
+
+    /// <summary>
+    /// The episodes of a schedule an estimate can be made for, which are its
+    /// own but those an AniDB episode placed by an <see cref="AiringEpisodeOffset"/>
+    /// stands for. An episode of its own at the number the AniDB episode is
+    /// placed at, linked to no episode, is that AniDB episode on a source that
+    /// lists it without linking it yet, so its place is estimated once, for
+    /// the AniDB episode, and not a second time for itself.
+    /// </summary>
+    /// <param name="context">The read the lookups are cached in.</param>
+    /// <param name="row">The schedule.</param>
+    /// <returns>The episodes.</returns>
+    private static IEnumerable<IEpisode> GetEstimableScheduleEpisodes(AiringReadContext context, AiringSchedule row)
+    {
+        var placedNumbers = GetUnlinkedEpisodes(context, row).Select(entry => entry.Number).ToHashSet();
+        return GetScheduleEpisodes(context, row).Where(episode =>
+            episode.Type is not EpisodeType.Episode ||
+            !placedNumbers.Contains(episode.EpisodeNumber) ||
+            episode.ShokoEpisodes.Count > 0
+        );
     }
 
     /// <summary>

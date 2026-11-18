@@ -436,7 +436,7 @@ public partial class AiringScheduleService
         foreach (var row in RepoFactory.AiringSchedule.GetAll())
         {
             var coverage = GetCoverage(context, row, RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID));
-            foreach (var episode in GetScheduleEpisodes(context, row))
+            foreach (var episode in GetEstimableScheduleEpisodes(context, row))
             {
                 if (episode.Type is not EpisodeType.Episode || episode.EpisodeNumber < row.FirstEpisodeNumber)
                     continue;
