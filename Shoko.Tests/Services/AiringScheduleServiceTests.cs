@@ -1205,6 +1205,31 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
+    public void ARangeReadReturnsEachAiringOnce_WhenOnlyOneOfAnEpisodesSchedulesPlacesItInAnAnidbAnime()
+    {
+        using var harness = new Harness();
+        harness.UseLinkedAnime(1, (1, 1), (2, 2));
+        // An episode with no shoko or AniDB episode behind it: the series-wide
+        // schedule places it in the linked anime, while a schedule narrowed to
+        // a season holding none of the linked episodes learns no place for it
+        // and only has the episode itself.
+        var fifth = harness.AddProviderEpisode(5);
+        var season = harness.ProviderSeason("s2", 4);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var atx = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television);
+        var onSeries = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData("mx", tokyo.ChannelID));
+        var onSeason = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData("atx", atx.ChannelID) with { Season = season });
+        harness.Service.SetAirings(harness.Primary, onSeries, [new EpisodeAiringData() { Episode = fifth, AiredAt = harness.Air(29, 22) }]);
+        harness.Service.SetAirings(harness.Primary, onSeason, [new EpisodeAiringData() { Episode = fifth, AiredAt = harness.Air(29, 23) }]);
+        var stored = harness.Read(onSeries).Concat(harness.Read(onSeason)).Select(airing => airing.ID).ToList();
+
+        var airings = harness.Service.GetAiringsInRange(harness.Air(29, 0), harness.Air(30, 0), new EpisodeAiringFilteringOptions { IncludeEstimates = false });
+
+        Assert.Equal(2, stored.Distinct().Count());
+        Assert.Equal(stored.Order(), airings.Select(airing => airing.ID).Order());
+    }
+
+    [Fact]
     public void AnUnresolvedAiringIsAnnouncedOnceItsEpisodeIsListed()
     {
         using var harness = new Harness();

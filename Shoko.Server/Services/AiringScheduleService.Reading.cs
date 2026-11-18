@@ -285,6 +285,12 @@ public partial class AiringScheduleService
                 targets[target.Key] = target;
         }
 
+        // An episode's key comes from the airing it was reached through, and
+        // only some of its schedules may place it in an AniDB anime, so each
+        // episode is one target, kept under the AniDB place where any of its
+        // airings gives one, which the airings there that no episode stands
+        // for merge into, else under the first key it was reached by.
+        var episodeTargets = new Dictionary<(MetadataSource Source, string ID), AiringReadTarget>();
         foreach (var entry in candidates)
         {
             var scheduleView = context.GetSchedule(entry.AiringScheduleID)!;
@@ -300,9 +306,15 @@ public partial class AiringScheduleService
                 var key = linked
                     ? AiringEpisodeKey.For(new EpisodeAiringView(context, scheduleView, entry, target))
                     : AiringEpisodeKey.ForEpisode(target.Source, target.ID.ID);
-                AddTarget(targets, targetEpisodes, new(target, key));
+                var entityKey = GetEntityKey(target);
+                if (!episodeTargets.TryGetValue(entityKey, out var known) ||
+                    (key.Kind is AiringEpisodeKeyKind.AnidbPosition && known.Key.Kind is not AiringEpisodeKeyKind.AnidbPosition))
+                    episodeTargets[entityKey] = new(target, key);
             }
         }
+
+        foreach (var target in episodeTargets.Values)
+            AddTarget(targets, targetEpisodes, target);
 
         if (options.IncludeEstimates)
         {
