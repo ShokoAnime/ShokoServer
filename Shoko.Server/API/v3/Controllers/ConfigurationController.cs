@@ -198,10 +198,11 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// Get the current configuration with the given id.
     /// </summary>
     /// <param name="configID">Configuration id</param>
+    /// <param name="includeReadOnly">Whether to include the read-only properties, such as values computed for display, which are never stored.</param>
     /// <returns></returns>
     [Produces("application/json")]
     [HttpGet("{configID:guid}")]
-    public ActionResult GetConfiguration(Guid configID)
+    public ActionResult GetConfiguration(Guid configID, [FromQuery] bool includeReadOnly = true)
     {
         if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
             return NotFound($"Configuration '{configID}' not found!");
@@ -215,12 +216,12 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
                 if (result.ValidationErrors is { Count: > 0 })
                     return ValidationProblem(result.ValidationErrors);
                 if (result.Configuration is not null)
-                    return Content(configurationService.SerializeWithMasking(result.Configuration), "application/json");
+                    return Content(SerializeForResponse(result.Configuration, includeReadOnly), "application/json");
                 return Conflict("Unable to load custom configuration object for the user.");
             }
 
             var config = configurationService.Load(configInfo);
-            return Content(configurationService.SerializeWithMasking(config), "application/json");
+            return Content(SerializeForResponse(config, includeReadOnly), "application/json");
         }
         catch (ConfigurationValidationException ex)
         {
@@ -359,25 +360,26 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     ///   custom new factory, the result is further tailored to the current user.
     /// </summary>
     /// <param name="configID">Configuration id</param>
+    /// <param name="includeReadOnly">Whether to include the read-only properties, such as values computed for display, which are never stored.</param>
     /// <returns>
     ///   The default configuration object serialized as JSON.
     /// </returns>
     [Produces("application/json")]
     [HttpGet("{configID:guid}/Default")]
-    public ActionResult NewConfiguration(Guid configID)
+    public ActionResult NewConfiguration(Guid configID, [FromQuery] bool includeReadOnly = true)
     {
         if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
             return NotFound($"Configuration '{configID}' not found!");
 
         var config = configurationService.New(configInfo);
-        var json = configurationService.SerializeWithMasking(config);
+        var json = SerializeForResponse(config, includeReadOnly);
         if (configInfo.HasCustomNewFactory)
         {
             var result = configurationService.PerformReactiveAction(configInfo, config, "", ConfigurationActionType.New, default, User, BaseUri);
             if (result.ValidationErrors is { Count: > 0 })
                 return ValidationProblem(result.ValidationErrors);
             if (result.Configuration is not null)
-                return Content(configurationService.SerializeWithMasking(result.Configuration), "application/json");
+                return Content(SerializeForResponse(result.Configuration, includeReadOnly), "application/json");
             return Conflict("Unable to create a new custom configuration object for the user.");
         }
 
@@ -540,5 +542,23 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         {
             return ValidationProblem(ex.Message, ex.ParamName);
         }
+    }
+
+    /// <summary>
+    ///   Serializes a configuration for a response, with its secrets masked,
+    ///   and without its read-only properties unless they are asked for.
+    /// </summary>
+    /// <param name="config">The configuration.</param>
+    /// <param name="includeReadOnly">Whether to keep the read-only properties.</param>
+    /// <returns>The JSON.</returns>
+    private string SerializeForResponse(Abstractions.Config.IConfiguration config, bool includeReadOnly)
+    {
+        var json = configurationService.SerializeWithMasking(config);
+        if (includeReadOnly)
+            return json;
+
+        var token = JToken.Parse(json);
+        configurationService.StripReadOnlyProperties(token, config.GetType());
+        return token.ToString(Formatting.Indented);
     }
 }
