@@ -166,6 +166,10 @@ through `IPlugin<TConfiguration>`, which attaches it to the plugin's
 assembly. A configuration may be a plugin's, a provider's and visible all at
 once.
 
+Two configurations resolving to one file, compared ignoring case, fail the
+start of every plugin involved, each named in the others' failure, since they
+would overwrite each other.
+
 The static hooks are `static abstract` interface members, declared as
 `public static` methods on the configuration class.
 

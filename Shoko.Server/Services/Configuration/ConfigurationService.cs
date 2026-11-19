@@ -144,7 +144,8 @@ public partial class ConfigurationService : IConfigurationService
 
     /// <summary>
     ///   Takes the configuration types of every loaded plugin. A plugin's
-    ///   type that cannot be registered is left out and reported.
+    ///   type that cannot be registered is left out and reported, and so is
+    ///   every configuration sharing its file with another.
     /// </summary>
     /// <param name="configurationTypes">The configuration types.</param>
     /// <param name="onFailure">Told the plugin and the error for each type left out.</param>
@@ -281,7 +282,43 @@ public partial class ConfigurationService : IConfigurationService
             }
         }
 
+        RemoveSharedFiles(onFailure);
+
         _logger.LogTrace("Loaded {ConfigurationCount} configurations.", _configurationTypes.Count);
+    }
+
+    /// <summary>
+    ///   Leaves out every configuration whose file another configuration also
+    ///   uses, compared ignoring case, and fails the plugins involved, each
+    ///   told the others. Two configurations sharing a file would overwrite
+    ///   each other.
+    /// </summary>
+    /// <param name="onFailure">Told the plugin and the error for each configuration left out.</param>
+    /// <exception cref="InvalidOperationException">Only the core's own configurations share a file.</exception>
+    private void RemoveSharedFiles(Action<LocalPluginInfo, Exception> onFailure)
+    {
+        var shared = _configurationTypes.Values
+            .Where(info => info.Path is not null)
+            .GroupBy(info => Path.GetFullPath(info.Path!), StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .ToList();
+        foreach (var group in shared)
+        {
+            var infos = group.ToList();
+            var plugins = infos.Where(info => info.PluginInfo is { } pluginInfo && pluginInfo.PluginType != typeof(CorePlugin)).ToList();
+            if (plugins.Count is 0)
+                throw new InvalidOperationException($"The configurations {string.Join(", ", infos.Select(info => $"\"{info.Name}\""))} share the file \"{group.Key}\".");
+
+            foreach (var info in plugins)
+            {
+                var others = infos.Where(other => other != info).Select(other => other.PluginInfo is { } otherPlugin ? $"\"{other.Name}\" of \"{otherPlugin.Name}\"" : $"\"{other.Name}\"");
+                _configurationTypes.TryRemove(info.ID, out _);
+                _wrappedSchemas.TryRemove(info.ID, out _);
+                if (info.PluginInfo!.ConfigurationInfo == info)
+                    info.PluginInfo.ConfigurationInfo = null;
+                onFailure(info.PluginInfo, new InvalidOperationException($"The configuration \"{info.Name}\" shares its file \"{group.Key}\" with {string.Join(", ", others)}."));
+            }
+        }
     }
 
     /// <summary>
