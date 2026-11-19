@@ -1874,6 +1874,17 @@ public partial class AiringScheduleService
         => _loaded ? AnidbAiringDates.Get(anidbAnimeID) : null;
 
     /// <summary>
+    /// Builds the AniDB airing dates of every anime ahead of their first read,
+    /// which otherwise pays for the whole build and holds up every other
+    /// reader meanwhile.
+    /// </summary>
+    internal void WarmAnidbAiringDates()
+    {
+        if (_loaded)
+            _ = AnidbAiringDates.Get(0);
+    }
+
+    /// <summary>
     /// The cache of every AniDB anime's airing dates, made on first use.
     /// </summary>
     private AnidbAiringDateCache AnidbAiringDates

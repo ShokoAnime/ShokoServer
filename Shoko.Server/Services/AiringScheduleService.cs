@@ -7,9 +7,11 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
@@ -51,6 +53,7 @@ public partial class AiringScheduleService(
     ILogger<AiringScheduleService> logger,
     IConfigurationService configurationService,
     IPluginManager pluginManager,
+    ISystemService systemService,
     IApplicationPaths applicationPaths,
     IQueueScheduler schedulerFactory,
     ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider,
@@ -59,8 +62,43 @@ public partial class AiringScheduleService(
     Lazy<IMetadataLinkingService> linkingService,
     Lazy<IMetadataFilteringService> filteringService,
     TimeProvider? timeProvider = null
-) : IAiringScheduleService
+) : IAiringScheduleService, IHostedService
 {
+    /// <inheritdoc/>
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        systemService.Started += OnServerStarted;
+        if (systemService.IsStarted)
+            OnServerStarted(this, EventArgs.Empty);
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        systemService.Started -= OnServerStarted;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Builds every AniDB anime's airing dates once the server has started,
+    /// since the first season or yearly-season read would otherwise build
+    /// them all and hold up every other reader meanwhile.
+    /// </summary>
+    private void OnServerStarted(object? sender, EventArgs eventArgs)
+        => Task.Run(() =>
+        {
+            try
+            {
+                WarmAnidbAiringDates();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Unable to build the AniDB airing dates ahead of their first read.");
+            }
+        }, CancellationToken.None);
+
     /// <summary>
     /// Every kind there is, which is what a read that includes disabled data,
     /// or one whose provider is gone, sees.

@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
@@ -70,6 +71,7 @@ public class AiringScheduleProviderIconTests
             NullLogger<AiringScheduleService>.Instance,
             configurationService.Object,
             pluginManager.Object,
+            Mock.Of<ISystemService>(),
             _paths,
             new Mock<IQueueScheduler>().Object,
             new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),

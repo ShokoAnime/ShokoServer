@@ -3713,6 +3713,7 @@ public class AiringScheduleServiceTests
                 NullLogger<AiringScheduleService>.Instance,
                 configurationService.Object,
                 pluginManager.Object,
+                Mock.Of<ISystemService>(),
                 Mock.Of<IApplicationPaths>(),
                 new Mock<IQueueScheduler>().Object,
                 ConfigurationProvider,

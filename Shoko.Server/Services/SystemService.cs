@@ -793,6 +793,7 @@ public class SystemService : ISystemService
             // at runtime.
             services.AddSingleton<AiringScheduleService>();
             services.AddSingleton<IAiringScheduleService>(provider => provider.GetRequiredService<AiringScheduleService>());
+            services.AddHostedService(provider => provider.GetRequiredService<AiringScheduleService>());
             // Minute-level precision, so it runs on its own clock rather than
             // through the queue, where it would wait behind every other job.
             services.AddHostedService<EpisodeAiringNotificationService>();

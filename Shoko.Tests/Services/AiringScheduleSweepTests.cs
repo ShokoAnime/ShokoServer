@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
@@ -606,6 +607,7 @@ public class AiringScheduleSweepTests
                 NullLogger<AiringScheduleService>.Instance,
                 configurationService.Object,
                 pluginManager.Object,
+                Mock.Of<ISystemService>(),
                 Mock.Of<IApplicationPaths>(),
                 Scheduler.Object,
                 new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
