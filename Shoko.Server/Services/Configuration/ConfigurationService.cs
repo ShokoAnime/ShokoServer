@@ -58,6 +58,8 @@ public partial class ConfigurationService : IConfigurationService
 
     private readonly ShokoJsonSchemaGenerator _jsonSchemaGenerator;
 
+    private readonly ReadOnlyConfigurationProperties _readOnlyProperties;
+
     private readonly ConcurrentDictionary<Guid, ConfigurationInfo> _configurationTypes = [];
 
     private readonly UiDefinitionBuilder _uiDefinitionBuilder;
@@ -110,6 +112,7 @@ public partial class ConfigurationService : IConfigurationService
         _newtonsoftJsonSerializerSettings = ShokoJsonSerializers.CreateNewtonsoftSettings();
         _systemTextJsonSerializerOptions = ShokoJsonSerializers.CreateSystemTextJsonOptions();
         _jsonSchemaGenerator = new(_newtonsoftJsonSerializerSettings, _systemTextJsonSerializerOptions);
+        _readOnlyProperties = new(_newtonsoftJsonSerializerSettings, _systemTextJsonSerializerOptions);
         _uiDefinitionBuilder = new(loggerFactory.CreateLogger<UiDefinitionBuilder>());
 
         var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(typeof(ServerSettings));
@@ -1242,6 +1245,9 @@ public partial class ConfigurationService : IConfigurationService
         if (errors.Count > 0)
             throw new ConfigurationValidationException("save", info, errors);
 
+        // Read-only properties, such as values computed for display, are
+        // written for the UI but never read back, so they are not stored.
+        StripReadOnlyProperties(token, info.Type);
         storedJson = token.ToJson();
         string? previousJson = null;
         lock (info)
@@ -1537,6 +1543,27 @@ public partial class ConfigurationService : IConfigurationService
                 throw;
             throw ex.InnerException;
         }
+    }
+
+    public string Serialize(IConfiguration config, bool stripReadOnlyProperties)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        var json = Serialize(config);
+        if (!stripReadOnlyProperties)
+            return json;
+
+        var token = JToken.Parse(json);
+        StripReadOnlyProperties(token, config.GetType());
+        return token.ToJson();
+    }
+
+    public void StripReadOnlyProperties(JToken token, Type type)
+    {
+        ArgumentNullException.ThrowIfNull(token);
+        ArgumentNullException.ThrowIfNull(type);
+
+        _readOnlyProperties.Strip(token, type, type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)));
     }
 
     private string SerializeInternal<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()

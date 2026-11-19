@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using NJsonSchema;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Config.Events;
@@ -615,6 +616,55 @@ public interface IConfigurationService
     ///   The serialized JSON configuration.
     /// </returns>
     string Serialize(IConfiguration config);
+
+    /// <summary>
+    ///   Serializes the specified configuration to JSON, optionally without its
+    ///   read-only properties.
+    /// </summary>
+    /// <remarks>
+    ///   A property without a setter, such as a value computed for display, is
+    ///   written for the UI and the API but never read back, so a stored copy
+    ///   only goes stale. The configuration service leaves such properties out
+    ///   of every configuration it stores; pass <c>true</c> to do the same for
+    ///   a copy of your own.
+    /// </remarks>
+    /// <param name="config">
+    ///   The configuration to serialize.
+    /// </param>
+    /// <param name="stripReadOnlyProperties">
+    ///   Whether to leave out the properties without a setter, at every level.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="config"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The serialized JSON configuration.
+    /// </returns>
+    string Serialize(IConfiguration config, bool stripReadOnlyProperties);
+
+    /// <summary>
+    ///   Removes the read-only properties of a configuration type from an
+    ///   already serialized configuration, in place, as the configuration
+    ///   service does before storing one. See
+    ///   <see cref="Serialize(IConfiguration, bool)"/>.
+    /// </summary>
+    /// <remarks>
+    ///   The document is walked next to the type, as the serializer the type
+    ///   uses sees it, through nested objects, lists and dictionaries.
+    ///   Anything the type does not declare, such as <c>$schema</c>, is left
+    ///   alone.
+    /// </remarks>
+    /// <param name="token">
+    ///   The serialized configuration.
+    /// </param>
+    /// <param name="type">
+    ///   The configuration's type.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="token"/> or <paramref name="type"/> is
+    ///   <c>null</c>.
+    /// </exception>
+    void StripReadOnlyProperties(JToken token, Type type);
 
     /// <summary>
     ///   Serializes the specified configuration to JSON with every secret
