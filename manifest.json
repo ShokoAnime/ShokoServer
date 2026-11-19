@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.606",
+      "tag": "v6.0.0-dev.606",
+      "commit": "9dd59ef86ae71c55dbb77b9be8189c4d1dd647e2",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.606/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-19T13:34:38Z",
+      "releaseNotes": "\n`fix` (`airing`): **List an airing once in a range read when only some of its schedules place it in AniDB**:\n\n- `GetAiringsInRange` kept one target per episode key, and an episode's key came from the airing that found it. An episode only some of its schedules place in an AniDB anime got two keys, so each of its airings was listed twice.\n- Episode targets are now gathered per episode, under the AniDB place when any airing gives one.\n\n`fix` (`airing`): **Estimate a slot once when the source lists an episode it hasn't linked yet**:\n\n- A schedule estimated a slot twice: once for its source's own episode there, and once for the AniDB episode its offset places there, when the source's episode was linked to none. Both estimates share one ID, so range, schedule and by-ID reads listed the airing twice.\n- The estimate passes now leave out such an episode and estimate the slot for the placed AniDB episode only.\n\n`fix` (`config`): **Leave read-only properties out of stored configurations**:\n\n- Stopped storing properties without a setter, such as values computed for display, which were never read back.\n- Added `IConfigurationService.Serialize(config, stripReadOnlyProperties)` and `StripReadOnlyProperties(token, type)` so plugins can do the same.\n\n`feat` (`api`): **Let configuration reads leave out read-only properties**:\n\n- Added `includeReadOnly` to `GET /api/v3/Configuration/{configID}` and `…/Default`; `false` leaves out the read-only properties, as stored.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.133**.\n"
+    },
+    {
       "version": "6.0.0.605",
       "tag": "v6.0.0-dev.605",
       "commit": "89901b743fa1e65787f5fc24e003cb61d89ad7e9",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.577/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-01T20:46:08Z",
       "releaseNotes": "\n`fix` (`plugin`): **Let only required dependents block a disable or join an uninstall**:\n\n- Disabling a plugin is no longer refused for plugins that only optionally depend on it\n- A forced uninstall no longer takes those plugins with it\n\nCloses SHO-9\n"
-    },
-    {
-      "version": "6.0.0.576",
-      "tag": "v6.0.0-dev.576",
-      "commit": "d1766bad08d7b376d165c3b16799c7b1d2aa7a39",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.576/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T19:44:14Z",
-      "releaseNotes": "\n`fix`: **Resolve remaining sonarcloud cancellation, regex and smell issues**:\n\nCleared the rest of the `S8949` sites and a mix of lower-severity issues, with no behavior change for normal input.\n\n- Passed `CancellationToken.None`, or the consumer and request token where safe, in `RecoveringFileSystemWatcher`, `ServerNotRunningFilter`, the APIv2 filter and group models and `FilterFactory` (S8949)\n- Added a 5 second match timeout to ten `Regex` uses (S6444)\n- Removed dead null checks and branches in `SeasonWithYear`, `WebThemeService`, `ImageManager` and `UserDataService` (S2583)\n- Renamed duplicate log template placeholders in `MetadataService`, `ActionService` and `VideoRelocationService` (S6677)\n- Locked a dedicated object in `AnimeGroupCreator` (S2445), collapsed identical branches in `AnimeGroup` (S3923), simplified single-iteration loops (S1751), made `ScheduleCreators` return `Task` (S3168) and narrowed the `TagFilter` blacklists to `internal` (S3887)\n\n`fix`: **Leave the identical `PluginNamespaceRules` copies alone**:\n\nReverted the `S6444` timeout in the three copies of `PluginNamespaceRules`, since editing a triplicated file counts as new duplicated code and fails the quality gate.\n\n`fix`: **Leave the copy-pasted APIv2 filter models alone**:\n\nReverted the `S8949` edits in `Filter`, `Filters` and `Group`, whose near-identical blocks count as new duplicated code.\n\n`fix`: **Leave the duplicated blocks in `SQLite`, `UserDataService` and `ImageManager` alone**:\n\nReverted edits that fall inside blocks Sonar counts as duplicated, which fail the new code duplication gate.\n\n`merge`: **Merge pull request #1471 from ShokoAnime/fix/sonar-batch-3**:\n\nfix: resolve remaining sonarcloud issues (batch 3)\n"
     }
   ]
 }
