@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.607",
+      "tag": "v6.0.0-dev.607",
+      "commit": "504ae01032571d972497fa12f6878c407fcfb37b",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.607/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-19T17:50:16Z",
+      "releaseNotes": "\n`fix` (`config`): **Fail plugins whose configurations share a file**:\n\n- Left out every configuration whose file another one also resolves to, compared ignoring case, and failed each plugin involved, naming the others.\n- Threw for two of the core's own configurations sharing a file.\n\n`feat` (`config`): **Register configuration types from a plugin's other assemblies**:\n\n- Added `AddConfiguration<TPlugin, TConfig>`, so a plugin can tie a configuration type in its abstractions to itself, and other plugins can load it through `IConfigurationService`.\n- Took a plugin's declared main configuration and its user configurations' types from any assembly it loaded itself.\n- Failed a plugin registering a type from an assembly it does not own, or for another plugin's type.\n- Took the registrations, and the user configuration ones, out of the service collection once read.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.134**.\n"
+    },
+    {
       "version": "6.0.0.606",
       "tag": "v6.0.0-dev.606",
       "commit": "9dd59ef86ae71c55dbb77b9be8189c4d1dd647e2",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.578/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-01T21:09:44Z",
       "releaseNotes": "\n`fix`: **Resolve sonarcloud float comparison, sql and log injection issues (batch 4)**:\n\nCompared floating point values with a tolerance instead of exactly, parameterized row IDs in data fixups and sanitized user-supplied values before logging.\n\n- Added `FloatingPoint.AreEqual` and used it in the metadata models, `MediaContainer`, `UserDataService`, `SyncAniDBVotesJob`, `ShokoImage_Entity` and `CL_Media`\n- Passed row IDs as parameters in `DatabaseFixes` queries\n- Added `ForLog` to `PluginPackageManager` for repository names in log messages\n\n`fix`: **Address the sonarcloud gate on batch 4**:\n\nDropped the exact `Equals` from `FloatingPoint.AreEqual`, split the manifest array reading out of `GetRemoteManifestAsync` to cut its complexity and left the `DatabaseFixes` query that the gate counted as new code as it was.\n\n`chore`: **Merge `master` into `fix/sonar-batch-4`**.\n\n`merge`: **Merge pull request #1472 from ShokoAnime/fix/sonar-batch-4**:\n\nfix: resolve sonarcloud float comparison, sql and log injection issues (batch 4)\n"
-    },
-    {
-      "version": "6.0.0.577",
-      "tag": "v6.0.0-dev.577",
-      "commit": "64cc2d32c52f8a7e17552271f071dfbf7cb2e1f3",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.577/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T20:46:08Z",
-      "releaseNotes": "\n`fix` (`plugin`): **Let only required dependents block a disable or join an uninstall**:\n\n- Disabling a plugin is no longer refused for plugins that only optionally depend on it\n- A forced uninstall no longer takes those plugins with it\n\nCloses SHO-9\n"
     }
   ]
 }
