@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.608",
+      "tag": "v6.0.0-dev.608",
+      "commit": "0a29139bd8e4048f2a3b2c2025888f9c9f22ee6e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.608/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-19T21:24:58Z",
+      "releaseNotes": "\n`fix` (`images`): **Check an image's links without copying them**:\n\n- Added `PocoIndex.Any`, which checks the entities under a key in place and stops at the first match.\n- Read `ShokoImage.IsEnabled` and `IsDesired` through it, since an image shared by many entities, such as a source's placeholder, copied every link on each read.\n\n`fix` (`airing`): **Build the AniDB airing dates once the server has started**:\n\n- Made `AiringScheduleService` a hosted service that builds every AniDB anime's airing dates in the background once the server has started, since the first season or yearly-season read built them all and held up every other reader meanwhile.\n"
+    },
+    {
       "version": "6.0.0.607",
       "tag": "v6.0.0-dev.607",
       "commit": "504ae01032571d972497fa12f6878c407fcfb37b",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.579/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-01T22:32:48Z",
       "releaseNotes": "\n`fix`: **Resolve remaining sonarcloud reliability and security issues (batch 5)**:\n\nMade the data flow visible to the analyzer where local functions filled captured collections, awaited `ImportVotes` instead of leaving it `async void` and made the `MetadataGuid` hash code immutable.\n\n- Passed the collections to `AddParts`, `Take`, `AddTarget` and `AddSeries` as parameters\n- Added `IsSocketConnectedAsync` to `AniDBUDPConnectionHandler`\n- Turned `ImportVotes` and `DispatchShutdown` into `Task` methods\n- Suppressed `S2245` on the seeded benchmark and snapshot data\n\n`merge`: **Merge pull request #1473 from ShokoAnime/fix/sonar-batch-5**:\n\nfix: resolve remaining sonarcloud reliability and security issues (batch 5)\n"
-    },
-    {
-      "version": "6.0.0.578",
-      "tag": "v6.0.0-dev.578",
-      "commit": "d02edfd4c04d0c063d0edf090c988a1b2cecd80a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.578/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T21:09:44Z",
-      "releaseNotes": "\n`fix`: **Resolve sonarcloud float comparison, sql and log injection issues (batch 4)**:\n\nCompared floating point values with a tolerance instead of exactly, parameterized row IDs in data fixups and sanitized user-supplied values before logging.\n\n- Added `FloatingPoint.AreEqual` and used it in the metadata models, `MediaContainer`, `UserDataService`, `SyncAniDBVotesJob`, `ShokoImage_Entity` and `CL_Media`\n- Passed row IDs as parameters in `DatabaseFixes` queries\n- Added `ForLog` to `PluginPackageManager` for repository names in log messages\n\n`fix`: **Address the sonarcloud gate on batch 4**:\n\nDropped the exact `Equals` from `FloatingPoint.AreEqual`, split the manifest array reading out of `GetRemoteManifestAsync` to cut its complexity and left the `DatabaseFixes` query that the gate counted as new code as it was.\n\n`chore`: **Merge `master` into `fix/sonar-batch-4`**.\n\n`merge`: **Merge pull request #1472 from ShokoAnime/fix/sonar-batch-4**:\n\nfix: resolve sonarcloud float comparison, sql and log injection issues (batch 4)\n"
     }
   ]
 }
