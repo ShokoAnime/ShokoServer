@@ -31,6 +31,16 @@ public class ShokoImage_EntityRepository(DatabaseFactory databaseFactory) : Base
     public IReadOnlyList<ShokoImage_Entity> GetByImageID(Guid imageId)
         => _imageID!.GetMultiple(imageId);
 
+    /// <summary>
+    ///   Checks whether any link of an image matches a check, without copying
+    ///   the links, which an image shared by many entities has many of.
+    /// </summary>
+    /// <param name="imageId">The image's ID.</param>
+    /// <param name="predicate">The check, run under the cache's read lock.</param>
+    /// <returns><c>true</c> when a link matches.</returns>
+    public bool AnyByImageID(Guid imageId, Func<ShokoImage_Entity, bool> predicate)
+        => _imageID!.Any(imageId, predicate);
+
     public IReadOnlyList<ShokoImage_Entity> GetByPrimaryImageID(Guid imageId)
     {
         var xrefs = _imageID!.GetMultiple(imageId).Where(xref => xref.PrimaryImageID == imageId).ToList();

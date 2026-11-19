@@ -413,6 +413,38 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
     }
 
     /// <summary>
+    ///   Checks whether any entity indexed under <paramref name="key"/>
+    ///   matches <paramref name="predicate"/>, without copying them into a
+    ///   list, stopping at the first match.
+    /// </summary>
+    /// <remarks>
+    ///   The predicate runs under the cache's read lock, so it must be cheap
+    ///   and must not read from a repository.
+    /// </remarks>
+    /// <param name="key">The key to look up.</param>
+    /// <param name="predicate">The check to run on each entity.</param>
+    /// <returns><c>true</c> when an entity indexed under the key matches.</returns>
+    public bool Any(TInverseKey key, Func<TEntity, bool> predicate)
+    {
+        var found = false;
+        _lock.EnterReadLock();
+        try
+        {
+            if (key is null)
+                found = Matches(_nullRows, predicate);
+            else if (_rows.TryGetValue(key, out var rows))
+                found = Matches(rows, predicate);
+        }
+        finally
+        {
+            _lock.ExitReadLock();
+        }
+
+        DatabaseTelemetry.RecordRepositoryRead(_entityName, found);
+        return found;
+    }
+
+    /// <summary>
     ///   The keys an entity is indexed under, as the cache last saw it, so a
     ///   caller can compare them with the entity before updating the cache.
     /// </summary>
@@ -501,6 +533,17 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
     #endregion
 
     #region Helpers
+
+    private bool Matches(in PocoRowSet<TKey> rows, Func<TEntity, bool> predicate)
+    {
+        foreach (var row in rows)
+        {
+            if (predicate(_cache.GetUnsafe(row)!))
+                return true;
+        }
+
+        return false;
+    }
 
     private List<TEntity> Resolve(in PocoRowSet<TKey> rows)
     {

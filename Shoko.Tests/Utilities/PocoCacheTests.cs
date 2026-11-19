@@ -106,6 +106,17 @@ public class PocoCacheTests
         Assert.Equal([1, 2], index.GetMultiple("a").Select(i => i.Id).Order());
     }
 
+    [Fact]
+    public void Index_Any_ChecksOnlyTheEntitiesUnderTheKey()
+    {
+        var cache = Cache(new Item(1, "a"), new Item(2, "a"), new Item(3, "b"));
+        var index = cache.CreateIndex(i => i.Category);
+
+        Assert.True(index.Any("a", i => i.Id == 2));
+        Assert.False(index.Any("a", i => i.Id == 3));
+        Assert.False(index.Any("missing", _ => true));
+    }
+
     #endregion
 
     #region Index maintenance

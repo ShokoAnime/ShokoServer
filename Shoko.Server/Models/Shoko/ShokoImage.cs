@@ -82,10 +82,10 @@ public class ShokoImage : IImage
     ImageEntityType IImage.Type => ImageEntityType.None;
 
     /// <inheritdoc/>
-    public bool IsDesired => RepoFactory.ShokoImage_Entity.GetByImageID(ID).Any(xref => xref.IsEnabled && xref.IsDesired);
+    public bool IsDesired => RepoFactory.ShokoImage_Entity.AnyByImageID(ID, xref => xref.IsEnabled && xref.IsDesired);
 
     /// <inheritdoc/>
-    public bool IsEnabled => RepoFactory.ShokoImage_Entity.GetByImageID(ID).Any(xref => xref.IsEnabled);
+    public bool IsEnabled => RepoFactory.ShokoImage_Entity.AnyByImageID(ID, xref => xref.IsEnabled);
 
     /// <inheritdoc/>
     bool IImage.IsPreferred => false;
