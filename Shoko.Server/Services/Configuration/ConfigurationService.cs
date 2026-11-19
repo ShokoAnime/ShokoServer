@@ -143,13 +143,28 @@ public partial class ConfigurationService : IConfigurationService
     #region Configuration Info
 
     /// <summary>
-    ///   Takes the configuration types of every loaded plugin. A plugin's
-    ///   type that cannot be registered is left out and reported, and so is
-    ///   every configuration sharing its file with another.
+    ///   Takes the configuration types of every loaded plugin, each tied to
+    ///   the plugin of its assembly. A plugin's type that cannot be
+    ///   registered is left out and reported, and so is every configuration
+    ///   sharing its file with another.
     /// </summary>
     /// <param name="configurationTypes">The configuration types.</param>
     /// <param name="onFailure">Told the plugin and the error for each type left out.</param>
     public void AddParts(IEnumerable<Type> configurationTypes, Action<LocalPluginInfo, Exception> onFailure)
+    {
+        ArgumentNullException.ThrowIfNull(configurationTypes);
+        AddParts(configurationTypes.Select(type => (type, _pluginManager.GetPluginInfo(type.Assembly)!)), onFailure);
+    }
+
+    /// <summary>
+    ///   Takes the configuration types of every loaded plugin, each with the
+    ///   plugin it belongs to. A plugin's type that cannot be registered is
+    ///   left out and reported, and so is every configuration sharing its
+    ///   file with another.
+    /// </summary>
+    /// <param name="configurationTypes">The configuration types, with their plugins.</param>
+    /// <param name="onFailure">Told the plugin and the error for each type left out.</param>
+    public void AddParts(IEnumerable<(Type ConfigurationType, LocalPluginInfo PluginInfo)> configurationTypes, Action<LocalPluginInfo, Exception> onFailure)
     {
         if (_loaded) return;
         _loaded = true;
@@ -196,15 +211,15 @@ public partial class ConfigurationService : IConfigurationService
         lock (InternalRestartPendingFor)
             InternalRestartPendingFor.Remove(Guid.Empty);
 
-        foreach (var configurationType in configurationTypes)
+        foreach (var (configurationType, pluginInfo) in configurationTypes)
         {
             if (configurationType == typeof(ServerSettings))
                 continue;
 
-            var pluginInfo = _pluginManager.GetPluginInfo(configurationType.Assembly)!;
             try
             {
                 var id = GetID(configurationType, pluginInfo);
+                _ids[configurationType] = id;
                 var contextualType = configurationType.ToContextualType();
                 var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(configurationType);
                 wrappedSchema.Schema.Id = id.ToString();

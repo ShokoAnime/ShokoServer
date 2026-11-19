@@ -395,6 +395,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 pluginInfo.ServiceRegistrationType!
                     .GetMethod(nameof(IPluginServiceRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static, [typeof(IServiceCollection), typeof(IApplicationPaths)])!
                     .Invoke(null, [serviceCollection, applicationPaths]);
+                TakeConfigurationRegistrations(pluginInfo, serviceCollection, before);
             }
             catch (Exception ex) when (pluginInfo.ID != CorePlugin.StaticID)
             {
@@ -740,7 +741,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         AddParts(unattributed, "registering its configurations", () =>
         {
             if (services.GetRequiredService<IConfigurationService>() is ConfigurationService configurationService)
-                configurationService.AddParts(GetTypes<IConfiguration>(), (pluginInfo, ex) => MarkFailed(pluginInfo, "registering its configurations", ex));
+                configurationService.AddParts(GetConfigurationTypes(), (pluginInfo, ex) => MarkFailed(pluginInfo, "registering its configurations", ex));
         });
 
         AddParts(unattributed, "registering its metadata resolvers", () =>

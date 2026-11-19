@@ -162,13 +162,30 @@ A provider names its configuration type through the generic form of its own
 contract, such as `IReleaseInfoProvider<TConfiguration>`.
 `IPluginConfiguration` marks a plugin's main configuration. The plugin names it
 through `IPlugin<TConfiguration>`, which attaches it to the plugin's
-`LocalPluginInfo.ConfigurationInfo`. The type has to live in the plugin's own
-assembly. A configuration may be a plugin's, a provider's and visible all at
-once.
+`LocalPluginInfo.ConfigurationInfo`. A configuration may be a plugin's, a
+provider's and visible all at once.
+
+The configuration types in a plugin's main assembly are found on their own, and
+so is the one it names through `IPlugin<TConfiguration>`, wherever it lives. A
+configuration type in another assembly the plugin ships, such as its
+abstractions package, is registered from
+`IPluginServiceRegistration.RegisterServices` with
+`services.AddConfiguration<MyPlugin, MyConfiguration>()`, so other plugins can
+load it through `IConfigurationService`. Registering is optional: a plugin may
+keep its configuration to itself and offer services instead. The type gets the
+ID and the file a type in the main assembly would. Its assembly must be one the
+plugin loaded itself; a type from another plugin, from a dependency's shared
+contracts or from the server fails the plugin's start.
 
 Two configurations resolving to one file, compared ignoring case, fail the
 start of every plugin involved, each named in the others' failure, since they
 would overwrite each other.
+
+A user configuration registered with
+`AddUserConfiguration<MyPlugin, MyConfiguration>()` registers its configuration
+type the same way, so it may live in the plugin's abstractions too. A
+registration of either kind naming another plugin's type as `TPlugin` fails the
+start of the plugin that made it.
 
 The static hooks are `static abstract` interface members, declared as
 `public static` methods on the configuration class.

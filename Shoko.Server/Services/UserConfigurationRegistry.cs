@@ -30,8 +30,9 @@ public sealed class UserConfigurationRegistry
     #region Registration
 
     /// <summary>
-    ///   Collects the configurations the core and the plugins registered and adds
-    ///   the registry built from them.
+    ///   Collects the configurations the core and the plugins registered, takes
+    ///   their registrations out of the collection, and adds the registry
+    ///   built from them.
     /// </summary>
     /// <param name="services">The service collection the plugins registered into.</param>
     /// <exception cref="InvalidOperationException">
@@ -40,10 +41,14 @@ public sealed class UserConfigurationRegistry
     public static void AddUserConfigurationRegistry(IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        var registrations = services
+        var descriptors = services
             .Where(descriptor => descriptor.ServiceType == typeof(UserConfigurationRegistration))
-            .Select(descriptor => (UserConfigurationRegistration)descriptor.ImplementationInstance!)
             .ToList();
+        var registrations = descriptors.ConvertAll(descriptor => (UserConfigurationRegistration)descriptor.ImplementationInstance!);
+
+        // Only the registry reads them, so they leave the container once taken.
+        foreach (var descriptor in descriptors)
+            services.Remove(descriptor);
         services.AddSingleton(Build(registrations));
     }
 
