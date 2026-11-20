@@ -84,7 +84,11 @@ public partial class PluginManager
             .SelectMany(pluginInfo => pluginInfo.PluginType!.GetInterfaces()
                 .Where(type => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IPlugin<>))
                 .Select(type => (ConfigurationType: type.GenericTypeArguments[0], PluginInfo: pluginInfo)));
-        foreach (var (configurationType, pluginInfo) in declared.Concat(_configurationRegistrations).ToList())
+        // A registration was taken before the plugin was initialized, which
+        // put a new info in its place, so it is read through the current one.
+        var registered = _configurationRegistrations
+            .Select(registration => (registration.ConfigurationType, PluginInfo: _pluginTypes[registration.PluginInfo.LoadOrder]));
+        foreach (var (configurationType, pluginInfo) in declared.Concat(registered).ToList())
         {
             if (!pluginInfo.IsActive || pluginInfo.FailureReason is not null || seen.Contains(configurationType))
                 continue;
