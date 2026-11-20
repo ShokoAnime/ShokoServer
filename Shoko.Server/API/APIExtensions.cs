@@ -201,6 +201,8 @@ public static partial class APIExtensions
                 // OpenAPI 3.0 ignores whatever sits beside a $ref, so a model-typed
                 // property would lose its nullable flag and its description.
                 options.UseAllOfToExtendReferenceSchemas();
+                // A member is nullable as its C# declaration says, not by being a reference type.
+                options.SupportNonNullableReferenceTypes();
                 options.SchemaFilter<MetadataBodyFieldSchemaFilter>();
                 options.MapType<MetadataSource>(MetadataSourceSchema.Create);
                 options.MapType<MetadataEntityType>(MetadataEntityTypeSchema.Create);
