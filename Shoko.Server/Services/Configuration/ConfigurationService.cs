@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -399,11 +400,10 @@ public partial class ConfigurationService : IConfigurationService
                 .Invoke(this, [info, json, null, false, false])!;
             return errors;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
@@ -418,11 +418,10 @@ public partial class ConfigurationService : IConfigurationService
                 .Invoke(this, [info, json, config, false, false])!;
             return errors;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
@@ -577,11 +576,10 @@ public partial class ConfigurationService : IConfigurationService
                 .MakeGenericMethod(configuration.GetType())
                 .Invoke(this, [_loggerFactory, _pluginManager, this, info, configuration, path, actionID, user, uri])!;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
@@ -622,11 +620,10 @@ public partial class ConfigurationService : IConfigurationService
                 .MakeGenericMethod(configuration.GetType())
                 .Invoke(this, [info, configuration, path, user, uri])!;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
@@ -687,11 +684,10 @@ public partial class ConfigurationService : IConfigurationService
                 .MakeGenericMethod(configuration.GetType())
                 .Invoke(this, [_loggerFactory, _pluginManager, this, info, configuration, path, actionType, reactiveEventType, user, uri])!;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
@@ -1117,11 +1113,10 @@ public partial class ConfigurationService : IConfigurationService
                 .MakeGenericMethod(info.Type)
                 .Invoke(this, [])!;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
@@ -1151,11 +1146,10 @@ public partial class ConfigurationService : IConfigurationService
                 .MakeGenericMethod(info.Type)
                 .Invoke(this, [info, copy])!;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
@@ -1237,11 +1231,10 @@ public partial class ConfigurationService : IConfigurationService
                 .MakeGenericMethod(info.Type)
                 .Invoke(this, [info, Serialize(config), config])!;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
@@ -1254,11 +1247,10 @@ public partial class ConfigurationService : IConfigurationService
                 .MakeGenericMethod(info.Type)
                 .Invoke(this, [info, json, null])!;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
@@ -1527,11 +1519,10 @@ public partial class ConfigurationService : IConfigurationService
                 .MakeGenericMethod(info.Type)
                 .Invoke(this, [json])!;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
@@ -1589,11 +1580,10 @@ public partial class ConfigurationService : IConfigurationService
                 .MakeGenericMethod(config.GetType())
                 .Invoke(this, [config])!;
         }
-        catch (TargetInvocationException ex)
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
-            if (ex.InnerException is null)
-                throw;
-            throw ex.InnerException;
+            ExceptionDispatchInfo.Throw(ex.InnerException);
+            throw;
         }
     }
 
