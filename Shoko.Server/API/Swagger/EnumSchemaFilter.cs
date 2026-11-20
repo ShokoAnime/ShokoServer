@@ -20,9 +20,11 @@ public class EnumSchemaFilter<T> : ISchemaFilter where T : struct, Enum
     {
         if (!context.Type.IsEnum) return;
         if (context.Type != typeof(T)) return;
-        if (model is not OpenApiSchema mod) return;
+        // A property of the enum's type is an allOf over the enum's own schema,
+        // with no members of its own to rewrite.
+        if (model is not OpenApiSchema { Enum: not null } mod) return;
 
-        mod!.Enum!.Clear();
+        mod.Enum.Clear();
         mod.Type = JsonSchemaType.String;
         mod.Format = null;
         _names ??= GetWireNames();

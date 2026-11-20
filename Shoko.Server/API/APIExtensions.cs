@@ -198,6 +198,9 @@ public static partial class APIExtensions
                     });
                 }
 
+                // OpenAPI 3.0 ignores whatever sits beside a $ref, so a model-typed
+                // property would lose its nullable flag and its description.
+                options.UseAllOfToExtendReferenceSchemas();
                 options.SchemaFilter<MetadataBodyFieldSchemaFilter>();
                 options.MapType<MetadataSource>(MetadataSourceSchema.Create);
                 options.MapType<MetadataEntityType>(MetadataEntityTypeSchema.Create);

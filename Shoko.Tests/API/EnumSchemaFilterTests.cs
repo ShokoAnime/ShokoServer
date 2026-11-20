@@ -1,10 +1,15 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
+using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
+using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.UI;
 using Shoko.Server.API.Swagger;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using Xunit;
 
 namespace Shoko.Tests.API;
@@ -35,4 +40,31 @@ public class EnumSchemaFilterTests
 
         Assert.Equal(sent, EnumSchemaFilter<UiElementKind>.GetWireNames().Order());
     }
+
+    [Fact]
+    public void Apply_RewritesTheEnumsOwnSchema()
+    {
+        var schema = new OpenApiSchema { Type = JsonSchemaType.Integer, Format = "int32", Enum = [JsonValue.Create(0), JsonValue.Create(1)] };
+
+        new EnumSchemaFilter<Sample>().Apply(schema, CreateContext());
+
+        Assert.Equal(JsonSchemaType.String, schema.Type);
+        Assert.Null(schema.Format);
+        Assert.Equal(["section-container", "Plain"], schema.Enum!.Select(value => value!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void Apply_LeavesAPropertysAllOfWrapperAlone()
+    {
+        var schema = new OpenApiSchema { AllOf = [new OpenApiSchemaReference("Sample")], Type = JsonSchemaType.Null, Description = "A sample." };
+
+        new EnumSchemaFilter<Sample>().Apply(schema, CreateContext());
+
+        Assert.Null(schema.Enum);
+        Assert.Equal(JsonSchemaType.Null, schema.Type);
+        Assert.Equal("A sample.", schema.Description);
+    }
+
+    private static SchemaFilterContext CreateContext()
+        => new(typeof(Sample), Mock.Of<ISchemaGenerator>(), new SchemaRepository());
 }
