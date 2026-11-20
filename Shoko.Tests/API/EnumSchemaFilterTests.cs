@@ -65,6 +65,29 @@ public class EnumSchemaFilterTests
         Assert.Equal("A sample.", schema.Description);
     }
 
+    [Theory]
+    [InlineData("plain", "Plain")]
+    [InlineData("SECTION-CONTAINER", "section-container")]
+    [InlineData("SectionContainer", "section-container")]
+    public void Apply_NamesAPropertysStringDefaultAsTheWireDoes(string written, string expected)
+    {
+        var schema = new OpenApiSchema { AllOf = [new OpenApiSchemaReference("Sample")], Default = JsonValue.Create(written) };
+
+        new EnumSchemaFilter<Sample>().Apply(schema, CreateContext());
+
+        Assert.Equal(expected, schema.Default!.GetValue<string>());
+    }
+
+    [Fact]
+    public void Apply_NamesAPropertysNumberDefaultAsTheWireDoes()
+    {
+        var schema = new OpenApiSchema { AllOf = [new OpenApiSchemaReference("Sample")], Default = JsonValue.Create(1) };
+
+        new EnumSchemaFilter<Sample>().Apply(schema, CreateContext());
+
+        Assert.Equal("Plain", schema.Default!.GetValue<string>());
+    }
+
     private static SchemaFilterContext CreateContext()
         => new(typeof(Sample), Mock.Of<ISchemaGenerator>(), new SchemaRepository());
 }
