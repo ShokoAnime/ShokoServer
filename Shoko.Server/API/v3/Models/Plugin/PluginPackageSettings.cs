@@ -1,5 +1,7 @@
 
 using System;
+using System.Collections.Generic;
+using Shoko.Abstractions.Core;
 
 namespace Shoko.Server.API.v3.Models.Plugin;
 
@@ -39,4 +41,21 @@ public class PluginPackageSettings
     ///   Time to retain old plugin versions before auto-cleanup.
     /// </summary>
     public TimeSpan InactivePluginVersionRetention { get; set; }
+
+    /// <summary>
+    ///   The release channel the upgrades follow: <c>Auto</c> (the server's
+    ///   own), <c>Stable</c> or <c>Dev</c>.
+    /// </summary>
+    public ReleaseChannel Channel { get; set; }
+
+    /// <summary>
+    ///   The channel <see cref="Channel"/> comes to: <c>Stable</c> or
+    ///   <c>Dev</c>.
+    /// </summary>
+    public ReleaseChannel ResolvedChannel { get; set; }
+
+    /// <summary>
+    ///   The plugins with a channel of their own, by plugin ID.
+    /// </summary>
+    public Dictionary<Guid, ReleaseChannel> PluginChannels { get; set; } = [];
 }

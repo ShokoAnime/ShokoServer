@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
@@ -71,6 +72,9 @@ public class PluginPackageController(
             DefaultRepositoryStaleTime = updates.DefaultRepositoryStaleTime,
             RepositoryStaleTimeOnStart = updates.RepositoryStaleTimeOnStart,
             InactivePluginVersionRetention = updates.InactivePluginVersionRetention,
+            Channel = updates.Channel,
+            ResolvedChannel = packageManager.ResolveUpdateChannel(),
+            PluginChannels = new(updates.PluginChannels),
         };
     }
 
@@ -110,6 +114,13 @@ public class PluginPackageController(
             updates.RepositoryStaleTimeOnStart = body.RepositoryStaleTimeOnStart.Value;
         if (body.InactivePluginVersionRetention.HasValue)
             updates.InactivePluginVersionRetention = body.InactivePluginVersionRetention.Value;
+        if (body.Channel.HasValue)
+            updates.Channel = body.Channel.Value;
+        foreach (var (pluginID, channel) in body.PluginChannels ?? [])
+            if (channel is ReleaseChannel.Auto)
+                updates.PluginChannels.Remove(pluginID);
+            else
+                updates.PluginChannels[pluginID] = channel;
 
         SettingsProvider.SaveSettings(settings);
         return Ok();
@@ -131,7 +142,13 @@ public class PluginPackageController(
     ///   Defaults to <c>true</c>.
     /// </param>
     /// <param name="onlyLatest">
-    ///   Whether to return only the latest version of each package.
+    ///   Whether to return only the latest version of each package: the
+    ///   newest release on the package's release channel.
+    ///   Defaults to <c>true</c>.
+    /// </param>
+    /// <param name="latestFromAnyChannel">
+    ///   With <paramref name="onlyLatest"/>, whether a package without a
+    ///   release on its channel gives its newest release instead of none.
     ///   Defaults to <c>true</c>.
     /// </param>
     /// <param name="allowSync">
@@ -156,6 +173,7 @@ public class PluginPackageController(
         [FromQuery] string? query = null,
         [FromQuery] bool onlyCompatible = true,
         [FromQuery] bool onlyLatest = true,
+        [FromQuery] bool latestFromAnyChannel = true,
         [FromQuery] bool allowSync = false,
         [FromQuery] bool forceSyncNow = false,
         [FromQuery, Range(0, 1000)] int pageSize = 20,
@@ -170,7 +188,8 @@ public class PluginPackageController(
         var packages = packageManager.FilterPackageManifests(
             manifests,
             onlyCompatible: onlyCompatible,
-            onlyLatest: onlyLatest
+            onlyLatest: onlyLatest,
+            latestFromAnyChannel: latestFromAnyChannel
         );
 
         if (!string.IsNullOrEmpty(query))
@@ -310,7 +329,13 @@ public class PluginPackageController(
     ///   Defaults to <c>true</c>.
     /// </param>
     /// <param name="onlyLatest">
-    ///   Whether to return only the latest version of each package.
+    ///   Whether to return only the latest version of each package: the
+    ///   newest release on the package's release channel.
+    ///   Defaults to <c>true</c>.
+    /// </param>
+    /// <param name="latestFromAnyChannel">
+    ///   With <paramref name="onlyLatest"/>, whether a package without a
+    ///   release on its channel gives its newest release instead of none.
     ///   Defaults to <c>true</c>.
     /// </param>
     /// <param name="allowSync">
@@ -325,6 +350,7 @@ public class PluginPackageController(
         [FromRoute] Guid packageID,
         [FromQuery] bool onlyCompatible = true,
         [FromQuery] bool onlyLatest = true,
+        [FromQuery] bool latestFromAnyChannel = true,
         [FromQuery] bool allowSync = false
     )
     {
@@ -339,7 +365,8 @@ public class PluginPackageController(
         var packages = packageManager.FilterPackageManifests(
             [manifest],
             onlyCompatible: onlyCompatible,
-            onlyLatest: onlyLatest
+            onlyLatest: onlyLatest,
+            latestFromAnyChannel: latestFromAnyChannel
         );
 
         return packages

@@ -14,6 +14,7 @@ using ImageMagick;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Events;
@@ -176,6 +177,76 @@ public partial class PluginPackageManager(
             configurationProvider.Save(config);
         }
     }
+
+    /// <inheritdoc/>
+    public ReleaseChannel UpdateChannel
+    {
+        get => configurationProvider.Load().Plugins.Updates.Channel;
+        set
+        {
+            var config = configurationProvider.Load(copy: true);
+            config.Plugins.Updates.Channel = value;
+            configurationProvider.Save(config);
+        }
+    }
+
+    /// <inheritdoc/>
+    public ReleaseChannel GetUpdateChannel(Guid pluginID)
+        => configurationProvider.Load().Plugins.Updates.PluginChannels.GetValueOrDefault(pluginID, ReleaseChannel.Auto);
+
+    /// <inheritdoc/>
+    public void SetUpdateChannel(Guid pluginID, ReleaseChannel channel)
+    {
+        var config = configurationProvider.Load(copy: true);
+        if (channel is ReleaseChannel.Auto)
+            config.Plugins.Updates.PluginChannels.Remove(pluginID);
+        else
+            config.Plugins.Updates.PluginChannels[pluginID] = channel;
+        configurationProvider.Save(config);
+    }
+
+    /// <inheritdoc/>
+    public ReleaseChannel ResolveUpdateChannel(Guid? pluginID = null)
+        => ResolveUpdateChannel(configurationProvider.Load().Plugins.Updates, pluginID);
+
+    /// <summary>
+    ///   Gets the channel a plugin's upgrades come from, by the given
+    ///   settings.
+    /// </summary>
+    private static ReleaseChannel ResolveUpdateChannel(PluginSettings.PluginUpdatesSettings settings, Guid? pluginID)
+        => ResolveUpdateChannel(
+            pluginID.HasValue ? settings.PluginChannels.GetValueOrDefault(pluginID.Value, ReleaseChannel.Auto) : ReleaseChannel.Auto,
+            settings.Channel,
+            PluginManager.GetVersionInformation().Channel
+        );
+
+    /// <summary>
+    ///   Follows <see cref="ReleaseChannel.Auto"/> from a plugin's channel to
+    ///   the global one, then to the server's own.
+    /// </summary>
+    /// <param name="pluginChannel">The plugin's own channel.</param>
+    /// <param name="globalChannel">The global channel.</param>
+    /// <param name="serverChannel">The server's own channel.</param>
+    /// <returns>
+    ///   <see cref="ReleaseChannel.Stable"/> or <see cref="ReleaseChannel.Dev"/>;
+    ///   debug counts as dev.
+    /// </returns>
+    internal static ReleaseChannel ResolveUpdateChannel(ReleaseChannel pluginChannel, ReleaseChannel globalChannel, ReleaseChannel serverChannel)
+    {
+        var channel = pluginChannel is not ReleaseChannel.Auto ? pluginChannel
+            : globalChannel is not ReleaseChannel.Auto ? globalChannel
+            : serverChannel;
+        return channel is ReleaseChannel.Stable ? ReleaseChannel.Stable : ReleaseChannel.Dev;
+    }
+
+    /// <summary>
+    ///   Whether a release is offered on a channel: on stable only stable
+    ///   releases are, on dev every release is.
+    /// </summary>
+    /// <param name="release">The release.</param>
+    /// <param name="channel">The resolved channel.</param>
+    internal static bool IsOnChannel(PackageReleaseInfo release, ReleaseChannel channel)
+        => channel is not ReleaseChannel.Stable || release.Channel is ReleaseChannel.Stable;
 
     #endregion
 
@@ -1427,34 +1498,30 @@ public partial class PluginPackageManager(
         return manifestList;
     }
 
-    /// <summary>
-    ///   Filter the package manifests to filter.
-    /// </summary>
-    /// <param name="packageManifests">
-    ///   The package manifests to filter.
-    /// </param>
-    /// <param name="onlyCompatible">
-    ///   Optional. Whether to return only packages for this server's runtime.
-    ///   Releases built for a newer server are kept, so they can be installed
-    ///   ahead of a server upgrade. Defaults to <c>true</c>.
-    /// </param>
-    /// <param name="onlyLatest">
-    ///   Optional. Whether to return only the latest version of each package.
-    /// </param>
-    /// <returns>
-    ///   The filtered <see cref="PackageInfo"/>s.
-    /// </returns>
+    /// <inheritdoc/>
     public IEnumerable<PackageInfo> FilterPackageManifests(
         IEnumerable<PackageManifestInfo> packageManifests,
         bool onlyCompatible = true,
-        bool onlyLatest = true
+        bool onlyLatest = true,
+        bool latestFromAnyChannel = true
     )
     {
         var repositories = ListPackageRepositories();
+        var updates = configurationProvider.Load().Plugins.Updates;
         foreach (var manifest in packageManifests)
         {
             var manifestPlugins = _pluginManager.GetPluginInfos(manifest.PackageID);
-            foreach (var release in manifest.Releases)
+            IEnumerable<PackageReleaseInfo> releases = manifest.Releases;
+            if (onlyLatest)
+            {
+                var channel = ResolveUpdateChannel(updates, manifest.PackageID);
+                var latest = manifest.Releases.FirstOrDefault(release => IsOnChannel(release, channel));
+                if (latest is null && latestFromAnyChannel)
+                    latest = manifest.Releases.FirstOrDefault();
+                releases = latest is null ? [] : [latest];
+            }
+
+            foreach (var release in releases)
             {
                 var repository = repositories.FirstOrDefault(r => r.ID == release.RepositoryID);
                 foreach (var archive in release.Archives)
@@ -1486,9 +1553,6 @@ public partial class PluginPackageManager(
                         Release = release,
                     };
                 }
-
-                if (onlyLatest)
-                    break;
             }
         }
     }
@@ -2255,7 +2319,7 @@ public partial class PluginPackageManager(
     {
         var manifests = await GetAvailablePackageManifests(allowSync: allowSync, forceSyncNow: forceSyncNow, cancellationToken: cancellationToken).ConfigureAwait(false);
         var localPackages = GetLocalPackages();
-        var availablePackages = FilterPackageManifests(manifests, onlyCompatible: true, onlyLatest: true);
+        var availablePackages = FilterPackageManifests(manifests, onlyCompatible: true, onlyLatest: true, latestFromAnyChannel: false);
 
         var comparer = new SemverVersionComparer();
         var updates = new List<PackageUpdateInfo>();
@@ -2324,7 +2388,8 @@ public partial class PluginPackageManager(
             ListPackageRepositories(),
             _pluginManager.IsAbiAndRuntimeCompatible,
             _pluginManager.RuntimeIdentifier,
-            settings.Plugins.Updates.SkipBundledPluginUpgrades
+            settings.Plugins.Updates.SkipBundledPluginUpgrades,
+            pluginID => ResolveUpdateChannel(settings.Plugins.Updates, pluginID)
         );
         foreach (var package in upgrades)
         {
@@ -2457,13 +2522,15 @@ public partial class PluginPackageManager(
         }
 
         var manifests = await GetAvailablePackageManifests(allowSync: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var updates = configurationProvider.Load().Plugins.Updates;
         var upgrades = SelectUpgrades(
             installed,
             manifests,
             ListPackageRepositories(),
             _pluginManager.IsAbiAndRuntimeCompatible,
             _pluginManager.RuntimeIdentifier,
-            SkipBundledPluginUpgrades
+            updates.SkipBundledPluginUpgrades,
+            pluginID => ResolveUpdateChannel(updates, pluginID)
         );
         if (upgrades.Count is 0)
         {
@@ -2523,6 +2590,10 @@ public partial class PluginPackageManager(
     /// <param name="isCompatible">Whether an archive's ABI version and runtime can load here.</param>
     /// <param name="runtimeIdentifier">This server's runtime, preferred over a universal archive.</param>
     /// <param name="skipBundled">Whether to leave alone the plugins the server ships.</param>
+    /// <param name="getChannel">
+    ///   The resolved channel of a plugin, by its ID; every release is
+    ///   considered when <c>null</c>.
+    /// </param>
     /// <returns>The packages to install, one per plugin at most.</returns>
     internal static IReadOnlyList<PackageInfo> SelectUpgrades(
         IEnumerable<InstalledPlugin> installed,
@@ -2530,7 +2601,8 @@ public partial class PluginPackageManager(
         IReadOnlyList<PackageRepositoryInfo> repositories,
         Func<Version, string, bool> isCompatible,
         string runtimeIdentifier,
-        bool skipBundled = false
+        bool skipBundled = false,
+        Func<Guid, ReleaseChannel>? getChannel = null
     )
     {
         var comparer = new SemverVersionComparer();
@@ -2551,7 +2623,8 @@ public partial class PluginPackageManager(
                 .Distinct()
                 .ToList();
             var current = versions.Select(version => version.Version).Max(comparer)!;
-            if (SelectUpgrade(manifest, current, ranges, repositories, isCompatible, runtimeIdentifier, comparer) is { } upgrade)
+            var channel = getChannel?.Invoke(versions.Key) ?? ReleaseChannel.Dev;
+            if (SelectUpgrade(manifest, current, channel, ranges, repositories, isCompatible, runtimeIdentifier, comparer) is { } upgrade)
                 upgrades.Add(upgrade);
         }
 
@@ -2559,13 +2632,14 @@ public partial class PluginPackageManager(
     }
 
     /// <summary>
-    ///   Picks the newest release above the current version that the ranges
-    ///   accept and that has a compatible archive.
+    ///   Picks the newest release above the current version on the channel
+    ///   that the ranges accept and that has a compatible archive.
     /// </summary>
     /// <returns>The package to install, or <c>null</c> when there is none.</returns>
     private static PackageInfo? SelectUpgrade(
         PackageManifestInfo manifest,
         Version current,
+        ReleaseChannel channel,
         IReadOnlyList<string> ranges,
         IReadOnlyList<PackageRepositoryInfo> repositories,
         Func<Version, string, bool> isCompatible,
@@ -2577,6 +2651,9 @@ public partial class PluginPackageManager(
         {
             if (comparer.Compare(NormalizeVersion(release.Version), current) <= 0)
                 break;
+
+            if (!IsOnChannel(release, channel))
+                continue;
 
             if (ranges.Any(range => !PluginVersionRange.IsSatisfied(range, NormalizeVersion(release.Version))))
                 continue;

@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using Shoko.Abstractions.Config.Attributes;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Components;
@@ -83,6 +84,25 @@ public class PluginSettings
 
     public class PluginUpdatesSettings
     {
+        /// <summary>
+        ///   The release channel the automatic upgrades and the update checks
+        ///   follow. <see cref="ReleaseChannel.Stable"/> takes stable releases
+        ///   only; <see cref="ReleaseChannel.Dev"/> takes both channels, so a
+        ///   newer stable release still wins. <see cref="ReleaseChannel.Auto"/>
+        ///   follows the server's own channel, and
+        ///   <see cref="ReleaseChannel.Debug"/> counts as dev.
+        /// </summary>
+        [DefaultValue(ReleaseChannel.Auto)]
+        [EnvironmentVariable("SHOKO_PLUGIN_UPDATE_CHANNEL")]
+        public ReleaseChannel Channel { get; set; } = ReleaseChannel.Auto;
+
+        /// <summary>
+        ///   The release channel of a plugin, by its ID, where it differs from
+        ///   <see cref="Channel"/>. A plugin left out follows it.
+        /// </summary>
+        [Visibility(DisplayVisibility.Hidden)]
+        public Dictionary<Guid, ReleaseChannel> PluginChannels { get; set; } = [];
+
         /// <summary>
         ///   Whether automatic plugin upgrades are enabled.
         /// </summary>

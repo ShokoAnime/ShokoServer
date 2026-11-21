@@ -55,7 +55,7 @@ public class StartupPluginUpgradeTests : IDisposable
     private static InstalledPlugin Installed(string version, bool isPinned = false, bool isBundled = false)
         => new(_pluginId, "Plugin", Version.Parse(version), true, isPinned, isBundled);
 
-    private static PackageReleaseInfo Release(string version, string abstractionVersion = "6.0.0", string checksum = "", Guid? repositoryID = null)
+    private static PackageReleaseInfo Release(string version, string abstractionVersion = "6.0.0", string checksum = "", Guid? repositoryID = null, ReleaseChannel channel = ReleaseChannel.Stable)
         => new()
         {
             RepositoryID = repositoryID,
@@ -63,7 +63,7 @@ public class StartupPluginUpgradeTests : IDisposable
             Tag = null,
             SourceRevision = null,
             ReleasedAt = DateTime.UnixEpoch,
-            Channel = ReleaseChannel.Stable,
+            Channel = channel,
             ReleaseNotes = null,
             Archives =
             [
@@ -96,7 +96,8 @@ public class StartupPluginUpgradeTests : IDisposable
     private static IReadOnlyList<string> SelectVersions(
         IEnumerable<InstalledPlugin> installed,
         PackageManifestInfo manifest,
-        bool skipBundled = false
+        bool skipBundled = false,
+        ReleaseChannel? channel = null
     )
         => PluginPackageManager.SelectUpgrades(
                 installed,
@@ -104,7 +105,8 @@ public class StartupPluginUpgradeTests : IDisposable
                 [],
                 IsCompatible,
                 "linux-x64",
-                skipBundled
+                skipBundled,
+                channel is { } value ? _ => value : null
             )
             .Select(package => package.Release.Version.ToString())
             .ToList();
@@ -247,6 +249,50 @@ public class StartupPluginUpgradeTests : IDisposable
     public void NothingNewerThanTheInstalledVersionIsNoUpgrade()
     {
         Assert.Empty(SelectVersions([Installed("1.0.0"), Installed("2.0.0")], Manifest(Release("2.0.0"), Release("1.5.0"))));
+    }
+
+    #endregion
+
+    #region Release Channels
+
+    [Theory]
+    [InlineData(ReleaseChannel.Auto, ReleaseChannel.Auto, ReleaseChannel.Stable, ReleaseChannel.Stable)]
+    [InlineData(ReleaseChannel.Auto, ReleaseChannel.Auto, ReleaseChannel.Dev, ReleaseChannel.Dev)]
+    [InlineData(ReleaseChannel.Auto, ReleaseChannel.Auto, ReleaseChannel.Debug, ReleaseChannel.Dev)]
+    [InlineData(ReleaseChannel.Auto, ReleaseChannel.Stable, ReleaseChannel.Dev, ReleaseChannel.Stable)]
+    [InlineData(ReleaseChannel.Auto, ReleaseChannel.Dev, ReleaseChannel.Stable, ReleaseChannel.Dev)]
+    [InlineData(ReleaseChannel.Stable, ReleaseChannel.Dev, ReleaseChannel.Dev, ReleaseChannel.Stable)]
+    [InlineData(ReleaseChannel.Dev, ReleaseChannel.Stable, ReleaseChannel.Stable, ReleaseChannel.Dev)]
+    [InlineData(ReleaseChannel.Debug, ReleaseChannel.Auto, ReleaseChannel.Stable, ReleaseChannel.Dev)]
+    public void ResolveUpdateChannel_FollowsAutoFromPluginToGlobalToServer(ReleaseChannel plugin, ReleaseChannel global, ReleaseChannel server, ReleaseChannel expected)
+        => Assert.Equal(expected, PluginPackageManager.ResolveUpdateChannel(plugin, global, server));
+
+    [Theory]
+    [InlineData(ReleaseChannel.Stable, new string[0])]
+    [InlineData(ReleaseChannel.Dev, new[] { "1.0.1.2" })]
+    public void SelectUpgrades_TakesDevBuildsOnlyOnDev(ReleaseChannel channel, string[] expected)
+    {
+        var manifest = Manifest(Release("1.0.1.2", channel: ReleaseChannel.Dev), Release("1.0.0"));
+
+        Assert.Equal(expected, SelectVersions([Installed("1.0.0")], manifest, channel: channel));
+    }
+
+    [Fact]
+    public void SelectUpgrades_OnDev_ANewerStableBeatsAnOlderDevBuild()
+    {
+        var manifest = Manifest(Release("1.0.1"), Release("1.0.1.2", channel: ReleaseChannel.Dev), Release("1.0.0"));
+
+        Assert.Equal(["1.0.1"], SelectVersions([Installed("1.0.0")], manifest, channel: ReleaseChannel.Dev));
+    }
+
+    [Theory]
+    [InlineData("1.0.1", new[] { "1.0.1" })]
+    [InlineData("1.0.0", new string[0])]
+    public void SelectUpgrades_FromDevToStable_WaitsForANewerStable(string stable, string[] expected)
+    {
+        var manifest = Manifest(Release("1.0.1.2", channel: ReleaseChannel.Dev), Release(stable));
+
+        Assert.Equal(expected, SelectVersions([Installed("1.0.1.2")], manifest, channel: ReleaseChannel.Stable));
     }
 
     #endregion

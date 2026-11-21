@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Plugin.Events;
 using Shoko.Abstractions.Plugin.Exceptions;
 using Shoko.Abstractions.Plugin.Models;
@@ -70,6 +71,55 @@ public interface IPluginPackageManager
     ///   Defaults to 30 days.
     /// </summary>
     TimeSpan InactivePluginVersionRetention { get; set; }
+
+    /// <summary>
+    ///   The release channel the automatic upgrades, the update checks and
+    ///   the latest release of a package follow, unless a plugin has its own
+    ///   (<see cref="SetUpdateChannel"/>). <see cref="ReleaseChannel.Stable"/>
+    ///   takes stable releases only; <see cref="ReleaseChannel.Dev"/> takes
+    ///   both channels, so a newer stable release still wins.
+    ///   <see cref="ReleaseChannel.Auto"/> follows the server's own channel,
+    ///   and <see cref="ReleaseChannel.Debug"/> counts as dev. Moving to
+    ///   stable never downgrades a plugin: it waits for a newer stable
+    ///   release. Installing a given release works on any channel. Defaults to
+    ///   <see cref="ReleaseChannel.Auto"/>.
+    /// </summary>
+    ReleaseChannel UpdateChannel { get; set; }
+
+    /// <summary>
+    ///   Gets the release channel set for a plugin.
+    /// </summary>
+    /// <param name="pluginID">The plugin ID.</param>
+    /// <returns>
+    ///   The plugin's channel, or <see cref="ReleaseChannel.Auto"/> when it
+    ///   follows <see cref="UpdateChannel"/>.
+    /// </returns>
+    ReleaseChannel GetUpdateChannel(Guid pluginID);
+
+    /// <summary>
+    ///   Sets the release channel of a plugin, in place of
+    ///   <see cref="UpdateChannel"/>.
+    /// </summary>
+    /// <param name="pluginID">The plugin ID.</param>
+    /// <param name="channel">
+    ///   The channel, or <see cref="ReleaseChannel.Auto"/> to follow
+    ///   <see cref="UpdateChannel"/>.
+    /// </param>
+    void SetUpdateChannel(Guid pluginID, ReleaseChannel channel);
+
+    /// <summary>
+    ///   Gets the channel a plugin's upgrades come from, after following
+    ///   <see cref="ReleaseChannel.Auto"/> through <see cref="UpdateChannel"/>
+    ///   to the server's own channel.
+    /// </summary>
+    /// <param name="pluginID">
+    ///   The plugin ID, or <c>null</c> for a plugin without a channel of its
+    ///   own.
+    /// </param>
+    /// <returns>
+    ///   <see cref="ReleaseChannel.Stable"/> or <see cref="ReleaseChannel.Dev"/>.
+    /// </returns>
+    ReleaseChannel ResolveUpdateChannel(Guid? pluginID = null);
 
     #endregion
 
@@ -308,7 +358,16 @@ public interface IPluginPackageManager
     ///   ahead of a server upgrade. Defaults to <c>true</c>.
     /// </param>
     /// <param name="onlyLatest">
-    ///   Optional. Whether to return only the latest version of each package.
+    ///   Optional. Whether to return only the latest version of each package:
+    ///   the newest release on the package's channel
+    ///   (<see cref="ResolveUpdateChannel"/>), or as
+    ///   <paramref name="latestFromAnyChannel"/> says when it has none there.
+    /// </param>
+    /// <param name="latestFromAnyChannel">
+    ///   Optional. With <paramref name="onlyLatest"/>, whether a package
+    ///   without a release on its channel, such as one with dev builds only on
+    ///   a stable server, gives its newest release instead of none. Defaults
+    ///   to <c>true</c>.
     /// </param>
     /// <returns>
     ///   The filtered <see cref="PackageInfo"/>s.
@@ -316,7 +375,8 @@ public interface IPluginPackageManager
     IEnumerable<PackageInfo> FilterPackageManifests(
         IEnumerable<PackageManifestInfo> packageManifests,
         bool onlyCompatible = true,
-        bool onlyLatest = true
+        bool onlyLatest = true,
+        bool latestFromAnyChannel = true
     );
 
     #endregion
@@ -486,8 +546,10 @@ public interface IPluginPackageManager
     ///   compatible release available to update to.
     /// </summary>
     /// <remarks>
-    ///   By default only active, enabled, and non-pinned plugins with a newer
-    ///   version available are returned. Use <paramref name="includeInactive"/>
+    ///   Each plugin is offered the newest release on its channel
+    ///   (<see cref="ResolveUpdateChannel"/>). By default only active,
+    ///   enabled, and non-pinned plugins with a newer version available are
+    ///   returned. Use <paramref name="includeInactive"/>
     ///   and <paramref name="includePinned"/> to broaden the listing.
     /// </remarks>
     /// <param name="allowSync">
