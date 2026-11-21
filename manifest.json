@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.609",
+      "tag": "v6.0.0-dev.609",
+      "commit": "96949123995f36c249aeb52f2f4b4c339ab10956",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.609/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-20T18:47:29Z",
+      "releaseNotes": "\n`fix` (`api`): **Keep nullable and descriptions on model-typed properties in the OpenAPI documents**:\n\n- Wrote a `$ref` with siblings as `allOf` through `UseAllOfToExtendReferenceSchemas`, since OpenAPI 3.0 ignores anything beside a bare `$ref`\n- Had `EnumSchemaFilter` rewrite only the enum's own schema, not a property's `allOf` over it\n\n`fix` (`config`): **Keep where a configuration's own exception was thrown**:\n\n- Rethrew the exceptions `ConfigurationService` unwraps from reflection through `ExceptionDispatchInfo`, so their stack traces stop at the rethrow no more\n\n`fix` (`config`): **Keep the configurations a plugin registers once it is initialized**:\n\n- Read each registration through the plugin's current entry, since initializing a plugin replaces the inactive one it was taken with, which skipped every `AddConfiguration` type\n\n`fix` (`api`): **Document reference members as nullable only when declared so**:\n\n- Turned on `SupportNonNullableReferenceTypes`, so a member that is not `?` and not `[Required]` stops being written `nullable: true`\n\n`fix` (`api`): **Name enum defaults as the enum's values in the OpenAPI documents**:\n\n- Had `EnumSchemaFilter` rewrite a property's or parameter's default, written as a number or in another casing, to the wire name the enum lists\n\n`fix` (`api`): **Mark a request body nullable when its parameter is**:\n\n- Added `NullableRequestBodyFilter`, which writes the body's schema nullable for a parameter declared `?` or taking an empty body, and stops requiring a body that may be empty\n"
+    },
+    {
       "version": "6.0.0.608",
       "tag": "v6.0.0-dev.608",
       "commit": "0a29139bd8e4048f2a3b2c2025888f9c9f22ee6e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.580/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-01T22:58:41Z",
       "releaseNotes": "\n`fix` (`api`): **Refuse an incompatible web UI release with `409` on install and update**:\n\n- `POST /api/v3/WebUI/Update` and `/Install` answer `409` with a `no-compatible-release` problem when no release may be installed, instead of a bare `500`\n- A version given by name is no longer installed when it is incompatible, unless `allowIncompatible` is set\n\nCloses SHO-10\n\n`chore`: **Sort usings and drop unused ones**.\n"
-    },
-    {
-      "version": "6.0.0.579",
-      "tag": "v6.0.0-dev.579",
-      "commit": "3f6c51f32a649a187c2cc0af30c47169c7610e62",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.579/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T22:32:48Z",
-      "releaseNotes": "\n`fix`: **Resolve remaining sonarcloud reliability and security issues (batch 5)**:\n\nMade the data flow visible to the analyzer where local functions filled captured collections, awaited `ImportVotes` instead of leaving it `async void` and made the `MetadataGuid` hash code immutable.\n\n- Passed the collections to `AddParts`, `Take`, `AddTarget` and `AddSeries` as parameters\n- Added `IsSocketConnectedAsync` to `AniDBUDPConnectionHandler`\n- Turned `ImportVotes` and `DispatchShutdown` into `Task` methods\n- Suppressed `S2245` on the seeded benchmark and snapshot data\n\n`merge`: **Merge pull request #1473 from ShokoAnime/fix/sonar-batch-5**:\n\nfix: resolve remaining sonarcloud reliability and security issues (batch 5)\n"
     }
   ]
 }
