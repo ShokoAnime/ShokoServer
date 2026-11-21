@@ -14,7 +14,8 @@ using Shoko.Abstractions.UI.Enums;
 namespace Shoko.Server.Settings;
 
 /// <summary>
-/// Configuration for per-logger max level override rules.
+/// A custom log level rule from the logging settings. It replaces a core or plugin default for
+/// the same pattern; one with neither level turns that default off.
 /// </summary>
 public class LogLevelRuleConfiguration : IEquatable<LogLevelRuleConfiguration>
 {
@@ -39,7 +40,16 @@ public class LogLevelRuleConfiguration : IEquatable<LogLevelRuleConfiguration>
     public string LoggerNamePattern { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional max level for this logger rule.
+    /// Optional lowest level written for the matching loggers, below the
+    /// levels the log file, the console and the live log are set to. Must be
+    /// above <see cref="MaxLevel"/> when both are set.
+    /// </summary>
+    [Display(Name = "Min Level")]
+    [DefaultValue(null)]
+    public LogLevel? MinLevel { get; set; }
+
+    /// <summary>
+    /// Optional highest level dropped for the matching loggers.
     /// </summary>
     [Display(Name = "Max Level")]
     [DefaultValue(LogLevel.Information)]
@@ -57,11 +67,13 @@ public class LogLevelRuleConfiguration : IEquatable<LogLevelRuleConfiguration>
         var errors = new Dictionary<string, IReadOnlyList<string>>();
         if (string.IsNullOrWhiteSpace(config.LoggerNamePattern))
             errors.Add(nameof(LoggerNamePattern), [$"{nameof(LoggerNamePattern)} cannot be empty."]);
+        if (config is { MinLevel: { } min, MaxLevel: { } max } && min <= max)
+            errors.Add(nameof(MinLevel), [$"{nameof(MinLevel)} must be above {nameof(MaxLevel)}."]);
         return new() { ValidationErrors = errors };
     }
 
     public override int GetHashCode()
-        => HashCode.Combine(LoggerNamePattern, MaxLevel, Final);
+        => HashCode.Combine(LoggerNamePattern, MinLevel, MaxLevel, Final);
 
     public override bool Equals(object? obj)
         => obj is LogLevelRuleConfiguration other && Equals(other);

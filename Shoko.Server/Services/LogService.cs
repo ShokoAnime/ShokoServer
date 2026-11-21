@@ -187,6 +187,53 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
     #endregion
 
+    #region Rules
+
+    /// <inheritdoc/>
+    public IReadOnlyList<LogLevelRuleInfo> GetLogLevelRules()
+    {
+        lock (_loggerConfigLock)
+            return _effectiveLogLevelRules;
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<LogLevelRule> GetCustomLogLevelRules()
+        => settingsProvider.GetSettings().Logging.LogLevelRules
+            .Select(rule => new LogLevelRule { LoggerNamePattern = rule.LoggerNamePattern, MinLevel = rule.MinLevel, MaxLevel = rule.MaxLevel, Final = rule.Final })
+            .ToList();
+
+    /// <inheritdoc/>
+    public void SetCustomLogLevelRule(LogLevelRule rule)
+    {
+        ArgumentNullException.ThrowIfNull(rule);
+        ArgumentException.ThrowIfNullOrWhiteSpace(rule.LoggerNamePattern, nameof(rule));
+        if (rule is { MinLevel: { } min, MaxLevel: { } max } && min <= max)
+            throw new ArgumentException($"The minimum level ({min}) must be above the maximum level ({max}).", nameof(rule));
+
+        var settings = settingsProvider.GetSettings();
+        var rules = settings.Logging.LogLevelRules;
+        var configuration = new LogLevelRuleConfiguration { LoggerNamePattern = rule.LoggerNamePattern, MinLevel = rule.MinLevel, MaxLevel = rule.MaxLevel, Final = rule.Final };
+        var index = rules.FindIndex(existing => string.Equals(existing.LoggerNamePattern, rule.LoggerNamePattern, StringComparison.OrdinalIgnoreCase));
+        if (index >= 0)
+            rules[index] = configuration;
+        else
+            rules.Add(configuration);
+        settingsProvider.SaveSettings(settings);
+    }
+
+    /// <inheritdoc/>
+    public bool RemoveCustomLogLevelRule(string loggerNamePattern)
+    {
+        var settings = settingsProvider.GetSettings();
+        if (settings.Logging.LogLevelRules.RemoveAll(rule => string.Equals(rule.LoggerNamePattern, loggerNamePattern, StringComparison.OrdinalIgnoreCase)) is 0)
+            return false;
+
+        settingsProvider.SaveSettings(settings);
+        return true;
+    }
+
+    #endregion
+
     #region Log File Operations
 
     public int ProcessID => Process.GetCurrentProcess().Id;
@@ -1009,6 +1056,12 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
     private static List<LogLevelRuleConfiguration> _logLevelRules = [];
 
+    private static IReadOnlyList<LogLevelRuleInfo> _pluginLogLevelRules = [];
+
+    private static IReadOnlyList<LogLevelRuleInfo> _effectiveLogLevelRules = MergeLogLevelRules([], null);
+
+    private static LoggingSettings? _appliedLogging;
+
     private static ELogLevel? _defaultFileLogLevel;
 
     private static ELogLevel? _defaultConsoleLogLevel;
@@ -1037,11 +1090,11 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             config.AddTarget(targets.Void);
             config.AddTarget(targets.Otlp);
 
-            RebuildLoggingRules(null, config, GetDefaultLogLevelRules(), targets);
+            RebuildLoggingRules(null, config, _effectiveLogLevelRules, targets);
             ApplyMessageRedactionFilter(config, targets);
 #if DEBUG
             // Enable debug logging
-            config.LoggingRules.FirstOrDefault(a => a.Targets.Contains(targets.File))
+            config.LoggingRules.FirstOrDefault(a => a.LoggerNamePattern == "*" && a.Targets.Contains(targets.File))
                 ?.EnableLoggingForLevel(NLogLevel.Debug);
 #endif
             LogManager.Configuration = config;
@@ -1097,6 +1150,26 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         }
     }
 
+    /// <summary>
+    ///   Sets the default log level rules of the active plugins, and applies
+    ///   them at once, between the core's defaults and the custom rules.
+    /// </summary>
+    /// <param name="rules">The plugins' rules, in load order.</param>
+    public static void SetPluginLogLevelRules(IReadOnlyList<LogLevelRuleInfo> rules)
+    {
+        lock (_loggerConfigLock)
+        {
+            _pluginLogLevelRules = rules;
+            _effectiveLogLevelRules = MergeLogLevelRules(_pluginLogLevelRules, _appliedLogging?.LogLevelRules);
+            if (LogManager.Configuration is not { } config || !TryGetTargets(config, out var targets))
+                return;
+
+            RebuildLoggingRules(_appliedLogging, config, _effectiveLogLevelRules, targets);
+            ApplyMessageRedactionFilter(config, targets);
+            LogManager.ReconfigExistingLoggers();
+        }
+    }
+
     private static bool ApplyLoggingLevelRules(LoggingSettings logging, LoggingConfiguration config)
     {
         if (_logLevelRules.SequenceEqual(logging.LogLevelRules)
@@ -1106,6 +1179,27 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             && _defaultSignalRLogLevel == logging.DefaultSignalRLogLevel
             && _defaultOtlpLogLevel == logging.DefaultOtlpLogLevel)
             return false;
+        if (!TryGetTargets(config, out var targets))
+            return false;
+
+        _appliedLogging = logging;
+        _traceLogging = logging.TraceLog;
+        _defaultFileLogLevel = logging.DefaultFileLogLevel;
+        _defaultConsoleLogLevel = logging.DefaultConsoleLogLevel;
+        _defaultSignalRLogLevel = logging.DefaultSignalRLogLevel;
+        _defaultOtlpLogLevel = logging.DefaultOtlpLogLevel;
+        _logLevelRules = logging.LogLevelRules
+            .Select(a => new LogLevelRuleConfiguration() { LoggerNamePattern = a.LoggerNamePattern, MinLevel = a.MinLevel, MaxLevel = a.MaxLevel, Final = a.Final })
+            .ToList();
+        _effectiveLogLevelRules = MergeLogLevelRules(_pluginLogLevelRules, logging.LogLevelRules);
+        RebuildLoggingRules(logging, config, _effectiveLogLevelRules, targets);
+        ApplyMessageRedactionFilter(config, targets);
+        return true;
+    }
+
+    private static bool TryGetTargets(LoggingConfiguration config, [NotNullWhen(true)] out LoggingTargets? targets)
+    {
+        targets = null;
         if (config.FindTargetByName<FileTarget>("file") is not { } fileTarget)
             return false;
         if (config.FindTargetByName<ColoredConsoleTarget>("console") is not { } consoleTarget)
@@ -1117,19 +1211,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         if (config.FindTargetByName<OtlpLogTarget>(OtlpLogTarget.TargetName) is not { } otlpTarget)
             return false;
 
-        var targets = new LoggingTargets(voidTarget, fileTarget, consoleTarget, signalrTarget, otlpTarget);
-
-        _traceLogging = logging.TraceLog;
-        _defaultFileLogLevel = logging.DefaultFileLogLevel;
-        _defaultConsoleLogLevel = logging.DefaultConsoleLogLevel;
-        _defaultSignalRLogLevel = logging.DefaultSignalRLogLevel;
-        _defaultOtlpLogLevel = logging.DefaultOtlpLogLevel;
-        _logLevelRules = logging.LogLevelRules
-            .Select(a => new LogLevelRuleConfiguration() { LoggerNamePattern = a.LoggerNamePattern, MaxLevel = a.MaxLevel, Final = a.Final })
-            .ToList();
-        var mergedRules = MergeLogLevelRules(logging.LogLevelRules);
-        RebuildLoggingRules(logging, config, mergedRules, targets);
-        ApplyMessageRedactionFilter(config, targets);
+        targets = new LoggingTargets(voidTarget, fileTarget, consoleTarget, signalrTarget, otlpTarget);
         return true;
     }
 
@@ -1167,7 +1249,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             Layout = "${threadid},${processid},${message}",
         };
 
-    private static IReadOnlyList<LogLevelRuleConfiguration> GetDefaultLogLevelRules()
+    private static IReadOnlyList<LogLevelRule> GetDefaultLogLevelRules()
         => [
             new() { LoggerNamePattern = "Microsoft.AspNetCore.*", MaxLevel = ELogLevel.Information, Final = true },
             // Plugin databases log through the host, and EF Core logs every command it runs at Information.
@@ -1179,39 +1261,78 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             new() { LoggerNamePattern = "System.Net.Http.HttpClient.*", MaxLevel = ELogLevel.Warning, Final = true },
         ];
 
-    private static IReadOnlyList<LogLevelRuleConfiguration> MergeLogLevelRules(IEnumerable<LogLevelRuleConfiguration>? userRules)
+    /// <summary>
+    ///   Merges the core's defaults, the plugins' and the custom
+    ///   rules, in that order: a later rule for a pattern, compared ignoring
+    ///   case, takes the earlier one's place.
+    /// </summary>
+    internal static IReadOnlyList<LogLevelRuleInfo> MergeLogLevelRules(IReadOnlyList<LogLevelRuleInfo> pluginRules, IEnumerable<LogLevelRuleConfiguration>? customRules)
     {
-        var merged = GetDefaultLogLevelRules().ToDictionary(rule => rule.LoggerNamePattern, StringComparer.OrdinalIgnoreCase);
-        if (userRules is null)
-            return merged.Values.ToList();
-        foreach (var rule in userRules.Where(r => !string.IsNullOrWhiteSpace(r.LoggerNamePattern)))
-            merged[rule.LoggerNamePattern] = rule;
-        return merged.Values.ToList();
+        var merged = new List<LogLevelRuleInfo>();
+        var positions = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var rule in GetDefaultLogLevelRules())
+            Add(new() { Rule = rule, Source = LogLevelRuleSource.Core });
+        foreach (var rule in pluginRules)
+            Add(rule);
+        foreach (var rule in customRules?.Where(rule => !string.IsNullOrWhiteSpace(rule.LoggerNamePattern)) ?? [])
+            Add(new()
+            {
+                Rule = new() { LoggerNamePattern = rule.LoggerNamePattern, MinLevel = rule.MinLevel, MaxLevel = rule.MaxLevel, Final = rule.Final },
+                Source = LogLevelRuleSource.Custom,
+            });
+        return merged;
+
+        void Add(LogLevelRuleInfo info)
+        {
+            if (!positions.TryGetValue(info.Rule.LoggerNamePattern, out var position))
+            {
+                positions[info.Rule.LoggerNamePattern] = merged.Count;
+                merged.Add(info);
+                return;
+            }
+
+            merged[position] = new()
+            {
+                Rule = info.Rule,
+                Source = info.Source,
+                PluginID = info.PluginID,
+                PluginName = info.PluginName,
+                Replaces = merged[position].Source,
+            };
+        }
     }
 
     private static void RebuildLoggingRules(
         LoggingSettings? logging,
         LoggingConfiguration config,
-        IReadOnlyList<LogLevelRuleConfiguration> levelRules,
+        IReadOnlyList<LogLevelRuleInfo> levelRules,
         LoggingTargets targets)
     {
+        var defaultLevel = logging?.TraceLog ?? false ? NLogLevel.Trace : NLogLevel.Info;
+        var fileLevel = ConvertLogLevel(logging?.DefaultFileLogLevel) ?? defaultLevel;
+        var consoleLevel = ConvertLogLevel(logging?.DefaultConsoleLogLevel) ?? NLogLevel.Trace;
+        var signalRLevel = ConvertLogLevel(logging?.DefaultSignalRLogLevel) ?? defaultLevel;
+
         config.LoggingRules.Clear();
-        foreach (var overrideRule in levelRules)
+        foreach (var levelRule in levelRules.Select(info => info.Rule))
         {
-            if (overrideRule.MaxLevel is not { } maxLevel)
-                continue;
-            var nlogMaxLevel = NLogLevel.FromString(maxLevel.ToNLogString());
-            var rule = new LoggingRule(overrideRule.LoggerNamePattern, NLogLevel.Trace, nlogMaxLevel, targets.Void)
+            if (ConvertLogLevel(levelRule.MaxLevel) is { } maxLevel)
+                config.LoggingRules.Add(new LoggingRule(levelRule.LoggerNamePattern, NLogLevel.Trace, maxLevel, targets.Void) { Final = levelRule.Final });
+
+            // Only the levels a target leaves out, so nothing is written twice.
+            if (levelRule.MinLevel is not (null or ELogLevel.None) && ConvertLogLevel(levelRule.MinLevel) is { } minLevel)
             {
-                Final = overrideRule.Final
-            };
-            config.LoggingRules.Add(rule);
+                foreach (var (target, targetLevel) in new[] { (targets.File, fileLevel), (targets.Console, consoleLevel), (targets.SignalR, signalRLevel) })
+                {
+                    if (minLevel.Ordinal < targetLevel.Ordinal)
+                        config.LoggingRules.Add(new LoggingRule(levelRule.LoggerNamePattern, minLevel, NLogLevel.FromOrdinal(targetLevel.Ordinal - 1), target));
+                }
+            }
         }
 
-        var defaultLevel = logging?.TraceLog ?? false ? NLogLevel.Trace : NLogLevel.Info;
-        config.LoggingRules.Add(new LoggingRule("*", ConvertLogLevel(logging?.DefaultFileLogLevel) ?? defaultLevel, targets.File));
-        config.LoggingRules.Add(new LoggingRule("*", ConvertLogLevel(logging?.DefaultConsoleLogLevel) ?? NLogLevel.Trace, targets.Console));
-        config.LoggingRules.Add(new LoggingRule("*", ConvertLogLevel(logging?.DefaultSignalRLogLevel) ?? defaultLevel, targets.SignalR));
+        config.LoggingRules.Add(new LoggingRule("*", fileLevel, targets.File));
+        config.LoggingRules.Add(new LoggingRule("*", consoleLevel, targets.Console));
+        config.LoggingRules.Add(new LoggingRule("*", signalRLevel, targets.SignalR));
 
         // Information unless asked for, whatever TraceLog says: trace logs can hold raw responses, and these leave the server.
         if (targets.Otlp.IsActive)

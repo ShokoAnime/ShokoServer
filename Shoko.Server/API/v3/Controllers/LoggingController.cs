@@ -40,6 +40,74 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     public ActionResult<int> GetProcessID() => logService.ProcessID;
 
     /// <summary>
+    ///   Get the log level rules in effect, in the order they apply.
+    /// </summary>
+    /// <remarks>
+    ///   The core's defaults come first, then those of active plugins in load
+    ///   order, then the custom rules from the logging settings
+    ///   (`Logging.LogLevelRules`). A later rule for the same pattern, compared
+    ///   ignoring case, takes the earlier one's place, and says which source it
+    ///   replaced. A custom rule with neither level turns a default
+    ///   off.
+    /// </remarks>
+    /// <returns>
+    ///   The rules in effect.
+    /// </returns>
+    [HttpGet("Rules")]
+    public ActionResult<List<Models.Logging.LogLevelRule>> GetLogLevelRules()
+        => logService.GetLogLevelRules().Select(info => new Models.Logging.LogLevelRule(info)).ToList();
+
+    /// <summary>
+    ///   Get the custom log level rules of the logging settings, in the order
+    ///   they apply.
+    /// </summary>
+    /// <returns>
+    ///   The custom rules.
+    /// </returns>
+    [HttpGet("Rules/Custom")]
+    public ActionResult<List<CustomLogLevelRule>> GetCustomLogLevelRules()
+        => logService.GetCustomLogLevelRules().Select(rule => new CustomLogLevelRule(rule)).ToList();
+
+    /// <summary>
+    ///   Add a custom log level rule, or replace the one for the same pattern,
+    ///   compared ignoring case. It applies at once.
+    /// </summary>
+    /// <remarks>
+    ///   A rule with neither level turns off a core or plugin default for the
+    ///   same pattern.
+    /// </remarks>
+    /// <param name="body">The rule.</param>
+    /// <returns>
+    ///   The custom rules.
+    /// </returns>
+    [HttpPut("Rules/Custom")]
+    public ActionResult<List<CustomLogLevelRule>> SetCustomLogLevelRule([FromBody] CustomLogLevelRule body)
+    {
+        if (body is { MinLevel: { } min, MaxLevel: { } max } && min <= max)
+            return ValidationProblem("The minimum level must be above the maximum level.", nameof(body.MinLevel));
+
+        logService.SetCustomLogLevelRule(body.ToRule());
+        return GetCustomLogLevelRules();
+    }
+
+    /// <summary>
+    ///   Remove the custom log level rule for a pattern, compared ignoring
+    ///   case. A default rule it replaced applies again at once.
+    /// </summary>
+    /// <param name="pattern">The rule's pattern.</param>
+    /// <returns>
+    ///   The custom rules left.
+    /// </returns>
+    [HttpDelete("Rules/Custom")]
+    public ActionResult<List<CustomLogLevelRule>> RemoveCustomLogLevelRule([FromQuery, Required] string pattern)
+    {
+        if (!logService.RemoveCustomLogLevelRule(pattern))
+            return NotFound("No custom rule has that pattern.");
+
+        return GetCustomLogLevelRules();
+    }
+
+    /// <summary>
     /// Read log entries across files filtered by a date range.
     /// </summary>
     /// <remarks>

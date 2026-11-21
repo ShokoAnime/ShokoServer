@@ -330,6 +330,134 @@ public class LogServiceTests : IDisposable
         }));
     }
 
+    [Fact]
+    public void MergeLogLevelRules_LetsPluginsThenCustomRulesReplaceEarlierRulesInPlace()
+    {
+        var plugin = Guid.NewGuid();
+        var merged = LogService.MergeLogLevelRules(
+            [
+                PluginRule(plugin, "microsoft.entityframeworkcore.*", maxLevel: LogLevel.Warning),
+                PluginRule(plugin, "ModelContextProtocol.*", maxLevel: LogLevel.Debug),
+            ],
+            [new() { LoggerNamePattern = "ModelContextProtocol.*", MaxLevel = null, Final = false }]);
+
+        var efCore = Assert.Single(merged, rule => rule.Rule.LoggerNamePattern == "microsoft.entityframeworkcore.*");
+        Assert.Equal((LogLevelRuleSource.Plugin, LogLevelRuleSource.Core, plugin), (efCore.Source, efCore.Replaces!.Value, efCore.PluginID!.Value));
+        Assert.Equal(1, merged.ToList().IndexOf(efCore));
+        var mcp = merged[^1];
+        Assert.Equal(("ModelContextProtocol.*", LogLevelRuleSource.Custom, LogLevelRuleSource.Plugin), (mcp.Rule.LoggerNamePattern, mcp.Source, mcp.Replaces!.Value));
+        Assert.Null(mcp.Rule.MaxLevel);
+    }
+
+    [Fact]
+    public void ApplyLoggingSettings_DropsUpToTheMaxLevelAndWritesFromTheMinLevelOnce()
+    {
+        var paths = new Mock<IApplicationPaths>();
+        paths.Setup(a => a.LogsPath).Returns(_tempDirectory);
+        LogService.InitLogger(paths.Object);
+        try
+        {
+            LogService.ApplyLoggingSettings(new()
+            {
+                DefaultFileLogLevel = LogLevel.Information,
+                DefaultConsoleLogLevel = LogLevel.Information,
+                LogLevelRules =
+                [
+                    new() { LoggerNamePattern = "Noisy.*", MaxLevel = LogLevel.Information, Final = true },
+                    new() { LoggerNamePattern = "Chatty.*", MinLevel = LogLevel.Debug, MaxLevel = null },
+                ],
+            });
+
+            Assert.Equal(["void"], TargetsFor("Noisy.Client", NLog.LogLevel.Info));
+            Assert.Contains("file", TargetsFor("Noisy.Client", NLog.LogLevel.Warn));
+            Assert.Equal(["console", "file"], TargetsFor("Chatty.Client", NLog.LogLevel.Debug).Where(name => name is "file" or "console").Order());
+            Assert.Equal(["console", "file"], TargetsFor("Chatty.Client", NLog.LogLevel.Info).Where(name => name is "file" or "console").Order());
+            Assert.DoesNotContain("file", TargetsFor("Chatty.Client", NLog.LogLevel.Trace));
+            Assert.DoesNotContain("file", TargetsFor("Quiet.Client", NLog.LogLevel.Debug));
+        }
+        finally
+        {
+            LogService.ApplyLoggingSettings(new());
+        }
+    }
+
+    [Fact]
+    public void SetPluginLogLevelRules_AppliesThePluginsRulesAndListsThem()
+    {
+        var paths = new Mock<IApplicationPaths>();
+        paths.Setup(a => a.LogsPath).Returns(_tempDirectory);
+        LogService.InitLogger(paths.Object);
+        var plugin = Guid.NewGuid();
+        try
+        {
+            LogService.ApplyLoggingSettings(new() { DefaultFileLogLevel = LogLevel.Information });
+            LogService.SetPluginLogLevelRules([PluginRule(plugin, "ModelContextProtocol.*", maxLevel: LogLevel.Information)]);
+
+            Assert.Equal(["void"], TargetsFor("ModelContextProtocol.Server", NLog.LogLevel.Info));
+            var listed = Assert.Single(CreateService().GetLogLevelRules(), rule => rule.Source is LogLevelRuleSource.Plugin);
+            Assert.Equal(plugin, listed.PluginID);
+        }
+        finally
+        {
+            LogService.SetPluginLogLevelRules([]);
+            LogService.ApplyLoggingSettings(new());
+        }
+    }
+
+    [Fact]
+    public void SetCustomLogLevelRule_ReplacesTheRuleForThePatternInPlaceAndRemoveDropsIt()
+    {
+        var service = CreateService();
+        service.SetCustomLogLevelRule(new() { LoggerNamePattern = "Noisy.*", MaxLevel = LogLevel.Information });
+        service.SetCustomLogLevelRule(new() { LoggerNamePattern = "Chatty.*", MinLevel = LogLevel.Debug });
+        service.SetCustomLogLevelRule(new() { LoggerNamePattern = "noisy.*", MaxLevel = LogLevel.Warning });
+
+        Assert.Equal([("noisy.*", (LogLevel?)LogLevel.Warning), ("Chatty.*", null)], service.GetCustomLogLevelRules().Select(rule => (rule.LoggerNamePattern, rule.MaxLevel)));
+        Assert.True(service.RemoveCustomLogLevelRule("NOISY.*"));
+        Assert.False(service.RemoveCustomLogLevelRule("Noisy.*"));
+        Assert.Equal(["Chatty.*"], service.GetCustomLogLevelRules().Select(rule => rule.LoggerNamePattern));
+        Assert.Throws<ArgumentException>(() => service.SetCustomLogLevelRule(new() { LoggerNamePattern = "Both.*", MinLevel = LogLevel.Debug, MaxLevel = LogLevel.Debug }));
+    }
+
+    [Fact]
+    public void Validate_RefusesAMinLevelNotAboveTheMaxLevel()
+    {
+        var result = LogLevelRuleConfiguration.Validate(
+            new() { LoggerNamePattern = "Noisy.*", MinLevel = LogLevel.Debug, MaxLevel = LogLevel.Information },
+            Mock.Of<Shoko.Abstractions.Config.Services.IConfigurationService>(),
+            Mock.Of<IPluginManager>());
+
+        Assert.Contains(nameof(LogLevelRuleConfiguration.MinLevel), result.ValidationErrors!.Keys);
+    }
+
+    private static LogLevelRuleInfo PluginRule(Guid pluginID, string pattern, LogLevel? minLevel = null, LogLevel? maxLevel = null)
+        => new()
+        {
+            Rule = new() { LoggerNamePattern = pattern, MinLevel = minLevel, MaxLevel = maxLevel },
+            Source = LogLevelRuleSource.Plugin,
+            PluginID = pluginID,
+            PluginName = "Test Plugin",
+        };
+
+    /// <summary>
+    ///   The targets a message reaches, as NLog walks the rules: in order,
+    ///   stopping after a final rule that took it.
+    /// </summary>
+    private static string[] TargetsFor(string loggerName, NLog.LogLevel level)
+    {
+        var names = new System.Collections.Generic.List<string>();
+        foreach (var rule in LogManager.Configuration!.LoggingRules)
+        {
+            if (!rule.NameMatches(loggerName) || !rule.IsLoggingEnabledForLevel(level))
+                continue;
+            names.AddRange(rule.Targets.Select(target => target.Name));
+            if (rule.Final)
+                break;
+        }
+
+        return [.. names];
+    }
+
     public void Dispose()
     {
         LogManager.Configuration = _previousNlogConfiguration;

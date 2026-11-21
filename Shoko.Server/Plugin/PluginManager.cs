@@ -396,6 +396,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     .GetMethod(nameof(IPluginServiceRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static, [typeof(IServiceCollection), typeof(IApplicationPaths)])!
                     .Invoke(null, [serviceCollection, applicationPaths]);
                 TakeConfigurationRegistrations(pluginInfo, serviceCollection, before);
+                TakeLogLevelRuleRegistrations(pluginInfo, serviceCollection, before);
             }
             catch (Exception ex) when (pluginInfo.ID != CorePlugin.StaticID)
             {
@@ -709,6 +710,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             logger.LogInformation("Initialized plugin \"{Name}\". ({DllName}, {Version})", pluginInstance.Name, dllName, localPluginInfo.Version);
         }
 
+        LogService.SetPluginLogLevelRules(GetPluginLogLevelRules());
         _pluginsInitialized = true;
         PluginsInitialized?.Invoke(this, EventArgs.Empty);
 

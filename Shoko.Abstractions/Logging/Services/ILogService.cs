@@ -25,6 +25,47 @@ public interface ILogService
 
     #endregion
 
+    #region Rules
+
+    /// <summary>
+    ///   Gets the log level rules in effect, in the order they apply, each
+    ///   with where it comes from: the core's defaults, those of active
+    ///   plugins, and the custom rules of the logging settings.
+    /// </summary>
+    /// <returns>The rules in effect.</returns>
+    IReadOnlyList<LogLevelRuleInfo> GetLogLevelRules();
+
+    /// <summary>
+    ///   Gets the custom log level rules of the logging settings, in the
+    ///   order they apply.
+    /// </summary>
+    /// <returns>The custom rules.</returns>
+    IReadOnlyList<LogLevelRule> GetCustomLogLevelRules();
+
+    /// <summary>
+    ///   Adds a custom log level rule to the logging settings, or replaces
+    ///   the one for the same pattern, compared ignoring case, in its place.
+    ///   It applies at once. A rule with neither level turns off a default
+    ///   rule for the same pattern.
+    /// </summary>
+    /// <param name="rule">The rule.</param>
+    /// <exception cref="ArgumentException">
+    ///   The pattern is empty, or the minimum level is not above the maximum
+    ///   level.
+    /// </exception>
+    void SetCustomLogLevelRule(LogLevelRule rule);
+
+    /// <summary>
+    ///   Removes the custom log level rule for a pattern, compared ignoring
+    ///   case, from the logging settings. A default rule it replaced applies
+    ///   again at once.
+    /// </summary>
+    /// <param name="loggerNamePattern">The rule's pattern.</param>
+    /// <returns><c>true</c> if there was such a rule.</returns>
+    bool RemoveCustomLogLevelRule(string loggerNamePattern);
+
+    #endregion
+
     #region Log File Operations
 
     /// <summary>
