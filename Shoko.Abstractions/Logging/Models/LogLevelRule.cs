@@ -41,13 +41,8 @@ public sealed class LogLevelRule
 
     /// <summary>
     ///   The highest level dropped for the matching loggers, or <c>null</c> to
-    ///   drop nothing.
+    ///   drop nothing. A dropped message is kept from every later rule,
+    ///   including those of broader patterns.
     /// </summary>
     public LogLevel? MaxLevel { get; init; }
-
-    /// <summary>
-    ///   Whether a message the rule drops is kept from every later rule,
-    ///   including those of broader patterns. Defaults to <c>true</c>.
-    /// </summary>
-    public bool Final { get; init; } = true;
 }

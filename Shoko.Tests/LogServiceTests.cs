@@ -12,6 +12,7 @@ using Shoko.Abstractions.Logging.Models;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Tests.Infrastructure;
 using Xunit;
 
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
@@ -339,14 +340,16 @@ public class LogServiceTests : IDisposable
                 PluginRule(plugin, "microsoft.entityframeworkcore.*", maxLevel: LogLevel.Warning),
                 PluginRule(plugin, "ModelContextProtocol.*", maxLevel: LogLevel.Debug),
             ],
-            [new() { LoggerNamePattern = "ModelContextProtocol.*", MaxLevel = null, Final = false }]);
+            [new() { LoggerNamePattern = "ModelContextProtocol.*", MaxLevel = null }]);
 
         var efCore = Assert.Single(merged, rule => rule.Rule.LoggerNamePattern == "microsoft.entityframeworkcore.*");
-        Assert.Equal((LogLevelRuleSource.Plugin, LogLevelRuleSource.Core, plugin), (efCore.Source, efCore.Replaces!.Value, efCore.PluginID!.Value));
+        Assert.Equal((LogLevelRuleSource.Plugin, LogLevelRuleSource.Core, plugin), (efCore.Source, efCore.Replaces!.Source, efCore.Plugin!.ID));
         Assert.Equal(1, merged.ToList().IndexOf(efCore));
         var mcp = merged[^1];
-        Assert.Equal(("ModelContextProtocol.*", LogLevelRuleSource.Custom, LogLevelRuleSource.Plugin), (mcp.Rule.LoggerNamePattern, mcp.Source, mcp.Replaces!.Value));
+        Assert.Equal(("ModelContextProtocol.*", LogLevelRuleSource.Custom, LogLevelRuleSource.Plugin), (mcp.Rule.LoggerNamePattern, mcp.Source, mcp.Replaces!.Source));
         Assert.Null(mcp.Rule.MaxLevel);
+        Assert.Equal(LogLevel.Debug, mcp.Replaces.Rule.MaxLevel);
+        Assert.Equal(LogLevel.Information, efCore.Replaces.Rule.MaxLevel);
     }
 
     [Fact]
@@ -363,7 +366,7 @@ public class LogServiceTests : IDisposable
                 DefaultConsoleLogLevel = LogLevel.Information,
                 LogLevelRules =
                 [
-                    new() { LoggerNamePattern = "Noisy.*", MaxLevel = LogLevel.Information, Final = true },
+                    new() { LoggerNamePattern = "Noisy.*", MaxLevel = LogLevel.Information },
                     new() { LoggerNamePattern = "Chatty.*", MinLevel = LogLevel.Debug, MaxLevel = null },
                 ],
             });
@@ -395,7 +398,7 @@ public class LogServiceTests : IDisposable
 
             Assert.Equal(["void"], TargetsFor("ModelContextProtocol.Server", NLog.LogLevel.Info));
             var listed = Assert.Single(CreateService().GetLogLevelRules(), rule => rule.Source is LogLevelRuleSource.Plugin);
-            Assert.Equal(plugin, listed.PluginID);
+            Assert.Equal(plugin, listed.Plugin!.ID);
         }
         finally
         {
@@ -435,8 +438,7 @@ public class LogServiceTests : IDisposable
         {
             Rule = new() { LoggerNamePattern = pattern, MinLevel = minLevel, MaxLevel = maxLevel },
             Source = LogLevelRuleSource.Plugin,
-            PluginID = pluginID,
-            PluginName = "Test Plugin",
+            Plugin = PluginTestDoubles.InstalledPluginInfo(typeof(PluginTestDoubles.TestPlugin), pluginID),
         };
 
     /// <summary>

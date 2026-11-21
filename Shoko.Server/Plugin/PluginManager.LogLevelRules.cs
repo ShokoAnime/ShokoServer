@@ -17,7 +17,7 @@ public partial class PluginManager
 
     /// <summary>
     ///   The log level rules plugins registered through
-    ///   <see cref="LogLevelRuleExtensions.AddLogLevelRule{TPlugin}(IServiceCollection, string, Microsoft.Extensions.Logging.LogLevel?, Microsoft.Extensions.Logging.LogLevel?, bool)"/>,
+    ///   <see cref="LogLevelRuleExtensions.AddLogLevelRule{TPlugin}(IServiceCollection, string, Microsoft.Extensions.Logging.LogLevel?, Microsoft.Extensions.Logging.LogLevel?)"/>,
     ///   with the plugin whose services registered them.
     /// </summary>
     private readonly List<(LogLevelRule Rule, LocalPluginInfo PluginInfo)> _logLevelRuleRegistrations = [];
@@ -62,8 +62,7 @@ public partial class PluginManager
             {
                 Rule = registration.Rule,
                 Source = LogLevelRuleSource.Plugin,
-                PluginID = registration.PluginInfo.ID,
-                PluginName = registration.PluginInfo.Name,
+                Plugin = registration.PluginInfo,
             })
             .ToList();
 

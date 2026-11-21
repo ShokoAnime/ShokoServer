@@ -1,4 +1,4 @@
-using System;
+using Shoko.Abstractions.Plugin.Models;
 
 namespace Shoko.Abstractions.Logging.Models;
 
@@ -18,20 +18,15 @@ public sealed class LogLevelRuleInfo
     public required LogLevelRuleSource Source { get; init; }
 
     /// <summary>
-    ///   The ID of the plugin that registered the rule, when
-    ///   <see cref="Source"/> is <see cref="LogLevelRuleSource.Plugin"/>.
+    ///   The plugin that registered the rule, when <see cref="Source"/> is
+    ///   <see cref="LogLevelRuleSource.Plugin"/>.
     /// </summary>
-    public Guid? PluginID { get; init; }
+    public LocalPluginInfo? Plugin { get; init; }
 
     /// <summary>
-    ///   The name of the plugin that registered the rule, when
-    ///   <see cref="Source"/> is <see cref="LogLevelRuleSource.Plugin"/>.
+    ///   The rule it replaced, with the one that rule replaced in turn, when
+    ///   it replaced one for the same pattern. Removing a custom rule brings
+    ///   this one back.
     /// </summary>
-    public string? PluginName { get; init; }
-
-    /// <summary>
-    ///   Where the rule it replaced came from, when it replaced one for the
-    ///   same pattern.
-    /// </summary>
-    public LogLevelRuleSource? Replaces { get; init; }
+    public LogLevelRuleInfo? Replaces { get; init; }
 }

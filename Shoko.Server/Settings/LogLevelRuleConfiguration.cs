@@ -55,12 +55,6 @@ public class LogLevelRuleConfiguration : IEquatable<LogLevelRuleConfiguration>
     [DefaultValue(LogLevel.Information)]
     public LogLevel? MaxLevel { get; set; } = LogLevel.Information;
 
-    /// <summary>
-    /// Whether this rule should stop processing later rules.
-    /// </summary>
-    [DefaultValue(true)]
-    public bool Final { get; set; } = true;
-
     [ConfigurationAction(ConfigurationActionType.Validate)]
     public static ConfigurationActionResult Validate(LogLevelRuleConfiguration config, IConfigurationService configurationService, IPluginManager pluginManager)
     {
@@ -73,7 +67,7 @@ public class LogLevelRuleConfiguration : IEquatable<LogLevelRuleConfiguration>
     }
 
     public override int GetHashCode()
-        => HashCode.Combine(LoggerNamePattern, MinLevel, MaxLevel, Final);
+        => HashCode.Combine(LoggerNamePattern, MinLevel, MaxLevel);
 
     public override bool Equals(object? obj)
         => obj is LogLevelRuleConfiguration other && Equals(other);

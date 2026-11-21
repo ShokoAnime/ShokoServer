@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Logging.Models;
+using Shoko.Server.API.v3.Models.Plugin;
 
 namespace Shoko.Server.API.v3.Models.Logging;
 
@@ -32,45 +33,32 @@ public class LogLevelRule
     public LogLevel? MaxLevel { get; }
 
     /// <summary>
-    /// Whether a message the rule drops is kept from every later rule.
-    /// </summary>
-    [Required]
-    public bool Final { get; }
-
-    /// <summary>
     /// Where the rule comes from: <c>Core</c>, <c>Plugin</c> or <c>Custom</c>.
     /// </summary>
     [Required]
     public LogLevelRuleSource Source { get; }
 
     /// <summary>
-    /// The ID of the plugin that registered the rule.
+    /// The plugin that registered the rule.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public Guid? PluginID { get; }
+    public PluginInfo? Plugin { get; }
 
     /// <summary>
-    /// The name of the plugin that registered the rule.
+    /// The rule it replaced, with the one that rule replaced in turn, when it
+    /// replaced one for the same pattern. Removing a custom rule brings this
+    /// one back.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public string? PluginName { get; }
-
-    /// <summary>
-    /// Where the rule it replaced came from, when it replaced one for the same
-    /// pattern.
-    /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public LogLevelRuleSource? Replaces { get; }
+    public LogLevelRule? Replaces { get; }
 
     public LogLevelRule(LogLevelRuleInfo info)
     {
         LoggerNamePattern = info.Rule.LoggerNamePattern;
         MinLevel = info.Rule.MinLevel;
         MaxLevel = info.Rule.MaxLevel;
-        Final = info.Rule.Final;
         Source = info.Source;
-        PluginID = info.PluginID;
-        PluginName = info.PluginName;
-        Replaces = info.Replaces;
+        Plugin = info.Plugin is { } plugin ? new(plugin) : null;
+        Replaces = info.Replaces is { } replaced ? new(replaced) : null;
     }
 }

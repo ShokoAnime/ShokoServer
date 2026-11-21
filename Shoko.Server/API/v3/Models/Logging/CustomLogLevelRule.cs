@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -37,12 +36,6 @@ public class CustomLogLevelRule
     [JsonConverter(typeof(StringEnumConverter))]
     public LogLevel? MaxLevel { get; set; }
 
-    /// <summary>
-    /// Whether a message the rule drops is kept from every later rule.
-    /// </summary>
-    [DefaultValue(true)]
-    public bool Final { get; set; } = true;
-
     public CustomLogLevelRule() { }
 
     public CustomLogLevelRule(AbstractLogLevelRule rule)
@@ -50,12 +43,11 @@ public class CustomLogLevelRule
         LoggerNamePattern = rule.LoggerNamePattern;
         MinLevel = rule.MinLevel;
         MaxLevel = rule.MaxLevel;
-        Final = rule.Final;
     }
 
     /// <summary>
     /// The rule for the log service.
     /// </summary>
     public AbstractLogLevelRule ToRule()
-        => new() { LoggerNamePattern = LoggerNamePattern, MinLevel = MinLevel, MaxLevel = MaxLevel, Final = Final };
+        => new() { LoggerNamePattern = LoggerNamePattern, MinLevel = MinLevel, MaxLevel = MaxLevel };
 }

@@ -199,7 +199,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
     /// <inheritdoc/>
     public IReadOnlyList<LogLevelRule> GetCustomLogLevelRules()
         => settingsProvider.GetSettings().Logging.LogLevelRules
-            .Select(rule => new LogLevelRule { LoggerNamePattern = rule.LoggerNamePattern, MinLevel = rule.MinLevel, MaxLevel = rule.MaxLevel, Final = rule.Final })
+            .Select(rule => new LogLevelRule { LoggerNamePattern = rule.LoggerNamePattern, MinLevel = rule.MinLevel, MaxLevel = rule.MaxLevel })
             .ToList();
 
     /// <inheritdoc/>
@@ -212,7 +212,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
         var settings = settingsProvider.GetSettings();
         var rules = settings.Logging.LogLevelRules;
-        var configuration = new LogLevelRuleConfiguration { LoggerNamePattern = rule.LoggerNamePattern, MinLevel = rule.MinLevel, MaxLevel = rule.MaxLevel, Final = rule.Final };
+        var configuration = new LogLevelRuleConfiguration { LoggerNamePattern = rule.LoggerNamePattern, MinLevel = rule.MinLevel, MaxLevel = rule.MaxLevel };
         var index = rules.FindIndex(existing => string.Equals(existing.LoggerNamePattern, rule.LoggerNamePattern, StringComparison.OrdinalIgnoreCase));
         if (index >= 0)
             rules[index] = configuration;
@@ -1189,7 +1189,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         _defaultSignalRLogLevel = logging.DefaultSignalRLogLevel;
         _defaultOtlpLogLevel = logging.DefaultOtlpLogLevel;
         _logLevelRules = logging.LogLevelRules
-            .Select(a => new LogLevelRuleConfiguration() { LoggerNamePattern = a.LoggerNamePattern, MinLevel = a.MinLevel, MaxLevel = a.MaxLevel, Final = a.Final })
+            .Select(a => new LogLevelRuleConfiguration() { LoggerNamePattern = a.LoggerNamePattern, MinLevel = a.MinLevel, MaxLevel = a.MaxLevel })
             .ToList();
         _effectiveLogLevelRules = MergeLogLevelRules(_pluginLogLevelRules, logging.LogLevelRules);
         RebuildLoggingRules(logging, config, _effectiveLogLevelRules, targets);
@@ -1251,19 +1251,19 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
     private static IReadOnlyList<LogLevelRule> GetDefaultLogLevelRules()
         => [
-            new() { LoggerNamePattern = "Microsoft.AspNetCore.*", MaxLevel = ELogLevel.Information, Final = true },
+            new() { LoggerNamePattern = "Microsoft.AspNetCore.*", MaxLevel = ELogLevel.Information },
             // Plugin databases log through the host, and EF Core logs every command it runs at Information.
-            new() { LoggerNamePattern = "Microsoft.EntityFrameworkCore.*", MaxLevel = ELogLevel.Information, Final = true },
-            new() { LoggerNamePattern = "Shoko.QueueProcessor*", MaxLevel = ELogLevel.Information, Final = true },
-            new() { LoggerNamePattern = "Shoko.Server.Scheduling.Delegates.*", MaxLevel = ELogLevel.Information, Final = true },
-            new() { LoggerNamePattern = "Shoko.Server.API.Authentication.CustomAuthHandler", MaxLevel = ELogLevel.Information, Final = true },
-            new() { LoggerNamePattern = "Microsoft.Extensions.Http.Logging.*", MaxLevel = ELogLevel.Warning, Final = true },
-            new() { LoggerNamePattern = "System.Net.Http.HttpClient.*", MaxLevel = ELogLevel.Warning, Final = true },
+            new() { LoggerNamePattern = "Microsoft.EntityFrameworkCore.*", MaxLevel = ELogLevel.Information },
+            new() { LoggerNamePattern = "Shoko.QueueProcessor*", MaxLevel = ELogLevel.Information },
+            new() { LoggerNamePattern = "Shoko.Server.Scheduling.Delegates.*", MaxLevel = ELogLevel.Information },
+            new() { LoggerNamePattern = "Shoko.Server.API.Authentication.CustomAuthHandler", MaxLevel = ELogLevel.Information },
+            new() { LoggerNamePattern = "Microsoft.Extensions.Http.Logging.*", MaxLevel = ELogLevel.Warning },
+            new() { LoggerNamePattern = "System.Net.Http.HttpClient.*", MaxLevel = ELogLevel.Warning },
 #if !LOGWEB
             // Category filters on the host's logging builder never reach NLog, whose provider lets everything through.
-            new() { LoggerNamePattern = "Microsoft.*", MaxLevel = ELogLevel.Information, Final = true },
-            new() { LoggerNamePattern = "System.*", MaxLevel = ELogLevel.Information, Final = true },
-            new() { LoggerNamePattern = "Shoko.Server.API.*", MaxLevel = ELogLevel.Information, Final = true },
+            new() { LoggerNamePattern = "Microsoft.*", MaxLevel = ELogLevel.Information },
+            new() { LoggerNamePattern = "System.*", MaxLevel = ELogLevel.Information },
+            new() { LoggerNamePattern = "Shoko.Server.API.*", MaxLevel = ELogLevel.Information },
 #endif
         ];
 
@@ -1283,7 +1283,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         foreach (var rule in customRules?.Where(rule => !string.IsNullOrWhiteSpace(rule.LoggerNamePattern)) ?? [])
             Add(new()
             {
-                Rule = new() { LoggerNamePattern = rule.LoggerNamePattern, MinLevel = rule.MinLevel, MaxLevel = rule.MaxLevel, Final = rule.Final },
+                Rule = new() { LoggerNamePattern = rule.LoggerNamePattern, MinLevel = rule.MinLevel, MaxLevel = rule.MaxLevel },
                 Source = LogLevelRuleSource.Custom,
             });
         return merged;
@@ -1301,9 +1301,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             {
                 Rule = info.Rule,
                 Source = info.Source,
-                PluginID = info.PluginID,
-                PluginName = info.PluginName,
-                Replaces = merged[position].Source,
+                Plugin = info.Plugin,
+                Replaces = merged[position],
             };
         }
     }
@@ -1323,7 +1322,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         foreach (var levelRule in levelRules.Select(info => info.Rule))
         {
             if (ConvertLogLevel(levelRule.MaxLevel) is { } maxLevel)
-                config.LoggingRules.Add(new LoggingRule(levelRule.LoggerNamePattern, NLogLevel.Trace, maxLevel, targets.Void) { Final = levelRule.Final });
+                config.LoggingRules.Add(new LoggingRule(levelRule.LoggerNamePattern, NLogLevel.Trace, maxLevel, targets.Void) { Final = true });
 
             // Only the levels a target leaves out, so nothing is written twice.
             if (levelRule.MinLevel is not (null or ELogLevel.None) && ConvertLogLevel(levelRule.MinLevel) is { } minLevel)
