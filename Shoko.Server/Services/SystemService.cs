@@ -630,11 +630,6 @@ public class SystemService : ISystemService
                     {
                         logging.ClearProviders();
                         logging.SetMinimumLevel(LogLevel.Trace);
-#if !LOGWEB
-                        logging.AddFilter("Microsoft", LogLevel.Warning);
-                        logging.AddFilter("System", LogLevel.Warning);
-                        logging.AddFilter("Shoko.Server.API", LogLevel.Warning);
-#endif
                     })
                     .UseNLog()
                     .UseSentryConfig(_settingsProvider)

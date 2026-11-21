@@ -1259,6 +1259,12 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             new() { LoggerNamePattern = "Shoko.Server.API.Authentication.CustomAuthHandler", MaxLevel = ELogLevel.Information, Final = true },
             new() { LoggerNamePattern = "Microsoft.Extensions.Http.Logging.*", MaxLevel = ELogLevel.Warning, Final = true },
             new() { LoggerNamePattern = "System.Net.Http.HttpClient.*", MaxLevel = ELogLevel.Warning, Final = true },
+#if !LOGWEB
+            // Category filters on the host's logging builder never reach NLog, whose provider lets everything through.
+            new() { LoggerNamePattern = "Microsoft.*", MaxLevel = ELogLevel.Information, Final = true },
+            new() { LoggerNamePattern = "System.*", MaxLevel = ELogLevel.Information, Final = true },
+            new() { LoggerNamePattern = "Shoko.Server.API.*", MaxLevel = ELogLevel.Information, Final = true },
+#endif
         ];
 
     /// <summary>
