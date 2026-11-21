@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.612",
+      "tag": "v6.0.0-dev.612",
+      "commit": "7071041c355c722036a871c4b5c3a0f67427de77",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.612/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-21T04:53:36Z",
+      "releaseNotes": "\n`fix` (`api`): **Keep `Final` on when a custom log level rule leaves it out**.\n"
+    },
+    {
       "version": "6.0.0.611",
       "tag": "v6.0.0-dev.611",
       "commit": "294b625a76e94a1de0aa31bcf035e25eaf8343d0",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.583/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-02T01:29:51Z",
       "releaseNotes": "\n`docs` (`abstractions`): **Describe `MetadataEntityType.Channel` as any named channel, not only airing ones**.\n"
-    },
-    {
-      "version": "6.0.0.582",
-      "tag": "v6.0.0-dev.582",
-      "commit": "2a03c6e6c4dbdcf7b3e00ee15a05e7b65478ec2d",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.582/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-02T00:22:50Z",
-      "releaseNotes": "\n`fix`: **Resolve remaining sonarcloud regex timeout and cancellation issues (batch 6)**:\n\nGave the remaining regexes a 5 second timeout, passed the request's cancellation token to the filter evaluation in the APIv2 models and pinned the npm packages installed by `build-daily`.\n\n- Added the timeout to the three `PluginNamespaceRules` copies and to `SQLite`\n- Passed `ctx.RequestAborted` in `Filter`, `Filters` and `Group`\n- Pinned `semver` and `fast-xml-parser`\n\n`merge`: **Merge pull request #1474 from ShokoAnime/fix/sonar-batch-6**:\n\nfix: resolve remaining sonarcloud regex timeout and cancellation issues (batch 6)\n"
     }
   ]
 }
