@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -39,6 +40,7 @@ public class CustomLogLevelRule
     /// <summary>
     /// Whether a message the rule drops is kept from every later rule.
     /// </summary>
+    [DefaultValue(true)]
     public bool Final { get; set; } = true;
 
     public CustomLogLevelRule() { }
