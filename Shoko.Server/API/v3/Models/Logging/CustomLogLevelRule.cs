@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 using AbstractLogLevelRule = Shoko.Abstractions.Logging.Models.LogLevelRule;
 
@@ -24,12 +26,14 @@ public class CustomLogLevelRule
     /// log file, the console and the live log are set to. Must be above
     /// <see cref="MaxLevel"/> when both are set.
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public LogLevel? MinLevel { get; set; }
 
     /// <summary>
     /// The highest level dropped for the matching loggers. With neither level,
     /// the rule turns off a default rule for the same pattern.
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public LogLevel? MaxLevel { get; set; }
 
     /// <summary>

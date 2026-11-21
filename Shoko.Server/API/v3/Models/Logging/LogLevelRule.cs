@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Logging.Models;
 
 namespace Shoko.Server.API.v3.Models.Logging;
@@ -21,11 +22,13 @@ public class LogLevelRule
     /// The lowest level written for the matching loggers, below the levels the
     /// log file, the console and the live log are set to.
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public LogLevel? MinLevel { get; }
 
     /// <summary>
     /// The highest level dropped for the matching loggers.
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public LogLevel? MaxLevel { get; }
 
     /// <summary>
