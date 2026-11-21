@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.611",
+      "tag": "v6.0.0-dev.611",
+      "commit": "294b625a76e94a1de0aa31bcf035e25eaf8343d0",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.611/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-21T03:12:16Z",
+      "releaseNotes": "\n`fix` (`api`): **Name the log levels of the log level rules**.\n"
+    },
+    {
       "version": "6.0.0.610",
       "tag": "v6.0.0-dev.610",
       "commit": "d4bc2abf2275400a403f8d10edafa3a9f1a288bd",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.582/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-02T00:22:50Z",
       "releaseNotes": "\n`fix`: **Resolve remaining sonarcloud regex timeout and cancellation issues (batch 6)**:\n\nGave the remaining regexes a 5 second timeout, passed the request's cancellation token to the filter evaluation in the APIv2 models and pinned the npm packages installed by `build-daily`.\n\n- Added the timeout to the three `PluginNamespaceRules` copies and to `SQLite`\n- Passed `ctx.RequestAborted` in `Filter`, `Filters` and `Group`\n- Pinned `semver` and `fast-xml-parser`\n\n`merge`: **Merge pull request #1474 from ShokoAnime/fix/sonar-batch-6**:\n\nfix: resolve remaining sonarcloud regex timeout and cancellation issues (batch 6)\n"
-    },
-    {
-      "version": "6.0.0.581",
-      "tag": "v6.0.0-dev.581",
-      "commit": "78ac7749e84ed9d4bd1a20448c0d843f76343905",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.581/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T23:46:21Z",
-      "releaseNotes": "\n`feat` (`abstractions`): **Expose the AniDB inbox through `IAnidbNotifyService`**:\n\n- Added `IAnidbNotifyService` and `IAnidbMessage`: the fetched AniDB messages with their kind, read and handled state, and the moved file of a \"file moved\" message\n- Events when a message arrives, is handled or changes read state; `HandleMessage` queues the moved-file handling, and handling done automatically is told apart\n- Messages are no longer acknowledged to AniDB as soon as they are fetched; `AcknowledgeMessage` does it, or the new `AniDb.Notification_AcknowledgeOnFetch` setting (off by default) brings the old behaviour back\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.124**.\n"
     }
   ]
 }
