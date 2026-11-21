@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.610",
+      "tag": "v6.0.0-dev.610",
+      "commit": "d4bc2abf2275400a403f8d10edafa3a9f1a288bd",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.610/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-21T03:06:27Z",
+      "releaseNotes": "\n`feat` (`plugin`): **Let plugins set default log level rules**:\n\n- Added `AddLogLevelRule<TPlugin>`, applied between the core's defaults and the custom rules of the logging settings while the plugin is active\n- Added `MinLevel` to a rule, writing a pattern's messages below the targets' levels\n- Added `ILogService.GetLogLevelRules` and `GET /api/v3/Logging/Rules`, listing the rules in effect with their source\n- Added getting, setting and removing the custom rules to `ILogService` and `/api/v3/Logging/Rules/Custom`\n\n`fix` (`core`): **Drop the host's `Microsoft`, `System` and API logs below Warning**:\n\n- Moved the web host's category filters into the core's default log level rules, since NLog's provider ignores category-only filters\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.135**.\n"
+    },
+    {
       "version": "6.0.0.609",
       "tag": "v6.0.0-dev.609",
       "commit": "96949123995f36c249aeb52f2f4b4c339ab10956",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.581/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-01T23:46:21Z",
       "releaseNotes": "\n`feat` (`abstractions`): **Expose the AniDB inbox through `IAnidbNotifyService`**:\n\n- Added `IAnidbNotifyService` and `IAnidbMessage`: the fetched AniDB messages with their kind, read and handled state, and the moved file of a \"file moved\" message\n- Events when a message arrives, is handled or changes read state; `HandleMessage` queues the moved-file handling, and handling done automatically is told apart\n- Messages are no longer acknowledged to AniDB as soon as they are fetched; `AcknowledgeMessage` does it, or the new `AniDb.Notification_AcknowledgeOnFetch` setting (off by default) brings the old behaviour back\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.124**.\n"
-    },
-    {
-      "version": "6.0.0.580",
-      "tag": "v6.0.0-dev.580",
-      "commit": "023c5fddf2d62990b927398475ada389886ed10b",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.580/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-01T22:58:41Z",
-      "releaseNotes": "\n`fix` (`api`): **Refuse an incompatible web UI release with `409` on install and update**:\n\n- `POST /api/v3/WebUI/Update` and `/Install` answer `409` with a `no-compatible-release` problem when no release may be installed, instead of a bare `500`\n- A version given by name is no longer installed when it is incompatible, unless `allowIncompatible` is set\n\nCloses SHO-10\n\n`chore`: **Sort usings and drop unused ones**.\n"
     }
   ]
 }
