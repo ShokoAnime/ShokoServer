@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,12 +14,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using Newtonsoft.Json;
@@ -115,6 +118,9 @@ public static partial class APIExtensions
             options.ConstraintMap[MetadataEntityTypeRouteConstraint.Name] = typeof(MetadataEntityTypeRouteConstraint);
         });
 
+        // The documents are read on each request, so a concurrent dictionary lets the core's change
+        // while the server runs. Set after Swashbuckle copies the documents into its final options.
+        services.PostConfigure<SwaggerGeneratorOptions>(options => options.SwaggerDocs = new ConcurrentDictionary<string, OpenApiInfo>(options.SwaggerDocs));
         services.AddSwaggerGen(
             options =>
             {
@@ -123,17 +129,8 @@ public static partial class APIExtensions
                 var provider = ISystemService.StaticServices.GetRequiredService<IApiVersionDescriptionProvider>();
                 var webSettings = ISettingsProvider.Instance.GetSettings().Web;
 
-                // Add a swagger document for each discovered API version (server-only).
-                foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
-                {
-                    if (description.GroupName is "v2" or "v2.1" && !ServedApis.Instance.Serves(CoreApis.V2))
-                        continue;
-                    if (description.GroupName is "v3" && !ServedApis.Instance.Serves(CoreApis.V3))
-                        continue;
-                    if (description.GroupName is not ("v2" or "v2.1" or "v3"))
-                        continue;
-                    options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description, "Shoko Server"));
-                }
+                // A swagger document for each version of the APIs served, kept in step when they change.
+                SyncCoreSwaggerDocuments(options.SwaggerGeneratorOptions.SwaggerDocs, ServedApis.Instance.Running);
 
                 // Add a swagger document for each plugin's API versions that it has controllers
                 // for, and one for the endpoints it may map itself.
@@ -284,6 +281,10 @@ public static partial class APIExtensions
             })
             .AddPluginControllers(pluginManager)
             .AddControllersAsServices();
+
+        // Rebuilds the routes when the APIs served change, so turning one on or off needs no restart.
+        services.AddSingleton(provider => new ServedApisChangeProvider(ServedApis.Instance, provider));
+        services.AddSingleton<IActionDescriptorChangeProvider>(provider => provider.GetRequiredService<ServedApisChangeProvider>());
 
         services
             .AddApiVersioning(options =>
@@ -447,6 +448,34 @@ public static partial class APIExtensions
         return title;
     }
 
+    /// <summary>
+    ///   The core's Swagger documents: the group name, the API version and the
+    ///   API serving it, newest first.
+    /// </summary>
+    private static readonly (string Group, ApiVersion Version, CoreApis Api)[] _coreDocuments =
+    [
+        ("v3", new ApiVersion(3, 0), CoreApis.V3),
+        ("v2.1", new ApiVersion(2, 1), CoreApis.V2),
+        ("v2", new ApiVersion(2, 0), CoreApis.V2),
+    ];
+
+    /// <summary>
+    ///   Adds the core's Swagger documents of the APIs served and removes the
+    ///   others.
+    /// </summary>
+    /// <param name="documents">The Swagger documents.</param>
+    /// <param name="served">The APIs served.</param>
+    internal static void SyncCoreSwaggerDocuments(IDictionary<string, OpenApiInfo> documents, CoreApis served)
+    {
+        foreach (var (group, version, api) in _coreDocuments)
+        {
+            if ((served & api) == api)
+                documents[group] = CreateInfoForApiVersion(version, isDeprecated: false, "Shoko Server");
+            else
+                documents.Remove(group);
+        }
+    }
+
     private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description, string title)
         => CreateInfoForApiVersion(description.ApiVersion, description.IsDeprecated, title);
 
@@ -516,22 +545,23 @@ public static partial class APIExtensions
     /// <summary>
     /// Lists the documents shown in the Swagger UI, each time the UI is loaded.
     /// </summary>
-    /// <param name="serverUrls">The server's own documents, listed first.</param>
     /// <param name="pluginDocuments">The plugin documents.</param>
     /// <param name="predicate">Assigns the endpoints to the documents.</param>
     /// <param name="apiExplorer">The described endpoints of the application.</param>
     /// <param name="swaggerPrefix">The path the Swagger documents are served under.</param>
-    /// <returns>The server documents, then every plugin document with controllers or any mapped endpoint.</returns>
+    /// <returns>The documents of the core APIs served, then every plugin document with controllers or any mapped endpoint.</returns>
     private static IEnumerable<UrlDescriptor> ListSwaggerDocuments(
-        IReadOnlyList<UrlDescriptor> serverUrls,
         IReadOnlyList<PluginSwaggerDocument> pluginDocuments,
         PluginDocumentInclusionPredicate predicate,
         IApiDescriptionGroupCollectionProvider apiExplorer,
         string swaggerPrefix
     )
     {
-        foreach (var url in serverUrls)
-            yield return url;
+        foreach (var (group, _, api) in _coreDocuments)
+        {
+            if (ServedApis.Instance.Serves(api))
+                yield return new() { Url = $"/{swaggerPrefix}/{group}/swagger.json", Name = $"Server {group.ToUpperInvariant()}" };
+        }
 
         foreach (var document in pluginDocuments)
         {
@@ -662,29 +692,14 @@ public static partial class APIExtensions
                     options.RoutePrefix = webSettings.SwaggerUIPrefix;
                     var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
 
-                    // Server API bundles (listed first)
-                    foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
-                    {
-                        if (description.GroupName is not ("v2" or "v2.1" or "v3"))
-                            continue;
-                        if (description.GroupName is "v2" or "v2.1" && !ServedApis.Instance.Serves(CoreApis.V2))
-                            continue;
-                        if (description.GroupName is "v3" && !ServedApis.Instance.Serves(CoreApis.V3))
-                            continue;
-
-                        options.SwaggerEndpoint(
-                            $"/{webSettings.SwaggerUIPrefix}/{description.GroupName}/swagger.json",
-                            $"Server {description.GroupName.ToUpperInvariant()}"
-                        );
-                    }
-
-                    // Plugins map their endpoints after this runs, so the list is re-read on every UI load;
-                    // a document only for mapped endpoints is left out while it has none.
-                    var serverUrls = options.ConfigObject.Urls?.ToList() ?? [];
+                    // The list is re-read on every UI load: the server documents follow the APIs served, which
+                    // may change while the server runs, and plugins map their endpoints after this runs, so a
+                    // document only for mapped endpoints is left out while it has none.
                     var pluginDocuments = GetPluginDocuments(pluginManager, provider).ToList();
                     var predicate = new PluginDocumentInclusionPredicate(pluginManager);
                     var apiExplorer = app.ApplicationServices.GetRequiredService<IApiDescriptionGroupCollectionProvider>();
-                    options.ConfigObject.Urls = ListSwaggerDocuments(serverUrls, pluginDocuments, predicate, apiExplorer, webSettings.SwaggerUIPrefix);
+                    options.ConfigObject.Urls = ListSwaggerDocuments(pluginDocuments, predicate, apiExplorer, webSettings.SwaggerUIPrefix);
+
                     options.EnablePersistAuthorization();
                 });
         }

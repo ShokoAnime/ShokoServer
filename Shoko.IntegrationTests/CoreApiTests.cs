@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Core;
@@ -13,7 +16,8 @@ namespace Shoko.IntegrationTests;
 /// <summary>
 /// Checks on a started server that a core API the web UI in use needs stays
 /// on: turning it off is refused through the system service and through a
-/// settings save, while an API no web UI needs can be turned off and on.
+/// settings save, while an API no web UI needs can be turned off and on,
+/// its routes following at once.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public class CoreApiTests(DatabaseMigrationFixture fixture)
@@ -40,7 +44,7 @@ public class CoreApiTests(DatabaseMigrationFixture fixture)
         var settings = settingsProvider.GetSettings(copy: true);
         settings.Web.EnableAPIv3 = false;
         Assert.Throws<ConfigurationValidationException>(() => settingsProvider.SaveSettings(settings));
-        Assert.True(system.ApisOnNextStart.HasFlag(CoreApis.V3));
+        Assert.True(system.RunningApis.HasFlag(CoreApis.V3));
     }
 
     [Fact]
@@ -49,14 +53,23 @@ public class CoreApiTests(DatabaseMigrationFixture fixture)
         Assert.True(fixture.Success, fixture.FailureMessage);
         var system = fixture.Services.GetRequiredService<ISystemService>();
         Assert.SkipWhen(Environment.GetEnvironmentVariable("SHOKO_API_V2_ENABLED") is not null, "An environment variable sets APIv2.");
-        var wasOn = system.ApisOnNextStart.HasFlag(CoreApis.V2);
+        var wasOn = system.RunningApis.HasFlag(CoreApis.V2);
         try
         {
+            var actions = fixture.Services.GetRequiredService<IActionDescriptorCollectionProvider>();
+            bool HasV2Routes() => actions.ActionDescriptors.Items.OfType<ControllerActionDescriptor>().Any(action => action.ControllerTypeInfo.Namespace?.Contains(".API.v2.") == true);
+
+            // Applied at once: the routes are rebuilt without a restart.
+            system.SetApiEnabled(CoreApis.V2, true);
+            Assert.True(HasV2Routes());
+
             system.SetApiEnabled(CoreApis.V2, false);
-            Assert.False(system.ApisOnNextStart.HasFlag(CoreApis.V2));
+            Assert.False(system.RunningApis.HasFlag(CoreApis.V2));
+            Assert.False(HasV2Routes());
 
             system.SetApiEnabled(CoreApis.V2, true);
-            Assert.True(system.ApisOnNextStart.HasFlag(CoreApis.V2));
+            Assert.True(system.RunningApis.HasFlag(CoreApis.V2));
+            Assert.True(HasV2Routes());
         }
         finally
         {

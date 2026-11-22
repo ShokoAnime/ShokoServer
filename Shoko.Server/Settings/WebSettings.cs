@@ -96,8 +96,7 @@ public class WebSettings
     [Badge("Deprecated", Theme = DisplayColorTheme.Warning)]
     [Visibility(Advanced = true)]
     [Display(Name = "Enable API v2")]
-    [RequiresRestart]
-    [EnvironmentVariable("SHOKO_API_V2_ENABLED")]
+    [EnvironmentVariable("SHOKO_API_V2_ENABLED", AllowOverride = true)]
     [DefaultValue(true)]
     public bool EnableAPIv2 { get; set; } = true;
 
@@ -105,8 +104,7 @@ public class WebSettings
     /// Enable the API v3 endpoints.
     /// </summary>
     [Display(Name = "Enable API v3")]
-    [RequiresRestart]
-    [EnvironmentVariable("SHOKO_API_V3_ENABLED")]
+    [EnvironmentVariable("SHOKO_API_V3_ENABLED", AllowOverride = true)]
     [DefaultValue(true)]
     public bool EnableAPIv3 { get; set; } = true;
 

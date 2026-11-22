@@ -200,10 +200,6 @@ public class WebUIService(
             if (settings.IsEnabled == value)
                 return;
 
-            // Serving again puts every web UI kept up to date back in use.
-            if (value)
-                CheckApisAvailable(GetTable().States.Select(state => state.Active));
-
             settings.IsEnabled = value;
             configurationProvider.Save(settings);
             Refresh();
@@ -226,7 +222,6 @@ public class WebUIService(
         if (settings.SelectedProviderID == webUI?.ID)
             return;
 
-        CheckApisAvailable([webUI ?? AutomaticProvider]);
         settings.SelectedProviderID = webUI?.ID;
         configurationProvider.Save(settings);
         Refresh();
@@ -251,7 +246,6 @@ public class WebUIService(
         if (errors.Count > 0)
             throw new ArgumentException(string.Join(" ", errors.Values), nameof(overrides));
 
-        CheckApisAvailable(overrides.Select(entry => GetProviderInfo(entry.ProviderID)).WhereNotNull());
         var settings = configurationProvider.Load(copy: true);
         settings.HostOverrides = overrides
             .Select(entry => new WebUIHostOverride { Host = entry.Host.Trim(), ProviderID = entry.ProviderID })
@@ -302,47 +296,17 @@ public class WebUIService(
     }
 
     /// <summary>
-    ///   Finds the first web UI coming into use that needs an API an
-    ///   environment variable keeps off, which could not work.
-    /// </summary>
-    /// <param name="webUIs">The web UIs coming into use.</param>
-    /// <returns>Why the first one cannot be used, or <c>null</c> when all can.</returns>
-    internal string? FindApiConflict(IEnumerable<WebUIProviderInfo> webUIs)
-    {
-        var keptOff = ServedApis.KeptOffByEnvironment(settingsProvider.GetSettings().Web);
-        if (keptOff is CoreApis.None)
-            return null;
-
-        return webUIs
-            .Where(webUI => (webUI.RequiredApis & keptOff) is not CoreApis.None)
-            .Select(webUI => $"{webUI.Name} needs {ServedApis.Describe(webUI.RequiredApis & keptOff)}, which an environment variable keeps off.")
-            .FirstOrDefault();
-    }
-
-    /// <summary>
-    ///   Refuses web UIs coming into use that need an API an environment
-    ///   variable keeps off, since they could not work.
-    /// </summary>
-    /// <param name="webUIs">The web UIs coming into use.</param>
-    /// <exception cref="InvalidOperationException">One needs an API kept off.</exception>
-    private void CheckApisAvailable(IEnumerable<WebUIProviderInfo> webUIs)
-    {
-        if (FindApiConflict(webUIs) is { } conflict)
-            throw new InvalidOperationException(conflict);
-    }
-
-    /// <summary>
-    ///   Turns on the core APIs the web UIs in use need and the next start
-    ///   would not serve.
+    ///   Turns on the core APIs the web UIs in use need and the server does not
+    ///   serve.
     /// </summary>
     private void TurnOnRequiredApis()
     {
-        var missing = RequiredApisInUse & ~systemService.ApisOnNextStart;
+        var missing = RequiredApisInUse & ~systemService.RunningApis;
         if (missing is CoreApis.None)
             return;
 
         systemService.SetApiEnabled(missing, true);
-        logger.LogInformation("Turned on {Apis} for the web UIs in use, from the next start.", ServedApis.Describe(missing));
+        logger.LogInformation("Turned on {Apis} for the web UIs in use.", ServedApis.Describe(missing));
     }
 
     /// <inheritdoc />

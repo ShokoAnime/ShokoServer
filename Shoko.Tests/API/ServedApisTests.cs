@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core;
 using Shoko.Server.API;
 using Shoko.Server.Settings;
@@ -33,6 +35,50 @@ public class ServedApisTests
         Assert.False(served.Settle(CoreApis.V2));
         Assert.True(served.Serves(CoreApis.V3));
         Assert.False(served.Serves(CoreApis.V2));
+    }
+
+    [Fact]
+    public void Change_AppliesOnlyOnceSettled_AndTellsTheListeners()
+    {
+        var served = new ServedApis();
+        var seen = new List<CoreApis>();
+        served.Changed += (_, before) => seen.Add(before);
+
+        Assert.False(served.Change(CoreApis.V3));
+        served.Settle(CoreApis.V2 | CoreApis.V3);
+        Assert.False(served.Change(CoreApis.V2 | CoreApis.V3));
+        Assert.True(served.Change(CoreApis.V3));
+
+        Assert.False(served.Serves(CoreApis.V2));
+        Assert.Equal([CoreApis.V2 | CoreApis.V3], seen);
+    }
+
+    [Fact]
+    public void Change_RunsEveryListener_WhenOneThrows()
+    {
+        var served = new ServedApis();
+        served.Settle(CoreApis.V3);
+        var reached = false;
+        served.Changed += (_, _) => throw new InvalidOperationException("first");
+        served.Changed += (_, _) => reached = true;
+
+        Assert.Throws<InvalidOperationException>(() => served.Change(CoreApis.V2));
+        Assert.True(reached);
+        Assert.True(served.Serves(CoreApis.V2));
+    }
+
+    [Fact]
+    public void ChangeProvider_SignalsAChange()
+    {
+        var served = new ServedApis();
+        served.Settle(CoreApis.V3);
+        using var provider = new ServedApisChangeProvider(served, new ServiceCollection().BuildServiceProvider());
+        var token = provider.GetChangeToken();
+
+        served.Change(CoreApis.V2 | CoreApis.V3);
+
+        Assert.True(token.HasChanged);
+        Assert.False(provider.GetChangeToken().HasChanged);
     }
 
     [Fact]

@@ -164,16 +164,10 @@ public interface ISystemService
     bool SetSetupToken(string? token);
 
     /// <summary>
-    ///   The core APIs this server serves, fixed when it started.
+    ///   The core APIs this server serves now: as saved and as environment
+    ///   variables set them, plus those a web UI in use needs.
     /// </summary>
     CoreApis RunningApis { get; }
-
-    /// <summary>
-    ///   The core APIs the next start will serve, as saved and as environment
-    ///   variables set them. While it differs from <see cref="RunningApis"/>, a
-    ///   restart is required.
-    /// </summary>
-    CoreApis ApisOnNextStart { get; }
 
     /// <summary>
     ///   The core APIs a web UI in use needs, which cannot be turned off until
@@ -182,28 +176,32 @@ public interface ISystemService
     CoreApis ApisNeededByWebUIs { get; }
 
     /// <summary>
-    ///   The core APIs an environment variable sets, on or off, which cannot
-    ///   change while the server runs.
+    ///   The core APIs an environment variable sets, on or off. It sets them at
+    ///   each start; a change while the server runs lasts until the next one.
     /// </summary>
     CoreApis ApisSetByEnvironment { get; }
 
     /// <summary>
     ///   Turns core APIs on or off. It is saved to the server's settings and
-    ///   applies on the next start, raising a restart reason until then.
+    ///   applies at once: the routes of an API turned on are served from the
+    ///   next request, and those of one turned off answer <c>404</c>, while
+    ///   requests already running finish. A change saved through the server's
+    ///   settings applies the same way.
     /// </summary>
     /// <remarks>
     ///   An API a web UI in use needs (<see cref="Web.IWebUIProvider.RequiredApis"/>)
-    ///   cannot be turned off until another web UI is picked, and one an
+    ///   cannot be turned off until another web UI is picked. One an
     ///   environment variable sets (<c>SHOKO_API_V2_ENABLED</c>,
-    ///   <c>SHOKO_API_V3_ENABLED</c>) cannot change here. Turning off both
-    ///   also closes the version-less <c>/api/auth</c> routes.
+    ///   <c>SHOKO_API_V3_ENABLED</c>) can change too, until the next start,
+    ///   when the variable sets it again. Turning off both also closes the
+    ///   version-less <c>/api/auth</c> routes.
     /// </remarks>
     /// <param name="apis">The APIs to change, one or both.</param>
     /// <param name="enabled">Whether to turn them on.</param>
     /// <exception cref="ArgumentException"><paramref name="apis"/> names none or an unknown one.</exception>
     /// <exception cref="CoreApiChangeRefusedException">
-    ///   A web UI in use needs an API being turned off, or an environment
-    ///   variable sets one; it says which APIs, why, and which web UIs.
+    ///   A web UI in use needs an API being turned off; it says which APIs, why,
+    ///   and which web UIs.
     /// </exception>
     void SetApiEnabled(CoreApis apis, bool enabled);
 

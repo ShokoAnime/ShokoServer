@@ -160,22 +160,23 @@ the queue.
 
 ### The core APIs
 
-`RunningApis` says which core APIs this server serves (`CoreApis.V2`, `V3`),
-fixed when it started; `ApisOnNextStart` says what the next start will serve.
-`SetApiEnabled(apis, enabled)` turns them on or off from the next start,
-raising a restart reason until then. It throws
+`RunningApis` says which core APIs this server serves (`CoreApis.V2`, `V3`).
+`SetApiEnabled(apis, enabled)` turns them on or off at once, with no restart:
+the routes of an API turned on are served from the next request, those of one
+turned off answer `404`, and its Swagger documents follow. A change saved
+through the server's settings applies the same way. It throws
 `CoreApiChangeRefusedException` (an `InvalidOperationException`) when turning
-off an API a web UI in use needs (`IWebUIProvider.RequiredApis`), or when an
-environment variable (`SHOKO_API_V2_ENABLED`, `SHOKO_API_V3_ENABLED`) sets the
-API; its `Apis`, `Reason` and `WebUIs` say which, why and which web UIs.
-`ApisNeededByWebUIs` and `ApisSetByEnvironment` tell beforehand which switches
-cannot change. Turning off both also closes the
-version-less `/api/auth` routes.
+off an API a web UI in use needs (`IWebUIProvider.RequiredApis`); its `Apis`,
+`Reason` and `WebUIs` say which, why and which web UIs. `ApisNeededByWebUIs`
+tells beforehand which switches cannot be turned off. An environment variable
+(`SHOKO_API_V2_ENABLED`, `SHOKO_API_V3_ENABLED`) sets an API at each start
+(`ApisSetByEnvironment`); it can still change while the server runs, until the
+next start. Turning off both also closes the version-less `/api/auth` routes.
 
 A web UI in use keeps the APIs it needs on: picking it turns them on, and when
 the server starts with one off, it turns it on before serving, unless an
-environment variable keeps it off, which only warns that the web UI will not
-work.
+environment variable turned it off, which only warns that the web UI will not
+work until it is turned on or the web UI is picked again.
 
 ### Version and identity
 

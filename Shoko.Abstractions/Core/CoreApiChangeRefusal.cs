@@ -20,10 +20,4 @@ public enum CoreApiChangeRefusal : byte
     ///   web UI is picked.
     /// </summary>
     NeededByWebUI = 1,
-
-    /// <summary>
-    ///   An environment variable sets it, so it cannot change while the server
-    ///   runs.
-    /// </summary>
-    SetByEnvironment = 2,
 }

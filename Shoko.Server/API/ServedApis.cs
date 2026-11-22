@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using Shoko.Abstractions.Core;
 using Shoko.Server.Settings;
 
@@ -23,6 +24,8 @@ internal sealed class ServedApis
     public static ServedApis Instance { get; } = new();
 
     private readonly object _lock = new();
+
+    private readonly object _changeLock = new();
 
     private CoreApis? _running;
 
@@ -53,6 +56,12 @@ internal sealed class ServedApis
     }
 
     /// <summary>
+    ///   Raised after the APIs served changed while the server runs, with the
+    ///   APIs served before.
+    /// </summary>
+    public event EventHandler<CoreApis>? Changed;
+
+    /// <summary>
     ///   Settles the APIs served, unless they were settled already.
     /// </summary>
     /// <param name="apis">The APIs.</param>
@@ -64,6 +73,47 @@ internal sealed class ServedApis
             if (_running is not null)
                 return false;
             _running = apis;
+            return true;
+        }
+    }
+
+    /// <summary>
+    ///   Changes the APIs served while the server runs. Before they are
+    ///   settled, nothing changes: settling reads the settings then.
+    /// </summary>
+    /// <param name="apis">The APIs to serve.</param>
+    /// <returns><c>true</c> if they changed.</returns>
+    public bool Change(CoreApis apis)
+    {
+        // One change at a time, listeners included, so a caller finding the change made by another
+        // still returns only once the routes follow it.
+        lock (_changeLock)
+        {
+            CoreApis before;
+            lock (_lock)
+            {
+                if (_running is not { } running || running == apis)
+                    return false;
+                before = running;
+                _running = apis;
+            }
+
+            // Every listener runs, even when one throws; the first failure is thrown after.
+            Exception? failure = null;
+            foreach (var handler in Changed?.GetInvocationList().Cast<EventHandler<CoreApis>>() ?? [])
+            {
+                try
+                {
+                    handler(this, before);
+                }
+                catch (Exception ex)
+                {
+                    failure ??= ex;
+                }
+            }
+
+            if (failure is not null)
+                ExceptionDispatchInfo.Throw(failure);
             return true;
         }
     }
@@ -99,14 +149,6 @@ internal sealed class ServedApis
     /// <returns>The APIs.</returns>
     public static CoreApis SetByEnvironment()
         => EnvironmentVariables.Where(pair => Environment.GetEnvironmentVariable(pair.Value) is not null).Aggregate(CoreApis.None, (apis, pair) => apis | pair.Key);
-
-    /// <summary>
-    ///   The APIs an environment variable keeps off.
-    /// </summary>
-    /// <param name="web">The web settings, with the environment applied.</param>
-    /// <returns>The APIs.</returns>
-    public static CoreApis KeptOffByEnvironment(WebSettings web)
-        => SetByEnvironment() & ~FromSettings(web);
 
     /// <summary>
     ///   Names APIs for a message, such as "APIv3" or "APIv2 and APIv3".

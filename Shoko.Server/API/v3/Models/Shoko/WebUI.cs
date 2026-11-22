@@ -1083,9 +1083,9 @@ public class WebUI
         public CoreApis RequiredApis { get; } = info.RequiredApis;
 
         /// <summary>
-        /// The APIs the web UI needs that this server does not serve, until it
-        /// is restarted or while an environment variable keeps them off. The
-        /// web UI does not work while any are missing.
+        /// The APIs the web UI needs that this server does not serve, as when an
+        /// environment variable turned them off at start. The web UI does not
+        /// work while any are missing; picking it turns them on.
         /// </summary>
         [JsonConverter(typeof(StringEnumConverter))]
         public CoreApis MissingApis { get; } = info.RequiredApis & ~ServedApis.Instance.Running;
