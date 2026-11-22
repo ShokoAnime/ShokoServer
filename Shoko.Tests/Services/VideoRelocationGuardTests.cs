@@ -266,7 +266,7 @@ public class VideoRelocationGuardTests
         await harness.Service.DirectlyRelocateFile(
             harness.Place, Request(Folder(DestinationFolderID, DestinationPath), RelativePath));
 
-        harness.FileSystem.Verify(f => f.FileExists(Path.Combine(harness.SourceFolder.Path, RelativePath)), Times.AtLeastOnce);
+        harness.FileSystem.Verify(f => f.FileExists(Path.GetFullPath(Path.Combine(harness.SourceFolder.Path, RelativePath))), Times.AtLeastOnce);
     }
 
     #endregion

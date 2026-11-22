@@ -61,13 +61,18 @@ public class PluginReaderSharedAssemblyTests : IDisposable
 
         Assert.True(Read(consumer, dll)?.CanLoad);
 
-        Directory.Delete(Path.Join(plugins, "Provider"), recursive: true);
-        Assert.False(Read(consumer, dll)?.CanLoad);
+        // Without the provider: the same plugin in a plugins folder of its own, as Windows keeps the
+        // provider's contract locked once read, so it cannot be deleted here.
+        var alone = Directory.CreateDirectory(Path.Join(_root, "alone", "plugins", "Consumer")).FullName;
+        var aloneDll = Path.Join(alone, Path.GetFileName(dll));
+        File.Copy(dll, aloneDll);
+        Assert.False(Read(alone, aloneDll, Path.Join(_root, "alone"))?.CanLoad);
     }
 
-    private Server.Plugin.PluginManager.InternalPluginInfo? Read(string directory, string dll)
+    private Server.Plugin.PluginManager.InternalPluginInfo? Read(string directory, string dll, string? root = null)
     {
-        var paths = Mock.Of<IApplicationPaths>(paths => paths.ApplicationPath == Path.Join(_root, "app") && paths.PluginsPath == Path.Join(_root, "plugins"));
+        root ??= _root;
+        var paths = Mock.Of<IApplicationPaths>(paths => paths.ApplicationPath == Path.Join(root, "app") && paths.PluginsPath == Path.Join(root, "plugins"));
         var settingsChanged = false;
         return TestPluginManager.Create(paths).LoadInternalPluginInfo(directory, [dll], false, new ServerSettings(), ref settingsChanged);
     }
