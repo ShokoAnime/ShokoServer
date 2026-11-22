@@ -1169,7 +1169,7 @@ public partial class ConfigurationService : IConfigurationService
         {
             config = New<TConfig>();
             json = SerializeInternal(config);
-            SaveInternal(info, json, config);
+            SaveInternal(info, json, config, SaveOrigin.Defaults);
             var (token, errors) = ValidateInternal(info, json, config, loadValidation: true);
             config = DeserializeInternal<TConfig>(token.ToJson());
             _loadedConfigurations[info.ID] = config;
@@ -1213,7 +1213,7 @@ public partial class ConfigurationService : IConfigurationService
         }
 
         if (hasMigrated)
-            SaveInternal<TConfig>(info, json);
+            SaveInternal<TConfig>(info, json, origin: SaveOrigin.Migration);
 
         return copy ? config.DeepClone() : config;
     }
@@ -1229,7 +1229,7 @@ public partial class ConfigurationService : IConfigurationService
             return (bool)typeof(ConfigurationService)
                 .GetMethod(nameof(SaveInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
                 .MakeGenericMethod(info.Type)
-                .Invoke(this, [info, Serialize(config), config])!;
+                .Invoke(this, [info, Serialize(config), config, SaveOrigin.Caller])!;
         }
         catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
@@ -1245,7 +1245,7 @@ public partial class ConfigurationService : IConfigurationService
             return (bool)typeof(ConfigurationService)
                 .GetMethod(nameof(SaveInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
                 .MakeGenericMethod(info.Type)
-                .Invoke(this, [info, json, null])!;
+                .Invoke(this, [info, json, null, SaveOrigin.Caller])!;
         }
         catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
@@ -1263,7 +1263,18 @@ public partial class ConfigurationService : IConfigurationService
     public bool Save<TConfig>(string json) where TConfig : class, IConfiguration, new()
         => SaveInternal<TConfig>(GetConfigurationInfo<TConfig>(), json);
 
-    private bool SaveInternal<TConfig>(ConfigurationInfo info, string originalJson, TConfig? config = null) where TConfig : class, IConfiguration, new()
+    /// <summary>
+    ///   Why a configuration is written: a caller saved it, or a load wrote the
+    ///   defaults of a configuration without a file, or the migrations it ran.
+    /// </summary>
+    private enum SaveOrigin
+    {
+        Caller,
+        Defaults,
+        Migration,
+    }
+
+    private bool SaveInternal<TConfig>(ConfigurationInfo info, string originalJson, TConfig? config = null, SaveOrigin origin = SaveOrigin.Caller) where TConfig : class, IConfiguration, new()
     {
         if (info.IsBase)
             return false;
@@ -1346,14 +1357,20 @@ public partial class ConfigurationService : IConfigurationService
             _loadedConfigurations[info.ID] = config ?? DeserializeInternal<TConfig>(originalJson);
         }
 
-        // Built here rather than in the task, so it carries the actor of this save.
-        var savedEventArgs = new ConfigurationSavedEventArgs
+        // Writing the defaults of a configuration that had no file changes
+        // nothing it reads as, so it is no save to tell anyone about.
+        if (origin is not SaveOrigin.Defaults)
         {
-            ConfigurationInfo = info,
-            ChangedPaths = JsonPathDiff.GetChangedPaths(previousJson, storedJson),
-            Actor = ActorContext.CurrentActor,
-        };
-        Task.Run(() => Saved?.Invoke(this, savedEventArgs));
+            // Built here rather than in the task, so it carries the actor of this
+            // save. A migration run while loading is the server's, not the reader's.
+            var savedEventArgs = new ConfigurationSavedEventArgs
+            {
+                ConfigurationInfo = info,
+                ChangedPaths = JsonPathDiff.GetChangedPaths(ReadAsStored<TConfig>(info, previousJson), storedJson),
+                Actor = origin is SaveOrigin.Migration ? null : ActorContext.CurrentActor,
+            };
+            Task.Run(() => Saved?.Invoke(this, savedEventArgs));
+        }
 
         var needsRestart = InternalRestartPendingFor.Count > 0;
         if (needsRestart != pendingRestart)
@@ -1606,6 +1623,32 @@ public partial class ConfigurationService : IConfigurationService
         ArgumentNullException.ThrowIfNull(type);
 
         _readOnlyProperties.Strip(token, type, type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration)));
+    }
+
+    /// <summary>
+    ///   The previous file as the configuration reads it, as it would be
+    ///   stored now, so a member the file left out and a save writes with its
+    ///   default does not count as changed.
+    /// </summary>
+    /// <param name="info">The configuration.</param>
+    /// <param name="previousJson">The file before the save, if there was one.</param>
+    /// <returns>The normalized file, or the file as it was when it cannot be read.</returns>
+    private string? ReadAsStored<TConfig>(ConfigurationInfo info, string? previousJson) where TConfig : class, IConfiguration, new()
+    {
+        if (previousJson is null)
+            return null;
+
+        try
+        {
+            var token = JToken.Parse(AddSchemaProperty(info, SerializeInternal(DeserializeInternal<TConfig>(previousJson))));
+            StripReadOnlyProperties(token, info.Type);
+            return token.ToJson();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogTrace(ex, "Could not read the previous configuration for {Name} through its type; comparing it as stored.", info.Name);
+            return previousJson;
+        }
     }
 
     private string SerializeInternal<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()

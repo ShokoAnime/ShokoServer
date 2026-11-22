@@ -100,5 +100,57 @@ public sealed class ConfigurationChangedPathsTests : IDisposable
         Assert.DoesNotContain("18111", serialized, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Load_WithoutAFile_WritesTheDefaultsWithoutRaisingASave()
+    {
+        var service = CreateService();
+        var raised = false;
+        service.Saved += (_, _) => raised = true;
+
+        using (ActorContext.Begin(ActorContextTests.Token("reader")))
+            service.Load<ServerSettings>();
+
+        Assert.True(File.Exists(service.GetConfigurationInfo<ServerSettings>().Path));
+        await Task.Delay(200, TestContext.Current.CancellationToken);
+        Assert.False(raised);
+    }
+
+    [Fact]
+    public async Task Save_DoesNotNameAMemberTheFileLeftOutAndTheSaveWritesWithItsDefault()
+    {
+        var service = CreateService();
+        service.Load<ServerSettings>();
+        var path = service.GetConfigurationInfo<ServerSettings>().Path!;
+
+        // A file from before a member existed, read again from disk.
+        var file = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(path));
+        ((Newtonsoft.Json.Linq.JObject)file["Web"]!).Remove("Port");
+        File.WriteAllText(path, file.ToString());
+        service = CreateService();
+
+        var token = ActorContextTests.Token("settings-page");
+        var saved = new TaskCompletionSource<ConfigurationSavedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+        service.Saved += (_, e) =>
+        {
+            if (ReferenceEquals(e.Actor, token))
+                saved.TrySetResult(e);
+        };
+        var settings = service.Load<ServerSettings>();
+        settings.AniDb.Username = "someone-else";
+        using (ActorContext.Begin(token))
+            Assert.True(service.Save(settings));
+
+        var e = await saved.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        Assert.Equal(["AniDb.Username"], [.. e.ChangedPaths]);
+    }
+
+    private ConfigurationService CreateService()
+    {
+        var applicationPaths = new Mock<IApplicationPaths>(MockBehavior.Loose);
+        applicationPaths.SetupGet(paths => paths.DataPath).Returns(_dataPath);
+        applicationPaths.SetupGet(paths => paths.ConfigurationsPath).Returns(Path.Join(_dataPath, "configurations"));
+        return new ConfigurationService(NullLoggerFactory.Instance, applicationPaths.Object, new Mock<IPluginManager>(MockBehavior.Loose).Object);
+    }
+
     #endregion
 }
