@@ -32,7 +32,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
         },
         new()
         {
-            Name = "Years", Locked = true, FilterType = FilterPresetType.Season | FilterPresetType.Directory, FilterPresetID = -3
+            Name = "Years", Locked = true, FilterType = FilterPresetType.Year | FilterPresetType.Directory, FilterPresetID = -3
         }
     ];
 
