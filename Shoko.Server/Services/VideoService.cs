@@ -1033,11 +1033,21 @@ public class VideoService : IVideoService
                 .SelectMany(a => a)
                 .ToList();
             var placeItems = new ItemProgress(stages, filesAll.Count);
+            var presence = new ManagedFolderPresence(_fileSystem);
+            var unavailableFolders = new HashSet<int>();
             foreach (var vl in filesAll)
             {
                 token.ThrowIfCancellationRequested();
                 placeItems.Increment();
                 if (_fileSystem.FileExists(vl.Path)) continue;
+
+                // A missing file in a folder whose storage is gone is not removed.
+                if (!presence.IsPresent(vl.ManagedFolder!))
+                {
+                    if (unavailableFolders.Add(vl.ManagedFolderID))
+                        _logger.LogWarning("Managed folder is unavailable, keeping the records of its missing files; {Path} (ManagedFolder={ManagedFolderID})", vl.ManagedFolder!.Path, vl.ManagedFolderID);
+                    continue;
+                }
 
                 // delete video local record
                 _logger.LogInformation("Removing Missing File: {ID}", vl.VideoID);
@@ -1296,7 +1306,8 @@ public class VideoService : IVideoService
 
         var startedAt = DateTime.Now;
         var files = GetFilesInImportFolder(folder);
-        if (files.Length == 0)
+        var presence = new ManagedFolderPresence(_fileSystem);
+        if (files.Length == 0 || !presence.IsPresent(folder))
         {
             _logger.LogInformation("Managed folder is temporarily or permanently unavailable. Aborting scan; {Path} (ManagedFolder={ManagedFolderID})", folder.Path, folder.ID);
             return;
@@ -1332,6 +1343,12 @@ public class VideoService : IVideoService
                 // A scan for new files only adds; missing files are left to a full scan or "Remove Missing Files".
                 if (!onlyNewFiles && !location.IsAvailable)
                 {
+                    if (!presence.IsPresent(folder))
+                    {
+                        _logger.LogWarning("Managed folder became unavailable during the scan. Aborting scan; {Path} (ManagedFolder={ManagedFolderID})", folder.Path, folder.ID);
+                        return;
+                    }
+
                     _logger.LogInformation("Removing missing path for VideoLocal_Place; {Path} (Video={VideoID}, Place={PlaceID}, ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
                     await RemoveRecord(location, skipEvents: skipEvents);
                     continue;

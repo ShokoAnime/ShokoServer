@@ -78,8 +78,16 @@ result only when it is a file, or a directory.
 - `null` means nothing is at the path, or the platform cannot tell. Anything
   else that
   goes wrong throws: `UnauthorizedAccessException` when it may not be read,
-  `IOException` otherwise (a dead network mount, for one). Permissions and
-  ownership are not read.
+  `IOException` otherwise (a mounted share whose server is unreachable, for
+  one). Permissions and ownership are not read.
+- **An unmounted volume reads as nothing there.** Its mount point is an empty
+  local folder, or gone, so a file under it is "not found", the same as a
+  deleted one. Before acting on a `null`, such as removing what you keep about
+  a file, check that the volume is still there: that the folder above it still
+  exists, is not empty, and has the `Identity.VolumeID` you saw before. The
+  core does this before it removes the record of a missing video file.
+- A hard-mounted NFS share whose server is gone makes the call wait, without an
+  error, until the server is back.
 
 `ResolveSymbolicLink(path)` follows a link through any chain of links to the
 final target, or with `returnFinalTarget: false` only to its own target, and
