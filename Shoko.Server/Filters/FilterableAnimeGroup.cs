@@ -313,8 +313,9 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now, AnimeGr
     public IReadOnlySet<string> VideoSources =>
         AllVideoLocals.Select(a => a.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet();
 
+    // A file has one source, so the files share one only when they all agree.
     public IReadOnlySet<string> SharedVideoSources =>
-        AllVideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet() is { Count: > 0 } sources
+        AllVideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet() is { Count: 1 } sources
             ? sources
             : [];
 

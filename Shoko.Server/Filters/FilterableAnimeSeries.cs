@@ -271,8 +271,9 @@ public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IF
     public IReadOnlySet<string> VideoSources =>
         VideoLocals.Select(a => a.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet();
 
+    // A file has one source, so the files share one only when they all agree.
     public IReadOnlySet<string> SharedVideoSources =>
-        VideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet() is { Count: > 0 } sources
+        VideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet() is { Count: 1 } sources
             ? sources
             : [];
 
