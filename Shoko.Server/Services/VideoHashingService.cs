@@ -499,9 +499,11 @@ public class VideoHashingService(
         if (!TryGetFileSize(originalPath, resolvedPath, out var fileSize, out var e))
             throw new UnauthorizedAccessException($"Could not access file to read file size or file size is 0: {resolvedPath}", e);
 
-        // Verify that the _unknown_ file we're going to hash is, in fact, a video file.
-        if (!IsVideoFile(resolvedPath))
-            throw new InvalidOperationException($"File is not an allowed video file format: {resolvedPath}");
+        // Verify that the _unknown_ file we're going to hash is, in fact, a
+        // video file, by the name it has in the managed folder: a symbolic
+        // link's target may have any name.
+        if (!IsVideoFile(originalPath))
+            throw new InvalidOperationException($"File is not an allowed video file format: {originalPath}");
 
         var isNewVideo = video.VideoLocalID is 0;
         var isNewFile = video.FileSize is 0;
