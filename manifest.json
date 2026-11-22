@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.617",
+      "tag": "v6.0.0-dev.617",
+      "commit": "364a77c41a7d62beb4ad7ce1680981d569cfd246",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.617/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-22T20:23:59Z",
+      "releaseNotes": "\n`fix` (`relocation`): **Compare a case-only rename's old and new paths in the same form**:\n\n- The new path went through `Path.GetFullPath` and the old one did not, so on Windows a drive letter or separators kept them apart and a case-only rename was taken for a move\n\n`fix` (`tests`): **Let the plugin and file system tests run on Windows**:\n\n- The plugin tests' clean-up no longer fails on a plugin assembly Windows still holds locked\n- The symbolic link tests skip only where links cannot be made, not on every Windows machine\n\n`refactor` (`abstractions`): **Hand out lazy `FileSystemEntry`s instead of `FileSystemInfo`s**:\n\n- Added `FileSystemEntry`: path, name and kind from the listing, and a stat read only when asked for\n- `IManagedFolderIgnoreRule.ShouldIgnore`, `FileSystemEntryFilter`, `VideoFileDetectedEventArgs.File` and `HashingRequest.File` take entries\n- Replaced `GetFileSystemPaths` with `GetFileSystemEntries`, `GetFileEntries` and `GetDirectoryEntries`\n- Moved the default members of `IFileSystem` into `FileSystemService`\n\n`feat` (`abstractions`): **Take listing options, mark links and open files with stream options**:\n\n- The listings take a `FileSystemListingOptions`, with links to directories walked only when asked (`FollowDirectoryLinks`) and once each, and file and directory links listed or left out apart\n- `FileSystemEntry.IsSymbolicLink`, from the listing at no cost\n- `IFileSystem.OpenFile(path, FileStreamOptions)`\n- The listings now open long paths on Windows, through one pass per folder\n- The empty-folder clean-up no longer walks into linked folders\n- Removed two stale copies of the tables in the `IFileSystem` readme\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.139**.\n"
+    },
+    {
       "version": "6.0.0.616",
       "tag": "v6.0.0-dev.616",
       "commit": "d888420fd564f66e799095e8380b880566cc3567",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.588/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-05T16:20:11Z",
       "releaseNotes": "\n`fix` (`buildtools`): **Report a list of rows drawn inline by default without a key**:\n\n- Reported `SHOKO0004` for a list of class items with no `[List]` display type or left on `Auto`, which the schema generator draws inline\n- Accepted an item holding a `TitleComponent` as keyed, and treated converter-serialized types as single values, as the generator does\n\n`chore` (`buildtools`): **Bump build tools analyzers version to v0.2.1**.\n"
-    },
-    {
-      "version": "6.0.0.587",
-      "tag": "v6.0.0-dev.587",
-      "commit": "badd23e1fe45790d3fa6209f96e1d2b95033a16e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.587/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-05T13:02:08Z",
-      "releaseNotes": "\n`fix` (`hashing`): **Remove the video record a rehash leaves without a location**:\n\n- Removed the record a file's location left when a rehash put it on another record, once no location points at it\n- Kept a record that still has another copy\n"
     }
   ]
 }
