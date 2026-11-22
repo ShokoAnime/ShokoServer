@@ -64,6 +64,37 @@ public partial class FileSystemService
             .ToList();
     }
 
+    public VolumeMount? GetVolumeMount(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return null;
+
+        var fullPath = Path.GetFullPath(path);
+        if (PlatformUtility.IsWindows && fullPath.StartsWith(@"\\", StringComparison.Ordinal) && !fullPath.StartsWith(@"\\?\", StringComparison.Ordinal))
+        {
+            // A share named by its UNC path is in no drive list.
+            var root = Path.GetPathRoot(fullPath) ?? fullPath;
+            return new() { MountPoint = root, Source = root.TrimEnd('\\'), Kind = VolumeKind.Network, IsSystem = false };
+        }
+
+        // The list only knows mount points, so a link at the end of the path is followed first.
+        if (fullPath.Length > 1)
+            fullPath = fullPath.TrimEnd(Path.DirectorySeparatorChar);
+        string resolvedPath;
+        try
+        {
+            resolvedPath = ResolveSymbolicLink(fullPath) ?? fullPath;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            resolvedPath = fullPath;
+        }
+
+        return GetVolumeMounts(includeSystem: true)
+            .Where(mount => IsUnder(resolvedPath, mount.MountPoint))
+            .MaxBy(mount => mount.MountPoint.Length);
+    }
+
     /// <summary>
     ///   Reads a listed mount's volume, keeping the mount as listed when it
     ///   cannot be read, so one bad share does not fail the list.

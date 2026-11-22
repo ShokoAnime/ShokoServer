@@ -110,12 +110,15 @@ public class FileWatcherService
 
                 if (!_fileSystem.DirectoryExists(share.Path)) continue;
 
-                _logger.LogInformation("Parsed Path: {Path}", share.Path);
+                // A network share reports changes late, so what the server changes there stays ignored for longer.
+                var isNetworkShare = share.IsTreatedAsNetworkShare;
+                _logger.LogInformation("Parsed Path: {Path} (NetworkShare={IsNetworkShare})", share.Path, isNetworkShare);
 
                 var fsw = new RecoveringFileSystemWatcher(share.Path,
                     filters: _videoExtensions,
                     pathExclusions: _excludeExpressions,
-                    fileSystem: _fileSystem);
+                    fileSystem: _fileSystem,
+                    exclusionGracePeriod: isNetworkShare ? WatcherExclusions.NetworkGracePeriod : WatcherExclusions.LocalGracePeriod);
                 fsw.Options = new FileSystemWatcherLockOptions
                 {
                     Enabled = settings.Import.FileLockChecking,

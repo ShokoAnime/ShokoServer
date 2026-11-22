@@ -27,6 +27,36 @@ public class ManagedFolder : BaseModel
     public bool WatchForNewFiles { get; set; }
 
     /// <summary>
+    ///   Whether the managed folder is on a network share: <c>null</c> to
+    ///   detect it from the volume it is mounted on, or <c>true</c> or
+    ///   <c>false</c> to say so where that cannot tell. A network share
+    ///   reports changes late, so the file watcher ignores what the server
+    ///   itself changed there for longer. Left out of a request, it stays as
+    ///   it is.
+    /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
+    public bool? IsNetworkShare
+    {
+        get;
+        set { HasIsNetworkShare = true; field = value; }
+    }
+
+    /// <summary>
+    ///   Whether <see cref="IsNetworkShare"/> was given, <c>null</c> included,
+    ///   so a request leaving it out does not reset it.
+    /// </summary>
+    [JsonIgnore]
+    public bool HasIsNetworkShare { get; private set; }
+
+    /// <summary>
+    ///   Whether the managed folder's volume is detected as a network share,
+    ///   by the system's list of mounts. Read-only; what applies when
+    ///   <see cref="IsNetworkShare"/> is <c>null</c>.
+    /// </summary>
+    [Required]
+    public bool IsDetectedNetworkShare { get; set; }
+
+    /// <summary>
     ///   Indicates if the managed folder is a drop destination, a drop source,
     ///   both, or neither.
     /// </summary>
@@ -74,6 +104,8 @@ public class ManagedFolder : BaseModel
         Name = folder.Name;
         Path = folder.Path;
         WatchForNewFiles = folder.IsWatched;
+        IsNetworkShare = folder.IsNetworkShare;
+        IsDetectedNetworkShare = folder.IsDetectedNetworkShare;
         DropFolderType = type;
         Size = series;
         FileSize = size;
@@ -86,6 +118,7 @@ public class ManagedFolder : BaseModel
             Name = Name,
             Path = Path,
             IsWatched = WatchForNewFiles,
+            IsNetworkShare = IsNetworkShare,
             IsDropDestination = DropFolderType.HasFlag(DropFolderType.Destination),
             IsDropSource = DropFolderType.HasFlag(DropFolderType.Source),
         };
@@ -113,6 +146,13 @@ public class ManagedFolder : BaseModel
             public bool WatchForNewFiles { get; set; } = false;
 
             /// <summary>
+            ///   Whether the managed folder is on a network share: <c>null</c>
+            ///   (the default) to detect it, or <c>true</c> or <c>false</c> to
+            ///   say so.
+            /// </summary>
+            public bool? IsNetworkShare { get; set; }
+
+            /// <summary>
             ///   Determines whether the managed folder is a drop destination, a
             ///   drop source, both, or neither.
             /// </summary>
@@ -124,6 +164,7 @@ public class ManagedFolder : BaseModel
                     Name = Name,
                     Path = Path,
                     IsWatched = WatchForNewFiles,
+                    IsNetworkShare = IsNetworkShare,
                     IsDropDestination = DropFolderType.HasFlag(DropFolderType.Destination),
                     IsDropSource = DropFolderType.HasFlag(DropFolderType.Source),
                 };

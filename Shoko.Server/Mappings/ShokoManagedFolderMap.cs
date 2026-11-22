@@ -16,5 +16,6 @@ public class ShokoManagedFolderMap : ClassMap<ShokoManagedFolder>
         Map(x => x.IsDropDestination).Not.Nullable();
         Map(x => x.IsDropSource).Not.Nullable();
         Map(x => x.IsWatched).Not.Nullable();
+        Map(x => x.IsNetworkShare);
     }
 }

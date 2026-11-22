@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.FileSystem;
 using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
@@ -43,6 +45,35 @@ public class ShokoManagedFolder : IManagedFolder
     /// Indicates that file watching should be enabled for the folder.
     /// </summary>
     public bool IsWatched { get; set; }
+
+    /// <inheritdoc/>
+    public bool? IsNetworkShare { get; set; }
+
+    /// <summary>
+    /// Whether the folder's volume is a network share, by the system's list of
+    /// mounts; <see langword="false"/> when that cannot tell.
+    /// </summary>
+    public bool IsDetectedNetworkShare
+    {
+        get
+        {
+            try
+            {
+                return ISystemService.StaticServices.GetRequiredService<IFileSystem>().GetVolumeMount(Path)?.Kind is VolumeKind.Network;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether the folder is treated as a network share: as set, or as
+    /// detected when not.
+    /// </summary>
+    public bool IsTreatedAsNetworkShare
+        => IsNetworkShare ?? IsDetectedNetworkShare;
 
     /// <summary>
     /// Indicates that the folder is a drop source in the rename/move system.

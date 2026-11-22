@@ -40,6 +40,19 @@ public interface IManagedFolder
     bool WatchForNewFiles { get; }
 
     /// <summary>
+    ///   Whether the managed folder is on a network share: <c>null</c> to
+    ///   detect it from the volume it is mounted on, or <c>true</c> or
+    ///   <c>false</c> to say so where that cannot tell, such as a share
+    ///   mounted through a layer that hides it.
+    /// </summary>
+    /// <remarks>
+    ///   A network share reports changes late or in batches, so the file
+    ///   watcher keeps ignoring what the server itself changed there for
+    ///   longer.
+    /// </remarks>
+    bool? IsNetworkShare { get; }
+
+    /// <summary>
     ///   The rules that this managed folder should adhere to within the file
     ///   renaming/movement system. IF set to anything other than
     ///   <see cref="Enums.DropFolderType.Excluded"/> then we need read-write access

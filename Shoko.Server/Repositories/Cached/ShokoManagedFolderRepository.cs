@@ -88,6 +88,12 @@ public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory, IFile
             isUpdated = true;
         }
 
+        if (ns.IsNetworkShare != folder.IsNetworkShare)
+        {
+            ns.IsNetworkShare = folder.IsNetworkShare;
+            isUpdated = true;
+        }
+
         base.Save(ns);
 
         // Only fire the events if something changed or if it's a new folder.

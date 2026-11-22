@@ -251,6 +251,23 @@ public sealed class FileSystemServiceTests : IDisposable
     }
 
     [Fact]
+    public void GetVolumeMount_FindsTheMountOfAPathAndFollowsALinkAtItsEnd()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux() && Directory.Exists("/dev/shm"), "Needs /proc and /dev/shm.");
+        var link = Path.Combine(_root, "shared");
+        File.CreateSymbolicLink(link, "/dev/shm");
+
+        var own = _fileSystem.GetVolumeMount(MakeFile("source.mkv"));
+        var linked = _fileSystem.GetVolumeMount(link + Path.DirectorySeparatorChar);
+
+        Assert.NotNull(own);
+        Assert.StartsWith(own.MountPoint.TrimEnd('/'), _root);
+        Assert.NotNull(linked);
+        Assert.Equal("/dev/shm", linked.MountPoint);
+        Assert.Equal(VolumeKind.Memory, linked.Kind);
+    }
+
+    [Fact]
     public void GetVolumeStat_TellsAMemoryVolume()
     {
         Assert.SkipUnless(OperatingSystem.IsLinux() && Directory.Exists("/dev/shm"), "Needs /dev/shm.");

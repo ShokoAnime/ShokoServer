@@ -369,6 +369,24 @@ public interface IFileSystem
     VolumeStat? GetVolumeStat(string? path);
 
     /// <summary>
+    ///   Finds the mount a path is on, from the system's list of mounts alone,
+    ///   without reading the volume, so a share whose server is gone cannot
+    ///   hold it up.
+    /// </summary>
+    /// <remarks>
+    ///   A symbolic link at the end of the path is followed first, since the
+    ///   list only knows where volumes are mounted; links among its parent
+    ///   folders are not. A Windows UNC path (<c>\\server\share\…</c>) is on a
+    ///   network share of its own. <see cref="GetVolumeStat"/> reads the
+    ///   volume itself, links and all.
+    /// </remarks>
+    /// <param name="path">The path.</param>
+    /// <returns>The mount, or <c>null</c> when none holds the path.</returns>
+    /// <exception cref="UnauthorizedAccessException">The list of mounts may not be read.</exception>
+    /// <exception cref="IOException">The list of mounts could not be read for another reason.</exception>
+    VolumeMount? GetVolumeMount(string? path);
+
+    /// <summary>
     ///   Lists the mounted volumes, from the system's list of mounts, without
     ///   reading the volumes themselves.
     /// </summary>

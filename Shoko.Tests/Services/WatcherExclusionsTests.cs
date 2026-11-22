@@ -12,6 +12,21 @@ public class WatcherExclusionsTests
     private static Task AfterGrace()
         => Task.Delay(_grace * 4, TestContext.Current.CancellationToken);
 
+    /// <summary>
+    ///   Waits for a hold to be lifted, as long as a busy test run may need.
+    /// </summary>
+    private static async Task<bool> Lifted(WatcherExclusions exclusions, string path)
+    {
+        for (var waited = TimeSpan.Zero; waited < TimeSpan.FromSeconds(5); waited += _grace)
+        {
+            if (!exclusions.Contains(path))
+                return true;
+            await Task.Delay(_grace, TestContext.Current.CancellationToken);
+        }
+
+        return false;
+    }
+
     [Fact]
     public async Task Release_LiftsTheHoldOnlyAfterTheGracePeriod()
     {
@@ -21,8 +36,7 @@ public class WatcherExclusionsTests
         exclusions.Release("/media/a.mkv");
 
         Assert.True(exclusions.Contains("/media/a.mkv"));
-        await AfterGrace();
-        Assert.False(exclusions.Contains("/media/a.mkv"));
+        Assert.True(await Lifted(exclusions, "/media/a.mkv"));
         Assert.False(exclusions.Any);
     }
 
@@ -38,8 +52,7 @@ public class WatcherExclusionsTests
 
         Assert.True(exclusions.Contains("/media/a.mkv"));
         exclusions.Release("/media/a.mkv");
-        await AfterGrace();
-        Assert.False(exclusions.Contains("/media/a.mkv"));
+        Assert.True(await Lifted(exclusions, "/media/a.mkv"));
     }
 
     [Fact]

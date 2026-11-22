@@ -1239,6 +1239,7 @@ public class VideoService : IVideoService
             Path = folderData.Path,
             DropFolderType = folderData.DropFolderType,
             IsWatched = folderData.WatchForNewFiles,
+            IsNetworkShare = folderData.IsNetworkShare,
         });
 
     public IManagedFolder UpdateManagedFolder(IManagedFolder folder, ManagedFolderUpdateData folderUpdate)
@@ -1253,6 +1254,7 @@ public class VideoService : IVideoService
             Path = folderUpdate.Path is { Length: > 0 } ? folderUpdate.Path : current.Path,
             DropFolderType = folderUpdate.DropFolderType ?? current.DropFolderType,
             IsWatched = folderUpdate.WatchForNewFiles ?? current.IsWatched,
+            IsNetworkShare = folderUpdate.HasIsNetworkShare ? folderUpdate.IsNetworkShare : current.IsNetworkShare,
         };
         return _managedFolderRepository.SaveFolder(managedFolder);
     }

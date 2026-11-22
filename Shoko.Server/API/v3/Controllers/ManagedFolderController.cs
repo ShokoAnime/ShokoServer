@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.FileSystem.Services;
+using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -108,6 +109,7 @@ public class ManagedFolderController(
                 Path = body.Path,
                 DropFolderType = dropFolderType,
                 WatchForNewFiles = body.WatchForNewFiles,
+                IsNetworkShare = body.IsNetworkShare,
             });
             return new ManagedFolder(newFolder);
         }
@@ -167,13 +169,17 @@ public class ManagedFolderController(
         if (!TryValidateModel(patchModel))
             return ValidationProblem(ModelState);
 
-        videoService.UpdateManagedFolder(folder, new()
+        var update = new ManagedFolderUpdateData
         {
             Name = patchModel.Name,
             Path = patchModel.Path,
             DropFolderType = (AbstractDropFolderType)patchModel.DropFolderType,
             WatchForNewFiles = patchModel.WatchForNewFiles,
-        });
+        };
+        // Only when given, so a client that does not know the setting leaves it as it is.
+        if (patchModel.HasIsNetworkShare)
+            update.IsNetworkShare = patchModel.IsNetworkShare;
+        videoService.UpdateManagedFolder(folder, update);
 
         return Ok();
     }
@@ -207,13 +213,17 @@ public class ManagedFolderController(
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        videoService.UpdateManagedFolder(folder!, new()
+        var update = new ManagedFolderUpdateData
         {
             Name = body.Name,
             Path = body.Path,
             DropFolderType = (AbstractDropFolderType)body.DropFolderType,
             WatchForNewFiles = body.WatchForNewFiles,
-        });
+        };
+        // Only when given, so a client that does not know the setting leaves it as it is.
+        if (body.HasIsNetworkShare)
+            update.IsNetworkShare = body.IsNetworkShare;
+        videoService.UpdateManagedFolder(folder!, update);
 
         return Ok();
     }

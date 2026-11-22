@@ -23,6 +23,13 @@ public sealed class ManagedFolderData
     public bool WatchForNewFiles { get; set; } = false;
 
     /// <summary>
+    ///   Whether the managed folder is on a network share: <c>null</c> (the
+    ///   default) to detect it, or <c>true</c> or <c>false</c> to say so. See
+    ///   <see cref="IManagedFolder.IsNetworkShare"/>.
+    /// </summary>
+    public bool? IsNetworkShare { get; set; }
+
+    /// <summary>
     ///   The drop folder type. Defaults to <see cref="Enums.DropFolderType.Excluded"/>.
     /// </summary>
     public DropFolderType DropFolderType { get; set; } = DropFolderType.Excluded;

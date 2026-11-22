@@ -1464,6 +1464,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(182,   3, "ALTER TABLE VideoLocal_User ADD COLUMN UserTags TEXT NOT NULL DEFAULT '';"),
         new(182,   4, "ALTER TABLE Metadata_Season ADD COLUMN Resources TEXT NULL;"),
         new(183,   1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new(184,   1, "ALTER TABLE ImportFolder ADD COLUMN IsNetworkShare INTEGER NULL;"),
     ];
 
     #endregion

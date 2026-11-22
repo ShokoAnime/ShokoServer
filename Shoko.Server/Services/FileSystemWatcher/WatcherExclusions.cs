@@ -13,16 +13,22 @@ namespace Shoko.Server.Services.FileSystemWatcher;
 /// <remarks>
 ///   A change is reported after it happens, and on a network share (SMB,
 ///   NFS) the report can come late or in batches. So a hold is only lifted
-///   <see cref="GracePeriod"/> after it is released. Holds are counted per
+///   <see cref="GracePeriod"/> after it is released: <see cref="LocalGracePeriod"/>
+///   on a local disk, <see cref="NetworkGracePeriod"/> on a share. Holds are counted per
 ///   path, so two changes to one path at once do not lift each other's.
 /// </remarks>
 /// <param name="gracePeriod">How long a released hold still stands.</param>
 internal sealed class WatcherExclusions(TimeSpan gracePeriod)
 {
     /// <summary>
-    ///   Long enough for the late reports of network shares.
+    ///   For a local disk, whose reports only trail the change slightly.
     /// </summary>
-    public static readonly TimeSpan DefaultGracePeriod = TimeSpan.FromSeconds(45);
+    public static readonly TimeSpan LocalGracePeriod = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    ///   For a network share, long enough for its late or batched reports.
+    /// </summary>
+    public static readonly TimeSpan NetworkGracePeriod = TimeSpan.FromSeconds(45);
 
     private readonly Dictionary<string, int> _holds = new(StringComparer.Ordinal);
 

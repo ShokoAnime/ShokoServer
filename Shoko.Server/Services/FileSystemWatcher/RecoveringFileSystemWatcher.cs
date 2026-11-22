@@ -45,13 +45,13 @@ public class RecoveringFileSystemWatcher : IDisposable
     // own event thread.
     private readonly Channel<WatcherEvent> _channel = Channel.CreateUnbounded<WatcherEvent>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
 
-    private readonly WatcherExclusions _exclusions = new(WatcherExclusions.DefaultGracePeriod);
+    private readonly WatcherExclusions _exclusions;
     private readonly string _path;
     public event EventHandler<string>? FileAdded;
     public event EventHandler<string>? FileDeleted;
     public FileSystemWatcherLockOptions Options { get; set; } = new();
 
-    internal RecoveringFileSystemWatcher(string path, IReadOnlyCollection<string> filters, IReadOnlyCollection<BoundedRegex> pathExclusions, IFileSystem fileSystem)
+    internal RecoveringFileSystemWatcher(string path, IReadOnlyCollection<string> filters, IReadOnlyCollection<BoundedRegex> pathExclusions, IFileSystem fileSystem, TimeSpan exclusionGracePeriod)
     {
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
         if (!fileSystem.DirectoryExists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
@@ -61,6 +61,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         _filters = filters;
         _pathExclusions = pathExclusions;
         _fileSystem = fileSystem;
+        _exclusions = new(exclusionGracePeriod);
     }
 
     private void WatcherChangeDetected(object sender, FileSystemEventArgs e)
