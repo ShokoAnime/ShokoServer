@@ -187,6 +187,7 @@ public static partial class APIExtensions
                         typeof(DayOfWeek),
                         typeof(DriveType),
                         typeof(CreatorRoleType),
+                        typeof(Microsoft.Extensions.Logging.LogLevel),
                     ])
                     .ToList();
                 foreach (var type in v3Enums)
