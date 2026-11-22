@@ -53,8 +53,8 @@ public sealed class ManagedFolderPresenceTests : IDisposable
     public void IsNotPresent_OnceTheRootMovedToAnotherVolume()
     {
         File.WriteAllText(Path.Combine(_root, "video.mkv"), "video");
-        var fileSystem = new Mock<IFileSystem> { CallBase = true };
-        fileSystem.SetupSequence(f => f.GetStat(_root, true))
+        var fileSystem = new Mock<IFileSystem>();
+        fileSystem.SetupSequence(f => f.GetDirectoryStat(_root, true))
             .Returns(DirectoryOn(_root, "a"))
             .Returns(DirectoryOn(_root, "a"))
             .Returns(DirectoryOn(_root, "b"));
@@ -69,8 +69,8 @@ public sealed class ManagedFolderPresenceTests : IDisposable
     public void IsNotPresent_WhenTheRootCannotBeRead()
     {
         File.WriteAllText(Path.Combine(_root, "video.mkv"), "video");
-        var fileSystem = new Mock<IFileSystem> { CallBase = true };
-        fileSystem.SetupSequence(f => f.GetStat(_root, true))
+        var fileSystem = new Mock<IFileSystem>();
+        fileSystem.SetupSequence(f => f.GetDirectoryStat(_root, true))
             .Returns(DirectoryOn(_root, "a"))
             .Throws(new IOException("Host is down"));
         var presence = new ManagedFolderPresence(fileSystem.Object);

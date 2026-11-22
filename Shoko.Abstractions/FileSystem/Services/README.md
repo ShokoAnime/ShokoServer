@@ -168,9 +168,17 @@ whose times differ between reads.
 
 ## Listing
 
-`GetFilePaths`, `GetDirectoryPaths` and `GetFileSystemPaths` walk a
-directory, in parallel when `recursive`, so the paths come in no particular
-order. A subdirectory that cannot be read is logged and skipped. The
-`FileSystemEntryFilter` gets each entry's path and whether it is a directory;
-returning `false` leaves it out, and a directory left out is not walked.
+`GetFilePaths` and `GetDirectoryPaths` list paths, and `GetFileEntries`,
+`GetDirectoryEntries` and `GetFileSystemEntries` list `FileSystemEntry`s. They
+walk a directory, in parallel when `recursive`, so the results come in no
+particular order, and a subdirectory that cannot be read is logged and skipped.
 `extensions` only filters files.
+
+A `FileSystemEntry` knows its `Path`, `Name` and `IsDirectory` from the listing
+itself, at no cost, and reads its `Stat` (with `FileStat` and `DirectoryStat`
+beside it) only when first asked, then keeps it. The `FileSystemEntryFilter`,
+ignore rules (`IManagedFolderIgnoreRule`), the detected-file event and hashing
+requests all hand out entries, so code that only needs the path costs a scan
+nothing, and code that needs the size or times pays one read for that entry.
+Returning `false` from the filter leaves an entry out, and a directory left out
+is not walked.

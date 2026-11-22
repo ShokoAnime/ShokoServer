@@ -58,8 +58,7 @@ public interface IFileSystem
     /// </returns>
     /// <exception cref="UnauthorizedAccessException">The entry may not be read.</exception>
     /// <exception cref="IOException">It could not be read for another reason.</exception>
-    FileStat? GetFileStat(string? path, bool followSymbolicLinks = true)
-        => GetStat(path, followSymbolicLinks) as FileStat;
+    FileStat? GetFileStat(string? path, bool followSymbolicLinks = true);
 
     /// <summary>
     ///   Gets the file size, or -1 if the file does not exist.
@@ -183,6 +182,23 @@ public interface IFileSystem
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     string[] GetFilePaths(string directoryPath, bool recursive = false, IEnumerable<string>? extensions = null, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    ///   Lists the files beneath the given directory as entries:
+    ///   <see cref="GetFileSystemEntries"/> with files only. An entry's path
+    ///   costs nothing; its stat is read only when asked for.
+    /// </summary>
+    /// <param name="directoryPath">The directory.</param>
+    /// <param name="recursive">Whether to look in subdirectories too.</param>
+    /// <param name="extensions">Only list files with these extensions.</param>
+    /// <param name="filter">
+    ///   Decides which entries to keep. A directory left out is not walked
+    ///   either.
+    /// </param>
+    /// <param name="cancellationToken">Stops the listing.</param>
+    /// <returns>The entries.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    IReadOnlyList<FileSystemEntry> GetFileEntries(string directoryPath, bool recursive = false, IEnumerable<string>? extensions = null, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Directories
@@ -228,8 +244,7 @@ public interface IFileSystem
     /// </returns>
     /// <exception cref="UnauthorizedAccessException">The entry may not be read.</exception>
     /// <exception cref="IOException">It could not be read for another reason.</exception>
-    DirectoryStat? GetDirectoryStat(string? path, bool followSymbolicLinks = true)
-        => GetStat(path, followSymbolicLinks) as DirectoryStat;
+    DirectoryStat? GetDirectoryStat(string? path, bool followSymbolicLinks = true);
 
     /// <summary>
     ///   Creates the directory at the given path, including any missing
@@ -304,6 +319,22 @@ public interface IFileSystem
     /// <returns>The paths.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     string[] GetDirectoryPaths(string directoryPath, bool recursive = false, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Lists the directories beneath the given directory as entries:
+    ///   <see cref="GetFileSystemEntries"/> with directories only. An entry's
+    ///   path costs nothing; its stat is read only when asked for.
+    /// </summary>
+    /// <param name="directoryPath">The directory.</param>
+    /// <param name="recursive">Whether to look in subdirectories too.</param>
+    /// <param name="filter">
+    ///   Decides which entries to keep. A directory left out is not walked
+    ///   either.
+    /// </param>
+    /// <param name="cancellationToken">Stops the listing.</param>
+    /// <returns>The entries.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    IReadOnlyList<FileSystemEntry> GetDirectoryEntries(string directoryPath, bool recursive = false, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default);
 
     #endregion
 
@@ -478,10 +509,12 @@ public interface IFileSystem
     string? ResolveSymbolicLink(string? path, bool returnFinalTarget = true);
 
     /// <summary>
-    ///   Lists the file and directory paths beneath the given directory, the
-    ///   walk <see cref="GetFilePaths"/> and <see cref="GetDirectoryPaths"/>
-    ///   share. Subdirectories are walked in parallel, so the paths come in no
-    ///   particular order, and one that cannot be read is logged and skipped.
+    ///   Lists the files and directories beneath the given directory, as
+    ///   entries: the walk <see cref="GetFilePaths"/> and
+    ///   <see cref="GetDirectoryPaths"/> share. Subdirectories are walked in
+    ///   parallel, so the entries come in no particular order, and one that
+    ///   cannot be read is logged and skipped. An entry's path and kind cost
+    ///   nothing; its stat is read only when asked for.
     /// </summary>
     /// <param name="directoryPath">The directory.</param>
     /// <param name="recursive">Whether to look in subdirectories too.</param>
@@ -496,9 +529,9 @@ public interface IFileSystem
     /// <param name="outputFiles">Whether to list files.</param>
     /// <param name="outputDirectories">Whether to list directories.</param>
     /// <param name="cancellationToken">Stops the listing.</param>
-    /// <returns>The paths, or none when the directory does not exist.</returns>
+    /// <returns>The entries, or none when the directory does not exist.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    string[] GetFileSystemPaths(string directoryPath, bool recursive = false, IEnumerable<string>? extensions = null, FileSystemEntryFilter? filter = null, bool outputFiles = true, bool outputDirectories = true, CancellationToken cancellationToken = default);
+    IReadOnlyList<FileSystemEntry> GetFileSystemEntries(string directoryPath, bool recursive = false, IEnumerable<string>? extensions = null, FileSystemEntryFilter? filter = null, bool outputFiles = true, bool outputDirectories = true, CancellationToken cancellationToken = default);
 
     #endregion
 }

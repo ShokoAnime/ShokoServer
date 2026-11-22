@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using Shoko.Abstractions.FileSystem;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Settings;
 
@@ -9,11 +10,11 @@ public class CoreIgnoreRule(ISettingsProvider settingsProvider) : IManagedFolder
 {
     public string Name { get; } = "Built-In Ignore Rule";
 
-    public bool ShouldIgnore(IManagedFolder folder, FileSystemInfo fileInfo)
+    public bool ShouldIgnore(IManagedFolder folder, FileSystemEntry entry)
     {
         var exclusions = settingsProvider.GetSettings().Import.ExcludeExpressions;
-        var path = fileInfo.FullName;
-        if (fileInfo is DirectoryInfo && !Path.EndsInDirectorySeparator(path))
+        var path = entry.Path;
+        if (entry.IsDirectory && !Path.EndsInDirectorySeparator(path))
             path += Path.DirectorySeparatorChar;
 
         return exclusions.Any(r => r.IsMatch(path));

@@ -10,6 +10,12 @@ namespace Shoko.Server.Services;
 
 public partial class FileSystemService
 {
+    public FileStat? GetFileStat(string? path, bool followSymbolicLinks = true)
+        => GetStat(path, followSymbolicLinks) as FileStat;
+
+    public DirectoryStat? GetDirectoryStat(string? path, bool followSymbolicLinks = true)
+        => GetStat(path, followSymbolicLinks) as DirectoryStat;
+
     public FileSystemStat? GetStat(string? path, bool followSymbolicLinks = true)
     {
         if (string.IsNullOrEmpty(path))

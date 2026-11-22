@@ -4,6 +4,9 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.Logging.Abstractions;
+using Shoko.Abstractions.FileSystem;
+using Shoko.Server.Services;
 using Shoko.Server.Telemetry;
 using Xunit;
 
@@ -80,7 +83,7 @@ public class ShokoTelemetryTests
     [Fact]
     public void AFileThatHasGoneAway_IsNotAnError()
     {
-        var missing = new FileInfo(Path.Combine(Path.GetTempPath(), NewName()));
+        var missing = new FileSystemEntry(new FileSystemService(NullLogger<FileSystemService>.Instance), Path.Combine(Path.GetTempPath(), NewName()), isDirectory: false);
 
         Assert.Empty(Record(() => ShokoTelemetry.RecordHashedFile(null, missing)));
     }
@@ -92,7 +95,7 @@ public class ShokoTelemetryTests
         try
         {
             File.WriteAllBytes(path, new byte[1234]);
-            var (instrument, tags) = Assert.Single(Record(() => ShokoTelemetry.RecordHashedFile(null, new(path))));
+            var (instrument, tags) = Assert.Single(Record(() => ShokoTelemetry.RecordHashedFile(null, new FileSystemEntry(new FileSystemService(NullLogger<FileSystemService>.Instance), path, isDirectory: false))));
 
             Assert.Equal("shoko.video.hash.size", instrument);
             Assert.Empty(tags);

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.FileSystem;
 using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Utilities;
@@ -128,7 +129,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         {
             _logger.LogTrace("New Directory Found. Iterating: {Path}", item.Path);
             // iterate and queue a command for each containing file
-            bool IsMatch(string p, bool isDirectory) => isDirectory || (!_pathExclusions.Any(a => a.IsMatch(p)) && _buffer.TryAdd(p, 0));
+            bool IsMatch(FileSystemEntry entry) => entry.IsDirectory || (!_pathExclusions.Any(a => a.IsMatch(entry.Path)) && _buffer.TryAdd(entry.Path, 0));
             foreach (var file in _fileSystem.GetFilePaths(item.Path, recursive: true, extensions: _filters, filter: IsMatch, cancellationToken: token))
                 Enqueue(new WatcherEvent(file, item.Type, false));
         }

@@ -119,7 +119,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
         var config = configurationProvider.Load();
         var coreRequest = new CoreHashingRequest
         {
-            Path = file.FullName,
+            Path = file.Path,
             ED2K = !existingHashes.Any(h => h.Type is "ED2K") && enabledHashTypes.Contains("ED2K"),
             CRC32 = !existingHashes.Any(h => h.Type is "CRC32") && enabledHashTypes.Contains("CRC32"),
             MD5 = !existingHashes.Any(h => h.Type is "MD5") && enabledHashTypes.Contains("MD5"),

@@ -1,4 +1,6 @@
-using System.IO;
+using Moq;
+using Shoko.Abstractions.FileSystem;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Server.Plugin;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
@@ -12,12 +14,18 @@ namespace Shoko.Tests.Plugin;
 /// </summary>
 public sealed class CoreIgnoreRuleTests
 {
+    private static FileSystemEntry File(string path)
+        => new(Mock.Of<IFileSystem>(), path, isDirectory: false);
+
+    private static FileSystemEntry Directory(string path)
+        => new(Mock.Of<IFileSystem>(), path, isDirectory: true);
+
     [Fact]
     public void FileMatchingAnExclusionIsIgnored()
     {
         var rule = CreateRule(@"[\\/]!Ignored[\\/]");
 
-        Assert.True(rule.ShouldIgnore(null!, new FileInfo("/library/!Ignored/Series/file.mkv")));
+        Assert.True(rule.ShouldIgnore(null!, File("/library/!Ignored/Series/file.mkv")));
     }
 
     [Fact]
@@ -25,7 +33,7 @@ public sealed class CoreIgnoreRuleTests
     {
         var rule = CreateRule(@"[\\/]!Ignored[\\/]");
 
-        Assert.True(rule.ShouldIgnore(null!, new DirectoryInfo("/library/!Ignored")));
+        Assert.True(rule.ShouldIgnore(null!, Directory("/library/!Ignored")));
     }
 
     [Fact]
@@ -33,7 +41,7 @@ public sealed class CoreIgnoreRuleTests
     {
         var rule = CreateRule(@"[\\/]!Ignored[\\/]");
 
-        Assert.True(rule.ShouldIgnore(null!, new DirectoryInfo("/library/!Ignored/Series")));
+        Assert.True(rule.ShouldIgnore(null!, Directory("/library/!Ignored/Series")));
     }
 
     [Fact]
@@ -43,8 +51,8 @@ public sealed class CoreIgnoreRuleTests
         // with its separator appended or the walk would descend one level before pruning.
         var rule = CreateRule(@"[\\/]\.Trash-\d+[\\/]");
 
-        Assert.True(rule.ShouldIgnore(null!, new DirectoryInfo("/library/.Trash-1000")));
-        Assert.True(rule.ShouldIgnore(null!, new DirectoryInfo("/library/.Trash-1000/files/file.mkv")));
+        Assert.True(rule.ShouldIgnore(null!, Directory("/library/.Trash-1000")));
+        Assert.True(rule.ShouldIgnore(null!, Directory("/library/.Trash-1000/files/file.mkv")));
     }
 
     [Fact]
@@ -52,8 +60,8 @@ public sealed class CoreIgnoreRuleTests
     {
         var rule = CreateRule(@"\.mkv$");
 
-        Assert.True(rule.ShouldIgnore(null!, new FileInfo("/library/Series/file.mkv")));
-        Assert.False(rule.ShouldIgnore(null!, new DirectoryInfo("/library/Series/file.mkv")));
+        Assert.True(rule.ShouldIgnore(null!, File("/library/Series/file.mkv")));
+        Assert.False(rule.ShouldIgnore(null!, Directory("/library/Series/file.mkv")));
     }
 
     [Fact]
@@ -61,7 +69,7 @@ public sealed class CoreIgnoreRuleTests
     {
         var rule = CreateRule(@"[\\/]!Ignored[\\/]");
 
-        Assert.False(rule.ShouldIgnore(null!, new DirectoryInfo("/library/Series/Season 1")));
+        Assert.False(rule.ShouldIgnore(null!, Directory("/library/Series/Season 1")));
     }
 
     [Fact]
@@ -69,7 +77,7 @@ public sealed class CoreIgnoreRuleTests
     {
         var rule = new CoreIgnoreRule(new StubSettingsProvider(new ServerSettings()));
 
-        Assert.False(rule.ShouldIgnore(null!, new DirectoryInfo("/library/Series")));
+        Assert.False(rule.ShouldIgnore(null!, Directory("/library/Series")));
     }
 
     [Fact]
@@ -80,7 +88,7 @@ public sealed class CoreIgnoreRuleTests
         settings.Import.ResetExcludeRegexes();
         var rule = new CoreIgnoreRule(new StubSettingsProvider(settings));
 
-        Assert.False(rule.ShouldIgnore(null!, new DirectoryInfo("/library/!Ignored")));
+        Assert.False(rule.ShouldIgnore(null!, Directory("/library/!Ignored")));
     }
 
     private static CoreIgnoreRule CreateRule(params string[] exclude)

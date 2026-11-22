@@ -577,13 +577,14 @@ public sealed class FileSystemServiceTests : IDisposable
     }
 
     [Fact]
-    public void GetFileSystemPaths_ListsFilesAndDirectories()
+    public void GetFileSystemEntries_ListsFilesAndDirectories()
     {
         Directory.CreateDirectory(Path.Combine(_root, "a"));
         MakeFile(Path.Combine("a", "one.mkv"));
         MakeFile("two.txt");
 
-        var entries = _fileSystem.GetFileSystemPaths(_root, recursive: true, extensions: [".mkv"], cancellationToken: TestContext.Current.CancellationToken)
+        var entries = _fileSystem.GetFileSystemEntries(_root, recursive: true, extensions: [".mkv"], cancellationToken: TestContext.Current.CancellationToken)
+            .Select(entry => entry.Path)
             .Select(path => Path.GetRelativePath(_root, path))
             .Order()
             .ToArray();

@@ -13,6 +13,7 @@ using Namotion.Reflection;
 using Polly;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.FileSystem;
 using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
@@ -516,7 +517,10 @@ public class VideoHashingService(
         }
 
         var existingHashes = !useExistingHashes ? [] : video.Hashes;
-        var hashes = await GetHashesForFileInternal(fileSystem.GetFileInfo(resolvedPath) ?? throw new FileNotFoundException($"File does not exist: {resolvedPath}", resolvedPath), existingHashes, cancellationToken).ConfigureAwait(false);
+        var file = fileSystem.FileExists(resolvedPath)
+            ? new FileSystemEntry(fileSystem, resolvedPath, isDirectory: false)
+            : throw new FileNotFoundException($"File does not exist: {resolvedPath}", resolvedPath);
+        var hashes = await GetHashesForFileInternal(file, existingHashes, cancellationToken).ConfigureAwait(false);
         var ed2k = hashes.FirstOrDefault(x => x.Type is ED2K);
         if (ed2k is not { Type: ED2K, Value.Length: 32 })
             throw new InvalidOperationException($"Could not get ED2K hash for {originalPath}");
@@ -736,7 +740,7 @@ public class VideoHashingService(
 
     #region Get Hashes for FileInfo
 
-    private async Task<IReadOnlyList<IHashDigest>> GetHashesForFileInternal(FileInfo fileInfo, IReadOnlyList<IHashDigest>? existingHashes = null, CancellationToken cancellationToken = default)
+    private async Task<IReadOnlyList<IHashDigest>> GetHashesForFileInternal(FileSystemEntry fileInfo, IReadOnlyList<IHashDigest>? existingHashes = null, CancellationToken cancellationToken = default)
     {
         if (!_loaded)
             return [];
@@ -760,7 +764,7 @@ public class VideoHashingService(
         }
     }
 
-    private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileParallel(FileInfo fileInfo, IReadOnlyList<IHashDigest> existingHashes, IList<HashProviderInfo> providers, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileParallel(FileSystemEntry fileInfo, IReadOnlyList<IHashDigest> existingHashes, IList<HashProviderInfo> providers, CancellationToken cancellationToken)
     {
         var allHashes = new ConcurrentBag<(HashProviderInfo Provider, IReadOnlyList<IHashDigest> Hashes)>() { };
         await Task.WhenAll(providers.Select(providerInfo => Task.Run(async () =>
@@ -778,7 +782,7 @@ public class VideoHashingService(
             .ToList();
     }
 
-    private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileSequential(FileInfo fileInfo, IReadOnlyList<IHashDigest> existingHashes, IReadOnlyList<HashProviderInfo> providers, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileSequential(FileSystemEntry fileInfo, IReadOnlyList<IHashDigest> existingHashes, IReadOnlyList<HashProviderInfo> providers, CancellationToken cancellationToken)
     {
         var allHashes = new List<IHashDigest>(existingHashes);
         foreach (var providerInfo in providers)
@@ -792,7 +796,7 @@ public class VideoHashingService(
         return allHashes;
     }
 
-    private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileAndProvider(FileInfo fileInfo, HashProviderInfo providerInfo, IReadOnlyList<IHashDigest> existingHashes, CancellationToken cancellationToken)
+    private static async Task<IReadOnlyList<IHashDigest>> GetHashesForFileAndProvider(FileSystemEntry fileInfo, HashProviderInfo providerInfo, IReadOnlyList<IHashDigest> existingHashes, CancellationToken cancellationToken)
     {
         var enabledHashTypes = providerInfo.EnabledHashTypes;
         var request = new HashingRequest()

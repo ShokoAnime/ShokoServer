@@ -1,5 +1,4 @@
-
-using System.IO;
+using Shoko.Abstractions.FileSystem;
 
 namespace Shoko.Abstractions.Video;
 
@@ -20,11 +19,13 @@ public interface IManagedFolderIgnoreRule
     /// <param name="folder">
     ///   The managed folder we're checking in.
     /// </param>
-    /// <param name="fileSystemInfo">
-    ///   The potential video file, or a folder which may contain video files.
+    /// <param name="entry">
+    ///   The file or folder: its path and whether it is a directory are known
+    ///   at once, and its stat is read only if the rule asks for it, so a rule
+    ///   looking only at the path costs a scan nothing.
     /// </param>
     /// <returns>
     ///   True if the file or folder should be ignored.
     /// </returns>
-    bool ShouldIgnore(IManagedFolder folder, FileSystemInfo fileSystemInfo);
+    bool ShouldIgnore(IManagedFolder folder, FileSystemEntry entry);
 }

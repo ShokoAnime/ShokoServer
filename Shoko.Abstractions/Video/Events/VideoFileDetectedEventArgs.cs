@@ -1,5 +1,5 @@
 using System;
-using System.IO;
+using Shoko.Abstractions.FileSystem;
 
 namespace Shoko.Abstractions.Video.Events;
 
@@ -27,9 +27,9 @@ public class VideoFileDetectedEventArgs : EventArgs
     public string Path { get; }
 
     /// <summary>
-    /// The raw <see cref="System.IO.FileInfo"/> for the video file.
+    /// The video file: its path at once, and its stat when first asked for.
     /// </summary>
-    public FileInfo FileInfo { get; }
+    public FileSystemEntry File { get; }
 
     /// <summary>
     /// The managed folder that the video file is in.
@@ -40,9 +40,9 @@ public class VideoFileDetectedEventArgs : EventArgs
     /// Initializes a new instance of the <see cref="VideoFileDetectedEventArgs"/> class.
     /// </summary>
     /// <param name="relativePath">The relative path from the <see cref="ManagedFolder"/>'s root. Uses an OS dependent directory separator.</param>
-    /// <param name="fileInfo">The raw <see cref="System.IO.FileInfo"/> for the video file.</param>
+    /// <param name="file">The video file.</param>
     /// <param name="managedFolder">The managed folder that the file is in.</param>
-    public VideoFileDetectedEventArgs(string relativePath, FileInfo fileInfo, IManagedFolder managedFolder)
+    public VideoFileDetectedEventArgs(string relativePath, FileSystemEntry file, IManagedFolder managedFolder)
     {
         relativePath = relativePath
             .Replace('/', System.IO.Path.DirectorySeparatorChar)
@@ -50,8 +50,8 @@ public class VideoFileDetectedEventArgs : EventArgs
         if (relativePath[0] != System.IO.Path.DirectorySeparatorChar)
             relativePath = System.IO.Path.DirectorySeparatorChar + relativePath;
         RelativePath = relativePath;
-        Path = fileInfo.FullName;
-        FileInfo = fileInfo;
+        Path = file.Path;
+        File = file;
         ManagedFolder = managedFolder;
     }
 }

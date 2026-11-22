@@ -5,6 +5,7 @@ using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
 using Shoko.Abstractions.Connectivity.Suspensions;
+using Shoko.Abstractions.FileSystem;
 
 namespace Shoko.Server.Telemetry;
 
@@ -217,12 +218,15 @@ internal static class ShokoTelemetry
     /// </summary>
     /// <param name="span">The span hashing it, if there is one.</param>
     /// <param name="file">The file. Only its size is kept.</param>
-    public static void RecordHashedFile(Activity? span, FileInfo file)
+    public static void RecordHashedFile(Activity? span, FileSystemEntry file)
     {
         try
         {
-            span?.SetTag("file.size", file.Length);
-            _hashSize.Record(file.Length);
+            // The hashers usually read the stat already, so this costs nothing more.
+            if (file.FileStat is not { } stat)
+                return;
+            span?.SetTag("file.size", stat.Size);
+            _hashSize.Record(stat.Size);
         }
         catch (Exception)
         {

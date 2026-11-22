@@ -342,7 +342,7 @@ public class VideoService : IVideoService
             {
                 try
                 {
-                    VideoFileDetected?.Invoke(null, new(relativePath, new(absolutePath), managedFolder));
+                    VideoFileDetected?.Invoke(null, new(relativePath, new FileSystemEntry(_fileSystem, absolutePath, isDirectory: false), managedFolder));
                 }
                 catch (Exception ex)
                 {
@@ -1450,11 +1450,8 @@ public class VideoService : IVideoService
     {
         if (!_fileSystem.DirectoryExists(folder.Path))
             return [];
-        bool IsMatch(string p, bool isDirectory)
-        {
-            FileSystemInfo info = isDirectory ? new DirectoryInfo(p) : new FileInfo(p);
-            return !_ignoreRules.Any(rule => rule.ShouldIgnore(folder, info));
-        }
+        bool IsMatch(FileSystemEntry entry)
+            => !_ignoreRules.Any(rule => rule.ShouldIgnore(folder, entry));
         return _fileSystem.GetFilePaths(folder.Path, recursive: true, filter: IsMatch);
     }
 

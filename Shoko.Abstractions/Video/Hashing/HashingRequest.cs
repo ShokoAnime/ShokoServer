@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.IO;
+using Shoko.Abstractions.FileSystem;
 
 namespace Shoko.Abstractions.Video.Hashing;
 
@@ -9,9 +9,12 @@ namespace Shoko.Abstractions.Video.Hashing;
 public class HashingRequest
 {
     /// <summary>
-    /// The <see cref="FileInfo"/> of the video file to get hashes for.
+    /// The video file to get hashes for: its path at once, and its stat, the
+    /// size among it, when first asked for. Open it through
+    /// <see cref="FileSystem.Services.IFileSystem.OpenRead"/> with its
+    /// <see cref="FileSystemEntry.Path"/>.
     /// </summary>
-    public required FileInfo File { get; init; }
+    public required FileSystemEntry File { get; init; }
 
     /// <summary>
     /// A list of all existing hashes that the provider supports for the video.
@@ -26,10 +29,10 @@ public class HashingRequest
     /// <summary>
     /// Deconstructs the <see cref="HashingRequest"/>.
     /// </summary>
-    /// <param name="file">The <see cref="FileInfo"/> of the video file to get hashes for.</param>
+    /// <param name="file">The video file to get hashes for.</param>
     /// <param name="existingHashes">A list of all existing hashes that the provider supports for the video.</param>
     /// <param name="enabledHashTypes">A list of all enabled hash types for this hashing session and provider.</param>
-    public void Deconstruct(out FileInfo file, out IReadOnlyList<IHashDigest> existingHashes, out IReadOnlySet<string> enabledHashTypes)
+    public void Deconstruct(out FileSystemEntry file, out IReadOnlyList<IHashDigest> existingHashes, out IReadOnlySet<string> enabledHashTypes)
     {
         file = File;
         existingHashes = ExistingHashes;
