@@ -36,18 +36,6 @@ of a known file joins that file's video without hashing, a copy is matched by
 its name and size or hashed. To move a video's file and keep its record, use
 `IVideoRelocationService` instead.
 
----|---|
-| `CopyFile(source, destination, overwrite)` | A new file with the same contents. |
-| `CreateHardLink(source, destination)` | A second name for the same file. Both paths must be on the same volume, and an `IOException` says when they are not. |
-| `CreateSymbolicLink(source, destination)` | A link pointing to the source, a file or a directory, which must exist; a relative source is read from the destination's folder and stored as given. Windows only allows it to an administrator or with developer mode on. |
-| `MoveFile`, `DeleteFile`, `CreateDirectory`, `DeleteDirectory` | As in `System.IO`. |
-
-None of them touches the database. A file made or removed here is found by the
-file watcher or the next scan, like one made by hand: a symbolic link or a hard
-link of a known file joins that file's video without hashing, a copy is matched
-by its name and size or hashed. To move a video's file and keep its record,
-use `IVideoRelocationService` instead.
-
 ---
 
 ## Reading an entry
@@ -130,20 +118,6 @@ Reading a volume touches it: on Linux `statvfs`, with `/sys` telling a
 removable disk; elsewhere on Unix `statvfs` too; on Windows the volume the
 path is under. A hard-mounted share whose server is gone makes it wait.
 
----|---|
-| `VolumeID` | The same value as the entry's `Identity.VolumeID` |
-| `MountPoint` | The volume's root: `/mnt/media`, `C:\`, `\\server\share\` |
-| `Source` | The device or share mounted there (`/dev/sda1`, `//server/media`), on Linux and for Windows shares |
-| `FormatName` | `ext4`, `btrfs`, `cifs`, `nfs4`, `NTFS` and so on |
-| `Kind` | `Fixed`, `Removable`, `Network`, `Optical`, `Memory`, or `Generic` |
-| `Label` | The volume's label, Windows only |
-| `IsReadOnly` | Whether it is mounted read-only |
-| `TotalSize`, `FreeSpace`, `AvailableFreeSpace` | In bytes; the last is what the server may use |
-
-On Linux it reads `/proc/self/mountinfo` and `statvfs`, and tells a removable
-disk from `/sys`; elsewhere on Unix it reads .NET's drive list and `statvfs`,
-and on Windows the volume the path is under.
-
 ---
 
 ## Telling files apart
@@ -169,16 +143,25 @@ whose times differ between reads.
 ## Listing
 
 `GetFilePaths` and `GetDirectoryPaths` list paths, and `GetFileEntries`,
-`GetDirectoryEntries` and `GetFileSystemEntries` list `FileSystemEntry`s. They
-walk a directory, in parallel when `recursive`, so the results come in no
-particular order, and a subdirectory that cannot be read is logged and skipped.
-`extensions` only filters files.
+`GetDirectoryEntries` and `GetFileSystemEntries` list `FileSystemEntry`s. Each
+takes a `FileSystemListingOptions`; without one it lists the directory itself,
+links included. Subdirectories are walked in parallel, so the results come in
+no particular order, and one that cannot be read is skipped.
 
-A `FileSystemEntry` knows its `Path`, `Name` and `IsDirectory` from the listing
-itself, at no cost, and reads its `Stat` (with `FileStat` and `DirectoryStat`
-beside it) only when first asked, then keeps it. The `FileSystemEntryFilter`,
+| Option | What it does |
+|---|---|
+| `Recursive` | Look in subdirectories too. |
+| `Extensions` | Only list files with these extensions; directories are not filtered by them. |
+| `Filter` | A `FileSystemEntryFilter` deciding which entries to keep; a directory left out is not walked. |
+| `FollowDirectoryLinks` | Walk into links to directories. Off by default, as such a link can lead out of the directory or back up into it; when on, a directory reached through a link is walked once. |
+| `IncludeDirectoryLinks` | List links to directories, walked into or not. On by default. |
+| `IncludeFileLinks` | List links to files, and links whose target is gone. On by default. |
+
+A `FileSystemEntry` knows its `Path`, `Name`, `IsDirectory` and `IsSymbolicLink`
+from the listing itself, at no cost, and reads its `Stat` (with `FileStat` and
+`DirectoryStat` beside it) only when first asked, then keeps it. The filter,
 ignore rules (`IManagedFolderIgnoreRule`), the detected-file event and hashing
 requests all hand out entries, so code that only needs the path costs a scan
 nothing, and code that needs the size or times pays one read for that entry.
-Returning `false` from the filter leaves an entry out, and a directory left out
-is not walked.
+Whether an entry is a special file, such as a pipe, is not known from the
+listing: `Stat is SpecialFileStat` tells.

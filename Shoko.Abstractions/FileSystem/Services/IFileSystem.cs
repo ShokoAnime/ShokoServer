@@ -21,7 +21,7 @@ namespace Shoko.Abstractions.FileSystem.Services;
 ///     file moved here is not taken for a new one. A video file made in a
 ///     managed folder this way is found by the next scan, or at once when
 ///     handed to <see cref="Video.Services.IVideoService.NotifyVideoFileChangeDetected(string, bool, bool)"/>.
-///     A file written through <see cref="OpenFile"/> is not hidden.
+///     A file written through <c>OpenFile</c> is not hidden.
 ///   </para>
 /// </remarks>
 public interface IFileSystem
@@ -81,6 +81,26 @@ public interface IFileSystem
     /// <exception cref="DirectoryNotFoundException">The folder holding it does not exist.</exception>
     /// <exception cref="IOException">It could not be opened for another reason: another process holds it, it exists while <paramref name="mode"/> is <see cref="FileMode.CreateNew"/>, or the volume could not be reached.</exception>
     FileStream OpenFile(string path, FileMode mode, FileAccess access, FileShare share);
+
+    /// <summary>
+    ///   Opens a file with every option a <see cref="FileStream"/> takes: the
+    ///   mode, access and sharing, the buffer size, <see cref="FileOptions"/>
+    ///   such as <see cref="FileOptions.RandomAccess"/> or
+    ///   <see cref="FileOptions.Asynchronous"/>, and a preallocation size. A
+    ///   reader that should not keep the server from moving or deleting the
+    ///   file shares <see cref="FileShare.ReadWrite"/> and
+    ///   <see cref="FileShare.Delete"/>.
+    /// </summary>
+    /// <param name="path">The path.</param>
+    /// <param name="options">How to open it.</param>
+    /// <returns>The stream.</returns>
+    /// <exception cref="ArgumentException">The path is empty, or the options do not go together, such as <see cref="FileMode.Append"/> with read access.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The buffer or preallocation size is negative.</exception>
+    /// <exception cref="UnauthorizedAccessException">The file may not be opened with that access, or the path is a directory.</exception>
+    /// <exception cref="FileNotFoundException">The mode needs the file and it does not exist.</exception>
+    /// <exception cref="DirectoryNotFoundException">The folder holding it does not exist.</exception>
+    /// <exception cref="IOException">It could not be opened for another reason: another process holds it, it exists while the mode is <see cref="FileMode.CreateNew"/>, the volume has no room for the preallocation, or the volume could not be reached.</exception>
+    FileStream OpenFile(string path, FileStreamOptions options);
 
     /// <summary>
     ///   Opens the file at the given path for reading.
@@ -168,19 +188,17 @@ public interface IFileSystem
     void CreateHardLink(string sourcePath, string destinationPath);
 
     /// <summary>
-    ///   Lists file paths beneath the given directory.
+    ///   Lists the paths of the files beneath the given directory:
+    ///   <see cref="GetFileEntries"/> without the entries.
     /// </summary>
     /// <param name="directoryPath">The directory.</param>
-    /// <param name="recursive">Whether to look in subdirectories too.</param>
-    /// <param name="extensions">Only list files with these extensions.</param>
-    /// <param name="filter">
-    ///   Decides which entries to keep. A directory left out is not walked
-    ///   either.
+    /// <param name="options">
+    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
     /// </param>
     /// <param name="cancellationToken">Stops the listing.</param>
     /// <returns>The paths.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    string[] GetFilePaths(string directoryPath, bool recursive = false, IEnumerable<string>? extensions = null, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default);
+    string[] GetFilePaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Lists the files beneath the given directory as entries:
@@ -188,16 +206,13 @@ public interface IFileSystem
     ///   costs nothing; its stat is read only when asked for.
     /// </summary>
     /// <param name="directoryPath">The directory.</param>
-    /// <param name="recursive">Whether to look in subdirectories too.</param>
-    /// <param name="extensions">Only list files with these extensions.</param>
-    /// <param name="filter">
-    ///   Decides which entries to keep. A directory left out is not walked
-    ///   either.
+    /// <param name="options">
+    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
     /// </param>
     /// <param name="cancellationToken">Stops the listing.</param>
     /// <returns>The entries.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    IReadOnlyList<FileSystemEntry> GetFileEntries(string directoryPath, bool recursive = false, IEnumerable<string>? extensions = null, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default);
+    IReadOnlyList<FileSystemEntry> GetFileEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
 
     #endregion
 
@@ -307,18 +322,17 @@ public interface IFileSystem
     void MoveDirectory(string sourcePath, string destinationPath, bool overwrite = false);
 
     /// <summary>
-    ///   Lists directory paths beneath the given directory.
+    ///   Lists the paths of the directories beneath the given directory:
+    ///   <see cref="GetDirectoryEntries"/> without the entries.
     /// </summary>
     /// <param name="directoryPath">The directory.</param>
-    /// <param name="recursive">Whether to look in subdirectories too.</param>
-    /// <param name="filter">
-    ///   Decides which entries to keep. A directory left out is not walked
-    ///   either.
+    /// <param name="options">
+    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
     /// </param>
     /// <param name="cancellationToken">Stops the listing.</param>
     /// <returns>The paths.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    string[] GetDirectoryPaths(string directoryPath, bool recursive = false, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default);
+    string[] GetDirectoryPaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Lists the directories beneath the given directory as entries:
@@ -326,15 +340,13 @@ public interface IFileSystem
     ///   path costs nothing; its stat is read only when asked for.
     /// </summary>
     /// <param name="directoryPath">The directory.</param>
-    /// <param name="recursive">Whether to look in subdirectories too.</param>
-    /// <param name="filter">
-    ///   Decides which entries to keep. A directory left out is not walked
-    ///   either.
+    /// <param name="options">
+    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
     /// </param>
     /// <param name="cancellationToken">Stops the listing.</param>
     /// <returns>The entries.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    IReadOnlyList<FileSystemEntry> GetDirectoryEntries(string directoryPath, bool recursive = false, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default);
+    IReadOnlyList<FileSystemEntry> GetDirectoryEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
 
     #endregion
 
@@ -510,28 +522,19 @@ public interface IFileSystem
 
     /// <summary>
     ///   Lists the files and directories beneath the given directory, as
-    ///   entries: the walk <see cref="GetFilePaths"/> and
-    ///   <see cref="GetDirectoryPaths"/> share. Subdirectories are walked in
+    ///   entries: the walk every listing shares. Subdirectories are walked in
     ///   parallel, so the entries come in no particular order, and one that
-    ///   cannot be read is logged and skipped. An entry's path and kind cost
-    ///   nothing; its stat is read only when asked for.
+    ///   cannot be read is skipped. An entry's path, kind and whether it is a
+    ///   link cost nothing; its stat is read only when asked for.
     /// </summary>
     /// <param name="directoryPath">The directory.</param>
-    /// <param name="recursive">Whether to look in subdirectories too.</param>
-    /// <param name="extensions">
-    ///   Only list files with these extensions. Directories are not filtered
-    ///   by them.
+    /// <param name="options">
+    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
     /// </param>
-    /// <param name="filter">
-    ///   Decides which entries to keep. A directory left out is not walked
-    ///   either.
-    /// </param>
-    /// <param name="outputFiles">Whether to list files.</param>
-    /// <param name="outputDirectories">Whether to list directories.</param>
     /// <param name="cancellationToken">Stops the listing.</param>
     /// <returns>The entries, or none when the directory does not exist.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    IReadOnlyList<FileSystemEntry> GetFileSystemEntries(string directoryPath, bool recursive = false, IEnumerable<string>? extensions = null, FileSystemEntryFilter? filter = null, bool outputFiles = true, bool outputDirectories = true, CancellationToken cancellationToken = default);
+    IReadOnlyList<FileSystemEntry> GetFileSystemEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
 
     #endregion
 }

@@ -278,7 +278,7 @@ public class VideoRelocationGuardTests
     {
         using var harness = Create();
         harness.FileSystem
-            .Setup(f => f.GetDirectoryPaths(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<FileSystemEntryFilter?>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.GetDirectoryPaths(It.IsAny<string>(), It.IsAny<FileSystemListingOptions?>(), It.IsAny<CancellationToken>()))
             .Returns([Path.Combine(SourcePath, "Show")]);
 
         Assert.Equal(Path.Combine("Show", "episode.mkv"), harness.Service.ReuseExistingFolderCase(SourcePath, Path.Combine("show", "episode.mkv")));

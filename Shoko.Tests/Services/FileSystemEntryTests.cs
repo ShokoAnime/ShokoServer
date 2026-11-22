@@ -51,8 +51,8 @@ public sealed class FileSystemEntryTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, "folder"));
         File.WriteAllText(Path.Combine(_root, "folder", "video.mkv"), "video");
 
-        var files = fileSystem.GetFileEntries(_root, recursive: true, cancellationToken: TestContext.Current.CancellationToken);
-        var directories = fileSystem.GetDirectoryEntries(_root, recursive: true, cancellationToken: TestContext.Current.CancellationToken);
+        var files = fileSystem.GetFileEntries(_root, new() { Recursive = true }, cancellationToken: TestContext.Current.CancellationToken);
+        var directories = fileSystem.GetDirectoryEntries(_root, new() { Recursive = true }, cancellationToken: TestContext.Current.CancellationToken);
 
         var file = Assert.Single(files);
         Assert.Equal("video.mkv", file.Name);
@@ -62,5 +62,95 @@ public sealed class FileSystemEntryTests : IDisposable
         Assert.Equal("folder", directory.Name);
         Assert.True(directory.IsDirectory);
         Assert.NotNull(directory.DirectoryStat);
+    }
+
+    [Fact]
+    public void Listings_MarkLinksAndWalkIntoThemOnlyWhenAsked()
+    {
+        IFileSystem fileSystem = new FileSystemService(NullLogger<FileSystemService>.Instance);
+        var target = Directory.CreateDirectory(Path.Combine(_root, "target")).FullName;
+        File.WriteAllText(Path.Combine(target, "video.mkv"), "video");
+        var walk = Directory.CreateDirectory(Path.Combine(_root, "walk")).FullName;
+        try
+        {
+            Directory.CreateSymbolicLink(Path.Combine(walk, "link"), target);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Assert.Skip("This user may not make symbolic links here.");
+        }
+
+        var all = fileSystem.GetFileSystemEntries(walk, new() { Recursive = true, FollowDirectoryLinks = true }, cancellationToken: TestContext.Current.CancellationToken);
+        var notFollowed = fileSystem.GetFileSystemEntries(walk, new() { Recursive = true }, cancellationToken: TestContext.Current.CancellationToken);
+
+        var link = Assert.Single(all, entry => entry.Name == "link");
+        Assert.True(link.IsSymbolicLink);
+        Assert.True(link.IsDirectory);
+        Assert.Contains(all, entry => entry.Name == "video.mkv" && !entry.IsSymbolicLink);
+        Assert.True(Assert.Single(notFollowed).IsSymbolicLink);
+    }
+
+    [Fact]
+    public void Listings_LeaveOutFileAndDirectoryLinksApart()
+    {
+        IFileSystem fileSystem = new FileSystemService(NullLogger<FileSystemService>.Instance);
+        var target = Directory.CreateDirectory(Path.Combine(_root, "target")).FullName;
+        File.WriteAllText(Path.Combine(target, "video.mkv"), "video");
+        var walk = Directory.CreateDirectory(Path.Combine(_root, "walk")).FullName;
+        try
+        {
+            Directory.CreateSymbolicLink(Path.Combine(walk, "folder-link"), target);
+            File.CreateSymbolicLink(Path.Combine(walk, "file-link.mkv"), Path.Combine(target, "video.mkv"));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Assert.Skip("This user may not make symbolic links here.");
+        }
+
+        string[] Names(FileSystemListingOptions options)
+            => fileSystem.GetFileSystemEntries(walk, options, TestContext.Current.CancellationToken).Select(entry => entry.Name).Order().ToArray();
+
+        Assert.Equal(["file-link.mkv", "folder-link"], Names(new()));
+        Assert.Equal(["folder-link"], Names(new() { IncludeFileLinks = false }));
+        Assert.Equal(["file-link.mkv"], Names(new() { IncludeDirectoryLinks = false }));
+        // Walked into, though not listed itself.
+        Assert.Equal(["file-link.mkv", "video.mkv"], Names(new() { Recursive = true, FollowDirectoryLinks = true, IncludeDirectoryLinks = false }));
+    }
+
+    [Fact]
+    public void Listings_WalkALinkBackUpTheTreeOnce()
+    {
+        IFileSystem fileSystem = new FileSystemService(NullLogger<FileSystemService>.Instance);
+        var show = Directory.CreateDirectory(Path.Combine(_root, "show")).FullName;
+        File.WriteAllText(Path.Combine(show, "video.mkv"), "video");
+        try
+        {
+            Directory.CreateSymbolicLink(Path.Combine(show, "loop"), _root);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Assert.Skip("This user may not make symbolic links here.");
+        }
+
+        var files = fileSystem.GetFilePaths(_root, new() { Recursive = true, FollowDirectoryLinks = true }, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(Path.Combine(show, "video.mkv"), Assert.Single(files));
+    }
+
+    [Fact]
+    public void OpenFile_TakesStreamOptions()
+    {
+        IFileSystem fileSystem = new FileSystemService(NullLogger<FileSystemService>.Instance);
+        var path = Path.Combine(_root, "video.mkv");
+        File.WriteAllText(path, "video");
+
+        using (var stream = fileSystem.OpenFile(path, new FileStreamOptions { Share = FileShare.ReadWrite | FileShare.Delete, BufferSize = 1, Options = FileOptions.RandomAccess }))
+        {
+            // Shared for deletion, so the file can be moved while it is open.
+            File.Move(path, path + ".moved");
+            Assert.Equal(5, stream.Length);
+        }
+
+        Assert.True(File.Exists(path + ".moved"));
     }
 }

@@ -130,7 +130,7 @@ public class RecoveringFileSystemWatcher : IDisposable
             _logger.LogTrace("New Directory Found. Iterating: {Path}", item.Path);
             // iterate and queue a command for each containing file
             bool IsMatch(FileSystemEntry entry) => entry.IsDirectory || (!_pathExclusions.Any(a => a.IsMatch(entry.Path)) && _buffer.TryAdd(entry.Path, 0));
-            foreach (var file in _fileSystem.GetFilePaths(item.Path, recursive: true, extensions: _filters, filter: IsMatch, cancellationToken: token))
+            foreach (var file in _fileSystem.GetFilePaths(item.Path, new() { Recursive = true, Extensions = _filters.Count > 0 ? _filters : null, Filter = IsMatch, FollowDirectoryLinks = true }, token))
                 Enqueue(new WatcherEvent(file, item.Type, false));
         }
         catch (OperationCanceledException)

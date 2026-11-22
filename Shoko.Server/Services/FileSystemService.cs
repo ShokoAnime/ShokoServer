@@ -62,6 +62,9 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
     public FileStream OpenRead(string path)
         => File.OpenRead(PlatformUtility.EnsureUsablePath(path));
 
+    public FileStream OpenFile(string path, FileStreamOptions options)
+        => new(PlatformUtility.EnsureUsablePath(path)!, options);
+
     public void CopyFile(string sourcePath, string destinationPath, bool overwrite = false)
         => Unwatched(() => File.Copy(PlatformUtility.EnsureUsablePath(sourcePath), PlatformUtility.EnsureUsablePath(destinationPath), overwrite), destinationPath);
 
@@ -110,8 +113,8 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern bool CreateHardLinkW(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
 
-    public string[] GetFilePaths(string directoryPath, bool recursive = false, IEnumerable<string>? extensions = null, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default)
-        => GetFileEntries(directoryPath, recursive, extensions, filter, cancellationToken).Select(entry => entry.Path).ToArray();
+    public string[] GetFilePaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
+        => List(directoryPath, options, outputFiles: true, outputDirectories: false, cancellationToken).Select(entry => entry.Path).ToArray();
 
     #endregion
 
@@ -250,8 +253,8 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
     private static bool IsInside(string path, string directory)
         => path.StartsWith(directory.EndsWith(Path.DirectorySeparatorChar) ? directory : directory + Path.DirectorySeparatorChar, PlatformUtility.StringComparison);
 
-    public string[] GetDirectoryPaths(string directoryPath, bool recursive = false, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default)
-        => GetDirectoryEntries(directoryPath, recursive, filter, cancellationToken).Select(entry => entry.Path).ToArray();
+    public string[] GetDirectoryPaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
+        => List(directoryPath, options, outputFiles: false, outputDirectories: true, cancellationToken).Select(entry => entry.Path).ToArray();
 
     #endregion
 
@@ -376,58 +379,84 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
         }
     }
 
-    public IReadOnlyList<FileSystemEntry> GetFileEntries(string directoryPath, bool recursive = false, IEnumerable<string>? extensions = null, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default)
-        => GetFileSystemEntries(directoryPath, recursive, extensions, filter, outputFiles: true, outputDirectories: false, cancellationToken: cancellationToken);
+    public IReadOnlyList<FileSystemEntry> GetFileEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
+        => List(directoryPath, options, outputFiles: true, outputDirectories: false, cancellationToken);
 
-    public IReadOnlyList<FileSystemEntry> GetDirectoryEntries(string directoryPath, bool recursive = false, FileSystemEntryFilter? filter = null, CancellationToken cancellationToken = default)
-        => GetFileSystemEntries(directoryPath, recursive, filter: filter, outputFiles: false, outputDirectories: true, cancellationToken: cancellationToken);
+    public IReadOnlyList<FileSystemEntry> GetDirectoryEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
+        => List(directoryPath, options, outputFiles: false, outputDirectories: true, cancellationToken);
 
-    public IReadOnlyList<FileSystemEntry> GetFileSystemEntries(string directoryPath, bool recursive = false, IEnumerable<string>? extensions = null, FileSystemEntryFilter? filter = null, bool outputFiles = true, bool outputDirectories = true, CancellationToken cancellationToken = default)
+    public IReadOnlyList<FileSystemEntry> GetFileSystemEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
+        => List(directoryPath, options, outputFiles: true, outputDirectories: true, cancellationToken);
+
+    private IReadOnlyList<FileSystemEntry> List(string directoryPath, FileSystemListingOptions? options, bool outputFiles, bool outputDirectories, CancellationToken cancellationToken)
     {
-        if (!Directory.Exists(directoryPath))
+        options ??= FileSystemListingOptions.Default;
+        if (!DirectoryExists(directoryPath))
             return [];
         var outputBag = new ConcurrentBag<FileSystemEntry>();
-        var canProceed = GetEntryValidator(extensions, filter);
+        var canProceed = GetEntryValidator(options);
+        var recursive = options.Recursive;
+        // While following links, the directories reached through one are remembered by identity, the
+        // root's included, so a link back up the tree is walked once rather than until the path is too long.
+        var walked = recursive && options.FollowDirectoryLinks ? new ConcurrentDictionary<StatIdentity, byte>() : null;
+        if (walked is not null && TryGetIdentity(directoryPath) is { } rootIdentity)
+            walked.TryAdd(rootIdentity, 0);
         Parallelize(directoryPath, path =>
         {
-            // Each listing tells files from directories, so an entry costs no read of its own.
-            if (outputFiles)
+            // One pass gives each entry's name, kind and link flag, so an entry costs no read of its own.
+            // The directory is opened in its usable form, while the paths handed out are built from the
+            // plain one, so a long path's prefix never leaves the service.
+            var walkInto = recursive ? new List<string>() : null;
+            var listing = new System.IO.Enumeration.FileSystemEnumerable<(string Name, bool IsDirectory, bool IsLink)>(
+                PlatformUtility.EnsureUsablePath(path)!,
+                (ref System.IO.Enumeration.FileSystemEntry e) => (e.FileName.ToString(), e.IsDirectory, (e.Attributes & FileAttributes.ReparsePoint) != 0),
+                _cachedEnumerationOptions
+            );
+            foreach (var (name, isDirectory, isLink) in listing)
             {
-                foreach (var file in Directory.EnumerateFiles(path, "*", _cachedEnumerationOptions))
-                {
-                    var entry = new FileSystemEntry(this, file, isDirectory: false);
-                    if (canProceed(entry))
-                        outputBag.Add(entry);
-                }
+                // A link that is neither listed nor walked into needs no entry at all.
+                var walksInto = isDirectory && recursive && (!isLink || walked is not null);
+                var outputs = isDirectory
+                    ? outputDirectories && (!isLink || options.IncludeDirectoryLinks)
+                    : outputFiles && (!isLink || options.IncludeFileLinks);
+                if (!outputs && !walksInto)
+                    continue;
+                var entry = new FileSystemEntry(this, Path.Join(path, name), isDirectory, isLink);
+                if (!canProceed(entry))
+                    continue;
+                if (outputs)
+                    outputBag.Add(entry);
+                if (!walksInto)
+                    continue;
+                if (!isLink || TryGetIdentity(entry.Path) is { } identity && walked!.TryAdd(identity, 0))
+                    walkInto!.Add(entry.Path);
             }
-            if (outputDirectories || recursive)
-            {
-                var outputs = new List<string>();
-                foreach (var directory in Directory.EnumerateDirectories(path, "*", _cachedEnumerationOptions))
-                {
-                    var entry = new FileSystemEntry(this, directory, isDirectory: true);
-                    if (!canProceed(entry))
-                        continue;
-                    if (outputDirectories)
-                        outputBag.Add(entry);
-                    outputs.Add(directory);
-                }
-                return recursive ? outputs : null;
-            }
-            return null;
+            return walkInto;
         }, cancellationToken).Wait(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return outputBag.ToArray();
     }
 
-    private static FileSystemEntryFilter GetEntryValidator(IEnumerable<string>? extensions, FileSystemEntryFilter? filter)
+    private StatIdentity? TryGetIdentity(string path)
     {
-        if (extensions is null)
+        try
+        {
+            return GetDirectoryStat(path)?.Identity;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static FileSystemEntryFilter GetEntryValidator(FileSystemListingOptions options)
+    {
+        var filter = options.Filter;
+        if (options.Extensions is not { } extensions)
             return filter ?? (_ => true);
-        var extensionSet = extensions is IReadOnlyCollection<string> readOnlyCollection ? readOnlyCollection : extensions.ToHashSet();
         if (filter is not null)
-            return entry => (entry.IsDirectory || extensionSet.Any(ext => entry.Path.EndsWith(ext, StringComparison.OrdinalIgnoreCase))) && filter(entry);
-        return entry => entry.IsDirectory || extensionSet.Any(ext => entry.Path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
+            return entry => (entry.IsDirectory || extensions.Any(ext => entry.Path.EndsWith(ext, StringComparison.OrdinalIgnoreCase))) && filter(entry);
+        return entry => entry.IsDirectory || extensions.Any(ext => entry.Path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
     }
 
     private Task Parallelize<T>(T initialValue, Func<T, IEnumerable<T>?> action, CancellationToken cancellationToken = default)

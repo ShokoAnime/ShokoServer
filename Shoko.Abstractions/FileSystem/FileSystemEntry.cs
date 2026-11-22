@@ -28,13 +28,15 @@ public sealed class FileSystemEntry
     /// </summary>
     /// <param name="fileSystem">The file system to read the stat from.</param>
     /// <param name="path">The entry's absolute path.</param>
-    /// <param name="isDirectory">Whether it is a directory.</param>
-    public FileSystemEntry(IFileSystem fileSystem, string path, bool isDirectory)
+    /// <param name="isDirectory">Whether it is a directory, or a link to one.</param>
+    /// <param name="isSymbolicLink">Whether it is a symbolic link.</param>
+    public FileSystemEntry(IFileSystem fileSystem, string path, bool isDirectory, bool isSymbolicLink = false)
     {
         _fileSystem = fileSystem;
         Path = path;
         Name = System.IO.Path.GetFileName(System.IO.Path.TrimEndingDirectorySeparator(path));
         IsDirectory = isDirectory;
+        IsSymbolicLink = isSymbolicLink;
     }
 
     /// <summary>
@@ -48,9 +50,17 @@ public sealed class FileSystemEntry
     public string Name { get; }
 
     /// <summary>
-    ///   Whether it is a directory, as the listing found it.
+    ///   Whether it is a directory, or a link to one, as the listing found it.
     /// </summary>
     public bool IsDirectory { get; }
+
+    /// <summary>
+    ///   Whether it is a symbolic link (a junction too, on Windows), as the
+    ///   listing found it. <see cref="Stat"/> reads what it points to; read
+    ///   the link itself with <see cref="IFileSystem.GetStat"/> and
+    ///   <c>followSymbolicLinks: false</c>.
+    /// </summary>
+    public bool IsSymbolicLink { get; }
 
     /// <summary>
     ///   What the file system says about the entry, with symbolic links

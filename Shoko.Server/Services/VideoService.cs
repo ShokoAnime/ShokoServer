@@ -1452,7 +1452,7 @@ public class VideoService : IVideoService
             return [];
         bool IsMatch(FileSystemEntry entry)
             => !_ignoreRules.Any(rule => rule.ShouldIgnore(folder, entry));
-        return _fileSystem.GetFilePaths(folder.Path, recursive: true, filter: IsMatch);
+        return _fileSystem.GetFilePaths(folder.Path, new() { Recursive = true, Filter = IsMatch, FollowDirectoryLinks = true });
     }
 
     public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true)
@@ -1509,7 +1509,8 @@ public class VideoService : IVideoService
 
     public void CleanupManagedFolder(IManagedFolder managedFolder)
     {
-        var directories = _fileSystem.GetDirectoryPaths(managedFolder.Path, recursive: true);
+        // Links are left alone: an empty folder a link points to is not the managed folder's to remove.
+        var directories = _fileSystem.GetDirectoryPaths(managedFolder.Path, new() { Recursive = true, IncludeDirectoryLinks = false });
         RecursiveDeleteEmptyDirectories(directories, managedFolder.Path);
     }
 

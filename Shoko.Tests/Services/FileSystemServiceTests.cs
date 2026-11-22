@@ -570,7 +570,7 @@ public sealed class FileSystemServiceTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_root, "c"));
 
         var topLevel = _fileSystem.GetDirectoryPaths(_root, cancellationToken: TestContext.Current.CancellationToken).Select(name => Path.GetFileName(name)!).Order().ToArray();
-        var all = _fileSystem.GetDirectoryPaths(_root, recursive: true, cancellationToken: TestContext.Current.CancellationToken).Select(name => Path.GetFileName(name)!).Order().ToArray();
+        var all = _fileSystem.GetDirectoryPaths(_root, new() { Recursive = true }, cancellationToken: TestContext.Current.CancellationToken).Select(name => Path.GetFileName(name)!).Order().ToArray();
 
         Assert.Equal(["a", "c"], topLevel);
         Assert.Equal(["a", "b", "c"], all);
@@ -583,7 +583,7 @@ public sealed class FileSystemServiceTests : IDisposable
         MakeFile(Path.Combine("a", "one.mkv"));
         MakeFile("two.txt");
 
-        var entries = _fileSystem.GetFileSystemEntries(_root, recursive: true, extensions: [".mkv"], cancellationToken: TestContext.Current.CancellationToken)
+        var entries = _fileSystem.GetFileSystemEntries(_root, new() { Recursive = true, Extensions = [".mkv"] }, cancellationToken: TestContext.Current.CancellationToken)
             .Select(entry => entry.Path)
             .Select(path => Path.GetRelativePath(_root, path))
             .Order()
