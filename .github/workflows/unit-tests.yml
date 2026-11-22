@@ -29,3 +29,25 @@ jobs:
 
       - name: Run queue processor tests
         run: dotnet test Shoko.QueueProcessor.Tests/Shoko.QueueProcessor.Tests.csproj -c Release --logger "console;verbosity=normal"
+
+  # The same suites on Windows, where the file system code takes its own paths: handles instead of
+  # statx, typed symbolic links, volume serial numbers, long paths. Tests that make symbolic links
+  # skip themselves without developer mode or admin rights.
+  test-windows:
+    runs-on: windows-latest
+    name: Unit Tests (Windows)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.x'
+
+      - name: Run unit tests
+        run: dotnet test Shoko.Tests/Shoko.Tests.csproj -c Release --logger "console;verbosity=normal"
+
+      - name: Run queue processor tests
+        run: dotnet test Shoko.QueueProcessor.Tests/Shoko.QueueProcessor.Tests.csproj -c Release --logger "console;verbosity=normal"
