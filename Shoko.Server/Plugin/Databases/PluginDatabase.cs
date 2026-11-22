@@ -59,10 +59,23 @@ internal interface IPluginDatabase
     IReadOnlyList<string> GetPendingMigrations();
 
     /// <summary>
-    /// Applies the migrations up to and including one.
+    /// The migrations already applied, oldest first.
+    /// </summary>
+    /// <returns>The migration IDs.</returns>
+    IReadOnlyList<string> GetAppliedMigrations();
+
+    /// <summary>
+    /// Applies the migrations up to and including one. Any applied migration
+    /// that sorts after it is reverted first, so only use it when none does.
     /// </summary>
     /// <param name="migration">The migration ID.</param>
     void Migrate(string migration);
+
+    /// <summary>
+    /// Applies every pending migration, those that sort before an applied
+    /// one included, and reverts none.
+    /// </summary>
+    void MigrateAll();
 }
 
 /// <summary>
@@ -115,9 +128,23 @@ internal sealed class PluginDatabase<TPlugin, TContext>(
     }
 
     /// <inheritdoc/>
+    public IReadOnlyList<string> GetAppliedMigrations()
+    {
+        using var context = factory.CreateMigrationContext();
+        return context.Database.GetAppliedMigrations().ToList();
+    }
+
+    /// <inheritdoc/>
     public void Migrate(string migration)
     {
         using var context = factory.CreateMigrationContext();
         context.GetService<IMigrator>().Migrate(migration);
+    }
+
+    /// <inheritdoc/>
+    public void MigrateAll()
+    {
+        using var context = factory.CreateMigrationContext();
+        context.GetService<IMigrator>().Migrate();
     }
 }

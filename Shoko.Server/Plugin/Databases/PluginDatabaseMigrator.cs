@@ -127,6 +127,7 @@ internal sealed class PluginDatabaseMigrator(
     internal void Migrate(IPluginDatabase database, Action<string>? reportProgress = null)
     {
         IReadOnlyList<string> pending;
+        bool outOfOrder;
         string? backupFile = null;
         try
         {
@@ -136,6 +137,13 @@ internal sealed class PluginDatabaseMigrator(
                 logger.LogDebug("Database \"{Name}\" of plugin \"{Plugin}\" is up to date.", database.Name, database.PluginName);
                 return;
             }
+
+            // Migrating to a target reverts every applied migration that sorts
+            // after it, so a pending migration older than an applied one, as a
+            // branch merged after another brings, is applied with the rest at
+            // once, which reverts nothing.
+            var firstPending = pending.Min(StringComparer.Ordinal)!;
+            outOfOrder = database.GetAppliedMigrations().Any(applied => string.CompareOrdinal(applied, firstPending) > 0);
 
             backupFile = Backup(database, reportProgress);
         }
@@ -159,6 +167,27 @@ internal sealed class PluginDatabaseMigrator(
                 database.PluginName,
                 backupFile
             );
+        if (outOfOrder)
+        {
+            reportProgress?.Invoke($"Migrating plugin database {database.PluginName}/{database.Name}: {string.Join(", ", pending)}...");
+            try
+            {
+                database.MigrateAll();
+            }
+            catch (Exception ex)
+            {
+                throw new PluginDatabaseMigrationException(database, string.Join(", ", pending), backupFile, ex);
+            }
+
+            logger.LogDebug(
+                "Applied migrations {Migrations} to database \"{Name}\" of plugin \"{Plugin}\" at once, since one sorts before a migration already applied.",
+                pending,
+                database.Name,
+                database.PluginName
+            );
+            return;
+        }
+
         for (var index = 0; index < pending.Count; index++)
         {
             var migration = pending[index];

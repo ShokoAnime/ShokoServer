@@ -188,6 +188,21 @@ public sealed class PluginDatabaseTests : IDisposable
     }
 
     [Fact]
+    public void AMigrationOlderThanOneAppliedIsAppliedWithTheRestWithoutRevertingAny()
+    {
+        // A branch merged after another brings a migration that sorts before one
+        // already applied; migrating to it as a target would revert the newer one.
+        var log = new List<string>();
+        var database = new FakeDatabase(this, ["20260101000000_One"], applied: ["20260102000000_Two"]) { Log = log };
+        CreateSqliteFile(database.FilePath);
+
+        Migrator(database).MigrateAll();
+
+        Assert.Equal(["migrate all"], log);
+        Assert.Equal(["20260101000000_One"], database.Applied);
+    }
+
+    [Fact]
     public void AnExistingDatabaseIsCopiedBeforeItsMigrationsApplyInOrder()
     {
         var database = new FakeDatabase(this, ["20260101000000_One", "20260102000000_Two"]);
@@ -461,7 +476,7 @@ public sealed class PluginDatabaseTests : IDisposable
             => log.Add($"ready {name}");
     }
 
-    private sealed class FakeDatabase(PluginDatabaseTests tests, IReadOnlyList<string> pending) : IPluginDatabase
+    private sealed class FakeDatabase(PluginDatabaseTests tests, IReadOnlyList<string> pending, IReadOnlyList<string>? applied = null) : IPluginDatabase
     {
         public List<string>? Log { get; init; }
 
@@ -488,12 +503,21 @@ public sealed class PluginDatabaseTests : IDisposable
         public IReadOnlyList<string> GetPendingMigrations()
             => FailPending ? throw new InvalidOperationException("file is not a database") : pending.Except(Applied).ToList();
 
+        public IReadOnlyList<string> GetAppliedMigrations()
+            => [.. applied ?? [], .. Applied];
+
         public void Migrate(string migration)
         {
             Log?.Add($"migrate {migration}");
             if (migration == FailOn)
                 throw new InvalidOperationException("duplicate column name: Tag");
             Applied.Add(migration);
+        }
+
+        public void MigrateAll()
+        {
+            Log?.Add("migrate all");
+            Applied.AddRange(pending.Except(Applied));
         }
     }
 

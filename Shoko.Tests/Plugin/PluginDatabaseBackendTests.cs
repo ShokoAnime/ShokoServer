@@ -317,7 +317,13 @@ public sealed class PluginDatabaseBackendTests : IDisposable
         public IReadOnlyList<string> GetPendingMigrations()
             => [];
 
+        public IReadOnlyList<string> GetAppliedMigrations()
+            => [];
+
         public void Migrate(string migration)
+            => throw new NotSupportedException();
+
+        public void MigrateAll()
             => throw new NotSupportedException();
     }
 
