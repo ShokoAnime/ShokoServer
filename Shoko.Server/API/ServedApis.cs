@@ -27,20 +27,33 @@ internal sealed class ServedApis
     private CoreApis? _running;
 
     /// <summary>
-    ///   The APIs served. Read before they are settled, they are taken from the
-    ///   settings as they are.
+    ///   The APIs served. Read before they are settled, they are what the
+    ///   settings say, without settling them.
     /// </summary>
     public CoreApis Running
     {
         get
         {
             lock (_lock)
-                return _running ??= FromSettings(ISettingsProvider.Instance.GetSettings().Web);
+                return _running ?? FromSettings(ISettingsProvider.Instance.GetSettings().Web);
         }
     }
 
     /// <summary>
-    ///   Settles the APIs served, unless they were read already.
+    ///   Whether the APIs served are settled. They are, once the web UIs are
+    ///   known and before the web host starts.
+    /// </summary>
+    public bool IsSettled
+    {
+        get
+        {
+            lock (_lock)
+                return _running is not null;
+        }
+    }
+
+    /// <summary>
+    ///   Settles the APIs served, unless they were settled already.
     /// </summary>
     /// <param name="apis">The APIs.</param>
     /// <returns><c>true</c> if they were settled now.</returns>

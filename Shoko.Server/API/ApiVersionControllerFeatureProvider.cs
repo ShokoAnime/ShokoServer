@@ -11,7 +11,11 @@ namespace Shoko.Server.API;
 /// </summary>
 /// <remarks>
 /// This provider only affects controllers in the core assembly.
-/// Plugin controllers from other assemblies are never filtered.
+/// Plugin controllers from other assemblies are never filtered. Asked before
+/// the APIs served are settled, as when the controllers are registered as
+/// services while the web host is built, it lets every controller through, so
+/// they are all registered and the early question settles nothing; the routes
+/// are only built once the web host starts, after the APIs are settled.
 /// </remarks>
 internal class ApiVersionControllerFeatureProvider(ServedApis servedApis) : ControllerFeatureProvider
 {
@@ -22,8 +26,8 @@ internal class ApiVersionControllerFeatureProvider(ServedApis servedApis) : Cont
         if (!base.IsController(typeInfo))
             return false;
 
-        // Only filter controllers from the core assembly.
-        if (typeInfo.Assembly != _serverAssembly)
+        // Only filter controllers from the core assembly, and only once the APIs are settled.
+        if (typeInfo.Assembly != _serverAssembly || !servedApis.IsSettled)
             return true;
 
         var ns = typeInfo.Namespace;

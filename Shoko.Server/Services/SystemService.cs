@@ -1033,7 +1033,7 @@ public class SystemService : ISystemService
         }
 
         if (!ServedApis.Instance.Settle(ServedApis.FromSettings(settings.Web)))
-            _logger.LogWarning("The core APIs were read before the web UIs were known; serving {Apis}.", ServedApis.Describe(ServedApis.Instance.Running));
+            _logger.LogWarning("The core APIs were settled already; serving {Apis}.", ServedApis.Describe(ServedApis.Instance.Running));
     }
 
     /// <inheritdoc/>
