@@ -487,7 +487,7 @@ public static class ModelHelper
 
     public static ListResult<File> FilterFiles(
         IEnumerable<VideoLocal> input,
-        JMMUser user,
+        ShokoUser user,
         int pageSize,
         int page,
         FileNonDefaultIncludeType[]? include,
@@ -521,7 +521,7 @@ public static class ModelHelper
                 BestLocation: video.FirstValidPlace,
                 Locations: includeLocations ? video.Places : null,
                 ReleaseInfo: includeReleaseInfo ? video.ReleaseInfo : null,
-                UserRecord: includeUserRecord ? RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(user.JMMUserID, video.VideoLocalID) : null
+                UserRecord: includeUserRecord ? RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(user.ID, video.VideoLocalID) : null
             ))
             .Where(tuple =>
             {

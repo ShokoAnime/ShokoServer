@@ -101,7 +101,7 @@ public class RecognisedVideoTests
         // Nothing resolves the TMDB entry here, so the recognised files are in import limbo: include those.
         // A page past the end gives the total without building the file models.
         var kept = videos
-            .Where(video => ModelHelper.FilterFiles([video], new JMMUser(), 1, 100, [FileNonDefaultIncludeType.ImportLimbo], exclude, includeOnly, null, null, skipSort: true).Total is 1)
+            .Where(video => ModelHelper.FilterFiles([video], new ShokoUser(), 1, 100, [FileNonDefaultIncludeType.ImportLimbo], exclude, includeOnly, null, null, skipSort: true).Total is 1)
             .Select(video => video.VideoLocalID)
             .Order();
 

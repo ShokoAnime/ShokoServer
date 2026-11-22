@@ -213,7 +213,7 @@ public class EpisodeController(
                     // If we should hide watched episodes and the episode is watched, then hide it.
                     // Or if we should only show watched episodes and the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
-                    var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate is not null;
+                    var isWatched = shoko.GetUserRecord(user.ID)?.WatchedDate is not null;
                     if (shouldHideWatched == isWatched)
                         return false;
                 }
@@ -224,7 +224,7 @@ public class EpisodeController(
                     // If we should hide voted episodes and the episode is voted, then hide it.
                     // Or if we should only show voted episodes and the episode is not voted, then hide it.
                     var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
-                    var isVoted = _animeEpisodeUsers.GetByUserAndEpisodeID(user.JMMUserID, shoko.AnimeEpisodeID) is { HasUserRating: true };
+                    var isVoted = _animeEpisodeUsers.GetByUserAndEpisodeID(user.ID, shoko.AnimeEpisodeID) is { HasUserRating: true };
                     if (shouldHideVoted == isVoted)
                         return false;
                 }

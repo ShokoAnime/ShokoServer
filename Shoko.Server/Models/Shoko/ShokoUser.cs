@@ -16,11 +16,11 @@ using Shoko.Server.Repositories;
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.Shoko;
 
-public class JMMUser : IIdentity, IUser
+public class ShokoUser : IIdentity, IUser
 {
     #region Database Columns
 
-    public int JMMUserID { get; set; }
+    public int ID { get; set; }
 
     public string Username { get; set; } = string.Empty;
 
@@ -205,10 +205,10 @@ public class JMMUser : IIdentity, IUser
     #region IMetadata Implementation
 
     [NotMapped]
-    MetadataGuid IMetadata.ID => new(MetadataSource.Shoko, MetadataEntityType.User, JMMUserID.ToString());
+    MetadataGuid IMetadata.ID => new(MetadataSource.Shoko, MetadataEntityType.User, ID.ToString());
 
     [NotMapped]
-    int IUser.LocalID => JMMUserID;
+    int IUser.LocalID => ID;
 
     #endregion
 

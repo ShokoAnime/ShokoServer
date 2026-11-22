@@ -19,7 +19,7 @@ namespace Shoko.Tests.Actors;
 /// </summary>
 public class JobActorAccessorTests
 {
-    private static readonly JMMUser _user = new() { JMMUserID = 3, Username = "carol" };
+    private static readonly ShokoUser _user = new() { ID = 3, Username = "carol" };
 
     private static JobActorAccessor Create(params AuthTokens[] tokens)
         => Create(new Mock<ISystemService>().Object, tokens);
@@ -27,12 +27,12 @@ public class JobActorAccessorTests
     private static JobActorAccessor Create(ISystemService systemService, params AuthTokens[] tokens)
         => new(
             systemService,
-            new(() => CachedRepo.Build<JMMUserRepository, int, JMMUser>(u => u.JMMUserID, _user)),
+            new(() => CachedRepo.Build<ShokoUserRepository, int, ShokoUser>(u => u.ID, _user)),
             new(() => CachedRepo.Build<AuthTokensRepository, int, AuthTokens>(t => t.AuthID, tokens))
         );
 
     private static AuthTokens Stored(int id, string device, DateTime? expiresAt = null)
-        => new() { AuthID = id, UserID = _user.JMMUserID, DeviceName = device, Token = Guid.NewGuid().ToString(), ExpiresAt = expiresAt };
+        => new() { AuthID = id, UserID = _user.ID, DeviceName = device, Token = Guid.NewGuid().ToString(), ExpiresAt = expiresAt };
 
     [Fact]
     public void Capture_TakesTheUserAndDeviceOnly()
@@ -107,7 +107,7 @@ public class JobActorAccessorTests
             new(() =>
             {
                 userRepositoryBuilt = true;
-                return CachedRepo.Build<JMMUserRepository, int, JMMUser>(u => u.JMMUserID, _user);
+                return CachedRepo.Build<ShokoUserRepository, int, ShokoUser>(u => u.ID, _user);
             }),
             new(() => CachedRepo.Build<AuthTokensRepository, int, AuthTokens>(t => t.AuthID))
         );

@@ -23,7 +23,7 @@ public sealed class JobActorAccessor : IJobActorAccessor
 {
     private readonly ISystemService _systemService;
 
-    private readonly Lazy<JMMUserRepository> _userRepository;
+    private readonly Lazy<ShokoUserRepository> _userRepository;
 
     private readonly Lazy<AuthTokensRepository> _authTokensRepository;
 
@@ -33,7 +33,7 @@ public sealed class JobActorAccessor : IJobActorAccessor
     /// <param name="systemService">Tells whether the database can be read yet.</param>
     /// <param name="userRepository">Where the user is looked up again.</param>
     /// <param name="authTokensRepository">Where the token is looked up again.</param>
-    public JobActorAccessor(ISystemService systemService, Lazy<JMMUserRepository> userRepository, Lazy<AuthTokensRepository> authTokensRepository)
+    public JobActorAccessor(ISystemService systemService, Lazy<ShokoUserRepository> userRepository, Lazy<AuthTokensRepository> authTokensRepository)
     {
         _systemService = systemService;
         _userRepository = userRepository;

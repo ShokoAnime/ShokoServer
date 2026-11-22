@@ -42,10 +42,10 @@ public class PlexHelper
     private readonly ILogger<PlexHelper> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ISettingsProvider _settingsProvider;
-    private readonly JMMUserRepository _jmmUsers;
+    private readonly ShokoUserRepository _jmmUsers;
 
     private readonly int _userId;
-    private JMMUser? _user => _jmmUsers.GetByID(_userId);
+    private ShokoUser? _user => _jmmUsers.GetByID(_userId);
 
     private readonly string _version;
 
@@ -70,7 +70,7 @@ public class PlexHelper
         ILogger<PlexHelper> logger,
         IHttpClientFactory httpClientFactory,
         ISettingsProvider settingsProvider,
-        JMMUserRepository jmmUsers,
+        ShokoUserRepository jmmUsers,
         ISystemService systemService,
         IVideoService videoService
     )
@@ -277,7 +277,7 @@ public class PlexHelper
         return _key.AuthToken;
     }
 
-    private void SaveToken(JMMUser user, string? token)
+    private void SaveToken(ShokoUser user, string? token)
     {
         user.PlexToken = token;
         _jmmUsers.Save(user);

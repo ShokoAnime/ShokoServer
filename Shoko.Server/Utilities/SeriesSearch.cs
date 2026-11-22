@@ -522,7 +522,7 @@ public static class SeriesSearch
     /// <returns>
     ///     <see cref="List{SearchResult}" />
     /// </returns>
-    public static List<SearchResult<AnimeSeries>> SearchSeries(JMMUser user, string query, int limit, SearchFlags flags,
+    public static List<SearchResult<AnimeSeries>> SearchSeries(ShokoUser user, string query, int limit, SearchFlags flags,
             TagFilter.Filter tagFilter = TagFilter.Filter.None, bool searchById = false)
     {
         if (string.IsNullOrWhiteSpace(query) || user == null || limit <= 0)

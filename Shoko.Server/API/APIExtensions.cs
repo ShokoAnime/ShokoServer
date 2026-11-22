@@ -96,7 +96,7 @@ public static partial class APIExtensions
                 policy => policy.Requirements.Add(new UserHandler(user => user.IsAdmin == 1)));
             auth.AddPolicy("init",
                 policy => policy.Requirements.Add(new UserHandler(user =>
-                    user.JMMUserID == 0 && user.Username == "init")));
+                    user.ID == 0 && user.Username == "init")));
             // Anyone until the server has started, and nobody after. While a setup token guards setup or failure mode,
             // only a caller the handler signed in with it.
             auth.AddPolicy("startup",

@@ -306,7 +306,7 @@ public class VideoLocal : IVideo
     IVideoUserData? IVideo.GetUserData(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.LocalID is 0 || RepoFactory.JMMUser.GetByID(user.LocalID) is null)
+        if (user.LocalID is 0 || RepoFactory.ShokoUser.GetByID(user.LocalID) is null)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
         return RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(user.LocalID, VideoLocalID);
     }

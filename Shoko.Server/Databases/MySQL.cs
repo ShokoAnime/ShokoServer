@@ -1801,6 +1801,23 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(205,   4, "ALTER TABLE `Metadata_Season` ADD COLUMN `Resources` TEXT NULL;"),
         new(206,   1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
         new(207,   1, "ALTER TABLE `ImportFolder` ADD COLUMN `IsNetworkShare` INT NULL;"),
+        new(207,   2, "RENAME TABLE `ImportFolder` TO `ShokoManagedFolder`;"),
+        new(207,   3, "ALTER TABLE `ShokoManagedFolder` RENAME COLUMN `ImportFolderID` TO `ID`;"),
+        new(207,   4, "ALTER TABLE `ShokoManagedFolder` RENAME COLUMN `ImportFolderName` TO `Name`;"),
+        new(207,   5, "ALTER TABLE `ShokoManagedFolder` RENAME COLUMN `ImportFolderLocation` TO `Path`;"),
+        new(207,   6, "ALTER TABLE `VideoLocal_Place` RENAME COLUMN `VideoLocal_Place_ID` TO `ID`;"),
+        new(207,   7, "ALTER TABLE `VideoLocal_Place` RENAME COLUMN `VideoLocalID` TO `VideoID`;"),
+        new(207,   8, "ALTER TABLE `VideoLocal_Place` RENAME COLUMN `ImportFolderID` TO `ManagedFolderID`;"),
+        new(207,   9, "ALTER TABLE `VideoLocal_Place` RENAME COLUMN `FilePath` TO `RelativePath`;"),
+        new(207,  10, "ALTER TABLE `AniDB_Tag` RENAME COLUMN `TagName` TO `TagNameSource`;"),
+        new(207,  11, "RENAME TABLE `JMMUser` TO `ShokoUser`;"),
+        new(207,  12, "ALTER TABLE `ShokoUser` RENAME COLUMN `JMMUserID` TO `ID`;"),
+        new(207,  13, "ALTER TABLE `AnimeEpisode_User` RENAME COLUMN `JMMUserID` TO `UserID`;"),
+        new(207,  14, "ALTER TABLE `AnimeSeries_User` RENAME COLUMN `JMMUserID` TO `UserID`;"),
+        new(207,  15, "ALTER TABLE `AnimeGroup_User` RENAME COLUMN `JMMUserID` TO `UserID`;"),
+        new(207,  16, "ALTER TABLE `VideoLocal_User` RENAME COLUMN `JMMUserID` TO `UserID`;"),
+        new(207,  17, "ALTER TABLE `UserConfiguration` RENAME COLUMN `JMMUserID` TO `UserID`;"),
+        new(207,  18, "ALTER TABLE `UserConfiguration` RENAME INDEX `UIX_UserConfiguration_JMMUserID_ConfigurationID` TO `UIX_UserConfiguration_UserID_ConfigurationID`;"),
     ];
 
     #endregion

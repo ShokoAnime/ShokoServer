@@ -344,7 +344,7 @@ public class FilterController(
             return UnfilteredSeries(includeMissing)
                 .OrderBy(series => series.Title.ToSortName())
                 .ThenBy(series => series.AniDB_ID)
-                .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
+                .ToListResult(series => new Series(series, User.ID, randomImages), page, pageSize);
 
         // Check if the group filter exists.
         if (filterPresetRepository.GetByID(filterID) is not { } filterPreset)
@@ -359,7 +359,7 @@ public class FilterController(
 
     private ListResult<Series> GetFilteredSeries(FilterPreset filterPreset, int pageSize, int page, bool includeMissing, bool randomImages)
     {
-        var userID = User.JMMUserID;
+        var userID = User.ID;
         return FilteredSeries(filterPreset, includeMissing)
             .ToListResult(s => new Series(s, userID, randomImages), page, pageSize);
     }
@@ -585,7 +585,7 @@ public class FilterController(
         return filteringService.GetFilteredSeriesInGroup(filterPreset, group, recursive, user, cancellationToken: HttpContext.RequestAborted)
             .Cast<AnimeSeries>()
             .Where(a => includeMissing || (a.VideoLocals.Count > 0))
-            .Select(a => new Series(a, user.JMMUserID, randomImages, includeDataFrom))
+            .Select(a => new Series(a, user.ID, randomImages, includeDataFrom))
             .ToList();
     }
 

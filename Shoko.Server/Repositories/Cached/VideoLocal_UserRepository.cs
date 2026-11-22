@@ -19,8 +19,8 @@ public class VideoLocal_UserRepository(DatabaseFactory databaseFactory) : BaseCa
     public override void PopulateIndexes()
     {
         _videoLocalIDs = Cache.CreateIndex(a => a.VideoLocalID);
-        _userIDs = Cache.CreateIndex(a => a.JMMUserID);
-        _userVideoLocalIDs = Cache.CreateIndex(a => (a.JMMUserID, a.VideoLocalID));
+        _userIDs = Cache.CreateIndex(a => a.UserID);
+        _userVideoLocalIDs = Cache.CreateIndex(a => (a.UserID, a.VideoLocalID));
     }
 
     public IReadOnlyList<VideoLocal_User> GetByVideoLocalID(int videoLocalID)

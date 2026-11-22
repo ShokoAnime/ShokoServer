@@ -235,7 +235,7 @@ public class TextInvalidationTests
     public void TheSeriesSearchFindsAnAnimeByATitleWrittenAfterTheIndexWasBuilt()
     {
         using var world = new World();
-        var user = new JMMUser { JMMUserID = 1 };
+        var user = new ShokoUser { ID = 1 };
         Assert.Single(SeriesSearch.SearchSeries(user, "Old Name", 10, SeriesSearch.SearchFlags.Titles));
 
         world.SetAnimeTitle("Brand New");

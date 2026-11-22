@@ -98,7 +98,7 @@ public class LegacyActionController(
 
         if (export && import)
             return BadRequest("Cannot export and import at the same time.");
-        await _scheduler.StartJob<SyncAniDBVotesJob>(c => (c.UserID, c.Export) = (User.JMMUserID, export));
+        await _scheduler.StartJob<SyncAniDBVotesJob>(c => (c.UserID, c.Export) = (User.ID, export));
         return Ok();
     }
 

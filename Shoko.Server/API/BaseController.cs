@@ -20,7 +20,7 @@ namespace Shoko.Server.API;
 public class BaseController(ISettingsProvider settingsProvider) : Controller
 {
     // Override Controller.User to be the SVR_JMMUser, since we'll almost never need HttpContext.User
-    protected new JMMUser User => HttpContext.GetUser();
+    protected new ShokoUser User => HttpContext.GetUser();
 
     protected readonly ISettingsProvider SettingsProvider = settingsProvider;
 

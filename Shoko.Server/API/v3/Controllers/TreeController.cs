@@ -86,7 +86,7 @@ public class TreeController(ISettingsProvider settingsProvider,
         return (recursive ? group.AllSeries : group.Series)
             .Where(a => user.AllowedSeries(a) && (includeMissing || a.VideoLocals.Count > 0))
             .OrderBy(a => a?.AirDate ?? PartialDateOnly.MaxValue)
-            .Select(series => new Series(series, user.JMMUserID, randomImages, includeDataFrom))
+            .Select(series => new Series(series, user.ID, randomImages, includeDataFrom))
             .ToList();
     }
 
@@ -117,7 +117,7 @@ public class TreeController(ISettingsProvider settingsProvider,
         if (view.MainSeries is not { } mainSeries)
             return InternalError("Unable to find main series for group.");
 
-        return new Series(mainSeries, user.JMMUserID, randomImages, includeDataFrom);
+        return new Series(mainSeries, user.ID, randomImages, includeDataFrom);
     }
 
     #endregion

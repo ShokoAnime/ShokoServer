@@ -137,7 +137,7 @@ public sealed class TextFixture
     /// <summary>
     ///   The user the searches run as, with nothing hidden.
     /// </summary>
-    public JMMUser User { get; } = new() { JMMUserID = 1, Username = "bench", IsAdmin = 1 };
+    public ShokoUser User { get; } = new() { ID = 1, Username = "bench", IsAdmin = 1 };
 
     #endregion
 

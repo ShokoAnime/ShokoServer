@@ -139,7 +139,7 @@ public static class Models
         return false;
     }
 
-    public static bool IsAdminUser(this JMMUser user) => user.IsAdmin == 1;
+    public static bool IsAdminUser(this ShokoUser user) => user.IsAdmin == 1;
 
     public static string ToSortName(this string name)
     {

@@ -173,7 +173,7 @@ public class ReverseTreeController : BaseController
             return Forbid(EpisodeController.EpisodeForbiddenForUser);
         }
 
-        return new Series(series, User.JMMUserID, randomImages, includeDataFrom);
+        return new Series(series, User.ID, randomImages, includeDataFrom);
     }
 
     /// <summary>

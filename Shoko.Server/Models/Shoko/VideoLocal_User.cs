@@ -11,7 +11,7 @@ public class VideoLocal_User : IVideoUserData
 {
     public int VideoLocal_UserID { get; set; }
 
-    public int JMMUserID { get; set; }
+    public int UserID { get; set; }
 
     public int VideoLocalID { get; set; }
 
@@ -44,8 +44,8 @@ public class VideoLocal_User : IVideoUserData
         set => ResumePosition = value.HasValue ? (long)Math.Round(value.Value.TotalMilliseconds) : 0;
     }
 
-    public JMMUser User
-        => RepoFactory.JMMUser.GetByID(JMMUserID)!;
+    public ShokoUser User
+        => RepoFactory.ShokoUser.GetByID(UserID)!;
 
     /// <summary>
     /// Get the related <see cref="Shoko.VideoLocal"/>.
@@ -57,21 +57,21 @@ public class VideoLocal_User : IVideoUserData
     {
         var video = VideoLocal;
         if (video == null)
-            return $"{VideoLocalID} -- User {JMMUserID}";
+            return $"{VideoLocalID} -- User {UserID}";
 
 #pragma warning disable CS0618
-        return $"{video.FileName} --- {video.Hash} --- User {JMMUserID}";
+        return $"{video.FileName} --- {video.Hash} --- User {UserID}";
 #pragma warning restore CS0618
     }
 
     #region IUserData Implementation
 
-    int IUserData.UserID => JMMUserID;
+    int IUserData.UserID => UserID;
 
     DateTime IUserData.LastUpdatedAt => LastUpdated;
 
     IUser IUserData.User => User ??
-        throw new NullReferenceException($"Unable to find IUser with the given id. (User={JMMUserID})");
+        throw new NullReferenceException($"Unable to find IUser with the given id. (User={UserID})");
 
     #endregion
 

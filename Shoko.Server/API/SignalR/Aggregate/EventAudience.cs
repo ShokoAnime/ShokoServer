@@ -84,7 +84,7 @@ public sealed class EventAudience
 
     /// <summary>
     /// The users who may see a video, by the rule of
-    /// <see cref="JMMUser.IsAllowedToSee(IVideo)"/>: those who may see any
+    /// <see cref="ShokoUser.IsAllowedToSee(IVideo)"/>: those who may see any
     /// known anime it is linked to. A video linked to no known anime, an
     /// unrecognised one or one linked only to other sources among them, is
     /// hidden from restricted users.
@@ -157,7 +157,7 @@ public sealed class EventAudience
     /// <param name="user">The user.</param>
     /// <returns><c>true</c> when the user has no restricted tags.</returns>
     public static bool IsUnrestricted(IUser user)
-        => user is JMMUser shokoUser ? !shokoUser.HasRestrictions() : user.RestrictedTags.Count is 0;
+        => user is ShokoUser shokoUser ? !shokoUser.HasRestrictions() : user.RestrictedTags.Count is 0;
 
     /// <summary>
     /// Whether a user may receive the event. A user without restricted tags

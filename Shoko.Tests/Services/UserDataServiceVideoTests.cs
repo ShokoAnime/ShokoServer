@@ -100,7 +100,7 @@ public class UserDataServiceVideoTests
         => new()
         {
             VideoLocal_UserID = 1,
-            JMMUserID = UserID,
+            UserID = UserID,
             VideoLocalID = VideoID,
             WatchedDate = watchedDate,
             WatchedCount = watchedCount,

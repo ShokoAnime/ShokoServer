@@ -68,7 +68,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
     public IReadOnlyList<AuthTokens> GetByUserID(int userID)
         => _userIDs!.GetMultiple(userID);
 
-    public AuthTokens CreateNewApiKey(JMMUser user, string device)
+    public AuthTokens CreateNewApiKey(ShokoUser user, string device)
         => CreateNewApiKey(user, device, out _, out _);
 
     /// <summary>
@@ -81,10 +81,10 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
     /// <param name="created">Whether a new token was created.</param>
     /// <param name="removedDuplicates">The other permanent tokens of the device that were removed.</param>
     /// <returns>The token.</returns>
-    public AuthTokens CreateNewApiKey(JMMUser user, string device, out bool created, out IReadOnlyList<AuthTokens> removedDuplicates)
+    public AuthTokens CreateNewApiKey(ShokoUser user, string device, out bool created, out IReadOnlyList<AuthTokens> removedDuplicates)
     {
         created = false;
-        var allTokensForUser = _userIDs!.GetMultiple(user.JMMUserID);
+        var allTokensForUser = _userIDs!.GetMultiple(user.ID);
         var existingTokens = allTokensForUser
             .Where(a => !a.ExpiresAt.HasValue && !string.IsNullOrEmpty(a.Token) && a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase))
             .ToList();
@@ -102,7 +102,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
         var token = new AuthTokens
         {
-            UserID = user.JMMUserID,
+            UserID = user.ID,
             DeviceName = device.Trim(),
             Token = Guid.NewGuid().ToString().ToLowerInvariant().Trim(),
         };
@@ -113,11 +113,11 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         return token;
     }
 
-    public AuthTokens CreateExpiringApiKey(JMMUser user, string device, DateTime expiresAt)
+    public AuthTokens CreateExpiringApiKey(ShokoUser user, string device, DateTime expiresAt)
     {
         var token = new AuthTokens
         {
-            UserID = user.JMMUserID,
+            UserID = user.ID,
             DeviceName = device.Trim(),
             Token = Guid.NewGuid().ToString().ToLowerInvariant().Trim(),
             ExpiresAt = expiresAt,

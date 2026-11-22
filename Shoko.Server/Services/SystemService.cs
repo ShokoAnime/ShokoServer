@@ -1172,7 +1172,7 @@ public class SystemService : ISystemService
             return false;
         }
 
-        var user = RepoFactory.JMMUser.GetByUsername(resetRequest.Username);
+        var user = RepoFactory.ShokoUser.GetByUsername(resetRequest.Username);
         if (user is null)
         {
             StartupMessage = $"Password reset failed: no user named {resetRequest.Username}.";
@@ -1181,8 +1181,8 @@ public class SystemService : ISystemService
         else
         {
             user.Password = Digest.Hash(resetRequest.Password);
-            RepoFactory.JMMUser.Save(user);
-            RepoFactory.AuthTokens.DeleteAllWithUserID(user.JMMUserID);
+            RepoFactory.ShokoUser.Save(user);
+            RepoFactory.AuthTokens.DeleteAllWithUserID(user.ID);
             try
             {
                 File.Delete(filePath);

@@ -12,7 +12,7 @@ public class AnimeGroup_UserMap : ClassMap<AnimeGroup_User>
 
         Not.LazyLoad();
         Id(x => x.AnimeGroup_UserID);
-        Map(x => x.JMMUserID);
+        Map(x => x.UserID);
         Map(x => x.AnimeGroupID);
         Map(x => x.UnwatchedEpisodeCount).Not.Nullable();
         Map(x => x.WatchedCount).Not.Nullable();

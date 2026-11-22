@@ -74,11 +74,11 @@ public class User
     [Required]
     public string PlexUsernames { get; set; }
 
-    public User(IUser user) : this((JMMUser)user) { }
+    public User(IUser user) : this((ShokoUser)user) { }
 
-    public User(JMMUser user)
+    public User(ShokoUser user)
     {
-        ID = user.JMMUserID;
+        ID = user.ID;
         Username = user.Username;
         IsAdmin = user.IsAdmin == 1;
         CommunitySites = [];
@@ -102,7 +102,7 @@ public class User
     /// </summary>
     /// <param name="user">The user.</param>
     /// <returns>The data url.</returns>
-    private static string GetAvatarAsDataUrl(JMMUser user)
+    private static string GetAvatarAsDataUrl(ShokoUser user)
     {
         if ((user as IWithPrimaryImage).PrimaryImage is not { IsAvailable: true } primaryImage)
             return string.Empty;
@@ -177,7 +177,7 @@ public class User
                         return null;
 
                     // This will throw a validation error of something is invalid.
-                    var user = (JMMUser)service.CreateUser(initialData)
+                    var user = (ShokoUser)service.CreateUser(initialData)
                         .ConfigureAwait(false)
                         .GetAwaiter()
                         .GetResult();
@@ -191,7 +191,7 @@ public class User
                         if (user.PlexUsers != newPlexUsernames)
                         {
                             user.PlexUsers = newPlexUsernames;
-                            RepoFactory.JMMUser.Save(user);
+                            RepoFactory.ShokoUser.Save(user);
                         }
                     }
 
@@ -240,7 +240,7 @@ public class User
             /// <param name="imageManager">The image manager.</param>
             /// <param name="user">The saved user.</param>
             /// <param name="avatar">The uploaded avatar, if any.</param>
-            protected void ApplyAvatar(IImageManager imageManager, JMMUser user, IImage? avatar)
+            protected void ApplyAvatar(IImageManager imageManager, ShokoUser user, IImage? avatar)
             {
                 if (Avatar is null)
                     return;
@@ -287,9 +287,9 @@ public class User
             public string? PlexUsernames { get; set; }
 
             public virtual User? MergeWithExisting(IUser user, ModelStateDictionary modelState, bool isAdmin = false)
-                => MergeWithExisting((JMMUser)user, modelState, isAdmin);
+                => MergeWithExisting((ShokoUser)user, modelState, isAdmin);
 
-            public virtual User? MergeWithExisting(JMMUser user, ModelStateDictionary modelState, bool isAdmin = false)
+            public virtual User? MergeWithExisting(ShokoUser user, ModelStateDictionary modelState, bool isAdmin = false)
             {
                 if (RestrictedTags is not null && !isAdmin)
                     modelState.AddModelError(nameof(RestrictedTags), "Only admins are allowed to change the restricted tags for users.");
@@ -301,7 +301,7 @@ public class User
                 {
                     if (isAdmin)
                     {
-                        var allAdmins = RepoFactory.JMMUser.GetAll().Where(a => a.IsAdminUser()).ToList();
+                        var allAdmins = RepoFactory.ShokoUser.GetAll().Where(a => a.IsAdminUser()).ToList();
                         allAdmins.Remove(user);
                         if (allAdmins.Count < 1)
                             modelState.AddModelError(nameof(IsAdmin), "There must be at least one admin user.");
@@ -337,7 +337,7 @@ public class User
                         return null;
 
                     // This will throw a validation error of something is invalid.
-                    user = (JMMUser)service.UpdateUser(user, updateData)
+                    user = (ShokoUser)service.UpdateUser(user, updateData)
                         .ConfigureAwait(false)
                         .GetAwaiter()
                         .GetResult();
@@ -351,7 +351,7 @@ public class User
                         if (user.PlexUsers != newPlexUsernames)
                         {
                             user.PlexUsers = newPlexUsernames;
-                            RepoFactory.JMMUser.Save(user);
+                            RepoFactory.ShokoUser.Save(user);
                         }
                     }
 

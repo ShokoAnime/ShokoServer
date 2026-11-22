@@ -71,7 +71,7 @@ public class MetadataServiceLookupTests
         { "shoko://collection/2", typeof(AnimeGroup) },
         { $"shoko://video/{MetadataLookupTables.VideoHash}+{MetadataLookupTables.VideoSize}", typeof(VideoLocal) },
         { "shoko://video/5", typeof(VideoLocal) },
-        { "shoko://user/6", typeof(JMMUser) },
+        { "shoko://user/6", typeof(ShokoUser) },
         { "shoko://filter/7", typeof(FilterPreset) },
         { $"shoko://channel/{MetadataLookupTables.ChannelID}", typeof(AiringChannel) },
         { "shoko://ordering/3", typeof(IOrdering) },

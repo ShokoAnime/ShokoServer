@@ -98,7 +98,7 @@ public class StreamModule(
         // Keyed per video, per user and per transform: the finest distinction this route
         // offers. Two players sharing all three share a rendition and will fight over its
         // position; nothing in the URL can tell them apart.
-        var key = $"legacy:{video.VideoLocalID}:{r.User?.JMMUserID ?? 0}:{transformInfo.ID}";
+        var key = $"legacy:{video.VideoLocalID}:{r.User?.ID ?? 0}:{transformInfo.ID}";
         var cancellationToken = HttpContext.RequestAborted;
         StreamSession session;
         try
@@ -336,7 +336,7 @@ public class StreamModule(
     {
         public FileInfo File { get; set; }
         public VideoLocal VideoLocal { get; set; }
-        public JMMUser User { get; set; }
+        public ShokoUser User { get; set; }
         public HttpStatusCode Status { get; set; }
         public string StatusDescription { get; set; }
         public string Mime { get; set; }
@@ -369,7 +369,7 @@ public class StreamModule(
 
         if (userId is not (null or 0))
         {
-            r.User = RepoFactory.JMMUser.GetByID(userId.Value);
+            r.User = RepoFactory.ShokoUser.GetByID(userId.Value);
             if (r.User == null)
             {
                 r.Status = HttpStatusCode.NotFound;

@@ -19,9 +19,9 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
 
     public override void PopulateIndexes()
     {
-        _userIDs = Cache.CreateIndex(a => a.JMMUserID);
+        _userIDs = Cache.CreateIndex(a => a.UserID);
         _episodeIDs = Cache.CreateIndex(a => a.AnimeEpisodeID);
-        _userEpisodeIDs = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeEpisodeID));
+        _userEpisodeIDs = Cache.CreateIndex(a => (a.UserID, a.AnimeEpisodeID));
     }
 
     public override void RegenerateDb()

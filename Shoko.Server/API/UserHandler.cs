@@ -7,9 +7,9 @@ namespace Shoko.Server.API;
 
 public class UserHandler : AuthorizationHandler<UserHandler>, IAuthorizationRequirement
 {
-    private readonly Func<JMMUser, bool> validationAction;
+    private readonly Func<ShokoUser, bool> validationAction;
 
-    public UserHandler(Func<JMMUser, bool> validationAction)
+    public UserHandler(Func<ShokoUser, bool> validationAction)
     {
         this.validationAction = validationAction;
     }

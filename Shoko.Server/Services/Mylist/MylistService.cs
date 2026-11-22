@@ -52,7 +52,7 @@ public class MylistService(
     IUserDataService userDataService,
     MylistCache mylistCache,
     MylistGenericsCache genericsCache,
-    JMMUserRepository users,
+    ShokoUserRepository users,
     VideoLocalRepository videoLocals,
     VideoLocal_UserRepository videoLocalUsers,
     AnimeEpisodeRepository animeEpisodes,
@@ -658,7 +658,7 @@ public class MylistService(
         var user = users.GetAniDBUser();
         var originalWatchedDate = user is null
             ? null
-            : videoLocalUsers.GetByUserAndVideoLocalID(user.JMMUserID, videoLocal.VideoLocalID)?.WatchedDate?.ToUniversalTime();
+            : videoLocalUsers.GetByUserAndVideoLocalID(user.ID, videoLocal.VideoLocalID)?.WatchedDate?.ToUniversalTime();
 
         MylistEntry? mylistEntry;
         MylistAddData resolvedData;
@@ -678,7 +678,7 @@ public class MylistService(
                 // back to — the episode's own user data. Several files can map to
                 // one episode, and routing each file's watched date through the
                 // shared entry would leave the two permanently fighting over it
-                var episodeWatchedDate = user is null ? null : episode.GetUserRecord(user.JMMUserID)?.WatchedDate?.ToUniversalTime();
+                var episodeWatchedDate = user is null ? null : episode.GetUserRecord(user.ID)?.WatchedDate?.ToUniversalTime();
                 var episodeData = ResolveAddData(data, episodeWatchedDate);
                 var episodeEntry = await AddEntryAsync(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, episodeData, fetchMode, cancellationToken)
                     .ConfigureAwait(false);
@@ -1106,12 +1106,12 @@ public class MylistService(
     /// file's watched date into the shared entry would leave several files
     /// mapped to the same episode fighting over it.
     /// </summary>
-    private static MylistUpdateData ForEpisode(MylistUpdateData data, AnimeEpisode episode, JMMUser? user)
+    private static MylistUpdateData ForEpisode(MylistUpdateData data, AnimeEpisode episode, ShokoUser? user)
     {
         if (!data.IsViewed.HasValue && !data.ViewedAt.HasValue)
             return data;
 
-        var watchedDate = user is null ? null : episode.GetUserRecord(user.JMMUserID)?.WatchedDate?.ToUniversalTime();
+        var watchedDate = user is null ? null : episode.GetUserRecord(user.ID)?.WatchedDate?.ToUniversalTime();
         return new MylistUpdateData
         {
             State = data.State,
@@ -1602,7 +1602,7 @@ public class MylistService(
     /// fields the step carries are the same ones the entry-level operations take,
     /// so this is a dispatch rather than a re-derivation.
     /// </summary>
-    private async Task ApplyAction(MylistSyncAction action, JMMUser? anidbUser)
+    private async Task ApplyAction(MylistSyncAction action, ShokoUser? anidbUser)
     {
         // an entry carries every way AniDB can be told about it, and the video
         // and episode carry the rest, so a step needs no identifiers of its own
@@ -2176,7 +2176,7 @@ public class MylistService(
     }
 
     private Task<int> ProcessStates(
-        JMMUser? anidbUser,
+        ShokoUser? anidbUser,
         VideoLocal video,
         MylistEntry myItem,
         int modifiedItems,
@@ -2192,7 +2192,7 @@ public class MylistService(
         MylistSyncActionLog actions
     )
     {
-        var userData = anidbUser is null ? null : videoLocalUsers.GetByUserAndVideoLocalID(anidbUser.JMMUserID, video.VideoLocalID);
+        var userData = anidbUser is null ? null : videoLocalUsers.GetByUserAndVideoLocalID(anidbUser.ID, video.VideoLocalID);
         var localWatchedDate = AniDBExtensions.TruncateToAniDBPrecision(userData?.WatchedDate?.ToUniversalTime());
 
         return ReconcileEntry(
@@ -2235,7 +2235,7 @@ public class MylistService(
     }
 
     private Task<int> ProcessGenericEntry(
-        JMMUser? anidbUser,
+        ShokoUser? anidbUser,
         AnimeEpisode episode,
         MylistEntry myItem,
         int modifiedItems,
@@ -2255,7 +2255,7 @@ public class MylistService(
         if (episode.AniDB_Episode is not { } anidbEpisode)
             return Task.FromResult(modifiedItems);
 
-        var userData = anidbUser is null ? null : episode.GetUserRecord(anidbUser.JMMUserID);
+        var userData = anidbUser is null ? null : episode.GetUserRecord(anidbUser.ID);
         var localWatchedDate = LocalWatchedDate(anidbUser, episode);
 
         return ReconcileEntry(
@@ -2351,8 +2351,8 @@ public class MylistService(
     /// The date the AniDB user watched the episode locally, at the precision
     /// AniDB can carry.
     /// </summary>
-    private static DateTime? LocalWatchedDate(JMMUser? anidbUser, AnimeEpisode episode)
-        => anidbUser is null ? null : AniDBExtensions.TruncateToAniDBPrecision(episode.GetUserRecord(anidbUser.JMMUserID)?.WatchedDate?.ToUniversalTime());
+    private static DateTime? LocalWatchedDate(ShokoUser? anidbUser, AnimeEpisode episode)
+        => anidbUser is null ? null : AniDBExtensions.TruncateToAniDBPrecision(episode.GetUserRecord(anidbUser.ID)?.WatchedDate?.ToUniversalTime());
 
     /// <summary>
     /// Creates the generic entries the MyList is missing. The remote-driven loop
@@ -2360,7 +2360,7 @@ public class MylistService(
     /// user watched without a file — or holds only through a manual link, which
     /// has no file entry of its own — is invisible to it and is picked up here.
     /// </summary>
-    private async Task<int> AddMissingEpisodes(IReadOnlyList<MylistEntry> entries, SyncScope? scope, JMMUser? anidbUser, MylistWatchedEpisodeMode watchedEpisodeMode, bool planOnly, MylistSyncActionLog actions)
+    private async Task<int> AddMissingEpisodes(IReadOnlyList<MylistEntry> entries, SyncScope? scope, ShokoUser? anidbUser, MylistWatchedEpisodeMode watchedEpisodeMode, bool planOnly, MylistSyncActionLog actions)
     {
         if (!settingsProvider.GetSettings().AniDb.MyList.AddFiles)
             return 0;
@@ -2412,7 +2412,7 @@ public class MylistService(
                 Description = description,
                 ShokoEpisode = episode,
                 AnidbEpisode = anidbEpisode,
-                EpisodeUserData = anidbUser is null ? null : episode.GetUserRecord(anidbUser.JMMUserID),
+                EpisodeUserData = anidbUser is null ? null : episode.GetUserRecord(anidbUser.ID),
                 WatchedAt = watchedDate,
             };
 

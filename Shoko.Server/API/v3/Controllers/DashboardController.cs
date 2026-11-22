@@ -54,7 +54,7 @@ public class DashboardController(
     [HttpGet("Stats")]
     public Dashboard.CollectionStats GetStats()
     {
-        var userId = User.JMMUserID;
+        var userId = User.ID;
 
         // Allowed series and their identifiers.
         var allSeries = _animeSeries.GetAll()
@@ -433,7 +433,7 @@ public class DashboardController(
 
                 return true;
             })
-            .ToListResult(a => new Series(a!, User.JMMUserID), page, pageSize);
+            .ToListResult(a => new Series(a!, User.ID), page, pageSize);
     }
 
     /// <summary>
@@ -455,7 +455,7 @@ public class DashboardController(
     )
     {
         var user = HttpContext.GetUser();
-        return _seriesUser.GetByUserID(user.JMMUserID)
+        return _seriesUser.GetByUserID(user.ID)
             .Where(record => record.LastVideoUpdate.HasValue)
             .Select(record => _animeSeries.GetByID(record.AnimeSeriesID))
             .Where(series =>
@@ -475,7 +475,7 @@ public class DashboardController(
             })
             .Select(series =>
             {
-                var (episode, video, videoUserData) = _seriesService.GetActiveEpisode(series!, user.JMMUserID, includeSpecials, includeOthers);
+                var (episode, video, videoUserData) = _seriesService.GetActiveEpisode(series!, user.ID, includeSpecials, includeOthers);
                 return (series: series!, episode, video, videoUserData);
             })
             .Where(tuple => tuple.episode is not null && tuple.video is not null)
@@ -509,7 +509,7 @@ public class DashboardController(
     )
     {
         var user = HttpContext.GetUser();
-        return _seriesUser.GetByUserID(user.JMMUserID)
+        return _seriesUser.GetByUserID(user.ID)
             .Where(record => record.LastVideoUpdate.HasValue) // Filter to only series where the user have interacted with a video.
             .Select(record => (series: _animeSeries.GetByID(record.AnimeSeriesID), record))
             .Where(tuple =>
@@ -533,7 +533,7 @@ public class DashboardController(
                 var seriesUserData = tuple.record;
                 var (episode, video) = _seriesService.GetNextUpEpisode(
                     series,
-                    user.JMMUserID,
+                    user.ID,
                     new()
                     {
                         DisableFirstEpisode = true,
@@ -545,7 +545,7 @@ public class DashboardController(
                     }
                 );
                 var videoUserData = video is not null
-                    ? _vlUsers.GetByUserAndVideoLocalID(user.JMMUserID, video.VideoLocalID)
+                    ? _vlUsers.GetByUserAndVideoLocalID(user.ID, video.VideoLocalID)
                     : null;
                 // Order the episodes either by the last time the user viewed the video or whichever is highest of
                 // the last episode added to collection date and the last episode user data update date.
@@ -566,7 +566,7 @@ public class DashboardController(
 
     [NonAction]
     public Dashboard.Episode GetEpisodeDetailsForSeriesAndEpisode(
-        JMMUser user,
+        ShokoUser user,
         AnimeEpisode episode,
         AnimeSeries series,
         AniDB_Anime? anime = null,
@@ -579,12 +579,12 @@ public class DashboardController(
 
         if (file is not null)
         {
-            userRecord = _vlUsers.GetByUserAndVideoLocalID(user.JMMUserID, file.VideoLocalID);
+            userRecord = _vlUsers.GetByUserAndVideoLocalID(user.ID, file.VideoLocalID);
         }
         else
         {
             (file, userRecord) = episode.VideoLocals
-                .Select(f => (file: f, userRecord: _vlUsers.GetByUserAndVideoLocalID(user.JMMUserID, f.VideoLocalID)))
+                .Select(f => (file: f, userRecord: _vlUsers.GetByUserAndVideoLocalID(user.ID, f.VideoLocalID)))
                 .OrderByDescending(tuple => tuple.userRecord?.LastUpdated)
                 .ThenByDescending(tuple => tuple.file.DateTimeCreated)
                 .FirstOrDefault();

@@ -247,7 +247,7 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     public IReadOnlyList<VideoLocal> GetMostRecentlyAdded(int maxResults, int userID)
     {
-        var user = RepoFactory.JMMUser.GetByID(userID);
+        var user = RepoFactory.ShokoUser.GetByID(userID);
         var videos = Cache.GetAll()
             .Where(video => user is null || user.IsAllowedToSee(video))
             .OrderByDescending(a => a.DateTimeCreated);

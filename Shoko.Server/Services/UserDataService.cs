@@ -38,7 +38,7 @@ public class UserDataService(
     AnimeEpisode_UserRepository episodeUserDataRepository,
     AnimeSeries_UserRepository seriesUserDataRepository,
     AnimeGroup_UserRepository groupUserDataRepository,
-    JMMUserRepository userRepository,
+    ShokoUserRepository userRepository,
     Lazy<AnimeSeriesService> seriesService
 ) : IUserDataService
 {
@@ -144,7 +144,7 @@ public class UserDataService(
             : (TimeSpan?)null;
         using var videoUserDataLock = await _videoUserDataLocks.LockAsync((user.LocalID, video.LocalID)).ConfigureAwait(false);
         var userData = videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, video.LocalID)
-            ?? new() { JMMUserID = user.LocalID, VideoLocalID = video.LocalID };
+            ?? new() { UserID = user.LocalID, VideoLocalID = video.LocalID };
         var completionApplied = ApplyCompletionRule(userData, userDataUpdate, duration, reason, settingsProvider.GetSettings().CompletionThresholdPercent);
         // WatchedDate stores local time, but a caller can hand us UTC — the MyList
         // sync reads AniDB, which is UTC throughout. Read as local for both the
@@ -458,7 +458,7 @@ public class UserDataService(
             if (userData is not null)
                 return userData;
 
-            userData = new() { JMMUserID = user.LocalID, AnimeEpisodeID = episode.LocalID, AnimeSeriesID = episode.ShokoSeriesID };
+            userData = new() { UserID = user.LocalID, AnimeEpisodeID = episode.LocalID, AnimeSeriesID = episode.ShokoSeriesID };
             episodeUserDataRepository.Save(userData);
         }
 
@@ -557,7 +557,7 @@ public class UserDataService(
             ? EpisodeUserDataSaveReason.None
             : EpisodeUserDataSaveReason.Import;
         var userData = episodeUserDataRepository.GetByUserAndEpisodeID(user.LocalID, episode.LocalID)
-            ?? new() { JMMUserID = user.LocalID, AnimeEpisodeID = episode.LocalID, AnimeSeriesID = episode.ShokoSeriesID };
+            ?? new() { UserID = user.LocalID, AnimeEpisodeID = episode.LocalID, AnimeSeriesID = episode.ShokoSeriesID };
         // WatchedDate stores local time, but a caller can hand us UTC — the MyList
         // sync reads AniDB, which is UTC throughout. Read as local for both the
         // compare and the store, or an equal date in the other kind reads as a
@@ -719,7 +719,7 @@ public class UserDataService(
             .ToList();
         if (videoUserDataList.Count <= 0)
             return;
-        foreach (var groupBy in videoUserDataList.GroupBy(a => a.JMMUserID))
+        foreach (var groupBy in videoUserDataList.GroupBy(a => a.UserID))
         {
             var episodeUserData = episodeUserDataRepository.GetByUserAndEpisodeID(groupBy.Key, episode.LocalID);
             if (episodeUserData is not null)
@@ -739,7 +739,7 @@ public class UserDataService(
 
             episodeUserData = new()
             {
-                JMMUserID = groupBy.Key,
+                UserID = groupBy.Key,
                 AnimeEpisodeID = episode.LocalID,
                 AnimeSeriesID = episode.ShokoSeriesID,
                 WatchedDate = watchedAt,
@@ -777,7 +777,7 @@ public class UserDataService(
             if (userData is not null)
                 return userData;
 
-            userData = new() { JMMUserID = user.LocalID, AnimeSeriesID = series.LocalID };
+            userData = new() { UserID = user.LocalID, AnimeSeriesID = series.LocalID };
             seriesUserDataRepository.Save(userData);
         }
 
@@ -869,7 +869,7 @@ public class UserDataService(
             throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
 
         var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID)
-            ?? new() { AnimeSeriesID = series.LocalID, JMMUserID = user.LocalID };
+            ?? new() { AnimeSeriesID = series.LocalID, UserID = user.LocalID };
         var shouldSave = userData.AnimeSeries_UserID is 0;
 
         if (userDataUpdate.IsFavorite.HasValue && userData.IsFavorite != userDataUpdate.IsFavorite)
@@ -969,7 +969,7 @@ public class UserDataService(
         var videoUserDataLookup = videoLookup
             .SelectMany(xref => xref.SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.LocalID)).Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)))
             .Where(a => a.VideoLocalUser is not null)
-            .ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
+            .ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.UserID), b => b.VideoLocalUser);
         var episodeUserDataLookup = episodes.SelectMany(
                 ep =>
                 {
@@ -978,7 +978,7 @@ public class UserDataService(
                 }
             )
             .Where(a => a.AnimeEpisode_User is not null)
-            .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.JMMUserID), b => b.AnimeEpisode_User);
+            .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.UserID), b => b.AnimeEpisode_User);
         var lockObj = new object();
         foreach (var user in userRepository.GetAll())
             UpdateWatchedStatsInternal(series, episodes, user, VideoUserDataSaveReason.None, videoLookup, videoUserDataLookup, episodeUserDataLookup, lockObj);
@@ -995,7 +995,7 @@ public class UserDataService(
         var videoUserDataLookup = videoLookup
             .SelectMany(xref => xref.SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.LocalID)).Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)))
             .Where(a => a.VideoLocalUser is not null)
-            .ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
+            .ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.UserID), b => b.VideoLocalUser);
         var episodeUserDataLookup = episodes.SelectMany(
                 ep =>
                 {
@@ -1004,7 +1004,7 @@ public class UserDataService(
                 }
             )
             .Where(a => a.AnimeEpisode_User is not null)
-            .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.JMMUserID), b => b.AnimeEpisode_User);
+            .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.UserID), b => b.AnimeEpisode_User);
         var lockObj = new object();
         UpdateWatchedStatsInternal(series, episodes, user, reason, videoLookup, videoUserDataLookup, episodeUserDataLookup, lockObj);
     }
@@ -1021,7 +1021,7 @@ public class UserDataService(
     private void TouchLastVideoUpdate(AnimeSeries series, IUser user, DateTime lastUpdated, VideoUserDataSaveReason videoReason)
     {
         var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.AnimeSeriesID)
-            ?? new() { JMMUserID = user.LocalID, AnimeSeriesID = series.AnimeSeriesID, LastUpdated = DateTime.Now };
+            ?? new() { UserID = user.LocalID, AnimeSeriesID = series.AnimeSeriesID, LastUpdated = DateTime.Now };
         if (userData.AnimeSeries_UserID is not 0 && userData.LastVideoUpdate is { } current && current >= lastUpdated)
             return;
 
@@ -1050,7 +1050,7 @@ public class UserDataService(
         DateTime? lastEpisodeUpdate = null;
         DateTime? watchedDate = null;
         var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID)
-            ?? new() { JMMUserID = user.LocalID, AnimeSeriesID = series.LocalID, LastUpdated = DateTime.Now };
+            ?? new() { UserID = user.LocalID, AnimeSeriesID = series.LocalID, LastUpdated = DateTime.Now };
         Parallel.ForEach(episodes, new() { MaxDegreeOfParallelism = 4 }, ep =>
             {
                 if (ep.Type is not (EpisodeType.Episode or EpisodeType.Special))
@@ -1218,7 +1218,7 @@ public class UserDataService(
             if (userData is not null)
                 return userData;
 
-            userData = new() { JMMUserID = user.LocalID, AnimeGroupID = group.LocalID };
+            userData = new() { UserID = user.LocalID, AnimeGroupID = group.LocalID };
             groupUserDataRepository.Save(userData);
         }
 
@@ -1279,7 +1279,7 @@ public class UserDataService(
         lock (groupUserDataRepository.GetWriteLock(user.LocalID, group.LocalID))
         {
             userData = groupUserDataRepository.GetByUserAndGroupID(user.LocalID, group.LocalID)
-                ?? new() { AnimeGroupID = group.LocalID, JMMUserID = user.LocalID };
+                ?? new() { AnimeGroupID = group.LocalID, UserID = user.LocalID };
             shouldSave = userData.AnimeGroup_UserID is 0;
 
             if (userDataUpdate.UserTags is not null)
@@ -1338,7 +1338,7 @@ public class UserDataService(
         lock (groupUserDataRepository.GetWriteLock(user.LocalID, group.LocalID))
         {
             var userData = groupUserDataRepository.GetByUserAndGroupID(user.LocalID, group.LocalID)
-                ?? new() { JMMUserID = user.LocalID, AnimeGroupID = group.LocalID };
+                ?? new() { UserID = user.LocalID, AnimeGroupID = group.LocalID };
             var isNew = userData.AnimeGroup_UserID is 0;
 
             // Reset stats

@@ -234,7 +234,7 @@ public class PlexWebhook : Controller
     public async Task<ActionResult> SyncAll()
     {
         foreach (var user in _plexHelpers.GetLinkedUsers())
-            await _scheduler.Enqueue<SyncPlexWatchedStatesJob>(c => c.UserID = user.JMMUserID);
+            await _scheduler.Enqueue<SyncPlexWatchedStatesJob>(c => c.UserID = user.ID);
         return Ok();
     }
 
@@ -242,12 +242,12 @@ public class PlexWebhook : Controller
     [HttpGet("sync/{userID:int}")]
     public async Task<ActionResult> SyncForUser([Range(1, int.MaxValue)] int userID)
     {
-        var user = _plexHelpers.GetLinkedUsers().FirstOrDefault(linked => linked.JMMUserID == userID);
+        var user = _plexHelpers.GetLinkedUsers().FirstOrDefault(linked => linked.ID == userID);
         if (user is null)
         {
             return BadRequest("Invalid User ID");
         }
-        await _scheduler.Enqueue<SyncPlexWatchedStatesJob>(c => c.UserID = user.JMMUserID);
+        await _scheduler.Enqueue<SyncPlexWatchedStatesJob>(c => c.UserID = user.ID);
         return Ok();
     }
 

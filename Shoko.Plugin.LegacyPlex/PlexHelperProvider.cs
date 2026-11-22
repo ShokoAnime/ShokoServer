@@ -28,7 +28,7 @@ public class PlexHelperProvider(
     ILoggerFactory loggerFactory,
     IHttpClientFactory httpClientFactory,
     ISettingsProvider settingsProvider,
-    JMMUserRepository jmmUsers,
+    ShokoUserRepository jmmUsers,
     ISystemService systemService,
     IVideoService videoService
 )
@@ -64,7 +64,7 @@ public class PlexHelperProvider(
     ///   Lists the users with a linked Plex account.
     /// </summary>
     /// <returns>The users holding a Plex token.</returns>
-    public IReadOnlyList<JMMUser> GetLinkedUsers()
+    public IReadOnlyList<ShokoUser> GetLinkedUsers()
         => [.. jmmUsers.GetAll().Where(user => !string.IsNullOrEmpty(user.PlexToken))];
 
     /// <summary>
@@ -72,7 +72,7 @@ public class PlexHelperProvider(
     /// </summary>
     /// <param name="plexUsername">The Plex user's name, in any case.</param>
     /// <returns>The first user naming the Plex user, or <c>null</c> when none does.</returns>
-    public JMMUser? GetUserByPlexUsername(string plexUsername)
+    public ShokoUser? GetUserByPlexUsername(string plexUsername)
         => jmmUsers.GetAll().FirstOrDefault(user =>
             (user.PlexUsers ?? string.Empty)
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

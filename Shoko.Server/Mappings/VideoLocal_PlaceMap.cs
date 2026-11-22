@@ -9,10 +9,10 @@ public class VideoLocal_PlaceMap : ClassMap<VideoLocal_Place>
     {
         Table("VideoLocal_Place");
         Not.LazyLoad();
-        Id(x => x.ID).Column("VideoLocal_Place_ID");
+        Id(x => x.ID);
 
-        Map(x => x.VideoID).Column("VideoLocalID").Not.Nullable();
-        Map(x => x.ManagedFolderID).Column("ImportFolderID").Not.Nullable();
-        Map(x => x.RelativePath).Column("FilePath").Not.Nullable();
+        Map(x => x.VideoID).Not.Nullable();
+        Map(x => x.ManagedFolderID).Not.Nullable();
+        Map(x => x.RelativePath).Not.Nullable();
     }
 }

@@ -13,7 +13,7 @@ public class VideoLocal_UserMap : ClassMap<VideoLocal_User>
         Not.LazyLoad();
         Id(x => x.VideoLocal_UserID);
 
-        Map(x => x.JMMUserID).Not.Nullable();
+        Map(x => x.UserID).Not.Nullable();
         Map(x => x.VideoLocalID).Not.Nullable();
         Map(x => x.WatchedDate);
         Map(x => x.WatchedCount).Not.Nullable();

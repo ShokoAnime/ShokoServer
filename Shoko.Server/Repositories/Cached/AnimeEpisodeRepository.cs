@@ -142,13 +142,13 @@ FROM
         WHERE
             VideoLocalID IN (
                 SELECT
-                    VideoLocalID
+                    VideoID
                 FROM
                     VideoLocal_Place
                 GROUP BY
-                    VideoLocalID
+                    VideoID
                 HAVING
-                    COUNT(VideoLocal_Place_ID) > 1
+                    COUNT(ID) > 1
             )
         AND
             vl.Hash != ''
@@ -175,13 +175,13 @@ FROM
         WHERE
             VideoLocalID IN (
                 SELECT
-                    VideoLocalID
+                    VideoID
                 FROM
                     VideoLocal_Place
                 GROUP BY
-                    VideoLocalID
+                    VideoID
                 HAVING
-                    COUNT(VideoLocal_Place_ID) > 1
+                    COUNT(ID) > 1
             )
         AND
             vl.Hash != ''

@@ -303,7 +303,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
 
     private void CreateInitialUsers()
     {
-        if (RepoFactory.JMMUser.GetAll().Any())
+        if (RepoFactory.ShokoUser.GetAll().Any())
         {
             return;
         }
@@ -313,7 +313,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
         var defaultPassword = settings.Database.DefaultUserPassword == ""
             ? ""
             : Digest.Hash(settings.Database.DefaultUserPassword);
-        var defaultUser = new JMMUser
+        var defaultUser = new ShokoUser
         {
             HideCategories = string.Empty,
             IsAdmin = 1,
@@ -321,7 +321,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
             Password = defaultPassword,
             Username = settings.Database.DefaultUserUsername
         };
-        RepoFactory.JMMUser.Save(defaultUser);
+        RepoFactory.ShokoUser.Save(defaultUser);
     }
 
     private void CreateInitialRenameScript()

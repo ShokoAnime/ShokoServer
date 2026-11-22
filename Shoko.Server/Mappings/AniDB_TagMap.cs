@@ -13,7 +13,7 @@ public class AniDB_TagMap : ClassMap<AniDB_Tag>
 
         Map(x => x.TagID).Not.Nullable();
         Map(x => x.ParentTagID);
-        Map(x => x.TagNameSource).Column("TagName").Not.Nullable();
+        Map(x => x.TagNameSource).Not.Nullable();
         Map(x => x.TagDescription).Not.Nullable().CustomType("StringClob");
         Map(x => x.GlobalSpoiler).Not.Nullable();
         Map(x => x.Verified).Not.Nullable();

@@ -214,7 +214,7 @@ public class Group : BaseModel
             LastUpdatedAt = userData.LastUpdatedAt;
         }
 
-        public GroupUserData MergeWithExisting(JMMUser user, AnimeGroup group)
+        public GroupUserData MergeWithExisting(ShokoUser user, AnimeGroup group)
         {
             var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
             var userData = userDataService.SaveGroupUserData(group, user, new()
@@ -310,7 +310,7 @@ public class Group : BaseModel
 
             public CreateOrUpdateGroupBody() { }
 
-            public Group? MergeWithExisting(AnimeGroup? group, JMMUser user, ModelStateDictionary modelState)
+            public Group? MergeWithExisting(AnimeGroup? group, ShokoUser user, ModelStateDictionary modelState)
             {
                 group ??= new() { DateTimeCreated = DateTime.Now, DateTimeUpdated = DateTime.Now };
                 var parent = ParentGroupID is > 0 ? RepoFactory.AnimeGroup.GetByID(ParentGroupID.Value) : null;

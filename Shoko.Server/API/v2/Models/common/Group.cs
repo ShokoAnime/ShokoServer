@@ -39,7 +39,7 @@ public class Group : BaseDirectory
         bool all, int filterID, bool allPic, int pic, TagFilter.Filter tagFilter, List<int>? evaluatedSeriesIDs = null)
     {
         // Only what the user may see of the group is shown.
-        var view = AnimeGroupView.For(ag, RepoFactory.JMMUser.GetByID(uid));
+        var view = AnimeGroupView.For(ag, RepoFactory.ShokoUser.GetByID(uid));
         var g = new Group
         {
             name = view.Name,

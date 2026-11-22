@@ -83,7 +83,7 @@ throughput gain on real libraries.
 - **`Shoko.QueueProcessor`** — Custom job queue engine. Defines `IQueueScheduler`, `IQueueJob`, `RecurringJobRegistry`, `IJobChainBuilder`, `IVideoReleaseProviderJob<T>`, persistence (`QueuedJob`, `JobRepository` via EF Core), concurrency/acquisition attributes, and the orchestration stack (`QueueOrchestrator`, `WorkerPool`, `WorkerPoolManager`). The server references it as a local project; it is also published to NuGet for plugins.
 - **`Shoko.CLI`** — Headless server entry point. Instantiates and manages `SystemService` directly.
 - **`Shoko.TrayService`** — Cross-platform tray app (Avalonia) embedding the server. Runs on Windows, Linux, and macOS.
-- **`Shoko.Plugin.LegacyPlex`** — Bundled first-party plugin holding the legacy Plex support ("Legacy Plex Sync Support"): the Plex client (`PlexHelper`, handed out by `PlexHelperProvider`) and models, the version-neutral `/plex` routes (`PlexWebhook`: webhook, account linking, server and library picks, sync), `/api/v3/Action/PlexSyncAll`, `SyncPlexWatchedStatesJob` and the "Plex Sync All" scheduled action. Disabling the plugin turns all of it off. Its data stays in the core: the picked server and libraries in `ServerSettings.Plex`, each user's `PlexToken` and `PlexUsers` on `JMMUser`. To reach them it references `Shoko.Server` compile-only, the one plugin that does; do not copy that in other plugins.
+- **`Shoko.Plugin.LegacyPlex`** — Bundled first-party plugin holding the legacy Plex support ("Legacy Plex Sync Support"): the Plex client (`PlexHelper`, handed out by `PlexHelperProvider`) and models, the version-neutral `/plex` routes (`PlexWebhook`: webhook, account linking, server and library picks, sync), `/api/v3/Action/PlexSyncAll`, `SyncPlexWatchedStatesJob` and the "Plex Sync All" scheduled action. Disabling the plugin turns all of it off. Its data stays in the core: the picked server and libraries in `ServerSettings.Plex`, each user's `PlexToken` and `PlexUsers` on `ShokoUser`. To reach them it references `Shoko.Server` compile-only, the one plugin that does; do not copy that in other plugins.
 - **`Shoko.Tests`** — Unit tests.
 - **`Shoko.QueueProcessor.Tests`** — Tests for the job queue.
 - **`Shoko.IntegrationTests`** — Integration tests.
@@ -157,7 +157,7 @@ Three distinct model layers; **do not mix them**.
 
 **1. Persistence models** (`Shoko.Server/Models/`)
 NHibernate-mapped entities. Organized by source:
-- `Shoko.Server.Models.Shoko` — core domain: `AnimeSeries`, `AnimeGroup`, `AnimeEpisode`, the `*_User` data, `VideoLocal` and its places/hashes, `JMMUser`, `FilterPreset`, `CustomTag`, and the image store (`ShokoImage`, `ShokoImage_Entity`)
+- `Shoko.Server.Models.Shoko` — core domain: `AnimeSeries`, `AnimeGroup`, `AnimeEpisode`, the `*_User` data, `VideoLocal` and its places/hashes, `ShokoUser`, `FilterPreset`, `CustomTag`, and the image store (`ShokoImage`, `ShokoImage_Entity`)
 - `Shoko.Server.Models.AniDB` — AniDB metadata cache: `AniDB_Anime`, `AniDB_Episode`, `AniDB_Character`, `AniDB_Creator`, `AniDB_Tag`, etc.
 - `Shoko.Server.Models.Airing` — airing schedules: `AiringChannel`, `AiringSchedule`, `EpisodeAiring`, `AiringScheduleSweepState`
 - `Shoko.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔MAL, and AniDB↔any plugin source, TMDB's included, through the shared `CrossRef_AniDB_Metadata_*` tables) and files/tags (`CrossRef_File_Episode`, `CrossRef_CustomTag`)

@@ -760,10 +760,10 @@ public class AnimeSeries : IShokoSeries
     ISeriesUserData IShokoSeries.GetUserData(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.LocalID is 0 || RepoFactory.JMMUser.GetByID(user.LocalID) is null)
+        if (user.LocalID is 0 || RepoFactory.ShokoUser.GetByID(user.LocalID) is null)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
         var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(user.LocalID, AnimeSeriesID)
-            ?? new() { JMMUserID = user.LocalID, AnimeSeriesID = AnimeSeriesID };
+            ?? new() { UserID = user.LocalID, AnimeSeriesID = AnimeSeriesID };
         if (userData.AnimeSeries_UserID is 0)
             RepoFactory.AnimeSeries_User.Save(userData);
         return userData;

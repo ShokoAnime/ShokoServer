@@ -14,7 +14,7 @@ public class AnimeGroup_User : IGroupUserData
 
     public int AnimeGroup_UserID { get; set; }
 
-    public int JMMUserID { get; set; }
+    public int UserID { get; set; }
 
     public int AnimeGroupID { get; set; }
 
@@ -45,12 +45,12 @@ public class AnimeGroup_User : IGroupUserData
 
     #region IUserData Implementation
 
-    int IUserData.UserID => JMMUserID;
+    int IUserData.UserID => UserID;
 
     DateTime IUserData.LastUpdatedAt => LastUpdated;
 
-    IUser IUserData.User => RepoFactory.JMMUser.GetByID(JMMUserID) ??
-        throw new NullReferenceException($"Unable to find IUser with the given id. (User={JMMUserID})");
+    IUser IUserData.User => RepoFactory.ShokoUser.GetByID(UserID) ??
+        throw new NullReferenceException($"Unable to find IUser with the given id. (User={UserID})");
 
     #endregion
 
@@ -64,21 +64,21 @@ public class AnimeGroup_User : IGroupUserData
 
     DateTime? IGroupUserData.LastSeriesUpdatedAt
         => (AnimeGroup?.AllSeries ?? [])
-            .Select(ser => RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(JMMUserID, ser.AnimeSeriesID)?.LastUpdated)
+            .Select(ser => RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(UserID, ser.AnimeSeriesID)?.LastUpdated)
             .WhereNotNull()
             .OrderDescending()
             .FirstOrDefault();
 
     DateTime? IGroupUserData.LastEpisodeUpdatedAt
         => (AnimeGroup?.AllSeries ?? [])
-            .Select(ser => RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(JMMUserID, ser.AnimeSeriesID)?.LastEpisodeUpdate)
+            .Select(ser => RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(UserID, ser.AnimeSeriesID)?.LastEpisodeUpdate)
             .WhereNotNull()
             .OrderDescending()
             .FirstOrDefault();
 
     DateTime? IGroupUserData.LastVideoUpdatedAt
         => (AnimeGroup?.AllSeries ?? [])
-            .Select(ser => RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(JMMUserID, ser.AnimeSeriesID)?.LastVideoUpdate)
+            .Select(ser => RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(UserID, ser.AnimeSeriesID)?.LastVideoUpdate)
             .WhereNotNull()
             .OrderDescending()
             .FirstOrDefault();

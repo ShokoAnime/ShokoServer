@@ -22,9 +22,9 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
 
     private readonly AuthTokensRepository _authTokens;
 
-    private readonly JMMUserRepository _users;
+    private readonly ShokoUserRepository _users;
 
-    public CustomAuthHandler(IOptionsMonitor<CustomAuthOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemService systemService, AuthTokensRepository authTokens, JMMUserRepository users)
+    public CustomAuthHandler(IOptionsMonitor<CustomAuthOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemService systemService, AuthTokensRepository authTokens, ShokoUserRepository users)
         : base(options, logger, encoder)
     {
         _systemService = systemService;
@@ -58,7 +58,7 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
                 var initPrincipal = new ClaimsPrincipal(new ClaimsIdentity(
                     [
                         new(ClaimTypes.Role, "init"),
-                        new(ClaimTypes.NameIdentifier, InitUser.Instance.JMMUserID.ToString()),
+                        new(ClaimTypes.NameIdentifier, InitUser.Instance.ID.ToString()),
                         new(ClaimTypes.AuthenticationMethod, "init")
                     ], CustomAuthOptions.DefaultScheme));
                 initPrincipal.AddIdentity(new(InitUser.Instance));
@@ -79,7 +79,7 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
         var claims = new List<Claim>
         {
             new(ClaimTypes.Role, "user"),
-            new(ClaimTypes.NameIdentifier, user.JMMUserID.ToString()),
+            new(ClaimTypes.NameIdentifier, user.ID.ToString()),
             new(ClaimTypes.AuthenticationMethod, "apikey"),
             new("apikey", token!.Token),
         };
@@ -93,7 +93,7 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
 
-    private (JMMUser? user, AuthTokens? apikey) GetUserForKey(string? token)
+    private (ShokoUser? user, AuthTokens? apikey) GetUserForKey(string? token)
     {
         if (!_systemService.IsStarted)
             return (null, null);

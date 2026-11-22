@@ -76,7 +76,7 @@ public static class TestViewers
     /// </summary>
     /// <returns>The user.</returns>
     public static IUser Unrestricted()
-        => new JMMUser { JMMUserID = 2, Username = "unrestricted", HideCategories = string.Empty };
+        => new ShokoUser { ID = 2, Username = "unrestricted", HideCategories = string.Empty };
 
     #endregion
 }

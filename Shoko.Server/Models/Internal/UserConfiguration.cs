@@ -17,7 +17,7 @@ public class UserConfiguration
     /// <summary>
     /// The user the configuration belongs to.
     /// </summary>
-    public int JMMUserID { get; set; }
+    public int UserID { get; set; }
 
     /// <summary>
     /// The configuration's ID.

@@ -169,7 +169,7 @@ public partial class File
     public MediaInfo? MediaInfo { get; set; }
 
     public File(HttpContext context, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeStat = false) :
-        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.LocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeStat)
+        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.ID ?? 0, file.LocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeStat)
     { }
 
     public File(VideoLocal_User? userRecord, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeStat = false)
@@ -501,7 +501,7 @@ public partial class File
             UserTags = userData?.UserTags ?? [];
         }
 
-        public FileUserData MergeWithExisting(JMMUser user, VideoLocal file)
+        public FileUserData MergeWithExisting(ShokoUser user, VideoLocal file)
         {
             var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
             var update = new VideoUserDataUpdate

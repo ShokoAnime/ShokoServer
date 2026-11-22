@@ -45,7 +45,7 @@ public class MylistController(
     AnimeEpisodeRepository episodes,
     AniDB_EpisodeRepository anidbEpisodes,
     MylistCache mylistCache,
-    JMMUserRepository users,
+    ShokoUserRepository users,
     VideoLocal_UserRepository videoLocalUsers,
     VideoLocalRepository videos
 ) : BaseController(settingsProvider)
@@ -308,8 +308,8 @@ public class MylistController(
             return null;
 
         var watchedDate = video is not null
-            ? videoLocalUsers.GetByUserAndVideoLocalID(anidbUser.JMMUserID, video.LocalID)?.WatchedDate
-            : episode is AnimeEpisode animeEpisode ? animeEpisode.GetUserRecord(anidbUser.JMMUserID)?.WatchedDate : null;
+            ? videoLocalUsers.GetByUserAndVideoLocalID(anidbUser.ID, video.LocalID)?.WatchedDate
+            : episode is AnimeEpisode animeEpisode ? animeEpisode.GetUserRecord(anidbUser.ID)?.WatchedDate : null;
         return AniDBExtensions.TruncateToAniDBPrecision(watchedDate?.ToUniversalTime());
     }
 

@@ -3,14 +3,14 @@ using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
 
-public class JMMUserMap : ClassMap<JMMUser>
+public class ShokoUserMap : ClassMap<ShokoUser>
 {
-    public JMMUserMap()
+    public ShokoUserMap()
     {
-        Table("JMMUser");
+        Table("ShokoUser");
 
         Not.LazyLoad();
-        Id(x => x.JMMUserID);
+        Id(x => x.ID);
 
         Map(x => x.HideCategories);
         Map(x => x.IsAniDBUser).Not.Nullable();

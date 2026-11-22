@@ -581,7 +581,7 @@ public class Series : BaseModel
             _userRatingVoteType = userData.UserRatingVoteType;
         }
 
-        public SeriesUserData MergeWithExisting(JMMUser user, AnimeSeries series)
+        public SeriesUserData MergeWithExisting(ShokoUser user, AnimeSeries series)
         {
             var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
             var userData = userDataService.SaveSeriesUserData(series, user, new()

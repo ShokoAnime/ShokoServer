@@ -25,7 +25,7 @@ public class UserConfigurationRepository(DatabaseFactory databaseFactory) : Base
     public virtual IReadOnlyList<UserConfiguration> GetByUserID(int userID)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
-        return session.Query<UserConfiguration>().Where(row => row.JMMUserID == userID).ToList();
+        return session.Query<UserConfiguration>().Where(row => row.UserID == userID).ToList();
     }
 
     /// <summary>
@@ -37,7 +37,7 @@ public class UserConfigurationRepository(DatabaseFactory databaseFactory) : Base
     public virtual UserConfiguration? GetByUserIDAndConfigurationID(int userID, string configurationID)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
-        return session.Query<UserConfiguration>().FirstOrDefault(row => row.JMMUserID == userID && row.ConfigurationID == configurationID);
+        return session.Query<UserConfiguration>().FirstOrDefault(row => row.UserID == userID && row.ConfigurationID == configurationID);
     }
 
     /// <summary>

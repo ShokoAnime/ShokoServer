@@ -99,7 +99,7 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
         return missingBySeries
             .OrderBy(t => t.Series.Title)
             .ThenBy(t => t.Series.AniDB_ID)
-            .ToListResult(t => new Series.WithEpisodeCount(t.Count, t.Series, User.JMMUserID, includeDataFrom), page, pageSize);
+            .ToListResult(t => new Series.WithEpisodeCount(t.Count, t.Series, User.ID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>

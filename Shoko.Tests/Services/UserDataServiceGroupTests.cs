@@ -56,8 +56,8 @@ public class UserDataServiceGroupTests
                     Thread.Sleep(20);
                     lock (_gate)
                     {
-                        if (Groups.Object.GetByUserAndGroupID(row.JMMUserID, row.AnimeGroupID) is not null)
-                            throw new InvalidOperationException("UNIQUE constraint failed: AnimeGroup_User.JMMUserID, AnimeGroup_User.AnimeGroupID");
+                        if (Groups.Object.GetByUserAndGroupID(row.UserID, row.AnimeGroupID) is not null)
+                            throw new InvalidOperationException("UNIQUE constraint failed: AnimeGroup_User.UserID, AnimeGroup_User.AnimeGroupID");
                         row.AnimeGroup_UserID = ++_nextID;
                     }
                 }
@@ -117,7 +117,7 @@ public class UserDataServiceGroupTests
         await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => harness.Service.UpdateGroupWatchedStats(harness.Group, harness.User, [], save))));
 
         var row = Assert.Single(harness.Groups.Object.GetAll());
-        Assert.Equal((UserID, GroupID), (row.JMMUserID, row.AnimeGroupID));
+        Assert.Equal((UserID, GroupID), (row.UserID, row.AnimeGroupID));
     }
 
     #endregion
@@ -129,8 +129,8 @@ public class UserDataServiceGroupTests
     {
         var watchedAt = new DateTime(2024, 5, 1, 20, 0, 0, DateTimeKind.Local);
         var harness = new Harness(
-            new AnimeSeries_User { AnimeSeries_UserID = 1, JMMUserID = UserID, AnimeSeriesID = 21, WatchedCount = 3, WatchedEpisodeCount = 2, UnwatchedEpisodeCount = 4 },
-            new AnimeSeries_User { AnimeSeries_UserID = 2, JMMUserID = UserID, AnimeSeriesID = 22, WatchedCount = 1, WatchedEpisodeCount = 1, UnwatchedEpisodeCount = 5, WatchedDate = watchedAt }
+            new AnimeSeries_User { AnimeSeries_UserID = 1, UserID = UserID, AnimeSeriesID = 21, WatchedCount = 3, WatchedEpisodeCount = 2, UnwatchedEpisodeCount = 4 },
+            new AnimeSeries_User { AnimeSeries_UserID = 2, UserID = UserID, AnimeSeriesID = 22, WatchedCount = 1, WatchedEpisodeCount = 1, UnwatchedEpisodeCount = 5, WatchedDate = watchedAt }
         );
         var series = new[] { harness.SeriesWithID(21), harness.SeriesWithID(22) };
 

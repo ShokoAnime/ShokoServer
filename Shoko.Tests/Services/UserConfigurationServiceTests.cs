@@ -31,7 +31,7 @@ public class UserConfigurationServiceTests : IDisposable
 
     private readonly string _dataPath = Path.Join(Path.GetTempPath(), "shoko-user-configuration-" + Guid.NewGuid().ToString("N"));
 
-    private static readonly JMMUser User = new() { JMMUserID = 7, Username = "someone" };
+    private static readonly ShokoUser User = new() { ID = 7, Username = "someone" };
 
     public UserConfigurationServiceTests()
         => Directory.CreateDirectory(_dataPath);
@@ -58,9 +58,9 @@ public class UserConfigurationServiceTests : IDisposable
         var nextID = 1;
         var rows = new List<UserConfiguration>();
         var repository = new Mock<UserConfigurationRepository>(new object[] { null! });
-        repository.Setup(r => r.GetByUserID(It.IsAny<int>())).Returns((int userID) => [.. rows.Where(row => row.JMMUserID == userID)]);
+        repository.Setup(r => r.GetByUserID(It.IsAny<int>())).Returns((int userID) => [.. rows.Where(row => row.UserID == userID)]);
         repository.Setup(r => r.GetByUserIDAndConfigurationID(It.IsAny<int>(), It.IsAny<string>()))
-            .Returns((int userID, string configurationID) => rows.FirstOrDefault(row => row.JMMUserID == userID && row.ConfigurationID == configurationID));
+            .Returns((int userID, string configurationID) => rows.FirstOrDefault(row => row.UserID == userID && row.ConfigurationID == configurationID));
         repository.Setup(r => r.Save(It.IsAny<UserConfiguration>())).Callback<UserConfiguration>(row =>
         {
             if (row.UserConfigurationID is 0)

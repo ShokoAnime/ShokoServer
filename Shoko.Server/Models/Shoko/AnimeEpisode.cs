@@ -414,10 +414,10 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     IEpisodeUserData IShokoEpisode.GetUserData(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.LocalID is 0 || RepoFactory.JMMUser.GetByID(user.LocalID) is null)
+        if (user.LocalID is 0 || RepoFactory.ShokoUser.GetByID(user.LocalID) is null)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
         var userData = GetUserRecord(user.LocalID)
-            ?? new() { JMMUserID = user.LocalID, AnimeEpisodeID = AnimeEpisodeID, AnimeSeriesID = AnimeSeriesID };
+            ?? new() { UserID = user.LocalID, AnimeEpisodeID = AnimeEpisodeID, AnimeSeriesID = AnimeSeriesID };
         if (userData.AnimeEpisode_UserID is 0)
             RepoFactory.AnimeEpisode_User.Save(userData);
         return userData;

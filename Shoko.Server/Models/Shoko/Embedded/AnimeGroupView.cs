@@ -79,7 +79,7 @@ public sealed class AnimeGroupView
     /// <param name="user">The user, or <c>null</c> for no user.</param>
     /// <returns><c>true</c> when there is no user or it has no restricted tags.</returns>
     public static bool IsUnrestricted(IUser? user)
-        => user is null || (user is JMMUser jmmUser && !jmmUser.HasRestrictions());
+        => user is null || (user is ShokoUser jmmUser && !jmmUser.HasRestrictions());
 
     #endregion
 

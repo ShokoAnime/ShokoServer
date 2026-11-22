@@ -170,15 +170,15 @@ public class OrderingTextRoundTripTests(DatabaseMigrationFixture fixture)
             services.GetRequiredService<AnimeEpisodeRepository>().Save(episode);
             return episode.AnimeEpisodeID;
         }).ToList();
-        var admin = new JMMUser { Username = "ordering-text-admin", IsAdmin = 1, HideCategories = string.Empty };
-        services.GetRequiredService<JMMUserRepository>().Save(admin);
+        var admin = new ShokoUser { Username = "ordering-text-admin", IsAdmin = 1, HideCategories = string.Empty };
+        services.GetRequiredService<ShokoUserRepository>().Save(admin);
         var controller = ActivatorUtilities.CreateInstance<SeriesOrderingController>(services);
         controller.ControllerContext = new()
         {
             HttpContext = new DefaultHttpContext
             {
                 RequestServices = services,
-                User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, admin.JMMUserID.ToString())], "ShokoServer")),
+                User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, admin.ID.ToString())], "ShokoServer")),
             },
         };
 
@@ -216,7 +216,7 @@ public class OrderingTextRoundTripTests(DatabaseMigrationFixture fixture)
         {
             if (made is not null)
                 orderings.DeleteLocalOrdering(MetadataGuid.Parse(made.ID, null));
-            services.GetRequiredService<JMMUserRepository>().Delete(admin);
+            services.GetRequiredService<ShokoUserRepository>().Delete(admin);
             await services.GetRequiredService<IAnidbService>().PurgeAnimeByID(AnimeID, removeFromMylist: false);
         }
     }

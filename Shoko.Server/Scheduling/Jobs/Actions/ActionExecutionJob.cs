@@ -28,7 +28,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 public class ActionExecutionJob(
     IServiceProvider services,
     ActionService actionService,
-    JMMUserRepository users,
+    ShokoUserRepository users,
     AnimeSeriesRepository series,
     AnimeGroupRepository groups,
     AnimeEpisodeRepository episodes,

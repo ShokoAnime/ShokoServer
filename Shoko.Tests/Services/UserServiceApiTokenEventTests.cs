@@ -57,9 +57,9 @@ public class UserServiceApiTokenEventTests
     {
         var harness = new Harness();
         var user = harness.Users[0];
-        harness.Tokens.Cache.Update(new() { AuthID = 101, UserID = user.JMMUserID, DeviceName = "desktop", Token = "kept" });
-        harness.Tokens.Cache.Update(new() { AuthID = 102, UserID = user.JMMUserID, DeviceName = "Desktop", Token = "dropped" });
-        harness.Tokens.Cache.Update(new() { AuthID = 103, UserID = user.JMMUserID, DeviceName = "desktop", Token = "" });
+        harness.Tokens.Cache.Update(new() { AuthID = 101, UserID = user.ID, DeviceName = "desktop", Token = "kept" });
+        harness.Tokens.Cache.Update(new() { AuthID = 102, UserID = user.ID, DeviceName = "Desktop", Token = "dropped" });
+        harness.Tokens.Cache.Update(new() { AuthID = 103, UserID = user.ID, DeviceName = "desktop", Token = "" });
 
         var token = await harness.Service.GenerateApiTokenForUser(user, "desktop");
 
@@ -80,7 +80,7 @@ public class UserServiceApiTokenEventTests
 
         var invalidated = Assert.Single(harness.Invalidated);
         Assert.Equal(token.Token, invalidated.ApiToken.Token);
-        Assert.Equal(user.JMMUserID, invalidated.ApiToken.User.LocalID);
+        Assert.Equal(user.ID, invalidated.ApiToken.User.LocalID);
     }
 
     [Fact]
@@ -155,10 +155,10 @@ public class UserServiceApiTokenEventTests
 
     internal sealed class Harness
     {
-        public readonly List<JMMUser> Users =
+        public readonly List<ShokoUser> Users =
         [
-            new() { JMMUserID = 1, Username = "alice", IsAdmin = 1 },
-            new() { JMMUserID = 2, Username = "bob", IsAdmin = 1 },
+            new() { ID = 1, Username = "alice", IsAdmin = 1 },
+            new() { ID = 2, Username = "bob", IsAdmin = 1 },
         ];
 
         public readonly List<ApiTokenChangedEventArgs> Generated = [];
@@ -184,7 +184,7 @@ public class UserServiceApiTokenEventTests
             Service = new UserService(
                 NullLogger<UserService>.Instance,
                 null!,
-                Writable<JMMUserRepository, JMMUser>(u => u.JMMUserID, Users).Object,
+                Writable<ShokoUserRepository, ShokoUser>(u => u.ID, Users).Object,
                 tokens.Object,
                 null!,
                 Writable<AnimeGroup_UserRepository, AnimeGroup_User>(u => u.AnimeGroup_UserID).Object,

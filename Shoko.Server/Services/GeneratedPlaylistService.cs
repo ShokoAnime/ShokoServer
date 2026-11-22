@@ -47,7 +47,7 @@ public class GeneratedPlaylistService(
     /// <param name="fieldName">The field name to use for error keys. Defaults to <c>"playlist"</c>.</param>
     /// <param name="user">The user the playlist is for. Defaults to the current request's user.</param>
     /// <returns><c>true</c> if the playlist is valid; otherwise <c>false</c>.</returns>
-    public bool TryParsePlaylist(string[] items, out IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> playlist, ModelStateDictionary? modelState = null, string fieldName = "playlist", JMMUser? user = null)
+    public bool TryParsePlaylist(string[] items, out IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> playlist, ModelStateDictionary? modelState = null, string fieldName = "playlist", ShokoUser? user = null)
     {
         modelState ??= new();
         playlist = ParsePlaylist(items, modelState, fieldName, user);
@@ -136,7 +136,7 @@ public class GeneratedPlaylistService(
     /// <returns>
     ///   The parsed playlist as a list of episode-group/video-file tuples.
     /// </returns>
-    public IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> ParsePlaylist(string[] items, ModelStateDictionary? modelState = null, string fieldName = "playlist", JMMUser? user = null)
+    public IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> ParsePlaylist(string[] items, ModelStateDictionary? modelState = null, string fieldName = "playlist", ShokoUser? user = null)
     {
         items ??= [];
         // What the user may not see is reported as unknown, so its existence does not leak.
@@ -564,7 +564,7 @@ public class GeneratedPlaylistService(
         options.IncludeMissing = false;
         options.IncludeUnaired = false;
         var user = contextAccessor.HttpContext!.GetUser();
-        var episodes = animeSeriesService.GetNextUpEpisodes((series as AnimeSeries)!, user.JMMUserID, options);
+        var episodes = animeSeriesService.GetNextUpEpisodes((series as AnimeSeries)!, user.ID, options);
 
         // Make sure the release group is in the list, otherwise pick the most used group.
         var xrefs = FileCrossReference.From(series.VideoCrossReferences).FirstOrDefault(seriesXRef => seriesXRef.SeriesID.ID == series.LocalID)?.EpisodeIDs ?? [];
@@ -617,7 +617,7 @@ public class GeneratedPlaylistService(
 
             var episodes = animeSeriesService.GetNextUpEpisodes(
                 animeSeries,
-                user.JMMUserID,
+                user.ID,
                 new()
                 {
                     IncludeCurrentlyWatching = !options.OnlyUnwatched,
@@ -641,7 +641,7 @@ public class GeneratedPlaylistService(
     /// <param name="user">The user, or <c>null</c> to see everything.</param>
     /// <param name="episode">The episode.</param>
     /// <returns><c>true</c> if the user may see it.</returns>
-    private static bool MaySee(JMMUser? user, AnimeEpisode episode)
+    private static bool MaySee(ShokoUser? user, AnimeEpisode episode)
         => user is null || episode.AnimeSeries is not { } series || user.AllowedSeries(series);
 
     private static IReadOnlyList<IShokoSeries> BuildSeriesChain(IReadOnlyList<IShokoSeries> seriesList, bool includePrequels)

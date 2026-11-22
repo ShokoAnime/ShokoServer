@@ -33,11 +33,11 @@ public static class APIHelper
     // Only get the user once from the db for the same request, and let the GC
     // automagically clean up the user object reference mapping when the request
     // is disposed.
-    private static readonly ConditionalWeakTable<ClaimsPrincipal, JMMUser> _userTable = [];
+    private static readonly ConditionalWeakTable<ClaimsPrincipal, ShokoUser> _userTable = [];
 
     // Returns null when unauthenticated or before the server starts, but is declared non-nullable
     // because every call site treats it as guaranteed; widening it is a repo-wide change.
-    public static JMMUser GetUser(this ClaimsPrincipal? identity)
+    public static ShokoUser GetUser(this ClaimsPrincipal? identity)
     {
         var systemService = ISystemService.StaticServices.GetRequiredService<ISystemService>();
         if (!systemService.IsStarted)
@@ -56,12 +56,12 @@ public static class APIHelper
         var nameIdentifier = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
         if (nameIdentifier == null) return null!;
         if (!int.TryParse(nameIdentifier, out var id) || id == 0) return null!;
-        user = RepoFactory.JMMUser.GetByID(id)!;
+        user = RepoFactory.ShokoUser.GetByID(id)!;
         _userTable.AddOrUpdate(identity, user);
         return user;
     }
 
-    public static JMMUser GetUser(this HttpContext ctx)
+    public static ShokoUser GetUser(this HttpContext ctx)
     {
         return ctx.User.GetUser();
     }

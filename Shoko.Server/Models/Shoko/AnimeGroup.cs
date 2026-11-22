@@ -623,12 +623,12 @@ public class AnimeGroup : IShokoGroup
     IGroupUserData IShokoGroup.GetUserData(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.LocalID is 0 || RepoFactory.JMMUser.GetByID(user.LocalID) is null)
+        if (user.LocalID is 0 || RepoFactory.ShokoUser.GetByID(user.LocalID) is null)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
         lock (RepoFactory.AnimeGroup_User.GetWriteLock(user.LocalID, AnimeGroupID))
         {
             var userData = RepoFactory.AnimeGroup_User.GetByUserAndGroupID(user.LocalID, AnimeGroupID)
-                ?? new() { JMMUserID = user.LocalID, AnimeGroupID = AnimeGroupID };
+                ?? new() { UserID = user.LocalID, AnimeGroupID = AnimeGroupID };
             if (userData.AnimeGroup_UserID is 0)
                 RepoFactory.AnimeGroup_User.Save(userData);
             return userData;

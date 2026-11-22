@@ -28,7 +28,7 @@ public class PlexActionController(IQueueScheduler scheduler, PlexHelperProvider 
     public async Task<ActionResult> PlexSyncAll()
     {
         foreach (var user in plexHelpers.GetLinkedUsers())
-            await scheduler.Enqueue<SyncPlexWatchedStatesJob>(c => c.UserID = user.JMMUserID);
+            await scheduler.Enqueue<SyncPlexWatchedStatesJob>(c => c.UserID = user.ID);
         return Ok();
     }
 }

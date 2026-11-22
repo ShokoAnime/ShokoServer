@@ -14,7 +14,7 @@ public class AnimeEpisode_UserMap : ClassMap<AnimeEpisode_User>
 
         Map(x => x.AnimeEpisodeID).Not.Nullable();
         Map(x => x.AnimeSeriesID).Not.Nullable();
-        Map(x => x.JMMUserID).Not.Nullable();
+        Map(x => x.UserID).Not.Nullable();
         Map(x => x.WatchedCount).Not.Nullable();
         Map(x => x.WatchedDate);
         Map(x => x.IsFavorite).Not.Nullable();

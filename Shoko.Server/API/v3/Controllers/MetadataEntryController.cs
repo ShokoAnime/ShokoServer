@@ -80,7 +80,7 @@ public partial class MetadataEntryController : BaseController
 
     private readonly ISuspensionService _suspensionService;
 
-    private JMMUser? _viewer;
+    private ShokoUser? _viewer;
 
     #endregion
 
@@ -693,7 +693,7 @@ public partial class MetadataEntryController : BaseController
             .Select(_metadataService.GetShokoSeriesByAnidbID)
             .OfType<AnimeSeries>()
             .Where(user.AllowedSeries)
-            .Select(series => new Series(series, user.JMMUserID, randomImages, includeDataFrom))];
+            .Select(series => new Series(series, user.ID, randomImages, includeDataFrom))];
     }
 
     /// <summary>

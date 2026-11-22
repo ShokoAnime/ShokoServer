@@ -521,7 +521,7 @@ public class Common : BaseController
     {
         var user = HttpContext.GetUser();
         dynamic x = new ExpandoObject();
-        x.userid = user.JMMUserID;
+        x.userid = user.ID;
         return x;
     }
 
@@ -556,7 +556,7 @@ public class Common : BaseController
             var searchFilter = new Filter { name = "Search", groups = new List<Group>() };
             var searchGroup = new Group { name = para.query, series = new List<Serie>() };
             searchGroup.series = Search(query, para.limit, para.limit_tag, (int)para.offset,
-                para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
+                para.tags, user.ID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
                 para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter).Value!.ToList();
             searchGroup.size = searchGroup.series.Count();
             searchFilter.groups.Add(searchGroup);
@@ -588,7 +588,7 @@ public class Common : BaseController
         {
             var searchFilter = new Filter { name = "Search", groups = new List<Group>() };
             var searchGroup = new Group { name = para.query, series = new List<Serie>() };
-            searchGroup.series = (List<Serie>)StartsWith(query, para.limit, user.JMMUserID, para.nocast != 0,
+            searchGroup.series = (List<Serie>)StartsWith(query, para.limit, user.ID, para.nocast != 0,
                 para.notag != 0, para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
             searchGroup.size = searchGroup.series.Count();
             searchFilter.groups.Add(searchGroup);
@@ -826,7 +826,7 @@ public class Common : BaseController
 
         return id == 0
             ? GetAllFiles(limit, level, user)
-            : GetFileById(id, level, user.JMMUserID);
+            : GetFileById(id, level, user.ID);
     }
 
     /// <summary>
@@ -844,7 +844,7 @@ public class Common : BaseController
             .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
             .Where(tuple => !tuple.anidb!.IsCorrupted)
             .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb!.IsChaptered)
-            .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList()!;
+            .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.ID).Value).ToList()!;
     }
 
     /// <summary>
@@ -898,7 +898,7 @@ public class Common : BaseController
 
         var allVideos = RepoFactory.VideoLocal.GetAll()
             .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderName: "AniDB", IsCorrupted: true } && user.IsAllowedToSee(a)).ToList();
-        return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList()!;
+        return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.ID).Value).ToList()!;
     }
 
     /// <summary>
@@ -910,7 +910,7 @@ public class Common : BaseController
     {
         var user = HttpContext.GetUser();
 
-        var userID = user.JMMUserID;
+        var userID = user.ID;
         var results = new Dictionary<int, Serie>();
         try
         {
@@ -987,10 +987,10 @@ public class Common : BaseController
 
         var user = User;
         var list = new List<RawFile.RecentFile>();
-        foreach (var file in RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, user.JMMUserID))
+        foreach (var file in RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, user.ID))
         {
             var firstEp = file.AnimeEpisodes.FirstOrDefault(episode => episode.AnimeSeries is { } series && user.AllowedSeries(series));
-            list.Add(new RawFile.RecentFile(HttpContext, file, level, user.JMMUserID)
+            list.Add(new RawFile.RecentFile(HttpContext, file, level, user.ID)
             {
                 ep_id = firstEp?.AnimeEpisodeID ?? 0,
                 series_id = firstEp?.AnimeSeries?.AnimeSeriesID ?? 0
@@ -1017,7 +1017,7 @@ public class Common : BaseController
         {
             if (offset == 0)
             {
-                var v = new RawFile(HttpContext, vl, level, user.JMMUserID);
+                var v = new RawFile(HttpContext, vl, level, user.ID);
                 lst.Add(v);
                 if (limit != 0 && lst.Count >= limit)
                 {
@@ -1115,7 +1115,7 @@ public class Common : BaseController
     /// <param name="level"></param>
     /// <param name="user">The user, who only gets the files they may see.</param>
     /// <returns>List%lt;RawFile%gt;</returns>
-    internal object GetAllFiles(int limit, int level, JMMUser user)
+    internal object GetAllFiles(int limit, int level, ShokoUser user)
     {
         var list = new List<RawFile>();
         var limit_x = limit;
@@ -1126,7 +1126,7 @@ public class Common : BaseController
 
         foreach (var file in RepoFactory.VideoLocal.GetAll().Where(user.IsAllowedToSee).Take(limit_x))
         {
-            list.Add(new RawFile(HttpContext, file, level, user.JMMUserID));
+            list.Add(new RawFile(HttpContext, file, level, user.ID));
             if (limit != 0)
             {
                 if (list.Count >= limit)
@@ -1147,7 +1147,7 @@ public class Common : BaseController
     /// <param name="id"></param>
     /// <param name="user"></param>
     /// <returns></returns>
-    internal async Task<ActionResult> MarkFile(bool status, int id, JMMUser user)
+    internal async Task<ActionResult> MarkFile(bool status, int id, ShokoUser user)
     {
         try
         {
@@ -1181,10 +1181,10 @@ public class Common : BaseController
 
         if (para.id == 0)
         {
-            return GetAllEpisodes(user.JMMUserID, para.limit, (int)para.offset, para.level, para.all != 0, para.pic);
+            return GetAllEpisodes(user.ID, para.limit, (int)para.offset, para.level, para.all != 0, para.pic);
         }
 
-        return GetEpisodeById(para.id, user.JMMUserID, para.level, para.pic);
+        return GetEpisodeById(para.id, user.ID, para.level, para.pic);
     }
 
     /// <summary>
@@ -1204,7 +1204,7 @@ public class Common : BaseController
         var aep = RepoFactory.AnimeEpisode.GetByFilename(filename);
         if (aep is { AnimeSeries: { } series } && user.AllowedSeries(series))
         {
-            return Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, 0, pic);
+            return Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.ID, 0, pic);
         }
 
         return NotFound();
@@ -1233,7 +1233,7 @@ public class Common : BaseController
                 var aep = list_aep[0];
                 if (aep != null)
                 {
-                    return new[] { Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, 0, pic) }
+                    return new[] { Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.ID, 0, pic) }
                         .ToList();
                 }
 
@@ -1243,7 +1243,7 @@ public class Common : BaseController
                 var return_list = new List<Episode>();
                 foreach (var ae in list_aep)
                 {
-                    return_list.Add(Episode.GenerateFromAnimeEpisode(HttpContext, ae, user.JMMUserID, 0, pic));
+                    return_list.Add(Episode.GenerateFromAnimeEpisode(HttpContext, ae, user.ID, 0, pic));
                 }
 
                 return return_list;
@@ -1270,7 +1270,7 @@ public class Common : BaseController
         var lst = new List<Episode>();
         var IDs = new HashSet<int>();
 
-        var vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit, user.JMMUserID);
+        var vids = RepoFactory.VideoLocal.GetMostRecentlyAdded(para.limit, user.ID);
 
         foreach (var vl in vids)
         {
@@ -1281,7 +1281,7 @@ public class Common : BaseController
                     continue;
                 }
 
-                var ep = Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, para.level, para.pic);
+                var ep = Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.ID, para.level, para.pic);
                 if (ep != null)
                 {
                     IDs.Add(aep.AnimeEpisodeID);
@@ -1314,14 +1314,14 @@ public class Common : BaseController
                 continue;
             }
 
-            var serie = Serie.GenerateFromAnimeSeries(HttpContext, series, user.JMMUserID, true, true, 0, false,
+            var serie = Serie.GenerateFromAnimeSeries(HttpContext, series, user.ID, true, true, 0, false,
                 false, pic, tagfilter);
 
             var sereps = ser.OrderBy(a => a.AniDB_EpisodeID).ToList();
             serie.eps = new List<Episode>(sereps.Count);
             foreach (var aep in sereps)
             {
-                var ep = Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, 1, pic);
+                var ep = Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.ID, 1, pic);
                 if (ep != null)
                 {
                     serie.eps.Add(ep);
@@ -1431,7 +1431,7 @@ public class Common : BaseController
 
         var index = -1;
         var _go = false;
-        var list_aep = RepoFactory.AnimeEpisode.GetAllWatchedEpisodes(user.JMMUserID, date_after);
+        var list_aep = RepoFactory.AnimeEpisode.GetAllWatchedEpisodes(user.ID, date_after);
         var ep_list = new List<Episode>();
         foreach (var aep in list_aep)
         {
@@ -1450,7 +1450,7 @@ public class Common : BaseController
 
             if (_go)
             {
-                var ep = Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, level, pic);
+                var ep = Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.ID, level, pic);
                 if (ep != null)
                 {
                     ep_list.Add(ep);
@@ -1470,7 +1470,7 @@ public class Common : BaseController
     /// <param name="id">episode id</param>
     /// <param name="user">user id</param>
     /// <returns>APIStatus</returns>
-    internal async Task<ActionResult> MarkEpisode(bool status, int id, JMMUser user)
+    internal async Task<ActionResult> MarkEpisode(bool status, int id, ShokoUser user)
     {
         try
         {
@@ -1537,7 +1537,7 @@ public class Common : BaseController
             return BadRequest("missing 'id'");
         }
 
-        var user = RepoFactory.JMMUser.GetByID(uid);
+        var user = RepoFactory.ShokoUser.GetByID(uid);
         if (user == null)
         {
             return Unauthorized();
@@ -1629,7 +1629,7 @@ public class Common : BaseController
                 }
 
                 return DateTime.Now.DayOfWeek == ser.AirsOn.Value;
-            }).Select(ser => Serie.GenerateFromAnimeSeries(HttpContext, ser, user.JMMUserID, para.nocast == 1,
+            }).Select(ser => Serie.GenerateFromAnimeSeries(HttpContext, ser, user.ID, para.nocast == 1,
                 para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic, para.tagfilter))
             .OrderBy(a => a.name).ToList();
         return new Group
@@ -1734,7 +1734,7 @@ public class Common : BaseController
 
             anime_count++;
             return true;
-        }).OrderBy(a => a.AirDate).Select(ser => Serie.GenerateFromAniDBAnime(HttpContext, ser, user.JMMUserID, para.nocast == 1,
+        }).OrderBy(a => a.AirDate).Select(ser => Serie.GenerateFromAniDBAnime(HttpContext, ser, user.ID, para.nocast == 1,
             para.notag == 1, para.allpics == 1, para.pic, para.tagfilter)).ToList();
 
         return new Group
@@ -1759,7 +1759,7 @@ public class Common : BaseController
 
         if (para.id != 0)
         {
-            return GetSeriesByFolder(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
+            return GetSeriesByFolder(para.id, user.ID, para.nocast != 0, para.notag != 0, para.level,
                 para.all != 0, para.limit, para.allpics != 0, para.pic, para.tagfilter);
         }
 
@@ -1799,11 +1799,11 @@ public class Common : BaseController
             para.limit = 10;
         }
 
-        var series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(para.limit, User.JMMUserID);
+        var series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(para.limit, User.ID);
 
         foreach (var aser in series)
         {
-            allseries.Add(Serie.GenerateFromAnimeSeries(HttpContext, aser, user.JMMUserID, para.nocast != 0,
+            allseries.Add(Serie.GenerateFromAnimeSeries(HttpContext, aser, user.ID, para.nocast != 0,
                 para.notag != 0,
                 para.level, para.all != 0, para.allpics != 0, para.pic, para.tagfilter));
         }
@@ -1886,7 +1886,7 @@ public class Common : BaseController
         if (!string.IsNullOrEmpty(para.query))
         {
             return Search(HttpUtility.UrlDecode(para.query), para.limit, para.limit_tag, (int)para.offset, para.tags,
-                user.JMMUserID,
+                user.ID,
                 para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0,
                 para.pic, para.tagfilter);
         }
@@ -1912,7 +1912,7 @@ public class Common : BaseController
         if (!string.IsNullOrEmpty(para.query))
         {
             return Search(HttpUtility.UrlDecode(para.query), para.limit, para.limit_tag, (int)para.offset, 1,
-                user.JMMUserID,
+                user.ID,
                 para.nocast != 0,
                 para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0, para.pic,
                 para.tagfilter);
@@ -1932,7 +1932,7 @@ public class Common : BaseController
         var user = HttpContext.GetUser();
         if (para.id != 0)
         {
-            return GetSerieFromEpisode(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level,
+            return GetSerieFromEpisode(para.id, user.ID, para.nocast != 0, para.notag != 0, para.level,
                 para.all != 0, para.allpics != 0, para.pic, para.tagfilter);
         }
 
@@ -1956,7 +1956,7 @@ public class Common : BaseController
                 return new List<Group>();
             }
 
-            return anime.AllGroupsAbove.Select(s => Group.GenerateFromAnimeGroup(HttpContext, s, user.JMMUserID,
+            return anime.AllGroupsAbove.Select(s => Group.GenerateFromAnimeGroup(HttpContext, s, user.ID,
                 para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.filter, para.allpics != 0, para.pic,
                 para.tagfilter)).ToList();
         }
@@ -1978,7 +1978,7 @@ public class Common : BaseController
             var adba = RepoFactory.AniDB_Anime.GetByAnimeID(para.id);
             if (adba != null && user.AllowedAnime(adba))
             {
-                return Serie.GenerateFromAniDBAnime(HttpContext, adba, user.JMMUserID, para.nocast != 0, para.notag != 0, para.allpics != 0,
+                return Serie.GenerateFromAniDBAnime(HttpContext, adba, user.ID, para.nocast != 0, para.notag != 0, para.allpics != 0,
                 para.pic, para.tagfilter);
             }
 
@@ -2241,7 +2241,7 @@ public class Common : BaseController
         {
             if (offset <= 0)
             {
-                allseries.Add(Serie.GenerateFromAnimeSeries(HttpContext, asi, user.JMMUserID, nocast, notag, level, all,
+                allseries.Add(Serie.GenerateFromAnimeSeries(HttpContext, asi, user.ID, nocast, notag, level, all,
                     allpic, pic, tagfilter));
                 if (limit != 0 && allseries.Count >= limit)
                 {
@@ -2284,7 +2284,7 @@ public class Common : BaseController
             return NotFound("Series does not exist.");
         }
 
-        return Serie.GenerateFromAnimeSeries(HttpContext, ser, user.JMMUserID,
+        return Serie.GenerateFromAnimeSeries(HttpContext, ser, user.ID,
             nocast, notag, level, all, allpic, pic, tagfilter);
     }
 
@@ -2295,7 +2295,7 @@ public class Common : BaseController
     /// <param name="watched">true is watched, false is unwatched</param>
     /// <param name="user">user</param>
     /// <returns>APIStatus</returns>
-    internal async Task<ActionResult> MarkSerieWatchStatus(int id, bool watched, JMMUser user)
+    internal async Task<ActionResult> MarkSerieWatchStatus(int id, bool watched, ShokoUser user)
     {
         try
         {
@@ -2304,7 +2304,7 @@ public class Common : BaseController
 
             foreach (var ep in ser.AllAnimeEpisodes)
             {
-                var epUser = ep.GetUserRecord(user.JMMUserID);
+                var epUser = ep.GetUserRecord(user.ID);
                 if (epUser != null)
                 {
                     if (epUser.WatchedCount <= 0 && watched)
@@ -2353,7 +2353,7 @@ public class Common : BaseController
     {
         query = query.ToLowerInvariant();
 
-        var user = RepoFactory.JMMUser.GetByID(uid);
+        var user = RepoFactory.ShokoUser.GetByID(uid);
         if (user == null)
         {
             return Unauthorized();
@@ -2434,7 +2434,7 @@ public class Common : BaseController
     {
         query = query.ToLowerInvariant();
 
-        var user = RepoFactory.JMMUser.GetByID(uid);
+        var user = RepoFactory.ShokoUser.GetByID(uid);
         if (user == null)
         {
             return Unauthorized();
@@ -2522,11 +2522,11 @@ public class Common : BaseController
 
         if (para.id == 0)
         {
-            return GetAllFilters(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
+            return GetAllFilters(user.ID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
                 para.allpics != 0, para.pic, para.tagfilter);
         }
 
-        return GetFilter(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
+        return GetFilter(para.id, user.ID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
             para.allpics != 0, para.pic, para.tagfilter);
     }
 
@@ -2651,11 +2651,11 @@ public class Common : BaseController
 
         if (para.id == 0)
         {
-            return GetAllGroups(user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
+            return GetAllGroups(user.ID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
                 para.allpics != 0, para.pic, para.tagfilter);
         }
 
-        return GetGroup(para.id, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
+        return GetGroup(para.id, user.ID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
             para.filter, para.allpics != 0, para.pic, para.tagfilter);
     }
 
@@ -2698,7 +2698,7 @@ public class Common : BaseController
 
         if (para.query != string.Empty)
         {
-            return SearchGroupName(para.query!, para.limit, (int)para.offset, user.JMMUserID,
+            return SearchGroupName(para.query!, para.limit, (int)para.offset, user.ID,
                 para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0,
                 para.pic, para.tagfilter);
         }
@@ -2775,7 +2775,7 @@ public class Common : BaseController
     /// <param name="user">user</param>
     /// <param name="watchedstatus">watch status</param>
     /// <returns>APIStatus</returns>
-    internal async Task<ActionResult> MarkWatchedStatusOnGroup(int groupid, JMMUser user, bool watchedstatus)
+    internal async Task<ActionResult> MarkWatchedStatusOnGroup(int groupid, ShokoUser user, bool watchedstatus)
     {
         try
         {
@@ -2850,7 +2850,7 @@ public class Common : BaseController
     {
         query = query.ToLowerInvariant();
 
-        var user = RepoFactory.JMMUser.GetByID(uid);
+        var user = RepoFactory.ShokoUser.GetByID(uid);
         if (user == null)
         {
             return Unauthorized();
@@ -2992,7 +2992,7 @@ public class Common_v2_1 : BaseController
             .Where(a => a.VideoLocal is not null)
             .Select(a => a.VideoLocal!.AnimeEpisodes.FirstOrDefault(episode => episode.AnimeSeries is { } series && user.AllowedSeries(series)))
             .WhereNotNull()
-            .Select(aep => Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, level, pic)).ToList();
+            .Select(aep => Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.ID, level, pic)).ToList();
 
         if (items.Count is not 0)
         {

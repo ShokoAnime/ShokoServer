@@ -183,7 +183,7 @@ public partial class DatabaseFixes
         _logger.Debug($"Looking for faulty anidb file entries...");
         _logger.Debug($"Looking for faulty episode user records...");
         // Fetch every episode user record stored to both remove orphaned records and to make sure the watch date is correct.
-        var userDict = RepoFactory.JMMUser.GetAll().ToDictionary(user => user.JMMUserID);
+        var userDict = RepoFactory.ShokoUser.GetAll().ToDictionary(user => user.ID);
         var episodeDict = RepoFactory.AnimeEpisode.GetAll()
             .ToDictionary(episode => episode.AnimeEpisodeID, episode => episode.VideoLocals);
         var episodesURsToSave = new List<AnimeEpisode_User>();
@@ -192,7 +192,7 @@ public partial class DatabaseFixes
         {
             // Remove any unknown episode user records.
             if (!episodeDict.ContainsKey(episodeUserRecord.AnimeEpisodeID) ||
-                !userDict.ContainsKey(episodeUserRecord.JMMUserID))
+                !userDict.ContainsKey(episodeUserRecord.UserID))
             {
                 episodeURsToRemove.Add(episodeUserRecord);
                 continue;
@@ -200,7 +200,7 @@ public partial class DatabaseFixes
 
             // Fetch the file user record for when a file for the episode was last watched.
             var fileUserRecord = episodeDict[episodeUserRecord.AnimeEpisodeID]
-                .Select(file => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(episodeUserRecord.JMMUserID, file.VideoLocalID))
+                .Select(file => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(episodeUserRecord.UserID, file.VideoLocalID))
                 .WhereNotNull()
                 .OrderByDescending(record => record.LastUpdated)
                 .FirstOrDefault(record => record.WatchedDate.HasValue);
@@ -235,7 +235,7 @@ public partial class DatabaseFixes
         var seriesList = episodesURsToSave
             .GroupBy(record => record.AnimeSeriesID)
             .Select(records => (RepoFactory.AnimeSeries.GetByID(records.Key),
-                records.Select(record => record.JMMUserID).Distinct())).ToList();
+                records.Select(record => record.UserID).Distinct())).ToList();
         var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
         foreach (var (series, userIDs) in seriesList)
         {
@@ -249,10 +249,10 @@ public partial class DatabaseFixes
             foreach (var userID in userIDs)
             {
                 var seriesUserRecord = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID)
-                    ?? new() { JMMUserID = userID, AnimeSeriesID = series.AnimeSeriesID };
+                    ?? new() { UserID = userID, AnimeSeriesID = series.AnimeSeriesID };
                 seriesUserRecord.LastEpisodeUpdate = seriesUserRecord.LastUpdated = DateTime.Now;
                 _logger.Debug(
-                    $"Updating series user contract for user \"{userDict[seriesUserRecord.JMMUserID].Username}\". (UserID={seriesUserRecord.JMMUserID}, SeriesID={seriesUserRecord.AnimeSeriesID})");
+                    $"Updating series user contract for user \"{userDict[seriesUserRecord.UserID].Username}\". (UserID={seriesUserRecord.UserID}, SeriesID={seriesUserRecord.AnimeSeriesID})");
                 RepoFactory.AnimeSeries_User.Save(seriesUserRecord);
             }
 
@@ -1350,7 +1350,7 @@ public partial class DatabaseFixes
         }
 
         // If we have no user, then this is a new install, so skip the migration.
-        var allUsers = RepoFactory.JMMUser.GetAll();
+        var allUsers = RepoFactory.ShokoUser.GetAll();
         if (allUsers.Count == 0)
         {
             session.CreateSQLQuery(DropCommand).ExecuteUpdate();
@@ -1396,8 +1396,8 @@ public partial class DatabaseFixes
                         continue;
                     }
 
-                    var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(user.JMMUserID, series.AnimeSeriesID)
-                        ?? new() { JMMUserID = user.JMMUserID, AnimeSeriesID = series.AnimeSeriesID };
+                    var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(user.ID, series.AnimeSeriesID)
+                        ?? new() { UserID = user.ID, AnimeSeriesID = series.AnimeSeriesID };
                     userData.AbsoluteUserRating = vote.VoteValue;
                     userData.UserRatingVoteType = vote.VoteType is VoteType.AnimePermanent
                         ? SeriesVoteType.Permanent
@@ -1414,8 +1414,8 @@ public partial class DatabaseFixes
                         continue;
                     }
 
-                    var userData = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, series.AnimeEpisodeID)
-                        ?? new() { JMMUserID = user.JMMUserID, AnimeEpisodeID = series.AnimeEpisodeID, LastUpdated = DateTime.Now };
+                    var userData = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(user.ID, series.AnimeEpisodeID)
+                        ?? new() { UserID = user.ID, AnimeEpisodeID = series.AnimeEpisodeID, LastUpdated = DateTime.Now };
                     userData.AbsoluteUserRating = vote.VoteValue;
                     toSaveEpisode.Add(userData);
                     break;
@@ -1605,8 +1605,8 @@ public partial class DatabaseFixes
         try
         {
             var rawAvatars = session.CreateSQLQuery(
-                    "SELECT JMMUserID, AvatarImageBlob, AvatarImageMetadata FROM JMMUser WHERE AvatarImageBlob IS NOT NULL AND AvatarImageBlob <> ''")
-                .AddScalar("JMMUserID", NHibernateUtil.Int32)
+                    "SELECT ID, AvatarImageBlob, AvatarImageMetadata FROM ShokoUser WHERE AvatarImageBlob IS NOT NULL AND AvatarImageBlob <> ''")
+                .AddScalar("ID", NHibernateUtil.Int32)
                 .AddScalar("AvatarImageBlob", NHibernateUtil.BinaryBlob)
                 .AddScalar("AvatarImageMetadata", NHibernateUtil.String)
                 .List<object[]>();
@@ -1623,7 +1623,7 @@ public partial class DatabaseFixes
         }
         catch (GenericADOException)
         {
-            _logger.Info("AvatarImageBlob column does not exist on JMMUser, skipping.");
+            _logger.Info("AvatarImageBlob column does not exist on ShokoUser, skipping.");
         }
 
         systemService.StartupMessage = $"{str} - Loaded {oldUserAvatars.Count} user avatar records to migrate.";
@@ -2163,12 +2163,12 @@ public partial class DatabaseFixes
         }
         try
         {
-            session.CreateSQLQuery("ALTER TABLE JMMUser DROP COLUMN AvatarImageBlob;").ExecuteUpdate();
+            session.CreateSQLQuery("ALTER TABLE ShokoUser DROP COLUMN AvatarImageBlob;").ExecuteUpdate();
         }
         catch (GenericADOException) { }
         try
         {
-            session.CreateSQLQuery("ALTER TABLE JMMUser DROP COLUMN AvatarImageMetadata;").ExecuteUpdate();
+            session.CreateSQLQuery("ALTER TABLE ShokoUser DROP COLUMN AvatarImageMetadata;").ExecuteUpdate();
         }
         catch (GenericADOException) { }
 

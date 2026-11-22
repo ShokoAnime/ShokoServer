@@ -20,7 +20,7 @@ public class AnimeSeries_User : ISeriesUserData
     /// <summary>
     ///   Shoko User ID.
     /// </summary>
-    public int JMMUserID { get; set; }
+    public int UserID { get; set; }
 
     /// <summary>
     ///   Shoko Series ID.
@@ -144,12 +144,12 @@ public class AnimeSeries_User : ISeriesUserData
 
     #region IUserData Implementation
 
-    int IUserData.UserID => JMMUserID;
+    int IUserData.UserID => UserID;
 
     DateTime IUserData.LastUpdatedAt => LastUpdated;
 
-    IUser IUserData.User => RepoFactory.JMMUser.GetByID(JMMUserID) ??
-        throw new NullReferenceException($"Unable to find IUser with the given id. (User={JMMUserID})");
+    IUser IUserData.User => RepoFactory.ShokoUser.GetByID(UserID) ??
+        throw new NullReferenceException($"Unable to find IUser with the given id. (User={UserID})");
 
     #endregion
 
@@ -166,7 +166,7 @@ public class AnimeSeries_User : ISeriesUserData
     // Skim it at runtime until we decide to cache it in the DB.
     DateTime? ISeriesUserData.LastVideoPlayedAt
         => (AnimeSeries?.VideoLocals ?? [])
-            .Select(video => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(JMMUserID, video.VideoLocalID)?.WatchedDate)
+            .Select(video => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(UserID, video.VideoLocalID)?.WatchedDate)
             .WhereNotNull()
             .OrderDescending()
             .FirstOrDefault();

@@ -39,7 +39,7 @@ public class VideoVisibilityTests
 
         public VideoLocal UnlinkedVideo { get; } = Video(3, "unlinked");
 
-        public JMMUser User { get; } = new() { JMMUserID = 1, HideCategories = HiddenTag };
+        public ShokoUser User { get; } = new() { ID = 1, HideCategories = HiddenTag };
 
         public VideoLocalRepository Videos { get; }
 
@@ -48,7 +48,7 @@ public class VideoVisibilityTests
             Videos = CachedRepo.Build<VideoLocalRepository, int, VideoLocal>(video => video.VideoLocalID, [MixedVideo, HiddenVideo, UnlinkedVideo]);
             _scope = new RepoFactoryScope()
                 .Set(Videos)
-                .With<JMMUserRepository, int, JMMUser>(user => user.JMMUserID, [User])
+                .With<ShokoUserRepository, int, ShokoUser>(user => user.ID, [User])
                 .With<CrossRef_File_EpisodeRepository, int, CrossRef_File_Episode>(xref => xref.CrossRef_File_EpisodeID, [
                     Link(1, MixedVideo, animeID: 1),
                     Link(2, MixedVideo, animeID: 2),
@@ -86,7 +86,7 @@ public class VideoVisibilityTests
     {
         using var world = new World();
 
-        var listed = world.Videos.GetMostRecentlyAdded(-1, world.User.JMMUserID);
+        var listed = world.Videos.GetMostRecentlyAdded(-1, world.User.ID);
 
         Assert.Equal([1], listed.Select(video => video.VideoLocalID));
     }
@@ -106,7 +106,7 @@ public class VideoVisibilityTests
     public void ARestrictedUserSeesOnlyFilesWithAVisibleSeries()
     {
         using var world = new World();
-        var unrestricted = new JMMUser { JMMUserID = 2, HideCategories = string.Empty };
+        var unrestricted = new ShokoUser { ID = 2, HideCategories = string.Empty };
 
         Assert.True(world.User.IsAllowedToSee(world.MixedVideo));
         Assert.False(world.User.IsAllowedToSee(world.HiddenVideo));

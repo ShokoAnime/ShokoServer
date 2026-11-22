@@ -80,7 +80,7 @@ the episode out. What each source answers, by kind:
 | `network` | | | | the studio store |
 | `tag` | | a custom tag | AniDB's tag | the tag store |
 | `video` | `VideoLocal` | | | |
-| `user` | `JMMUser` | | | |
+| `user` | `ShokoUser` | | | |
 | `filter` | `FilterPreset` | | | |
 | `channel` | an airing channel | | | |
 | any other | | | | the plugin's `IMetadataResolver`, if one took it |

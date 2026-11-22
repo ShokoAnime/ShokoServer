@@ -205,7 +205,7 @@ public sealed class MetadataLookupTables
             shokoSeries,
             CachedRepo.Build<AnimeEpisodeRepository, int, AnimeEpisode>(episode => episode.AnimeEpisodeID, new AnimeEpisode { AnimeEpisodeID = 4, AnimeSeriesID = 3 }),
             CachedRepo.Build<VideoLocalRepository, int, VideoLocal>(video => video.VideoLocalID, new VideoLocal { VideoLocalID = 5, Hash = VideoHash, FileSize = VideoSize }),
-            CachedRepo.Build<JMMUserRepository, int, JMMUser>(user => user.JMMUserID, new JMMUser { JMMUserID = 6, Username = "User" }),
+            CachedRepo.Build<ShokoUserRepository, int, ShokoUser>(user => user.ID, new ShokoUser { ID = 6, Username = "User" }),
             CachedRepo.Build<FilterPresetRepository, int, FilterPreset>(filter => filter.FilterPresetID, new FilterPreset { FilterPresetID = 7, Name = "Filter" }),
             CachedRepo.Build<AiringChannelRepository, int, AiringChannel>(channel => channel.AiringChannelID, new AiringChannel { AiringChannelID = 1, ChannelID = ChannelID }),
             CachedRepo.Build<AniDB_AnimeRepository, int, AniDB_Anime>(anime => anime.AniDB_AnimeID, new AniDB_Anime { AniDB_AnimeID = 1, AnimeID = 30 }),

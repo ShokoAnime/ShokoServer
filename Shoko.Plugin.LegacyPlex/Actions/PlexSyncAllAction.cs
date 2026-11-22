@@ -38,7 +38,7 @@ public sealed class PlexSyncAllAction(IQueueScheduler scheduler, PlexHelperProvi
         foreach (var user in users)
         {
             token.ThrowIfCancellationRequested();
-            await scheduler.Enqueue<SyncPlexWatchedStatesJob>(c => c.UserID = user.JMMUserID, ct: token);
+            await scheduler.Enqueue<SyncPlexWatchedStatesJob>(c => c.UserID = user.ID, ct: token);
             items.Increment();
         }
     }

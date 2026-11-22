@@ -51,14 +51,14 @@ public class DashboardModules : BaseController
             file_count = files.Count;
             size = SizeSuffix(files.Sum(a => a.FileSize));
 
-            var watched = RepoFactory.VideoLocalUser.GetByUserID(user.JMMUserID)
+            var watched = RepoFactory.VideoLocalUser.GetByUserID(user.ID)
                 .Where(a => a.WatchedDate != null).ToList();
 
             watched_files = watched.Count;
 
             watched_series = RepoFactory.AnimeSeries.GetAll().Count(a =>
             {
-                var contract = _seriesUsers.GetByUserAndSeriesID(user.JMMUserID, a.AnimeSeriesID);
+                var contract = _seriesUsers.GetByUserAndSeriesID(user.ID, a.AnimeSeriesID);
                 if (a.MissingEpisodeCount > 0) return false;
                 return contract?.UnwatchedEpisodeCount == 0;
             });

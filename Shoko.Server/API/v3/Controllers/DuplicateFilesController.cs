@@ -119,7 +119,7 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
         return enumerable
             .OrderBy(series => series.Title)
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series.WithEpisodeCount(_animeEpisodes.GetWithDuplicateFiles(series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
+            .ToListResult(series => new Series.WithEpisodeCount(_animeEpisodes.GetWithDuplicateFiles(series.AniDB_ID).Count(), series, User.ID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>

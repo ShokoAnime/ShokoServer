@@ -14,7 +14,7 @@ public class AnimeGroupService(
     AnimeGroup_UserRepository _groupUsers,
     AnimeGroupRepository _groups,
     IUserDataService userDataService,
-    JMMUserRepository _jmmUsers
+    ShokoUserRepository _jmmUsers
 )
 {
     private readonly UserDataService _userDataService = (UserDataService)userDataService;
@@ -135,7 +135,7 @@ public class AnimeGroupService(
     /// and whether or not the <see cref="AnimeGroup_User"/> is new.</param>
     private void UpdateWatchedStats(AnimeGroup animeGroup,
         IReadOnlyList<AnimeSeries> seriesList,
-        IEnumerable<JMMUser> allUsers, Action<AnimeGroup_User, bool, bool> newAnimeGroupUsers)
+        IEnumerable<ShokoUser> allUsers, Action<AnimeGroup_User, bool, bool> newAnimeGroupUsers)
     {
         foreach (var user in allUsers)
         {

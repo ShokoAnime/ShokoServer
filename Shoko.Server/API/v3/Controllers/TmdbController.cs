@@ -639,7 +639,7 @@ public partial class TmdbController(
             .Select(xref => xref.AnimeSeries)
             .WhereNotNull()
             .Where(User.AllowedSeries)
-            .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
+            .Select(series => new Series(series, User.ID, randomImages, includeDataFrom))
             .ToList();
     }
 
@@ -1835,7 +1835,7 @@ public partial class TmdbController(
             .Select(xref => xref.AnimeSeries)
             .WhereNotNull()
             .Where(User.AllowedSeries)
-            .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
+            .Select(series => new Series(series, User.ID, randomImages, includeDataFrom))
             .ToList();
     }
 
@@ -2480,7 +2480,7 @@ public partial class TmdbController(
                 .Select(xref => xref.AnimeSeries)
                 .WhereNotNull()
                 .Where(User.AllowedSeries)
-                .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
+                .Select(series => new Series(series, User.ID, randomImages, includeDataFrom))
                 .ToList();
         }
 
@@ -2497,7 +2497,7 @@ public partial class TmdbController(
             .Select(xref => xref.AnimeSeries)
             .WhereNotNull()
             .Where(User.AllowedSeries)
-            .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
+            .Select(series => new Series(series, User.ID, randomImages, includeDataFrom))
             .ToList();
     }
 
@@ -2996,7 +2996,7 @@ public partial class TmdbController(
             .Select(xref => xref.AnimeSeries)
             .WhereNotNull()
             .Where(User.AllowedSeries)
-            .Select(shokoSeries => new Series(shokoSeries, User.JMMUserID, randomImages, includeDataFrom))
+            .Select(shokoSeries => new Series(shokoSeries, User.ID, randomImages, includeDataFrom))
             .ToList();
     }
 

@@ -251,7 +251,7 @@ public class UserConfigurationService(
         string? previousJson;
         lock (_saveLock)
         {
-            stored = repository.GetByUserIDAndConfigurationID(userID, key) ?? new UserConfiguration { JMMUserID = userID, ConfigurationID = key };
+            stored = repository.GetByUserIDAndConfigurationID(userID, key) ?? new UserConfiguration { UserID = userID, ConfigurationID = key };
             previousJson = stored.UserConfigurationID is 0 ? null : stored.Configuration;
             stored.PluginID = pluginID;
             stored.Configuration = json;

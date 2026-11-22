@@ -28,7 +28,7 @@ namespace Shoko.Server.Services;
 public class UserService(
     ILogger<UserService> _logger,
     IQueueScheduler _scheduler,
-    JMMUserRepository _userRepository,
+    ShokoUserRepository _userRepository,
     AuthTokensRepository _authTokensRepository,
     AnimeSeriesRepository _seriesRepository,
     AnimeGroup_UserRepository _groupUserRepository,
@@ -67,7 +67,7 @@ public class UserService(
         => context.User?.GetUser();
 
     public Task<IUser> CreateUser(UserUpdate initialData)
-        => UpdateUserInternal(new JMMUser(), initialData);
+        => UpdateUserInternal(new ShokoUser(), initialData);
 
     public Task ResetUserPassword(IUser user)
         => UpdateUser(user, new() { Password = string.Empty });
@@ -81,9 +81,9 @@ public class UserService(
     }
 
     public Task<IUser> UpdateUser(IUser user, UserUpdate updateData)
-        => UpdateUserInternal((JMMUser)user, updateData);
+        => UpdateUserInternal((ShokoUser)user, updateData);
 
-    private async Task<IUser> UpdateUserInternal(JMMUser user, UserUpdate updateData)
+    private async Task<IUser> UpdateUserInternal(ShokoUser user, UserUpdate updateData)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(updateData);
@@ -103,17 +103,17 @@ public class UserService(
         // one way and saved another.
         if (!string.IsNullOrEmpty(updateData.Username))
             updateData.Username = updateData.Username.Trim();
-        if ((user.JMMUserID is 0 || string.IsNullOrEmpty(user.Username)) && string.IsNullOrWhiteSpace(updateData.Username))
+        if ((user.ID is 0 || string.IsNullOrEmpty(user.Username)) && string.IsNullOrWhiteSpace(updateData.Username))
             AddModelError(nameof(updateData.Username), "A new user must have a username set.");
         if (updateData.Username is not null && string.IsNullOrWhiteSpace(updateData.Username))
             AddModelError(nameof(updateData.Username), "Username cannot be empty or only white-spaces.");
 
         if (updateData.Password is { Length: > 1024 })
             AddModelError(nameof(updateData.Password), "Password cannot be longer than 1024 characters. Why the fuck do you need more than 1024 characters in your password?");
-        if (user.JMMUserID is 0 && user.Password is null)
+        if (user.ID is 0 && user.Password is null)
             AddModelError(nameof(updateData.Password), "A new user must have a password set.");
 
-        if (_userRepository.GetByUsername(updateData.Username) is { } existingUser && existingUser.JMMUserID != user.JMMUserID)
+        if (_userRepository.GetByUsername(updateData.Username) is { } existingUser && existingUser.ID != user.ID)
             AddModelError(nameof(updateData.Username), "The username is unavailable.");
 
         if (updateData.IsAdmin.HasValue && user.IsAdminUser() != updateData.IsAdmin.Value)
@@ -124,7 +124,7 @@ public class UserService(
                 AddModelError(nameof(updateData.IsAdmin), "There must be at least one admin user.");
         }
 
-        var isNew = user.JMMUserID is 0;
+        var isNew = user.ID is 0;
         var shouldSave = isNew;
         var updateStats = isNew;
         var reason = UserSaveReason.None;

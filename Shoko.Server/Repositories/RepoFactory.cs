@@ -60,7 +60,7 @@ public class RepoFactory
     public static CustomTagRepository CustomTag = null!;
     public static FileNameHashRepository FileNameHash = null!;
     public static FilterPresetRepository FilterPreset = null!;
-    public static JMMUserRepository JMMUser = null!;
+    public static ShokoUserRepository ShokoUser = null!;
     public static Metadata_CreatorRepository Metadata_Creator = null!;
     public static Metadata_CharacterRepository Metadata_Character = null!;
     public static Metadata_CastRepository Metadata_Cast = null!;
@@ -135,7 +135,7 @@ public class RepoFactory
         CustomTagRepository customTag,
         FileNameHashRepository fileNameHash,
         FilterPresetRepository filterPreset,
-        JMMUserRepository jmmUser,
+        ShokoUserRepository jmmUser,
         Metadata_CreatorRepository metadataCreator,
         Metadata_CharacterRepository metadataCharacter,
         Metadata_CastRepository metadataCast,
@@ -210,7 +210,7 @@ public class RepoFactory
         CustomTag = customTag;
         FileNameHash = fileNameHash;
         FilterPreset = filterPreset;
-        JMMUser = jmmUser;
+        ShokoUser = jmmUser;
         Metadata_Creator = metadataCreator;
         Metadata_Character = metadataCharacter;
         Metadata_Cast = metadataCast;

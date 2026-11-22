@@ -12,7 +12,7 @@ public class UserConfigurationMap : ClassMap<UserConfiguration>
         Not.LazyLoad();
         Id(x => x.UserConfigurationID);
 
-        Map(x => x.JMMUserID).Not.Nullable();
+        Map(x => x.UserID).Not.Nullable();
         Map(x => x.ConfigurationID).Not.Nullable();
         Map(x => x.PluginID).Not.Nullable();
         Map(x => x.Configuration).Not.Nullable();

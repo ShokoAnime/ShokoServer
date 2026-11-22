@@ -271,7 +271,7 @@ public class Core : BaseController
     {
         if (User.IsAniDBUser != 1)
             return BadRequest("User is not an AniDB user. Nothing to do.");
-        await _scheduler.StartJob<SyncAniDBVotesJob>(c => c.UserID = User.JMMUserID);
+        await _scheduler.StartJob<SyncAniDBVotesJob>(c => c.UserID = User.ID);
         return APIStatus.OK();
     }
 
@@ -429,9 +429,9 @@ public class Core : BaseController
         var users = new Dictionary<int, string>();
         try
         {
-            foreach (var us in RepoFactory.JMMUser.GetAll())
+            foreach (var us in RepoFactory.ShokoUser.GetAll())
             {
-                users.Add(us.JMMUserID, us.Username);
+                users.Add(us.ID, us.Username);
             }
 
             return users;
@@ -450,7 +450,7 @@ public class Core : BaseController
     public async Task<ActionResult> CreateUser(CL_JMMUser body)
     {
         var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
-        JMMUser? user = null;
+        ShokoUser? user = null;
         var tags = body.HideCategories?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .SelectMany(RepoFactory.AniDB_Tag.GetByName)
             .WhereNotNull()
@@ -459,7 +459,7 @@ public class Core : BaseController
             .ToList();
         if (body.JMMUserID != 0)
         {
-            user = RepoFactory.JMMUser.GetByID(body.JMMUserID);
+            user = RepoFactory.ShokoUser.GetByID(body.JMMUserID);
             if (user is null)
                 return APIStatus.NotFound();
 
@@ -474,7 +474,7 @@ public class Core : BaseController
         }
         else
         {
-            user = (JMMUser)await service.CreateUser(new()
+            user = (ShokoUser)await service.CreateUser(new()
             {
                 Username = body.Username,
                 Password = body.Password is not "**SECRET**" ? body.Password : string.Empty,
@@ -497,7 +497,7 @@ public class Core : BaseController
                 user.PlexToken = body.PlexToken;
             }
 
-            RepoFactory.JMMUser.Save(user);
+            RepoFactory.ShokoUser.Save(user);
         }
         return APIStatus.OK();
     }

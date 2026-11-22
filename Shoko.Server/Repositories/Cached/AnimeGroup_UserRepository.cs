@@ -29,8 +29,8 @@ public class AnimeGroup_UserRepository(DatabaseFactory databaseFactory) : BaseCa
     public override void PopulateIndexes()
     {
         _groupIDs = Cache.CreateIndex(a => a.AnimeGroupID);
-        _userIDs = Cache.CreateIndex(a => a.JMMUserID);
-        _userGroupIDs = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeGroupID));
+        _userIDs = Cache.CreateIndex(a => a.UserID);
+        _userGroupIDs = Cache.CreateIndex(a => (a.UserID, a.AnimeGroupID));
     }
 
     /// <summary>

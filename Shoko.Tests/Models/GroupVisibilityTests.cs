@@ -63,7 +63,7 @@ public class GroupVisibilityTests
 
         public AnimeGroup HiddenGroup { get; } = new() { AnimeGroupID = 200 };
 
-        public JMMUser User { get; } = new() { JMMUserID = 1, HideCategories = HiddenTag };
+        public ShokoUser User { get; } = new() { ID = 1, HideCategories = HiddenTag };
 
         public AnimeGroupRepository Groups { get; }
 
@@ -213,7 +213,7 @@ public class GroupVisibilityTests
         Assert.Equal("Seen.", view.Description);
         Assert.Same(world.VisibleSeries, view.ImageEntity);
 
-        var unrestricted = AnimeGroupView.For(world.MixedGroup, new JMMUser { JMMUserID = 2 });
+        var unrestricted = AnimeGroupView.For(world.MixedGroup, new ShokoUser { ID = 2 });
         Assert.True(unrestricted.IsComplete);
         Assert.Equal("Hidden Show", unrestricted.Name);
     }

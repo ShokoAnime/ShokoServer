@@ -18,9 +18,9 @@ public class AnimeSeries_UserRepository(DatabaseFactory databaseFactory) : BaseC
 
     public override void PopulateIndexes()
     {
-        _userIDs = Cache.CreateIndex(a => a.JMMUserID);
+        _userIDs = Cache.CreateIndex(a => a.UserID);
         _seriesIDs = Cache.CreateIndex(a => a.AnimeSeriesID);
-        _userSeriesIDs = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeSeriesID));
+        _userSeriesIDs = Cache.CreateIndex(a => (a.UserID, a.AnimeSeriesID));
     }
 
     public AnimeSeries_User? GetByUserAndSeriesID(int userID, int seriesID)

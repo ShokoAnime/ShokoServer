@@ -71,7 +71,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<ShokoManagedFolderRepository>();
         services.AddCachedRepository<ShokoImageRepository>();
         services.AddCachedRepository<ShokoImage_EntityRepository>();
-        services.AddCachedRepository<JMMUserRepository>();
+        services.AddCachedRepository<ShokoUserRepository>();
         services.AddCachedRepository<Metadata_CreatorRepository>();
         services.AddCachedRepository<Metadata_CharacterRepository>();
         services.AddCachedRepository<Metadata_TagRepository>();

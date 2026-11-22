@@ -148,7 +148,7 @@ public class SeriesController(
             })
             .OrderBy(a => a.seriesName.ToSortName())
             .ThenBy(a => a.series.AniDB_ID)
-            .ToListResult(tuple => new Series(tuple.series, user.JMMUserID, includeDataFrom: includeDataFrom), page, pageSize);
+            .ToListResult(tuple => new Series(tuple.series, user.ID, includeDataFrom: includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -173,7 +173,7 @@ public class SeriesController(
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return new Series(series, User.JMMUserID, randomImages, includeDataFrom);
+        return new Series(series, User.ID, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -426,12 +426,12 @@ public class SeriesController(
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(searchResult => new Series(searchResult.Result, User.JMMUserID, includeDataFrom: includeDataFrom), page, pageSize);
+                .ToListResult(searchResult => new Series(searchResult.Result, User.ID, includeDataFrom: includeDataFrom), page, pageSize);
         }
         return query
             .OrderBy(series => series.Title.ToLowerInvariant().ToSortName())
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series(series, User.JMMUserID, includeDataFrom: includeDataFrom), page, pageSize);
+            .ToListResult(series => new Series(series, User.ID, includeDataFrom: includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -471,12 +471,12 @@ public class SeriesController(
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(searchResult => new Series(searchResult.Result, User.JMMUserID, includeDataFrom: includeDataFrom), page, pageSize);
+                .ToListResult(searchResult => new Series(searchResult.Result, User.ID, includeDataFrom: includeDataFrom), page, pageSize);
         }
         return query
             .OrderBy(series => series.Title.ToLowerInvariant().ToSortName())
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series(series, User.JMMUserID, includeDataFrom: includeDataFrom), page, pageSize);
+            .ToListResult(series => new Series(series, User.ID, includeDataFrom: includeDataFrom), page, pageSize);
     }
 
     #endregion
@@ -1070,14 +1070,14 @@ public class SeriesController(
     /// <returns>The watched anime for the user.</returns>
     [NonAction]
     private List<AniDB_Anime> GetWatchedAnimeForPeriod(
-        JMMUser user,
+        ShokoUser user,
         bool includeRestricted = false,
         DateTime? startDate = null,
         DateTime? endDate = null)
     {
         startDate = startDate?.ToLocalTime();
         endDate = endDate?.ToLocalTime();
-        IEnumerable<VideoLocal_User> userDataQuery = _videoLocalUsers.GetByUserID(user.JMMUserID);
+        IEnumerable<VideoLocal_User> userDataQuery = _videoLocalUsers.GetByUserID(user.ID);
         if (startDate.HasValue && endDate.HasValue)
         {
             userDataQuery = userDataQuery
@@ -1115,7 +1115,7 @@ public class SeriesController(
     /// <returns>The unwatched anime for the user.</returns>
     [NonAction]
     private Dictionary<int, (AniDB_Anime, AnimeSeries?)> GetUnwatchedAnime(
-        JMMUser user,
+        ShokoUser user,
         bool showAll,
         bool includeRestricted = false,
         IEnumerable<AniDB_Anime>? watchedAnime = null)
@@ -1417,7 +1417,7 @@ public class SeriesController(
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return new Series(series, User.JMMUserID, randomImages, includeDataFrom);
+        return new Series(series, User.ID, randomImages, includeDataFrom);
     }
 
     /// <summary>
@@ -2657,7 +2657,7 @@ public class SeriesController(
                     // If we should hide watched episodes and the episode is watched, then hide it.
                     // Or if we should only show watched episodes and the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
-                    var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate is not null;
+                    var isWatched = shoko.GetUserRecord(user.ID)?.WatchedDate is not null;
                     if (shouldHideWatched == isWatched)
                         return false;
                 }
@@ -2668,7 +2668,7 @@ public class SeriesController(
                     // If we should hide voted episodes and the episode is voted, then hide it.
                     // Or if we should only show voted episodes and the episode is not voted, then hide it.
                     var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
-                    var isVoted = _animeEpisodeUsers.GetByUserAndEpisodeID(user.JMMUserID, shoko.AniDB_EpisodeID) is { HasUserRating: true };
+                    var isVoted = _animeEpisodeUsers.GetByUserAndEpisodeID(user.ID, shoko.AniDB_EpisodeID) is { HasUserRating: true };
                     if (shouldHideVoted == isVoted)
                         return false;
                 }
@@ -2794,7 +2794,7 @@ public class SeriesController(
                     // If we should hide watched episodes and the episode is watched, then hide it.
                     // Or if we should only show watched episodes and the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
-                    var isWatched = shoko?.GetUserRecord(user.JMMUserID)?.WatchedDate is not null;
+                    var isWatched = shoko?.GetUserRecord(user.ID)?.WatchedDate is not null;
                     if (shouldHideWatched == isWatched)
                         return false;
                 }
@@ -2875,7 +2875,7 @@ public class SeriesController(
         if (!user.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var (episode, _) = _seriesService.GetNextUpEpisode(series, user.JMMUserID, new()
+        var (episode, _) = _seriesService.GetNextUpEpisode(series, user.ID, new()
         {
             IncludeCurrentlyWatching = !onlyUnwatched,
             IncludeMissing = includeMissing,
@@ -3535,7 +3535,7 @@ public class SeriesController(
             flags |= SeriesSearch.SearchFlags.Fuzzy;
 
         return SeriesSearch.SearchSeries(User, query, limit, flags, searchById: searchById)
-            .Select(result => new Series.SearchResult(result, User.JMMUserID))
+            .Select(result => new Series.SearchResult(result, User.ID))
             .ToList();
     }
 
@@ -3678,7 +3678,7 @@ public class SeriesController(
 
         foreach (var (ser, match) in series)
         {
-            seriesList.Add(new Series.SearchResult(new() { Result = ser, Match = match }, User.JMMUserID));
+            seriesList.Add(new Series.SearchResult(new() { Result = ser, Match = match }, User.ID));
             if (seriesList.Count >= limit)
             {
                 break;
@@ -3724,7 +3724,7 @@ public class SeriesController(
             .Select(a => a.AnimeSeries)
             .WhereNotNull()
             .Where(user.AllowedSeries)
-            .Select(a => new Series(a, User.JMMUserID))
+            .Select(a => new Series(a, User.ID))
             .ToList();
     }
 

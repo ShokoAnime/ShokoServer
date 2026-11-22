@@ -172,7 +172,7 @@ public class Episode : BaseModel
     )
     {
         includeDataFrom ??= new HashSet<MetadataSource>();
-        var userID = context.GetUser()?.JMMUserID ?? 0;
+        var userID = context.GetUser()?.ID ?? 0;
         var episodeUserRecord = episode.GetUserRecord(userID);
         var anidbEpisode = episode.AniDB_Episode ??
             throw new NullReferenceException($"Unable to get AniDB Episode {episode.AniDB_EpisodeID} for Anime Episode {episode.AnimeEpisodeID}");
@@ -515,7 +515,7 @@ public class Episode : BaseModel
             LastUpdatedAt = userData.LastUpdatedAt;
         }
 
-        public EpisodeUserData MergeWithExisting(JMMUser user, AnimeEpisode episode)
+        public EpisodeUserData MergeWithExisting(ShokoUser user, AnimeEpisode episode)
         {
             var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
             var userData = userDataService.SaveEpisodeUserData(episode, user, new()

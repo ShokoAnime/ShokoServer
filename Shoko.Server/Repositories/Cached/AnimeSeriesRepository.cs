@@ -329,7 +329,7 @@ public class AnimeSeriesRepository(DatabaseFactory databaseFactory) : BaseCached
 
     public List<AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)
     {
-        var user = RepoFactory.JMMUser.GetByID(userID);
+        var user = RepoFactory.ShokoUser.GetByID(userID);
         return user == null
             ? Cache.GetAll().OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList()
             : Cache.GetAll().Where(user.AllowedSeries).OrderByDescending(a => a.DateTimeCreated).Take(maxResults)
@@ -349,13 +349,13 @@ FROM
         WHERE
             VideoLocalID IN (
                 SELECT
-                    VideoLocalID
+                    VideoID
                 FROM
                     VideoLocal_Place
                 GROUP BY
-                    VideoLocalID
+                    VideoID
                 HAVING
-                    COUNT(VideoLocal_Place_ID) > 1
+                    COUNT(ID) > 1
             )
         AND
             vl.Hash != ''

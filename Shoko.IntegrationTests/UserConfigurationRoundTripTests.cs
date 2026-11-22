@@ -22,7 +22,7 @@ public class UserConfigurationRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.True(fixture.Success, fixture.FailureMessage);
         var service = fixture.Services.GetRequiredService<IUserConfigurationService>();
         var repository = fixture.Services.GetRequiredService<UserConfigurationRepository>();
-        var user = new JMMUser { JMMUserID = 4242, Username = "configuration-round-trip" };
+        var user = new ShokoUser { ID = 4242, Username = "configuration-round-trip" };
 
         service.Save(user, "WebUI", """{ "theme": "light", "page": { "size": 50 } }""");
         // A second save of one configuration replaces the row, which the unique index would refuse to duplicate.
@@ -31,7 +31,7 @@ public class UserConfigurationRoundTripTests(DatabaseMigrationFixture fixture)
         try
         {
             Assert.Equal(100, JObject.Parse(service.Load(user, "webui")!)["page"]?["size"]?.Value<int>());
-            var row = Assert.Single(repository.GetByUserID(user.JMMUserID));
+            var row = Assert.Single(repository.GetByUserID(user.ID));
             Assert.Equal("webui", row.ConfigurationID);
             Assert.NotEqual(Guid.Empty, row.PluginID);
         }
@@ -41,6 +41,6 @@ public class UserConfigurationRoundTripTests(DatabaseMigrationFixture fixture)
         }
 
         Assert.Null(service.Load(user, "webui"));
-        Assert.Empty(repository.GetByUserID(user.JMMUserID));
+        Assert.Empty(repository.GetByUserID(user.ID));
     }
 }

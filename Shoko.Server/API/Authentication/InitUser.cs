@@ -5,13 +5,13 @@ using Shoko.Server.Models.Shoko;
 namespace Shoko.Server.API.Authentication;
 
 // This is a fake user to aid in Authentication during first run
-public class InitUser : JMMUser, IIdentity
+public class InitUser : ShokoUser, IIdentity
 {
     public static InitUser Instance { get; } = new();
 
     private InitUser()
     {
-        JMMUserID = 0;
+        ID = 0;
         Username = "init";
         Password = "";
         IsAdmin = 1;

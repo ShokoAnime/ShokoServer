@@ -55,7 +55,7 @@ public class MetadataService : IMetadataService
 
     private readonly VideoLocalRepository _videoRepository;
 
-    private readonly JMMUserRepository _userRepository;
+    private readonly ShokoUserRepository _userRepository;
 
     private readonly FilterPresetRepository _filterRepository;
 
@@ -107,7 +107,7 @@ public class MetadataService : IMetadataService
         AnimeSeriesRepository seriesRepository,
         AnimeEpisodeRepository episodeRepository,
         VideoLocalRepository videoRepository,
-        JMMUserRepository userRepository,
+        ShokoUserRepository userRepository,
         FilterPresetRepository filterRepository,
         AiringChannelRepository channelRepository,
         AniDB_AnimeRepository anidbSeriesRepository,

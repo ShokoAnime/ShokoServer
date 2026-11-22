@@ -25,7 +25,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
 [JobPriority(Default = 0, Prioritized = 50)]
-public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler scheduler, IUserDataService userDataService, ISettingsProvider settingsProvider, AnimeEpisodeRepository animeEpisodes, AnimeEpisode_UserRepository animeEpisodeUsers, AnimeSeriesRepository animeSeries, AnimeSeries_UserRepository animeSeriesUsers, JMMUserRepository jmmUsers) : BaseJob
+public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler scheduler, IUserDataService userDataService, ISettingsProvider settingsProvider, AnimeEpisodeRepository animeEpisodes, AnimeEpisode_UserRepository animeEpisodeUsers, AnimeSeriesRepository animeSeries, AnimeSeries_UserRepository animeSeriesUsers, ShokoUserRepository jmmUsers) : BaseJob
 {
     public override string TypeName => "Import AniDB Votes";
 
@@ -73,10 +73,10 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
             await ImportVotes(user, response.Response);
     }
 
-    private async Task ExportVotes(JMMUser user, List<ResponseVote> votes)
+    private async Task ExportVotes(ShokoUser user, List<ResponseVote> votes)
     {
-        _logger.LogInformation("Exporting votes for user {UserID} to AniDB.", user.JMMUserID);
-        foreach (var userData in animeSeriesUsers.GetByUserID(user.JMMUserID))
+        _logger.LogInformation("Exporting votes for user {UserID} to AniDB.", user.ID);
+        foreach (var userData in animeSeriesUsers.GetByUserID(user.ID))
         {
             if (animeSeries.GetByID(userData.AnimeSeriesID) is not { } series)
                 continue;
@@ -122,7 +122,7 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
             }
         }
 
-        foreach (var userData in animeEpisodeUsers.GetByUserID(user.JMMUserID))
+        foreach (var userData in animeEpisodeUsers.GetByUserID(user.ID))
         {
             if (animeEpisodes.GetByID(userData.AnimeEpisodeID) is not { } episode)
                 continue;
@@ -158,9 +158,9 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
         }
     }
 
-    private async Task ImportVotes(JMMUser user, List<ResponseVote> votes)
+    private async Task ImportVotes(ShokoUser user, List<ResponseVote> votes)
     {
-        _logger.LogInformation("Importing votes for user {UserID} from AniDB.", user.JMMUserID);
+        _logger.LogInformation("Importing votes for user {UserID} from AniDB.", user.ID);
         foreach (var vote in votes)
         {
             switch (vote.VoteType)

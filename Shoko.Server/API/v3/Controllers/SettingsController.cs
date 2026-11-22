@@ -155,7 +155,7 @@ public class SettingsController(
     /// settings of their own and may be calling before the database exists.
     /// </summary>
     private bool IsSetupUser
-        => User.JMMUserID is 0;
+        => User.ID is 0;
 
     /// <summary>
     /// Whether a settings patch operation is on <c>WebUI_Settings</c>.
