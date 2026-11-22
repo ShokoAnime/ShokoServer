@@ -222,6 +222,11 @@ public class MyWebUI(PluginPaths<MyPlugin> paths) : IWebUIProvider<MyWebUIConfig
 - **Configuration** goes through the generic form, as for every other provider:
   `IWebUIProvider<TConfiguration>` with a `TConfiguration` implementing
   `IWebUIProviderConfiguration`. Its page is rendered next to the web UI.
+- **Signing in** needs an API key. The core hands them out through `/api/auth`
+  and APIv3's `Auth` routes, and an admin can turn off APIv2 and APIv3, which
+  closes `/api/auth` as well. A web UI that must work then either says it
+  needs APIv3, or signs in through a route of your plugin's own, with
+  `IUserService.AuthenticateUser` and `GenerateApiTokenForUser`.
 
 ### Which web UI is served
 

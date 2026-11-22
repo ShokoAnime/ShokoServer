@@ -30,6 +30,8 @@ public class ApiVersionControllerFeatureProvider(WebSettings webSettings) : Cont
             return false;
         if (ns?.Contains(".API.v3.") == true && !webSettings.EnableAPIv3)
             return false;
+        if (ns?.Contains(".API.v0.") == true && !(webSettings.EnableAPIv2 || webSettings.EnableAPIv3))
+            return false;
         return true;
     }
 }
