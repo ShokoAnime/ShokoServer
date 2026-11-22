@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.FileSystem;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -23,104 +25,26 @@ public class FolderController : BaseController
 {
     private readonly ILogger<FolderController> _logger;
 
-    /// <summary>
-    /// The formats of the kernel's own and the desktop's pseudo file systems, as .NET reports
-    /// them, with the older names some runtimes report kept beside the current ones.
-    /// </summary>
-    private static readonly HashSet<string> _excludedFormats = new(StringComparer.Ordinal)
-    {
-        "autofs",
-        "binfmt_misc",
-        "bpf",
-        "bpf_fs",
-        "cgroup",
-        "cgroup2",
-        "cgroup2fs",
-        "configfs",
-        "debugfs",
-        "devpts",
-        "devtmpfs",
-        "efivarfs",
-        "fuse.gvfsd-fuse",
-        "fuse.portal",
-        "fusectl",
-        "hugetlbfs",
-        "mqueue",
-        "proc",
-        "pstore",
-        "pstorefs",
-        "ramfs",
-        "securityfs",
-        "sysfs",
-        "tmpfs",
-        "tracefs",
-    };
+    private readonly IFileSystem _fileSystem;
 
-    /// <summary>
-    /// Where Unix-like systems keep the kernel's views, devices and the boot and EFI partitions;
-    /// never where a library lives. Matched by path, so a FAT-formatted drive elsewhere still lists.
-    /// </summary>
-    private static readonly string[] _excludedUnixRoots = ["/proc", "/sys", "/dev", "/boot", "/efi"];
-
-    /// <summary>
-    /// Whether a mount point is part of the system rather than storage a library could live on.
-    /// </summary>
-    /// <param name="path">The mount point's path.</param>
-    /// <param name="format">The file system's format, as .NET reports it.</param>
-    /// <returns><see langword="true"/> to leave the mount point out of the list.</returns>
-    internal static bool IsSystemMountPoint(string path, string format)
-    {
-        if (_excludedFormats.Contains(format))
-            return true;
-        if (!path.StartsWith('/'))
-            return false;
-        var trimmed = path.Length > 1 ? path.TrimEnd('/') : path;
-        return _excludedUnixRoots.Any(root => trimmed == root || trimmed.StartsWith(root + '/', StringComparison.Ordinal));
-    }
-
-    public FolderController(ILogger<FolderController> logger, ISettingsProvider settingsProvider) : base(settingsProvider)
+    public FolderController(ILogger<FolderController> logger, ISettingsProvider settingsProvider, IFileSystem fileSystem) : base(settingsProvider)
     {
         _logger = logger;
+        _fileSystem = fileSystem;
     }
 
     [HttpGet("MountPoints")]
     [HttpGet("Drives")]
     public ActionResult<IEnumerable<Drive>> GetMountPoints()
     {
-        return DriveInfo.GetDrives()
-            .Select(d =>
+        return _fileSystem.GetVolumeMounts()
+            .Select(mount =>
             {
-                if (d.DriveType == DriveType.Unknown)
-                    return null;
-
-                string fullName;
-                try
-                {
-                    fullName = d.RootDirectory.FullName;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "An exception occurred while trying to get the full name of the drive: {ex}", ex.Message);
-                    return null;
-                }
-
-                string driveFormat;
-                try
-                {
-                    driveFormat = d.DriveFormat;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("An exception occurred while trying to get the drive format of the drive: {ex}", ex.Message);
-                    return null;
-                }
-
-                if (IsSystemMountPoint(fullName, driveFormat))
-                    return null;
-
+                var fullName = mount.MountPoint;
                 MountPointSizes? sizes = null;
                 try
                 {
+                    var d = new DriveInfo(fullName);
                     sizes = d.IsReady
                         ? new MountPointSizes()
                         {
@@ -141,7 +65,15 @@ public class FolderController : BaseController
                     Path = fullName,
                     IsAccessible = sizes != null,
                     Sizes = sizes,
-                    Type = d.DriveType,
+                    Type = mount.Kind switch
+                    {
+                        VolumeKind.Fixed => DriveType.Fixed,
+                        VolumeKind.Removable => DriveType.Removable,
+                        VolumeKind.Network => DriveType.Network,
+                        VolumeKind.Optical => DriveType.CDRom,
+                        VolumeKind.Memory => DriveType.Ram,
+                        _ => DriveType.Unknown,
+                    },
                 };
             })
             .WhereNotNull()
@@ -153,12 +85,11 @@ public class FolderController : BaseController
     [HttpGet]
     public ActionResult<IEnumerable<Folder>> GetFolder([FromQuery] string path)
     {
-        if (!Directory.Exists(path))
+        if (_fileSystem.GetDirectoryInfo(path) is not { } root)
         {
             return NotFound("Directory not found");
         }
 
-        var root = new DirectoryInfo(path);
         return root.GetDirectories()
             .Select(dir =>
             {

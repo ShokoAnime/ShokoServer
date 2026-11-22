@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -43,6 +44,9 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="videoPlaceRepository">
 ///   The video place repository.
 /// </param>
+/// <param name="fileSystem">
+///   The file system.
+/// </param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
@@ -52,7 +56,8 @@ public class ManagedFolderController(
     IVideoService videoService,
     ShokoManagedFolderRepository managedFolderRepository,
     VideoLocalRepository videoRepository,
-    VideoLocal_PlaceRepository videoPlaceRepository
+    VideoLocal_PlaceRepository videoPlaceRepository,
+    IFileSystem fileSystem
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -84,7 +89,7 @@ public class ManagedFolderController(
         body.Path = body.Path.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
         if (body.Path[^1] != Path.DirectorySeparatorChar)
             body.Path += Path.DirectorySeparatorChar;
-        if (!Directory.Exists(body.Path))
+        if (!fileSystem.DirectoryExists(body.Path))
             return ValidationProblem("Path does not exist. Managed Folders must be a location that exists on the server.", nameof(body.Path));
 
         if (managedFolderRepository.GetAll().Any(iF => body.Path.StartsWith(iF.Path, StringComparison.OrdinalIgnoreCase) || iF.Path.StartsWith(body.Path, StringComparison.OrdinalIgnoreCase)))
@@ -194,7 +199,7 @@ public class ManagedFolderController(
         body.Path = body.Path?.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar) ?? string.Empty;
         if (body.Path[^1] != Path.DirectorySeparatorChar)
             body.Path += Path.DirectorySeparatorChar;
-        if (!string.IsNullOrEmpty(body.Path) && !Directory.Exists(body.Path))
+        if (!string.IsNullOrEmpty(body.Path) && !fileSystem.DirectoryExists(body.Path))
             ModelState.AddModelError(nameof(body.Path), "Path does not exist. Managed Folders must be a location that exists on the server.");
         if (managedFolderRepository.GetAll().ExceptBy([body.ID], iF => iF.ID)
             .Any(iF => body.Path.StartsWith(iF.Path, StringComparison.OrdinalIgnoreCase) || iF.Path.StartsWith(body.Path, StringComparison.OrdinalIgnoreCase)))
@@ -338,7 +343,7 @@ public class ManagedFolderController(
                 include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
                 include.Contains(FileNonDefaultIncludeType.MediaInfo),
                 include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-                include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+                include.Contains(FileNonDefaultIncludeType.Stat)
             ), page, pageSize);
     }
 }

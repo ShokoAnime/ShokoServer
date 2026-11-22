@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Server.Databases;
@@ -9,7 +10,7 @@ using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<ShokoManagedFolder, int>(databaseFactory)
+public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory, IFileSystem fileSystem) : BaseCachedRepository<ShokoManagedFolder, int>(databaseFactory)
 {
     public event EventHandler<ManagedFolderChangedEventArgs>? ManagedFolderAdded;
 
@@ -43,7 +44,7 @@ public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : Bas
         if (string.IsNullOrEmpty(folder.Path))
             throw new Exception("Must specify a location for the managed folder");
 
-        if (!Directory.Exists(folder.Path))
+        if (!fileSystem.DirectoryExists(folder.Path))
             throw new Exception("Cannot find managed folder location");
 
         if (GetAll()

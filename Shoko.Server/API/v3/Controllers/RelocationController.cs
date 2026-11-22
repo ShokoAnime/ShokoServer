@@ -13,6 +13,7 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
@@ -52,6 +53,9 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="presetManager">
 ///   Relocation preset manager.
 /// </param>
+/// <param name="fileSystem">
+///   The file system.
+/// </param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
@@ -62,7 +66,8 @@ public class RelocationController(
     IConfigurationService configurationService,
     IVideoService videoService,
     IVideoRelocationService relocationService,
-    IRelocationPresetManager presetManager
+    IRelocationPresetManager presetManager,
+    IFileSystem fileSystem
 ) : BaseController(settingsProvider)
 {
     #region Settings
@@ -395,7 +400,7 @@ public class RelocationController(
             }
 
             RelocationResponse? otherResult = null;
-            foreach (var otherVlp in vl.Places.Where(p => !string.IsNullOrEmpty(p?.Path) && System.IO.File.Exists(p.Path)))
+            foreach (var otherVlp in vl.Places.Where(p => !string.IsNullOrEmpty(p?.Path) && fileSystem.FileExists(p.Path)))
             {
                 if (otherVlp.ID == vlp.ID)
                     continue;

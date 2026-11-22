@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
@@ -67,7 +68,8 @@ public class FileController(
     ShokoManagedFolderRepository _managedFolders,
     StoredReleaseInfoRepository _storedReleaseInfos,
     VideoLocalRepository _videoLocals,
-    VideoLocal_PlaceRepository _videoLocalPlaces
+    VideoLocal_PlaceRepository _videoLocalPlaces,
+    IFileSystem _fileSystem
 ) : BaseController(settingsProvider)
 {
     private const string FileUserStatsNotFoundWithFileID = "No FileUserStats entry for the given fileID for the current user";
@@ -261,7 +263,7 @@ public class FileController(
             include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo),
             include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+            include.Contains(FileNonDefaultIncludeType.Stat)
         );
     }
 
@@ -296,7 +298,7 @@ public class FileController(
             include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo),
             include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+            include.Contains(FileNonDefaultIncludeType.Stat)
         );
     }
 
@@ -331,7 +333,7 @@ public class FileController(
             include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo),
             include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+            include.Contains(FileNonDefaultIncludeType.Stat)
         );
     }
 
@@ -366,7 +368,7 @@ public class FileController(
             include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo),
             include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+            include.Contains(FileNonDefaultIncludeType.Stat)
         );
     }
 
@@ -398,7 +400,7 @@ public class FileController(
             include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo),
             include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+            include.Contains(FileNonDefaultIncludeType.Stat)
         );
     }
 
@@ -430,10 +432,10 @@ public class FileController(
     /// </summary>
     /// <param name="fileID">File ID</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
-    /// <param name="includeLocationUID">Include location UID for the file locations.</param>
+    /// <param name="includeStat">Include what the file system says about each location: its on-disk identity, link count, times and size.</param>
     /// <returns>A list of file locations associated with the specified file ID.</returns>
     [HttpGet("{fileID}/Location")]
-    public ActionResult<List<File.Location>> GetFileLocations([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool includeAbsolutePaths = false, [FromQuery] bool includeLocationUID = false)
+    public ActionResult<List<File.Location>> GetFileLocations([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool includeAbsolutePaths = false, [FromQuery] bool includeStat = false)
     {
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
@@ -443,7 +445,7 @@ public class FileController(
             return Forbid(FileForbiddenForUser);
 
         return file.Places
-            .Select(location => new File.Location(location, includeAbsolutePaths, includeLocationUID))
+            .Select(location => new File.Location(location, includeAbsolutePaths, includeStat))
             .ToList();
     }
 
@@ -683,7 +685,7 @@ public class FileController(
             include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
             include.Contains(FileNonDefaultIncludeType.MediaInfo),
             include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+            include.Contains(FileNonDefaultIncludeType.Stat)
         );
     }
 
@@ -1297,8 +1299,7 @@ public class FileController(
         {
             var path = place.FileInfo?.Directory?.FullName;
             if (path == null) continue;
-            var subFile = new FileInfo(Path.Combine(path, filename));
-            if (!subFile.Exists) continue;
+            if (_fileSystem.GetFileInfo(Path.Combine(path, filename)) is not { } subFile) continue;
 
             return PhysicalFile(subFile.FullName, ContentTypeHelper.UnknownMimeType);
         }
@@ -1735,7 +1736,7 @@ public class FileController(
                     include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
                     include.Contains(FileNonDefaultIncludeType.MediaInfo),
                     include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-                    include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+                    include.Contains(FileNonDefaultIncludeType.Stat)
                 ))
                 .ToList();
 
@@ -1748,7 +1749,7 @@ public class FileController(
                 include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
                 include.Contains(FileNonDefaultIncludeType.MediaInfo),
                 include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-                include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+                include.Contains(FileNonDefaultIncludeType.Stat)
             ))
             .ToList();
     }

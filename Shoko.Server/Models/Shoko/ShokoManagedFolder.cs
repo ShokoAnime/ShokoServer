@@ -1,10 +1,14 @@
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Repositories;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>
@@ -56,12 +60,13 @@ public class ShokoManagedFolder : IManagedFolder
         get
         {
             var path = Path;
-            if (!Directory.Exists(path))
+            var fileSystem = ISystemService.StaticServices.GetRequiredService<IFileSystem>();
+            if (!fileSystem.DirectoryExists(path))
                 return -1L;
 
             try
             {
-                return new DriveInfo(path).AvailableFreeSpace;
+                return fileSystem.GetVolumeStat(path)?.AvailableFreeSpace ?? -2L;
             }
             catch
             {

@@ -27,6 +27,7 @@ using Shoko.Abstractions.Core.Events;
 using Shoko.Abstractions.Core.Exceptions;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Logging.Services;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -669,8 +670,8 @@ public class SystemService : ISystemService
             services.AddSingleton(packageManager);
             services.AddSingleton<IPluginPackageManager>(packageManager);
             services.AddSingleton<IPluginDependencyResolver, PluginDependencyResolver>();
-            services.AddSingleton<FileSystemHelpers>();
-            services.AddSingleton<IFileSystemHelpers>(sp => sp.GetRequiredService<FileSystemHelpers>());
+            services.AddSingleton<FileSystemService>();
+            services.AddSingleton<IFileSystem>(sp => sp.GetRequiredService<FileSystemService>());
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<IFilteringEngine, FilteringEngine>();
             services.AddSingleton<IMetadataFilteringService, MetadataFilteringService>();

@@ -147,7 +147,7 @@ public class PlaylistController : BaseController
                         include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
                         include.Contains(FileNonDefaultIncludeType.MediaInfo),
                         include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-                        include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+                        include.Contains(FileNonDefaultIncludeType.Stat)
                     ))
                     .ToList()
             ))

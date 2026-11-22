@@ -300,14 +300,7 @@ public class VideoLocal : IVideo
         if (FirstResolvedPlace is not { } fileLocation)
             return null;
 
-        var filePath = fileLocation.Path;
-        if (string.IsNullOrEmpty(filePath))
-            return null;
-
-        if (!File.Exists(filePath))
-            return null;
-
-        return File.OpenRead(filePath);
+        return ((IVideoFile)fileLocation).GetStream();
     }
 
     IVideoUserData? IVideo.GetUserData(IUser user)

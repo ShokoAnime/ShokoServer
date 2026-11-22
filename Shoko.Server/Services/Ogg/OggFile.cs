@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using Shoko.Abstractions.FileSystem.Services;
 
 //AVDump OggFile parser, tweaked for our needs.
 
@@ -21,9 +22,9 @@ public class OggFile
 
     public double Duration => BitStreams.OfType<IDuration>().Max(a => a.Duration.TotalSeconds);
 
-    public static OggFile? ParseFile(string filename)
+    public static OggFile? ParseFile(IFileSystem fileSystem, string filename)
     {
-        var parser = new OggParser(new Reader(File.OpenRead(filename)));
+        var parser = new OggParser(new Reader(fileSystem.OpenRead(filename)));
         parser.Process();
         return parser.Info;
     }

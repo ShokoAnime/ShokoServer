@@ -13,6 +13,7 @@ using Namotion.Reflection;
 using Polly;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Utilities;
@@ -49,7 +50,8 @@ public class VideoHashingService(
     VideoLocalRepository videoRepository,
     VideoLocal_PlaceRepository locationRepository,
     VideoLocal_HashDigestRepository hashesRepository,
-    FileNameHashRepository fileNameHashRepository
+    FileNameHashRepository fileNameHashRepository,
+    IFileSystem fileSystem
 ) : IVideoHashingService
 {
     private static readonly object _videoSaveLock = new();
@@ -323,15 +325,15 @@ public class VideoHashingService(
     {
         EnsureLoaded();
         path = PlatformUtility.EnsureUsablePath(path);
-        if (!File.Exists(path))
+        if (!fileSystem.FileExists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
-        var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName;
+        var resolvedPath = fileSystem.ResolveSymbolicLink(path);
         if (!string.IsNullOrEmpty(resolvedPath))
         {
             resolvedPath = PlatformUtility.EnsureUsablePath(resolvedPath);
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
-            if (!File.Exists(resolvedPath))
+            if (!fileSystem.FileExists(resolvedPath))
                 throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
         }
 
@@ -395,23 +397,22 @@ public class VideoHashingService(
     {
         EnsureLoaded();
         path = PlatformUtility.EnsureUsablePath(path);
-        if (!File.Exists(path))
+        if (!fileSystem.FileExists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
-        var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName;
+        var resolvedPath = fileSystem.ResolveSymbolicLink(path);
         FileInfo resolvedFile;
         if (string.IsNullOrEmpty(resolvedPath))
         {
             resolvedPath = path;
-            resolvedFile = new(path);
+            resolvedFile = fileSystem.GetFileInfo(path) ?? throw new FileNotFoundException($"File does not exist: {path}", path);
         }
         else
         {
             resolvedPath = PlatformUtility.EnsureUsablePath(resolvedPath);
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
-            resolvedFile = new(resolvedPath);
-            if (!resolvedFile.Exists)
-                throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
+            resolvedFile = fileSystem.GetFileInfo(resolvedPath)
+                ?? throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
         }
 
         var (managedFolder, relativePath) = managedFolderRepository.GetFromAbsolutePath(path);
@@ -432,15 +433,15 @@ public class VideoHashingService(
     {
         EnsureLoaded();
         var path = PlatformUtility.EnsureUsablePath(file.Path);
-        if (!File.Exists(path))
+        if (!fileSystem.FileExists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
-        var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName;
+        var resolvedPath = fileSystem.ResolveSymbolicLink(path);
         if (!string.IsNullOrEmpty(resolvedPath))
         {
             resolvedPath = PlatformUtility.EnsureUsablePath(resolvedPath);
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
-            if (!File.Exists(resolvedPath))
+            if (!fileSystem.FileExists(resolvedPath))
                 throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
         }
 
@@ -457,15 +458,15 @@ public class VideoHashingService(
     {
         EnsureLoaded();
         var path = PlatformUtility.EnsureUsablePath(file.Path);
-        if (!File.Exists(path))
+        if (!fileSystem.FileExists(path))
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
-        var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName;
+        var resolvedPath = fileSystem.ResolveSymbolicLink(path);
         if (!string.IsNullOrEmpty(resolvedPath))
         {
             resolvedPath = PlatformUtility.EnsureUsablePath(resolvedPath);
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
-            if (!File.Exists(resolvedPath))
+            if (!fileSystem.FileExists(resolvedPath))
                 throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
         }
         await schedulerFactory.EnqueueWithPriority<HashFileJob>(
@@ -488,9 +489,7 @@ public class VideoHashingService(
     private async Task<HashingResult> GetHashesForVideo(VideoLocal video, VideoLocal_Place videoLocation, ShokoManagedFolder folder, bool useExistingHashes, bool skipFindRelease = false, bool skipEvents = false, CancellationToken cancellationToken = default)
     {
         var originalPath = PlatformUtility.EnsureUsablePath(Path.Join(folder.Path, videoLocation.RelativePath));
-        var resolvedPath = File.Exists(originalPath)
-            ? File.ResolveLinkTarget(originalPath, true)?.FullName
-            : null;
+        var resolvedPath = fileSystem.ResolveSymbolicLink(originalPath);
         if (string.IsNullOrEmpty(resolvedPath))
             resolvedPath = originalPath;
         else
@@ -517,7 +516,7 @@ public class VideoHashingService(
         }
 
         var existingHashes = !useExistingHashes ? [] : video.Hashes;
-        var hashes = await GetHashesForFileInternal(new FileInfo(resolvedPath), existingHashes, cancellationToken).ConfigureAwait(false);
+        var hashes = await GetHashesForFileInternal(fileSystem.GetFileInfo(resolvedPath) ?? throw new FileNotFoundException($"File does not exist: {resolvedPath}", resolvedPath), existingHashes, cancellationToken).ConfigureAwait(false);
         var ed2k = hashes.FirstOrDefault(x => x.Type is ED2K);
         if (ed2k is not { Type: ED2K, Value.Length: 32 })
             throw new InvalidOperationException($"Could not get ED2K hash for {originalPath}");
@@ -676,7 +675,7 @@ public class VideoHashingService(
             }
         }
 
-        if (File.Exists(resolvedPath))
+        if (fileSystem.FileExists(resolvedPath))
         {
             try
             {
@@ -697,9 +696,9 @@ public class VideoHashingService(
         return false;
     }
 
-    private static long GetFileSize(string fileName, FileAccess accessType)
+    private long GetFileSize(string fileName, FileAccess accessType)
     {
-        using var fs = File.Open(fileName, FileMode.Open, accessType, FileShare.ReadWrite);
+        using var fs = fileSystem.OpenFile(fileName, FileMode.Open, accessType, FileShare.ReadWrite);
         var size = fs.Seek(0, SeekOrigin.End);
         return size;
     }
@@ -718,7 +717,9 @@ public class VideoHashingService(
         logger.LogTrace("File {FileName} is Read-Only, attempting to unmark", path);
         try
         {
-            var info = new FileInfo(path);
+            if (fileSystem.GetFileInfo(path) is not { } info)
+                return false;
+
             if (info.IsReadOnly) info.IsReadOnly = false;
             if (!info.IsReadOnly)
                 return true;

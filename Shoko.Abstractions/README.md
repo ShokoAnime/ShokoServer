@@ -70,6 +70,8 @@ from the bundled TMDB plugin.
   no `appsettings.json`
 - [Logging](Logging/Services/README.md), for writing log lines and reading them
   back
+- [File system](FileSystem/Services/README.md), to copy and link files and to
+  tell when two paths are the same file
 - [System lifecycle](Core/Services/README.md), for what state the server is in
 - [Connectivity](Connectivity/Services/README.md), for whether the machine can
   reach the internet, and for saying a service you talk to is suspended

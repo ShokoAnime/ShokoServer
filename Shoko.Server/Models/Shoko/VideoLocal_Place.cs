@@ -3,6 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.FileSystem;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Repositories;
@@ -28,18 +30,21 @@ public class VideoLocal_Place : IVideoFile
     /// <inheritdoc/>
     public int ManagedFolderID { get; set; }
 
-    /// <summary>
-    /// The platform-specific unique identifier for the file.
-    /// </summary>
-    /// <remarks>
-    /// This property holds the unique identifier for the file, which is the
-    /// inode number on Unix-based systems, or the file ID on Windows
-    /// systems. These identifiers are unique within a specific volume, but
-    /// not guaranteed to be unique across different volumes. This property
-    /// is nullable, meaning it can have a value of null if the unique
-    /// identifier cannot be obtained or the file does not exist.
-    /// </remarks>
-    public long? OnDiskUniqueID => ISystemService.StaticServices.GetRequiredService<IFileSystemHelpers>().GetVideoFileUID(Path);
+    /// <inheritdoc/>
+    public FileStat? Stat
+    {
+        get
+        {
+            try
+            {
+                return ISystemService.StaticServices.GetRequiredService<IFileSystem>().GetFileStat(Path);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+    }
 
     private string _relativePath = string.Empty;
 
@@ -86,7 +91,7 @@ public class VideoLocal_Place : IVideoFile
     [MemberNotNullWhen(true, nameof(RelativePath))]
     [MemberNotNullWhen(true, nameof(FileInfo))]
     public bool IsAvailable
-        => ISystemService.StaticServices.GetRequiredService<IFileSystemHelpers>().FileExists(Path);
+        => ISystemService.StaticServices.GetRequiredService<IFileSystem>().FileExists(Path);
 
     /// <summary>
     /// Helper to get the file name from the relative path.
@@ -110,7 +115,7 @@ public class VideoLocal_Place : IVideoFile
     /// Helper to get the <see cref="FileInfo"/> for the file location if it exists.
     /// </summary>
     public FileInfo? FileInfo
-        => ISystemService.StaticServices.GetRequiredService<IFileSystemHelpers>().GetFileInfo(Path);
+        => ISystemService.StaticServices.GetRequiredService<IFileSystem>().GetFileInfo(Path);
 
     #endregion
 
@@ -136,11 +141,11 @@ public class VideoLocal_Place : IVideoFile
         if (string.IsNullOrEmpty(filePath))
             return null;
 
-        var fileSystemHelpers = ISystemService.StaticServices.GetRequiredService<IFileSystemHelpers>();
-        if (!fileSystemHelpers.FileExists(filePath))
+        var fileSystem = ISystemService.StaticServices.GetRequiredService<IFileSystem>();
+        if (!fileSystem.FileExists(filePath))
             return null;
 
-        return fileSystemHelpers.OpenRead(filePath);
+        return fileSystem.OpenRead(filePath);
     }
 
     #endregion

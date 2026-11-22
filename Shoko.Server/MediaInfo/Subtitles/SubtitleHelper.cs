@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Utilities;
 
@@ -15,16 +16,15 @@ public static class SubtitleHelper
 {
     private static List<ISubtitles>? SubtitleImplementations;
 
-    public static List<TextStream> GetSubtitleStreams(string? path)
+    public static List<TextStream> GetSubtitleStreams(IFileSystem fileSystem, string? path)
     {
         if (string.IsNullOrEmpty(path)) return [];
 
         var directoryName = Path.GetDirectoryName(path);
         if (string.IsNullOrEmpty(directoryName)) return [];
-        if (!Directory.Exists(directoryName)) return [];
+        if (fileSystem.GetDirectoryInfo(directoryName) is not { } directory) return [];
 
         SubtitleImplementations ??= InitImplementations();
-        var directory = new DirectoryInfo(directoryName);
         var basename = Path.GetFileNameWithoutExtension(path);
         var streams = new List<TextStream>();
 

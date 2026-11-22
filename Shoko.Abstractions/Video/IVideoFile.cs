@@ -1,4 +1,6 @@
 using System.IO;
+using Shoko.Abstractions.FileSystem;
+using Shoko.Abstractions.FileSystem.Services;
 
 namespace Shoko.Abstractions.Video;
 
@@ -23,17 +25,17 @@ public interface IVideoFile
     int ManagedFolderID { get; }
 
     /// <summary>
-    /// The platform-specific unique identifier for the file.
+    ///   What the file system says about the file now: its identity, link
+    ///   count, times and size, read in one call. <c>null</c> when it does not
+    ///   exist, is not a file, or cannot be read.
     /// </summary>
     /// <remarks>
-    /// This property holds the unique identifier for the file, which is the
-    /// inode number on Unix-based systems, or the file ID on Windows
-    /// systems. These identifiers are unique within a specific volume, but
-    /// not guaranteed to be unique across different volumes. This property
-    /// is nullable, meaning it can have a value of null if the unique
-    /// identifier cannot be obtained or the file does not exist.
+    ///   Read anew on every access, so keep the result rather than asking
+    ///   twice. Two locations are the same file, hard links of each other, when
+    ///   their <see cref="FileSystemStat.Identity"/> is equal, read at the same
+    ///   time. See <see cref="IFileSystem.GetStat"/>.
     /// </remarks>
-    public long? OnDiskUniqueID { get; }
+    FileStat? Stat { get; }
 
     /// <summary>
     /// True if the file currently exists on disk and is usable by Shoko.

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.FileSystem;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
@@ -167,11 +168,11 @@ public partial class File
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public MediaInfo? MediaInfo { get; set; }
 
-    public File(HttpContext context, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeLocationUID = false) :
-        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.LocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeLocationUID)
+    public File(HttpContext context, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeStat = false) :
+        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.LocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeStat)
     { }
 
-    public File(VideoLocal_User? userRecord, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeLocationUID = false)
+    public File(VideoLocal_User? userRecord, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeStat = false)
     {
         var mediaInfo = file.MediaInfo;
         ID = file.LocalID;
@@ -184,7 +185,7 @@ public partial class File
         Resolution = mediaInfo?.VideoStream?.Resolution;
         AudioLanguages = file.AudioLanguages;
         SubtitleLanguages = file.SubtitleLanguages;
-        Locations = file.Files.Select(location => new Location(location, includeAbsolutePaths, includeLocationUID)).ToList();
+        Locations = file.Files.Select(location => new Location(location, includeAbsolutePaths, includeStat)).ToList();
         AVDump = new AVDumpInfo((VideoLocal)file);
         Duration = mediaInfo?.Duration ?? TimeSpan.Zero;
         ResumePosition = userRecord?.ProgressPosition;
@@ -230,18 +231,11 @@ public partial class File
         public int ManagedFolderID { get; set; }
 
         /// <summary>
-        /// The platform-specific unique identifier for the file.
+        /// What the file system says about the file, read when the file was
+        /// asked for. Only given when asked for, and when it can be read.
         /// </summary>
-        /// <remarks>
-        /// This property holds the unique identifier for the file, which is the
-        /// inode number on Unix-based systems, or the file ID on Windows
-        /// systems. These identifiers are unique within a specific volume, but
-        /// not guaranteed to be unique across different volumes. This property
-        /// is nullable, meaning it can have a value of null if the unique
-        /// identifier cannot be obtained or the file does not exist.
-        /// </remarks>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public long? OnDiskUniqueID { get; set; }
+        public StatDetails? Stat { get; set; }
 
         /// <summary>
         /// The relative path from the managed folder's path on the server. The
@@ -263,15 +257,93 @@ public partial class File
         [JsonRequired]
         public bool IsAccessible { get; set; }
 
-        public Location(IVideoFile location, bool includeAbsolutePaths = false, bool includeLocationUID = false)
+        public Location(IVideoFile location, bool includeAbsolutePaths = false, bool includeStat = false)
         {
             ID = location.ID;
             FileID = location.VideoID;
             ManagedFolderID = location.ManagedFolderID;
-            OnDiskUniqueID = includeLocationUID ? location.OnDiskUniqueID : null;
+            Stat = includeStat && location.Stat is { } info ? new(info) : null;
             RelativePath = location.RelativePath;
             AbsolutePath = includeAbsolutePaths ? location.Path : null;
             IsAccessible = location.IsAvailable;
+        }
+
+        /// <summary>
+        /// What the file system says about a file location.
+        /// </summary>
+        public class StatDetails
+        {
+            /// <summary>
+            /// The volume the file is on: the device number on Unix-based
+            /// systems, the volume serial number on Windows. Opaque lowercase
+            /// hexadecimal; only equality means anything.
+            /// </summary>
+            [Required]
+            public string VolumeID { get; set; }
+
+            /// <summary>
+            /// The file's ID on its volume: the inode number on Unix-based
+            /// systems, the file ID on Windows. Two locations are the same
+            /// file, hard links of each other, when this and
+            /// <see cref="VolumeID"/> both match. Opaque lowercase
+            /// hexadecimal; only equality means anything.
+            /// </summary>
+            [Required]
+            public string UniqueID { get; set; }
+
+            /// <summary>
+            /// How many names the file has; more than one means it has hard
+            /// links.
+            /// </summary>
+            [Required]
+            public long LinkCount { get; set; }
+
+            /// <summary>
+            /// The size of its contents, in bytes.
+            /// </summary>
+            [Required]
+            public long Size { get; set; }
+
+            /// <summary>
+            /// The space it takes on disk, in bytes, when known.
+            /// </summary>
+            public long? AllocatedSize { get; set; }
+
+            /// <summary>
+            /// When its contents last changed.
+            /// </summary>
+            [Required]
+            public DateTime LastWriteTime { get; set; }
+
+            /// <summary>
+            /// When it was last read. Many systems update it lazily or never.
+            /// </summary>
+            [Required]
+            public DateTime LastAccessTime { get; set; }
+
+            /// <summary>
+            /// When its contents or metadata last changed, when known. Not
+            /// the creation time.
+            /// </summary>
+            public DateTime? ChangeTime { get; set; }
+
+            /// <summary>
+            /// When it was created, when the platform keeps it.
+            /// </summary>
+            public DateTime? CreationTime { get; set; }
+
+            public StatDetails(FileStat info)
+            {
+                VolumeID = info.Identity.VolumeID;
+                UniqueID = info.Identity.UniqueID;
+                LinkCount = info.LinkCount;
+                Size = info.Size;
+                AllocatedSize = info.AllocatedSize;
+                LastWriteTime = info.LastWriteTime;
+                LastAccessTime = info.LastAccessTime;
+                ChangeTime = info.ChangeTime;
+                CreationTime = info.CreationTime;
+            }
         }
 
         /// <summary>

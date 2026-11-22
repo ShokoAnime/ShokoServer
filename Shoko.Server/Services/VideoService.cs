@@ -10,6 +10,8 @@ using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
 using NHibernate;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.FileSystem;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
@@ -71,7 +73,7 @@ public class VideoService : IVideoService
 
     private readonly DatabaseFactory _databaseFactory;
 
-    private readonly IFileSystemHelpers _fileSystemHelpers;
+    private readonly IFileSystem _fileSystem;
 
     /// <inheritdoc/>
     public event EventHandler<VideoFileDetectedEventArgs>? VideoFileDetected;
@@ -115,7 +117,7 @@ public class VideoService : IVideoService
         IMylistService mylistService,
         ISettingsProvider settingsProvider,
         DatabaseFactory databaseFactory,
-        IFileSystemHelpers fileSystemHelpers
+        IFileSystem fileSystem
     )
     {
         _logger = logger;
@@ -135,7 +137,7 @@ public class VideoService : IVideoService
         _mylistService = mylistService;
         _settingsProvider = settingsProvider;
         _databaseFactory = databaseFactory;
-        _fileSystemHelpers = fileSystemHelpers;
+        _fileSystem = fileSystem;
 
         ShokoEventHandler.Instance.FileDeleted += OnFileDeleted;
         _videoHashingService.VideoFileHashed += OnVideoFileHashed;
@@ -301,7 +303,7 @@ public class VideoService : IVideoService
         var absolutePath = string.IsNullOrEmpty(relativePath)
              ? managedFolder.Path
              : Path.Join(managedFolder.Path, relativePath);
-        if (string.IsNullOrEmpty(relativePath) || Directory.Exists(absolutePath))
+        if (string.IsNullOrEmpty(relativePath) || _fileSystem.DirectoryExists(absolutePath))
         {
             await ScanManagedFolder(managedFolder, relativePath: relativePath, onlyNewFiles: false, skipEvents: !updateMylist, cleanUpStructure: false);
             return;
@@ -472,9 +474,7 @@ public class VideoService : IVideoService
             if (video is { VideoLocalID: 0 })
             {
                 var originalPath = PlatformUtility.EnsureUsablePath(Path.Join(managedFolder.Path, relativePath));
-                var resolvedPath = File.Exists(originalPath)
-                    ? File.ResolveLinkTarget(originalPath, true)?.FullName
-                    : null;
+                var resolvedPath = _fileSystem.ResolveSymbolicLink(originalPath);
                 if (string.IsNullOrEmpty(resolvedPath))
                 {
                     resolvedPath = originalPath;
@@ -503,7 +503,12 @@ public class VideoService : IVideoService
                     }
 
                     var fileName = Path.GetFileName(resolvedPath);
-                    if (TryGetVideoFromFileNameHashTable(fileName, fileSize, out var otherVideo))
+                    if (string.Equals(resolvedPath, originalPath, StringComparison.Ordinal) && TryGetVideoFromHardLink(Path.Join(managedFolder.Path, relativePath), fileSize, out var linkedVideo))
+                    {
+                        _logger.LogTrace("Found video for hard link: {Path} (Hash={Hash}, Size={Size})", originalPath, linkedVideo.Hash, fileSize);
+                        video = linkedVideo;
+                    }
+                    else if (TryGetVideoFromFileNameHashTable(fileName, fileSize, out var otherVideo))
                     {
                         _logger.LogTrace("Found video for file name and size through FileNameHash table: {ResolvedPath} (Hash={Hash}, Size={Size})", resolvedPath, otherVideo.Hash, fileSize);
                         video = otherVideo;
@@ -521,6 +526,71 @@ public class VideoService : IVideoService
         }
 
         return true;
+    }
+
+    /// <summary>
+    ///   Finds the hashed video a new file is a hard link of, among the videos
+    ///   of the same size.
+    /// </summary>
+    /// <param name="path">The new file's absolute path.</param>
+    /// <param name="fileSize">Its size.</param>
+    /// <param name="video">The video, when found.</param>
+    /// <returns><c>true</c> when found.</returns>
+    private bool TryGetVideoFromHardLink(string path, long fileSize, [NotNullWhen(true)] out VideoLocal? video)
+    {
+        var locations = _videoLocalRepository.GetByFileSize(fileSize)
+            .Where(candidate => !string.IsNullOrEmpty(candidate.Hash))
+            .SelectMany(candidate => candidate.Places
+                .Select(place => place.Path)
+                .Where(placePath => placePath is { Length: > 0 })
+                .Select(placePath => (candidate, placePath!))
+            );
+        video = FindHardLinkedVideo(_fileSystem, path, locations);
+        return video is not null;
+    }
+
+    /// <summary>
+    ///   Finds the video whose location is the same file on disk as the given
+    ///   path right now: same volume, same ID and same last write time.
+    /// </summary>
+    /// <param name="fileSystem">The file system.</param>
+    /// <param name="path">The new file's absolute path.</param>
+    /// <param name="locations">The videos to look at, with each of their location's absolute path.</param>
+    /// <returns>The first video found, or <c>null</c>.</returns>
+    internal static VideoLocal? FindHardLinkedVideo(IFileSystem fileSystem, string path, IEnumerable<(VideoLocal Video, string Path)> locations)
+    {
+        FileStat? info = null;
+        foreach (var (video, locationPath) in locations)
+        {
+            if (string.Equals(locationPath, path, StringComparison.Ordinal))
+                continue;
+
+            // Read the new file only once there is something to compare it with, and stop when it has no other name.
+            if (info is null)
+            {
+                if (TryRead(path) is not { LinkCount: > 1 } newInfo)
+                    return null;
+
+                info = newInfo;
+            }
+
+            if (TryRead(locationPath) is { } other && other.Identity == info.Identity && other.LastWriteTime == info.LastWriteTime)
+                return video;
+        }
+
+        return null;
+
+        FileStat? TryRead(string filePath)
+        {
+            try
+            {
+                return fileSystem.GetFileStat(filePath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
     }
 
     private bool TryGetVideoFromFileNameHashTable(string filename, long fileSize, [NotNullWhen(true)] out VideoLocal? video)
@@ -570,7 +640,7 @@ public class VideoService : IVideoService
         _logger.LogInformation("Deleting video local place record and file: {Place}", place.Path ?? place.ID.ToString());
 
         var filePath = place.Path!;
-        if (!_fileSystemHelpers.FileExists(filePath))
+        if (!_fileSystem.FileExists(filePath))
         {
             _logger.LogInformation("Unable to find file. Removing Record: {Place}", filePath ?? place.RelativePath);
             await RemoveRecord(place, skipEvents);
@@ -579,7 +649,7 @@ public class VideoService : IVideoService
 
         try
         {
-            _fileSystemHelpers.DeleteFile(filePath);
+            _fileSystem.DeleteFile(filePath);
             DeleteExternalSubtitles(filePath);
         }
         catch (FileNotFoundException)
@@ -605,7 +675,7 @@ public class VideoService : IVideoService
             _logger.LogInformation("Deleting video local place record and file: {Place}", place.Path ?? place.ID.ToString());
 
             var filePath = place.Path!;
-            if (!_fileSystemHelpers.FileExists(filePath))
+            if (!_fileSystem.FileExists(filePath))
             {
                 _logger.LogInformation("Unable to find file. Removing Record: {FullServerPath}", filePath);
                 await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, skipEvents);
@@ -614,7 +684,7 @@ public class VideoService : IVideoService
 
             try
             {
-                _fileSystemHelpers.DeleteFile(filePath);
+                _fileSystem.DeleteFile(filePath);
                 DeleteExternalSubtitles(filePath);
             }
             catch (FileNotFoundException)
@@ -642,7 +712,7 @@ public class VideoService : IVideoService
     {
         try
         {
-            var textStreams = SubtitleHelper.GetSubtitleStreams(originalFileName);
+            var textStreams = SubtitleHelper.GetSubtitleStreams(_fileSystem, originalFileName);
             // move any subtitle files
             foreach (var subtitleFile in textStreams)
             {
@@ -652,11 +722,11 @@ public class VideoService : IVideoService
                 if (string.IsNullOrEmpty(srcParent)) continue;
 
                 var subPath = Path.Combine(srcParent, subtitleFile.Filename);
-                if (!_fileSystemHelpers.FileExists(subPath)) continue;
+                if (!_fileSystem.FileExists(subPath)) continue;
 
                 try
                 {
-                    _fileSystemHelpers.DeleteFile(subPath);
+                    _fileSystem.DeleteFile(subPath);
                 }
                 catch (Exception e)
                 {
@@ -852,8 +922,8 @@ public class VideoService : IVideoService
     public IReadOnlyList<IVideo> GetVideosWithMissingFiles(bool onlyFullyMissing = false)
         => _videoLocalRepository.GetAll()
             .Where(video => video.Places is var places && (places.Count is 0 || (onlyFullyMissing
-                ? places.All(place => !_fileSystemHelpers.FileExists(place.Path))
-                : places.Any(place => !_fileSystemHelpers.FileExists(place.Path)))))
+                ? places.All(place => !_fileSystem.FileExists(place.Path))
+                : places.Any(place => !_fileSystem.FileExists(place.Path)))))
             .ToList();
 
     /// <inheritdoc/>
@@ -967,7 +1037,7 @@ public class VideoService : IVideoService
             {
                 token.ThrowIfCancellationRequested();
                 placeItems.Increment();
-                if (_fileSystemHelpers.FileExists(vl.Path)) continue;
+                if (_fileSystem.FileExists(vl.Path)) continue;
 
                 // delete video local record
                 _logger.LogInformation("Removing Missing File: {ID}", vl.VideoID);
@@ -1294,7 +1364,7 @@ public class VideoService : IVideoService
         {
             files = files
                 .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
-                .Where(filePath => !existingFiles.ContainsKey(filePath) || existingFiles[filePath] != _fileSystemHelpers.GetFileSize(filePath))
+                .Where(filePath => !existingFiles.ContainsKey(filePath) || existingFiles[filePath] != _fileSystem.GetFileSize(filePath))
                 .ToArray();
         }
         else
@@ -1359,14 +1429,14 @@ public class VideoService : IVideoService
 
     private string[] GetFilesInImportFolder(ShokoManagedFolder folder)
     {
-        if (!_fileSystemHelpers.DirectoryExists(folder.Path))
+        if (!_fileSystem.DirectoryExists(folder.Path))
             return [];
         bool IsMatch(string p, bool isDirectory)
         {
             FileSystemInfo info = isDirectory ? new DirectoryInfo(p) : new FileInfo(p);
             return !_ignoreRules.Any(rule => rule.ShouldIgnore(folder, info));
         }
-        return _fileSystemHelpers.GetFilePaths(folder.Path, recursive: true, filter: IsMatch);
+        return _fileSystem.GetFilePaths(folder.Path, recursive: true, filter: IsMatch);
     }
 
     public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true)
@@ -1423,7 +1493,7 @@ public class VideoService : IVideoService
 
     public void CleanupManagedFolder(IManagedFolder managedFolder)
     {
-        var directories = _fileSystemHelpers.GetDirectoryPaths(managedFolder.Path, recursive: true);
+        var directories = _fileSystem.GetDirectoryPaths(managedFolder.Path, recursive: true);
         RecursiveDeleteEmptyDirectories(directories, managedFolder.Path);
     }
 
@@ -1468,13 +1538,13 @@ public class VideoService : IVideoService
                 .ToList();
             foreach (var directoryPath in directoriesToClean)
             {
-                if (_fileSystemHelpers.DirectoryExists(directoryPath) && IsDirectoryEmpty(directoryPath))
+                if (_fileSystem.DirectoryExists(directoryPath) && IsDirectoryEmpty(directoryPath))
                 {
                     _logger.LogTrace("Removing EMPTY directory at {Path}", directoryPath);
 
                     try
                     {
-                        _fileSystemHelpers.DeleteDirectory(directoryPath);
+                        _fileSystem.DeleteDirectory(directoryPath);
                     }
                     catch (Exception ex)
                     {
@@ -1491,11 +1561,11 @@ public class VideoService : IVideoService
         }
     }
 
-    private static bool IsDirectoryEmpty(string path)
+    private bool IsDirectoryEmpty(string path)
     {
         try
         {
-            return !Directory.EnumerateFileSystemEntries(PlatformUtility.EnsureUsablePath(path)).Any();
+            return _fileSystem.IsDirectoryEmpty(path);
         }
         catch
         {
@@ -1518,7 +1588,7 @@ public class VideoService : IVideoService
 
         if (mediaInfo is { IsUsable: true })
         {
-            var subs = SubtitleHelper.GetSubtitleStreams(path);
+            var subs = SubtitleHelper.GetSubtitleStreams(_fileSystem, path);
             if (subs.Count > 0)
                 mediaInfo.media!.track!.AddRange(subs);
 
@@ -1542,7 +1612,7 @@ public class VideoService : IVideoService
 
         if (mediaInfo is { IsUsable: true })
         {
-            var subs = !string.IsNullOrEmpty(path) ? SubtitleHelper.GetSubtitleStreams(path) : [];
+            var subs = !string.IsNullOrEmpty(path) ? SubtitleHelper.GetSubtitleStreams(_fileSystem, path) : [];
             if (subs.Count > 0)
                 mediaInfo.media!.track!.AddRange(subs);
 
@@ -1556,7 +1626,7 @@ public class VideoService : IVideoService
     {
         try
         {
-            var oggFile = OggFile.ParseFile(filename);
+            var oggFile = OggFile.ParseFile(_fileSystem, filename);
             return oggFile?.Duration ?? 0;
         }
         catch (Exception e)
@@ -1584,7 +1654,7 @@ public class VideoService : IVideoService
 
             if (mediaInfo is { IsUsable: true })
             {
-                var subs = SubtitleHelper.GetSubtitleStreams(path);
+                var subs = SubtitleHelper.GetSubtitleStreams(_fileSystem, path);
                 if (subs.Count > 0)
                     mediaInfo.media!.track!.AddRange(subs);
 

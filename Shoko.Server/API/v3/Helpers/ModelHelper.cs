@@ -587,7 +587,7 @@ public static class ModelHelper
                 include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
                 include.Contains(FileNonDefaultIncludeType.MediaInfo),
                 include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
-                include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+                include.Contains(FileNonDefaultIncludeType.Stat)
             ),
             page,
             pageSize

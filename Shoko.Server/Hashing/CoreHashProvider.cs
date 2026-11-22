@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Server.Hashing.HashAlgorithms;
@@ -21,7 +22,7 @@ namespace Shoko.Server.Hashing;
 ///    Responsible for providing the core hashes for a video. Among them, only
 ///    ED2K is required to be calculated, but not necessarily by this provider.
 /// </summary>
-public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationProvider<CoreHashProvider.CoreHasherConfiguration> configurationProvider) : IHashProvider<CoreHashProvider.CoreHasherConfiguration>
+public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationProvider<CoreHashProvider.CoreHasherConfiguration> configurationProvider, IFileSystem fileSystem) : IHashProvider<CoreHashProvider.CoreHasherConfiguration>
 {
     /// <inheritdoc/>
     public string Name => "Built-In Hasher";
@@ -180,7 +181,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
     {
         logger.LogTrace("Using C# hasher on file: {Path}", request.Path);
 
-        using var stream = File.OpenRead(request.Path);
+        using var stream = fileSystem.OpenRead(request.Path);
         using var md4 = request.ED2K ? MD4.Create() : null;
         using var md5 = request.MD5 ? MD5.Create() : null;
         using var sha1 = request.SHA1 ? SHA1.Create() : null;
@@ -280,7 +281,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
         Native.rhash_library_init();
         var ctx = Native.rhash_init(ids);
 
-        using (var source = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var source = fileSystem.OpenFile(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
         {
             var buffer = new byte[8192];
             int bytesRead;

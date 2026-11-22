@@ -1,4 +1,4 @@
-using Shoko.Server.API.v3.Controllers;
+using Shoko.Server.Services;
 using Xunit;
 
 namespace Shoko.Tests.API;
@@ -20,7 +20,7 @@ public class FolderMountPointTests
     [InlineData("/run/user/1000/doc", "fuse.portal")]
     [InlineData("/tmp", "tmpfs")]
     public void SystemMountPointsAreLeftOut(string path, string format)
-        => Assert.True(FolderController.IsSystemMountPoint(path, format));
+        => Assert.True(FileSystemService.IsSystemMountPoint(path, format));
 
     [Theory]
     [InlineData("/", "btrfs")]
@@ -32,5 +32,5 @@ public class FolderMountPointTests
     [InlineData("C:\\", "NTFS")]
     [InlineData("D:\\", "FAT32")]
     public void StorageIsListed(string path, string format)
-        => Assert.False(FolderController.IsSystemMountPoint(path, format));
+        => Assert.False(FileSystemService.IsSystemMountPoint(path, format));
 }

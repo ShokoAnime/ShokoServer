@@ -30,6 +30,8 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     private PocoIndex<int, VideoLocal, bool>? _ignored;
 
+    private PocoIndex<int, VideoLocal, long>? _fileSizes;
+
     protected override void OnDeleteWithOpenTransaction(ISession session, VideoLocal obj)
     {
         RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, obj.Places.ToList());
@@ -54,6 +56,7 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
         _ed2k = Cache.CreateIndex(a => a.Hash);
         _ignored = Cache.CreateIndex(a => a.IsIgnored);
+        _fileSizes = Cache.CreateIndex(a => a.FileSize);
     }
 
     public override void RegenerateDb()
@@ -191,6 +194,14 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
         return _ed2k!.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fileSize);
     }
+
+    /// <summary>
+    ///   Gets the videos of the given size.
+    /// </summary>
+    /// <param name="fileSize">The size in bytes.</param>
+    /// <returns>The videos.</returns>
+    public IReadOnlyList<VideoLocal> GetByFileSize(long fileSize)
+        => fileSize <= 0 ? [] : _fileSizes!.GetMultiple(fileSize);
 
     public VideoLocal? GetByMd5AndSize(string hash, long fileSize)
     {

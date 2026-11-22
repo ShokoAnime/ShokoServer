@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Utilities;
 
@@ -35,7 +36,7 @@ public class RecoveringFileSystemWatcher : IDisposable
     private readonly TimeSpan _directoryFailedRetryInterval = TimeSpan.FromSeconds(5);
     private readonly TimeSpan _directoryRetryInterval = TimeSpan.FromMinutes(5);
     private readonly ILogger _logger;
-    private readonly IFileSystemHelpers _fileSystemHelpers;
+    private readonly IFileSystem _fileSystem;
     private readonly IReadOnlyCollection<string> _filters;
     private readonly IReadOnlyCollection<BoundedRegex> _pathExclusions;
     private readonly ConcurrentDictionary<string, byte> _buffer = new();
@@ -52,16 +53,16 @@ public class RecoveringFileSystemWatcher : IDisposable
     public event EventHandler<string>? FileDeleted;
     public FileSystemWatcherLockOptions Options { get; set; } = new();
 
-    internal RecoveringFileSystemWatcher(string path, IReadOnlyCollection<string> filters, IReadOnlyCollection<BoundedRegex> pathExclusions, IFileSystemHelpers fileSystemHelpers)
+    internal RecoveringFileSystemWatcher(string path, IReadOnlyCollection<string> filters, IReadOnlyCollection<BoundedRegex> pathExclusions, IFileSystem fileSystem)
     {
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
-        if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
+        if (!fileSystem.DirectoryExists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
         // bad, but meh for now
         _logger = ISystemService.StaticServices.GetRequiredService<ILoggerFactory>().CreateLogger("RecoveringFileSystemWatcher:" + path);
         _path = path;
         _filters = filters;
         _pathExclusions = pathExclusions;
-        _fileSystemHelpers = fileSystemHelpers;
+        _fileSystem = fileSystem;
     }
 
     private void WatcherChangeDetected(object sender, FileSystemEventArgs e)
@@ -83,7 +84,7 @@ public class RecoveringFileSystemWatcher : IDisposable
             // Handle directories: we get only a single event for them. Don't walk the tree here -
             // that can be arbitrarily slow and must not block the watcher's own callback thread.
             // Hand it off to a consumer instead.
-            if (Directory.Exists(fullPath))
+            if (_fileSystem.DirectoryExists(fullPath))
             {
                 if (e.ChangeType == WatcherChangeTypes.Deleted) return;
                 if (!_buffer.TryAdd(fullPath, 0)) return;
@@ -135,7 +136,7 @@ public class RecoveringFileSystemWatcher : IDisposable
             _logger.LogTrace("New Directory Found. Iterating: {Path}", item.Path);
             // iterate and queue a command for each containing file
             bool IsMatch(string p, bool isDirectory) => isDirectory || (!_pathExclusions.Any(a => a.IsMatch(p)) && _buffer.TryAdd(p, 0));
-            foreach (var file in _fileSystemHelpers.GetFilePaths(item.Path, recursive: true, extensions: _filters, filter: IsMatch, cancellationToken: token))
+            foreach (var file in _fileSystem.GetFilePaths(item.Path, recursive: true, extensions: _filters, filter: IsMatch, cancellationToken: token))
                 Enqueue(new WatcherEvent(file, item.Type, false));
         }
         catch (OperationCanceledException)
@@ -157,9 +158,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         try
         {
             var usablePath = PlatformUtility.EnsureUsablePath(item.Path);
-            var resolvedPath = File.Exists(usablePath)
-                ? File.ResolveLinkTarget(usablePath, true)?.FullName
-                : null;
+            var resolvedPath = _fileSystem.ResolveSymbolicLink(usablePath);
             if (string.IsNullOrEmpty(resolvedPath))
                 resolvedPath = usablePath;
             else
@@ -274,7 +273,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         {
             try
             {
-                if (!Directory.Exists(_path))
+                if (!_fileSystem.DirectoryExists(_path))
                 {
                     _logger.LogWarning("Unable to find {Path}. Retrying in {Time}s", _path, _directoryFailedRetryInterval.TotalSeconds);
                     if (_watcher != null)
@@ -437,7 +436,7 @@ public class RecoveringFileSystemWatcher : IDisposable
             //For systems with no locking
             while (FileModified(path, seconds, ref filesize, ref e) && numAttempts < 60)
             {
-                if (!File.Exists(path))
+                if (!_fileSystem.FileExists(path))
                 {
                     _logger.LogTrace("Failed to access. File no longer exists. Attempt # {NumAttempts}, {FileName}",
                         numAttempts, path);
@@ -471,7 +470,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         var numAttempts = 0;
         while ((filesize = CanAccessFile(path, ref e)) == 0 && numAttempts < 60)
         {
-            if (!File.Exists(path))
+            if (!_fileSystem.FileExists(path))
             {
                 _logger.LogTrace("Failed to access. File no longer exists. Attempt # {NumAttempts}, {FileName}",
                     numAttempts, path);
@@ -505,11 +504,11 @@ public class RecoveringFileSystemWatcher : IDisposable
             _logger.LogTrace("File {FileName} is Read-Only. Attempting to unmark", fileName);
             try
             {
-                var info = new FileInfo(fileName);
-                if (info.IsReadOnly) info.IsReadOnly = false;
+                if (_fileSystem.GetFileInfo(fileName) is { IsReadOnly: true } info)
+                    info.IsReadOnly = false;
 
                 // check to see if it stuck. On linux, we can't just WinAPI hack our way out, so don't recurse in that case, anyway
-                if (!new FileInfo(fileName).IsReadOnly && PlatformUtility.IsWindows) return GetFileSize(fileName, accessType);
+                if (_fileSystem.GetFileInfo(fileName) is { IsReadOnly: false } && PlatformUtility.IsWindows) return GetFileSize(fileName, accessType);
             }
             catch
             {
@@ -521,9 +520,9 @@ public class RecoveringFileSystemWatcher : IDisposable
         }
     }
 
-    private static long GetFileSize(string fileName, FileAccess accessType)
+    private long GetFileSize(string fileName, FileAccess accessType)
     {
-        using var fs = File.Open(fileName, FileMode.Open, accessType, FileShare.ReadWrite);
+        using var fs = _fileSystem.OpenFile(fileName, FileMode.Open, accessType, FileShare.ReadWrite);
         var size = fs.Seek(0, SeekOrigin.End);
         return size;
     }
@@ -533,8 +532,10 @@ public class RecoveringFileSystemWatcher : IDisposable
     {
         try
         {
-            var lastWrite = File.GetLastWriteTime(fileName);
-            var creation = File.GetCreationTime(fileName);
+            // A file that is gone reads as written long ago, as File.GetLastWriteTime gives it.
+            var info = _fileSystem.GetFileInfo(fileName);
+            var lastWrite = info?.LastWriteTime ?? DateTime.MinValue;
+            var creation = info?.CreationTime ?? DateTime.MinValue;
             var now = DateTime.Now;
             // check that the size is also equal, since some copy utilities apply the previous modified date
             var size = CanAccessFile(fileName, ref e);

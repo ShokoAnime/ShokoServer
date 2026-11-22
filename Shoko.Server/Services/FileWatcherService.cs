@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Repositories.Cached;
@@ -32,7 +33,7 @@ public class FileWatcherService
 
     private readonly ShokoManagedFolderRepository _managedFolders;
 
-    private readonly IFileSystemHelpers _fileSystemHelpers;
+    private readonly IFileSystem _fileSystem;
 
     private List<string>? _videoExtensions;
 
@@ -40,11 +41,11 @@ public class FileWatcherService
 
     private IVideoService? _videoService;
 
-    public FileWatcherService(ILogger<FileWatcherService> logger, ConfigurationProvider<ServerSettings> settingsProvider, ShokoManagedFolderRepository managedFolders, IFileSystemHelpers fileSystemHelpers)
+    public FileWatcherService(ILogger<FileWatcherService> logger, ConfigurationProvider<ServerSettings> settingsProvider, ShokoManagedFolderRepository managedFolders, IFileSystem fileSystem)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
-        _fileSystemHelpers = fileSystemHelpers;
+        _fileSystem = fileSystem;
         _settingsProvider.Saved += ConfigurationSaved;
         _managedFolders = managedFolders;
         _managedFolders.ManagedFolderAdded += ManagedFoldersChanged;
@@ -107,14 +108,14 @@ public class FileWatcherService
 
                 _logger.LogInformation("Watching managed folder: {Name} || {Path}", share.Name, share.Path);
 
-                if (!Directory.Exists(share.Path)) continue;
+                if (!_fileSystem.DirectoryExists(share.Path)) continue;
 
                 _logger.LogInformation("Parsed Path: {Path}", share.Path);
 
                 var fsw = new RecoveringFileSystemWatcher(share.Path,
                     filters: _videoExtensions,
                     pathExclusions: _excludeExpressions,
-                    fileSystemHelpers: _fileSystemHelpers);
+                    fileSystem: _fileSystem);
                 fsw.Options = new FileSystemWatcherLockOptions
                 {
                     Enabled = settings.Import.FileLockChecking,

@@ -22,7 +22,7 @@ public enum FileNonDefaultIncludeType
     AbsolutePaths,
     ImportLimbo,
     ReleaseInfo,
-    LocationUIDs,
+    Stat,
 }
 
 [JsonConverter(typeof(StringEnumConverter))]

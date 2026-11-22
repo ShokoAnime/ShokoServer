@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Shoko.Abstractions.FileSystem;
+using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
@@ -19,7 +21,7 @@ namespace Shoko.Tests.Services;
 /// written somewhere it should not be, and none of them had a test.
 /// </summary>
 /// <remarks>
-/// The file system is reached through the injected <see cref="IFileSystemHelpers"/>, so these run
+/// The file system is reached through the injected <see cref="IFileSystem"/>, so these run
 /// against a mock and never touch a disk — a rejected request is proven by the mock never being
 /// asked to move anything.
 /// </remarks>
@@ -38,7 +40,7 @@ public class VideoRelocationGuardTests
 
     private sealed class Harness : IDisposable
     {
-        public Mock<IFileSystemHelpers> FileSystem { get; } = new(MockBehavior.Loose);
+        public Mock<IFileSystem> FileSystem { get; } = new(MockBehavior.Loose);
 
         public VideoRelocationService Service { get; }
 
@@ -72,19 +74,18 @@ public class VideoRelocationGuardTests
                 settingsProvider: null!,
                 schedulerFactory: null!,
                 configurationService: null!,
-                fileWatcherService: null!,
                 videoLocalPlace: null!,
                 storedRelocationPresetRepository: null!,
                 fileNameHash: null!,
                 managedFolders: null!,
-                fileSystemHelpers: FileSystem.Object,
+                fileSystem: FileSystem.Object,
                 suspensionService: null!);
         }
 
         /// <summary>Asserts that nothing was written to, moved on, or removed from disk.</summary>
         public void AssertNothingWasMoved()
         {
-            FileSystem.Verify(f => f.MoveFile(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+            FileSystem.Verify(f => f.MoveFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
             FileSystem.Verify(f => f.DeleteFile(It.IsAny<string>()), Times.Never);
             FileSystem.Verify(f => f.CreateDirectory(It.IsAny<string>()), Times.Never);
         }
@@ -277,7 +278,7 @@ public class VideoRelocationGuardTests
     {
         using var harness = Create();
         harness.FileSystem
-            .Setup(f => f.GetDirectoryPaths(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<Func<string, bool, bool>?>(), It.IsAny<CancellationToken>()))
+            .Setup(f => f.GetDirectoryPaths(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<FileSystemEntryFilter?>(), It.IsAny<CancellationToken>()))
             .Returns([Path.Combine(SourcePath, "Show")]);
 
         Assert.Equal(Path.Combine("Show", "episode.mkv"), harness.Service.ReuseExistingFolderCase(SourcePath, Path.Combine("show", "episode.mkv")));
@@ -295,7 +296,7 @@ public class VideoRelocationGuardTests
     public async Task ACaseOnlyRenameWithAnUnverifiableFileIsRejected()
     {
         using var harness = Create();
-        harness.FileSystem.Setup(f => f.GetVideoFileUID(It.IsAny<string>())).Returns((long?)null);
+        harness.FileSystem.Setup(f => f.GetStat(It.IsAny<string>(), It.IsAny<bool>())).Returns((FileSystemStat?)null);
 
         var response = await harness.Service.DirectlyRelocateFile(
             harness.Place, Request(harness.SourceFolder, "Show/Episode.mkv"));
