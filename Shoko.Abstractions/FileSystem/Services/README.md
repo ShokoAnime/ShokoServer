@@ -20,7 +20,7 @@ limit, which plain `System.IO` calls hit under deep library folders.
 | `MoveFile(source, destination, overwrite)` | Moves a file, across volumes too. On one volume, replacing a file is a single step, so readers never see neither. |
 | `MoveDirectory(source, destination, overwrite)` | Renames a directory on one volume, moves it entry by entry across volumes, and with `overwrite` merges it into one already there. Links inside move as links. |
 | `CreateHardLink(source, destination)` | A second name for the same file. Both paths must be on the same volume, and an `IOException` says when they are not. |
-| `CreateSymbolicLink(source, destination)` | A link pointing to the source, a file, a directory or another link, which must exist; a relative source is read from the destination's folder and stored as given. Windows only allows it to an administrator or with developer mode on. |
+| `CreateSymbolicLink(source, destination, isDirectory)` | A link pointing to the source, a file, a directory or another link; a relative source is read from the destination's folder and stored as given. Without `isDirectory` the source is looked up to tell a file link from a directory link, as Windows needs, and must exist; given it, nothing is looked up and the source need not exist yet. Windows only allows it to an administrator or with developer mode on. |
 | `CanCreateSymbolicLinks(directory)` | Whether links can be made in that directory, by trying. It depends on the volume, so check each directory links go to. |
 | `DeleteFile`, `CreateDirectory`, `DeleteDirectory` | As in `System.IO`. |
 
@@ -82,7 +82,9 @@ final target, or with `returnFinalTarget: false` only to its own target, and
 gives `null` for anything that is not a link. A chain that leads back to a link
 already followed, or goes through more than 40 links, throws a
 `SymbolicLinkLoopException` (an `IOException`) naming where the walk started
-and where the loop closed.
+and where the loop closed. `ReadSymbolicLink(path)` reads a link's target as
+the link stores it, relative or absolute, in one read, and gives `null` for
+anything that is not a link.
 
 `GetFileInfo`, `GetDirectoryInfo` and `GetFileSystemInfo` give .NET's own
 `FileInfo` and `DirectoryInfo` instead, for code that wants those.
@@ -156,9 +158,13 @@ no particular order, and one that cannot be read is skipped.
 | `FollowDirectoryLinks` | Walk into links to directories. Off by default, as such a link can lead out of the directory or back up into it; when on, a directory reached through a link is walked once. |
 | `IncludeDirectoryLinks` | List links to directories, walked into or not. On by default. |
 | `IncludeFileLinks` | List links to files, and links whose target is gone. On by default. |
+| `ThrowOnError` | Throw when a directory cannot be read, the one listed (`DirectoryNotFoundException` when it is not there) or any walked into. Off by default, when a missing directory lists nothing and an unreadable one is logged and skipped. |
 
 A `FileSystemEntry` knows its `Path`, `Name`, `IsDirectory` and `IsSymbolicLink`
-from the listing itself, at no cost, and reads its `Stat` (with `FileStat` and
+from the listing itself: on Linux and macOS from each entry's `d_type`, one
+stat through each link to tell a link to a directory (a dead link is not one),
+and an lstat only where the file system gives no kind; on Windows from the
+listing's attributes, and reads its `Stat` (with `FileStat` and
 `DirectoryStat` beside it) only when first asked, then keeps it. The filter,
 ignore rules (`IManagedFolderIgnoreRule`), the detected-file event and hashing
 requests all hand out entries, so code that only needs the path costs a scan

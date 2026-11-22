@@ -48,4 +48,13 @@ public sealed record FileSystemListingOptions
     ///   Whether to list links to files, and links whose target is gone.
     /// </summary>
     public bool IncludeFileLinks { get; init; } = true;
+
+    /// <summary>
+    ///   Whether a directory that cannot be read throws rather than being left
+    ///   out: the one listed (<see cref="System.IO.DirectoryNotFoundException"/>
+    ///   when it is not there) or any it walks into. Off by default, when a
+    ///   missing directory lists nothing and one that cannot be read is logged
+    ///   and skipped, so an empty listing cannot be told from a failed one.
+    /// </summary>
+    public bool ThrowOnError { get; init; }
 }

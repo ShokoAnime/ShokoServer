@@ -454,30 +454,6 @@ public interface IFileSystem
     IReadOnlyList<VolumeMount> GetVolumeMounts(bool includeSystem = false, bool includeStats = false);
 
     /// <summary>
-    ///   Creates a symbolic link at the destination pointing to the source, a
-    ///   file, a directory or another link.
-    /// </summary>
-    /// <remarks>
-    ///   The link points to the source itself, not to where a link there
-    ///   leads; pass <see cref="ResolveSymbolicLink"/>'s answer to link to the
-    ///   end of a chain. The source must exist, a dangling link counting,
-    ///   since Windows makes file and directory links apart. Windows only allows it to an administrator or with developer
-    ///   mode turned on.
-    /// </remarks>
-    /// <param name="sourcePath">
-    ///   The file or directory the link points to: absolute, or relative to
-    ///   the destination's folder, and stored in the link as given.
-    /// </param>
-    /// <param name="destinationPath">Where to create the link.</param>
-    /// <exception cref="FileNotFoundException">Nothing is at the source.</exception>
-    /// <exception cref="UnauthorizedAccessException">The source may not be read.</exception>
-    /// <exception cref="IOException">
-    ///   Something already exists at the destination, or the link cannot be
-    ///   made, such as on Windows without the right to make links.
-    /// </exception>
-    void CreateSymbolicLink(string sourcePath, string destinationPath);
-
-    /// <summary>
     ///   Checks whether symbolic links can be made in a directory, by making a
     ///   file and a link to it there and removing both.
     /// </summary>
@@ -494,6 +470,53 @@ public interface IFileSystem
     /// <exception cref="UnauthorizedAccessException">The directory may not be written to, which says nothing about links.</exception>
     /// <exception cref="IOException">The test file could not be made, which says nothing about links.</exception>
     bool CanCreateSymbolicLinks(string directoryPath);
+
+    /// <summary>
+    ///   Creates a symbolic link at the destination pointing to the source, a
+    ///   file, a directory or another link.
+    /// </summary>
+    /// <remarks>
+    ///   The link points to the source itself, not to where a link there
+    ///   leads; pass <see cref="ResolveSymbolicLink"/>'s answer to link to the
+    ///   end of a chain. Windows makes file and directory links apart, so
+    ///   without <paramref name="isDirectory"/> the source is looked up to
+    ///   tell which and must exist, a dangling link counting. Given it, nothing
+    ///   is looked up and the source need not exist yet. Windows only allows
+    ///   it to an administrator or with developer mode turned on.
+    /// </remarks>
+    /// <param name="sourcePath">
+    ///   The file or directory the link points to: absolute, or relative to
+    ///   the destination's folder, and stored in the link as given.
+    /// </param>
+    /// <param name="destinationPath">Where to create the link.</param>
+    /// <param name="isDirectory">
+    ///   Whether the link is to a directory, when the caller knows; Unix links
+    ///   have no kind, so there it only spares the lookup.
+    /// </param>
+    /// <exception cref="FileNotFoundException">
+    ///   <paramref name="isDirectory"/> is not given and nothing is at the
+    ///   source.
+    /// </exception>
+    /// <exception cref="UnauthorizedAccessException">The source may not be read.</exception>
+    /// <exception cref="IOException">
+    ///   Something already exists at the destination, or the link cannot be
+    ///   made, such as on Windows without the right to make links.
+    /// </exception>
+    void CreateSymbolicLink(string sourcePath, string destinationPath, bool? isDirectory = null);
+
+    /// <summary>
+    ///   Reads where a symbolic link points, as the link stores it: relative
+    ///   or absolute, and whether or not anything is there. One read of the
+    ///   link itself; <see cref="ResolveSymbolicLink"/> gives the full path.
+    /// </summary>
+    /// <param name="path">The link.</param>
+    /// <returns>
+    ///   The target as stored, or <c>null</c> when nothing is at the path or
+    ///   it is not a link.
+    /// </returns>
+    /// <exception cref="UnauthorizedAccessException">The link may not be read.</exception>
+    /// <exception cref="IOException">It could not be read for another reason.</exception>
+    string? ReadSymbolicLink(string path);
 
     /// <summary>
     ///   Follows the symbolic link at the given path to its target, and on

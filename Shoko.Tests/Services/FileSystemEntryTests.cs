@@ -153,4 +153,66 @@ public sealed class FileSystemEntryTests : IDisposable
 
         Assert.True(File.Exists(path + ".moved"));
     }
+
+    [Fact]
+    public void AMissingDirectory_ListsNothing_OrThrowsWhenAsked()
+    {
+        IFileSystem fileSystem = new FileSystemService(NullLogger<FileSystemService>.Instance);
+        var missing = Path.Combine(_root, "missing");
+
+        Assert.Empty(fileSystem.GetFileSystemEntries(missing, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Throws<DirectoryNotFoundException>(() => fileSystem.GetFileSystemEntries(missing, new() { ThrowOnError = true }, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public void AnUnreadableSubdirectory_IsSkipped_OrThrowsWhenAsked()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Unix permissions only.");
+        if (OperatingSystem.IsWindows())
+            return;
+        IFileSystem fileSystem = new FileSystemService(NullLogger<FileSystemService>.Instance);
+        var locked = Directory.CreateDirectory(Path.Combine(_root, "locked")).FullName;
+        File.WriteAllText(Path.Combine(locked, "video.mkv"), "video");
+        File.SetUnixFileMode(locked, UnixFileMode.None);
+        try
+        {
+            Assert.SkipWhen(Directory.EnumerateFileSystemEntries(locked).Any(), "This user reads it anyway, as root does.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+
+        try
+        {
+            Assert.Equal(["locked"], fileSystem.GetFileSystemEntries(_root, new() { Recursive = true }, TestContext.Current.CancellationToken).Select(entry => entry.Name));
+            Assert.Throws<UnauthorizedAccessException>(() => fileSystem.GetFileSystemEntries(_root, new() { Recursive = true, ThrowOnError = true }, TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            File.SetUnixFileMode(locked, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+    }
+
+    [Fact]
+    public void ALinkToAMissingTarget_IsMadeWhenTheKindIsGiven_AndReadAsStored()
+    {
+        IFileSystem fileSystem = new FileSystemService(NullLogger<FileSystemService>.Instance);
+        var link = Path.Combine(_root, "link");
+        try
+        {
+            fileSystem.CreateSymbolicLink("not-there-yet", link, isDirectory: false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Assert.Skip("This user may not make symbolic links here.");
+        }
+
+        Assert.Equal("not-there-yet", fileSystem.ReadSymbolicLink(link));
+        Assert.Null(fileSystem.ReadSymbolicLink(Path.Combine(_root, "missing")));
+        Assert.Throws<FileNotFoundException>(() => fileSystem.CreateSymbolicLink("also-not-there", Path.Combine(_root, "other")));
+
+        var entry = Assert.Single(fileSystem.GetFileSystemEntries(_root, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.True(entry.IsSymbolicLink);
+        Assert.False(entry.IsDirectory);
+    }
 }

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +19,6 @@ namespace Shoko.Server.Services;
 
 public partial class FileSystemService(ILogger<FileSystemService> logger, IServiceProvider? serviceProvider = null) : IFileSystem
 {
-    private static readonly EnumerationOptions _cachedEnumerationOptions = new() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System };
 
     // Windows enforces a 260-character MAX_PATH limit on the classic Win32 file APIs that .NET calls
     // into, regardless of whether the OS-wide "enable long paths" policy is on (that policy also
@@ -283,8 +283,22 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
         };
     }
 
-    public void CreateSymbolicLink(string sourcePath, string destinationPath)
+    public void CreateSymbolicLink(string sourcePath, string destinationPath, bool? isDirectory = null)
     {
+        var usableLink = PlatformUtility.EnsureUsablePath(destinationPath);
+        if (isDirectory is { } directory)
+        {
+            // The caller said which, so nothing is looked up, and the target need not exist yet.
+            Unwatched(() =>
+            {
+                if (directory)
+                    Directory.CreateSymbolicLink(usableLink, sourcePath);
+                else
+                    File.CreateSymbolicLink(usableLink, sourcePath);
+            }, destinationPath);
+            return;
+        }
+
         // A relative target is read from the link's folder, so look for it there. The link stores it as given.
         var resolvedSource = Path.IsPathFullyQualified(sourcePath)
             ? sourcePath
@@ -345,6 +359,19 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
         }
     }
 
+    public string? ReadSymbolicLink(string path)
+    {
+        try
+        {
+            // One readlink: null for anything but a link.
+            return new FileInfo(PlatformUtility.EnsureUsablePath(path)!).LinkTarget;
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>
     ///   How many links a chain may go through, as on Linux.
     /// </summary>
@@ -391,28 +418,36 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
     private IReadOnlyList<FileSystemEntry> List(string directoryPath, FileSystemListingOptions? options, bool outputFiles, bool outputDirectories, CancellationToken cancellationToken)
     {
         options ??= FileSystemListingOptions.Default;
-        if (!DirectoryExists(directoryPath))
-            return [];
         var outputBag = new ConcurrentBag<FileSystemEntry>();
         var canProceed = GetEntryValidator(options);
         var recursive = options.Recursive;
+
+        // The root is read first and on its own: reading it says whether it is there, so it needs no check
+        // beforehand, and a listing that does not walk needs nothing more.
+        IReadOnlyList<DirectoryItem> rootItems;
+        try
+        {
+            rootItems = ReadDirectory(directoryPath);
+        }
+        catch (Exception ex) when (!options.ThrowOnError && ex is IOException or UnauthorizedAccessException)
+        {
+            if (ex is not DirectoryNotFoundException)
+                logger.LogWarning(ex, "Failed to enumerate {Path}; skipping", directoryPath);
+            return [];
+        }
+
         // While following links, the directories reached through one are remembered by identity, the
         // root's included, so a link back up the tree is walked once rather than until the path is too long.
         var walked = recursive && options.FollowDirectoryLinks ? new ConcurrentDictionary<StatIdentity, byte>() : null;
         if (walked is not null && TryGetIdentity(directoryPath) is { } rootIdentity)
             walked.TryAdd(rootIdentity, 0);
-        Parallelize(directoryPath, path =>
+
+        List<string>? Take(string path, IReadOnlyList<DirectoryItem> items)
         {
-            // One pass gives each entry's name, kind and link flag, so an entry costs no read of its own.
-            // The directory is opened in its usable form, while the paths handed out are built from the
-            // plain one, so a long path's prefix never leaves the service.
+            // Each entry's name, kind and link flag came with the listing, so an entry costs no read of its
+            // own. The paths handed out are built from the plain path, so a long path's prefix never leaves.
             var walkInto = recursive ? new List<string>() : null;
-            var listing = new System.IO.Enumeration.FileSystemEnumerable<(string Name, bool IsDirectory, bool IsLink)>(
-                PlatformUtility.EnsureUsablePath(path)!,
-                (ref System.IO.Enumeration.FileSystemEntry e) => (e.FileName.ToString(), e.IsDirectory, (e.Attributes & FileAttributes.ReparsePoint) != 0),
-                _cachedEnumerationOptions
-            );
-            foreach (var (name, isDirectory, isLink) in listing)
+            foreach (var (name, isDirectory, isLink) in items)
             {
                 // A link that is neither listed nor walked into needs no entry at all.
                 var walksInto = isDirectory && recursive && (!isLink || walked is not null);
@@ -432,7 +467,27 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
                     walkInto!.Add(entry.Path);
             }
             return walkInto;
-        }, cancellationToken).Wait(cancellationToken);
+        }
+
+        var subdirectories = Take(directoryPath, rootItems);
+        if (subdirectories is { Count: > 0 })
+        {
+            var walk = Parallelize(
+                subdirectories,
+                path => Take(path, ReadDirectory(path)),
+                stopOnError: options.ThrowOnError,
+                cancellationToken
+            );
+            try
+            {
+                walk.Wait(cancellationToken);
+            }
+            catch (AggregateException ex) when (ex.InnerExceptions is [var inner] && inner is not OperationCanceledException)
+            {
+                ExceptionDispatchInfo.Throw(inner);
+            }
+        }
+
         cancellationToken.ThrowIfCancellationRequested();
         return outputBag.ToArray();
     }
@@ -459,9 +514,9 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
         return entry => entry.IsDirectory || extensions.Any(ext => entry.Path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
     }
 
-    private Task Parallelize<T>(T initialValue, Func<T, IEnumerable<T>?> action, CancellationToken cancellationToken = default)
+    private Task Parallelize<T>(IReadOnlyList<T> initialValues, Func<T, IEnumerable<T>?> action, bool stopOnError, CancellationToken cancellationToken = default)
     {
-        var pendingCount = 1;
+        var pendingCount = initialValues.Count;
         var bufferBlock = new BufferBlock<T>(new() { BoundedCapacity = DataflowBlockOptions.Unbounded });
         var actionBlock = new ActionBlock<T>(
             inputValue =>
@@ -478,6 +533,11 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
                 catch (OperationCanceledException)
                 {
                     // still must stop the whole walk on cancellation
+                    throw;
+                }
+                catch (Exception) when (stopOnError)
+                {
+                    // Faults the walk, which then says why.
                     throw;
                 }
                 catch (Exception ex)
@@ -503,7 +563,8 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
             }
         );
         bufferBlock.LinkTo(actionBlock, new() { PropagateCompletion = true });
-        bufferBlock.Post(initialValue);
+        foreach (var initialValue in initialValues)
+            bufferBlock.Post(initialValue);
         return actionBlock.Completion;
     }
 
