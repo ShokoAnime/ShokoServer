@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -46,9 +45,8 @@ public class RecoveringFileSystemWatcher : IDisposable
     // own event thread.
     private readonly Channel<WatcherEvent> _channel = Channel.CreateUnbounded<WatcherEvent>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
 
-    private readonly ObservableCollection<string> _exclusions = new();
+    private readonly WatcherExclusions _exclusions = new(WatcherExclusions.DefaultGracePeriod);
     private readonly string _path;
-    private bool ExclusionsEnabled { get; set; }
     public event EventHandler<string>? FileAdded;
     public event EventHandler<string>? FileDeleted;
     public FileSystemWatcherLockOptions Options { get; set; } = new();
@@ -73,13 +71,7 @@ public class RecoveringFileSystemWatcher : IDisposable
             // Exclusion Settings
             if (_pathExclusions.Any(a => a.IsMatch(fullPath))) return;
             // Temporary Exclusions, like drop folders
-            if (ExclusionsEnabled)
-            {
-                lock (_exclusions)
-                {
-                    if (_exclusions.Contains(fullPath)) return;
-                }
-            }
+            if (_exclusions.Any && _exclusions.Contains(fullPath)) return;
 
             // Handle directories: we get only a single event for them. Don't walk the tree here -
             // that can be arbitrarily slow and must not block the watcher's own callback thread.
@@ -306,31 +298,10 @@ public class RecoveringFileSystemWatcher : IDisposable
     }
 
     public void AddExclusion(string path)
-    {
-        lock (_exclusions)
-        {
-            if (!_exclusions.Contains(path)) _exclusions.Add(path);
-        }
-        ExclusionsEnabled = true;
-    }
+        => _exclusions.Hold(path);
 
     public void RemoveExclusion(string path)
-    {
-        // Deferred rather than immediate: the OS can deliver a change notification for `path`
-        // slightly after the caller's FS operation returns (and thus after they call this), so
-        // removing the exclusion right away can let that late event slip through and re-trigger
-        // processing of a file we just finished handling. A short grace period is cheap defense in
-        // depth; callers don't wait on this method today, so deferring the actual removal is
-        // transparent to them.
-        _ = Task.Delay(TimeSpan.FromSeconds(2), CancellationToken.None).ContinueWith(_ =>
-        {
-            lock (_exclusions)
-            {
-                _exclusions.Remove(path);
-                ExclusionsEnabled = _exclusions.Any();
-            }
-        }, TaskScheduler.Default);
-    }
+        => _exclusions.Release(path);
 
     public bool IsPathWatched(string path) => path.Contains(_path);
 
