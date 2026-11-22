@@ -27,17 +27,30 @@ public class CrossRef_File_EpisodeRepository(
 
     protected override void OnEndSave(CrossRef_File_Episode obj)
     {
+        ForgetPercentageRangesOfEpisode(obj.EpisodeID);
         _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
         _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
     }
 
     protected override void OnEndDelete(CrossRef_File_Episode obj)
     {
+        ForgetPercentageRangesOfEpisode(obj.EpisodeID);
         if (obj is not { AnimeID: > 0 }) return;
 
         logger.LogTrace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {AnimeID}", obj.AnimeID);
         _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
         _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    ///   A row's range depends on the other rows of its episode, so a change
+    ///   to any of them makes every row of the episode work its range out again.
+    /// </summary>
+    /// <param name="episodeID">The AniDB episode ID.</param>
+    private void ForgetPercentageRangesOfEpisode(int episodeID)
+    {
+        foreach (var xref in GetByEpisodeID(episodeID))
+            xref.ForgetPercentageRange();
     }
 
     protected override int SelectKey(CrossRef_File_Episode entity)

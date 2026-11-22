@@ -64,6 +64,13 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     private (int? LastKnownPercentage, (int Start, int End) Range) _percentageRangeCalculated = (null, (0, 0));
 
+    /// <summary>
+    ///   Forgets the range worked out for this row, so the next read works it
+    ///   out again from the rows of its episode as they are then.
+    /// </summary>
+    internal void ForgetPercentageRange()
+        => _percentageRangeCalculated = (null, (0, 0));
+
     public (int Start, int End) PercentageRange
     {
         get
