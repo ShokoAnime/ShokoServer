@@ -28,13 +28,29 @@ public class FilterFactory(IHttpContextAccessor context, IFilteringEngine _evalu
     static FilterFactory()
     {
         var allTypes = ReflectionUtils.ScannableTypes().ToList();
-        s_expressionTypes = allTypes
-            .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) &&
-                        !typeof(SortingExpression).IsAssignableFrom(a))
-            .ToDictionary(a => a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector"));
-        s_sortingTypes = allTypes
-            .Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType && typeof(SortingExpression).IsAssignableFrom(a))
-            .ToDictionary(a => a.Name.TrimEnd("SortingSelector"));
+        s_expressionTypes = ByName(
+            allTypes.Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) &&
+                                !typeof(SortingExpression).IsAssignableFrom(a)),
+            a => a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector")
+        );
+        s_sortingTypes = ByName(
+            allTypes.Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType && typeof(SortingExpression).IsAssignableFrom(a)),
+            a => a.Name.TrimEnd("SortingSelector")
+        );
+    }
+
+    /// <summary>
+    /// Maps the expression types by name. The core's own come first, so a
+    /// plugin's expression named like one of them never replaces it, and of
+    /// two plugins' expressions sharing a name the first found is kept.
+    /// </summary>
+    private static Dictionary<string, Type> ByName(IEnumerable<Type> types, Func<Type, string> nameOf)
+    {
+        var coreAssembly = typeof(FilterExpression).Assembly;
+        var result = new Dictionary<string, Type>();
+        foreach (var type in types.OrderBy(type => type.Assembly == coreAssembly ? 0 : 1))
+            result.TryAdd(nameOf(type), type);
+        return result;
     }
 
     public Filter GetFilter(FilterPreset groupFilter, bool fullModel = false, bool includeEmpty = false)
