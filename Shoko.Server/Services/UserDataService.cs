@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
@@ -46,6 +47,10 @@ public class UserDataService(
     private IMylistService? _mylistService;
 
     #region Video User Data
+
+    // One save of a user's data for a video at a time, so two saves of a new
+    // video's data, such as two scrobbles sent at once, never both insert it.
+    private readonly AsyncKeyedLocker<(int UserID, int VideoID)> _videoUserDataLocks = new();
 
     public event EventHandler<VideoUserDataSavedEventArgs>? VideoUserDataSaved;
 
@@ -137,6 +142,7 @@ public class UserDataService(
         var duration = video.MediaInfo is { } mediaInfo
             ? mediaInfo.Duration
             : (TimeSpan?)null;
+        using var videoUserDataLock = await _videoUserDataLocks.LockAsync((user.LocalID, video.LocalID)).ConfigureAwait(false);
         var userData = videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, video.LocalID)
             ?? new() { JMMUserID = user.LocalID, VideoLocalID = video.LocalID };
         var completionApplied = ApplyCompletionRule(userData, userDataUpdate, duration, reason, settingsProvider.GetSettings().CompletionThresholdPercent);
