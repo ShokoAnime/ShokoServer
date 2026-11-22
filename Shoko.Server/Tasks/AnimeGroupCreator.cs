@@ -330,18 +330,49 @@ public class AnimeGroupCreator
     }
 
     /// <summary>
-    /// Gets or creates an <see cref="AnimeGroup"/> for the specified series.
+    /// Saves a new series for an anime in the group it belongs in, creating
+    /// that group when there is none yet.
     /// </summary>
-    /// <param name="anime">The series for which the group is to be created/retrieved (Must be initialised first).</param>
-    /// <returns>The <see cref="AnimeGroup"/> to use for the specified series.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="anime"/> is <c>null</c>.</exception>
-    public AnimeGroup GetOrCreateSingleGroupForAnime(AniDB_Anime anime)
+    /// <remarks>
+    /// A group created for the series is only announced once the series is
+    /// saved, and removed again when saving the series fails, so no group is
+    /// ever left without series.
+    /// </remarks>
+    /// <param name="series">The new series, not saved yet.</param>
+    /// <param name="anime">The anime of the series.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="series"/> or <paramref name="anime"/> is <c>null</c>.</exception>
+    public void SaveNewSeriesInGroup(AnimeSeries series, AniDB_Anime anime)
     {
-        if (anime == null)
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentNullException.ThrowIfNull(anime);
+
+        var group = GetOrCreateSingleGroupForAnime(anime, out var isNewGroup);
+        series.AnimeGroupID = group.AnimeGroupID;
+        try
         {
-            throw new ArgumentNullException(nameof(anime));
+            _animeSeriesRepo.Save(series, false);
+        }
+        catch
+        {
+            if (isNewGroup)
+                _animeGroupRepo.Delete(group);
+            throw;
         }
 
+        if (isNewGroup)
+            ShokoEventHandler.Instance.OnGroupUpdated(group, UpdateReason.Added);
+    }
+
+    /// <summary>
+    /// Gets or creates an <see cref="AnimeGroup"/> for the specified anime. A
+    /// new group is saved but not announced, since it has no series yet.
+    /// </summary>
+    /// <param name="anime">The anime for which the group is to be created/retrieved.</param>
+    /// <param name="isNewGroup">Whether the group was created.</param>
+    /// <returns>The <see cref="AnimeGroup"/> to use for the specified anime.</returns>
+    private AnimeGroup GetOrCreateSingleGroupForAnime(AniDB_Anime anime, out bool isNewGroup)
+    {
+        isNewGroup = false;
         AnimeGroup? animeGroup;
 
         if (_autoGroupSeries)
@@ -363,7 +394,7 @@ public class AnimeGroupCreator
                 // Find the main series for the group.
                 animeGroup = CreateAnimeGroup(null, mainAnimeId, DateTime.Now);
                 _animeGroupRepo.Save(animeGroup, true);
-                ShokoEventHandler.Instance.OnGroupUpdated(animeGroup, UpdateReason.Added);
+                isNewGroup = true;
             }
             // Update the group details if we have the main series for the group.
             else if (mainAnimeId == anime.AnimeID)
@@ -381,7 +412,7 @@ public class AnimeGroupCreator
             animeGroup = new AnimeGroup();
             animeGroup.Populate(anime, DateTime.Now);
             _animeGroupRepo.Save(animeGroup, true);
-            ShokoEventHandler.Instance.OnGroupUpdated(animeGroup, UpdateReason.Added);
+            isNewGroup = true;
         }
 
         return animeGroup;

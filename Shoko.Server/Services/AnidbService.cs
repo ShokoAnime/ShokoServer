@@ -881,10 +881,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             UpdatedAt = DateTime.Now,
         };
 
-        var grp = _animeGroupCreator.GetOrCreateSingleGroupForAnime(anime);
-        series.AnimeGroupID = grp.AnimeGroupID;
-        // Populate before making a group to ensure IDs and stats are set for group filters.
-        _seriesRepository.Save(series, false);
+        _animeGroupCreator.SaveNewSeriesInGroup(series, anime);
         if (!job.SkipSupplementaryUpdate)
             await _supplementaryMetadataScheduler.ScheduleForAnime(anime.AnimeID).ConfigureAwait(false);
 
