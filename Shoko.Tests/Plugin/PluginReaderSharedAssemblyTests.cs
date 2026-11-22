@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Moq;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Settings;
+using Shoko.Tests.Infrastructure;
 using Xunit;
 
 namespace Shoko.Tests.Plugin;
@@ -20,7 +21,7 @@ public class PluginReaderSharedAssemblyTests : IDisposable
     private readonly string _root = Directory.CreateDirectory(Path.Join(Path.GetTempPath(), $"shoko-plugin-reader-{Guid.NewGuid():N}")).FullName;
 
     public void Dispose()
-        => Directory.Delete(_root, recursive: true);
+        => TemporaryDirectory.Delete(_root);
 
     [Fact]
     public void ReadsAPluginUsingAContractAnotherPluginExports()

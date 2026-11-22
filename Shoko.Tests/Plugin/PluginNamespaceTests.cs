@@ -21,7 +21,7 @@ public class PluginNamespaceTests : IDisposable
     private readonly string _root = Directory.CreateDirectory(Path.Join(Path.GetTempPath(), $"shoko-plugin-namespace-{Guid.NewGuid():N}")).FullName;
 
     public void Dispose()
-        => Directory.Delete(_root, recursive: true);
+        => TemporaryDirectory.Delete(_root);
 
     #region Reading
 

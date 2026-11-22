@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Settings;
+using Shoko.Tests.Infrastructure;
 using Xunit;
 
 namespace Shoko.Tests.Plugin;
@@ -18,7 +19,7 @@ public class PluginMetaMarkTests : IDisposable
     private readonly string _root = Directory.CreateDirectory(Path.Join(Path.GetTempPath(), $"shoko-plugin-metadata-{Guid.NewGuid():N}")).FullName;
 
     public void Dispose()
-        => Directory.Delete(_root, recursive: true);
+        => TemporaryDirectory.Delete(_root);
 
     private string CompilePlugin(string assemblyName, string? isMeta)
     {

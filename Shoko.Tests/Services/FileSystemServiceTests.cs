@@ -24,6 +24,13 @@ public sealed class FileSystemServiceTests : IDisposable
     private StatIdentity? Identity(string? path)
         => _fileSystem.GetStat(path)?.Identity;
 
+    /// <summary>
+    ///   Whether symbolic links can be made in the test's folder: always on
+    ///   Unix, on Windows for an administrator or with developer mode on.
+    /// </summary>
+    private bool CanLink
+        => _fileSystem.CanCreateSymbolicLinks(_root);
+
     private string MakeFile(string name, string contents = "video")
     {
         var path = Path.Combine(_root, name);
@@ -85,7 +92,7 @@ public sealed class FileSystemServiceTests : IDisposable
     [Fact]
     public void CreateSymbolicLink_AnswersForTheFileItPointsTo()
     {
-        Assert.SkipUnless(PlatformUtility.IsUnixLike, "Windows only lets administrators make symbolic links.");
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
         var source = MakeFile("source.mkv");
         var link = Path.Combine(_root, "link.mkv");
 
@@ -98,7 +105,7 @@ public sealed class FileSystemServiceTests : IDisposable
     [Fact]
     public void CreateSymbolicLink_LinksADirectoryOrARelativeTarget()
     {
-        Assert.SkipUnless(PlatformUtility.IsUnixLike, "Windows only lets administrators make symbolic links.");
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
         var folder = Directory.CreateDirectory(Path.Combine(_root, "folder")).FullName;
         MakeFile("source.mkv");
         var folderLink = Path.Combine(_root, "folder-link");
@@ -115,7 +122,7 @@ public sealed class FileSystemServiceTests : IDisposable
     [Fact]
     public void CreateSymbolicLink_PointsToTheNextStep()
     {
-        Assert.SkipUnless(PlatformUtility.IsUnixLike, "Windows only lets administrators make symbolic links.");
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
         var dangling = Path.Combine(_root, "dangling.mkv");
         var link = Path.Combine(_root, "link.mkv");
         File.CreateSymbolicLink(dangling, Path.Combine(_root, "missing.mkv"));
@@ -123,7 +130,8 @@ public sealed class FileSystemServiceTests : IDisposable
         _fileSystem.CreateSymbolicLink(dangling, link);
 
         Assert.Equal(dangling, _fileSystem.ResolveSymbolicLink(link, returnFinalTarget: false));
-        Assert.Null(Assert.IsType<SymbolicLinkStat>(_fileSystem.GetStat(link, followSymbolicLinks: false)).IsDirectoryLink);
+        // A file link: Windows says so, Unix links have no kind.
+        Assert.NotEqual(true, Assert.IsType<SymbolicLinkStat>(_fileSystem.GetStat(link, followSymbolicLinks: false)).IsDirectoryLink);
     }
 
     [Fact]
@@ -294,7 +302,7 @@ public sealed class FileSystemServiceTests : IDisposable
     [Fact]
     public void GetStat_ReadsTheLinkItselfWhenNotFollowing()
     {
-        Assert.SkipUnless(PlatformUtility.IsUnixLike, "Windows only lets administrators make symbolic links.");
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
         var source = MakeFile("source.mkv");
         var link = Path.Combine(_root, "link.mkv");
         var dangling = Path.Combine(_root, "dangling.mkv");
@@ -345,7 +353,7 @@ public sealed class FileSystemServiceTests : IDisposable
     [Fact]
     public void ResolveSymbolicLink_FollowsChainsAndDanglingLinks()
     {
-        Assert.SkipUnless(PlatformUtility.IsUnixLike, "Windows only lets administrators make symbolic links.");
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
         var source = MakeFile("source.mkv");
         var first = Path.Combine(_root, "first.mkv");
         var second = Path.Combine(_root, "second.mkv");
@@ -363,7 +371,7 @@ public sealed class FileSystemServiceTests : IDisposable
     [Fact]
     public void ResolveSymbolicLink_StopsAtTheFirstTargetWhenAsked()
     {
-        Assert.SkipUnless(PlatformUtility.IsUnixLike, "Windows only lets administrators make symbolic links.");
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
         var source = MakeFile("source.mkv");
         var first = Path.Combine(_root, "first.mkv");
         var second = Path.Combine(_root, "second.mkv");
@@ -377,7 +385,7 @@ public sealed class FileSystemServiceTests : IDisposable
     [Fact]
     public void ResolveSymbolicLink_ThrowsForALoop()
     {
-        Assert.SkipUnless(PlatformUtility.IsUnixLike, "Windows only lets administrators make symbolic links.");
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
         var a = Path.Combine(_root, "a.mkv");
         var b = Path.Combine(_root, "b.mkv");
         var self = Path.Combine(_root, "self.mkv");
@@ -395,7 +403,7 @@ public sealed class FileSystemServiceTests : IDisposable
     [Fact]
     public void ResolveSymbolicLink_ThrowsForAChainOfMoreThanFortyLinks()
     {
-        Assert.SkipUnless(PlatformUtility.IsUnixLike, "Windows only lets administrators make symbolic links.");
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
         var previous = MakeFile("source.mkv");
         for (var i = 1; i <= 41; i++)
         {
@@ -435,7 +443,7 @@ public sealed class FileSystemServiceTests : IDisposable
     [Fact]
     public void GetFileSystemInfo_FindsLinksByTheirTarget()
     {
-        Assert.SkipUnless(PlatformUtility.IsUnixLike, "Windows only lets administrators make symbolic links.");
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
         var folder = Directory.CreateDirectory(Path.Combine(_root, "folder")).FullName;
         var folderLink = Path.Combine(_root, "folder-link");
         var linkToFolderLink = Path.Combine(_root, "folder-link-link");
@@ -537,10 +545,20 @@ public sealed class FileSystemServiceTests : IDisposable
     [Fact]
     public void CanCreateSymbolicLinks_TestsTheDirectoryAndCleansUp()
     {
-        Assert.SkipUnless(PlatformUtility.IsUnixLike, "Windows only lets administrators make symbolic links.");
         var folder = Directory.CreateDirectory(Path.Combine(_root, "folder")).FullName;
+        bool expected;
+        try
+        {
+            File.WriteAllText(Path.Combine(_root, "target"), string.Empty);
+            File.CreateSymbolicLink(Path.Combine(_root, "link"), Path.Combine(_root, "target"));
+            expected = true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            expected = false;
+        }
 
-        Assert.True(_fileSystem.CanCreateSymbolicLinks(folder));
+        Assert.Equal(expected, _fileSystem.CanCreateSymbolicLinks(folder));
         Assert.Empty(Directory.GetFileSystemEntries(folder));
         Assert.Throws<DirectoryNotFoundException>(() => _fileSystem.CanCreateSymbolicLinks(Path.Combine(_root, "missing")));
     }
