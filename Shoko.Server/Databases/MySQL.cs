@@ -1067,7 +1067,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(161,  3, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `StartEpisodeNumber`;"),
         new(161,  4, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `CrossRefSource`;"),
         new(161,  5, "ALTER TABLE `AnimeGroup_User` DROP COLUMN `IsFave`;"),
-        new(161,  6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new(161,  6),
         new(162,  1, @"CREATE TABLE `ShokoImage` (`ID` CHAR(36) NOT NULL, `LocalID` INT NOT NULL, `PrimaryID` VARCHAR(36) NOT NULL, `ResourceID` VARCHAR(128) NOT NULL, `LanguageCode` VARCHAR(8), `CountryCode` VARCHAR(8), `Width` INT, `Height` INT, `ContentType` VARCHAR(64) NOT NULL, `DownloadAttempts` TINYINT UNSIGNED NOT NULL DEFAULT 0, `Source` TINYINT UNSIGNED NOT NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ID`));"),
         new(162,  2, @"CREATE TABLE `ShokoImage_Entity` (`ID` INT NOT NULL AUTO_INCREMENT, `ImageID` VARCHAR(36) NOT NULL, `PrimaryImageID` VARCHAR(36) NOT NULL, `ImageType` TINYINT NOT NULL, `ImageSource` TINYINT UNSIGNED NOT NULL, `EntitySource` TINYINT UNSIGNED NOT NULL, `EntityType` TINYINT NOT NULL, `EntityID` VARCHAR(128) NOT NULL, `EntitySeasonNumber` INT, `EntityEpisodeNumber` INT, `EntityReleasedAt` DATE, `IsEnabled` TINYINT NOT NULL DEFAULT 1, `IsDesired` TINYINT NOT NULL DEFAULT 1, `IsPreferred` TINYINT NOT NULL DEFAULT 0, `Ordering` INT NOT NULL DEFAULT 0, `Rating` decimal(6,2), `RatingVotes` INT, `Source` TINYINT UNSIGNED NOT NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ID`));"),
         new(162,  3, DatabaseFixes.MigrateToUnifiedImages),
@@ -1799,6 +1799,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(205,   2, "ALTER TABLE `VideoLocal_User` DROP COLUMN `ClientData`;"),
         new(205,   3, "ALTER TABLE `VideoLocal_User` ADD COLUMN `UserTags` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(205,   4, "ALTER TABLE `Metadata_Season` ADD COLUMN `Resources` TEXT NULL;"),
+        new(206,   1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
     ];
 
     #endregion

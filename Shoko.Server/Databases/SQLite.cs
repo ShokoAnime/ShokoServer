@@ -897,7 +897,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(143,  3, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeNumber;"),
         new(143,  4, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN CrossRefSource;"),
         new(143,  5, "ALTER TABLE AnimeGroup_User DROP COLUMN IsFave;"),
-        new(143,  6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new(143,  6),
         new(144,  1, @"CREATE TABLE ShokoImage (ID UNIQUEIDENTIFIER NOT NULL, LocalID INTEGER NOT NULL, PrimaryID UNIQUEIDENTIFIER NOT NULL, ResourceID NVARCHAR(128) NOT NULL, LanguageCode NVARCHAR(8), CountryCode NVARCHAR(8), Width INTEGER, Height INTEGER, ContentType NVARCHAR(64) NOT NULL, DownloadAttempts INTEGER NOT NULL DEFAULT 0, Source INTEGER NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL, PRIMARY KEY (ID));"),
         new(144,  2, @"CREATE TABLE ShokoImage_Entity (ID INTEGER PRIMARY KEY AUTOINCREMENT, ImageID UNIQUEIDENTIFIER NOT NULL, PrimaryImageID UNIQUEIDENTIFIER NOT NULL, ImageType INTEGER NOT NULL, ImageSource INTEGER NOT NULL, EntitySource INTEGER NOT NULL, EntityType INTEGER NOT NULL, EntityID NVARCHAR(128) NOT NULL, EntitySeasonNumber INTEGER, EntityEpisodeNumber INTEGER, EntityReleasedAt DATE, IsEnabled INTEGER NOT NULL DEFAULT 1, IsDesired INTEGER NOT NULL DEFAULT 1, IsPreferred INTEGER NOT NULL DEFAULT 0, Ordering INTEGER NOT NULL DEFAULT 0, Rating REAL, RatingVotes INTEGER, Source INTEGER NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL);"),
         new(144,  3, DatabaseFixes.MigrateToUnifiedImages),
@@ -1463,6 +1463,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(182,   2, "ALTER TABLE VideoLocal_User DROP COLUMN ClientData;"),
         new(182,   3, "ALTER TABLE VideoLocal_User ADD COLUMN UserTags TEXT NOT NULL DEFAULT '';"),
         new(182,   4, "ALTER TABLE Metadata_Season ADD COLUMN Resources TEXT NULL;"),
+        new(183,   1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
     ];
 
     #endregion

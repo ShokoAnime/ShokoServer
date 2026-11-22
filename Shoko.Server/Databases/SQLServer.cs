@@ -945,7 +945,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(154,  3, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeNumber;"),
         new(154,  4, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN CrossRefSource;"),
         new(154,  5, "ALTER TABLE AnimeGroup_User DROP COLUMN IsFave;"),
-        new(154,  6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new(154,  6),
         new(155,  1, "ALTER TABLE AniDB_Anime ALTER COLUMN AirDate datetime2 NULL;"),
         new(155,  2, "ALTER TABLE AniDB_Anime ALTER COLUMN EndDate datetime2 NULL;"),
         new(155,  3, "ALTER TABLE AniDB_Anime ALTER COLUMN DateTimeUpdated datetime2 NOT NULL;"),
@@ -1780,6 +1780,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(203,   2, "ALTER TABLE VideoLocal_User DROP COLUMN ClientData;"),
         new(203,   3, "ALTER TABLE VideoLocal_User ADD UserTags nvarchar(max) NOT NULL CONSTRAINT DF_VideoLocal_User_UserTags DEFAULT '';"),
         new(203,   4, "ALTER TABLE Metadata_Season ADD Resources NVARCHAR(MAX) NULL;"),
+        new(204,   1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
     ];
 
     #endregion
