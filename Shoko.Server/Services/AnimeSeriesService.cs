@@ -50,6 +50,12 @@ public class AnimeSeriesService(
     private readonly UserDataService _userDataService = (UserDataService)userDataService;
 
     private readonly object _statsLock = new();
+
+    /// <summary>
+    /// Lets one series at a time leave its group, so two series of one group
+    /// deleted at once cannot both see the other and leave the group empty.
+    /// </summary>
+    private readonly SemaphoreSlim _seriesRemovalLock = new(1, 1);
     private IAnidbService? _anidbService;
     private IShokoGroupManager? _groupManager;
     private IMetadataLinkingService? _linkingService;
@@ -479,44 +485,52 @@ public class AnimeSeriesService(
                 await _linkingService.RemoveLinksForAnime(source, series.AniDB_ID, purge: true);
         }
 
-        _animeSeries.Delete(series);
-
-        // The orderings of the series go with it, whoever made them. The
-        // choice of one and the hidden flags of its episodes went with the rows.
-        _orderingService ??= _serviceProvider.GetRequiredService<MetadataOrderingService>();
-        _orderingService.RemoveForSeries(((IMetadata)series).ID);
-
-        if (!updateGroups)
+        await _seriesRemovalLock.WaitAsync().ConfigureAwait(false);
+        try
         {
-            return;
-        }
+            _animeSeries.Delete(series);
 
-        // finally update stats
-        var grp = series.AnimeGroup;
-        if (grp is not null)
-        {
-            if (!grp.AllSeries.Any())
+            // The orderings of the series go with it, whoever made them. The
+            // choice of one and the hidden flags of its episodes went with the rows.
+            _orderingService ??= _serviceProvider.GetRequiredService<MetadataOrderingService>();
+            _orderingService.RemoveForSeries(((IMetadata)series).ID);
+
+            if (!updateGroups)
             {
-                // Find the topmost group without series
-                var parent = grp;
-                while (true)
+                return;
+            }
+
+            // finally update stats
+            var grp = series.AnimeGroup;
+            if (grp is not null)
+            {
+                if (!grp.AllSeries.Any())
                 {
-                    var next = parent.Parent;
-                    if (next == null || next.AllSeries.Any())
+                    // Find the topmost group without series
+                    var parent = grp;
+                    while (true)
                     {
-                        break;
+                        var next = parent.Parent;
+                        if (next == null || next.AllSeries.Any())
+                        {
+                            break;
+                        }
+
+                        parent = next;
                     }
 
-                    parent = next;
+                    _groupManager ??= _serviceProvider.GetRequiredService<IShokoGroupManager>();
+                    await _groupManager.DeleteGroup(parent);
                 }
-
-                _groupManager ??= _serviceProvider.GetRequiredService<IShokoGroupManager>();
-                await _groupManager.DeleteGroup(parent);
+                else
+                {
+                    _groupService.UpdateStatsFromTopLevel(grp, true, true);
+                }
             }
-            else
-            {
-                _groupService.UpdateStatsFromTopLevel(grp, true, true);
-            }
+        }
+        finally
+        {
+            _seriesRemovalLock.Release();
         }
 
         ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Removed);
