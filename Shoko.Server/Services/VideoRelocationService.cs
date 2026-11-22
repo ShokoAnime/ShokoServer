@@ -1006,7 +1006,8 @@ public class VideoRelocationService(
             ), false);
 
         var oldRelativePath = place.RelativePath;
-        var oldFullPath = string.IsNullOrEmpty(oldRelativePath) ? null : Path.Combine(dropFolder.Path, oldRelativePath);
+        // Resolved as the new path is, so the two compare: on Windows that adds the drive and the separators.
+        var oldFullPath = string.IsNullOrEmpty(oldRelativePath) ? null : Path.GetFullPath(Path.Combine(dropFolder.Path, oldRelativePath));
         if (string.IsNullOrWhiteSpace(oldRelativePath) || string.IsNullOrWhiteSpace(oldFullPath))
             return (RelocationResponse.FromError(
                 "Unable to resolve the full path for the video file location."
