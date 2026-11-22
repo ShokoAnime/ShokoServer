@@ -160,13 +160,13 @@ public class FilterFactory(IHttpContextAccessor context, IFilteringEngine _evalu
                 result.Parameter = parameter.Parameter;
                 break;
             case IWithNumberParameter parameter:
-                result.Parameter = parameter.Parameter?.ToString(CultureInfo.CurrentCulture);
+                result.Parameter = parameter.Parameter?.ToString(CultureInfo.InvariantCulture);
                 break;
             case IWithDateParameter parameter:
                 result.Parameter = parameter.Parameter?.ToUniversalTime().ToString("u");
                 break;
             case IWithTimeSpanParameter parameter:
-                result.Parameter = parameter.Parameter?.ToString("G");
+                result.Parameter = parameter.Parameter?.ToString("G", CultureInfo.InvariantCulture);
                 break;
             case IWithStringSetParameter parameter:
                 result.Parameter = parameter.Parameter?.Join("|||");
@@ -201,6 +201,21 @@ public class FilterFactory(IHttpContextAccessor context, IFilteringEngine _evalu
         return result;
     }
 
+    /// <summary>
+    /// Reads a condition's parameter. A parameter left out stays <c>null</c>,
+    /// which leaves the condition out, but one given that does not parse is
+    /// refused, so a typo never quietly widens the filter.
+    /// </summary>
+    /// <exception cref="ArgumentException">The parameter was given but does not parse.</exception>
+    private static TValue? ParseParameter<TValue>(Filter.FilterCondition condition, Func<string, TValue?> parse) where TValue : struct
+    {
+        if (string.IsNullOrWhiteSpace(condition.Parameter))
+            return null;
+
+        return parse(condition.Parameter.Trim())
+            ?? throw new ArgumentException($"The parameter \"{condition.Parameter}\" of the {condition.Type} condition is not valid.");
+    }
+
     public FilterExpression<T>? GetExpressionTree<T>(Filter.FilterCondition? condition)
     {
         if (condition is null) return null;
@@ -232,19 +247,19 @@ public class FilterFactory(IHttpContextAccessor context, IFilteringEngine _evalu
         switch (result)
         {
             case IWithBoolParameter parameter:
-                parameter.Parameter = bool.TryParse(condition.Parameter, out var flag) ? flag : null;
+                parameter.Parameter = ParseParameter<bool>(condition, text => bool.TryParse(text, out var flag) ? flag : null);
                 break;
             case IWithStringParameter parameter:
                 parameter.Parameter = condition.Parameter;
                 break;
             case IWithNumberParameter parameter:
-                parameter.Parameter = double.TryParse(condition.Parameter, out var number) ? number : null;
+                parameter.Parameter = ParseParameter<double>(condition, text => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ? number : null);
                 break;
             case IWithDateParameter parameter:
-                parameter.Parameter = DateTime.TryParse(condition.Parameter, out var date) ? date : null;
+                parameter.Parameter = ParseParameter<DateTime>(condition, text => DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : null);
                 break;
             case IWithTimeSpanParameter parameter:
-                parameter.Parameter = TimeSpan.TryParse(condition.Parameter, out var timeSpan) ? timeSpan : null;
+                parameter.Parameter = ParseParameter<TimeSpan>(condition, text => TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var timeSpan) ? timeSpan : null);
                 break;
             case IWithStringSetParameter parameter:
                 parameter.Parameter = condition.Parameter switch
