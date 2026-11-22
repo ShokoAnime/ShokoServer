@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.615",
+      "tag": "v6.0.0-dev.615",
+      "commit": "d316a7429d16401a9748ec014f33dd536b33cf45",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.615/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-22T02:58:06Z",
+      "releaseNotes": "\n`fix`: **Check a symbolic link's own extension when hashing it**:\n\nChecked the name the video has in its managed folder instead of the link's target, which may be named anything.\n\n`fix` (`scrobble`): **Save a user's data for a video one save at a time**:\n\nTwo saves of a video's new user data, such as two scrobbles sent at once, both inserted it, and the second failed on the unique key.\n\n`fix` (`db`): **Remove groups without series and give orphaned series a group again**.\n\n`fix`: **Save a new series and its new group together**:\n\nAnnounced the new group only once its series is saved, and removed it again when saving the series fails, so a failed import no longer leaves a group without series.\n\n`fix`: **Let one series at a time leave its group when deleting series**:\n\nTwo series of one group deleted at once could each still see the other, so neither removed the emptied group.\n"
+    },
+    {
       "version": "6.0.0.614",
       "tag": "v6.0.0-dev.614",
       "commit": "80fbd4f6773a4bd55b37b21039b2723dca218b69",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.586/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-05T11:56:33Z",
       "releaseNotes": "\n`fix` (`plugin`): **Keep a repository's own stale time on start**:\n\n- Applied `RepositoryStaleTimeOnStart` only to repositories without a stale time of their own\n\n`refactor` (`plugin`): **Read a repository's manifest as one package or a list of packages**:\n\n- Left out entries without a name, and read a package listed twice once\n- Dropped `type` and `url` from `manifest.schema.json`\n"
-    },
-    {
-      "version": "6.0.0.585",
-      "tag": "v6.0.0-dev.585",
-      "commit": "4299635adb36cf203190e86579a1b04a16cc74d2",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.585/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-05T09:44:14Z",
-      "releaseNotes": "\n`feat` (`plugin`): **Queue package installs and share duplicate installs**:\n\n- Ran installs one at a time through a queue of their own, usable before the scheduler is up\n- Gave each entry a UUIDv5 of its plan, so a request for a queued plan joins it and shares its result\n- Added `QueueInstall`, `WaitForInstall`, `CancelInstall` and `GetInstallQueue`, with `?immediate=true` and `DELETE /api/v3/Plugin/Package/Install/Queue/{entryID}`\n- Carried the queue entry ID and actor on the install events, and sent the queue's events on the `plugin` feed\n\n`feat` (`plugin`): **Add archive sizes to package manifests and the installed size of plugins**:\n\n- Added optional `packed_size` and `unpacked_size` to archives, written by `shoko-build`, as `PackageArchiveInfo.PackedSize` and `UnpackedSize`\n- Refused a download of another packed size, and an archive unpacking to another size\n- Refused a plan, and each install, without the free space for it, unless `Plugins.Updates.IsFreeSpaceCheckEnabled` is off\n- Downloaded archives to the cache folder, and unpacked them file by file, refusing entries outside the plugin's folder\n- Added `LocalPluginInfo.InstalledSize`, measured from the plugin's folder or DLL and the files named after it, or the core plugin's from the app folder without `plugins` and `webui`\n\n`chore` (`buildtools`): **Bump build tools version to v0.8.4**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.126**.\n"
     }
   ]
 }
