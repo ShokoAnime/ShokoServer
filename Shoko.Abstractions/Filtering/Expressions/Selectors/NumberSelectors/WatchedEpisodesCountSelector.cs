@@ -7,7 +7,8 @@ namespace Shoko.Abstractions.Filtering.Expressions.Selectors.NumberSelectors;
 /// </summary>
 public class WatchedEpisodesCountSelector : FilterExpression<double>
 {
-
+    /// <inheritdoc/>
+    public override bool UserDependent => true;
     /// <inheritdoc/>
     public override string HelpDescription => "This returns the number of watched episodes in a filterable";
     /// <inheritdoc/>
