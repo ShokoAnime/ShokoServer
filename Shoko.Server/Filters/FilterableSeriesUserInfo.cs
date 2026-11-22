@@ -62,7 +62,7 @@ public sealed class FilterableSeriesUserInfo(AnimeSeries series, int userID, Dat
     public bool HasPermanentVotes => _user is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Permanent };
 
     public bool MissingPermanentVotes =>
-        _user is not { HasUserRating: true } && _anime?.EndDate is not null && _anime.EndDate > now.Date;
+        _user is not { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Permanent } && _anime?.EndDate is not null && _anime.EndDate <= now.Date;
 
     public int SeriesVoteCount => _user is { HasUserRating: true } ? 1 : 0;
 

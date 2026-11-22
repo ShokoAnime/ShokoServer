@@ -102,7 +102,7 @@ public sealed class FilterableGroupUserInfo(AnimeGroup group, int userID, DateTi
         SeriesUserDict.Values.Any(a => a is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Permanent });
 
     public bool MissingPermanentVotes =>
-        AllSeries.Any(ser => !(SeriesUserDict.TryGetValue(ser.AnimeSeriesID, out var userData) && userData.HasUserRating) && ser.EndDate is not null && ser.EndDate > now.Date);
+        AllSeries.Any(ser => !(SeriesUserDict.TryGetValue(ser.AnimeSeriesID, out var userData) && userData is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Permanent }) && ser.EndDate is not null && ser.EndDate <= now.Date);
 
     public int SeriesVoteCount => SeriesUserDict.Count;
 
