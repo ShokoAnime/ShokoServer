@@ -73,8 +73,8 @@ public static partial class PlatformUtility
         if (!IsWindows)
             return path;
         // Use long paths if we're on Windows and the path is longer than 250
-        // characters.
-        if (path.Length > 250)
+        // characters, once: a path already prefixed is kept as it is.
+        if (path.Length > 250 && !path.StartsWith(@"\\?\"))
             path = path.StartsWith(@"\\") && !path.StartsWith(@"\\?\")
                 ? @"\\?\UNC" + path[1..]
                 : @"\\?\" + path;
