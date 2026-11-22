@@ -222,10 +222,15 @@ public class MyWebUI(PluginPaths<MyPlugin> paths) : IWebUIProvider<MyWebUIConfig
 - **Configuration** goes through the generic form, as for every other provider:
   `IWebUIProvider<TConfiguration>` with a `TConfiguration` implementing
   `IWebUIProviderConfiguration`. Its page is rendered next to the web UI.
+- **The core APIs it needs** go in `RequiredApis` (`CoreApis.V2`, `V3`). While
+  your web UI is in use, the server keeps them on: picking it turns them on,
+  and turning one off is refused until another web UI is picked. Only an
+  environment variable can keep one off, and the server then warns that your
+  web UI will not work; APIv3's web UI models list it in `MissingApis`.
 - **Signing in** needs an API key. The core hands them out through `/api/auth`
   and APIv3's `Auth` routes, and an admin can turn off APIv2 and APIv3, which
-  closes `/api/auth` as well. A web UI that must work then either says it
-  needs APIv3, or signs in through a route of your plugin's own, with
+  closes `/api/auth` as well. A web UI either needs APIv3 in `RequiredApis`,
+  or signs in through a route of your plugin's own, with
   `IUserService.AuthenticateUser` and `GenerateApiTokenForUser`.
 
 ### Which web UI is served

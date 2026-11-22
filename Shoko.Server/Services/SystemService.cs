@@ -426,6 +426,17 @@ public class SystemService : ISystemService
             // Only now is a plugin active, so only now can a plugin's state differ from what loads next.
             _restartReasons.StartTrackingPluginState();
 
+            // The web UIs are known now, and no route is built until the web host starts.
+            try
+            {
+                SettleServedApis();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Could not settle the core APIs to serve; serving them as saved.");
+                ServedApis.Instance.Settle(ServedApis.FromSettings(_settingsProvider.GetSettings().Web));
+            }
+
             // The plugins that failed while being loaded, registered or initialized.
             RecordFailedPlugins();
 
@@ -929,6 +940,100 @@ public class SystemService : ISystemService
         SetupToken = new(token);
         _logger.LogInformation(token is null ? "The setup token was cleared." : "The setup token was set.");
         return true;
+    }
+
+    /// <inheritdoc/>
+    public CoreApis RunningApis
+        => ServedApis.Instance.Running;
+
+    /// <inheritdoc/>
+    public CoreApis ApisOnNextStart
+        => ServedApis.FromSettings(_settingsProvider.GetSettings().Web);
+
+    /// <inheritdoc/>
+    public CoreApis ApisNeededByWebUIs
+        => _webHost?.Services.GetService<WebUIService>()?.RequiredApisInUse ?? CoreApis.None;
+
+    /// <inheritdoc/>
+    public CoreApis ApisSetByEnvironment
+        => ServedApis.SetByEnvironment();
+
+    /// <inheritdoc/>
+    public void SetApiEnabled(CoreApis apis, bool enabled)
+    {
+        if (apis is CoreApis.None || (apis & ~(CoreApis.V2 | CoreApis.V3)) is not CoreApis.None)
+            throw new ArgumentException($"Name APIv2, APIv3 or both, not {apis}.", nameof(apis));
+
+        var settings = _settingsProvider.GetSettings(copy: true);
+        var changing = enabled ? apis & ~ServedApis.FromSettings(settings.Web) : apis & ServedApis.FromSettings(settings.Web);
+        if (changing is CoreApis.None)
+            return;
+
+        if ((changing & ServedApis.SetByEnvironment()) is not CoreApis.None and var fixedByEnvironment)
+            throw new CoreApiChangeRefusedException(
+                $"{ServedApis.Describe(fixedByEnvironment)} is set by an environment variable ({string.Join(", ", ServedApis.EnvironmentVariables.Where(pair => fixedByEnvironment.HasFlag(pair.Key)).Select(pair => pair.Value))}) and cannot change here.",
+                fixedByEnvironment,
+                CoreApiChangeRefusal.SetByEnvironment
+            );
+
+        if (!enabled && _webHost?.Services.GetService<WebUIService>() is { } webUIService && webUIService.GetWebUIsNeeding(changing) is { Count: > 0 } webUIs)
+            throw new CoreApiChangeRefusedException(
+                $"{ServedApis.Describe(changing)} cannot be turned off while a web UI in use needs it: {string.Join("; ", webUIService.DescribeWebUIsNeeding(changing))}. Pick another web UI first.",
+                webUIs.Aggregate(CoreApis.None, (needed, webUI) => needed | webUI.RequiredApis) & changing,
+                CoreApiChangeRefusal.NeededByWebUI,
+                webUIs
+            );
+
+        if (changing.HasFlag(CoreApis.V2))
+            settings.Web.EnableAPIv2 = enabled;
+        if (changing.HasFlag(CoreApis.V3))
+            settings.Web.EnableAPIv3 = enabled;
+        _settingsProvider.SaveSettings(settings);
+        _logger.LogInformation("Turned {State} {Apis} from the next start.", enabled ? "on" : "off", ServedApis.Describe(changing));
+    }
+
+    /// <summary>
+    ///   Settles the core APIs this start serves, once the web UIs are known
+    ///   and before the routes are built: an API a web UI in use needs is
+    ///   turned on, unless an environment variable keeps it off, which only
+    ///   warns that the web UI will not work.
+    /// </summary>
+    private void SettleServedApis()
+    {
+        var webUIService = _webHost?.Services.GetService<WebUIService>();
+        var settings = _settingsProvider.GetSettings(copy: true);
+        var required = webUIService?.RequiredApisInUse ?? CoreApis.None;
+        var missing = required & ~ServedApis.FromSettings(settings.Web);
+        var keptOff = missing & ServedApis.SetByEnvironment();
+        if (keptOff is not CoreApis.None)
+            _logger.LogWarning(
+                "{Apis} is kept off by an environment variable, but a web UI in use needs it and will not work: {WebUIs}.",
+                ServedApis.Describe(keptOff),
+                string.Join("; ", webUIService!.DescribeWebUIsNeeding(keptOff))
+            );
+
+        var turnOn = missing & ~keptOff;
+        if (turnOn is not CoreApis.None)
+        {
+            if (turnOn.HasFlag(CoreApis.V2))
+                settings.Web.EnableAPIv2 = true;
+            if (turnOn.HasFlag(CoreApis.V3))
+                settings.Web.EnableAPIv3 = true;
+
+            // Served from this start on, so the save waits on no restart.
+            var configurationID = _configurationService.GetConfigurationInfo<ServerSettings>().ID;
+            var pendingBefore = _configurationService.GetRestartPendingPaths(configurationID);
+            _settingsProvider.SaveSettings(settings);
+            _configurationService.ForgetRestartPending(configurationID, _configurationService.GetRestartPendingPaths(configurationID).Except(pendingBefore));
+            _logger.LogInformation(
+                "Turned on {Apis}, which a web UI in use needs: {WebUIs}.",
+                ServedApis.Describe(turnOn),
+                string.Join("; ", webUIService!.DescribeWebUIsNeeding(turnOn))
+            );
+        }
+
+        if (!ServedApis.Instance.Settle(ServedApis.FromSettings(settings.Web)))
+            _logger.LogWarning("The core APIs were read before the web UIs were known; serving {Apis}.", ServedApis.Describe(ServedApis.Instance.Running));
     }
 
     /// <inheritdoc/>

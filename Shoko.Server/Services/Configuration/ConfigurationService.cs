@@ -103,6 +103,44 @@ public partial class ConfigurationService : IConfigurationService
 
     public event EventHandler<ConfigurationRequiresRestartEventArgs>? RequiresRestart;
 
+    /// <summary>
+    ///   The paths of a configuration's saved values that wait on a restart.
+    /// </summary>
+    /// <param name="configurationID">The configuration.</param>
+    /// <returns>The paths, as the restart tracking keeps them.</returns>
+    internal IReadOnlySet<string> GetRestartPendingPaths(Guid configurationID)
+    {
+        lock (InternalRestartPendingFor)
+            return InternalRestartPendingFor.TryGetValue(configurationID, out var pending) ? pending.Keys.ToHashSet() : [];
+    }
+
+    /// <summary>
+    ///   Forgets that saved values of a configuration wait on a restart, for
+    ///   values the server applied in the same start it saved them.
+    /// </summary>
+    /// <param name="configurationID">The configuration.</param>
+    /// <param name="paths">The values' paths, as the restart tracking keeps them.</param>
+    internal void ForgetRestartPending(Guid configurationID, IEnumerable<string> paths)
+    {
+        bool hadPending, needsRestart;
+        lock (InternalRestartPendingFor)
+        {
+            hadPending = InternalRestartPendingFor.Count > 0;
+            if (InternalRestartPendingFor.TryGetValue(configurationID, out var pending))
+            {
+                foreach (var path in paths)
+                    pending.Remove(path);
+                if (pending.Count is 0)
+                    InternalRestartPendingFor.Remove(configurationID);
+            }
+
+            needsRestart = InternalRestartPendingFor.Count > 0;
+        }
+
+        if (hadPending && !needsRestart)
+            Task.Run(() => RequiresRestart?.Invoke(this, new() { RequiresRestart = false }));
+    }
+
     public ConfigurationService(ILoggerFactory loggerFactory, IApplicationPaths applicationPaths, IPluginManager pluginManager)
     {
         _logger = loggerFactory.CreateLogger<ConfigurationService>();

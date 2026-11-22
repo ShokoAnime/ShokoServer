@@ -7,9 +7,13 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Enums;
+using Shoko.Server.API;
+using Shoko.Server.Services;
 using Shoko.Server.Telemetry;
 using Shoko.Server.Utilities;
 
@@ -71,6 +75,20 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, ICo
             errors.Add("Telemetry.Headers", headersErrors);
         if (string.IsNullOrWhiteSpace(config.Telemetry.ServiceName))
             errors.Add("Telemetry.ServiceName", ["Telemetry.ServiceName cannot be empty."]);
+
+        // Turning off a core API a web UI in use needs, which only an unrelated save of a conflict already there may keep.
+        // Settings saved early in the start come before the services, and the web UIs, are there.
+        if (ISystemService.HasStaticServices && pluginManager.GetService<WebUIService>() is { } webUIService)
+        {
+            var current = ServedApis.FromSettings(configurationService.Load<ServerSettings>().Web);
+            var turningOff = current & ~ServedApis.FromSettings(config.Web);
+            foreach (var (api, path) in new[] { (CoreApis.V2, "Web.EnableAPIv2"), (CoreApis.V3, "Web.EnableAPIv3") })
+            {
+                if (turningOff.HasFlag(api) && webUIService.DescribeWebUIsNeeding(api) is { Count: > 0 } webUIs)
+                    errors.Add(path, [$"{ServedApis.Describe(api)} cannot be turned off while a web UI in use needs it: {string.Join("; ", webUIs)}. Pick another web UI first."]);
+            }
+        }
+
         return errors;
     }
 

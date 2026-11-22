@@ -20,6 +20,7 @@ using Shoko.Abstractions.Web;
 using Shoko.Abstractions.Web.Enums;
 using Shoko.Abstractions.Web.Events;
 using Shoko.Abstractions.Web.Services;
+using Shoko.Server.API;
 using Shoko.Server.API.FileProviders;
 using Shoko.Server.Plugin;
 using Shoko.Server.Settings;
@@ -199,9 +200,14 @@ public class WebUIService(
             if (settings.IsEnabled == value)
                 return;
 
+            // Serving again puts every web UI kept up to date back in use.
+            if (value)
+                CheckApisAvailable(GetTable().States.Select(state => state.Active));
+
             settings.IsEnabled = value;
             configurationProvider.Save(settings);
             Refresh();
+            TurnOnRequiredApis();
         }
     }
 
@@ -220,9 +226,11 @@ public class WebUIService(
         if (settings.SelectedProviderID == webUI?.ID)
             return;
 
+        CheckApisAvailable([webUI ?? AutomaticProvider]);
         settings.SelectedProviderID = webUI?.ID;
         configurationProvider.Save(settings);
         Refresh();
+        TurnOnRequiredApis();
     }
 
     /// <inheritdoc />
@@ -243,12 +251,98 @@ public class WebUIService(
         if (errors.Count > 0)
             throw new ArgumentException(string.Join(" ", errors.Values), nameof(overrides));
 
+        CheckApisAvailable(overrides.Select(entry => GetProviderInfo(entry.ProviderID)).WhereNotNull());
         var settings = configurationProvider.Load(copy: true);
         settings.HostOverrides = overrides
             .Select(entry => new WebUIHostOverride { Host = entry.Host.Trim(), ProviderID = entry.ProviderID })
             .ToList();
         configurationProvider.Save(settings);
         Refresh();
+        TurnOnRequiredApis();
+    }
+
+    /// <summary>
+    ///   The core APIs the web UIs in use need, while a web UI is served.
+    /// </summary>
+    internal CoreApis RequiredApisInUse
+        => IsEnabled ? GetTable().States.Aggregate(CoreApis.None, (apis, state) => apis | state.Active.RequiredApis) : CoreApis.None;
+
+    /// <summary>
+    ///   The web UIs in use that need any of the given APIs, while a web UI is
+    ///   served.
+    /// </summary>
+    /// <param name="apis">The APIs.</param>
+    /// <returns>The web UIs.</returns>
+    internal IReadOnlyList<WebUIProviderInfo> GetWebUIsNeeding(CoreApis apis)
+        => IsEnabled
+            ? GetTable().States.Select(state => state.Active).Where(webUI => (webUI.RequiredApis & apis) is not CoreApis.None).ToList()
+            : [];
+
+    /// <summary>
+    ///   Describes the web UIs in use that need any of the given APIs, and
+    ///   where each is served, for a message.
+    /// </summary>
+    /// <param name="apis">The APIs.</param>
+    /// <returns>One description per web UI, none when no web UI in use needs them.</returns>
+    internal IReadOnlyList<string> DescribeWebUIsNeeding(CoreApis apis)
+    {
+        if (!IsEnabled)
+            return [];
+
+        var table = GetTable();
+        return table.States
+            .Where(state => (state.Active.RequiredApis & apis) is not CoreApis.None)
+            .Select(state =>
+            {
+                var hosts = table.Hosts.Where(pair => pair.Value == state).Select(pair => pair.Key).ToList();
+                var where = state == table.Default ? hosts.Prepend("by default") : hosts.Select(host => $"for {host}");
+                return $"{state.Active.Name} ({string.Join(", ", where)})";
+            })
+            .ToList();
+    }
+
+    /// <summary>
+    ///   Finds the first web UI coming into use that needs an API an
+    ///   environment variable keeps off, which could not work.
+    /// </summary>
+    /// <param name="webUIs">The web UIs coming into use.</param>
+    /// <returns>Why the first one cannot be used, or <c>null</c> when all can.</returns>
+    internal string? FindApiConflict(IEnumerable<WebUIProviderInfo> webUIs)
+    {
+        var keptOff = ServedApis.KeptOffByEnvironment(settingsProvider.GetSettings().Web);
+        if (keptOff is CoreApis.None)
+            return null;
+
+        return webUIs
+            .Where(webUI => (webUI.RequiredApis & keptOff) is not CoreApis.None)
+            .Select(webUI => $"{webUI.Name} needs {ServedApis.Describe(webUI.RequiredApis & keptOff)}, which an environment variable keeps off.")
+            .FirstOrDefault();
+    }
+
+    /// <summary>
+    ///   Refuses web UIs coming into use that need an API an environment
+    ///   variable keeps off, since they could not work.
+    /// </summary>
+    /// <param name="webUIs">The web UIs coming into use.</param>
+    /// <exception cref="InvalidOperationException">One needs an API kept off.</exception>
+    private void CheckApisAvailable(IEnumerable<WebUIProviderInfo> webUIs)
+    {
+        if (FindApiConflict(webUIs) is { } conflict)
+            throw new InvalidOperationException(conflict);
+    }
+
+    /// <summary>
+    ///   Turns on the core APIs the web UIs in use need and the next start
+    ///   would not serve.
+    /// </summary>
+    private void TurnOnRequiredApis()
+    {
+        var missing = RequiredApisInUse & ~systemService.ApisOnNextStart;
+        if (missing is CoreApis.None)
+            return;
+
+        systemService.SetApiEnabled(missing, true);
+        logger.LogInformation("Turned on {Apis} for the web UIs in use, from the next start.", ServedApis.Describe(missing));
     }
 
     /// <inheritdoc />

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Web.Enums;
 
@@ -78,6 +79,12 @@ public class WebUIProviderInfo
     ///   See <see cref="IWebUIProvider.IsDefaultCandidate"/>.
     /// </summary>
     public bool IsDefaultCandidate { get => Provider.IsDefaultCandidate; }
+
+    /// <summary>
+    ///   The core APIs the web UI needs. See
+    ///   <see cref="IWebUIProvider.RequiredApis"/>.
+    /// </summary>
+    public CoreApis RequiredApis { get => Provider.RequiredApis; }
 
     /// <summary>
     ///   The <see cref="IWebUIProvider"/> that this info is for.

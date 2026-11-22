@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Shoko.Abstractions.Core;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API;
@@ -12,7 +13,7 @@ namespace Shoko.Server.API;
 /// This provider only affects controllers in the core assembly.
 /// Plugin controllers from other assemblies are never filtered.
 /// </remarks>
-public class ApiVersionControllerFeatureProvider(WebSettings webSettings) : ControllerFeatureProvider
+internal class ApiVersionControllerFeatureProvider(ServedApis servedApis) : ControllerFeatureProvider
 {
     private static readonly Assembly _serverAssembly = typeof(ApiVersionControllerFeatureProvider).Assembly;
 
@@ -26,11 +27,11 @@ public class ApiVersionControllerFeatureProvider(WebSettings webSettings) : Cont
             return true;
 
         var ns = typeInfo.Namespace;
-        if (ns?.Contains(".API.v2.") == true && !webSettings.EnableAPIv2)
+        if (ns?.Contains(".API.v2.") == true && !servedApis.Serves(CoreApis.V2))
             return false;
-        if (ns?.Contains(".API.v3.") == true && !webSettings.EnableAPIv3)
+        if (ns?.Contains(".API.v3.") == true && !servedApis.Serves(CoreApis.V3))
             return false;
-        if (ns?.Contains(".API.v0.") == true && !(webSettings.EnableAPIv2 || webSettings.EnableAPIv3))
+        if (ns?.Contains(".API.v0.") == true && servedApis.Running is CoreApis.None)
             return false;
         return true;
     }

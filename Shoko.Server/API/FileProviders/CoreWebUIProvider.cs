@@ -134,6 +134,9 @@ public class CoreWebUIProvider : IWebUIProvider
     /// </remarks>
     public bool IsDefaultCandidate => true;
 
+    /// <inheritdoc/>
+    public CoreApis RequiredApis => CoreApis.V3;
+
     /// <inheritdoc />
     public string MountPath => WebUIPath;
 

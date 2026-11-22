@@ -23,6 +23,7 @@ using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using Newtonsoft.Json;
 using Sentry;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
@@ -125,9 +126,9 @@ public static partial class APIExtensions
                 // Add a swagger document for each discovered API version (server-only).
                 foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                 {
-                    if (description.GroupName is "v2" or "v2.1" && !webSettings.EnableAPIv2)
+                    if (description.GroupName is "v2" or "v2.1" && !ServedApis.Instance.Serves(CoreApis.V2))
                         continue;
-                    if (description.GroupName is "v3" && !webSettings.EnableAPIv3)
+                    if (description.GroupName is "v3" && !ServedApis.Instance.Serves(CoreApis.V3))
                         continue;
                     if (description.GroupName is not ("v2" or "v2.1" or "v3"))
                         continue;
@@ -279,8 +280,7 @@ public static partial class APIExtensions
                 if (defaultProvider is not null)
                     manager.FeatureProviders.Remove(defaultProvider);
 
-                var webSettings = ISettingsProvider.Instance.GetSettings().Web;
-                manager.FeatureProviders.Add(new ApiVersionControllerFeatureProvider(webSettings));
+                manager.FeatureProviders.Add(new ApiVersionControllerFeatureProvider(ServedApis.Instance));
             })
             .AddPluginControllers(pluginManager)
             .AddControllersAsServices();
@@ -667,9 +667,9 @@ public static partial class APIExtensions
                     {
                         if (description.GroupName is not ("v2" or "v2.1" or "v3"))
                             continue;
-                        if (description.GroupName is "v2" or "v2.1" && !webSettings.EnableAPIv2)
+                        if (description.GroupName is "v2" or "v2.1" && !ServedApis.Instance.Serves(CoreApis.V2))
                             continue;
-                        if (description.GroupName is "v3" && !webSettings.EnableAPIv3)
+                        if (description.GroupName is "v3" && !ServedApis.Instance.Serves(CoreApis.V3))
                             continue;
 
                         options.SwaggerEndpoint(

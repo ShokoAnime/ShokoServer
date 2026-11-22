@@ -439,6 +439,18 @@ public partial class WebUIController(
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
+        // Checked as a whole before anything is saved: a web UI coming into use that needs an API an environment variable keeps off.
+        IEnumerable<WebUIProviderInfo> comingIntoUse = hostOverrides.Select(entry => webUIService.GetProviderInfo(entry.ProviderID)).WhereNotNull();
+        if (selectionChanged)
+            comingIntoUse = comingIntoUse.Append(selected ?? webUIService.AutomaticProvider);
+        if (body.IsEnabled && !webUIService.IsEnabled)
+            comingIntoUse = comingIntoUse.Append(selectionChanged ? selected ?? webUIService.AutomaticProvider : webUIService.ActiveProvider);
+        if ((webUIService as WebUIService)?.FindApiConflict(comingIntoUse) is { } conflict)
+        {
+            ModelState.AddModelError(selectionChanged ? nameof(body.SelectedProviderID) : nameof(body.HostOverrides), conflict);
+            return ValidationProblem(ModelState);
+        }
+
         if (selectionChanged)
             webUIService.SelectProvider(selected);
         webUIService.SetHostOverrides(hostOverrides);

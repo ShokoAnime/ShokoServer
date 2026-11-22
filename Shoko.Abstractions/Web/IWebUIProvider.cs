@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.FileProviders;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Web.Enums;
 
 namespace Shoko.Abstractions.Web;
@@ -44,6 +45,17 @@ public interface IWebUIProvider : IFileProvider
     ///   every request as <see cref="MountPath"/> is.
     /// </summary>
     bool IsDefaultCandidate { get => false; }
+
+    /// <summary>
+    ///   Optional. The core APIs the web UI needs, to sign in and to work.
+    ///   While the web UI is in use, by default or for a host, the server keeps
+    ///   them on: picking the web UI turns them on, and turning one off is
+    ///   refused until another web UI is picked. Only an environment variable
+    ///   can keep one off, and the server then warns that the web UI will not
+    ///   work. A web UI that only talks to its own plugin's routes, signing in
+    ///   there too, needs none.
+    /// </summary>
+    CoreApis RequiredApis { get => CoreApis.None; }
 
     /// <summary>
     ///   The path the web UI is served from, such as <c>/webui</c>, or

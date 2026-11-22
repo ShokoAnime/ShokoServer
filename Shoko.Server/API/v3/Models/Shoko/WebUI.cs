@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
@@ -13,6 +14,7 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Web;
 using Shoko.Abstractions.Web.Enums;
 using Shoko.Abstractions.Web.Services;
+using Shoko.Server.API;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
@@ -1072,6 +1074,21 @@ public class WebUI
         /// Indicates the web UI may be served by default without being picked.
         /// </summary>
         public bool IsDefaultCandidate { get; } = info.IsDefaultCandidate;
+
+        /// <summary>
+        /// The core APIs the web UI needs. While it is in use, the server keeps
+        /// them on.
+        /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public CoreApis RequiredApis { get; } = info.RequiredApis;
+
+        /// <summary>
+        /// The APIs the web UI needs that this server does not serve, until it
+        /// is restarted or while an environment variable keeps them off. The
+        /// web UI does not work while any are missing.
+        /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public CoreApis MissingApis { get; } = info.RequiredApis & ~ServedApis.Instance.Running;
 
         /// <summary>
         /// Templates for the web UI's pages, relative to the
