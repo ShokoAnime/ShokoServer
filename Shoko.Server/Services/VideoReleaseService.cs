@@ -734,7 +734,8 @@ public class VideoReleaseService(
         };
         // Reconfigure the providers in case we got them "out of order" by the
         // user or another plugin. So we can trust the set priority/order later.
-        var providerList = providers
+        var givenProviders = providers.ToList();
+        var providerList = givenProviders
             .Where(provider => IsProviderCurrentlyUsable(provider) && (!isAutomatic || CanProviderAutoMatch(provider)))
             .DistinctBy(p => p.ID)
             .Select((provider, index) => new ReleaseProviderInfo()
@@ -762,7 +763,18 @@ public class VideoReleaseService(
         {
             if (providerList.Count == 0)
             {
-                logger.LogTrace("No providers enabled during search for video. (Video={VideoID})", video.LocalID);
+                // Say why, since a caller naming providers gets the same empty answer as one with none enabled.
+                if (givenProviders.Count is 0)
+                    logger.LogTrace("No providers given or enabled during search for video. (Video={VideoID})", video.LocalID);
+                else
+                    logger.LogTrace(
+                        "None of the {Count} providers given can search for video now: {Providers}. (Video={VideoID})",
+                        givenProviders.Count,
+                        givenProviders.Select(provider => !IsProviderCurrentlyUsable(provider)
+                            ? $"{provider.Name} is unavailable"
+                            : $"{provider.Name} cannot auto-match"),
+                        video.LocalID
+                    );
                 return null;
             }
 
