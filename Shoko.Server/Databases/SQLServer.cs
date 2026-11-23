@@ -1801,6 +1801,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(205,  18, "EXEC sp_rename 'VideoLocal_User.JMMUserID', 'UserID', 'COLUMN';"),
         new(205,  19, "EXEC sp_rename 'UserConfiguration.JMMUserID', 'UserID', 'COLUMN';"),
         new(205,  20, "EXEC sp_rename 'UserConfiguration.UIX_UserConfiguration_JMMUserID_ConfigurationID', 'UIX_UserConfiguration_UserID_ConfigurationID', 'INDEX';"),
+        new(206,   1, "ALTER TABLE AuthTokens ADD CreatedAt datetime2 NULL;"),
+        new(206,   2, "ALTER TABLE AuthTokens ADD LastUsedAt datetime2 NULL;"),
     ];
 
     #endregion

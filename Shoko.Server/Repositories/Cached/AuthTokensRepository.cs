@@ -45,6 +45,32 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         return auth;
     }
 
+    /// <summary>
+    ///   Records that a token was used, writing it at most once per
+    ///   <see cref="AuthTokens.LastUsedPrecision"/>.
+    /// </summary>
+    /// <param name="token">The token.</param>
+    public void RecordUse(AuthTokens token)
+    {
+        var now = DateTime.Now;
+        if (!IsUseDue(token.LastUsedAt, now))
+            return;
+
+        // Set before saving, so the requests arriving meanwhile see it and do not write again.
+        token.LastUsedAt = now;
+        Save(token);
+    }
+
+    /// <summary>
+    ///   Whether a use is written: never recorded before, or the recorded one
+    ///   at least <see cref="AuthTokens.LastUsedPrecision"/> old.
+    /// </summary>
+    /// <param name="lastUsedAt">The use recorded last.</param>
+    /// <param name="now">Now.</param>
+    /// <returns><c>true</c> to write it.</returns>
+    internal static bool IsUseDue(DateTime? lastUsedAt, DateTime now)
+        => lastUsedAt is not { } lastUsed || now - lastUsed >= AuthTokens.LastUsedPrecision;
+
     public bool DeleteAllWithUserID(int id)
     {
         var ids = _userIDs!.GetMultiple(id);
@@ -105,6 +131,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
             UserID = user.ID,
             DeviceName = device.Trim(),
             Token = Guid.NewGuid().ToString().ToLowerInvariant().Trim(),
+            CreatedAt = DateTime.Now,
         };
 
         Save(token);
@@ -121,6 +148,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
             DeviceName = device.Trim(),
             Token = Guid.NewGuid().ToString().ToLowerInvariant().Trim(),
             ExpiresAt = expiresAt,
+            CreatedAt = DateTime.Now,
         };
 
         Save(token);

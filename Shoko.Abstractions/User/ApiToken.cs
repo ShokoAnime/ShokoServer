@@ -28,6 +28,27 @@ public record ApiToken(
 )
 {
     /// <summary>
+    ///   The token's ID: stable for as long as the token exists, and never
+    ///   given to another. <c>0</c> for a token the server does not store,
+    ///   such as one a plugin makes to act as a user.
+    /// </summary>
+    public int ID { get; init; }
+
+    /// <summary>
+    ///   When the token was made, in the server's local time as
+    ///   <see cref="ExpiresAt"/> is, or <c>null</c> when it is not known, as
+    ///   for a token made before the server kept it.
+    /// </summary>
+    public DateTime? CreatedAt { get; init; }
+
+    /// <summary>
+    ///   When the token was last used, in the server's local time, to within
+    ///   five minutes: a use is only written once the stored time is that
+    ///   old. <c>null</c> when it was not used since the server kept it.
+    /// </summary>
+    public DateTime? LastUsedAt { get; init; }
+
+    /// <summary>
     ///   Writes the token's members for <see cref="object.ToString"/>, leaving
     ///   out <see cref="Token"/>, so a token written to a log or into a message
     ///   never carries its key.
@@ -40,9 +61,12 @@ public record ApiToken(
     /// </returns>
     protected virtual bool PrintMembers(StringBuilder builder)
     {
-        builder.Append("User = ").Append(User.Username)
+        builder.Append("ID = ").Append(ID)
+            .Append(", User = ").Append(User.Username)
             .Append(", Device = ").Append(Device)
-            .Append(", ExpiresAt = ").Append(ExpiresAt?.ToString("O") ?? "never");
+            .Append(", ExpiresAt = ").Append(ExpiresAt?.ToString("O") ?? "never")
+            .Append(", CreatedAt = ").Append(CreatedAt?.ToString("O") ?? "unknown")
+            .Append(", LastUsedAt = ").Append(LastUsedAt?.ToString("O") ?? "unknown");
         return true;
     }
 }

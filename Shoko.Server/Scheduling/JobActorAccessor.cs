@@ -72,6 +72,6 @@ public sealed class JobActorAccessor : IJobActorAccessor
             .Where(t => t.ExpiresAt is not { } expiresAt || expiresAt > now)
             .OrderBy(t => t.ExpiresAt.HasValue)
             .FirstOrDefault();
-        return token is null ? null : new ApiToken(user, token.DeviceName, token.Token, token.ExpiresAt);
+        return token?.ToApiToken(user);
     }
 }

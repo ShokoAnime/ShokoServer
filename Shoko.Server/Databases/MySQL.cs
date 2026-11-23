@@ -1818,6 +1818,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(207,  16, "ALTER TABLE `VideoLocal_User` RENAME COLUMN `JMMUserID` TO `UserID`;"),
         new(207,  17, "ALTER TABLE `UserConfiguration` RENAME COLUMN `JMMUserID` TO `UserID`;"),
         new(207,  18, "ALTER TABLE `UserConfiguration` RENAME INDEX `UIX_UserConfiguration_JMMUserID_ConfigurationID` TO `UIX_UserConfiguration_UserID_ConfigurationID`;"),
+        new(208,   1, "ALTER TABLE `AuthTokens` ADD COLUMN `CreatedAt` DATETIME NULL;"),
+        new(208,   2, "ALTER TABLE `AuthTokens` ADD COLUMN `LastUsedAt` DATETIME NULL;"),
     ];
 
     #endregion

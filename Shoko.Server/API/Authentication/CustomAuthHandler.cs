@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -99,9 +100,20 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
             return (null, null);
 
         var auth = _authTokens.GetByToken(token);
-        return (
-            auth != null ? _users.GetByID(auth.UserID) : null,
-            auth
-        );
+        var user = auth != null ? _users.GetByID(auth.UserID) : null;
+        if (auth is not null && user is not null)
+        {
+            // When it was last used is a convenience: failing to write it never fails the request.
+            try
+            {
+                _authTokens.RecordUse(auth);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogDebug(ex, "Could not record the use of an API token. (User={UserID})", auth.UserID);
+            }
+        }
+
+        return (user, auth);
     }
 }

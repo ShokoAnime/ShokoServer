@@ -1483,6 +1483,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(184,  17, "ALTER TABLE UserConfiguration RENAME COLUMN JMMUserID TO UserID;"),
         new(184,  18, "DROP INDEX UIX_UserConfiguration_JMMUserID_ConfigurationID;"),
         new(184,  19, "CREATE UNIQUE INDEX UIX_UserConfiguration_UserID_ConfigurationID ON UserConfiguration(UserID, ConfigurationID);"),
+        new(185,   1, "ALTER TABLE AuthTokens ADD COLUMN CreatedAt DATETIME NULL;"),
+        new(185,   2, "ALTER TABLE AuthTokens ADD COLUMN LastUsedAt DATETIME NULL;"),
     ];
 
     #endregion

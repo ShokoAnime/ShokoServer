@@ -14,5 +14,7 @@ public class AuthTokensMap : ClassMap<AuthTokens>
         Map(x => x.DeviceName).Not.Nullable();
         Map(x => x.Token).Not.Nullable();
         Map(x => x.ExpiresAt);
+        Map(x => x.CreatedAt);
+        Map(x => x.LastUsedAt);
     }
 }

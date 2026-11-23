@@ -307,7 +307,7 @@ public class UserService(
         if (user is null)
             return null;
 
-        return new ApiToken(user, authToken.DeviceName, token, authToken.ExpiresAt);
+        return authToken.ToApiToken(user);
     }
 
     public Task<ApiToken> GenerateApiTokenForUser(IUser user, string deviceName)
@@ -318,7 +318,7 @@ public class UserService(
 
         var token = _authTokensRepository.CreateNewApiKey(otherUser, deviceName, out var created, out var removedDuplicates);
         OnApiTokensInvalidated(otherUser, removedDuplicates);
-        var apiToken = new ApiToken(otherUser, deviceName, token.Token, token.ExpiresAt);
+        var apiToken = token.ToApiToken(otherUser);
         if (created)
             OnApiTokenGenerated(apiToken);
         return Task.FromResult(apiToken);
@@ -338,14 +338,14 @@ public class UserService(
             throw new ArgumentException("Expiration must be at least 1 minute from now", nameof(expiresAt));
 
         var token = _authTokensRepository.CreateExpiringApiKey(otherUser, deviceName, expiresAt);
-        var apiToken = new ApiToken(otherUser, deviceName, token.Token, token.ExpiresAt);
+        var apiToken = token.ToApiToken(otherUser);
         OnApiTokenGenerated(apiToken);
         return Task.FromResult(apiToken);
     }
 
     public IReadOnlyList<ApiToken> GetApiTokensForUser(IUser user)
         => _authTokensRepository.GetByUserID(user.LocalID)
-            .Select(t => new ApiToken(user, t.DeviceName, t.Token, t.ExpiresAt))
+            .Select(t => t.ToApiToken(user))
             .ToList();
 
     public Task<bool> InvalidateApiDeviceForUser(IUser user, string deviceName)

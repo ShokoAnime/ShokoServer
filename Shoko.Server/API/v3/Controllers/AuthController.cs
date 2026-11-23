@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -67,7 +68,7 @@ public class AuthController(
         var token = expiresAt.HasValue
             ? await userService.GenerateApiTokenForUser(user, request.Device.Trim(), expiresAt.Value)
             : await userService.GenerateApiTokenForUser(user, request.Device.Trim());
-        return Ok(new ApiToken(user.LocalID, user.Username, token.Device, token.ExpiresAt, token.Token));
+        return Ok(new ApiToken(token, includeToken: true));
     }
 
     /// <summary>
@@ -104,7 +105,7 @@ public class AuthController(
         var token = expiresAt.HasValue
             ? await userService.GenerateApiTokenForUser(User, request.Device.Trim(), expiresAt.Value)
             : await userService.GenerateApiTokenForUser(User, request.Device.Trim());
-        return Ok(new ApiToken(token.User.LocalID, token.User.Username, token.Device, token.ExpiresAt, token.Token));
+        return Ok(new ApiToken(token, includeToken: true));
     }
 
     /// <summary>
@@ -121,12 +122,12 @@ public class AuthController(
     {
         if (User.IsAdmin is 0 || !showAll)
             return userService.GetApiTokensForUser(User)
-                .Select(token => new ApiToken(token.User.LocalID, token.User.Username, token.Device, token.ExpiresAt))
+                .Select(token => new ApiToken(token))
                 .ToList();
 
         return userService.GetUsers()
             .SelectMany(userService.GetApiTokensForUser)
-            .Select(token => new ApiToken(token.User.LocalID, token.User.Username, token.Device, token.ExpiresAt))
+            .Select(token => new ApiToken(token))
             .OrderBy(token => token.UserID)
             .ThenBy(token => token.Device)
             .ThenBy(token => token.ExpiresAt ?? DateTime.MaxValue)
@@ -146,6 +147,29 @@ public class AuthController(
         // Attempt to invalidate token.
         token ??= HttpContext.GetToken();
         if (await userService.InvalidateApiToken(token!))
+            return Ok();
+
+        return BadRequest("Unable to invalidate token.");
+    }
+
+    /// <summary>
+    /// Invalidates an API token by its ID and removes it from the database: one
+    /// of the signed-in user's own, or for an admin any user's.
+    /// </summary>
+    /// <param name="tokenID">The token's ID, as listed by <c>ListTokens</c>.</param>
+    /// <returns>HTTP 200 once invalidated, or 404 when the user has no such token.</returns>
+    [Authorize]
+    [HttpDelete("Token/{tokenID:int}")]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult> DeleteByID([FromRoute, Range(1, int.MaxValue)] int tokenID)
+    {
+        var tokens = User.IsAdmin is 1
+            ? userService.GetUsers().SelectMany(userService.GetApiTokensForUser)
+            : userService.GetApiTokensForUser(User);
+        if (tokens.FirstOrDefault(token => token.ID == tokenID) is not { } apiToken)
+            return NotFound();
+
+        if (await userService.InvalidateApiToken(apiToken))
             return Ok();
 
         return BadRequest("Unable to invalidate token.");
