@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -14,6 +15,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.User.Services;
@@ -856,6 +858,8 @@ public class VideoReleaseService(
 
     private async Task<(IReleaseInfo?, ReleaseProviderInfo?)> FileReleaseForVideoSequential(ReleaseInfoContext request, IReadOnlyList<ReleaseProviderInfo> providers, CancellationToken cancellationToken)
     {
+        // The first provider whose source could not be reached, thrown when no other provider matched.
+        MetadataProviderUnavailableException? unavailable = null;
         for (var index = 0; index < providers.Count; index++)
         {
             var providerInfo = providers[index];
@@ -892,14 +896,23 @@ public class VideoReleaseService(
             catch (Exception failure) when (!cancellationToken.IsCancellationRequested)
             {
                 ShokoTelemetry.RecordReleaseSearch(provider.Name, startedAt, false, failure);
+                switch (DecideOnFailedProvider(failure, index, providers.Count, IsProviderCurrentlyUsable(providerInfo)))
+                {
+                    // A provider whose source cannot be reached for now is passed by, so the others still answer.
+                    case FailedProviderOutcome.PassUnavailable:
+                        logger.LogWarning("Skipping release provider {ProviderName}: its source cannot be reached for now, so the next provider is asked. (Video={VideoID}.Provider={ProviderID})", provider.Name, request.Video.LocalID, providerInfo.ID);
+                        unavailable ??= (MetadataProviderUnavailableException)failure;
+                        continue;
 
-                // A provider suspended by its own failure, such as AniDB once its UDP login fails, is skipped when
-                // more providers are left to ask, rather than failing the whole search.
-                if (!ShouldSkipFailedProvider(index, providers.Count, IsProviderCurrentlyUsable(providerInfo)))
-                    throw new ReleaseProviderFailedException(providerInfo.ID, provider.Name, failure);
+                    // A provider suspended by its own failure, such as AniDB once its UDP login fails, is skipped when
+                    // more providers are left to ask, rather than failing the whole search.
+                    case FailedProviderOutcome.Skip:
+                        logger.LogWarning(failure, "Skipping release provider {ProviderName}: it was suspended while searching for the video, so the next provider is asked. (Video={VideoID}.Provider={ProviderID})", provider.Name, request.Video.LocalID, providerInfo.ID);
+                        continue;
 
-                logger.LogWarning(failure, "Skipping release provider {ProviderName}: it was suspended while searching for the video, so the next provider is asked. (Video={VideoID}.Provider={ProviderID})", provider.Name, request.Video.LocalID, providerInfo.ID);
-                continue;
+                    default:
+                        throw new ReleaseProviderFailedException(providerInfo.ID, provider.Name, failure);
+                }
             }
             finally
             {
@@ -922,8 +935,49 @@ public class VideoReleaseService(
             return (new ReleaseInfoWithProvider(release, provider.Name), providerInfo);
         }
 
+        // Nothing matched, but a source was out of reach: say so, as it may match once it is back, rather than
+        // answering that no release exists.
+        if (unavailable is not null)
+            ExceptionDispatchInfo.Throw(unavailable);
         return default;
     }
+
+    /// <summary>
+    ///   What a search does with a provider that threw.
+    /// </summary>
+    internal enum FailedProviderOutcome
+    {
+        /// <summary>
+        ///   The search fails.
+        /// </summary>
+        Fail,
+
+        /// <summary>
+        ///   The provider is skipped and the next one asked.
+        /// </summary>
+        Skip,
+
+        /// <summary>
+        ///   Its source cannot be reached: the provider is skipped, and if no
+        ///   other provider matches, the search says so.
+        /// </summary>
+        PassUnavailable,
+    }
+
+    /// <summary>
+    ///   Decides what a search does with a provider that threw: one whose
+    ///   source cannot be reached is always passed by, and one no longer
+    ///   usable is skipped when another provider is left to ask.
+    /// </summary>
+    /// <param name="failure">What it threw.</param>
+    /// <param name="index">The provider's place in the search.</param>
+    /// <param name="count">How many providers the search asks.</param>
+    /// <param name="isStillUsable">Whether the provider is still usable after failing.</param>
+    /// <returns>What to do.</returns>
+    internal static FailedProviderOutcome DecideOnFailedProvider(Exception failure, int index, int count, bool isStillUsable)
+        => failure is MetadataProviderUnavailableException
+            ? FailedProviderOutcome.PassUnavailable
+            : ShouldSkipFailedProvider(index, count, isStillUsable) ? FailedProviderOutcome.Skip : FailedProviderOutcome.Fail;
 
     /// <summary>
     ///   Whether a search goes on past a provider that failed: only when it is

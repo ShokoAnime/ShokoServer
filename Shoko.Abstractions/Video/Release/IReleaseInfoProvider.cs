@@ -86,6 +86,11 @@ public interface IReleaseInfoProvider
     /// <returns>
     ///   The release information, or <c>null</c> if not available.
     /// </returns>
+    /// <exception cref="Metadata.Providers.MetadataProviderUnavailableException">
+    ///   The provider's source cannot be reached for now. Throw it rather than
+    ///   returning <c>null</c>: a queued search is then retried later, and a
+    ///   direct one asks the next provider.
+    /// </exception>
     Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoContext context, CancellationToken cancellationToken);
 
     /// <summary>

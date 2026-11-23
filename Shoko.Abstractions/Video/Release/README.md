@@ -25,6 +25,15 @@ not asked, and the finalizing step below never runs, so the attempt is not
 marked completed and no relocation follows. Return `null` for "no match" and
 keep exceptions for genuine failures.
 
+A provider whose own source cannot be reached for now, such as a metadata
+service that is down, throws `MetadataProviderUnavailableException` (with its
+`RetryAfter` when known) rather than returning `null`, which would read as "no
+match" and lose the file's match for good. The core handles it apart from
+other failures: a queued provider job is retried with the queue's backoff,
+the attempt left open, and a search run directly (`FindReleaseForVideo`, a
+preview) passes that provider by and asks the next, answering the exception
+only when no other provider matched.
+
 After the chain finishes, `FinalizeReleaseSearchJob` marks the match attempt
 `IsCompleted = true` and fires `IVideoReleaseService.SearchCompleted`.
 
