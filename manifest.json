@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.620",
+      "tag": "v6.0.0-dev.620",
+      "commit": "9466c4f569f3089aa5da1860b2a5186771fea7a8",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.620/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-23T03:31:30Z",
+      "releaseNotes": "\n`feat` (`api`): **Give API tokens a stable ID, a creation time and a last-use time**:\n\n- `ApiToken` gained `ID`, `CreatedAt` and `LastUsedAt`, as init properties so its constructor is unchanged\n- A token's use is written at most once per five minutes, from the authentication handler\n- APIv3 lists the ID and times, and revokes a token by its ID at `DELETE /api/v3/Auth/Token/{tokenID}`\n- Added the `CreatedAt` and `LastUsedAt` columns to `AuthTokens`\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.141**.\n"
+    },
+    {
       "version": "6.0.0.619",
       "tag": "v6.0.0-dev.619",
       "commit": "7cc5cb9b1ad00b6b3559c65a9344bb4c6f79719f",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.591/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-07T23:15:01Z",
       "releaseNotes": "\n`fix` (`api`): **Keep the lists of a holds body optional**:\n\n- Made `Pools` and `JobTypes` of `Queue.Input.HoldsBody` nullable, as the other optional lists of APIv3 bodies are, since reading a body with an omitted member set it to `null` over its empty initializer\n"
-    },
-    {
-      "version": "6.0.0.590",
-      "tag": "v6.0.0-dev.590",
-      "commit": "a784df9ae7b60f5dcd99a471a97878bfc4eae60c",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.590/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-07T23:02:45Z",
-      "releaseNotes": "\n`refactor` (`queue`): **Share one pool status between the queue gauges**:\n\n- The five pool gauges now read one status of the pools per collection instead of taking one each, since each status counts the waiting jobs under every pool's lock\n"
     }
   ]
 }
