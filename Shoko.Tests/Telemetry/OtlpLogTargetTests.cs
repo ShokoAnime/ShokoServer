@@ -8,13 +8,11 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NLog;
 using NLog.Config;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Services;
-using Shoko.Server.Settings;
 using Shoko.Server.Telemetry;
 using Xunit;
 

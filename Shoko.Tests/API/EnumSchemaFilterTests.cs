@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
 using Microsoft.OpenApi;

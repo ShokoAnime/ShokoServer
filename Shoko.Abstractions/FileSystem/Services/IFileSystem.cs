@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using Shoko.Abstractions.FileSystem;
 
 namespace Shoko.Abstractions.FileSystem.Services;
 

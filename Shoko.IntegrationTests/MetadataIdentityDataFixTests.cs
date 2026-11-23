@@ -7,7 +7,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Xunit;
-using static Shoko.IntegrationTests.Sql;
 
 #pragma warning disable CS0618
 namespace Shoko.IntegrationTests;

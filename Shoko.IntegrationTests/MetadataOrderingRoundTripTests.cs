@@ -12,7 +12,6 @@ using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Shoko.Server.Services;
 using Xunit;
-using static Shoko.IntegrationTests.Sql;
 
 namespace Shoko.IntegrationTests;
 

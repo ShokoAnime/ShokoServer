@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using System.IO;
 using System.Linq;
 using Shoko.Abstractions.Connectivity.Suspensions;
 using Shoko.Abstractions.FileSystem;

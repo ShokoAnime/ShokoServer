@@ -30,7 +30,6 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
-using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.Info;

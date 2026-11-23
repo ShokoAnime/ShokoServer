@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;

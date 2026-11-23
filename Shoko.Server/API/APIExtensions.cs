@@ -21,7 +21,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using Newtonsoft.Json;

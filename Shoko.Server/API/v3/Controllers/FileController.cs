@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Net.Http.Headers;
-using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Metadata.Anidb.Services;

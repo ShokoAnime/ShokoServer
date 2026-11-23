@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Enums;

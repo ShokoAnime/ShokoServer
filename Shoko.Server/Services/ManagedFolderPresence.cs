@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using Shoko.Abstractions.FileSystem;
 using Shoko.Abstractions.FileSystem.Services;
-using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 
 namespace Shoko.Server.Services;

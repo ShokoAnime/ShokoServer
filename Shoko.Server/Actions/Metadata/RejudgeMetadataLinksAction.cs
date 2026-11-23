@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using Shoko.Abstractions.Actions;
-using Shoko.Abstractions.ScheduledActions;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 

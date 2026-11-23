@@ -22,7 +22,6 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 using AbstractDropFolderType = Shoko.Abstractions.Video.Enums.DropFolderType;
-using Directory = System.IO.Directory;
 using Path = System.IO.Path;
 
 namespace Shoko.Server.API.v3.Controllers;

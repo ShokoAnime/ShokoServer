@@ -8,7 +8,6 @@ using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.Shoko;

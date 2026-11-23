@@ -1,7 +1,6 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
 using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.Repositories.Cached.AniDB;

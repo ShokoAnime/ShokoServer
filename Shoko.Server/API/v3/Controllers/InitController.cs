@@ -19,7 +19,6 @@ using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-using Constants = Shoko.Server.Server.Constants;
 using RestartReason = Shoko.Server.API.v3.Models.Shoko.RestartReason;
 using ServerStatus = Shoko.Server.API.v3.Models.Shoko.ServerStatus;
 

@@ -1,4 +1,3 @@
-using FluentNHibernate;
 using FluentNHibernate.Mapping;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Shoko;

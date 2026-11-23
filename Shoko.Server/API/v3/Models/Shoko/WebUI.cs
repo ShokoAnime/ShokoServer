@@ -14,7 +14,6 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Web;
 using Shoko.Abstractions.Web.Enums;
 using Shoko.Abstractions.Web.Services;
-using Shoko.Server.API;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;

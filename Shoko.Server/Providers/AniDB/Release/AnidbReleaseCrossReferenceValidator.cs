@@ -8,7 +8,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached.AniDB;
 

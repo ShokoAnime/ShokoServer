@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Actions;
-using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Connectivity.Suspensions;
