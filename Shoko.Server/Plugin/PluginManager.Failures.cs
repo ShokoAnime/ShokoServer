@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -129,6 +130,27 @@ public partial class PluginManager
 
     private const string HostMismatchMessage = "The plugin was built for a different version of the server and refers to what this server does not have";
 
+    /// <summary>
+    ///   The runtime's message for a type that no longer implements a member
+    ///   of an interface it declares, as when the interface's member changed.
+    /// </summary>
+    private static readonly Regex _missingImplementation = new(
+        @"^Method '(?<method>[^']+)' in type '(?<type>[^']+)' from assembly '[^']*' does not have an implementation",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant
+    );
+
+    /// <summary>
+    ///   Describes a type that no longer implements a member of an interface
+    ///   it declares: the plugin was built against an older version of that
+    ///   interface, the server's or another plugin's.
+    /// </summary>
+    /// <param name="message">The <see cref="TypeLoadException"/>'s message.</param>
+    /// <returns>The reason, or <c>null</c> when the message says something else.</returns>
+    internal static string? DescribeMissingImplementation(string message)
+        => _missingImplementation.Match(message) is { Success: true } match
+            ? $"The plugin was built for a different version of the server or of a plugin it depends on: {match.Groups["type"].Value} does not implement {match.Groups["method"].Value} as the interface it implements now expects."
+            : null;
+
     private const string RememberedFailuresFile = "failed-starts.json";
 
     private IReadOnlyDictionary<string, PluginReferenceChecker.AssemblySurface>? _hostSurfaces;
@@ -146,13 +168,17 @@ public partial class PluginManager
     /// <summary>
     ///   Why a plugin's types could not be read: built for another version of
     ///   the server when the missing type should come from the server or the
-    ///   runtime, naming it, or else a missing dependency.
+    ///   runtime, naming it, or when a type no longer implements an interface
+    ///   member that changed, naming both; or else a missing dependency.
     /// </summary>
     /// <param name="exception">What reading the plugin's types threw.</param>
     /// <returns>The reason, as shown to the admin.</returns>
     private string DescribeTypeLoadFailure(Exception exception)
     {
         const string AssemblyMarker = "from assembly '";
+        if (exception is TypeLoadException && DescribeMissingImplementation(exception.Message) is { } missingImplementation)
+            return missingImplementation;
+
         if (exception is not TypeLoadException { TypeName: { Length: > 0 } typeName } typeLoad)
             return MissingDependenciesMessage;
 
