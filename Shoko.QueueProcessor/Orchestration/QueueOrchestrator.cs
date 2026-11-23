@@ -518,11 +518,20 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     }
 
     /// <summary>
-    /// Returns <c>true</c> if any acquisition filter on the pool that handles
-    /// <paramref name="jobType"/> currently excludes that type from dispatch.
+    /// Returns <c>true</c> if an acquisition filter on the pool that handles
+    /// <paramref name="jobType"/>, or a hold set by hand on the pool or the type,
+    /// currently excludes that type from dispatch.
     /// </summary>
     public bool IsJobTypeBlocked(Type jobType)
         => _poolsByType.TryGetValue(jobType, out var pool) && pool.IsTypeBlocked(jobType);
+
+    /// <summary>
+    /// Returns <c>true</c> if an acquisition filter on the pool that handles
+    /// <paramref name="jobType"/> currently excludes that type, leaving out holds
+    /// set by hand.
+    /// </summary>
+    public bool IsJobTypeBlockedByFilters(Type jobType)
+        => _poolsByType.TryGetValue(jobType, out var pool) && pool.IsTypeBlockedByFilters(jobType);
 
     /// <summary>
     /// Atomically registers a completion callback TCS for the given job key, then either:

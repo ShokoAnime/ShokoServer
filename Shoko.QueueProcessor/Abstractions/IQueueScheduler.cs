@@ -161,11 +161,20 @@ public interface IQueueScheduler
     IJobChainBuilder CreateJobChain();
 
     /// <summary>
-    /// Returns <c>true</c> if any active acquisition filter currently blocks
-    /// <paramref name="jobType"/> from being dispatched to a worker. Uses the same filter
+    /// Returns <c>true</c> if an active acquisition filter, or a hold set by hand
+    /// (<see cref="SetPoolHeld"/>, <see cref="SetJobTypeHeld"/>), currently blocks
+    /// <paramref name="jobType"/> from being dispatched to a worker. Uses the same
     /// evaluation as <see cref="EnqueueImmediate{T}"/>.
     /// </summary>
     bool IsJobTypeBlocked(Type jobType);
+
+    /// <summary>
+    /// Returns <c>true</c> if an active acquisition filter currently blocks
+    /// <paramref name="jobType"/>, leaving out holds set by hand. For work that
+    /// runs the job's service directly rather than through the queue, which a
+    /// hold on the queue has no reason to stop.
+    /// </summary>
+    bool IsJobTypeBlockedByFilters(Type jobType);
 
     /// <summary>
     /// Enqueue a job whose type is known only at runtime, at the type's

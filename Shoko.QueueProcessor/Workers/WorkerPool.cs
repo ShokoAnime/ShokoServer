@@ -44,6 +44,11 @@ public sealed class WorkerPool : IWorkerPool
     // Cached exclusion set from acquisition filters; rebuilt on filter StateChanged
     private volatile HashSet<Type> _filterExclusions = [];
 
+    /// <summary>
+    ///   The types the acquisition filters alone exclude, without the holds.
+    /// </summary>
+    private volatile HashSet<Type> _filterOnlyExclusions = [];
+
     // Held by hand, through Scheduling.QueueHolds: the whole pool, or some of its types.
     private volatile bool _isHeld;
 
@@ -418,6 +423,14 @@ public sealed class WorkerPool : IWorkerPool
     public bool IsTypeBlocked(Type type) => _filterExclusions.Contains(type);
 
     /// <summary>
+    ///   Whether an acquisition filter excludes <paramref name="type"/>, leaving
+    ///   out the holds set by hand.
+    /// </summary>
+    /// <param name="type">The job type.</param>
+    /// <returns><c>true</c> if a filter blocks it.</returns>
+    public bool IsTypeBlockedByFilters(Type type) => _filterOnlyExclusions.Contains(type);
+
+    /// <summary>
     /// Whether <paramref name="job"/> is held back from dispatch: its type is excluded by an
     /// acquisition filter, or it was queued with an actor the host cannot restore yet.
     /// </summary>
@@ -720,6 +733,7 @@ public sealed class WorkerPool : IWorkerPool
         foreach (var filter in AcquisitionFilters)
             foreach (var t in filter.GetTypesToExclude())
                 set.Add(t);
+        _filterOnlyExclusions = [.. set];
         if (_isHeld)
             set.UnionWith(HandledTypes);
         set.UnionWith(_heldTypes);

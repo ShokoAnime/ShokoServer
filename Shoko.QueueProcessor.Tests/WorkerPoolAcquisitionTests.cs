@@ -357,6 +357,21 @@ public class WorkerPoolAcquisitionTests
     }
 
     [Fact]
+    public void IsTypeBlockedByFilters_LeavesOutTheHolds()
+    {
+        var filter = new Mock<IAcquisitionFilter>();
+        filter.Setup(f => f.GetTypesToExclude()).Returns([typeof(JobTypeA)]);
+        filter.Setup(f => f.WatchedAttributeType).Returns((Type?)null);
+        var pool = new WorkerPool("Mixed", 2, AcquisitionAttribute.LowestPriority, [typeof(JobTypeA), typeof(JobTypeB)], [filter.Object]);
+
+        pool.SetHold(true, new HashSet<string>());
+
+        Assert.True(pool.IsTypeBlocked(typeof(JobTypeB)));
+        Assert.False(pool.IsTypeBlockedByFilters(typeof(JobTypeB)));
+        Assert.True(pool.IsTypeBlockedByFilters(typeof(JobTypeA)));
+    }
+
+    [Fact]
     public void QueueHolds_RaisesChangedOnlyWhenTheHoldsChange()
     {
         var holds = new Scheduling.QueueHolds();

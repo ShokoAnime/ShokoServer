@@ -187,6 +187,8 @@ public sealed class QueueScheduler(
 
     public bool IsJobTypeBlocked(Type jobType) => _orchestrator.IsJobTypeBlocked(jobType);
 
+    public bool IsJobTypeBlockedByFilters(Type jobType) => _orchestrator.IsJobTypeBlockedByFilters(jobType);
+
     public Task Enqueue(Type jobType, Action<IQueueJob>? configure = null, bool prioritize = false)
         => EnqueueWithPriority(jobType, configure, QueuePriority.For(jobType, prioritize));
 

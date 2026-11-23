@@ -581,20 +581,23 @@ public class VideoReleaseService(
     }
 
     // A search started now passes by a provider that is not configured, held
-    // back by a suspension, or whose job type the queue blocks.
+    // back by a suspension, or whose job type an acquisition filter blocks. A
+    // hold set by hand on the queue does not count: the search runs here, not
+    // through the queue.
     private bool IsProviderCurrentlyUsable(ReleaseProviderInfo provider)
         => IsProviderConfigured(provider) &&
             suspensionService.Value.GetHolding(provider.Provider.GetType()).Count is 0 &&
-            (!_providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) || !schedulerFactory.IsJobTypeBlocked(jobType));
+            (!_providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) || !schedulerFactory.IsJobTypeBlockedByFilters(jobType));
 
     // A provider without a job type, whose job's stored name is too long for
     // the queue, is never queued, nor is one that is not configured or only
-    // answers searches a person starts. A suspended one is, and its job waits.
+    // answers searches a person starts. A suspended one is, and its job waits,
+    // as one held by hand on the queue does.
     private bool IsProviderQueueable(ReleaseProviderInfo provider)
         => IsProviderConfigured(provider) &&
             CanProviderAutoMatch(provider) &&
             _providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType) &&
-            !schedulerFactory.IsJobTypeBlocked(jobType);
+            !schedulerFactory.IsJobTypeBlockedByFilters(jobType);
 
     private bool IsProviderConfigured(ReleaseProviderInfo provider)
     {
