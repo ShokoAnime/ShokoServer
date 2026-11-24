@@ -38,6 +38,38 @@ public sealed class FileSystemServiceTests : IDisposable
         return path;
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData(1)]
+    [InlineData(4)]
+    public void GetFileSystemEntriesByDirectory_ListsEachDirectoryAsOnItsOwn(int? threads)
+    {
+        var first = Directory.CreateDirectory(Path.Combine(_root, "first", "inner")).Parent!.FullName;
+        var second = Directory.CreateDirectory(Path.Combine(_root, "second")).FullName;
+        MakeFile(Path.Combine("first", "a.mkv"));
+        MakeFile(Path.Combine("first", "inner", "b.mkv"));
+        MakeFile(Path.Combine("second", "c.mkv"));
+        var missing = Path.Combine(_root, "missing");
+        var options = new FileSystemListingOptions { Recursive = true, MaxDegreeOfParallelism = threads };
+
+        var listings = _fileSystem.GetFileEntriesByDirectory([first, second, missing, first], options, TestContext.Current.CancellationToken);
+
+        Assert.Equal(new[] { first, second, missing }.Order(StringComparer.Ordinal), listings.Keys.Order(StringComparer.Ordinal));
+        foreach (var path in new[] { first, second })
+            Assert.Equal(_fileSystem.GetFileEntries(path, options, TestContext.Current.CancellationToken).Select(entry => entry.Path).Order(), listings[path].Select(entry => entry.Path).Order());
+        Assert.Equal(["a.mkv", "b.mkv"], listings[first].Select(entry => entry.Name).Order());
+        Assert.Empty(listings[missing]);
+    }
+
+    [Fact]
+    public void GetFileSystemEntriesByDirectory_ThrowsForAMissingDirectoryWhenAsked()
+    {
+        var options = new FileSystemListingOptions { ThrowOnError = true };
+
+        Assert.Throws<DirectoryNotFoundException>(() => _fileSystem.GetFileSystemEntriesByDirectory([_root, Path.Combine(_root, "missing")], options, TestContext.Current.CancellationToken));
+        Assert.Throws<ArgumentOutOfRangeException>(() => _fileSystem.GetFileSystemEntriesByDirectory([_root], new() { MaxDegreeOfParallelism = 0 }, TestContext.Current.CancellationToken));
+    }
+
     [Fact]
     public void CopyFile_MakesAnotherFileWithTheSameContents()
     {

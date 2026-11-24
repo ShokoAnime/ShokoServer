@@ -174,9 +174,6 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     private static extern bool CreateHardLinkW(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
 
-    public string[] GetFilePaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
-        => List(directoryPath, options, outputFiles: true, outputDirectories: false, cancellationToken).Select(entry => entry.Path).ToArray();
-
     #endregion
 
     #region Directories
@@ -313,9 +310,6 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
 
     private static bool IsInside(string path, string directory)
         => path.StartsWith(directory.EndsWith(Path.DirectorySeparatorChar) ? directory : directory + Path.DirectorySeparatorChar, PlatformUtility.StringComparison);
-
-    public string[] GetDirectoryPaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
-        => List(directoryPath, options, outputFiles: false, outputDirectories: true, cancellationToken).Select(entry => entry.Path).ToArray();
 
     #endregion
 
@@ -467,19 +461,89 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
         }
     }
 
+    #region Shared | Listing
+
+    public string[] GetFilePaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
+        => List([directoryPath], options, outputFiles: true, outputDirectories: false, cancellationToken)[0].Select(entry => entry.Path).ToArray();
+
+    public string[] GetDirectoryPaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
+        => List([directoryPath], options, outputFiles: false, outputDirectories: true, cancellationToken)[0].Select(entry => entry.Path).ToArray();
+
     public IReadOnlyList<FileSystemEntry> GetFileEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
-        => List(directoryPath, options, outputFiles: true, outputDirectories: false, cancellationToken);
+        => List([directoryPath], options, outputFiles: true, outputDirectories: false, cancellationToken)[0];
 
     public IReadOnlyList<FileSystemEntry> GetDirectoryEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
-        => List(directoryPath, options, outputFiles: false, outputDirectories: true, cancellationToken);
+        => List([directoryPath], options, outputFiles: false, outputDirectories: true, cancellationToken)[0];
 
     public IReadOnlyList<FileSystemEntry> GetFileSystemEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default)
-        => List(directoryPath, options, outputFiles: true, outputDirectories: true, cancellationToken);
+        => List([directoryPath], options, outputFiles: true, outputDirectories: true, cancellationToken)[0];
 
-    private IReadOnlyList<FileSystemEntry> List(string directoryPath, FileSystemListingOptions? options, bool outputFiles, bool outputDirectories, CancellationToken cancellationToken)
+    public IReadOnlyDictionary<string, IReadOnlyList<FileSystemEntry>> GetFileSystemEntriesByDirectory(
+        IEnumerable<string> directoryPaths,
+        FileSystemListingOptions? options = null,
+        CancellationToken cancellationToken = default
+    )
+        => ListByDirectory(directoryPaths, options, outputFiles: true, outputDirectories: true, cancellationToken);
+
+    public IReadOnlyDictionary<string, IReadOnlyList<FileSystemEntry>> GetFileEntriesByDirectory(
+        IEnumerable<string> directoryPaths,
+        FileSystemListingOptions? options = null,
+        CancellationToken cancellationToken = default
+    )
+        => ListByDirectory(directoryPaths, options, outputFiles: true, outputDirectories: false, cancellationToken);
+
+    public IReadOnlyDictionary<string, IReadOnlyList<FileSystemEntry>> GetDirectoryEntriesByDirectory(
+        IEnumerable<string> directoryPaths,
+        FileSystemListingOptions? options = null,
+        CancellationToken cancellationToken = default
+    )
+        => ListByDirectory(directoryPaths, options, outputFiles: false, outputDirectories: true, cancellationToken);
+
+    private Dictionary<string, IReadOnlyList<FileSystemEntry>> ListByDirectory(
+        IEnumerable<string> directoryPaths,
+        FileSystemListingOptions? options,
+        bool outputFiles,
+        bool outputDirectories,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(directoryPaths);
+        var roots = directoryPaths.Distinct(StringComparer.Ordinal).ToList();
+        foreach (var root in roots)
+            ArgumentNullException.ThrowIfNull(root, nameof(directoryPaths));
+
+        var listings = List(roots, options, outputFiles, outputDirectories, cancellationToken);
+        var byDirectory = new Dictionary<string, IReadOnlyList<FileSystemEntry>>(roots.Count, StringComparer.Ordinal);
+        for (var index = 0; index < roots.Count; index++)
+            byDirectory[roots[index]] = listings[index];
+        return byDirectory;
+    }
+
+    /// <summary>
+    ///   A directory to read in a listing.
+    /// </summary>
+    /// <param name="Root">The index of the listed directory it belongs to.</param>
+    /// <param name="Path">The directory.</param>
+    /// <param name="IsRoot">Whether it is the listed directory itself.</param>
+    private readonly record struct ListingItem(int Root, string Path, bool IsRoot);
+
+    /// <summary>
+    ///   Lists every root as its own listing, in one parallel walk.
+    /// </summary>
+    /// <returns>Each root's entries, in the roots' order.</returns>
+    private IReadOnlyList<FileSystemEntry>[] List(
+        IReadOnlyList<string> roots,
+        FileSystemListingOptions? options,
+        bool outputFiles,
+        bool outputDirectories,
+        CancellationToken cancellationToken
+    )
     {
         options ??= FileSystemListingOptions.Default;
-        var outputBag = new ConcurrentBag<FileSystemEntry>();
+        if (options.MaxDegreeOfParallelism is < 1)
+            throw new ArgumentOutOfRangeException(nameof(options), options.MaxDegreeOfParallelism, "At least one directory must be read at a time.");
+
+        var outputBags = roots.Select(_ => new ConcurrentBag<FileSystemEntry>()).ToArray();
         var canProceed = GetEntryValidator(options);
         var recursive = options.Recursive;
         var followLinks = recursive && options.FollowDirectoryLinks;
@@ -488,31 +552,16 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
         // are not all listed alike; otherwise the entry reads it if anything asks.
         var resolveLinks = followLinks || !outputFiles || !outputDirectories || !options.IncludeDirectoryLinks || !options.IncludeFileLinks;
 
-        // The root is read first and on its own: reading it says whether it is there, so it needs no check
-        // beforehand, and a listing that does not walk needs nothing more.
-        IReadOnlyList<DirectoryItem> rootItems;
-        try
-        {
-            rootItems = ReadDirectory(directoryPath, resolveLinks);
-        }
-        catch (Exception ex) when (!options.ThrowOnError && ex is IOException or UnauthorizedAccessException)
-        {
-            if (ex is not DirectoryNotFoundException)
-                logger.LogWarning(ex, "Failed to enumerate {Path}; skipping", directoryPath);
-            return [];
-        }
+        // While following links, the directories reached through one are remembered by identity, each
+        // root's own included, so a link back up the tree is walked once rather than until the path is too
+        // long. Each root keeps its own, so it lists as it would on its own.
+        var walked = followLinks ? roots.Select(_ => new ConcurrentDictionary<StatIdentity, byte>()).ToArray() : null;
 
-        // While following links, the directories reached through one are remembered by identity, the
-        // root's included, so a link back up the tree is walked once rather than until the path is too long.
-        var walked = followLinks ? new ConcurrentDictionary<StatIdentity, byte>() : null;
-        if (walked is not null && TryGetIdentity(directoryPath) is { } rootIdentity)
-            walked.TryAdd(rootIdentity, 0);
-
-        List<string>? Take(string path, IReadOnlyList<DirectoryItem> items)
+        List<ListingItem>? Take(int root, string path, IReadOnlyList<DirectoryItem> items)
         {
             // Each entry's name, kind and link flag came with the listing, so an entry costs no read of its
             // own. The paths handed out are built from the plain path, so a long path's prefix never leaves.
-            var walkInto = recursive ? new List<string>() : null;
+            var walkInto = recursive ? new List<ListingItem>() : null;
             foreach (var (name, isDirectory, isLink) in items)
             {
                 // A link left unread is listed whatever it points to, and walked into by nothing.
@@ -530,36 +579,71 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
                 if (!canProceed(entry))
                     continue;
                 if (outputs)
-                    outputBag.Add(entry);
+                    outputBags[root].Add(entry);
                 if (!walksInto)
                     continue;
-                if (!isLink || TryGetIdentity(entry.Path) is { } identity && walked!.TryAdd(identity, 0))
-                    walkInto!.Add(entry.Path);
+                if (!isLink || TryGetIdentity(entry.Path) is { } identity && walked![root].TryAdd(identity, 0))
+                    walkInto!.Add(new(root, entry.Path, IsRoot: false));
             }
             return walkInto;
         }
 
-        var subdirectories = Take(directoryPath, rootItems);
-        if (subdirectories is { Count: > 0 })
+        List<ListingItem>? Read(ListingItem item)
         {
-            var walk = Parallelize(
-                subdirectories,
-                path => Take(path, ReadDirectory(path, resolveLinks)),
-                stopOnError: options.ThrowOnError,
-                cancellationToken
-            );
+            if (!item.IsRoot)
+                return Take(item.Root, item.Path, ReadDirectory(item.Path, resolveLinks));
+
+            // A root is read before anything is checked: reading it says whether it is there. A missing one
+            // lists nothing and says nothing, unless asked to throw.
+            IReadOnlyList<DirectoryItem> rootItems;
             try
             {
-                walk.Wait(cancellationToken);
+                rootItems = ReadDirectory(item.Path, resolveLinks);
             }
-            catch (AggregateException ex) when (ex.InnerExceptions is [var inner] && inner is not OperationCanceledException)
+            catch (Exception ex) when (!options.ThrowOnError && ex is IOException or UnauthorizedAccessException)
             {
-                ExceptionDispatchInfo.Throw(inner);
+                if (ex is not DirectoryNotFoundException)
+                    logger.LogWarning(ex, "Failed to enumerate {Path}; skipping", item.Path);
+                return null;
             }
+
+            if (walked is not null && TryGetIdentity(item.Path) is { } rootIdentity)
+                walked[item.Root].TryAdd(rootIdentity, 0);
+            return Take(item.Root, item.Path, rootItems);
+        }
+
+        var rootItems = roots.Select((root, index) => new ListingItem(index, root, IsRoot: true)).ToList();
+        var threads = options.MaxDegreeOfParallelism ?? GetThreadCount();
+        if (rootItems.Count is 1)
+        {
+            // One root is read on the caller's thread: a listing that does not walk needs nothing more.
+            var subdirectories = Read(rootItems[0]);
+            if (subdirectories is { Count: > 0 })
+                Walk(subdirectories, Read, options.ThrowOnError, threads, cancellationToken);
+        }
+        else if (rootItems.Count > 1)
+        {
+            Walk(rootItems, Read, options.ThrowOnError, threads, cancellationToken);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        return outputBag.ToArray();
+        return [.. outputBags.Select(bag => (IReadOnlyList<FileSystemEntry>)bag.ToArray())];
+    }
+
+    /// <summary>
+    ///   Runs a parallel walk to its end, throwing what stopped it as itself.
+    /// </summary>
+    private void Walk<T>(IReadOnlyList<T> initialValues, Func<T, IEnumerable<T>?> action, bool stopOnError, int threads, CancellationToken cancellationToken)
+    {
+        var walk = Parallelize(initialValues, action, stopOnError, threads, cancellationToken);
+        try
+        {
+            walk.Wait(cancellationToken);
+        }
+        catch (AggregateException ex) when (ex.InnerExceptions is [var inner] && inner is not OperationCanceledException)
+        {
+            ExceptionDispatchInfo.Throw(inner);
+        }
     }
 
     private StatIdentity? TryGetIdentity(string path)
@@ -584,7 +668,7 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
         return entry => entry.IsDirectory || extensions.Any(ext => entry.Path.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
     }
 
-    private Task Parallelize<T>(IReadOnlyList<T> initialValues, Func<T, IEnumerable<T>?> action, bool stopOnError, CancellationToken cancellationToken = default)
+    private Task Parallelize<T>(IReadOnlyList<T> initialValues, Func<T, IEnumerable<T>?> action, bool stopOnError, int threads, CancellationToken cancellationToken = default)
     {
         var pendingCount = initialValues.Count;
         var bufferBlock = new BufferBlock<T>(new() { BoundedCapacity = DataflowBlockOptions.Unbounded });
@@ -628,7 +712,7 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
             new()
             {
                 CancellationToken = cancellationToken,
-                MaxDegreeOfParallelism = GetThreadCount(),
+                MaxDegreeOfParallelism = threads,
                 BoundedCapacity = DataflowBlockOptions.Unbounded
             }
         );
@@ -640,6 +724,8 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
 
     private static int GetThreadCount()
         => Math.Max(1, Math.Min((int)Math.Floor((decimal)Environment.ProcessorCount / 2), 10));
+
+    #endregion
 
     #endregion
 

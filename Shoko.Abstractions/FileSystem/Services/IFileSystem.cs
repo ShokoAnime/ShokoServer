@@ -187,33 +187,6 @@ public interface IFileSystem
     /// </exception>
     void CreateHardLink(string sourcePath, string destinationPath);
 
-    /// <summary>
-    ///   Lists the paths of the files beneath the given directory:
-    ///   <see cref="GetFileEntries"/> without the entries.
-    /// </summary>
-    /// <param name="directoryPath">The directory.</param>
-    /// <param name="options">
-    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
-    /// </param>
-    /// <param name="cancellationToken">Stops the listing.</param>
-    /// <returns>The paths.</returns>
-    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    string[] GetFilePaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    ///   Lists the files beneath the given directory as entries:
-    ///   <see cref="GetFileSystemEntries"/> with files only. An entry's path
-    ///   costs nothing; its stat is read only when asked for.
-    /// </summary>
-    /// <param name="directoryPath">The directory.</param>
-    /// <param name="options">
-    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
-    /// </param>
-    /// <param name="cancellationToken">Stops the listing.</param>
-    /// <returns>The entries.</returns>
-    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    IReadOnlyList<FileSystemEntry> GetFileEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
-
     #endregion
 
     #region Directories
@@ -320,33 +293,6 @@ public interface IFileSystem
     ///   replaced, or it could not be moved for another reason.
     /// </exception>
     void MoveDirectory(string sourcePath, string destinationPath, bool overwrite = false);
-
-    /// <summary>
-    ///   Lists the paths of the directories beneath the given directory:
-    ///   <see cref="GetDirectoryEntries"/> without the entries.
-    /// </summary>
-    /// <param name="directoryPath">The directory.</param>
-    /// <param name="options">
-    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
-    /// </param>
-    /// <param name="cancellationToken">Stops the listing.</param>
-    /// <returns>The paths.</returns>
-    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    string[] GetDirectoryPaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    ///   Lists the directories beneath the given directory as entries:
-    ///   <see cref="GetFileSystemEntries"/> with directories only. An entry's
-    ///   path costs nothing; its stat is read only when asked for.
-    /// </summary>
-    /// <param name="directoryPath">The directory.</param>
-    /// <param name="options">
-    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
-    /// </param>
-    /// <param name="cancellationToken">Stops the listing.</param>
-    /// <returns>The entries.</returns>
-    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    IReadOnlyList<FileSystemEntry> GetDirectoryEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
 
     #endregion
 
@@ -543,6 +489,34 @@ public interface IFileSystem
     /// </exception>
     string? ResolveSymbolicLink(string? path, bool returnFinalTarget = true);
 
+    #region Shared | Listing
+
+    /// <summary>
+    ///   Lists the paths of the files beneath the given directory:
+    ///   <see cref="GetFileEntries"/> without the entries.
+    /// </summary>
+    /// <param name="directoryPath">The directory.</param>
+    /// <param name="options">
+    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
+    /// </param>
+    /// <param name="cancellationToken">Stops the listing.</param>
+    /// <returns>The paths.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    string[] GetFilePaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Lists the paths of the directories beneath the given directory:
+    ///   <see cref="GetDirectoryEntries"/> without the entries.
+    /// </summary>
+    /// <param name="directoryPath">The directory.</param>
+    /// <param name="options">
+    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
+    /// </param>
+    /// <param name="cancellationToken">Stops the listing.</param>
+    /// <returns>The paths.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    string[] GetDirectoryPaths(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
+
     /// <summary>
     ///   Lists the files and directories beneath the given directory, as
     ///   entries: the walk every listing shares. Subdirectories are walked in
@@ -558,6 +532,81 @@ public interface IFileSystem
     /// <returns>The entries, or none when the directory does not exist.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     IReadOnlyList<FileSystemEntry> GetFileSystemEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Lists the files beneath the given directory as entries:
+    ///   <see cref="GetFileSystemEntries"/> with files only. An entry's path
+    ///   costs nothing; its stat is read only when asked for.
+    /// </summary>
+    /// <param name="directoryPath">The directory.</param>
+    /// <param name="options">
+    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
+    /// </param>
+    /// <param name="cancellationToken">Stops the listing.</param>
+    /// <returns>The entries.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    IReadOnlyList<FileSystemEntry> GetFileEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Lists the directories beneath the given directory as entries:
+    ///   <see cref="GetFileSystemEntries"/> with directories only. An entry's
+    ///   path costs nothing; its stat is read only when asked for.
+    /// </summary>
+    /// <param name="directoryPath">The directory.</param>
+    /// <param name="options">
+    ///   How to walk and what to keep; <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
+    /// </param>
+    /// <param name="cancellationToken">Stops the listing.</param>
+    /// <returns>The entries.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    IReadOnlyList<FileSystemEntry> GetDirectoryEntries(string directoryPath, FileSystemListingOptions? options = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Lists the files and directories beneath each of several directories
+    ///   in one call, as <see cref="GetFileSystemEntries"/> does for one, the
+    ///   directories read in parallel with each other and with their walks.
+    /// </summary>
+    /// <param name="directoryPaths">The directories. One given twice is listed once.</param>
+    /// <param name="options">
+    ///   How to walk and what to keep, for every directory;
+    ///   <see cref="FileSystemListingOptions.Default"/> when <c>null</c>.
+    /// </param>
+    /// <param name="cancellationToken">Stops the listing.</param>
+    /// <returns>
+    ///   Each directory's entries, by the path as given; none for a directory
+    ///   that does not exist.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///   <see cref="FileSystemListingOptions.MaxDegreeOfParallelism"/> is below 1.
+    /// </exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    IReadOnlyDictionary<string, IReadOnlyList<FileSystemEntry>> GetFileSystemEntriesByDirectory(
+        IEnumerable<string> directoryPaths,
+        FileSystemListingOptions? options = null,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
+    ///   <see cref="GetFileSystemEntriesByDirectory"/> with files only.
+    /// </summary>
+    /// <inheritdoc cref="GetFileSystemEntriesByDirectory"/>
+    IReadOnlyDictionary<string, IReadOnlyList<FileSystemEntry>> GetFileEntriesByDirectory(
+        IEnumerable<string> directoryPaths,
+        FileSystemListingOptions? options = null,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
+    ///   <see cref="GetFileSystemEntriesByDirectory"/> with directories only.
+    /// </summary>
+    /// <inheritdoc cref="GetFileSystemEntriesByDirectory"/>
+    IReadOnlyDictionary<string, IReadOnlyList<FileSystemEntry>> GetDirectoryEntriesByDirectory(
+        IEnumerable<string> directoryPaths,
+        FileSystemListingOptions? options = null,
+        CancellationToken cancellationToken = default
+    );
+
+    #endregion
 
     #endregion
 }

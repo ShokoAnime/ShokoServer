@@ -57,4 +57,12 @@ public sealed record FileSystemListingOptions
     ///   and skipped, so an empty listing cannot be told from a failed one.
     /// </summary>
     public bool ThrowOnError { get; init; }
+
+    /// <summary>
+    ///   How many directories are read at once while walking, and while
+    ///   listing several directories in one call. <c>null</c> for the core's
+    ///   default (half the processor count, from 1 to 10), <c>1</c> to read
+    ///   one at a time. A slow network share often gains from more.
+    /// </summary>
+    public int? MaxDegreeOfParallelism { get; init; }
 }

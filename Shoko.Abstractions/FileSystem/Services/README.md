@@ -150,6 +150,13 @@ takes a `FileSystemListingOptions`; without one it lists the directory itself,
 links included. Subdirectories are walked in parallel, so the results come in
 no particular order, and one that cannot be read is skipped.
 
+`GetFileSystemEntriesByDirectory`, `GetFileEntriesByDirectory` and
+`GetDirectoryEntriesByDirectory` list several directories in one call, read in
+parallel with each other and with their walks, and give each directory's
+entries by its path as given. Each directory lists as it would on its own,
+with the same options, so a directory that is not there lists nothing unless
+`ThrowOnError` is set.
+
 | Option | What it does |
 |---|---|
 | `Recursive` | Look in subdirectories too. |
@@ -158,6 +165,7 @@ no particular order, and one that cannot be read is skipped.
 | `FollowDirectoryLinks` | Walk into links to directories. Off by default, as such a link can lead out of the directory or back up into it; when on, a directory reached through a link is walked once. |
 | `IncludeDirectoryLinks` | List links to directories, walked into or not. On by default. |
 | `IncludeFileLinks` | List links to files, and links whose target is gone. On by default. |
+| `MaxDegreeOfParallelism` | How many directories are read at once. `null` for the core's default (half the processor count, from 1 to 10), `1` for one at a time; a slow network share often gains from more. |
 | `ThrowOnError` | Throw when a directory cannot be read, the one listed (`DirectoryNotFoundException` when it is not there) or any walked into. Off by default, when a missing directory lists nothing and an unreadable one is logged and skipped. |
 
 A `FileSystemEntry` knows its `Path`, `Name`, `IsDirectory` and `IsSymbolicLink`
