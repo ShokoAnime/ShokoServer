@@ -24,5 +24,5 @@ public sealed class ImportNewFilesAction(IVideoService videoService) : ISchedule
     public ActionCategory Category => ActionCategory.Import;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => videoService.ScheduleScanForManagedFolders(false, true, false, null, false, true, progress, token);
+        => videoService.ScheduleScanForManagedFolders(options: new() { OnlyNewFiles = true }, progress: progress, cancellationToken: token);
 }

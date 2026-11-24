@@ -576,36 +576,14 @@ public interface IVideoService
     /// <param name="folder">
     ///   The managed folder to scan.
     /// </param>
-    /// <param name="relativePath">
-    ///   The relative path within the managed folder to scan.
-    /// </param>
-    /// <param name="onlyNewFiles">
-    ///   Whether to only scan for new files. Such a scan only adds files: it
-    ///   keeps the records of missing files, which a full scan removes.
-    /// </param>
-    /// <param name="skipEvents">
-    ///   Whether to skip adding the discovered files to the provider-specific post-save state sync.
-    /// </param>
-    /// <param name="cleanUpStructure">
-    ///   Whether to clean up the managed folder, removing any empty folders
-    ///   from the bottom up. If not provided then it will follow the global
-    ///   configuration.
-    /// </param>
-    /// <param name="checkFileSize">
-    ///   Whether to check the file size. If not provided then it will follow
-    ///   the global configuration. If set to <c>false</c>, the file size will
-    ///   not be checked. IF set to <c>true</c>, the file size for EVERY file
-    ///   in the existing collection will be checked. Incompatible with and not
-    ///   used if <paramref name="onlyNewFiles"/> is <c>true</c>.
-    /// </param>
-    /// <param name="forceScan">
-    ///   Optional. Set to <c>true</c> to force a scan of the video even if it
-    ///   has exceeded the max allowed auto-scan attempts.
+    /// <param name="options">
+    ///   How to scan it; <see cref="ManagedFolderScanOptions.Default"/> when
+    ///   <c>null</c>.
     /// </param>
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false);
+    Task ScanManagedFolder(IManagedFolder folder, ManagedFolderScanOptions? options = null);
 
     /// <summary>
     ///   Schedules a scan of a managed folder, scheduling pre-processing jobs
@@ -614,31 +592,9 @@ public interface IVideoService
     /// <param name="folder">
     ///   The managed folder to scan.
     /// </param>
-    /// <param name="relativePath">
-    ///   The relative path within the managed folder to scan.
-    /// </param>
-    /// <param name="onlyNewFiles">
-    ///   Whether to only scan for new files. Such a scan only adds files: it
-    ///   keeps the records of missing files, which a full scan removes.
-    /// </param>
-    /// <param name="skipEvents">
-    ///   Whether to skip provider-specific post-save state sync.
-    /// </param>
-    /// <param name="cleanUpStructure">
-    ///   Whether to clean up the managed folder, removing any empty folders
-    ///   from the bottom up. If not provided then it will follow the global
-    ///   configuration.
-    /// </param>
-    /// <param name="checkFileSize">
-    ///   Whether to check the file size. If not provided then it will follow
-    ///   the global configuration. If set to <c>false</c>, the file size will
-    ///   not be checked. IF set to <c>true</c>, the file size for EVERY file
-    ///   in the existing collection will be checked. Incompatible with and not
-    ///   used if <paramref name="onlyNewFiles"/> is <c>true</c>.
-    /// </param>
-    /// <param name="forceScan">
-    ///   Optional. Set to <c>true</c> to force a scan of the video even if it
-    ///   has exceeded the max allowed auto-scan attempts.
+    /// <param name="options">
+    ///   How to scan it; <see cref="ManagedFolderScanOptions.Default"/> when
+    ///   <c>null</c>.
     /// </param>
     /// <param name="prioritize">
     ///   Whether to prioritize this job in the queue.
@@ -646,7 +602,7 @@ public interface IVideoService
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true);
+    Task ScheduleScanForManagedFolder(IManagedFolder folder, ManagedFolderScanOptions? options = null, bool prioritize = true);
 
     /// <summary>
     ///   Scans all managed folders, scheduling pre-processing jobs for new or
@@ -656,21 +612,10 @@ public interface IVideoService
     ///   Whether to only scan managed folder with
     ///   <see cref="DropFolderType.Source"/> set.
     /// </param>
-    /// <param name="onlyNewFiles">
-    ///   Whether to only scan for new video files, keeping the records of
-    ///   missing files, which a full scan removes.
-    /// </param>
-    /// <param name="skipEvents">
-    ///   Whether to skip provider-specific post-save state sync.
-    /// </param>
-    /// <param name="cleanUpStructure">
-    ///   Whether to clean up the managed folder, removing any empty folders
-    ///   from the bottom up. If not provided then it will follow the global
-    ///   configuration.
-    /// </param>
-    /// <param name="forceScan">
-    ///   Optional. Set to <c>true</c> to force a scan of the video even if it
-    ///   has exceeded the max allowed auto-scan attempts.
+    /// <param name="options">
+    ///   How to scan them; <see cref="ManagedFolderScanOptions.Default"/> when
+    ///   <c>null</c>. Its <see cref="ManagedFolderScanOptions.RelativePath"/>
+    ///   is not used.
     /// </param>
     /// <param name="prioritize">
     ///   Whether to prioritize this job in the queue.
@@ -680,10 +625,7 @@ public interface IVideoService
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task ScheduleScanForManagedFolders(
         bool onlyDropSources = false,
-        bool? onlyNewFiles = null,
-        bool skipEvents = false,
-        bool? cleanUpStructure = null,
-        bool forceScan = false,
+        ManagedFolderScanOptions? options = null,
         bool prioritize = true,
         IProgress<decimal>? progress = null,
         CancellationToken cancellationToken = default

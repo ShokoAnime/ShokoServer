@@ -140,10 +140,10 @@ nothing and raises nothing; one that changes a flag raises `VideoUpdated`.
 
 ```csharp
 // Runs here and now, on your thread, and returns when the walk is done.
-await videoService.ScanManagedFolder(folder, relativePath: "Winter 2026", onlyNewFiles: true);
+await videoService.ScanManagedFolder(folder, new() { RelativePath = "Winter 2026", OnlyNewFiles = true });
 
 // Queues the same work and returns as soon as the job is registered.
-await videoService.ScheduleScanForManagedFolder(folder, onlyNewFiles: true);
+await videoService.ScheduleScanForManagedFolder(folder, new() { OnlyNewFiles = true });
 await videoService.ScheduleScanForManagedFolders(onlyDropSources: true);
 ```
 
@@ -153,8 +153,8 @@ files found are pushed through the hashing and release pipeline, not processed
 by the scan itself.
 
 `ScheduleScanForManagedFolders` queues one scan per folder, drop sources first.
-Left at `null`, `onlyNewFiles` scans the drop sources in full and the other
-folders for new files only. It reports its progress over the queuing and
+Left at `null`, `ManagedFolderScanOptions.OnlyNewFiles` scans the drop sources
+in full and the other folders for new files only. It reports its progress over the queuing and
 honours a cancellation token, and it is what the "Scan Managed Folders"
 scheduled action runs. "Scan Drop Folders" scans the drop sources alone.
 
@@ -166,8 +166,8 @@ directory, so it is safe to point at either.
 
 `MaxAutoScanAttemptsPerVideo` caps how many times a file that keeps failing is
 retried automatically (`0` disables auto-scanning, values outside `0`–`100`
-throw `ArgumentOutOfRangeException`). The `forceScan` flag on the scan and
-notify methods is what gets you past that cap for one specific file.
+throw `ArgumentOutOfRangeException`). `ManagedFolderScanOptions.ForceScan`, and
+the `forceScan` flag on the notify methods, is what gets you past that cap.
 
 ### Deleting
 

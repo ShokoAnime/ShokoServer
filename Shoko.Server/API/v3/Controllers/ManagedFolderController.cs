@@ -270,7 +270,12 @@ public class ManagedFolderController(
     {
         if (managedFolderRepository.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found");
-        await videoService.ScheduleScanForManagedFolder(folder, relativePath, onlyNewFiles, skipEvents, prioritize: priority);
+        await videoService.ScheduleScanForManagedFolder(folder, new()
+        {
+            RelativePath = relativePath,
+            OnlyNewFiles = onlyNewFiles,
+            SkipEvents = skipEvents,
+        }, prioritize: priority);
         return Ok();
     }
 

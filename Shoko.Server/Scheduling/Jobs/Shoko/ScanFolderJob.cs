@@ -77,14 +77,17 @@ internal class ScanFolderJob(IVideoService videoService, IJobCancellationAccesso
 
         await ((VideoService)videoService).ScanManagedFolder(
             managedFolder,
-            relativePath: RelativePath,
-            onlyNewFiles: OnlyNewFiles,
-            skipEvents: SkipEvents,
-            cleanUpStructure: CleanUpStructure,
-            checkFileSize: CheckFileSize,
-            forceScan: ForceScan,
-            progress: progress.Progress,
-            token: cancellation.Token
+            new()
+            {
+                RelativePath = RelativePath,
+                OnlyNewFiles = OnlyNewFiles,
+                SkipEvents = SkipEvents,
+                CleanUpStructure = CleanUpStructure,
+                CheckFileSize = CheckFileSize,
+                ForceScan = ForceScan,
+            },
+            progress.Progress,
+            cancellation.Token
         );
     }
 }

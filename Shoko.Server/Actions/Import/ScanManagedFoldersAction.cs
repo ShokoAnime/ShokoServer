@@ -25,5 +25,5 @@ public sealed class ScanManagedFoldersAction(IVideoService videoService) : ISche
     public ActionCategory Category => ActionCategory.Import;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => videoService.ScheduleScanForManagedFolders(false, null, false, null, false, true, progress, token);
+        => videoService.ScheduleScanForManagedFolders(progress: progress, cancellationToken: token);
 }

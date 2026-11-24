@@ -305,7 +305,7 @@ public class VideoService : IVideoService
              : Path.Join(managedFolder.Path, relativePath);
         if (string.IsNullOrEmpty(relativePath) || _fileSystem.DirectoryExists(absolutePath))
         {
-            await ScanManagedFolder(managedFolder, relativePath: relativePath, onlyNewFiles: false, skipEvents: !updateMylist, cleanUpStructure: false);
+            await ScanManagedFolder(managedFolder, new() { RelativePath = relativePath, OnlyNewFiles = false, SkipEvents = !updateMylist, CleanUpStructure = false });
             return;
         }
 
@@ -1279,32 +1279,31 @@ public class VideoService : IVideoService
         await Task.WhenAll(affectedSeries.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID, ct: CancellationToken.None)));
     }
 
-    public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false)
-        => await ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipEvents, cleanUpStructure, checkFileSize, forceScan, null, CancellationToken.None);
+    public async Task ScanManagedFolder(IManagedFolder folder, ManagedFolderScanOptions? options = null)
+        => await ScanManagedFolder((ShokoManagedFolder)folder, options ?? ManagedFolderScanOptions.Default, null, CancellationToken.None);
 
     /// <summary>
-    /// Scans a managed folder, as <see cref="ScanManagedFolder(IManagedFolder, string?, bool, bool, bool?, bool?, bool)"/>
+    /// Scans a managed folder, as <see cref="ScanManagedFolder(IManagedFolder, ManagedFolderScanOptions?)"/>
     /// does, reporting progress and stopping when cancelled.
     /// </summary>
     /// <param name="folder">The managed folder to scan.</param>
-    /// <param name="relativePath">Only scan below this path in the folder, when set.</param>
-    /// <param name="onlyNewFiles">Only look at files that have no record yet, keeping the records of missing files.</param>
-    /// <param name="skipEvents">Skip the events and the MyList updates.</param>
-    /// <param name="cleanUpStructure">Remove empty folders afterwards; the import setting when <c>null</c>.</param>
-    /// <param name="checkFileSize">Look again at files whose size changed; the import setting when <c>null</c>.</param>
-    /// <param name="forceScan">Look at every file again, even known ones.</param>
+    /// <param name="options">How to scan it.</param>
     /// <param name="progress">Told how far the scan is, as a percentage from 0 to 100.</param>
     /// <param name="token">Stops the scan; files already looked at stay looked at.</param>
     /// <returns>A task that completes once the scan is done.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
-    internal Task ScanManagedFolder(IManagedFolder folder, string? relativePath, bool onlyNewFiles, bool skipEvents, bool? cleanUpStructure, bool? checkFileSize, bool forceScan, IProgress<decimal>? progress, CancellationToken token)
-        => ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipEvents, cleanUpStructure, checkFileSize, forceScan, progress, token);
+    internal Task ScanManagedFolder(IManagedFolder folder, ManagedFolderScanOptions options, IProgress<decimal>? progress, CancellationToken token)
+        => ScanManagedFolder((ShokoManagedFolder)folder, options, progress, token);
 
-    private async Task ScanManagedFolder(ShokoManagedFolder folder, string? relativePath, bool onlyNewFiles, bool skipEvents, bool? cleanUpStructure, bool? checkFileSize, bool forceScan, IProgress<decimal>? progress, CancellationToken token)
+    private async Task ScanManagedFolder(ShokoManagedFolder folder, ManagedFolderScanOptions options, IProgress<decimal>? progress, CancellationToken token)
     {
         progress?.Report(0);
-        cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
-        checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
+        var relativePath = options.RelativePath;
+        var onlyNewFiles = options.OnlyNewFiles ?? false;
+        var skipEvents = options.SkipEvents;
+        var forceScan = options.ForceScan;
+        var cleanUpStructure = options.CleanUpStructure ?? _settingsProvider.GetSettings().Import.CleanUpStructure;
+        var checkFileSize = options.CheckFileSize ?? _settingsProvider.GetSettings().Import.CheckFileSize;
 
         var startedAt = DateTime.Now;
         var files = GetFilesInImportFolder(folder);
@@ -1379,7 +1378,7 @@ public class VideoService : IVideoService
             .Where(a => !string.IsNullOrEmpty(a))
             .ToList();
         var settings = _settingsProvider.GetSettings();
-        if (checkFileSize.Value && !onlyNewFiles)
+        if (checkFileSize && !onlyNewFiles)
         {
             files = files
                 .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
@@ -1435,7 +1434,7 @@ public class VideoService : IVideoService
 
         _logger.LogDebug("Found {FileCount} files and {VideoCount} videos in folder {FolderName} in {TimeSpan}. (Folder={FolderID}, FilesScanTime={FilesAt})", filesFound, videosFound, folder.Name, DateTime.Now - startedAt, folder.ID, filesAt);
 
-        if (cleanUpStructure.Value)
+        if (cleanUpStructure)
         {
             var timeStarted = DateTime.Now;
             _logger.LogInformation("Cleaning up managed folder; {Path} (ManagedFolder={ManagedFolderID})", folder.Path, folder.ID);
@@ -1455,13 +1454,14 @@ public class VideoService : IVideoService
         return _fileSystem.GetFilePaths(folder.Path, new() { Recursive = true, Filter = IsMatch, FollowDirectoryLinks = true });
     }
 
-    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true)
+    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, ManagedFolderScanOptions? options = null, bool prioritize = true)
     {
-        cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
-        checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
+        options ??= ManagedFolderScanOptions.Default;
+        var settings = _settingsProvider.GetSettings();
         await _scheduler.StartJob<ScanFolderJob>(j =>
             (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipEvents, j.CleanUpStructure, j.CheckFileSize, j.ForceScan) =
-            (folder.ID, relativePath ?? string.Empty, onlyNewFiles, skipEvents, cleanUpStructure.Value, checkFileSize.Value, forceScan),
+            (folder.ID, options.RelativePath ?? string.Empty, options.OnlyNewFiles ?? false, options.SkipEvents, options.CleanUpStructure ?? settings.Import.CleanUpStructure,
+                options.CheckFileSize ?? settings.Import.CheckFileSize, options.ForceScan),
             prioritize
         );
     }
@@ -1469,17 +1469,13 @@ public class VideoService : IVideoService
     /// <inheritdoc />
     public async Task ScheduleScanForManagedFolders(
         bool onlyDropSources = false,
-        bool? onlyNewFiles = null,
-        bool skipEvents = false,
-        bool? cleanUpStructure = null,
-        bool forceScan = false,
+        ManagedFolderScanOptions? options = null,
         bool prioritize = true,
         IProgress<decimal>? progress = null,
         CancellationToken cancellationToken = default
     )
     {
-        cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
-
+        options ??= ManagedFolderScanOptions.Default;
         var managedFolders = _managedFolderRepository.GetAll();
         var sources = managedFolders.Where(a => a.DropFolderType.HasFlag(DropFolderType.Source)).ToList();
         var rest = onlyDropSources ? [] : managedFolders.Except(sources).ToList();
@@ -1490,14 +1486,10 @@ public class VideoService : IVideoService
             cancellationToken.ThrowIfCancellationRequested();
 
             // Left unsaid, the drop sources are scanned whole and the rest for new files only.
-            var newFilesOnly = onlyNewFiles ?? !sources.Contains(folder);
             await ScheduleScanForManagedFolder(
                 folder,
-                onlyNewFiles: newFilesOnly,
-                skipEvents: skipEvents,
-                cleanUpStructure: cleanUpStructure,
-                forceScan: forceScan,
-                prioritize: prioritize
+                options with { RelativePath = null, OnlyNewFiles = options.OnlyNewFiles ?? !sources.Contains(folder) },
+                prioritize
             );
             items.Increment();
         }
