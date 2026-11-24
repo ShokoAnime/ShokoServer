@@ -529,6 +529,29 @@ public class VideoService : IVideoService
     }
 
     /// <summary>
+    ///   Finds the hashed video a new file is another name of: for a symbolic
+    ///   link, the video at the location it leads to, or the one that location
+    ///   is a hard link of; otherwise the one it is a hard link of.
+    /// </summary>
+    /// <param name="path">The new file's absolute path.</param>
+    /// <param name="resolvedPath">Where it leads, the same path when it is not a link.</param>
+    /// <param name="fileSize">Its size.</param>
+    /// <param name="video">The video, when found.</param>
+    /// <returns><c>true</c> when found.</returns>
+    internal bool TryGetVideoForSameFile(string path, string resolvedPath, long fileSize, [NotNullWhen(true)] out VideoLocal? video)
+    {
+        if (!string.Equals(path, resolvedPath, StringComparison.Ordinal)
+            && _managedFolderRepository.GetFromAbsolutePath(resolvedPath) is ({ } folder, { Length: > 0 } relativePath)
+            && _videoLocalPlaceRepository.GetByRelativePathAndManagedFolderID(relativePath, folder.ID)?.VideoLocal is { Hash.Length: > 0 } target)
+        {
+            video = target;
+            return true;
+        }
+
+        return TryGetVideoFromHardLink(resolvedPath, fileSize, out video);
+    }
+
+    /// <summary>
     ///   Finds the hashed video a new file is a hard link of, among the videos
     ///   of the same size.
     /// </summary>
@@ -536,7 +559,7 @@ public class VideoService : IVideoService
     /// <param name="fileSize">Its size.</param>
     /// <param name="video">The video, when found.</param>
     /// <returns><c>true</c> when found.</returns>
-    private bool TryGetVideoFromHardLink(string path, long fileSize, [NotNullWhen(true)] out VideoLocal? video)
+    internal bool TryGetVideoFromHardLink(string path, long fileSize, [NotNullWhen(true)] out VideoLocal? video)
     {
         var locations = _videoLocalRepository.GetByFileSize(fileSize)
             .Where(candidate => !string.IsNullOrEmpty(candidate.Hash))

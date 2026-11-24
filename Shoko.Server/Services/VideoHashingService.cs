@@ -516,11 +516,31 @@ public class VideoHashingService(
             useExistingHashes = false;
         }
 
+        // A new file may be another name of a video hashed since the scan found it, such as a link found in the
+        // same scan: a hard link of it, or a symbolic link to one of its locations. Its hashes are that video's.
+        if (isNewVideo && useExistingHashes && _videoService.TryGetVideoForSameFile(originalPath, resolvedPath, fileSize, out var linkedVideo))
+        {
+            logger.LogTrace("Found video for the same file before hashing: {Path} (Hash={Hash}, Size={Size})", originalPath, linkedVideo.Hash, fileSize);
+            video = linkedVideo;
+            isNewVideo = false;
+        }
+
         var existingHashes = !useExistingHashes ? [] : video.Hashes;
-        var file = fileSystem.FileExists(resolvedPath)
-            ? new FileSystemEntry(fileSystem, resolvedPath, isDirectory: false)
-            : throw new FileNotFoundException($"File does not exist: {resolvedPath}", resolvedPath);
-        var hashes = await GetHashesForFileInternal(file, existingHashes, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<IHashDigest> hashes;
+        if (useExistingHashes && !isNewVideo && existingHashes.Any(hash => hash.Type is ED2K) && AllEnabledHashTypes.All(type => existingHashes.Any(hash => hash.Type == type)))
+        {
+            // Every enabled hash is known and none was asked for again: nothing to read.
+            logger.LogTrace("Using the known hashes of the video, reading nothing: {Path} (Hash={Hash})", originalPath, video.Hash);
+            hashes = existingHashes;
+        }
+        else
+        {
+            var file = fileSystem.FileExists(resolvedPath)
+                ? new FileSystemEntry(fileSystem, resolvedPath, isDirectory: false)
+                : throw new FileNotFoundException($"File does not exist: {resolvedPath}", resolvedPath);
+            hashes = await TryHashOnce(file, existingHashes, cancellationToken).ConfigureAwait(false);
+        }
+
         var ed2k = hashes.FirstOrDefault(x => x.Type is ED2K);
         if (ed2k is not { Type: ED2K, Value.Length: 32 })
             throw new InvalidOperationException($"Could not get ED2K hash for {originalPath}");
@@ -739,6 +759,69 @@ public class VideoHashingService(
     #endregion
 
     #region Get Hashes for FileInfo
+
+    /// <summary>
+    ///   The hashing in progress for each file on disk, so two locations of
+    ///   one file, such as hard links found in the same scan, read it once.
+    /// </summary>
+    private readonly ConcurrentDictionary<StatIdentity, Task<IReadOnlyList<IHashDigest>>> _hashing = new();
+
+    /// <summary>
+    ///   Hashes a file, or waits for the hashing of the same file on disk
+    ///   already in progress and takes its result. A file whose identity
+    ///   cannot be read, or whose other hashing failed, is hashed here again.
+    /// </summary>
+    private async Task<IReadOnlyList<IHashDigest>> TryHashOnce(FileSystemEntry file, IReadOnlyList<IHashDigest> existingHashes, CancellationToken cancellationToken)
+    {
+        StatIdentity? identity;
+        try
+        {
+            identity = file.FileStat?.Identity;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            identity = null;
+        }
+
+        if (identity is null)
+            return await GetHashesForFileInternal(file, existingHashes, cancellationToken).ConfigureAwait(false);
+
+        var ours = new TaskCompletionSource<IReadOnlyList<IHashDigest>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (_hashing.TryAdd(identity, ours.Task))
+        {
+            try
+            {
+                var hashes = await GetHashesForFileInternal(file, existingHashes, cancellationToken).ConfigureAwait(false);
+                ours.TrySetResult(hashes);
+                return hashes;
+            }
+            catch
+            {
+                // Whoever waits hashes on its own instead.
+                ours.TrySetCanceled(CancellationToken.None);
+                throw;
+            }
+            finally
+            {
+                _hashing.TryRemove(new(identity, ours.Task));
+            }
+        }
+
+        if (_hashing.TryGetValue(identity, out var running))
+        {
+            try
+            {
+                logger.LogTrace("Waiting for the hashing of the same file at another path: {Path}", file.Path);
+                return await running.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // The other hashing failed.
+            }
+        }
+
+        return await GetHashesForFileInternal(file, existingHashes, cancellationToken).ConfigureAwait(false);
+    }
 
     private async Task<IReadOnlyList<IHashDigest>> GetHashesForFileInternal(FileSystemEntry fileInfo, IReadOnlyList<IHashDigest>? existingHashes = null, CancellationToken cancellationToken = default)
     {
