@@ -95,7 +95,67 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
             return;
         }
 
+        // On Windows a link to a directory is a directory entry, so File.Move finds no file at the source and
+        // will not replace one at the destination; it is moved as the directory entry it is.
+        if (OperatingSystem.IsWindows() && (IsWindowsDirectoryLink(usableSource) || IsWindowsDirectoryLink(usableDestination)))
+        {
+            Unwatched(() => MoveWindowsDirectoryLink(usableSource!, usableDestination!, sourcePath, destinationPath, overwrite), sourcePath, destinationPath);
+            return;
+        }
+
         Unwatched(() => File.Move(usableSource, usableDestination, overwrite), sourcePath, destinationPath);
+    }
+
+    /// <summary>
+    ///   The attributes of what is at a path, without following a link, or
+    ///   <c>null</c> when nothing is there.
+    /// </summary>
+    private static FileAttributes? GetOwnAttributes(string path)
+    {
+        try
+        {
+            return File.GetAttributes(path);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    private static bool IsWindowsDirectoryLink(string? path)
+        => path is not null &&
+            GetOwnAttributes(path) is { } attributes &&
+            (attributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) is (FileAttributes.Directory | FileAttributes.ReparsePoint);
+
+    /// <summary>
+    ///   Moves a link or a file over a link or a file on Windows, where a link
+    ///   to a directory is moved and removed as a directory entry. Replacing
+    ///   takes two steps there: the link or file at the destination is removed
+    ///   first, never what a link points to.
+    /// </summary>
+    private static void MoveWindowsDirectoryLink(string usableSource, string usableDestination, string sourcePath, string destinationPath, bool overwrite)
+    {
+        if (GetOwnAttributes(usableSource) is not { } source)
+            throw new FileNotFoundException($"Cannot move {sourcePath} to {destinationPath}: there is nothing at the source.", sourcePath);
+        if ((source & (FileAttributes.Directory | FileAttributes.ReparsePoint)) is FileAttributes.Directory)
+            throw new UnauthorizedAccessException($"Cannot move {sourcePath} to {destinationPath}: the source is a directory, not a file or a link.");
+        if (GetOwnAttributes(usableDestination) is { } existing)
+        {
+            var existingIsLink = (existing & FileAttributes.ReparsePoint) is not 0;
+            if ((existing & FileAttributes.Directory) is not 0 && !existingIsLink)
+                throw new UnauthorizedAccessException($"Cannot move {sourcePath} to {destinationPath}: a directory is there.");
+            if (!overwrite)
+                throw new IOException($"Cannot move {sourcePath} to {destinationPath}: something is already there.");
+            if ((existing & FileAttributes.Directory) is not 0)
+                Directory.Delete(usableDestination);
+            else
+                File.Delete(usableDestination);
+        }
+
+        if ((source & FileAttributes.Directory) is not 0)
+            Directory.Move(usableSource, usableDestination);
+        else
+            File.Move(usableSource, usableDestination);
     }
 
     private static bool IsUnixLink(string path)
