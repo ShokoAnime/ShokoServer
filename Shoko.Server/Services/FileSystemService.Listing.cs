@@ -13,9 +13,12 @@ public partial class FileSystemService
     ///   An entry of a directory as reading the directory gave it.
     /// </summary>
     /// <param name="Name">Its name.</param>
-    /// <param name="IsDirectory">Whether it is a directory, or a link to one.</param>
+    /// <param name="IsDirectory">
+    ///   Whether it is a directory, or a link to one; <c>null</c> for a link
+    ///   whose target was left unread.
+    /// </param>
     /// <param name="IsLink">Whether it is a symbolic link.</param>
-    private readonly record struct DirectoryItem(string Name, bool IsDirectory, bool IsLink);
+    private readonly record struct DirectoryItem(string Name, bool? IsDirectory, bool IsLink);
 
     /// <summary>
     ///   Whether the directories are read through <c>readdir</c>, which gives
@@ -28,17 +31,22 @@ public partial class FileSystemService
     ///   Reads a directory's entries.
     /// </summary>
     /// <param name="path">The directory, as handed out.</param>
+    /// <param name="resolveLinks">
+    ///   Whether to tell a link to a directory from any other link at once,
+    ///   which costs a stat through each link on Unix; otherwise a link's
+    ///   <see cref="DirectoryItem.IsDirectory"/> is <c>null</c> there.
+    /// </param>
     /// <returns>Its entries.</returns>
     /// <exception cref="DirectoryNotFoundException">There is no directory at the path.</exception>
     /// <exception cref="UnauthorizedAccessException">It may not be read.</exception>
     /// <exception cref="IOException">It could not be read for another reason.</exception>
-    private IReadOnlyList<DirectoryItem> ReadDirectory(string path)
+    private IReadOnlyList<DirectoryItem> ReadDirectory(string path, bool resolveLinks)
     {
         if (_useReaddir)
         {
             try
             {
-                return ReadDirectoryUnix(path);
+                return ReadDirectoryUnix(path, resolveLinks);
             }
             catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException or TypeInitializationException)
             {
@@ -75,10 +83,10 @@ public partial class FileSystemService
     /// <summary>
     ///   Reads a directory through <c>readdir_r</c>: the kind comes from
     ///   <c>d_type</c>, so an entry costs nothing more, a link one stat through
-    ///   it to tell a link to a folder, and an entry of unknown kind (some
-    ///   network and FUSE file systems) one lstat.
+    ///   it to tell a link to a folder when asked to, and an entry of unknown
+    ///   kind (some network and FUSE file systems) one lstat.
     /// </summary>
-    private static List<DirectoryItem> ReadDirectoryUnix(string path)
+    private static List<DirectoryItem> ReadDirectoryUnix(string path, bool resolveLinks)
     {
         const byte DT_UNKNOWN = 0, DT_DIR = 4, DT_LNK = 10;
 
@@ -120,8 +128,11 @@ public partial class FileSystemService
 
                 if (type is DT_LNK)
                 {
-                    // A link to a folder counts as one, as .NET has it; a dead link is not one.
-                    var isDirectory = Syscall.stat(fullPath, out var target) is 0 && (target.st_mode & FilePermissions.S_IFMT) is FilePermissions.S_IFDIR;
+                    // A link to a folder counts as one, as .NET has it; a dead link is not one. Left to the entry
+                    // when the listing keeps every link either way and walks into none.
+                    bool? isDirectory = resolveLinks
+                        ? Syscall.stat(fullPath, out var target) is 0 && (target.st_mode & FilePermissions.S_IFMT) is FilePermissions.S_IFDIR
+                        : null;
                     items.Add(new(name, isDirectory, IsLink: true));
                     continue;
                 }

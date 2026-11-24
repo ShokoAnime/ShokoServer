@@ -459,6 +459,56 @@ public sealed class FileSystemServiceTests : IDisposable
     }
 
     [Fact]
+    public void GetStat_ReadsALinksTargetOneStepAndOnlyWhenAsked()
+    {
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
+        var file = MakeFile("file.mkv");
+        var link = Path.Combine(_root, "link.mkv");
+        var linkToLink = Path.Combine(_root, "link-to-link.mkv");
+        var broken = Path.Combine(_root, "broken.mkv");
+        _fileSystem.CreateSymbolicLink(file, link);
+        File.CreateSymbolicLink(linkToLink, link);
+        File.CreateSymbolicLink(broken, Path.Combine(_root, "missing.mkv"));
+
+        var direct = Assert.IsType<SymbolicLinkStat>(_fileSystem.GetStat(link, followSymbolicLinks: false));
+        var chained = Assert.IsType<SymbolicLinkStat>(_fileSystem.GetStat(linkToLink, followSymbolicLinks: false));
+        var dead = Assert.IsType<SymbolicLinkStat>(_fileSystem.GetStat(broken, followSymbolicLinks: false));
+
+        Assert.Equal(Identity(file), Assert.IsType<FileStat>(direct.TargetStat).Identity);
+        // One step: the second link's own stat, which reads nothing further.
+        var next = Assert.IsType<SymbolicLinkStat>(chained.TargetStat);
+        Assert.Equal(direct.Identity, next.Identity);
+        Assert.Null(next.TargetStat);
+        Assert.Null(dead.TargetStat);
+    }
+
+    [Fact]
+    public void SymbolicLinkStat_IsEqualByWhatWasRead_NotByItsTargetReader()
+    {
+        SymbolicLinkStat Make(Func<FileSystemStat?> reader)
+            => new()
+            {
+                Path = "/media/link.mkv",
+                Identity = new("1", "2"),
+                LinkCount = 1,
+                LastWriteTime = DateTime.UnixEpoch,
+                LastAccessTime = DateTime.UnixEpoch,
+                Target = "file.mkv",
+                LazyTargetStat = new(reader),
+            };
+        var reads = 0;
+        var first = Make(() => { reads++; return null; });
+        var second = Make(() => { reads++; return null; });
+
+        Assert.Equal(first, second);
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+        Assert.Equal(0, reads);
+        _ = first.TargetStat;
+        _ = first.TargetStat;
+        Assert.Equal(1, reads);
+    }
+
+    [Fact]
     public void MoveFile_ReplacesOnlyWhenAsked()
     {
         var source = MakeFile("source.mkv", "new");
@@ -469,6 +519,47 @@ public sealed class FileSystemServiceTests : IDisposable
 
         Assert.False(File.Exists(source));
         Assert.Equal("new", File.ReadAllText(destination));
+    }
+
+    [Fact]
+    public void MoveFile_ReplacesALinkToADirectoryWithALink()
+    {
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
+        var oldTarget = Directory.CreateDirectory(Path.Combine(_root, "old")).FullName;
+        var newTarget = Directory.CreateDirectory(Path.Combine(_root, "new")).FullName;
+        MakeFile(Path.Combine("old", "kept.mkv"));
+        var final = Path.Combine(_root, "season");
+        var temporary = Path.Combine(_root, "season.tmp");
+        _fileSystem.CreateSymbolicLink(oldTarget, final);
+        _fileSystem.CreateSymbolicLink(newTarget, temporary);
+
+        Assert.Throws<IOException>(() => _fileSystem.MoveFile(temporary, final));
+        _fileSystem.MoveFile(temporary, final, overwrite: true);
+
+        Assert.False(File.Exists(temporary) || Directory.Exists(temporary));
+        Assert.Equal(newTarget, File.ResolveLinkTarget(final, false)?.FullName);
+        Assert.True(File.Exists(Path.Combine(oldTarget, "kept.mkv")));
+    }
+
+    [Fact]
+    public void MoveFile_ReplacesALinkRatherThanWhatItPointsTo()
+    {
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
+        var folder = Directory.CreateDirectory(Path.Combine(_root, "folder")).FullName;
+        var target = MakeFile("target.mkv", "old");
+        var folderLink = Path.Combine(_root, "folder-link");
+        var fileLink = Path.Combine(_root, "file-link.mkv");
+        _fileSystem.CreateSymbolicLink(folder, folderLink);
+        _fileSystem.CreateSymbolicLink(target, fileLink);
+
+        _fileSystem.MoveFile(MakeFile("first.mkv", "first"), folderLink, overwrite: true);
+        _fileSystem.MoveFile(MakeFile("second.mkv", "second"), fileLink, overwrite: true);
+
+        Assert.Null(File.ResolveLinkTarget(folderLink, false));
+        Assert.Equal("first", File.ReadAllText(folderLink));
+        Assert.Empty(Directory.GetFileSystemEntries(folder));
+        Assert.Null(File.ResolveLinkTarget(fileLink, false));
+        Assert.Equal("old", File.ReadAllText(target));
     }
 
     [Fact]

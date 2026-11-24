@@ -45,6 +45,30 @@ public sealed class FileSystemEntryTests : IDisposable
     }
 
     [Fact]
+    public void IsDirectory_LeftOpen_IsReadOnceWithTheStat()
+    {
+        var fileSystem = new Mock<IFileSystem>();
+        fileSystem.Setup(f => f.GetStat(It.IsAny<string?>(), It.IsAny<bool>())).Returns(new DirectoryStat { Path = "/media/show-link", Identity = new("1", "2"), LinkCount = 1, LastWriteTime = DateTime.UnixEpoch, LastAccessTime = DateTime.UnixEpoch });
+        var entry = new FileSystemEntry(fileSystem.Object, "/media/show-link", isDirectory: null, isSymbolicLink: true);
+
+        fileSystem.Verify(f => f.GetStat(It.IsAny<string?>(), It.IsAny<bool>()), Times.Never);
+        Assert.True(entry.IsDirectory);
+        Assert.True(entry.IsDirectory);
+        Assert.NotNull(entry.DirectoryStat);
+        fileSystem.Verify(f => f.GetStat("/media/show-link", true), Times.Once);
+    }
+
+    [Fact]
+    public void IsDirectory_LeftOpen_IsFalseWhenTheTargetCannotBeRead()
+    {
+        var fileSystem = new Mock<IFileSystem>();
+        fileSystem.Setup(f => f.GetStat(It.IsAny<string?>(), It.IsAny<bool>())).Throws(new UnauthorizedAccessException());
+        var entry = new FileSystemEntry(fileSystem.Object, "/media/locked-link", isDirectory: null, isSymbolicLink: true);
+
+        Assert.False(entry.IsDirectory);
+    }
+
+    [Fact]
     public void Listings_GiveEntriesOfTheirKind()
     {
         IFileSystem fileSystem = new FileSystemService(NullLogger<FileSystemService>.Instance);
@@ -111,6 +135,12 @@ public sealed class FileSystemEntryTests : IDisposable
             => fileSystem.GetFileSystemEntries(walk, options, TestContext.Current.CancellationToken).Select(entry => entry.Name).Order().ToArray();
 
         Assert.Equal(["file-link.mkv", "folder-link"], Names(new()));
+        // Read when asked, the listing having left it open.
+        var kinds = fileSystem.GetFileSystemEntries(walk, cancellationToken: TestContext.Current.CancellationToken).ToDictionary(entry => entry.Name, entry => entry.IsDirectory);
+        Assert.True(kinds["folder-link"]);
+        Assert.False(kinds["file-link.mkv"]);
+        Assert.Equal(["folder-link"], fileSystem.GetDirectoryEntries(walk, cancellationToken: TestContext.Current.CancellationToken).Select(entry => entry.Name).ToArray());
+        Assert.Equal(["file-link.mkv"], fileSystem.GetFileEntries(walk, cancellationToken: TestContext.Current.CancellationToken).Select(entry => entry.Name).ToArray());
         Assert.Equal(["folder-link"], Names(new() { IncludeFileLinks = false }));
         Assert.Equal(["file-link.mkv"], Names(new() { IncludeDirectoryLinks = false }));
         // Walked into, though not listed itself.

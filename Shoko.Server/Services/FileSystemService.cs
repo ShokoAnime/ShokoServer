@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
 using Mono.Unix;
+using Mono.Unix.Native;
 using Shoko.Abstractions.FileSystem;
 using Shoko.Abstractions.FileSystem.Services;
 using Shoko.Abstractions.Utilities;
@@ -86,8 +87,68 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
             return;
         }
 
+        // .NET follows a link to see whether it is a file, so a link to a directory is "not found" as the source
+        // and refused as the destination; rename(2) moves and replaces the link itself, in a single step.
+        if (PlatformUtility.IsUnixLike && (IsUnixLink(sourcePath) || IsUnixLink(destinationPath)))
+        {
+            Unwatched(() => MoveUnixLink(sourcePath, destinationPath, overwrite), sourcePath, destinationPath);
+            return;
+        }
+
         Unwatched(() => File.Move(usableSource, usableDestination, overwrite), sourcePath, destinationPath);
     }
+
+    private static bool IsUnixLink(string path)
+        => Syscall.lstat(path, out var stat) is 0 && (stat.st_mode & FilePermissions.S_IFMT) is FilePermissions.S_IFLNK;
+
+    /// <summary>
+    ///   Moves what is at the source, a link or a file, over a link or a file
+    ///   at the destination, without following either.
+    /// </summary>
+    private static void MoveUnixLink(string sourcePath, string destinationPath, bool overwrite)
+    {
+        if (Syscall.lstat(sourcePath, out _) is not 0)
+            throw MoveError(Stdlib.GetLastError(), sourcePath, destinationPath);
+        if (Syscall.lstat(destinationPath, out var existing) is 0)
+        {
+            if ((existing.st_mode & FilePermissions.S_IFMT) is FilePermissions.S_IFDIR)
+                throw new UnauthorizedAccessException($"Cannot move {sourcePath} to {destinationPath}: a directory is there.");
+            if (!overwrite)
+                throw new IOException($"Cannot move {sourcePath} to {destinationPath}: something is already there.");
+        }
+
+        if (Syscall.rename(sourcePath, destinationPath) is 0)
+            return;
+
+        var error = Stdlib.GetLastError();
+        if (error is not Errno.EXDEV || new FileInfo(sourcePath).LinkTarget is not { } target)
+            throw MoveError(error, sourcePath, destinationPath);
+
+        // Another volume: the link is made anew beside the destination, with the same target as written, and
+        // renamed over it, so the destination still changes in a single step.
+        var temporaryPath = Path.Join(Path.GetDirectoryName(destinationPath), $".{Path.GetFileName(destinationPath)}.{Guid.NewGuid():N}.tmp");
+        File.CreateSymbolicLink(temporaryPath, target);
+        if (Syscall.rename(temporaryPath, destinationPath) is not 0)
+        {
+            error = Stdlib.GetLastError();
+            File.Delete(temporaryPath);
+            throw MoveError(error, sourcePath, destinationPath);
+        }
+
+        File.Delete(sourcePath);
+    }
+
+    private static Exception MoveError(Errno error, string sourcePath, string destinationPath)
+        => error switch
+        {
+            Errno.ENOENT when !File.Exists(sourcePath) && new FileInfo(sourcePath).LinkTarget is null
+                => new FileNotFoundException($"Could not find {sourcePath}.", sourcePath),
+            Errno.ENOENT or Errno.ENOTDIR
+                => new DirectoryNotFoundException($"A folder on the way from {sourcePath} to {destinationPath} does not exist."),
+            Errno.EACCES or Errno.EPERM or Errno.EISDIR
+                => new UnauthorizedAccessException($"Cannot move {sourcePath} to {destinationPath} ({error})."),
+            _ => new IOException($"Cannot move {sourcePath} to {destinationPath} ({error})."),
+        };
 
     public void DeleteFile(string path)
         => Unwatched(() => File.Delete(PlatformUtility.EnsureUsablePath(path)), path);
@@ -421,13 +482,18 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
         var outputBag = new ConcurrentBag<FileSystemEntry>();
         var canProceed = GetEntryValidator(options);
         var recursive = options.Recursive;
+        var followLinks = recursive && options.FollowDirectoryLinks;
+
+        // What a link points to is only needed to walk into it, or when links to directories and to files
+        // are not all listed alike; otherwise the entry reads it if anything asks.
+        var resolveLinks = followLinks || !outputFiles || !outputDirectories || !options.IncludeDirectoryLinks || !options.IncludeFileLinks;
 
         // The root is read first and on its own: reading it says whether it is there, so it needs no check
         // beforehand, and a listing that does not walk needs nothing more.
         IReadOnlyList<DirectoryItem> rootItems;
         try
         {
-            rootItems = ReadDirectory(directoryPath);
+            rootItems = ReadDirectory(directoryPath, resolveLinks);
         }
         catch (Exception ex) when (!options.ThrowOnError && ex is IOException or UnauthorizedAccessException)
         {
@@ -438,7 +504,7 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
 
         // While following links, the directories reached through one are remembered by identity, the
         // root's included, so a link back up the tree is walked once rather than until the path is too long.
-        var walked = recursive && options.FollowDirectoryLinks ? new ConcurrentDictionary<StatIdentity, byte>() : null;
+        var walked = followLinks ? new ConcurrentDictionary<StatIdentity, byte>() : null;
         if (walked is not null && TryGetIdentity(directoryPath) is { } rootIdentity)
             walked.TryAdd(rootIdentity, 0);
 
@@ -449,11 +515,15 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
             var walkInto = recursive ? new List<string>() : null;
             foreach (var (name, isDirectory, isLink) in items)
             {
+                // A link left unread is listed whatever it points to, and walked into by nothing.
                 // A link that is neither listed nor walked into needs no entry at all.
-                var walksInto = isDirectory && recursive && (!isLink || walked is not null);
-                var outputs = isDirectory
-                    ? outputDirectories && (!isLink || options.IncludeDirectoryLinks)
-                    : outputFiles && (!isLink || options.IncludeFileLinks);
+                var walksInto = isDirectory is true && recursive && (!isLink || walked is not null);
+                var outputs = isDirectory switch
+                {
+                    null => true,
+                    true => outputDirectories && (!isLink || options.IncludeDirectoryLinks),
+                    false => outputFiles && (!isLink || options.IncludeFileLinks),
+                };
                 if (!outputs && !walksInto)
                     continue;
                 var entry = new FileSystemEntry(this, Path.Join(path, name), isDirectory, isLink);
@@ -474,7 +544,7 @@ public partial class FileSystemService(ILogger<FileSystemService> logger, IServi
         {
             var walk = Parallelize(
                 subdirectories,
-                path => Take(path, ReadDirectory(path)),
+                path => Take(path, ReadDirectory(path, resolveLinks)),
                 stopOnError: options.ThrowOnError,
                 cancellationToken
             );

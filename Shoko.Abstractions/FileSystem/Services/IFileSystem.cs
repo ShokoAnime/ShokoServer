@@ -138,7 +138,8 @@ public interface IFileSystem
     ///   where both name the same file, by going through a temporary name.
     ///   On one volume, replacing a file with <paramref name="overwrite"/> is
     ///   a single step: a reader sees the old file or the new one, never
-    ///   neither. A link is moved as itself.
+    ///   neither. A link is moved as itself, a link to a directory included,
+    ///   and a link at the destination is replaced, never followed.
     /// </remarks>
     /// <param name="sourcePath">The file to move.</param>
     /// <param name="destinationPath">Where to move it.</param>

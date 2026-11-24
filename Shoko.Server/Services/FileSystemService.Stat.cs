@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Win32.SafeHandles;
 using Mono.Unix.Native;
 using Shoko.Abstractions.FileSystem;
@@ -21,6 +22,29 @@ public partial class FileSystemService
         if (string.IsNullOrEmpty(path))
             return null;
 
+        var stat = ReadInfo(path, followSymbolicLinks);
+        if (stat is not SymbolicLinkStat { Target: { Length: > 0 } target } link)
+            return stat;
+
+        // One step only, and only when asked: what the link points to, read without following it.
+        return link with
+        {
+            LazyTargetStat = new(() =>
+            {
+                try
+                {
+                    return ReadInfo(Path.GetFullPath(target, Path.GetDirectoryName(path) ?? string.Empty), followSymbolicLinks: false);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+                {
+                    return null;
+                }
+            }, LazyThreadSafetyMode.ExecutionAndPublication),
+        };
+    }
+
+    private static FileSystemStat? ReadInfo(string path, bool followSymbolicLinks)
+    {
         if (PlatformUtility.IsWindows)
             return ReadWindowsInfo(path, followSymbolicLinks);
 

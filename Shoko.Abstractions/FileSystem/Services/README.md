@@ -48,7 +48,7 @@ on Windows):
 | `FileSystemStat` (all) | `Path`, `Identity`, `LinkCount`, `LastWriteTime`, `LastAccessTime`, `ChangeTime`, `CreationTime` |
 | `FileStat` | `Size`, `AllocatedSize` |
 | `DirectoryStat` | nothing more |
-| `SymbolicLinkStat` | `Target`, as stored in the link, and `IsDirectoryLink`: known on Windows, where links are made as file or directory links, and `null` on Unix, where they have no kind |
+| `SymbolicLinkStat` | `Target`, as stored in the link; `IsDirectoryLink`: known on Windows, where links are made as file or directory links, and `null` on Unix, where they have no kind; and `TargetStat`, what is at the target, read without following it and only when first asked for, so reading a link costs no stat of its target |
 | `SpecialFileStat` | `Kind` (pipe, socket, character or block device) and, for a device, `DeviceID`; Unix only |
 
 `GetFileStat` and `GetDirectoryStat` read the same and give the
@@ -162,9 +162,13 @@ no particular order, and one that cannot be read is skipped.
 
 A `FileSystemEntry` knows its `Path`, `Name`, `IsDirectory` and `IsSymbolicLink`
 from the listing itself: on Linux and macOS from each entry's `d_type`, one
-stat through each link to tell a link to a directory (a dead link is not one),
-and an lstat only where the file system gives no kind; on Windows from the
-listing's attributes, and reads its `Stat` (with `FileStat` and
+stat through a link to tell a link to a directory (a dead link is not one)
+only when the listing needs to know, and an lstat only where the file system
+gives no kind; on Windows from the listing's attributes. A listing needs to
+know what a link points to when it walks into links (`FollowDirectoryLinks`),
+lists only files or only directories, or leaves out one kind of link
+(`IncludeDirectoryLinks`, `IncludeFileLinks`); otherwise a link's
+`IsDirectory` is read on first access, through its `Stat`. An entry reads its `Stat` (with `FileStat` and
 `DirectoryStat` beside it) only when first asked, then keeps it. The filter,
 ignore rules (`IManagedFolderIgnoreRule`), the detected-file event and hashing
 requests all hand out entries, so code that only needs the path costs a scan
