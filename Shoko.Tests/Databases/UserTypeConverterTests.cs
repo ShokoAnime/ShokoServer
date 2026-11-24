@@ -345,4 +345,11 @@ public class UserTypeConverterTests
     }
 
     #endregion
+
+    [Theory]
+    [InlineData("", new string[0])]
+    [InlineData("one|||two", new[] { "one", "two" })]
+    [InlineData("one||||||two", new[] { "one", "two" })]
+    public void StringListConverter_ReadsTheTags_WithoutEmptyOnes(string stored, string[] expected)
+        => Assert.Equal(expected, Assert.IsType<List<string>>(new StringListConverter().ConvertFrom(null, null, stored)));
 }

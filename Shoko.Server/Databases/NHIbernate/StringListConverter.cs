@@ -35,7 +35,8 @@ public class StringListConverter : TypeConverter, IUserType
         => value switch
         {
             null => [],
-            string i => i.Split("|||").ToList(),
+            // An empty column is no tags, not one empty tag.
+            string i => i.Split("|||", StringSplitOptions.RemoveEmptyEntries).ToList(),
             List<string> l => l,
             _ => throw new ArgumentException($"DestinationType must be {nameof(String)}.")
         };
