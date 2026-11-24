@@ -100,6 +100,31 @@ public sealed class VideoFileGrouperTests : IDisposable
     }
 
     [Fact]
+    public void Relocation_TellsALinkToTheFile_AndChecksSizes()
+    {
+        Assert.SkipUnless(CanLink, "This user may not make symbolic links here.");
+        var file = MakeFile("file.mkv");
+        var symbolicLink = Path.Combine(_root, "symbolic-link.mkv");
+        var hardLink = Path.Combine(_root, "hard-link.mkv");
+        _fileSystem.CreateSymbolicLink(file, symbolicLink);
+        _fileSystem.CreateHardLink(file, hardLink);
+        var copy = MakeFile("copy.mkv");
+        var other = MakeFile("other.mkv", "another size");
+
+        Assert.True(VideoRelocationService.IsSymbolicLinkTo(_fileSystem, symbolicLink, file));
+        Assert.True(VideoRelocationService.IsSymbolicLinkTo(_fileSystem, symbolicLink, hardLink));
+        Assert.False(VideoRelocationService.IsSymbolicLinkTo(_fileSystem, file, symbolicLink));
+        Assert.False(VideoRelocationService.IsSymbolicLinkTo(_fileSystem, hardLink, file));
+        Assert.False(VideoRelocationService.IsSymbolicLinkTo(_fileSystem, symbolicLink, copy));
+
+        Assert.True(VideoRelocationService.IsSameSize(_fileSystem, copy, file, 5));
+        Assert.True(VideoRelocationService.IsSameSize(_fileSystem, symbolicLink, hardLink, 5));
+        Assert.False(VideoRelocationService.IsSameSize(_fileSystem, other, file, 5));
+        Assert.False(VideoRelocationService.IsSameSize(_fileSystem, copy, file, 6));
+        Assert.False(VideoRelocationService.IsSameSize(_fileSystem, Path.Combine(_root, "missing.mkv"), file, 5));
+    }
+
+    [Fact]
     public void Group_ReadsTheStoredGroups_ThePrimaryFirst()
     {
         var groups = VideoFileGrouper.Group([Stored(1, 2), Stored(2, 2), Stored(3, 2), Stored(4, 4)], joinLinks: true, firstAvailableFileID: 2, ignoreKept: false);

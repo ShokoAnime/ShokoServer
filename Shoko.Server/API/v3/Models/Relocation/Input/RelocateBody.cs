@@ -30,4 +30,11 @@ public class RelocateBody
     /// </summary>
     [DefaultValue(true)]
     public bool DeleteEmptyDirectories { get; set; } = true;
+
+    /// <summary>
+    /// Whether relocating onto the path of another copy of the same video
+    /// replaces it rather than leaving the file where it is. Leave as
+    /// <c>null</c> to use the <c>ReplaceSameVideoAtDestination</c> setting.
+    /// </summary>
+    public bool? ReplaceSameVideoAtDestination { get; set; }
 }

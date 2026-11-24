@@ -87,6 +87,7 @@ public class RelocationController(
             RenameOnImport = presetManager.RenameOnImport,
             MoveOnImport = presetManager.MoveOnImport,
             AllowRelocationInsideDestinationOnImport = presetManager.AllowRelocationInsideDestinationOnImport,
+            ReplaceSameVideoAtDestination = presetManager.ReplaceSameVideoAtDestination,
             ProviderCount = relocationService.GetAvailableProviders().Count(),
         };
 
@@ -111,6 +112,8 @@ public class RelocationController(
             presetManager.MoveOnImport = body.MoveOnImport.Value;
         if (body.AllowRelocationInsideDestinationOnImport.HasValue)
             presetManager.AllowRelocationInsideDestinationOnImport = body.AllowRelocationInsideDestinationOnImport.Value;
+        if (body.ReplaceSameVideoAtDestination.HasValue)
+            presetManager.ReplaceSameVideoAtDestination = body.ReplaceSameVideoAtDestination.Value;
 
         return Ok();
     }
@@ -323,6 +326,11 @@ public class RelocationController(
     ///   Whether or not to allow relocation of files inside the destination. If
     ///   <c>null</c>, defaults to <see cref="RelocationSummary.AllowRelocationInsideDestinationOnImport"/>.
     /// </param>
+    /// <param name="replaceSameVideoAtDestination">
+    ///   Whether relocating onto the path of another copy of the same video
+    ///   replaces it rather than leaving the file where it is. If <c>null</c>,
+    ///   defaults to <see cref="RelocationSummary.ReplaceSameVideoAtDestination"/>.
+    /// </param>
     /// <returns>
     ///   A stream of <see cref="ApiRelocationResult"/>s.
     /// </returns>
@@ -333,7 +341,8 @@ public class RelocationController(
         [FromQuery] bool deleteEmptyDirectories = true,
         [FromQuery] bool? move = null,
         [FromQuery] bool? rename = null,
-        [FromQuery] bool? allowRelocationInsideDestination = null
+        [FromQuery] bool? allowRelocationInsideDestination = null,
+        [FromQuery] bool? replaceSameVideoAtDestination = null
     )
     {
         if (presetManager.GetDefaultPreset() is not { ProviderInfo: { } } preset)
@@ -346,6 +355,7 @@ public class RelocationController(
             Move = move ?? presetManager.MoveOnImport,
             Rename = rename ?? presetManager.RenameOnImport,
             AllowRelocationInsideDestination = allowRelocationInsideDestination ?? presetManager.AllowRelocationInsideDestinationOnImport,
+            ReplaceSameVideoAtDestination = replaceSameVideoAtDestination ?? presetManager.ReplaceSameVideoAtDestination,
         }));
     }
 
@@ -709,6 +719,11 @@ public class RelocationController(
     ///   Whether or not to allow relocation of files inside the destination. If
     ///   <c>null</c>, defaults to <see cref="RelocationSummary.AllowRelocationInsideDestinationOnImport"/>.
     /// </param>
+    /// <param name="replaceSameVideoAtDestination">
+    ///   Whether relocating onto the path of another copy of the same video
+    ///   replaces it rather than leaving the file where it is. If <c>null</c>,
+    ///   defaults to <see cref="RelocationSummary.ReplaceSameVideoAtDestination"/>.
+    /// </param>
     /// <returns>
     ///   A stream of <see cref="ApiRelocationResult"/>s.
     /// </returns>
@@ -720,7 +735,8 @@ public class RelocationController(
         [FromQuery] bool deleteEmptyDirectories = true,
         [FromQuery] bool? move = null,
         [FromQuery] bool? rename = null,
-        [FromQuery] bool? allowRelocationInsideDestination = null
+        [FromQuery] bool? allowRelocationInsideDestination = null,
+        [FromQuery] bool? replaceSameVideoAtDestination = null
     )
     {
         if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
@@ -734,6 +750,7 @@ public class RelocationController(
                 Move = move ?? presetManager.MoveOnImport,
                 Rename = rename ?? presetManager.RenameOnImport,
                 AllowRelocationInsideDestination = allowRelocationInsideDestination ?? presetManager.AllowRelocationInsideDestinationOnImport,
+                ReplaceSameVideoAtDestination = replaceSameVideoAtDestination ?? presetManager.ReplaceSameVideoAtDestination,
             })
         );
     }

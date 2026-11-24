@@ -23,4 +23,10 @@ public class UpdateRelocationSettingsBody
     /// drop destination managed folder that's not also a drop source on import.
     /// </summary>
     public bool? AllowRelocationInsideDestinationOnImport { get; set; }
+
+    /// <summary>
+    /// Indicates that relocating a video file onto the path of another copy of
+    /// the same video replaces it, links handled as links.
+    /// </summary>
+    public bool? ReplaceSameVideoAtDestination { get; set; }
 }

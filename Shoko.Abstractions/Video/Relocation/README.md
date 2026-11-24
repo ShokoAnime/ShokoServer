@@ -225,7 +225,18 @@ requested and `ManagedFolder` or `Path` is null.
 Afterwards the service refuses a relative path that resolves outside the
 managed folder, refuses a destination folder without enough free space (unless
 the file is staying in its current folder), creates the destination tree, and
-handles the case where a file already exists at the target.
+handles the case where a file already exists at the target:
+
+- **Another copy of the same video** stops the relocation, unless the request's
+  `ReplaceSameVideoAtDestination` is on (the `ReplaceSameVideoAtDestination`
+  setting, off by default). Then links are never followed and the copy already
+  there stays: a symbolic link there that leads to the file being moved is
+  replaced by the file, so the file ends up at the target; anything else there,
+  a symbolic link to the file, a hard link of it or a separate copy, makes the
+  file being moved redundant, and it is removed once both are the video's size.
+  Either way the location being relocated takes over the target's.
+- **A different video** there is only replaced by a newer version from the same
+  group.
 
 ---
 

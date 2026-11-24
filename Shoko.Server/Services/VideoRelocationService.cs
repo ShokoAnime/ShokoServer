@@ -125,6 +125,19 @@ public class VideoRelocationService(
         }
     }
 
+    public bool ReplaceSameVideoAtDestination
+    {
+        get => settingsProvider.GetSettings().Plugins.Renamer.ReplaceSameVideoAtDestination;
+        set
+        {
+            if (settingsProvider.GetSettings().Plugins.Renamer.ReplaceSameVideoAtDestination != value)
+            {
+                settingsProvider.GetSettings().Plugins.Renamer.ReplaceSameVideoAtDestination = value;
+                settingsProvider.SaveSettings();
+            }
+        }
+    }
+
     public bool AllowRelocationInsideDestinationOnImport
     {
         get => settingsProvider.GetSettings().Plugins.Renamer.AllowRelocationInsideDestinationOnImport;
@@ -622,6 +635,7 @@ public class VideoRelocationService(
             Rename = settings.Plugins.Renamer.RenameOnImport,
             DeleteEmptyDirectories = settings.Plugins.Renamer.MoveOnImport,
             AllowRelocationInsideDestination = settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport,
+            ReplaceSameVideoAtDestination = settings.Plugins.Renamer.ReplaceSameVideoAtDestination,
         };
 
         if (request is { Preview: true, Preset: null })
@@ -739,6 +753,7 @@ public class VideoRelocationService(
                 CancellationToken = request.CancellationToken,
                 DeleteEmptyDirectories = request.DeleteEmptyDirectories,
                 AllowRelocationInsideDestination = request.AllowRelocationInsideDestination,
+                ReplaceSameVideoAtDestination = request.ReplaceSameVideoAtDestination,
                 ManagedFolder = result.ManagedFolder,
                 RelativePath = result.RelativePath,
             }).ConfigureAwait(false);
@@ -1113,44 +1128,43 @@ public class VideoRelocationService(
                 ), false);
 
             if (destVideoLocal.Hash == video.Hash)
-                return (RelocationResponse.FromError(
-                    "Not moving video file as it already exists at the new location."
-                ), false);
-
-            // Not a dupe, don't delete it
-            logger.LogTrace("A different file already exists at the new location, checking it for version and group");
-            if (destVideoLocal.ReleaseInfo is not { } destinationExistingReleaseInfo)
-                return (RelocationResponse.FromError(
-                    "The existing file at the new location does not have release info. Not moving."
-                ), false);
-
-            if (video.ReleaseInfo is not { } releaseInfo)
-                return (RelocationResponse.FromError(
-                    "The file does not have release info. Not moving."
-                ), false);
-
-            if (destinationExistingReleaseInfo.GroupID == releaseInfo.GroupID &&
-                destinationExistingReleaseInfo.GroupSource == releaseInfo.GroupSource &&
-                destinationExistingReleaseInfo.Version < releaseInfo.Version)
             {
+                if (!request.ReplaceSameVideoAtDestination)
+                    return (RelocationResponse.FromError(
+                        "Not moving video file as it already exists at the new location."
+                    ), false);
+
                 if (request.CancellationToken.IsCancellationRequested)
                     return (RelocationResponse.FromError(
                         "Cancellation requested before relocation took place."
                     ), false);
 
-                // This is a V2 replacing a V1 with the same name.
-                // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
-                logger.LogInformation("The existing file is a V1 from the same group. Replacing it.");
+                // Links are never followed, and the copy already there stays. A symbolic link at the destination that
+                // leads to this file is replaced by the file, so the file ends up there; anything else at the
+                // destination, a symbolic link to it, a hard link of it or another copy of the video, makes this one
+                // redundant, and it is removed once its size says it is the same file.
+                var replaceLink = IsSymbolicLinkTo(fileSystem, newFullPath, oldFullPath);
+                if (!replaceLink && !IsSameSize(fileSystem, oldFullPath, newFullPath, video.FileSize))
+                    return (RelocationResponse.FromError(
+                        "Not moving video file as a file of another size is at the new location, though it is the same video."
+                    ), false);
 
-                // Delete the destination
-                await _videoLocalPlaceService.RemoveRecordAndDeletePhysicalFile(destVideoLocalPlace);
-
-                // Move
-                logger.LogInformation("Moving file from {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
+                logger.LogInformation(
+                    replaceLink ? "Replacing the symbolic link at {NextPath} with the file it leads to, {PreviousPath}." : "The same video is already at {NextPath}; removing {PreviousPath} instead of moving it.",
+                    newFullPath,
+                    oldFullPath
+                );
                 try
                 {
-                    fileSystem.MoveFile(oldFullPath, newFullPath);
-                    SetLinuxPermissions(newFullPath);
+                    if (replaceLink)
+                    {
+                        fileSystem.MoveFile(oldFullPath, newFullPath, overwrite: true);
+                        SetLinuxPermissions(newFullPath);
+                    }
+                    else
+                    {
+                        fileSystem.DeleteFile(oldFullPath);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1159,10 +1173,62 @@ public class VideoRelocationService(
                     , ex), true);
                 }
 
+                place.IsKept |= destVideoLocalPlace.IsKept;
+                await _videoLocalPlaceService.RemoveRecord(destVideoLocalPlace);
                 place.ManagedFolderID = request.ManagedFolder.ID;
                 place.RelativePath = newRelativePath;
                 videoLocalPlace.Save(place);
                 relocatedFile = true;
+            }
+            else
+            {
+                // Not a dupe, don't delete it
+                logger.LogTrace("A different file already exists at the new location, checking it for version and group");
+                if (destVideoLocal.ReleaseInfo is not { } destinationExistingReleaseInfo)
+                    return (RelocationResponse.FromError(
+                        "The existing file at the new location does not have release info. Not moving."
+                    ), false);
+
+                if (video.ReleaseInfo is not { } releaseInfo)
+                    return (RelocationResponse.FromError(
+                        "The file does not have release info. Not moving."
+                    ), false);
+
+                if (destinationExistingReleaseInfo.GroupID == releaseInfo.GroupID &&
+                    destinationExistingReleaseInfo.GroupSource == releaseInfo.GroupSource &&
+                    destinationExistingReleaseInfo.Version < releaseInfo.Version)
+                {
+                    if (request.CancellationToken.IsCancellationRequested)
+                        return (RelocationResponse.FromError(
+                            "Cancellation requested before relocation took place."
+                        ), false);
+
+                    // This is a V2 replacing a V1 with the same name.
+                    // Normally we'd let the Multiple Files Utility handle it, but let's just delete the V1
+                    logger.LogInformation("The existing file is a V1 from the same group. Replacing it.");
+
+                    // Delete the destination
+                    await _videoLocalPlaceService.RemoveRecordAndDeletePhysicalFile(destVideoLocalPlace);
+
+                    // Move
+                    logger.LogInformation("Moving file from {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
+                    try
+                    {
+                        fileSystem.MoveFile(oldFullPath, newFullPath);
+                        SetLinuxPermissions(newFullPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        return (RelocationResponse.FromError(
+                            $"Unable to relocate video file! Error: {ex.Message}"
+                        , ex), true);
+                    }
+
+                    place.ManagedFolderID = request.ManagedFolder.ID;
+                    place.RelativePath = newRelativePath;
+                    videoLocalPlace.Save(place);
+                    relocatedFile = true;
+                }
             }
         }
         else
@@ -1511,6 +1577,41 @@ public class VideoRelocationService(
     /// </summary>
     private static string DescribeUnlinked(IVideo video)
         => video.IsRecognized ? "linked only to other sources than AniDB" : "unrecognized";
+
+    /// <summary>
+    ///   Whether a path is a symbolic link leading to the file at another
+    ///   path.
+    /// </summary>
+    internal static bool IsSymbolicLinkTo(IFileSystem fileSystem, string linkPath, string filePath)
+    {
+        try
+        {
+            return fileSystem.GetStat(linkPath, followSymbolicLinks: false) is SymbolicLinkStat
+                && fileSystem.GetStat(filePath, followSymbolicLinks: false) is not SymbolicLinkStat
+                && fileSystem.GetStat(linkPath)?.Identity is { } identity
+                && fileSystem.GetStat(filePath)?.Identity == identity;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    ///   Whether both paths hold a file of the video's size, read through
+    ///   links: the sanity check before removing one as redundant.
+    /// </summary>
+    internal static bool IsSameSize(IFileSystem fileSystem, string path, string otherPath, long fileSize)
+    {
+        try
+        {
+            return fileSize > 0 && fileSystem.GetFileStat(path)?.Size == fileSize && fileSystem.GetFileStat(otherPath)?.Size == fileSize;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
 
     private StatIdentity? TryGetStatIdentity(string path)
     {

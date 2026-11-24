@@ -26,6 +26,13 @@ public class RelocationSummary
     public bool AllowRelocationInsideDestinationOnImport { get; set; }
 
     /// <summary>
+    /// Indicates that relocating a video file onto the path of another copy of
+    /// the same video replaces it, links handled as links.
+    /// </summary>
+    [Required]
+    public bool ReplaceSameVideoAtDestination { get; set; }
+
+    /// <summary>
     ///   Gets the number of available hash providers to pick from.
     /// </summary>
     [Required]

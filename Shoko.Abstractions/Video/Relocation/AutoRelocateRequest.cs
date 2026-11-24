@@ -50,6 +50,14 @@ public record AutoRelocateRequest
     public bool AllowRelocationInsideDestination { get; set; } = true;
 
     /// <summary>
+    ///   Indicates that relocating onto the path of another copy of the same
+    ///   video replaces it rather than leaving the file where it is. A link to
+    ///   the file, or a hard link of it, is removed instead of moved, and a
+    ///   link at the destination is replaced by the file.
+    /// </summary>
+    public bool ReplaceSameVideoAtDestination { get; set; }
+
+    /// <summary>
     ///   Not read. A relocation already running for the same file neither
     ///   queues nor cancels a new one, which starts at once, alongside it.
     /// </summary>

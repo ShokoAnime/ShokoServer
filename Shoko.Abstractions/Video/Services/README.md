@@ -454,8 +454,8 @@ Two requests come back as failures rather than doing something surprising:
 
 `AutoRelocateFile(file)` with no request at all is not the same as passing
 `new AutoRelocateRequest()`: with no request, `Move`, `Rename`,
-`DeleteEmptyDirectories` and `AllowRelocationInsideDestination` are taken from
-the user's import settings. Pass a request and you get the record's own
+`DeleteEmptyDirectories`, `AllowRelocationInsideDestination` and
+`ReplaceSameVideoAtDestination` are taken from the user's import settings. Pass a request and you get the record's own
 defaults, which enable moving and renaming regardless of what the user
 configured. `CancelIfRunning` is on both request types, but the service does
 not read it: two relocations of the same file are not queued behind each other
@@ -536,7 +536,10 @@ default additionally raises `ProvidersUpdated` on the relocation half.
 
 `RenameOnImport`, `MoveOnImport` and `AllowRelocationInsideDestinationOnImport`
 are the user's global relocation settings, readable and writable here. They
-persist immediately and raise `ProvidersUpdated`. They are the defaults that
+persist immediately and raise `ProvidersUpdated`. `ReplaceSameVideoAtDestination`
+(off by default) sits beside them and persists the same way, without the event:
+it decides whether a relocation onto the path of another copy of the same
+video goes ahead, as described in the relocation README. They are the defaults that
 `AutoRelocateFile` falls back on when called with no request, so changing one
 changes what every import does from then on. Read them freely; write them only
 when the user asked for it.

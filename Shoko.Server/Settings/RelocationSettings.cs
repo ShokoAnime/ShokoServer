@@ -28,4 +28,13 @@ public class RelocationSettings
     /// drop destination managed folder that's not also a drop source on import.
     /// </summary>
     public bool AllowRelocationInsideDestinationOnImport { get; set; } = true;
+
+    /// <summary>
+    /// Indicates that relocating a video file onto the path of another copy of
+    /// the same video replaces it rather than leaving the file where it is. A
+    /// symbolic link is never followed: a link to the file, or a hard link of
+    /// it, is removed, and a link at the destination is replaced by the file.
+    /// Off by default.
+    /// </summary>
+    public bool ReplaceSameVideoAtDestination { get; set; } = false;
 }

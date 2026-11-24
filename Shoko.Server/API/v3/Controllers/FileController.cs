@@ -58,6 +58,7 @@ public class FileController(
     IVideoReleaseService _videoReleaseService,
     IUserDataService _userDataService,
     IVideoRelocationService _relocationService,
+    IRelocationPresetManager _relocationPresetManager,
     IVideoStreamPipelineService _streamPipelineService,
     VideoStreamSessionManager _streamSessionManager,
     ISettingsProvider settingsProvider,
@@ -531,6 +532,7 @@ public class FileController(
                 RelativePath = body.RelativePath,
                 DeleteEmptyDirectories = body.DeleteEmptyDirectories,
                 AllowRelocationInsideDestination = true,
+                ReplaceSameVideoAtDestination = body.ReplaceSameVideoAtDestination ?? _relocationPresetManager.ReplaceSameVideoAtDestination,
             }
         );
         if (!result.Success)
