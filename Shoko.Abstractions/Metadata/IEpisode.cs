@@ -42,6 +42,17 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     EpisodeType Type { get; }
 
     /// <summary>
+    ///   What kind of special or extra the episode is, beside <see cref="Type"/>,
+    ///   as its source says; <see cref="ExtraType.None"/> when it says nothing.
+    /// </summary>
+    ExtraType ExtraType => ExtraType.None;
+
+    /// <summary>
+    ///   Whether the episode is part of the canon story, as its source says.
+    /// </summary>
+    EpisodeCanonicity Canonicity => EpisodeCanonicity.None;
+
+    /// <summary>
     /// The episode number.
     /// </summary>
     int EpisodeNumber { get; }
@@ -134,6 +145,13 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     ///   place.
     /// </summary>
     IEpisodeOrderingInformation CurrentOrdering { get; }
+
+    /// <summary>
+    ///   The episode's number across the whole ordering it is presented in
+    ///   (<see cref="CurrentOrdering"/>), or <c>null</c> when that ordering
+    ///   has none for it. See <see cref="IOrdering.AbsoluteNumbering"/>.
+    /// </summary>
+    int? AbsoluteEpisodeNumber => CurrentOrdering.AbsoluteEpisodeNumber;
 
     /// <summary>
     /// All shoko episodes linked to this episode.

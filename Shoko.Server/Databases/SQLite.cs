@@ -1492,6 +1492,10 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(186,   5, "UPDATE VideoLocal_Place SET PrimaryLocationID = ID;"),
         new(186,   6, "CREATE INDEX IX_VideoLocal_Place_PrimaryLocationID ON VideoLocal_Place(PrimaryLocationID);"),
         new(186,   7, DatabaseFixes.RepairVideoFileGroups),
+        new(187,   1, "ALTER TABLE Metadata_Ordering ADD COLUMN IsSourceDefault INTEGER NOT NULL DEFAULT 0;"),
+        new(187,   2, "ALTER TABLE Metadata_Ordering ADD COLUMN SourceDefaultCountries TEXT NULL;"),
+        new(187,   3, "ALTER TABLE Metadata_Ordering ADD COLUMN AbsoluteNumbering INTEGER NOT NULL DEFAULT 0;"),
+        new(187,   4, "ALTER TABLE Metadata_Ordering_Entry ADD COLUMN EpisodeNumber INTEGER NULL;"),
     ];
 
     #endregion

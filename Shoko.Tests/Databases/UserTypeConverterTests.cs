@@ -333,6 +333,17 @@ public class UserTypeConverterTests
         => Assert.Null(new TypeStringConverter().ConvertFrom(null, CultureInfo.InvariantCulture, "Nothing.Called.This"));
 
     [Fact]
+    public void TheEpisodeKindsRoundTripThroughTheExtras()
+    {
+        var converter = new JsonObjectConverter<Metadata_EpisodeExtra>();
+        var extra = new Metadata_EpisodeExtra { ExtraType = ExtraType.CinemaIntro, Canonicity = EpisodeCanonicity.Filler, AbsoluteEpisodeNumber = 12 };
+
+        var stored = converter.ConvertTo(null, CultureInfo.InvariantCulture, extra, typeof(string));
+
+        Assert.Equal(extra, converter.ConvertFrom(null, CultureInfo.InvariantCulture, stored));
+    }
+
+    [Fact]
     public void AJsonObjectReadsBackWithMissingAndUnknownPropertiesAndStoresNullAsNull()
     {
         var converter = new JsonObjectConverter<Metadata_EpisodeExtra>();

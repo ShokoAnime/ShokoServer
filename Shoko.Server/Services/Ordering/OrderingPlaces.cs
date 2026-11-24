@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
@@ -27,6 +28,8 @@ internal sealed class OrderingPlaces
 
     private readonly int? _specialIndex;
 
+    private readonly Dictionary<(int GroupIndex, MetadataGuid EpisodeID), int> _absoluteNumbers = [];
+
     #region Building
 
     /// <summary>
@@ -35,7 +38,13 @@ internal sealed class OrderingPlaces
     /// <param name="groups">The ordering's groups, in order. Only the first special one counts as special.</param>
     /// <param name="ownNumbers">Each episode's own number, for the default ordering; <c>null</c> numbers episodes by their place.</param>
     /// <param name="trailing">Episodes in no group, watched after all others, for the default ordering.</param>
-    private OrderingPlaces(IReadOnlyList<OrderingPlacesGroup> groups, IReadOnlyDictionary<MetadataGuid, int>? ownNumbers, IReadOnlyList<MetadataGuid> trailing)
+    /// <param name="continuous">Whether to number the home episodes of the regular groups on across the groups.</param>
+    private OrderingPlaces(
+        IReadOnlyList<OrderingPlacesGroup> groups,
+        IReadOnlyDictionary<MetadataGuid, int>? ownNumbers,
+        IReadOnlyList<MetadataGuid> trailing,
+        bool continuous
+    )
     {
         var specialIndex = groups.Select((group, index) => (group, index)).FirstOrDefault(pair => pair.group.IsSpecial, (null!, -1)).index;
         _specialIndex = specialIndex >= 0 ? specialIndex : null;
@@ -45,19 +54,35 @@ internal sealed class OrderingPlaces
         for (var index = 0; index < groups.Count; index++)
             _groupIndexes.TryAdd(groups[index].ID, index);
 
-        Result = OrderingPlacement.Place([.. groups.Select((group, index) => new OrderingPlacementGroup(index == _specialIndex, group.EpisodeIDs))]);
+        Result = OrderingPlacement.Place([
+            .. groups.Select((group, index) => new OrderingPlacementGroup(index == _specialIndex, group.EpisodeIDs, group.EpisodeNumbers)),
+        ]);
         _homes = Result.Groups.ToDictionary(group => group.GroupIndex, group => group.Episodes);
+        var offset = 0;
         foreach (var group in Result.Groups)
         {
+            var highest = 0;
             foreach (var episode in group.Episodes)
             {
                 var number = Number(episode.EpisodeID, episode.EpisodeNumber);
+                int? absolute = null;
                 if (group.IsSpecial)
+                {
                     _specialNumbers.TryAdd(episode.EpisodeID, number);
+                }
+                else if (continuous)
+                {
+                    absolute = offset + number;
+                    highest = Math.Max(highest, number);
+                    _absoluteNumbers.TryAdd((group.GroupIndex, episode.EpisodeID), absolute.Value);
+                }
+
                 if (!_places.TryGetValue(episode.EpisodeID, out var list))
                     _places[episode.EpisodeID] = list = [];
-                list.Add(new(groups[group.GroupIndex].ID, number, group.IsSpecial));
+                list.Add(new(groups[group.GroupIndex].ID, number, group.IsSpecial, absolute));
             }
+
+            offset += highest;
         }
 
         foreach (var special in Result.Specials)
@@ -72,9 +97,14 @@ internal sealed class OrderingPlaces
     ///   a stored ordering or a source's own.
     /// </summary>
     /// <param name="groups">The ordering's groups, in order.</param>
+    /// <param name="continuous">
+    ///   Whether to number the home episodes of the regular groups on across
+    ///   the groups, each group starting after the highest number of the one
+    ///   before it.
+    /// </param>
     /// <returns>The places.</returns>
-    internal static OrderingPlaces ByPlace(IReadOnlyList<OrderingPlacesGroup> groups)
-        => new(groups, null, []);
+    internal static OrderingPlaces ByPlace(IReadOnlyList<OrderingPlacesGroup> groups, bool continuous = false)
+        => new(groups, null, [], continuous);
 
     /// <summary>
     ///   Places a default ordering, whose episodes keep their own numbers.
@@ -88,7 +118,7 @@ internal sealed class OrderingPlaces
         IReadOnlyDictionary<MetadataGuid, int> ownNumbers,
         IReadOnlyList<MetadataGuid> trailing
     )
-        => new(groups, ownNumbers, trailing);
+        => new(groups, ownNumbers, trailing, false);
 
     #endregion
 
@@ -160,7 +190,7 @@ internal sealed class OrderingPlaces
             if (_specialNumbers.TryGetValue(id, out var specialNumber))
                 listed.Add(new(id, specialNumber, true, null));
             else if (home < homes.Count)
-                listed.Add(new(id, Number(id, homes[home++].EpisodeNumber), false, null));
+                listed.Add(new(id, Number(id, homes[home++].EpisodeNumber), false, null, _absoluteNumbers.TryGetValue((index, id), out var absolute) ? absolute : null));
         }
 
         return listed;
@@ -217,7 +247,14 @@ internal sealed class OrderingPlaces
 /// <param name="SeasonNumber">The season number the ordering serves for it.</param>
 /// <param name="IsSpecial">Whether it is the special group.</param>
 /// <param name="EpisodeIDs">The episodes it lists, in order, placed specials at their airing places.</param>
-internal sealed record OrderingPlacesGroup(MetadataGuid ID, int SeasonNumber, bool IsSpecial, IReadOnlyList<MetadataGuid> EpisodeIDs);
+/// <param name="EpisodeNumbers">The numbers the source gives its home episodes, if any.</param>
+internal sealed record OrderingPlacesGroup(
+    MetadataGuid ID,
+    int SeasonNumber,
+    bool IsSpecial,
+    IReadOnlyList<MetadataGuid> EpisodeIDs,
+    IReadOnlyDictionary<MetadataGuid, int>? EpisodeNumbers = null
+);
 
 /// <summary>
 ///   One place of an episode.
@@ -225,7 +262,8 @@ internal sealed record OrderingPlacesGroup(MetadataGuid ID, int SeasonNumber, bo
 /// <param name="GroupID">The group it is in.</param>
 /// <param name="EpisodeNumber">Its number there, as the ordering serves it.</param>
 /// <param name="IsSpecial">Whether the group is the special group.</param>
-internal sealed record OrderingPlace(MetadataGuid GroupID, int EpisodeNumber, bool IsSpecial);
+/// <param name="AbsoluteEpisodeNumber">Its number across the ordering, when the ordering numbers on across its groups.</param>
+internal sealed record OrderingPlace(MetadataGuid GroupID, int EpisodeNumber, bool IsSpecial, int? AbsoluteEpisodeNumber = null);
 
 /// <summary>
 ///   One entry a group lists.
@@ -234,7 +272,8 @@ internal sealed record OrderingPlace(MetadataGuid GroupID, int EpisodeNumber, bo
 /// <param name="EpisodeNumber">Its number: in the group for a home episode, in the special group for a special.</param>
 /// <param name="IsSpecial">Whether it is a special: in the special group, or a placed special airing in a regular one.</param>
 /// <param name="Airing">Where a placed special airs, on its special group entry only.</param>
-internal sealed record ListedPlace(MetadataGuid EpisodeID, int EpisodeNumber, bool IsSpecial, OrderingAiring? Airing);
+/// <param name="AbsoluteEpisodeNumber">Its number across the ordering, when the ordering numbers on across its groups.</param>
+internal sealed record ListedPlace(MetadataGuid EpisodeID, int EpisodeNumber, bool IsSpecial, OrderingAiring? Airing, int? AbsoluteEpisodeNumber = null);
 
 /// <summary>
 ///   Where a placed special airs, in the numbers its ordering serves.

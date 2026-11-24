@@ -19,5 +19,6 @@ public class Metadata_Ordering_EntryMap : ClassMap<Metadata_Ordering_Entry>
         Map(x => x.Position).Not.Nullable();
         Map(x => x.EpisodeSource).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.EpisodeID).CustomType<PooledStringType>().Not.Nullable();
+        Map(x => x.EpisodeNumber).Nullable();
     }
 }

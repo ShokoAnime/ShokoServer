@@ -38,6 +38,26 @@ public sealed record MetadataEpisodeData
     public EpisodeType Type { get; init; } = EpisodeType.Episode;
 
     /// <summary>
+    ///   What kind of special or extra it is, beside <see cref="Type"/>; set
+    ///   <see cref="Type"/> to match (<see cref="EpisodeType.Special"/> for a
+    ///   story kind, <see cref="EpisodeType.Trailer"/> for a trailer,
+    ///   <see cref="EpisodeType.Other"/> for another extra).
+    /// </summary>
+    public ExtraType ExtraType { get; init; }
+
+    /// <summary>
+    ///   Whether the episode is part of the canon story.
+    /// </summary>
+    public EpisodeCanonicity Canonicity { get; init; }
+
+    /// <summary>
+    ///   The episode's own number across the whole series, when the source
+    ///   numbers its episodes that way too. The series' default ordering
+    ///   hands it out as the places' absolute numbers.
+    /// </summary>
+    public int? AbsoluteEpisodeNumber { get; init; }
+
+    /// <summary>
     ///   The season of the regular episode a special airs before. Honoured
     ///   only for an episode in season 0, with the numbers of the series' own
     ///   seasons and episodes. A target that does not exist is ignored.

@@ -488,6 +488,9 @@ public class MetadataSeriesStore(
             AirsBeforeSeasonNumber = special ? episode.AirsBeforeSeasonNumber : null,
             AirsBeforeEpisodeNumber = special ? episode.AirsBeforeEpisodeNumber : null,
             AirsAfterSeasonNumber = special ? episode.AirsAfterSeasonNumber : null,
+            ExtraType = episode.ExtraType,
+            Canonicity = episode.Canonicity,
+            AbsoluteEpisodeNumber = episode.AbsoluteEpisodeNumber,
         };
         return MetadataDefaultImages.Apply(extra, episode.DefaultImageResourceIDs).NullIfEmpty();
     }

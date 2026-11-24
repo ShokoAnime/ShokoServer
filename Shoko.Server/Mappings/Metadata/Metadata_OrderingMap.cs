@@ -19,6 +19,9 @@ public class Metadata_OrderingMap : ClassMap<Metadata_Ordering>
         Map(x => x.SeriesSource).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.SeriesID).Not.Nullable();
         Map(x => x.Type).CustomType<OrderingType>().Not.Nullable();
+        Map(x => x.IsSourceDefault).Not.Nullable();
+        Map(x => x.SourceDefaultCountries).CustomType<StringListConverter>().Nullable();
+        Map(x => x.AbsoluteNumbering).CustomType<AbsoluteEpisodeNumbering>().Not.Nullable();
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
     }

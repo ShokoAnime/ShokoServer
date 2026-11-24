@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Services.Ordering;
@@ -35,6 +36,12 @@ public class OrderingPlacementTests
     private static PlacedSpecial Special(OrderingPlacementResult result, string id)
         => Assert.Single(result.Specials, special => special.EpisodeID == E(id));
 
+    private static MetadataGuid G(string id)
+        => new(MetadataSource.TMDB, MetadataEntityType.Season, id);
+
+    private static int?[] Absolutes(OrderingPlaces places, string id)
+        => [.. places.PlacesOf(E(id)).Select(place => place.AbsoluteEpisodeNumber)];
+
     private static (int?, int?, int?, string?, string?) Airs(PlacedSpecial special)
         => (special.AirsBeforeSeasonNumber, special.AirsBeforeEpisodeNumber, special.AirsAfterSeasonNumber, special.PreviousEpisodeID?.ID, special.NextEpisodeID?.ID);
 
@@ -61,6 +68,55 @@ public class OrderingPlacementTests
         Assert.Empty(result.Groups);
         Assert.Empty(result.ViewingOrder);
         Assert.Equal(0, result.EpisodeCount);
+    }
+
+    [Fact]
+    public void EpisodesSharingAGivenNumberAreOneCombinedEntry()
+    {
+        var numbers = new Dictionary<MetadataGuid, int> { [E("a")] = 1, [E("b")] = 1, [E("c")] = 2 };
+        var result = OrderingPlacement.Place([new(false, [E("a"), E("b"), E("c"), E("d")], numbers)]);
+
+        Assert.Equal(["1: a=1 b=1 c=2 d=4"], Homes(result));
+        Assert.Equal(["a", "b", "c", "d"], Viewing(result));
+    }
+
+    [Fact]
+    public void AGivenNumberIsNotUsedForAPlacedSpecial()
+    {
+        var numbers = new Dictionary<MetadataGuid, int> { [E("s")] = 7, [E("b")] = 3 };
+        var result = OrderingPlacement.Place([new(false, [E("a"), E("s"), E("b")], numbers), Specials("s")]);
+
+        Assert.Equal(["1: a=1 b=3", "0: s=1"], Homes(result));
+        Assert.Equal((1, 3, null, "a", "b"), Airs(Special(result, "s")));
+    }
+
+    [Fact]
+    public void ContinuousNumbersGoOnAcrossTheRegularGroups()
+    {
+        var numbers = new Dictionary<MetadataGuid, int> { [E("c")] = 1, [E("d")] = 1 };
+        var places = OrderingPlaces.ByPlace(
+            [
+                new(G("one"), 1, false, [E("a"), E("s"), E("b")]),
+                new(G("two"), 2, false, [E("c"), E("d"), E("e")], numbers),
+                new(G("specials"), 0, true, [E("s")]),
+            ],
+            continuous: true
+        );
+
+        Assert.Equal([1], Absolutes(places, "a"));
+        Assert.Equal([2], Absolutes(places, "b"));
+        Assert.Equal([3], Absolutes(places, "c"));
+        Assert.Equal([3], Absolutes(places, "d"));
+        Assert.Equal([5], Absolutes(places, "e"));
+        Assert.Equal([null], Absolutes(places, "s"));
+    }
+
+    [Fact]
+    public void PlacesHaveNoAbsoluteNumbersUnlessContinuous()
+    {
+        var places = OrderingPlaces.ByPlace([new(G("one"), 1, false, [E("a"), E("b")])]);
+
+        Assert.Equal([null], Absolutes(places, "b"));
     }
 
     [Fact]

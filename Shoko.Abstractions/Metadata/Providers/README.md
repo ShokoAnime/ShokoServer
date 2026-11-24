@@ -342,6 +342,87 @@ named by its generic season name, such as `Season 2`. IDs may not start with
 `default/`. See
 [`IMetadataOrderingService`](../Services/README.md#imetadataorderingservice).
 
+### Storing an alternative ordering
+
+A source's alternative orderings of a series (episode groups, DVD orders, arc
+orders) are stored the same way whatever the source calls them:
+
+- **The ordering:** one `MetadataOrderingData` under your source
+  (`MetadataEntityType.Ordering`), with the series' ID, a `Type` (`Absolute`,
+  `DVD`, `StoryArc`, …) and its name and description as `Titles` and
+  `Overviews`, one per language, so translations are just more entries.
+- **The groups:** one `MetadataOrderingGroupData` per group, in viewing order,
+  under your source as `MetadataEntityType.Season` with IDs kept apart from
+  your season IDs. `Episodes` lists the group's episodes in viewing order, by
+  their own IDs. Give `SeasonNumber` only when the source numbers its groups;
+  otherwise a group is numbered by its place, from 1.
+- **Specials:** at most one group is the special group (`IsSpecial`), season 0,
+  listing the specials in their order. To place a special where it airs, list
+  it in the special group *and* in the regular group at the point it airs. It
+  stays a special, numbered in season 0; its entry in the regular group only
+  says where it airs, and that group numbers its own episodes without it. A
+  special listed only in the special group stays in season 0 alone.
+- **Images:** once the ordering is saved, each group reads back as a season,
+  `<source>://season/<group ID>`; link the group's images to that season ID as
+  you would any season's. A group made of one season's episodes can reuse that
+  season's poster by linking the same image.
+
+```csharp
+var series = new MetadataGuid(MySource, MetadataEntityType.Series, "1396");
+MetadataGuid Episode(string id) => new(MySource, MetadataEntityType.Episode, id);
+MetadataGuid Group(string id) => new(MySource, MetadataEntityType.Season, id);
+
+orderingService.SaveOrdering(new()
+{
+    ID = new(MySource, MetadataEntityType.Ordering, "arcs-1396"),
+    SeriesID = series,
+    Type = OrderingType.StoryArc,
+    Titles = titles,       // "Story Arcs", plus its translations
+    AbsoluteNumbering = AbsoluteEpisodeNumbering.Continuous,
+    Groups =
+    [
+        // Season 0: both specials, in order.
+        new() { ID = Group("arcs-1396-specials"), IsSpecial = true, Episodes = [Episode("sp-1"), Episode("sp-2")] },
+        // Season 1: sp-1 airs between e-2 and e-3, so e-3 stays episode 3.
+        new() { ID = Group("arcs-1396-1"), Episodes = [Episode("e-1"), Episode("e-2"), Episode("sp-1"), Episode("e-3")] },
+        // Season 2: e-4 and e-5 are one combined episode 1, then e-6 is 2.
+        new()
+        {
+            ID = Group("arcs-1396-2"),
+            Episodes = [Episode("e-4"), Episode("e-5"), Episode("e-6")],
+            EpisodeNumbers = new Dictionary<MetadataGuid, int> { [Episode("e-4")] = 1, [Episode("e-5")] = 1, [Episode("e-6")] = 2 },
+        },
+    ],
+});
+```
+
+Here `sp-1` is special 1 and airs before episode 3 of the first group, and
+`sp-2` is special 2 with no place among the regular episodes. Numbered on
+across the groups, `e-1` to `e-3` are 1 to 3, `e-4` and `e-5` both 4, and
+`e-6` 5.
+
+Beside the groups and their episodes:
+
+- **Numbers:** an episode is numbered by its place among the group's home
+  episodes unless you give `EpisodeNumbers`, the source's own numbers. Several
+  episodes given one number are one combined entry, in the order `Episodes`
+  lists them; showing them as one is up to whoever presents the ordering.
+- **Absolute numbers:** set `AbsoluteNumbering` to `Continuous` to number the
+  regular episodes on across the groups (each group starting after the highest
+  number of the one before it), or to `Source` to hand out each episode's own
+  `MetadataEpisodeData.AbsoluteEpisodeNumber`. Each place reads it back as
+  `AbsoluteEpisodeNumber`; specials have none.
+- **The source's default:** set `IsSourceDefault` on the ordering your source
+  shows by default, and `SourceDefaultCountries` (ISO 3166-1 alpha-2) on one it
+  shows by default in some countries. Only orderings under the series' own
+  source count. Until someone picks an ordering, the server uses the one for
+  everywhere, else the series' default ordering; a presenter can ask for its
+  own country with `GetSourceDefaultOrdering`.
+- **Canon/filler and the kind of a special or extra** are facts about the
+  episode, not the ordering: set `Canonicity` and `ExtraType` on its
+  `MetadataEpisodeData`, with `Type` kept to match (`Special` for a story kind,
+  `Trailer` for a trailer, `Other` for another extra).
+
 **Text on other entries** goes through `IMetadataTextManager.SetTitles` and
 `SetOverviews` under your source, until you replace it or call
 `RemoveContributions`. Your stored entries also speak for the Shoko entries

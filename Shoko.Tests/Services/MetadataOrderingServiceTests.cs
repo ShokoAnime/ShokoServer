@@ -378,6 +378,41 @@ public class MetadataOrderingServiceTests
         Assert.Throws<ArgumentException>(() => world.Service.RemoveOrdering(Ordering(MetadataSource.User, "x")));
     }
 
+    [Fact]
+    public void AGlobalOrderingKeepsTheNumbersItsSourceGives()
+    {
+        var world = new World();
+        var series = world.AddSeries(TestSources.Plugin, "s", 4);
+        var data = Global("o", series.ID, ("g1", ["s-e1", "s-e2", "s-e3"]), ("g2", ["s-e4"])) with { AbsoluteNumbering = AbsoluteEpisodeNumbering.Continuous };
+        var numbers = new Dictionary<MetadataGuid, int> { [Episode(TestSources.Plugin, "s-e1")] = 1, [Episode(TestSources.Plugin, "s-e2")] = 1 };
+        data = data with { Groups = [data.Groups[0] with { EpisodeNumbers = numbers }, data.Groups[1]] };
+
+        var ordering = world.Service.SaveOrdering(data);
+
+        Assert.Equal(AbsoluteEpisodeNumbering.Continuous, ordering.AbsoluteNumbering);
+        var places = ordering.Episodes.Select(episode => (episode.ID.ID, episode.CurrentOrdering.SeasonNumber, episode.CurrentOrdering.EpisodeNumber, episode.AbsoluteEpisodeNumber));
+        Assert.Equal([("s-e1", (int?)1, 1, (int?)1), ("s-e2", 1, 1, 1), ("s-e3", 1, 3, 3), ("s-e4", 2, 1, 4)], places);
+        Assert.Equal([1, 1, null, null], world.Tables.Entries.GetAll().OrderBy(entry => entry.EpisodeID).Select(entry => entry.EpisodeNumber));
+    }
+
+    [Fact]
+    public void AGlobalOrderingRefusesNumbersItCanNotKeep()
+    {
+        var world = new World();
+        var series = world.AddSeries(TestSources.Plugin, "s", 2);
+        var data = Global("o", series.ID, ("g1", ["s-e1"]));
+
+        Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(data with
+        {
+            Groups = [data.Groups[0] with { EpisodeNumbers = new Dictionary<MetadataGuid, int> { [Episode(TestSources.Plugin, "s-e2")] = 1 } }],
+        }));
+        Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(data with
+        {
+            Groups = [data.Groups[0] with { EpisodeNumbers = new Dictionary<MetadataGuid, int> { [Episode(TestSources.Plugin, "s-e1")] = 0 } }],
+        }));
+        Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(data with { SourceDefaultCountries = ["Japan"] }));
+    }
+
     #endregion
 
     #region Local Orderings
@@ -542,6 +577,39 @@ public class MetadataOrderingServiceTests
         Assert.True(world.Service.SetPreferredOrdering(series.ID, null));
         Assert.True(world.Service.GetPreferredOrdering(series).IsDefault);
         Assert.False(world.Service.SetPreferredOrdering(series.ID, MetadataOrderingService.DefaultOrderingID(series.ID)));
+    }
+
+    [Fact]
+    public void TheSourceDefaultIsPreferredUntilOneIsChosen()
+    {
+        var world = new World();
+        var series = world.AddSeries(TestSources.Plugin, "s", 2);
+        var everywhere = world.Service.SaveOrdering(Global("o", series.ID, ("g1", ["s-e2", "s-e1"])) with { IsSourceDefault = true });
+        var japan = world.Service.SaveOrdering(Global("p", series.ID, ("g2", ["s-e1", "s-e2"])) with { SourceDefaultCountries = ["jp", "JP"] });
+        var other = world.Service.SaveOrdering(Global("q", series.ID, ("g3", ["s-e1"])));
+
+        Assert.Equal(["JP"], japan.SourceDefaultCountries);
+        Assert.Equal(everywhere.ID, world.Service.GetSourceDefaultOrdering(series)?.ID);
+        Assert.Equal(japan.ID, world.Service.GetSourceDefaultOrdering(series, "jp")?.ID);
+        Assert.Equal(everywhere.ID, world.Service.GetSourceDefaultOrdering(series, "US")?.ID);
+        Assert.Equal(everywhere.ID, world.Service.GetPreferredOrdering(series).ID);
+        Assert.True(world.Service.GetOrderings(series).Single(ordering => ordering.ID == everywhere.ID).IsPreferred);
+        Assert.False(world.Service.GetOrderings(series).Single(ordering => ordering.ID == japan.ID).IsPreferred);
+
+        Assert.True(world.Service.SetPreferredOrdering(series.ID, other.ID));
+        Assert.Equal(other.ID, world.Service.GetPreferredOrdering(series).ID);
+        Assert.Throws<ArgumentException>(() => world.Service.GetSourceDefaultOrdering(series, "JPN"));
+    }
+
+    [Fact]
+    public void OnlyTheSeriesOwnSourceMarksItsDefault()
+    {
+        var world = new World();
+        var series = world.AddSeries(TestSources.AniList, "s", 1);
+        world.Service.SaveOrdering(Global("o", series.ID, ("g1", ["s-e1"])) with { IsSourceDefault = true });
+
+        Assert.Null(world.Service.GetSourceDefaultOrdering(series));
+        Assert.True(world.Service.GetPreferredOrdering(series).IsDefault);
     }
 
     [Fact]

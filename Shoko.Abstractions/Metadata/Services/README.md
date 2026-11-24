@@ -504,14 +504,20 @@ one source.
 
 `SaveOrdering` replaces a global ordering whole and is refused under a core
 source, for a `default/` ID, for a group ID another ordering holds, for an
-episode of another series and for a second special group.
+episode of another series and for a second special group, and also for an
+episode number below 1 or for an episode the group does not list, and for a
+country code that is not two letters.
 `CreateLocalOrdering`, `UpdateLocalOrdering` and `DeleteLocalOrdering` keep
 the users' own. An ordering follows its series: purging or deleting a series,
 of any source, removes every ordering of it with the choice of one and the
 hidden flags of its episodes.
 
 `SetPreferredOrdering` chooses the ordering a series uses (`null` for the
-default), and `SetEpisodeHidden` hides an episode. Both are kept on the
+default), and `SetEpisodeHidden` hides an episode. While none is chosen,
+`GetPreferredOrdering` gives the ordering the series' own source marks as its
+default everywhere, else the default ordering. A presenter with a country of
+its own asks `GetSourceDefaultOrdering(series, country)`, which gives the one
+for that country, else the one for everywhere. Both are kept on the
 entry's own row (Shoko series or episode, AniDB anime or episode, or the
 plugin's in the series store, whose saves keep them), so an entry only a
 resolver serves can have neither.

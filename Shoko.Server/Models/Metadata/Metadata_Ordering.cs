@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 
@@ -44,6 +46,23 @@ public class Metadata_Ordering : IMetadataStoreRow<Metadata_Ordering>
     public OrderingType Type { get; set; }
 
     /// <summary>
+    ///   Whether the source marks the ordering as the series' default
+    ///   everywhere.
+    /// </summary>
+    public bool IsSourceDefault { get; set; }
+
+    /// <summary>
+    ///   The countries, as upper-case ISO 3166-1 alpha-2 codes, where the
+    ///   source marks the ordering as the series' default.
+    /// </summary>
+    public List<string> SourceDefaultCountries { get; set; } = [];
+
+    /// <summary>
+    ///   What the ordering's absolute episode numbers are.
+    /// </summary>
+    public AbsoluteEpisodeNumbering AbsoluteNumbering { get; set; }
+
+    /// <summary>
     ///   When the ordering was first stored.
     /// </summary>
     public DateTime CreatedAt { get; set; }
@@ -78,7 +97,10 @@ public class Metadata_Ordering : IMetadataStoreRow<Metadata_Ordering>
             ProviderID == other.ProviderID &&
             SeriesSource == other.SeriesSource &&
             SeriesID == other.SeriesID &&
-            Type == other.Type;
+            Type == other.Type &&
+            IsSourceDefault == other.IsSourceDefault &&
+            SourceDefaultCountries.SequenceEqual(other.SourceDefaultCountries) &&
+            AbsoluteNumbering == other.AbsoluteNumbering;
 
     #endregion
 

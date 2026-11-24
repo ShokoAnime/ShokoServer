@@ -700,19 +700,22 @@ public class MetadataOrderingService(
                 );
             }
 
+            var groupEpisodes = CheckEpisodes(group.Episodes, episodes, series, nameof(ordering));
             groups.Add(new(
                 group.ID.ID,
                 group.Titles ?? [],
                 group.Overviews ?? [],
-                CheckEpisodes(group.Episodes, episodes, series, nameof(ordering)),
+                groupEpisodes,
                 group.IsSpecial,
-                group.SeasonNumber
+                group.SeasonNumber,
+                CheckEpisodeNumbers(group, groupEpisodes, nameof(ordering))
             ));
         }
 
         CheckSpecialGroups(groups, nameof(ordering));
         var networks = CheckNetworks(ordering.Networks ?? [], source, nameof(ordering));
-        var stored = Write(ordering.ID, series.ID, ordering.Type, ordering.Titles ?? [], ordering.Overviews ?? [], groups, false, nameof(ordering))!;
+        var facts = new OrderingFacts(ordering.IsSourceDefault, CheckCountries(ordering.SourceDefaultCountries, nameof(ordering)), ordering.AbsoluteNumbering);
+        var stored = Write(ordering.ID, series.ID, ordering.Type, ordering.Titles ?? [], ordering.Overviews ?? [], groups, facts, false, nameof(ordering))!;
         studioStore.SetNetworks(ordering.ID, networks);
         return stored;
     }
@@ -792,7 +795,7 @@ public class MetadataOrderingService(
         CheckSpecialGroups(groups, nameof(ordering));
         var networks = MetadataStudioStore.CheckUserOrderingNetworks(ordering.Networks ?? [], nameof(ordering));
         var orderingID = new MetadataGuid(MetadataSource.User, MetadataEntityType.Ordering, NewLocalID());
-        var stored = Write(orderingID, series.ID, OrderingType.User, ordering.Titles ?? [], ordering.Overviews ?? [], groups, false, nameof(ordering))!;
+        var stored = Write(orderingID, series.ID, OrderingType.User, ordering.Titles ?? [], ordering.Overviews ?? [], groups, OrderingFacts.None, false, nameof(ordering))!;
         if (networks.Count > 0)
             studioStore.SetUserOrderingNetworks(orderingID, networks);
         return stored;
@@ -829,7 +832,7 @@ public class MetadataOrderingService(
 
         CheckSpecialGroups(groups, nameof(ordering));
         var networks = ordering.Networks is { } given ? MetadataStudioStore.CheckUserOrderingNetworks(given, nameof(ordering)) : null;
-        var updated = Write(orderingID, series.ID, OrderingType.User, ordering.Titles ?? [], ordering.Overviews ?? [], groups, true, nameof(ordering));
+        var updated = Write(orderingID, series.ID, OrderingType.User, ordering.Titles ?? [], ordering.Overviews ?? [], groups, OrderingFacts.None, true, nameof(ordering));
         if (updated is not null && networks is not null)
             studioStore.SetUserOrderingNetworks(orderingID, networks);
         return updated;
@@ -872,14 +875,89 @@ public class MetadataOrderingService(
     /// <param name="Episodes">The group's episodes, in order.</param>
     /// <param name="IsSpecial">Whether the group holds the ordering's specials.</param>
     /// <param name="SeasonNumber">The season number the source gave the group, if any.</param>
+    /// <param name="EpisodeNumbers">The numbers the source gave the group's episodes, if any.</param>
     private sealed record GroupToWrite(
         string ID,
         IReadOnlyList<ITitle> Titles,
         IReadOnlyList<IText> Overviews,
         IReadOnlyList<MetadataGuid> Episodes,
         bool IsSpecial,
-        int? SeasonNumber
+        int? SeasonNumber,
+        IReadOnlyDictionary<MetadataGuid, int>? EpisodeNumbers = null
     );
+
+    /// <summary>
+    ///   What a source says of an ordering beside its groups.
+    /// </summary>
+    /// <param name="IsSourceDefault">Whether it is the series' default everywhere.</param>
+    /// <param name="SourceDefaultCountries">The countries where it is the series' default, checked and upper-case.</param>
+    /// <param name="AbsoluteNumbering">What its absolute episode numbers are.</param>
+    private sealed record OrderingFacts(bool IsSourceDefault, IReadOnlyList<string> SourceDefaultCountries, AbsoluteEpisodeNumbering AbsoluteNumbering)
+    {
+        /// <summary>
+        ///   Nothing said, as for a user's ordering.
+        /// </summary>
+        internal static readonly OrderingFacts None = new(false, [], AbsoluteEpisodeNumbering.None);
+    }
+
+    /// <summary>
+    ///   Checks the numbers a source gives a group's episodes.
+    /// </summary>
+    /// <param name="group">The group.</param>
+    /// <param name="episodes">The group's episodes, checked.</param>
+    /// <param name="paramName">The argument the ordering came in through.</param>
+    /// <returns>The numbers, or <c>null</c> when none is given.</returns>
+    /// <exception cref="ArgumentException">A number is below 1, or names an episode the group does not list.</exception>
+    private static IReadOnlyDictionary<MetadataGuid, int>? CheckEpisodeNumbers(MetadataOrderingGroupData group, IReadOnlyList<MetadataGuid> episodes, string paramName)
+    {
+        if (group.EpisodeNumbers is not { Count: > 0 } numbers)
+            return null;
+
+        var listed = episodes.ToHashSet();
+        foreach (var (episodeID, number) in numbers)
+        {
+            if (!listed.Contains(episodeID))
+                throw new ArgumentException($"The group \"{group.ID}\" numbers \"{episodeID}\", which it does not list.", paramName);
+            if (number < 1)
+                throw new ArgumentException($"The group \"{group.ID}\" numbers \"{episodeID}\" {number}; an episode's number is at least 1.", paramName);
+        }
+
+        return numbers.ToDictionary();
+    }
+
+    /// <summary>
+    ///   Checks a list of ISO 3166-1 alpha-2 country codes.
+    /// </summary>
+    /// <param name="countries">The codes.</param>
+    /// <param name="paramName">The argument they came in through.</param>
+    /// <returns>The codes, upper-case and each once, in order.</returns>
+    /// <exception cref="ArgumentException">A code is not two letters.</exception>
+    private static IReadOnlyList<string> CheckCountries(IReadOnlyList<string>? countries, string paramName)
+    {
+        var checkedCountries = new List<string>();
+        foreach (var country in countries ?? [])
+        {
+            var code = CheckCountry(country, paramName);
+            if (!checkedCountries.Contains(code))
+                checkedCountries.Add(code);
+        }
+
+        return checkedCountries;
+    }
+
+    /// <summary>
+    ///   Checks an ISO 3166-1 alpha-2 country code.
+    /// </summary>
+    /// <param name="country">The code.</param>
+    /// <param name="paramName">The argument it came in through.</param>
+    /// <returns>The code, upper-case.</returns>
+    /// <exception cref="ArgumentException">The code is not two letters.</exception>
+    internal static string CheckCountry(string? country, string paramName)
+    {
+        if (country is not { Length: 2 } || !country.All(char.IsAsciiLetter))
+            throw new ArgumentException($"\"{country}\" is not an ISO 3166-1 alpha-2 country code.", paramName);
+        return country.ToUpperInvariant();
+    }
 
     /// <summary>
     ///   Gives each group of a stored ordering its season number: <c>0</c>
@@ -929,6 +1007,7 @@ public class MetadataOrderingService(
     /// <param name="titles">Its titles, in order.</param>
     /// <param name="overviews">Its overviews, in order.</param>
     /// <param name="groups">Its groups, checked, in order.</param>
+    /// <param name="facts">What its source says of it beside its groups.</param>
     /// <param name="mustExist">Only update the ordering, writing nothing when it is gone.</param>
     /// <param name="paramName">The argument the ordering came in through.</param>
     /// <returns>The stored ordering, or <c>null</c> when <paramref name="mustExist"/> is set and it is gone.</returns>
@@ -941,12 +1020,13 @@ public class MetadataOrderingService(
         IReadOnlyList<ITitle> titles,
         IReadOnlyList<IText> overviews,
         IReadOnlyList<GroupToWrite> groups,
+        OrderingFacts facts,
         bool mustExist,
         string paramName
     )
     {
         var removedGroups = new List<MetadataGuid>();
-        var stored = WriteLocked(orderingID, seriesID, type, titles, overviews, groups, mustExist, paramName, removedGroups, out var reason);
+        var stored = WriteLocked(orderingID, seriesID, type, titles, overviews, groups, facts, mustExist, paramName, removedGroups, out var reason);
         RemoveImageLinks(removedGroups);
         if (stored is not null && reason is not UpdateReason.None)
             RaiseOrderingEvent(reason is UpdateReason.Added ? OrderingAdded : OrderingUpdated, orderingID, seriesID, stored);
@@ -963,6 +1043,7 @@ public class MetadataOrderingService(
     /// <param name="titles">Its titles, in order.</param>
     /// <param name="overviews">Its overviews, in order.</param>
     /// <param name="groups">Its groups, checked, in order.</param>
+    /// <param name="facts">What its source says of it beside its groups.</param>
     /// <param name="mustExist">Only update the ordering, writing nothing when it is gone.</param>
     /// <param name="paramName">The argument the ordering came in through.</param>
     /// <param name="removedGroups">Gets the groups the write removed.</param>
@@ -977,6 +1058,7 @@ public class MetadataOrderingService(
         IReadOnlyList<ITitle> titles,
         IReadOnlyList<IText> overviews,
         IReadOnlyList<GroupToWrite> groups,
+        OrderingFacts facts,
         bool mustExist,
         string paramName,
         List<MetadataGuid> removedGroups,
@@ -1006,6 +1088,9 @@ public class MetadataOrderingService(
             row.SeriesSource = seriesID.Source;
             row.SeriesID = seriesID.ID;
             row.Type = type;
+            row.IsSourceDefault = facts.IsSourceDefault;
+            row.SourceDefaultCountries = [.. facts.SourceDefaultCountries];
+            row.AbsoluteNumbering = facts.AbsoluteNumbering;
 
             var (groupsSaving, groupsDeleting) = MetadataRows.Replace(
                 groupRepository.GetByOrderingID(source, orderingID.ID),
@@ -1024,7 +1109,12 @@ public class MetadataOrderingService(
                 (before, after) => before.SameAs(after)
             );
             var places = groups
-                .SelectMany(group => group.Episodes.Select((episode, position) => (GroupID: group.ID, Episode: episode, Position: position)))
+                .SelectMany(group => group.Episodes.Select((episode, position) => (
+                    GroupID: group.ID,
+                    Episode: episode,
+                    Position: position,
+                    Number: group.EpisodeNumbers is not null && group.EpisodeNumbers.TryGetValue(episode, out var number) ? number : (int?)null
+                )))
                 .ToList();
             var (entriesSaving, entriesDeleting) = MetadataRows.Replace(
                 entryRepository.GetByOrderingID(source, orderingID.ID),
@@ -1039,6 +1129,7 @@ public class MetadataOrderingService(
                     entryRow.Position = place.Position;
                     entryRow.EpisodeSource = place.Episode.Source;
                     entryRow.EpisodeID = place.Episode.ID;
+                    entryRow.EpisodeNumber = place.Number;
                 },
                 (before, after) => before.SameAs(after)
             );
@@ -1279,7 +1370,33 @@ public class MetadataOrderingService(
     public IOrdering GetPreferredOrdering(ISeries series)
     {
         ArgumentNullException.ThrowIfNull(series);
-        return Chosen(series) ?? DefaultFor(series);
+        return Chosen(series) ?? GetSourceDefaultOrdering(series) ?? DefaultFor(series);
+    }
+
+    /// <inheritdoc />
+    public IOrdering? GetSourceDefaultOrdering(ISeries series, string? country = null)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        var row = SourceDefaultRow(series.ID, country is null ? null : CheckCountry(country, nameof(country)));
+        return row is not null && FindOrdering(row.ID, series) is { } ordering && ordering.SeriesID == series.ID ? ordering : null;
+    }
+
+    /// <summary>
+    ///   The row of the ordering the series' source marks as its default in
+    ///   a country, else the one it marks for everywhere. Only the series' own
+    ///   source decides; the first stored one wins a tie.
+    /// </summary>
+    /// <param name="seriesID">The series.</param>
+    /// <param name="country">The country, upper-case, or <c>null</c>.</param>
+    /// <returns>The row, or <c>null</c>.</returns>
+    private Metadata_Ordering? SourceDefaultRow(MetadataGuid seriesID, string? country)
+    {
+        var rows = orderingRepository.GetBySeries(seriesID)
+            .Where(row => row.Source == seriesID.Source)
+            .OrderBy(row => row.Metadata_OrderingID)
+            .ToList();
+        return (country is null ? null : rows.FirstOrDefault(row => row.SourceDefaultCountries.Contains(country, StringComparer.Ordinal)))
+            ?? rows.FirstOrDefault(row => row.IsSourceDefault);
     }
 
     /// <summary>
@@ -1293,7 +1410,24 @@ public class MetadataOrderingService(
     internal IOrdering<TSeries, TEpisode> GetPreferredOrdering<TSeries, TEpisode>(TSeries series)
         where TSeries : class, ISeries
         where TEpisode : class, IEpisode
-        => Chosen<TSeries, TEpisode>(series) ?? DefaultFor<TSeries, TEpisode>(series);
+        => Chosen<TSeries, TEpisode>(series) ?? SourceDefault<TSeries, TEpisode>(series) ?? DefaultFor<TSeries, TEpisode>(series);
+
+    /// <summary>
+    ///   The ordering the series' source marks as its default everywhere,
+    ///   read with its series and episodes typed.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="series">The series.</param>
+    /// <returns>The ordering, or <c>null</c>.</returns>
+    private IOrdering<TSeries, TEpisode>? SourceDefault<TSeries, TEpisode>(TSeries series)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => SourceDefaultRow(series.ID, null) is { } row &&
+            FindOrdering<TSeries, TEpisode>(row.ID) is { } ordering &&
+            ordering.SeriesID == series.ID
+                ? ordering
+                : null;
 
     /// <inheritdoc />
     public bool SetPreferredOrdering(MetadataGuid seriesID, MetadataGuid? orderingID)
@@ -1338,7 +1472,7 @@ public class MetadataOrderingService(
     /// <param name="orderingID">One of its orderings.</param>
     /// <returns><c>true</c> if it is the one in use.</returns>
     internal bool IsPreferred(ISeries series, MetadataGuid orderingID)
-        => (Chosen(series)?.ID ?? DefaultOrderingID(series.ID)) == orderingID;
+        => (Chosen(series)?.ID ?? SourceDefaultRow(series.ID, null)?.ID ?? DefaultOrderingID(series.ID)) == orderingID;
 
     /// <summary>
     ///   Whether an ordering is the one chosen for a series, without looking
@@ -1349,6 +1483,19 @@ public class MetadataOrderingService(
     /// <returns><c>true</c> if it is the chosen one.</returns>
     internal bool IsChosen(MetadataGuid seriesID, MetadataGuid orderingID)
         => rowState.GetPreferredOrdering(seriesID) == orderingID;
+
+    /// <summary>
+    ///   Whether a stored ordering is the one in use for a series: the chosen
+    ///   one, or the one its source marks as its default everywhere while none
+    ///   is chosen. Does not look whether a chosen ordering is still there.
+    /// </summary>
+    /// <param name="seriesID">The series.</param>
+    /// <param name="orderingID">The ordering.</param>
+    /// <returns><c>true</c> if it is the one in use.</returns>
+    internal bool IsStoredPreferred(MetadataGuid seriesID, MetadataGuid orderingID)
+        => rowState.GetPreferredOrdering(seriesID) is { } chosen
+            ? chosen == orderingID
+            : SourceDefaultRow(seriesID, null)?.ID == orderingID;
 
     /// <summary>
     ///   Forgets the choice of an ordering that is gone, which only the

@@ -37,10 +37,32 @@ public interface IOrdering : IMetadata, IWithTitles, IWithOverviews, IWithCreati
     bool IsDefault { get; }
 
     /// <summary>
-    ///   Whether this is the ordering chosen for the series. The default
-    ///   ordering is, until another one is chosen.
+    ///   Whether this is the ordering chosen for the series. Until one is
+    ///   chosen, the one its source marks as its default everywhere is
+    ///   (<see cref="IsSourceDefault"/>), else the default ordering.
     /// </summary>
     bool IsPreferred { get; }
+
+    /// <summary>
+    ///   Whether the series' source marks this ordering as the series' default
+    ///   everywhere, unless another one is its default in a given country
+    ///   (<see cref="SourceDefaultCountries"/>). Unrelated to
+    ///   <see cref="IsDefault"/>.
+    /// </summary>
+    bool IsSourceDefault { get; }
+
+    /// <summary>
+    ///   The countries, as ISO 3166-1 alpha-2 codes, where the series' source
+    ///   marks this ordering as the series' default, over the one it marks
+    ///   for everywhere.
+    /// </summary>
+    IReadOnlyList<string> SourceDefaultCountries { get; }
+
+    /// <summary>
+    ///   What the ordering's absolute episode numbers are
+    ///   (<see cref="IEpisodeOrderingInformation.AbsoluteEpisodeNumber"/>).
+    /// </summary>
+    AbsoluteEpisodeNumbering AbsoluteNumbering { get; }
 
     /// <summary>
     ///   How many episodes the ordering holds, each counted once.

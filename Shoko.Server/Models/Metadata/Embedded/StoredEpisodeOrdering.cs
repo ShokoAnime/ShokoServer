@@ -12,9 +12,10 @@ namespace Shoko.Server.Models.Metadata.Embedded;
 /// <param name="ordering">The ordering.</param>
 /// <param name="group">The group the episode is listed in, as a season of the ordering.</param>
 /// <param name="episode">The episode.</param>
-/// <param name="episodeNumber">The episode's number in the group, from <c>1</c>.</param>
+/// <param name="episodeNumber">The episode's number in the group: the source's, else its place from <c>1</c>.</param>
 /// <param name="airing">Where a placed special airs, on its special group place.</param>
-internal class StoredEpisodeOrdering(IOrdering ordering, ISeason group, IEpisode episode, int episodeNumber, OrderingAiring? airing)
+/// <param name="absoluteEpisodeNumber">The episode's number across the ordering, if it has one.</param>
+internal class StoredEpisodeOrdering(IOrdering ordering, ISeason group, IEpisode episode, int episodeNumber, OrderingAiring? airing, int? absoluteEpisodeNumber = null)
     : EpisodeInOrdering(episode)
 {
     #region Place
@@ -30,6 +31,9 @@ internal class StoredEpisodeOrdering(IOrdering ordering, ISeason group, IEpisode
 
     /// <inheritdoc />
     public override int EpisodeNumber => episodeNumber;
+
+    /// <inheritdoc />
+    public override int? AbsoluteEpisodeNumber => absoluteEpisodeNumber;
 
     /// <inheritdoc />
     public override EpisodeType EpisodeType => group.IsSpecial ? EpisodeType.Special : EpisodeType.Episode;
@@ -82,10 +86,17 @@ internal class StoredEpisodeOrdering(IOrdering ordering, ISeason group, IEpisode
 /// <typeparam name="TEpisode">The episodes' type.</typeparam>
 /// <param name="group">The group the episode is at home in.</param>
 /// <param name="episode">The episode.</param>
-/// <param name="episodeNumber">The episode's number in the group, from <c>1</c>, placed specials skipped.</param>
+/// <param name="episodeNumber">The episode's number in the group: the source's, else its place from <c>1</c>, placed specials skipped.</param>
 /// <param name="airing">Where a placed special airs, on its special group place.</param>
-internal sealed class StoredEpisodeOrdering<TSeries, TEpisode>(StoredOrderingGroup<TSeries, TEpisode> group, TEpisode episode, int episodeNumber, OrderingAiring? airing)
-    : StoredEpisodeOrdering(group.Ordering, group, episode, episodeNumber, airing), IEpisodeOrderingInformation<TSeries, TEpisode>
+/// <param name="absoluteEpisodeNumber">The episode's number across the ordering, if it has one.</param>
+internal sealed class StoredEpisodeOrdering<TSeries, TEpisode>(
+    StoredOrderingGroup<TSeries, TEpisode> group,
+    TEpisode episode,
+    int episodeNumber,
+    OrderingAiring? airing,
+    int? absoluteEpisodeNumber
+)
+    : StoredEpisodeOrdering(group.Ordering, group, episode, episodeNumber, airing, absoluteEpisodeNumber), IEpisodeOrderingInformation<TSeries, TEpisode>
     where TSeries : class, ISeries
     where TEpisode : class, IEpisode
 {

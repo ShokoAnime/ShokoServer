@@ -232,13 +232,29 @@ public interface IMetadataOrderingService
     #region Preferred Ordering
 
     /// <summary>
-    ///   The ordering chosen for a series, or its default ordering when none
-    ///   is, or the chosen one is gone.
+    ///   The ordering chosen for a series. When none is, or the chosen one is
+    ///   gone, the one its source marks as its default everywhere
+    ///   (<see cref="GetSourceDefaultOrdering"/>), else its default ordering.
     /// </summary>
     /// <param name="series">The series.</param>
     /// <returns>The ordering.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="series"/> is <c>null</c>.</exception>
     IOrdering GetPreferredOrdering(ISeries series);
+
+    /// <summary>
+    ///   The ordering the series' source marks as the series' default in a
+    ///   country (<see cref="IOrdering.SourceDefaultCountries"/>), else the one
+    ///   it marks for everywhere (<see cref="IOrdering.IsSourceDefault"/>).
+    /// </summary>
+    /// <param name="series">The series.</param>
+    /// <param name="country">
+    ///   The country, as an ISO 3166-1 alpha-2 code, ignoring case, or
+    ///   <c>null</c> for only the one for everywhere.
+    /// </param>
+    /// <returns>The ordering, or <c>null</c> when the source marks none.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="series"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="country"/> is not two letters.</exception>
+    IOrdering? GetSourceDefaultOrdering(ISeries series, string? country = null);
 
     /// <summary>
     ///   Chooses an ordering for a series, on any source, kept on the

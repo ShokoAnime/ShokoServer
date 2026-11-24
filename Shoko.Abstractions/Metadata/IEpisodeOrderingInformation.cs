@@ -43,10 +43,19 @@ public interface IEpisodeOrderingInformation : IWithCreationDate, IWithUpdateDat
 
     /// <summary>
     ///   The episode's number: its own for the default ordering, and for any
-    ///   other its place among the group's home episodes, from 1, placed
-    ///   specials skipped.
+    ///   other the number its source gives it in the group, else its place
+    ///   among the group's home episodes, from 1, placed specials skipped.
+    ///   Several episodes sharing one number in a group are one combined
+    ///   entry, in the group's order.
     /// </summary>
     int EpisodeNumber { get; }
+
+    /// <summary>
+    ///   The episode's number across the whole ordering, as the ordering's
+    ///   <see cref="IOrdering.AbsoluteNumbering"/> says, or <c>null</c> when it
+    ///   has none, and for a special.
+    /// </summary>
+    int? AbsoluteEpisodeNumber { get; }
 
     /// <summary>
     ///   What the episode is in this ordering: its own type for the default

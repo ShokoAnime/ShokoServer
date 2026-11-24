@@ -40,6 +40,9 @@ public abstract class EpisodeInOrdering(IEpisode episode) : IEpisodeOrderingInfo
     public abstract int EpisodeNumber { get; }
 
     /// <inheritdoc />
+    public abstract int? AbsoluteEpisodeNumber { get; }
+
+    /// <inheritdoc />
     public abstract EpisodeType EpisodeType { get; }
 
     /// <inheritdoc />
@@ -102,6 +105,12 @@ public abstract class EpisodeInOrdering(IEpisode episode) : IEpisodeOrderingInfo
     public MetadataGuid ID => episode.ID;
 
     EpisodeType IEpisode.Type => EpisodeType;
+
+    ExtraType IEpisode.ExtraType => LinkedEpisode.ExtraType;
+
+    EpisodeCanonicity IEpisode.Canonicity => LinkedEpisode.Canonicity;
+
+    int? IEpisode.AbsoluteEpisodeNumber => AbsoluteEpisodeNumber;
 
     /// <inheritdoc />
     public IReadOnlyList<int> ShokoEpisodeIDs => episode.ShokoEpisodeIDs;

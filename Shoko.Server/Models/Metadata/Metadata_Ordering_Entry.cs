@@ -44,6 +44,12 @@ public class Metadata_Ordering_Entry : IMetadataStoreRow<Metadata_Ordering_Entry
     /// </summary>
     public string EpisodeID { get; set; } = string.Empty;
 
+    /// <summary>
+    ///   The episode's number in the group as the source gives it, or
+    ///   <c>null</c> to number it by its place.
+    /// </summary>
+    public int? EpisodeNumber { get; set; }
+
     #endregion
 
     #region Helpers
@@ -75,7 +81,8 @@ public class Metadata_Ordering_Entry : IMetadataStoreRow<Metadata_Ordering_Entry
             GroupID == other.GroupID &&
             Position == other.Position &&
             EpisodeSource == other.EpisodeSource &&
-            EpisodeID == other.EpisodeID;
+            EpisodeID == other.EpisodeID &&
+            EpisodeNumber == other.EpisodeNumber;
 
     #endregion
 

@@ -1810,6 +1810,10 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(207,   5, "UPDATE VideoLocal_Place SET PrimaryLocationID = ID;"),
         new(207,   6, "CREATE INDEX IX_VideoLocal_Place_PrimaryLocationID ON VideoLocal_Place(PrimaryLocationID);"),
         new(207,   7, DatabaseFixes.RepairVideoFileGroups),
+        new(208,   1, "ALTER TABLE Metadata_Ordering ADD IsSourceDefault BIT NOT NULL DEFAULT 0;"),
+        new(208,   2, "ALTER TABLE Metadata_Ordering ADD SourceDefaultCountries NVARCHAR(MAX) NULL;"),
+        new(208,   3, "ALTER TABLE Metadata_Ordering ADD AbsoluteNumbering INT NOT NULL DEFAULT 0;"),
+        new(208,   4, "ALTER TABLE Metadata_Ordering_Entry ADD EpisodeNumber INT NULL;"),
     ];
 
     #endregion

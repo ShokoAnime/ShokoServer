@@ -51,8 +51,43 @@ public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, Met
     ///   The ordering's places, its specials placed.
     /// </summary>
     internal OrderingPlaces Placement => _placement ??= OrderingPlaces.ByPlace(
-        [.. Groups.Select(group => new OrderingPlacesGroup(group.ID, group.SeasonNumber, group.IsSpecial, [.. group.Places.Select(place => place.Episode.ID)]))]
+        [.. Groups.Select(group => new OrderingPlacesGroup(group.ID, group.SeasonNumber, group.IsSpecial, [.. group.Places.Select(place => place.Episode.ID)], GivenNumbers(group)))],
+        row.AbsoluteNumbering is AbsoluteEpisodeNumbering.Continuous
     );
+
+    /// <summary>
+    ///   The numbers the source gave a group's episodes.
+    /// </summary>
+    /// <param name="group">The group.</param>
+    /// <returns>The numbers, or <c>null</c> when it gave none.</returns>
+    private static Dictionary<MetadataGuid, int>? GivenNumbers(StoredOrderingGroup<TSeries, TEpisode> group)
+    {
+        Dictionary<MetadataGuid, int>? numbers = null;
+        foreach (var (entry, episode) in group.Places)
+        {
+            if (entry.EpisodeNumber is { } number)
+                (numbers ??= [])[episode.ID] = number;
+        }
+
+        return numbers;
+    }
+
+    /// <summary>
+    ///   An episode's absolute number at a place, as the ordering's
+    ///   <see cref="AbsoluteNumbering"/> says.
+    /// </summary>
+    /// <param name="place">The place.</param>
+    /// <param name="episode">The episode.</param>
+    /// <returns>The number, or <c>null</c>.</returns>
+    internal int? AbsoluteNumberAt(OrderingPlace place, IEpisode episode)
+        => place.IsSpecial
+            ? null
+            : row.AbsoluteNumbering switch
+            {
+                AbsoluteEpisodeNumbering.Continuous => place.AbsoluteEpisodeNumber,
+                AbsoluteEpisodeNumbering.Source => (episode as Metadata_Episode)?.SourceAbsoluteEpisodeNumber,
+                _ => null,
+            };
 
     /// <summary>
     ///   Finds one of the ordering's episodes.
@@ -80,7 +115,7 @@ public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, Met
         foreach (var place in Placement.PlacesOf(episodeID))
         {
             if (Groups.FirstOrDefault(group => group.ID == place.GroupID) is { } group)
-                yield return new(group, episode, place.EpisodeNumber, place.IsSpecial ? airing : null);
+                yield return new(group, episode, place.EpisodeNumber, place.IsSpecial ? airing : null, AbsoluteNumberAt(place, episode));
         }
     }
 
@@ -103,7 +138,16 @@ public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, Met
     public bool IsDefault => false;
 
     /// <inheritdoc />
-    public bool IsPreferred => service.IsChosen(SeriesID, ID);
+    public bool IsPreferred => service.IsStoredPreferred(SeriesID, ID);
+
+    /// <inheritdoc />
+    public bool IsSourceDefault => row.IsSourceDefault;
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> SourceDefaultCountries => row.SourceDefaultCountries;
+
+    /// <inheritdoc />
+    public AbsoluteEpisodeNumbering AbsoluteNumbering => row.AbsoluteNumbering;
 
     /// <inheritdoc />
     public int EpisodeCount => Placement.EpisodeCount;

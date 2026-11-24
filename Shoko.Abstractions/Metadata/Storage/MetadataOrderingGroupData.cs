@@ -53,4 +53,13 @@ public sealed record MetadataOrderingGroupData
     ///   special group; its place in the regular group only says where it airs.
     /// </summary>
     public IReadOnlyList<MetadataGuid> Episodes { get; init; } = [];
+
+    /// <summary>
+    ///   The numbers the source gives the group's episodes, when it numbers
+    ///   them itself; an episode left out is numbered by its place, from 1.
+    ///   Several episodes given one number are one combined entry, in the
+    ///   order <see cref="Episodes"/> lists them. Ignored for a placed
+    ///   special's place in a regular group.
+    /// </summary>
+    public IReadOnlyDictionary<MetadataGuid, int>? EpisodeNumbers { get; init; }
 }

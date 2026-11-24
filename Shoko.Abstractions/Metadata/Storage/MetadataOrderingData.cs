@@ -55,4 +55,24 @@ public sealed record MetadataOrderingData
     ///   The ordering's groups, in viewing order.
     /// </summary>
     public IReadOnlyList<MetadataOrderingGroupData> Groups { get; init; } = [];
+
+    /// <summary>
+    ///   Whether the source marks this ordering as the series' default
+    ///   everywhere, unless another one is its default in a given country.
+    /// </summary>
+    public bool IsSourceDefault { get; init; }
+
+    /// <summary>
+    ///   The countries, as ISO 3166-1 alpha-2 codes, where the source marks
+    ///   this ordering as the series' default, over the one it marks for
+    ///   everywhere.
+    /// </summary>
+    public IReadOnlyList<string> SourceDefaultCountries { get; init; } = [];
+
+    /// <summary>
+    ///   What the ordering's absolute episode numbers are:
+    ///   <see cref="AbsoluteEpisodeNumbering.Continuous"/> to number the
+    ///   regular episodes on across the groups, as an absolute order does.
+    /// </summary>
+    public AbsoluteEpisodeNumbering AbsoluteNumbering { get; init; }
 }

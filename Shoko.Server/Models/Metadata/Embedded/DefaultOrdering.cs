@@ -60,6 +60,15 @@ public class DefaultOrdering(ISeries series, MetadataOrderingService? service) :
     public bool IsPreferred => service?.IsPreferred(series, ID) ?? true;
 
     /// <inheritdoc />
+    public bool IsSourceDefault => false;
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> SourceDefaultCountries => [];
+
+    /// <inheritdoc />
+    public AbsoluteEpisodeNumbering AbsoluteNumbering => AbsoluteEpisodeNumbering.Source;
+
+    /// <inheritdoc />
     public int EpisodeCount => Episodes.Count;
 
     /// <inheritdoc />

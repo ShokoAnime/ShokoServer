@@ -167,6 +167,18 @@ public class Metadata_Episode : IEpisode<ISeries, IEpisode>, IMetadataStoreRow<M
     /// </summary>
     internal int? AirsAfterSeasonNumber => ExtraData?.AirsAfterSeasonNumber;
 
+    /// <inheritdoc />
+    public ExtraType ExtraType => ExtraData?.ExtraType ?? ExtraType.None;
+
+    /// <inheritdoc />
+    public EpisodeCanonicity Canonicity => ExtraData?.Canonicity ?? EpisodeCanonicity.None;
+
+    /// <summary>
+    ///   The episode's own number across the whole series, as its source
+    ///   said, which its default ordering hands out.
+    /// </summary>
+    internal int? SourceAbsoluteEpisodeNumber => ExtraData?.AbsoluteEpisodeNumber;
+
     /// <summary>
     ///   Whether the stored columns are the same as another row's, leaving
     ///   out the row's ID and when it was written.

@@ -46,6 +46,21 @@ public sealed record Metadata_EpisodeExtra : IMetadataDefaultImages<Metadata_Epi
     public int? AirsAfterSeasonNumber { get; init; }
 
     /// <summary>
+    ///   What kind of special or extra the episode is, as its source said.
+    /// </summary>
+    public ExtraType ExtraType { get; init; }
+
+    /// <summary>
+    ///   Whether the episode is part of the canon story, as its source said.
+    /// </summary>
+    public EpisodeCanonicity Canonicity { get; init; }
+
+    /// <summary>
+    ///   The episode's own number across the whole series, as its source said.
+    /// </summary>
+    public int? AbsoluteEpisodeNumber { get; init; }
+
+    /// <summary>
     ///   The resource ID of the backdrop the episode's source pins as its
     ///   default, or <c>null</c> for none.
     /// </summary>

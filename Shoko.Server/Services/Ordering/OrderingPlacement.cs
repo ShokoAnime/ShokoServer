@@ -92,11 +92,13 @@ internal static class OrderingPlacement
                 continue;
 
             var episodeNumber = 0;
+            var givenNumbers = groups[groupIndex].EpisodeNumbers;
             foreach (var id in groups[groupIndex].EpisodeIDs)
             {
                 if (!specialNumbers.ContainsKey(id))
                 {
-                    places.Add(new(groupIndex, seasonNumbers[groupIndex], id, ++episodeNumber));
+                    episodeNumber++;
+                    places.Add(new(groupIndex, seasonNumbers[groupIndex], id, givenNumbers is not null && givenNumbers.TryGetValue(id, out var given) ? given : episodeNumber));
                     continue;
                 }
 
@@ -155,7 +157,12 @@ internal static class OrderingPlacement
 /// </summary>
 /// <param name="IsSpecial">Whether the group is the special group, season 0.</param>
 /// <param name="EpisodeIDs">The group's episodes, in order.</param>
-internal sealed record OrderingPlacementGroup(bool IsSpecial, IReadOnlyList<MetadataGuid> EpisodeIDs);
+/// <param name="EpisodeNumbers">
+///   The numbers the source gives the group's home episodes; an episode left
+///   out is numbered by its place among them, from 1. Ignored for the special
+///   group.
+/// </param>
+internal sealed record OrderingPlacementGroup(bool IsSpecial, IReadOnlyList<MetadataGuid> EpisodeIDs, IReadOnlyDictionary<MetadataGuid, int>? EpisodeNumbers = null);
 
 /// <summary>
 ///   An ordering's episodes once its specials are placed.
@@ -177,14 +184,14 @@ internal sealed record OrderingPlacementResult(
 /// <param name="GroupIndex">The group's index in the ordering.</param>
 /// <param name="IsSpecial">Whether it is the special group.</param>
 /// <param name="SeasonNumber">0 for the special group, else 1 to N in the ordering's order.</param>
-/// <param name="Episodes">The home episodes, numbered from 1, placed specials left out.</param>
+/// <param name="Episodes">The home episodes with their numbers, placed specials left out.</param>
 internal sealed record PlacedGroup(int GroupIndex, bool IsSpecial, int SeasonNumber, IReadOnlyList<PlacedEpisode> Episodes);
 
 /// <summary>
 ///   An episode at its home, with its number there.
 /// </summary>
 /// <param name="EpisodeID">The episode.</param>
-/// <param name="EpisodeNumber">Its number in the group, from 1.</param>
+/// <param name="EpisodeNumber">Its number in the group: the source's, else its place from 1.</param>
 internal sealed record PlacedEpisode(MetadataGuid EpisodeID, int EpisodeNumber);
 
 /// <summary>

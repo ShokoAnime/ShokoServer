@@ -1827,6 +1827,10 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(209,   5, "UPDATE `VideoLocal_Place` SET `PrimaryLocationID` = `ID`;"),
         new(209,   6, "CREATE INDEX `IX_VideoLocal_Place_PrimaryLocationID` ON `VideoLocal_Place`(`PrimaryLocationID`);"),
         new(209,   7, DatabaseFixes.RepairVideoFileGroups),
+        new(210,   1, "ALTER TABLE `Metadata_Ordering` ADD COLUMN `IsSourceDefault` BIT NOT NULL DEFAULT 0;"),
+        new(210,   2, "ALTER TABLE `Metadata_Ordering` ADD COLUMN `SourceDefaultCountries` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        new(210,   3, "ALTER TABLE `Metadata_Ordering` ADD COLUMN `AbsoluteNumbering` INT NOT NULL DEFAULT 0;"),
+        new(210,   4, "ALTER TABLE `Metadata_Ordering_Entry` ADD COLUMN `EpisodeNumber` INT NULL;"),
     ];
 
     #endregion

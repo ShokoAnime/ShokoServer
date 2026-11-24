@@ -53,6 +53,9 @@ public class DefaultEpisodeOrdering(IEpisode episode, ISeries? series, MetadataO
     public override int EpisodeNumber => LinkedEpisode.EpisodeNumber;
 
     /// <inheritdoc />
+    public override int? AbsoluteEpisodeNumber => EpisodeType is EpisodeType.Episode ? (LinkedEpisode as Metadata_Episode)?.SourceAbsoluteEpisodeNumber : null;
+
+    /// <inheritdoc />
     public override EpisodeType EpisodeType => LinkedEpisode.Type;
 
     /// <inheritdoc />
