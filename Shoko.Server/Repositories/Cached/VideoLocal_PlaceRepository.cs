@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
+using NHibernate;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
@@ -16,6 +18,8 @@ public class VideoLocal_PlaceRepository(DatabaseFactory databaseFactory) : BaseC
     private PocoIndex<int, VideoLocal_Place, int>? _managedFolderIDs;
 
     private PocoIndex<int, VideoLocal_Place, string>? _paths;
+
+    private PocoIndex<int, VideoLocal_Place, int>? _primaryLocationIDs;
 
     protected override void OnBeginSave(VideoLocal_Place obj)
     {
@@ -52,12 +56,45 @@ public class VideoLocal_PlaceRepository(DatabaseFactory databaseFactory) : BaseC
         }
     }
 
+    /// <summary>
+    ///   Stores a new location as the primary of its own group once it has an
+    ///   ID, as it was inserted without one.
+    /// </summary>
+    protected override void OnSaveWithOpenTransaction(ISessionWrapper session, VideoLocal_Place obj)
+    {
+        if (!obj.HasPrimaryLocationID)
+            obj.PrimaryLocationID = obj.ID;
+    }
+
+    /// <summary>
+    ///   Hands a removed primary's group to its next location: the lowest ID
+    ///   among those that are not symbolic links, or the lowest ID when all
+    ///   are, from what is stored.
+    /// </summary>
+    protected override void OnDeleteWithOpenTransaction(ISession session, VideoLocal_Place obj)
+    {
+        if (obj.ID is 0)
+            return;
+
+        var others = GetByPrimaryLocationID(obj.ID).Where(other => other.ID != obj.ID).OrderBy(other => other.ID).ToList();
+        if (others.Count is 0)
+            return;
+
+        var primary = (others.FirstOrDefault(other => !other.IsSymbolicLink) ?? others[0]).ID;
+        foreach (var other in others)
+        {
+            other.PrimaryLocationID = primary;
+            SaveWithOpenTransaction(session, other);
+        }
+    }
+
     protected override int SelectKey(VideoLocal_Place entity)
         => entity.ID;
 
     public override void PopulateIndexes()
     {
         _videoLocalIDs = Cache.CreateIndex(a => a.VideoID);
+        _primaryLocationIDs = Cache.CreateIndex(a => a.PrimaryLocationID);
         _managedFolderIDs = Cache.CreateIndex(a => a.ManagedFolderID);
         _paths = Cache.CreateIndex(a => a.RelativePath);
     }
@@ -112,4 +149,12 @@ public class VideoLocal_PlaceRepository(DatabaseFactory databaseFactory) : BaseC
 
     public virtual IReadOnlyList<VideoLocal_Place> GetByVideoLocal(int videoLocalID)
         => _videoLocalIDs!.GetMultiple(videoLocalID);
+
+    /// <summary>
+    ///   Gets the locations of one file group, its primary included.
+    /// </summary>
+    /// <param name="primaryLocationID">The group's primary location ID.</param>
+    /// <returns>The locations.</returns>
+    public IReadOnlyList<VideoLocal_Place> GetByPrimaryLocationID(int primaryLocationID)
+        => _primaryLocationIDs!.GetMultiple(primaryLocationID);
 }

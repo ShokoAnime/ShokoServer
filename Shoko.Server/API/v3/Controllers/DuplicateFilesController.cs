@@ -5,12 +5,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -25,16 +27,22 @@ namespace Shoko.Server.API.v3.Controllers;
 public class DuplicateFilesController(ISettingsProvider settingsProvider,
     AnimeEpisodeRepository _animeEpisodes,
     AnimeSeriesRepository _animeSeries,
-    AnidbTitleSearch _anidbTitles
+    AnidbTitleSearch _anidbTitles,
+    IVideoService _videoService
 ) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Get episodes with duplicate files, with only the files with duplicates for each episode.
+    /// A file has duplicates when it has more than one file group and not every group is one
+    /// to keep: locations that are the same file (hard links, and symbolic links with their
+    /// file) are one group, and a kept location's group is kept.
     /// </summary>
     /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeReleaseInfo">Include release info data.</param>
+    /// <param name="includeStat">Include each location's stat, group and link.</param>
+    /// <param name="includeKept">Treat no location as kept, so every file with more than one group is listed.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
@@ -44,57 +52,38 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
+        [FromQuery] bool includeStat = false,
+        [FromQuery] bool includeKept = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         var user = User;
-        var enumerable = _animeEpisodes.GetWithDuplicateFiles()
-            .Where(episode => episode.AnimeSeries is { } series && user.AllowedSeries(series));
-
-        return enumerable
-            .ToListResult(episode =>
-            {
-                var duplicateFiles = episode.VideoLocals
-                    .Select(file => (file, locations: file.Places.ExceptBy((file.FirstValidPlace ?? file.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID).ToList()))
-                    .Where(tuple => tuple.locations.Count > 0)
-                    .ToList();
-                var dto = new Episode(HttpContext, episode, includeDataFrom);
-                dto.Size = duplicateFiles.Count;
-                dto.Files = duplicateFiles
-                    .Select(tuple => new File(HttpContext, tuple.file, includeXRefs, includeReleaseInfo, includeMediaInfo, true))
-                    .ToList();
-                return dto;
-            }, page, pageSize);
+        return EpisodesWithDuplicates(null, includeKept)
+            .Where(tuple => tuple.Episode.AnimeSeries is { } series && user.AllowedSeries(series))
+            .ToListResult(tuple => ToEpisode(tuple, includeDataFrom, includeXRefs, includeReleaseInfo, includeMediaInfo, includeStat, includeKept), page, pageSize);
     }
 
     /// <summary>
-    /// Get the list of file location ids to auto remove across all series.
+    /// Get the list of file location ids to auto remove across all series: every location of
+    /// every group that is not one to keep, so no link is left pointing at a removed file.
     /// </summary>
+    /// <param name="includeKept">Treat no location as kept, so only the group holding each file's first available location stays.</param>
     /// <returns></returns>
     [HttpGet("FileLocationsToAutoRemove")]
-    public ActionResult<List<FileIdSet>> GetFileIdsWithPreference()
+    public ActionResult<List<FileIdSet>> GetFileIdsWithPreference([FromQuery] bool includeKept = false)
     {
         var user = User;
-        var enumerable = _animeEpisodes.GetWithDuplicateFiles()
-            .Where(episode => episode.AnimeSeries is { } series && user.AllowedSeries(series));
-
-        return enumerable
-            .SelectMany(episode =>
-                episode.VideoLocals
-                    .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID))
-                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoID, file.ID))
-            )
-            .GroupBy(tuple => tuple.VideoID, tuple => (tuple.ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
-            .Select(groupBy => new FileIdSet(groupBy))
-            .ToList();
+        return ToRemove(EpisodesWithDuplicates(null, includeKept)
+            .Where(tuple => tuple.Episode.AnimeSeries is { } series && user.AllowedSeries(series)), includeKept);
     }
 
     /// <summary>
-    /// Get series with duplicate files.
+    /// Get series with duplicate files, as the episodes route counts them.
     /// </summary>
     /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <param name="onlyFinishedSeries">Only show finished series.</param>
     /// <param name="search">Filter by series title. Matched case-insensitively against all main and official titles across all languages.</param>
+    /// <param name="includeKept">Treat no location as kept, so every file with more than one group counts.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
@@ -103,10 +92,11 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
         [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
         [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery] string? search = null,
+        [FromQuery] bool includeKept = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = _animeSeries.GetWithDuplicateFiles()
+        var enumerable = _animeSeries.GetWithDuplicateFiles(_videoService.GroupLinkedFiles)
             .Where(User.AllowedSeries);
         if (onlyFinishedSeries)
             enumerable = enumerable.Where(a => a.AniDB_Anime!.GetFinishedAiring());
@@ -116,10 +106,13 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
             enumerable = enumerable.Where(s => _anidbTitles.AnimeMatchesSearch(s.AniDB_ID, normalizedSearch));
         }
 
+        // The query finds the series with any file in more than one stored group; the keep flags decide.
         return enumerable
-            .OrderBy(series => series.Title)
-            .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series.WithEpisodeCount(_animeEpisodes.GetWithDuplicateFiles(series.AniDB_ID).Count(), series, User.ID, includeDataFrom), page, pageSize);
+            .Select(series => (Series: series, Count: EpisodesWithDuplicates(series.AniDB_ID, includeKept).Count()))
+            .Where(tuple => tuple.Count > 0)
+            .OrderBy(tuple => tuple.Series.Title)
+            .ThenBy(tuple => tuple.Series.AniDB_ID)
+            .ToListResult(tuple => new Series.WithEpisodeCount(tuple.Count, tuple.Series, User.ID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -130,6 +123,8 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeReleaseInfo">Include release info data.</param>
+    /// <param name="includeStat">Include each location's stat, group and link.</param>
+    /// <param name="includeKept">Treat no location as kept, so every file with more than one group is listed.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
@@ -140,6 +135,8 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
+        [FromQuery] bool includeStat = false,
+        [FromQuery] bool includeKept = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
@@ -150,32 +147,21 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        var enumerable = _animeEpisodes.GetWithDuplicateFiles(series.AniDB_ID);
-
-        return enumerable
-            .ToListResult(episode =>
-            {
-                var duplicateFiles = episode.VideoLocals
-                    .Select(file => (file, locations: file.Places.ExceptBy((file.FirstValidPlace ?? file.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID).ToList()))
-                    .Where(tuple => tuple.locations.Count > 0)
-                    .ToList();
-                var dto = new Episode(HttpContext, episode, includeDataFrom);
-                dto.Size = duplicateFiles.Count;
-                dto.Files = duplicateFiles
-                    .Select(tuple => new File(HttpContext, tuple.file, includeXRefs, includeReleaseInfo, includeMediaInfo, true))
-                    .ToList();
-                return dto;
-            }, page, pageSize);
+        return EpisodesWithDuplicates(series.AniDB_ID, includeKept)
+            .ToListResult(tuple => ToEpisode(tuple, includeDataFrom, includeXRefs, includeReleaseInfo, includeMediaInfo, includeStat, includeKept), page, pageSize);
     }
 
     /// <summary>
-    /// Get the list of file location ids to auto remove for the series.
+    /// Get the list of file location ids to auto remove for the series, as the route across all
+    /// series picks them.
     /// </summary>
     /// <param name="seriesID">Shoko Series ID</param>
+    /// <param name="includeKept">Treat no location as kept, so only the group holding each file's first available location stays.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/FileLocationsToAutoRemove")]
     public ActionResult<List<FileIdSet>> GetFileLocationsIdsAcrossAllEpisodes(
-        [FromRoute, Range(1, int.MaxValue)] int seriesID
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] bool includeKept = false
     )
     {
         var series = _animeSeries.GetByID(seriesID);
@@ -185,18 +171,38 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
         if (!User.AllowedSeries(series))
             return new List<FileIdSet>();
 
-        var enumerable = _animeEpisodes.GetWithDuplicateFiles(series.AniDB_ID);
+        return ToRemove(EpisodesWithDuplicates(series.AniDB_ID, includeKept), includeKept);
+    }
 
-        return enumerable
-            .SelectMany(episode =>
-                episode.VideoLocals
-                    .SelectMany(a => a.Places.ExceptBy((a.FirstValidPlace ?? a.FirstResolvedPlace) is { } fileLocation ? [fileLocation.ID] : [], b => b.ID))
-                    .Select(file => (episode.AnimeSeriesID, episode.AnimeEpisodeID, file.VideoID, file.ID))
-            )
+    /// <summary>
+    /// The episodes with a file with duplicates, each with those files: the query finds the
+    /// episodes with any file in more than one stored group, and the keep flags decide.
+    /// </summary>
+    private IEnumerable<(AnimeEpisode Episode, List<VideoLocal> Files)> EpisodesWithDuplicates(int? animeID, bool includeKept)
+        => _animeEpisodes.GetWithDuplicateFiles(animeID, _videoService.GroupLinkedFiles)
+            .Select(episode => (Episode: episode, Files: episode.VideoLocals
+                .Where(file => file.Places.Count > 1 && _videoService.GetVideoFileGroups(file, ignoreKept: includeKept).Any(group => !group.IsPreferred))
+                .ToList()))
+            .Where(tuple => tuple.Files.Count > 0);
+
+    private Episode ToEpisode((AnimeEpisode Episode, List<VideoLocal> Files) tuple, HashSet<MetadataSource>? includeDataFrom, bool includeXRefs, bool includeReleaseInfo, bool includeMediaInfo, bool includeStat, bool includeKept)
+    {
+        var dto = new Episode(HttpContext, tuple.Episode, includeDataFrom);
+        dto.Size = tuple.Files.Count;
+        dto.Files = tuple.Files
+            .Select(file => new File(HttpContext, file, includeXRefs, includeReleaseInfo, includeMediaInfo, true, includeStat, includeStat ? _videoService.GetVideoFileGroups(file, ignoreKept: includeKept) : null))
+            .ToList();
+        return dto;
+    }
+
+    private List<FileIdSet> ToRemove(IEnumerable<(AnimeEpisode Episode, List<VideoLocal> Files)> episodes, bool includeKept)
+        => episodes
+            .SelectMany(tuple => tuple.Files
+                .SelectMany(file => ((VideoService)_videoService).GetVideoFilesToAutoRemove(file, ignoreKept: includeKept))
+                .Select(location => (tuple.Episode.AnimeSeriesID, tuple.Episode.AnimeEpisodeID, location.VideoID, location.ID)))
             .GroupBy(tuple => tuple.VideoID, tuple => (tuple.ID, tuple.AnimeEpisodeID, tuple.AnimeSeriesID))
             .Select(groupBy => new FileIdSet(groupBy))
             .ToList();
-    }
 
     public class FileIdSet(IGrouping<int, (int VideoLocal_Place_ID, int AnimeEpisodeID, int AnimeSeriesID)> grouping)
     {

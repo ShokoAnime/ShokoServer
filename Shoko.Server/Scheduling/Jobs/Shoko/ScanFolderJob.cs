@@ -33,6 +33,8 @@ internal class ScanFolderJob(IVideoService videoService, IJobCancellationAccesso
 
     public bool CheckFileSize { get; set; }
 
+    public bool RepairGroups { get; set; } = true;
+
     public bool ForceScan { get; set; }
 
     public override string TypeName => "Scan Managed Folder";
@@ -58,6 +60,8 @@ internal class ScanFolderJob(IVideoService videoService, IJobCancellationAccesso
                 details["Clean Up"] = true;
             if (CheckFileSize)
                 details["Check File Size"] = true;
+            if (RepairGroups)
+                details["Repair Groups"] = true;
             if (ForceScan)
                 details["Force Scan"] = true;
             return details;
@@ -84,6 +88,7 @@ internal class ScanFolderJob(IVideoService videoService, IJobCancellationAccesso
                 SkipEvents = SkipEvents,
                 CleanUpStructure = CleanUpStructure,
                 CheckFileSize = CheckFileSize,
+                RepairGroups = RepairGroups,
                 ForceScan = ForceScan,
             },
             progress.Progress,

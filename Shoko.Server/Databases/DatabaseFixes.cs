@@ -144,6 +144,32 @@ public partial class DatabaseFixes
         }
     }
 
+    /// <summary>
+    ///   Stores which locations of each video with more than one are one group
+    ///   on disk, reading them once. Single locations stay their own group and
+    ///   get their symbolic link details from the next scan.
+    /// </summary>
+    public static void RepairVideoFileGroups()
+    {
+        var videoService = (VideoService)ISystemService.StaticServices.GetRequiredService<IVideoService>();
+        var videos = RepoFactory.VideoLocal.GetAll().Where(video => video.Places.Count > 1).ToList();
+        var changed = 0;
+        foreach (var video in videos)
+        {
+            try
+            {
+                if (videoService.RepairVideoFileGroups(video))
+                    changed++;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Could not read the locations of video {VideoID} on disk; they stay groups of their own until the next scan.", video.VideoLocalID);
+            }
+        }
+
+        _logger.Info("Read the file groups of {Count} videos with more than one location; {Changed} had locations that are one group.", videos.Count, changed);
+    }
+
     public static void EnsureNoOrphanedGroupsOrSeries()
     {
         var emptyGroups = RepoFactory.AnimeGroup.GetAll().Where(a => a.AllSeries.Count == 0).ToArray();

@@ -47,6 +47,13 @@ public sealed record ManagedFolderScanOptions
     public bool? CheckFileSize { get; init; }
 
     /// <summary>
+    ///   Whether to read again on disk, once the scan is done, the videos of
+    ///   the scanned locations that are or were symbolic links, or have more
+    ///   than one location, and store their file groups. Default: <c>true</c>.
+    /// </summary>
+    public bool RepairGroups { get; init; } = true;
+
+    /// <summary>
     ///   Whether to look at each video again even when it has exceeded the
     ///   maximum allowed auto-scan attempts.
     /// </summary>

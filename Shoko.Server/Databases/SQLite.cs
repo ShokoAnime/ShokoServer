@@ -1485,6 +1485,13 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(184,  19, "CREATE UNIQUE INDEX UIX_UserConfiguration_UserID_ConfigurationID ON UserConfiguration(UserID, ConfigurationID);"),
         new(185,   1, "ALTER TABLE AuthTokens ADD COLUMN CreatedAt DATETIME NULL;"),
         new(185,   2, "ALTER TABLE AuthTokens ADD COLUMN LastUsedAt DATETIME NULL;"),
+        new(186,   1, "ALTER TABLE VideoLocal_Place ADD COLUMN IsKept INTEGER NOT NULL DEFAULT 0;"),
+        new(186,   2, "ALTER TABLE VideoLocal_Place ADD COLUMN PrimaryLocationID INTEGER NOT NULL DEFAULT 0;"),
+        new(186,   3, "ALTER TABLE VideoLocal_Place ADD COLUMN IsSymbolicLink INTEGER NOT NULL DEFAULT 0;"),
+        new(186,   4, "ALTER TABLE VideoLocal_Place ADD COLUMN SymbolicLinkTarget TEXT NULL;"),
+        new(186,   5, "UPDATE VideoLocal_Place SET PrimaryLocationID = ID;"),
+        new(186,   6, "CREATE INDEX IX_VideoLocal_Place_PrimaryLocationID ON VideoLocal_Place(PrimaryLocationID);"),
+        new(186,   7, DatabaseFixes.RepairVideoFileGroups),
     ];
 
     #endregion

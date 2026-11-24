@@ -1803,6 +1803,13 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(205,  20, "EXEC sp_rename 'UserConfiguration.UIX_UserConfiguration_JMMUserID_ConfigurationID', 'UIX_UserConfiguration_UserID_ConfigurationID', 'INDEX';"),
         new(206,   1, "ALTER TABLE AuthTokens ADD CreatedAt datetime2 NULL;"),
         new(206,   2, "ALTER TABLE AuthTokens ADD LastUsedAt datetime2 NULL;"),
+        new(207,   1, "ALTER TABLE VideoLocal_Place ADD IsKept BIT NOT NULL DEFAULT 0;"),
+        new(207,   2, "ALTER TABLE VideoLocal_Place ADD PrimaryLocationID INT NOT NULL DEFAULT 0;"),
+        new(207,   3, "ALTER TABLE VideoLocal_Place ADD IsSymbolicLink BIT NOT NULL DEFAULT 0;"),
+        new(207,   4, "ALTER TABLE VideoLocal_Place ADD SymbolicLinkTarget NVARCHAR(MAX) NULL;"),
+        new(207,   5, "UPDATE VideoLocal_Place SET PrimaryLocationID = ID;"),
+        new(207,   6, "CREATE INDEX IX_VideoLocal_Place_PrimaryLocationID ON VideoLocal_Place(PrimaryLocationID);"),
+        new(207,   7, DatabaseFixes.RepairVideoFileGroups),
     ];
 
     #endregion

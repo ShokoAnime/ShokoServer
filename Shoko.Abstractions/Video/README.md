@@ -153,3 +153,37 @@ mainly useful for diagnostics.
 - **Expecting the rule set to be reloadable.** The rules are taken once, at
   startup. Anything the user should be able to change has to be read inside
   `ShouldIgnore`.
+
+---
+
+## File groups and kept locations
+
+A video can have more than one location (`IVideoFile`). Locations that are the
+same file on disk, hard links of each other and symbolic links with the file
+they point to, are **one file group** of the video, not duplicates, while
+`IVideoService.GroupLinkedFiles` is on (the default). Turned off, every
+location is a group of its own, as before 6.0.
+
+Which locations are one group is **stored**, as last seen on disk: each
+location names its group's primary location (`IVideoFile.PrimaryFileID`), the file itself rather than a link
+to it where it is in the collection, and records whether it is a symbolic link
+(`IVideoFile.IsSymbolicLink`) and where it leads (`SymbolicLinkTarget`). The
+core updates them when a location is found, hashed or moved, and during folder
+scans: a link added before the file it points to hands its group to the file
+once that is added, and a removed primary hands its group to the next location.
+Reading groups reads nothing from disk; a link made or removed outside Shoko
+shows after the next scan of its folder.
+
+`IVideoService.GetVideoFileGroups` reads a video's groups (`VideoFileGroup`):
+each with its locations (the primary first), whether any of them is kept, and
+whether it is **preferred**, a group to keep:
+
+- every group with a kept location (`IVideoFile.IsKept`, set with
+  `SetVideoFileKept`, announced by `VideoFileKeptChanged`), when there is one;
+- otherwise the one group holding the video's first available location.
+
+Every other group is a duplicate. `GetVideosWithDuplicates` lists the videos
+that have one, for the whole collection or for one series, and the core's own
+duplicate removal (on import, and the APIv3 duplicate routes) only ever removes
+whole groups that are not preferred, so a link is never left pointing at a
+removed file. Passing `ignoreKept: true` treats no location as kept.

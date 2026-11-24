@@ -607,6 +607,8 @@ public class VideoHashingService(
         if (previousVideo is not null && previousVideo.VideoLocalID != video.VideoLocalID)
             await _videoService.RemoveVideoWithoutLocations(previousVideo, skipEvents).ConfigureAwait(false);
 
+        // The location is saved, so its file group is stored before the duplicate check reads it.
+        _videoService.RepairVideoFileGroups(video);
         var wasDeleted = await DeduplicateAndCleanup(video, videoLocation, skipEvents: skipEvents, locationAvailable: true).ConfigureAwait(false);
         if (!wasDeleted)
         {
@@ -928,9 +930,29 @@ public class VideoHashingService(
             return true;
         }
 
-        if (places.FirstOrDefault(a => videoLocation.ID != a.ID) is not { } dupPlace)
+        var others = places.Where(a => videoLocation.ID != a.ID).ToList();
+        if (others.Count is 0)
             return false;
 
+        // A location that is the same file on disk as another, a hard link or a symbolic link and its file, is part
+        // of that group rather than a duplicate. A saved location's group is stored, repaired by whoever saved it; a
+        // new one not saved yet is read on disk with the others.
+        var firstAvailable = (others.FirstOrDefault(a => !string.IsNullOrEmpty(a.Path)) ?? others.FirstOrDefault(a => a.IsAvailable))?.ID;
+        var groups = VideoFileGrouper.Group([.. others, videoLocation], _videoService.GroupLinkedFiles, firstAvailable, ignoreKept: false);
+        var ownGroup = groups.First(group => group.Files.Contains(videoLocation));
+        if (ownGroup.Files.Count > 1
+            || videoLocation.ID is 0 && _videoService.GroupLinkedFiles && VideoFileGrouper.Read(fileSystem, videoLocation.Path) is { Identity: { } identity }
+                && others.Any(other => VideoFileGrouper.Read(fileSystem, other.Path).Identity == identity))
+        {
+            logger.LogDebug("New location is the same file on disk as another location of the video: {Path}", videoLocation.Path);
+            return false;
+        }
+
+        // A separate file: a duplicate unless its group is one to keep.
+        if (ownGroup.IsPreferred)
+            return false;
+
+        var dupPlace = groups.FirstOrDefault(group => group.IsPreferred)?.Files[0] ?? others[0];
         logger.LogWarning("---------------------------------------------");
         logger.LogWarning("Found Duplicate File");
         logger.LogWarning("---------------------------------------------");

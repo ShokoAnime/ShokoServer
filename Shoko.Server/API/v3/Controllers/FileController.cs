@@ -1545,6 +1545,25 @@ public class FileController(
     }
 
     /// <summary>
+    /// Mark or unmark a file location as kept: its file group is never a
+    /// duplicate, and is never removed as one.
+    /// </summary>
+    /// <param name="locationID">The file location ID.</param>
+    /// <param name="value">The new keep value.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPut("Location/{locationID}/Keep")]
+    public ActionResult MarkFileLocationAsKept([FromRoute, Range(1, int.MaxValue)] int locationID, [FromQuery] bool value = true)
+    {
+        if (_videoLocalPlaces.GetByID(locationID) is not { } fileLocation)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        _videoService.SetVideoFileKept(fileLocation, value);
+
+        return Ok();
+    }
+
+    /// <summary>
     /// Run a file through AVDump and return the result.
     /// </summary>
     /// <param name="fileID">VideoLocal ID</param>

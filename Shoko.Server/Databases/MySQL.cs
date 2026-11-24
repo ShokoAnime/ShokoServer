@@ -1820,6 +1820,13 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(207,  18, "ALTER TABLE `UserConfiguration` RENAME INDEX `UIX_UserConfiguration_JMMUserID_ConfigurationID` TO `UIX_UserConfiguration_UserID_ConfigurationID`;"),
         new(208,   1, "ALTER TABLE `AuthTokens` ADD COLUMN `CreatedAt` DATETIME NULL;"),
         new(208,   2, "ALTER TABLE `AuthTokens` ADD COLUMN `LastUsedAt` DATETIME NULL;"),
+        new(209,   1, "ALTER TABLE `VideoLocal_Place` ADD COLUMN `IsKept` BIT NOT NULL DEFAULT 0;"),
+        new(209,   2, "ALTER TABLE `VideoLocal_Place` ADD COLUMN `PrimaryLocationID` INT NOT NULL DEFAULT 0;"),
+        new(209,   3, "ALTER TABLE `VideoLocal_Place` ADD COLUMN `IsSymbolicLink` BIT NOT NULL DEFAULT 0;"),
+        new(209,   4, "ALTER TABLE `VideoLocal_Place` ADD COLUMN `SymbolicLinkTarget` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        new(209,   5, "UPDATE `VideoLocal_Place` SET `PrimaryLocationID` = `ID`;"),
+        new(209,   6, "CREATE INDEX `IX_VideoLocal_Place_PrimaryLocationID` ON `VideoLocal_Place`(`PrimaryLocationID`);"),
+        new(209,   7, DatabaseFixes.RepairVideoFileGroups),
     ];
 
     #endregion

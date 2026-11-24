@@ -15,6 +15,15 @@ public interface IVideoFile
     int ID { get; }
 
     /// <summary>
+    ///   The <see cref="ID"/> of the primary location of the file group this
+    ///   location is part of: its own ID when it is the primary, or alone.
+    ///   Locations that are the same file, hard links of each other and
+    ///   symbolic links with the file they point to, share it. As last seen on
+    ///   disk; see <see cref="VideoFileGroup"/>.
+    /// </summary>
+    int PrimaryFileID { get; }
+
+    /// <summary>
     /// The video id.
     /// </summary>
     int VideoID { get; }
@@ -38,9 +47,37 @@ public interface IVideoFile
     FileStat? Stat { get; }
 
     /// <summary>
+    ///   What the file system says about the location itself when it is a
+    ///   symbolic link, read without following it, with the stat of what it
+    ///   points to (<see cref="SymbolicLinkStat.TargetStat"/>); <c>null</c>
+    ///   when it is not a link, or cannot be read. Read anew on every access.
+    /// </summary>
+    SymbolicLinkStat? LinkStat { get; }
+
+    /// <summary>
     /// True if the file currently exists on disk and is usable by Shoko.
     /// </summary>
     bool IsAvailable { get; }
+
+    /// <summary>
+    ///   Whether the location is kept: its file group is never a duplicate,
+    ///   and is never removed as one. Set with
+    ///   <see cref="Services.IVideoService.SetVideoFileKept"/>.
+    /// </summary>
+    bool IsKept { get; }
+
+    /// <summary>
+    ///   Whether the location is a symbolic link, as last seen on disk: when
+    ///   it was found, moved or scanned.
+    /// </summary>
+    bool IsSymbolicLink { get; }
+
+    /// <summary>
+    ///   The absolute path the location's symbolic link leads to, through
+    ///   every link on the way, as last seen on disk; <c>null</c> when it is
+    ///   not a link.
+    /// </summary>
+    string? SymbolicLinkTarget { get; }
 
     /// <summary>
     /// The file name.

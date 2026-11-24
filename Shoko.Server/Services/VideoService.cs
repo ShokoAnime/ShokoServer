@@ -12,6 +12,7 @@ using NHibernate;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.FileSystem;
 using Shoko.Abstractions.FileSystem.Services;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
@@ -89,6 +90,8 @@ public class VideoService : IVideoService
 
     /// <inheritdoc/>
     public event EventHandler<VideoUpdatedEventArgs>? VideoUpdated;
+
+    public event EventHandler<VideoFileKeptChangedEventArgs>? VideoFileKeptChanged;
 
     /// <inheritdoc/>
     public event EventHandler<ManagedFolderChangedEventArgs>? ManagedFolderAdded;
@@ -171,6 +174,17 @@ public class VideoService : IVideoService
 
     private void OnFileRelocated(object? sender, VideoFileRelocatedEventArgs eventArgs)
     {
+        // A moved file can break the links to it, or a moved link can now lead elsewhere.
+        try
+        {
+            if (_videoLocalRepository.GetByID(eventArgs.Video.LocalID) is { } video)
+                RepairVideoFileGroups(video);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not update the file groups of a moved video; {VideoID}", eventArgs.Video.LocalID);
+        }
+
         VideoFileRelocated?.Invoke(this, eventArgs);
     }
 
@@ -229,6 +243,122 @@ public class VideoService : IVideoService
             _settingsProvider.SaveSettings();
         }
     }
+
+    public bool GroupLinkedFiles
+    {
+        get => _settingsProvider.GetSettings().Import.GroupLinkedFiles;
+        set
+        {
+            _settingsProvider.GetSettings().Import.GroupLinkedFiles = value;
+            _settingsProvider.SaveSettings();
+        }
+    }
+
+    /// <inheritdoc/>
+    public IVideoFile SetVideoFileKept(IVideoFile videoFile, bool isKept)
+    {
+        ArgumentNullException.ThrowIfNull(videoFile);
+
+        var location = _placeRepository.GetByID(videoFile.ID)
+            ?? throw new ArgumentException("The video file is not stored in Shoko.", nameof(videoFile));
+        if (location.IsKept == isKept)
+            return location;
+
+        location.IsKept = isKept;
+        _placeRepository.Save(location);
+        try
+        {
+            VideoFileKeptChanged?.Invoke(this, new() { File = location, IsKept = isKept, Actor = ActorContext.CurrentActor });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Got an error in a VideoFileKeptChanged event.");
+        }
+
+        return location;
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<VideoFileGroup> GetVideoFileGroups(IVideo video, bool ignoreKept = false)
+    {
+        ArgumentNullException.ThrowIfNull(video);
+
+        var videoLocal = video as VideoLocal ?? _videoLocalRepository.GetByID(video.LocalID);
+        if (videoLocal is null)
+            return [];
+
+        var firstAvailable = (videoLocal.FirstValidPlace ?? videoLocal.FirstResolvedPlace)?.ID;
+        return VideoFileGrouper.Group(videoLocal.Places, GroupLinkedFiles, firstAvailable, ignoreKept);
+    }
+
+    /// <summary>
+    ///   Reads a video's locations on disk and stores which are one group,
+    ///   which of each is the primary, and which are symbolic links and where
+    ///   they lead. A location with nothing at its path is left as stored.
+    /// </summary>
+    /// <param name="video">The video.</param>
+    /// <returns>Whether anything stored changed.</returns>
+    internal bool RepairVideoFileGroups(VideoLocal video)
+    {
+        var locations = video.Places
+            .Select(location => (Location: location, Disk: VideoFileGrouper.Read(_fileSystem, location.Path)))
+            .Where(tuple => tuple.Disk.Exists)
+            .ToList();
+        if (locations.Count is 0)
+            return false;
+
+        var primaries = VideoFileGrouper.FindPrimaries(locations);
+        var changed = new List<VideoLocal_Place>();
+        foreach (var (location, disk) in locations)
+        {
+            var primary = primaries[location.ID];
+            if (location.PrimaryLocationID == primary && location.IsSymbolicLink == disk.IsSymbolicLink && location.SymbolicLinkTarget == disk.SymbolicLinkTarget)
+                continue;
+
+            _logger.LogTrace("Updating the group of a location; {Path} (Video={VideoID}, Place={PlaceID}, Primary={PrimaryID}, IsSymbolicLink={IsSymbolicLink})", location.Path, video.VideoLocalID, location.ID, primary, disk.IsSymbolicLink);
+            location.PrimaryLocationID = primary;
+            location.IsSymbolicLink = disk.IsSymbolicLink;
+            location.SymbolicLinkTarget = disk.SymbolicLinkTarget;
+            changed.Add(location);
+        }
+
+        if (changed.Count > 0)
+            _placeRepository.Save(changed);
+        return changed.Count > 0;
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IVideo> GetVideosWithDuplicates(bool ignoreKept = false)
+        => WithDuplicates(_videoLocalRepository.GetAll(), ignoreKept);
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IVideo> GetVideosWithDuplicates(ISeries series, bool ignoreKept = false)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        return WithDuplicates(series.Videos, ignoreKept);
+    }
+
+    private List<IVideo> WithDuplicates(IEnumerable<IVideo> videos, bool ignoreKept)
+        => videos
+            // Only a video with more than one location can have more than one group, and only those are read.
+            .Where(video => video.Files.Count > 1 && GetVideoFileGroups(video, ignoreKept).Any(group => !group.IsPreferred))
+            .DistinctBy(video => video.LocalID)
+            .OrderBy(video => video.LocalID)
+            .ToList();
+
+    /// <summary>
+    ///   The locations to remove so that only the groups to keep are left:
+    ///   every location of every group that is not preferred, so no link is
+    ///   left pointing at a removed file.
+    /// </summary>
+    /// <param name="video">The video.</param>
+    /// <param name="ignoreKept">Whether to treat no location as kept.</param>
+    /// <returns>The locations, by group, the file itself last.</returns>
+    internal IReadOnlyList<IVideoFile> GetVideoFilesToAutoRemove(IVideo video, bool ignoreKept = false)
+        => GetVideoFileGroups(video, ignoreKept)
+            .Where(group => !group.IsPreferred)
+            .SelectMany(group => group.Files.Reverse())
+            .ToList();
 
     /// <inheritdoc/>
     public IEnumerable<IVideoFile> GetAllVideoFiles()
@@ -291,7 +421,35 @@ public class VideoService : IVideoService
     }
 
     /// <inheritdoc/>
-    public async Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string? relativePath = null, bool updateMylist = true, bool forceScan = false)
+    public Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string? relativePath = null, bool updateMylist = true, bool forceScan = false)
+        => NotifyVideoFileChangeDetected(managedFolder, relativePath, updateMylist, forceScan, repairGroups: true);
+
+    /// <summary>
+    ///   Handles a change to a file, as
+    ///   <see cref="NotifyVideoFileChangeDetected(IManagedFolder, string?, bool, bool)"/> does.
+    /// </summary>
+    /// <param name="managedFolder">
+    ///   The managed folder the change is in.
+    /// </param>
+    /// <param name="relativePath">
+    ///   The relative path inside the managed folder where something changed; a
+    ///   directory, or nothing, scans that part of the folder instead.
+    /// </param>
+    /// <param name="updateMylist">
+    ///   Set to <c>false</c> to not add or remove the release to the user's
+    ///   MyList if any releases are found and saved for any video files or if
+    ///   any video files have been deleted.
+    /// </param>
+    /// <param name="forceScan">
+    ///   Set to <c>true</c> to force a scan of the video even if it has
+    ///   exceeded the max allowed auto-scan attempts.
+    /// </param>
+    /// <param name="repairGroups">
+    ///   Whether to read a known location's video on disk again and store its
+    ///   file groups; off for a folder scan, which repairs the videos it needs
+    ///   to once it is done.
+    /// </param>
+    private async Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string? relativePath, bool updateMylist, bool forceScan, bool repairGroups)
     {
         ArgumentNullException.ThrowIfNull(managedFolder);
 
@@ -321,6 +479,11 @@ public class VideoService : IVideoService
             _logger.LogInformation("File is unavailable, skipping: {Path}", absolutePath);
             return;
         }
+
+        // A known location may have become, or stopped being, a link of another: its file group is stored again before
+        // the duplicate check reads it.
+        if (repairGroups && locationAvailable && videoLocation.ID is not 0 && video.VideoLocalID is not 0)
+            RepairVideoFileGroups(video);
 
         var wasDeleted = await _videoHashingService.DeduplicateAndCleanup(video, videoLocation, updateMylist, locationAvailable);
         if (wasDeleted)
@@ -365,6 +528,7 @@ public class VideoService : IVideoService
             _logger.LogTrace("Saving video file record for path: {Path} (ED2K={ED2K}, Size={Size})", absolutePath, video.Hash, video.FileSize);
             videoLocation.VideoID = video.VideoLocalID;
             _videoLocalPlaceRepository.Save(videoLocation);
+            RepairVideoFileGroups(video);
         }
 
         if (shouldHash)
@@ -1329,7 +1493,7 @@ public class VideoService : IVideoService
         var checkFileSize = options.CheckFileSize ?? _settingsProvider.GetSettings().Import.CheckFileSize;
 
         var startedAt = DateTime.Now;
-        var files = GetFilesInImportFolder(folder);
+        var (files, symbolicLinks) = GetFilesInImportFolder(folder);
         var presence = new ManagedFolderPresence(_fileSystem);
         if (files.Length == 0 || !presence.IsPresent(folder))
         {
@@ -1433,7 +1597,7 @@ public class VideoService : IVideoService
 
                     videosFound++;
 
-                    await NotifyVideoFileChangeDetected(folder, relativePath, updateMylist: !skipEvents, forceScan: forceScan);
+                    await NotifyVideoFileChangeDetected(folder, relativePath, updateMylist: !skipEvents, forceScan: forceScan, repairGroups: false);
                 }
                 finally
                 {
@@ -1457,6 +1621,9 @@ public class VideoService : IVideoService
 
         _logger.LogDebug("Found {FileCount} files and {VideoCount} videos in folder {FolderName} in {TimeSpan}. (Folder={FolderID}, FilesScanTime={FilesAt})", filesFound, videosFound, folder.Name, DateTime.Now - startedAt, folder.ID, filesAt);
 
+        if (options.RepairGroups && !onlyNewFiles)
+            RepairVideoFileGroups(folder, relativePath, symbolicLinks, token);
+
         if (cleanUpStructure)
         {
             var timeStarted = DateTime.Now;
@@ -1468,13 +1635,61 @@ public class VideoService : IVideoService
         progress?.Report(100);
     }
 
-    private string[] GetFilesInImportFolder(ShokoManagedFolder folder)
+    /// <summary>
+    ///   Lists the files of a managed folder the ignore rules let through,
+    ///   with the paths of those that are symbolic links, which the listing
+    ///   tells for free.
+    /// </summary>
+    private (string[] Files, HashSet<string> SymbolicLinks) GetFilesInImportFolder(ShokoManagedFolder folder)
     {
         if (!_fileSystem.DirectoryExists(folder.Path))
-            return [];
+            return ([], []);
+
         bool IsMatch(FileSystemEntry entry)
             => !_ignoreRules.Any(rule => rule.ShouldIgnore(folder, entry));
-        return _fileSystem.GetFilePaths(folder.Path, new() { Recursive = true, Filter = IsMatch, FollowDirectoryLinks = true });
+
+        var entries = _fileSystem.GetFileEntries(folder.Path, new() { Recursive = true, Filter = IsMatch, FollowDirectoryLinks = true });
+        return (
+            entries.Select(entry => entry.Path).ToArray(),
+            entries.Where(entry => entry.IsSymbolicLink).Select(entry => entry.Path).ToHashSet(PlatformUtility.StringComparer)
+        );
+    }
+
+    /// <summary>
+    ///   Brings the stored groups of the scanned locations up to date: reads
+    ///   on disk every video with a location that is a symbolic link, or was
+    ///   stored as one, and every video with more than one location. A video
+    ///   with one plain location needs nothing read.
+    /// </summary>
+    private void RepairVideoFileGroups(ShokoManagedFolder folder, string? relativePath, HashSet<string> symbolicLinks, CancellationToken token)
+    {
+        var startedAt = DateTime.Now;
+        var scanned = folder.Places
+            .Where(location => string.IsNullOrEmpty(relativePath) || PlatformUtility.NormalizePath(location.RelativePath, stripLeadingSlash: true).StartsWith(relativePath, PlatformUtility.StringComparison))
+            .ToList();
+        var videos = scanned
+            .Where(location => location.IsSymbolicLink || location.Path is { Length: > 0 } path && symbolicLinks.Contains(path) || _placeRepository.GetByVideoLocal(location.VideoID).Count > 1)
+            .Select(location => location.VideoID)
+            .Distinct()
+            .Select(_videoLocalRepository.GetByID)
+            .WhereNotNull()
+            .ToList();
+        var changed = 0;
+        foreach (var video in videos)
+        {
+            token.ThrowIfCancellationRequested();
+            try
+            {
+                if (RepairVideoFileGroups(video))
+                    changed++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not update the file groups of a video; {VideoID} (ManagedFolder={ManagedFolderID})", video.VideoLocalID, folder.ID);
+            }
+        }
+
+        _logger.LogDebug("Checked the file groups of {Count} videos in {TimeSpan}, {Changed} changed. (Folder={FolderID})", videos.Count, DateTime.Now - startedAt, changed, folder.ID);
     }
 
     public async Task ScheduleScanForManagedFolder(IManagedFolder folder, ManagedFolderScanOptions? options = null, bool prioritize = true)
@@ -1482,9 +1697,9 @@ public class VideoService : IVideoService
         options ??= ManagedFolderScanOptions.Default;
         var settings = _settingsProvider.GetSettings();
         await _scheduler.StartJob<ScanFolderJob>(j =>
-            (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipEvents, j.CleanUpStructure, j.CheckFileSize, j.ForceScan) =
+            (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipEvents, j.CleanUpStructure, j.CheckFileSize, j.ForceScan, j.RepairGroups) =
             (folder.ID, options.RelativePath ?? string.Empty, options.OnlyNewFiles ?? false, options.SkipEvents, options.CleanUpStructure ?? settings.Import.CleanUpStructure,
-                options.CheckFileSize ?? settings.Import.CheckFileSize, options.ForceScan),
+                options.CheckFileSize ?? settings.Import.CheckFileSize, options.ForceScan, options.RepairGroups),
             prioritize
         );
     }

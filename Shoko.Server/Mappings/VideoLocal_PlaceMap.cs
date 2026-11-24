@@ -14,5 +14,9 @@ public class VideoLocal_PlaceMap : ClassMap<VideoLocal_Place>
         Map(x => x.VideoID).Not.Nullable();
         Map(x => x.ManagedFolderID).Not.Nullable();
         Map(x => x.RelativePath).Not.Nullable();
+        Map(x => x.IsKept).Not.Nullable();
+        Map(x => x.PrimaryLocationID).Not.Nullable();
+        Map(x => x.IsSymbolicLink).Not.Nullable();
+        Map(x => x.SymbolicLinkTarget);
     }
 }

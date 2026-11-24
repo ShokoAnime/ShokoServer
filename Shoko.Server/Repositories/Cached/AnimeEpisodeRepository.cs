@@ -148,7 +148,7 @@ FROM
                 GROUP BY
                     VideoID
                 HAVING
-                    COUNT(ID) > 1
+                    COUNT(DISTINCT CASE WHEN :joinLinks = 1 THEN PrimaryLocationID ELSE ID END) > 1
             )
         AND
             vl.Hash != ''
@@ -181,7 +181,7 @@ FROM
                 GROUP BY
                     VideoID
                 HAVING
-                    COUNT(ID) > 1
+                    COUNT(DISTINCT CASE WHEN :joinLinks = 1 THEN PrimaryLocationID ELSE ID END) > 1
             )
         AND
             vl.Hash != ''
@@ -194,7 +194,12 @@ GROUP BY
     ani.EpisodeID
 ";
 
-    public IEnumerable<AnimeEpisode> GetWithDuplicateFiles(int? animeID = null)
+    /// <summary>
+    ///   Gets the episodes with a file in more than one file group, as
+    ///   stored: more than one location, or more than one primary location
+    ///   when <paramref name="joinLinks"/> is on.
+    /// </summary>
+    public IEnumerable<AnimeEpisode> GetWithDuplicateFiles(int? animeID = null, bool joinLinks = false)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         IList<int> ids;
@@ -203,12 +208,14 @@ GROUP BY
             ids = session.CreateSQLQuery(DuplicateFilesWithAnimeQuery)
                 .AddScalar("EpisodeID", NHibernateUtil.Int32)
                 .SetParameter("animeID", animeID.Value)
+                .SetParameter("joinLinks", joinLinks ? 1 : 0)
                 .List<int>();
         }
         else
         {
             ids = session.CreateSQLQuery(DuplicateFilesQuery)
                 .AddScalar("EpisodeID", NHibernateUtil.Int32)
+                .SetParameter("joinLinks", joinLinks ? 1 : 0)
                 .List<int>();
         }
 

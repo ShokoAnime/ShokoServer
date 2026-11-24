@@ -256,6 +256,7 @@ public class ManagedFolderController(
     /// <param name="relativePath">Relative path to scan.</param>
     /// <param name="onlyNewFiles">Only scan new files</param>
     /// <param name="skipEvents">Skip provider-specific state sync for this folder's files</param>
+    /// <param name="repairGroups">Once the scan is done, read again on disk the videos of the scanned locations that are or were symbolic links, or have more than one location, and store their file groups. Defaults to <c>true</c>.</param>
     /// <param name="priority">Prioritize this job in the queue.</param>
     /// <returns></returns>
     [Authorize("admin")]
@@ -265,6 +266,7 @@ public class ManagedFolderController(
         [FromQuery] string relativePath = "",
         [FromQuery] bool onlyNewFiles = false,
         [FromQuery] bool skipEvents = false,
+        [FromQuery] bool repairGroups = true,
         [FromQuery] bool priority = false
     )
     {
@@ -275,6 +277,7 @@ public class ManagedFolderController(
             RelativePath = relativePath,
             OnlyNewFiles = onlyNewFiles,
             SkipEvents = skipEvents,
+            RepairGroups = repairGroups,
         }, prioritize: priority);
         return Ok();
     }

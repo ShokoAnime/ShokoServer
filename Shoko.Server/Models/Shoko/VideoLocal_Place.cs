@@ -30,6 +30,57 @@ public class VideoLocal_Place : IVideoFile
     public int ManagedFolderID { get; set; }
 
     /// <inheritdoc/>
+    public bool IsKept { get; set; }
+
+    /// <summary>
+    /// The primary location of the file group this location is part of: its own ID
+    /// when it is the group's primary, or alone, which it also reads as until
+    /// one is set, so it is never <c>0</c> once the location has an ID.
+    /// Locations that are the same file, hard links of each other and symbolic
+    /// links with the file they point to, share one, kept up to date by scans
+    /// (<c>VideoService.RepairVideoFileGroups</c>).
+    /// </summary>
+    public int PrimaryLocationID
+    {
+        get => _primaryLocationID is 0 ? ID : _primaryLocationID;
+        set => _primaryLocationID = value;
+    }
+
+    private int _primaryLocationID;
+
+    /// <summary>
+    /// Whether <see cref="PrimaryLocationID"/> was set, rather than reading as
+    /// the location's own ID because it was not.
+    /// </summary>
+    internal bool HasPrimaryLocationID
+        => _primaryLocationID is not 0;
+
+    /// <inheritdoc/>
+    int IVideoFile.PrimaryFileID => PrimaryLocationID;
+
+    /// <inheritdoc/>
+    public bool IsSymbolicLink { get; set; }
+
+    /// <inheritdoc/>
+    public string? SymbolicLinkTarget { get; set; }
+
+    /// <inheritdoc/>
+    public SymbolicLinkStat? LinkStat
+    {
+        get
+        {
+            try
+            {
+                return ISystemService.StaticServices.GetRequiredService<IFileSystem>().GetStat(Path, followSymbolicLinks: false) as SymbolicLinkStat;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+    }
+
+    /// <inheritdoc/>
     public FileStat? Stat
     {
         get

@@ -26,11 +26,15 @@ public interface IVideoService
     IReadOnlySet<string> VideoExtensions { get; set; }
 
     /// <summary>
-    ///   Checks if the extension is an allowed video extension.
+    ///   Checks if a file name ends with one of the allowed video extensions
+    ///   (<see cref="VideoExtensions"/>), ignoring case.
     /// </summary>
     /// <param name="fileName">
+    ///   The file name, or a path ending in one.
     /// </param>
-    /// <returns></returns>
+    /// <returns>
+    ///   <c>true</c> when it ends with an allowed video extension.
+    /// </returns>
     bool IsAllowedVideoExtension(string fileName);
 
     #region Video File
@@ -43,6 +47,14 @@ public interface IVideoService
     ///   Thrown when the value is less than <c>0</c> or more than <c>100</c>.
     /// </exception>
     int MaxAutoScanAttemptsPerVideo { get; set; }
+
+    /// <summary>
+    ///   Gets or sets whether locations that are the same file on disk, hard
+    ///   links of each other and symbolic links with the file they point to,
+    ///   are grouped as one file of a video (<see cref="VideoFileGroup"/>)
+    ///   rather than counted as duplicates. Default: <c>true</c>.
+    /// </summary>
+    bool GroupLinkedFiles { get; set; }
 
     /// <summary>
     ///   Dispatched when a video file is first detected, either during a forced
@@ -67,6 +79,12 @@ public interface IVideoService
     ///   Dispatched when a video file has been moved or renamed.
     /// </summary>
     event EventHandler<VideoFileRelocatedEventArgs> VideoFileRelocated;
+
+    /// <summary>
+    ///   Dispatched when a video file location is marked as kept, or
+    ///   unmarked.
+    /// </summary>
+    event EventHandler<VideoFileKeptChangedEventArgs> VideoFileKeptChanged;
 
     /// <summary>
     ///   Gets all video files.
@@ -226,6 +244,83 @@ public interface IVideoService
     ///   <paramref name="managedFolder"/> is <c>null</c>.
     /// </exception>
     Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string? relativePath = null, bool updateMylist = true, bool forceScan = false);
+
+    /// <summary>
+    ///   Marks a video file location as kept, or unmarks it. A kept location
+    ///   keeps its whole file group: the group is never a duplicate, and never
+    ///   removed as one. Nothing is saved when it already is as asked.
+    /// </summary>
+    /// <param name="videoFile">
+    ///   The video file location.
+    /// </param>
+    /// <param name="isKept">
+    ///   <c>true</c> to keep it, <c>false</c> to unmark it.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="videoFile"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="videoFile"/> is not stored in Shoko.
+    /// </exception>
+    /// <returns>
+    ///   The updated video file location.
+    /// </returns>
+    IVideoFile SetVideoFileKept(IVideoFile videoFile, bool isKept);
+
+    /// <summary>
+    ///   Gets a video's file groups, telling the groups to keep from the
+    ///   duplicates (<see cref="VideoFileGroup.IsPreferred"/>).
+    /// </summary>
+    /// <remarks>
+    ///   Reads nothing from disk: which locations are grouped is stored, as
+    ///   last seen when a location was found, moved or scanned.
+    /// </remarks>
+    /// <param name="video">
+    ///   The video.
+    /// </param>
+    /// <param name="ignoreKept">
+    ///   <c>true</c> to treat no location as kept, so every group but the one
+    ///   holding the first available location is a duplicate.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="video"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   Its groups, the preferred ones first, then by ID.
+    /// </returns>
+    IReadOnlyList<VideoFileGroup> GetVideoFileGroups(IVideo video, bool ignoreKept = false);
+
+    /// <summary>
+    ///   Gets the videos with duplicates: more than one file group, at least
+    ///   one of them not preferred (<see cref="GetVideoFileGroups"/>).
+    /// </summary>
+    /// <param name="ignoreKept">
+    ///   <c>true</c> to treat no location as kept, so every video with more
+    ///   than one group is listed.
+    /// </param>
+    /// <returns>
+    ///   The videos, by ID.
+    /// </returns>
+    IReadOnlyList<IVideo> GetVideosWithDuplicates(bool ignoreKept = false);
+
+    /// <summary>
+    ///   Gets the videos of a series with duplicates, as
+    ///   <see cref="GetVideosWithDuplicates(bool)"/> does for every video.
+    /// </summary>
+    /// <param name="series">
+    ///   The series, of any source.
+    /// </param>
+    /// <param name="ignoreKept">
+    ///   <c>true</c> to treat no location as kept, so every video with more
+    ///   than one group is listed.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="series"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The videos, by ID.
+    /// </returns>
+    IReadOnlyList<IVideo> GetVideosWithDuplicates(Metadata.ISeries series, bool ignoreKept = false);
 
     #endregion
 

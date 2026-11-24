@@ -15,6 +15,7 @@ using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Hashing;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
@@ -168,11 +169,11 @@ public partial class File
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public MediaInfo? MediaInfo { get; set; }
 
-    public File(HttpContext context, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeStat = false) :
-        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.ID ?? 0, file.LocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeStat)
+    public File(HttpContext context, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeStat = false, IReadOnlyList<VideoFileGroup>? groups = null) :
+        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.ID ?? 0, file.LocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeStat, groups)
     { }
 
-    public File(VideoLocal_User? userRecord, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeStat = false)
+    public File(VideoLocal_User? userRecord, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeStat = false, IReadOnlyList<VideoFileGroup>? groups = null)
     {
         var mediaInfo = file.MediaInfo;
         ID = file.LocalID;
@@ -185,7 +186,8 @@ public partial class File
         Resolution = mediaInfo?.VideoStream?.Resolution;
         AudioLanguages = file.AudioLanguages;
         SubtitleLanguages = file.SubtitleLanguages;
-        Locations = file.Files.Select(location => new Location(location, includeAbsolutePaths, includeStat)).ToList();
+        groups ??= Location.GetGroups(file);
+        Locations = file.Files.Select(location => new Location(location, includeAbsolutePaths, includeStat, groups)).ToList();
         AVDump = new AVDumpInfo((VideoLocal)file);
         Duration = mediaInfo?.Duration ?? TimeSpan.Zero;
         ResumePosition = userRecord?.ProgressPosition;
@@ -238,6 +240,60 @@ public partial class File
         public StatDetails? Stat { get; set; }
 
         /// <summary>
+        /// What the file system says about the location itself when it is a
+        /// symbolic link, read without following it. Only given with the stat,
+        /// for links that can be read.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public LinkStatDetails? LinkStat { get; set; }
+
+        /// <summary>
+        /// Whether the location is kept: its group is never a duplicate, and is
+        /// never removed as one.
+        /// </summary>
+        [Required]
+        public bool IsKept { get; set; }
+
+        /// <summary>
+        /// The file group the location belongs to: the ID of the group's
+        /// primary location, the file itself rather than a link to it where it is
+        /// in the collection. Locations that are the same file, hard links of each
+        /// other and symbolic links with the file they point to, share it and are
+        /// one group, not duplicates. As last seen on disk, when the location was
+        /// found, moved or scanned.
+        /// </summary>
+        [Required]
+        public int PrimaryID { get; set; }
+
+        /// <summary>
+        /// Whether the location's group is one to keep rather than a duplicate:
+        /// every kept group when the file has any, otherwise the one group holding
+        /// its first available location.
+        /// </summary>
+        [Required]
+        public bool IsPreferredGroup { get; set; }
+
+        /// <summary>
+        /// Whether the location is a symbolic link, as last seen on disk.
+        /// </summary>
+        [Required]
+        public bool IsSymbolicLink { get; set; }
+
+        /// <summary>
+        /// The absolute path the location's symbolic link leads to, through every
+        /// link on the way, as last seen on disk. Only given for links.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? SymbolicLinkTarget { get; set; }
+
+        /// <summary>
+        /// Whether the location is a symbolic link whose target is gone or
+        /// cannot be read right now. Only given with the stat, and for links.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? IsBrokenLink { get; set; }
+
+        /// <summary>
         /// The relative path from the managed folder's path on the server. The
         /// file name can be easily extracted from this.
         /// </summary>
@@ -257,15 +313,109 @@ public partial class File
         [JsonRequired]
         public bool IsAccessible { get; set; }
 
-        public Location(IVideoFile location, bool includeAbsolutePaths = false, bool includeStat = false)
+        /// <param name="location">The location.</param>
+        /// <param name="includeAbsolutePaths">Whether to give its absolute path.</param>
+        /// <param name="includeStat">Whether to read it on disk: its stat, and whether its link is broken.</param>
+        /// <param name="groups">Its file's groups, when already read; read otherwise.</param>
+        public Location(IVideoFile location, bool includeAbsolutePaths = false, bool includeStat = false, IReadOnlyList<VideoFileGroup>? groups = null)
         {
             ID = location.ID;
             FileID = location.VideoID;
             ManagedFolderID = location.ManagedFolderID;
-            Stat = includeStat && location.Stat is { } info ? new(info) : null;
+            IsKept = location.IsKept;
             RelativePath = location.RelativePath;
             AbsolutePath = includeAbsolutePaths ? location.Path : null;
             IsAccessible = location.IsAvailable;
+            IsSymbolicLink = location.IsSymbolicLink;
+            SymbolicLinkTarget = location.SymbolicLinkTarget;
+            groups ??= GetGroups(location.Video);
+            if (groups.FirstOrDefault(group => group.Files.Any(file => file.ID == location.ID)) is { } ownGroup)
+            {
+                PrimaryID = ownGroup.ID;
+                IsPreferredGroup = ownGroup.IsPreferred;
+            }
+            else
+            {
+                PrimaryID = location.ID;
+            }
+
+            if (!includeStat)
+                return;
+
+            var stat = location.Stat;
+            Stat = stat is not null ? new(stat) : null;
+            if (location.IsSymbolicLink)
+            {
+                IsBrokenLink = stat is null;
+                LinkStat = location.LinkStat is { } link ? new(link) : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets a file's groups, as stored.
+        /// </summary>
+        /// <param name="file">The file, or <c>null</c>.</param>
+        /// <returns>Its groups, or none.</returns>
+        internal static IReadOnlyList<VideoFileGroup> GetGroups(IVideo? file)
+            => file is null ? [] : ISystemService.StaticServices.GetRequiredService<IVideoService>().GetVideoFileGroups(file);
+
+        /// <summary>
+        /// What the file system says about a symbolic link itself.
+        /// </summary>
+        public class LinkStatDetails
+        {
+            /// <summary>
+            /// The volume the link is on. Opaque lowercase hexadecimal; only
+            /// equality means anything.
+            /// </summary>
+            [Required]
+            public string VolumeID { get; set; }
+
+            /// <summary>
+            /// The link's own ID on its volume, not its target's. Opaque
+            /// lowercase hexadecimal; only equality means anything.
+            /// </summary>
+            [Required]
+            public string UniqueID { get; set; }
+
+            /// <summary>
+            /// How many names the link itself has.
+            /// </summary>
+            [Required]
+            public long LinkCount { get; set; }
+
+            /// <summary>
+            /// When the link last changed.
+            /// </summary>
+            [Required]
+            public DateTime LastWriteTime { get; set; }
+
+            /// <summary>
+            /// When the link was last read. Many systems update it lazily or never.
+            /// </summary>
+            [Required]
+            public DateTime LastAccessTime { get; set; }
+
+            /// <summary>
+            /// When the link or its metadata last changed, when known.
+            /// </summary>
+            public DateTime? ChangeTime { get; set; }
+
+            /// <summary>
+            /// When the link was created, when the platform keeps it.
+            /// </summary>
+            public DateTime? CreationTime { get; set; }
+
+            public LinkStatDetails(SymbolicLinkStat info)
+            {
+                VolumeID = info.Identity.VolumeID;
+                UniqueID = info.Identity.UniqueID;
+                LinkCount = info.LinkCount;
+                LastWriteTime = info.LastWriteTime;
+                LastAccessTime = info.LastAccessTime;
+                ChangeTime = info.ChangeTime;
+                CreationTime = info.CreationTime;
+            }
         }
 
         /// <summary>

@@ -161,6 +161,14 @@ public class ImportSettings
     public bool AutomaticallyDeleteDuplicatesOnImport { get; set; } = false;
 
     /// <summary>
+    /// Count locations that are the same file on disk, hard links of each other
+    /// and symbolic links with the file they point to, as one file group of a video
+    /// rather than as duplicates.
+    /// </summary>
+    [Display(Name = "Group Linked Files")]
+    public bool GroupLinkedFiles { get; set; } = true;
+
+    /// <summary>
     /// Check if a file is currently being written to when reacting to events in the file watcher.
     /// </summary>
     [Badge("Debug", Theme = DisplayColorTheme.Warning)]
