@@ -104,7 +104,7 @@ public partial class PluginManager
         // Every load context exists before any plugin loads, so a plugin's
         // dependencies are found whichever loads first.
         var toLoadInfo = picks.Where(pick => pick.FailureReason is null).Select(pick => pick.ToLoad).OfType<InternalPluginInfo>().ToList();
-        CreateLoadContexts(toLoadInfo, FindUnsharedDependencies(toLoadInfo, FindDependencyMismatch, logger));
+        CreateLoadContexts(toLoadInfo, FindUnsharedDependencies(toLoadInfo, (plugin, dependency) => FindDependencyMismatch(plugin, dependency, toLoadInfo), logger));
 
         foreach (var pick in picks)
         {

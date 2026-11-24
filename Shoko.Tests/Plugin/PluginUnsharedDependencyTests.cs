@@ -43,6 +43,22 @@ public class PluginUnsharedDependencyTests
     public void RequiredDependency_IsAlwaysShared()
         => Assert.Empty(Find(Dependent(">=2.0.0", isOptional: false), Dependency("1.0.0"), mismatch: "missing members"));
 
+    [Fact]
+    public void DependencyClosure_WalksThroughDependenciesOnceAndLeavesOutTheCoreAndThoseNotLoading()
+    {
+        Guid a = Guid.NewGuid(), b = Guid.NewGuid(), c = Guid.NewGuid(), missing = Guid.NewGuid();
+        var graph = new Dictionary<Guid, PluginDependency[]>
+        {
+            [a] = [new() { PluginID = b, VersionRange = ">=1.0.0" }, new() { PluginID = CorePlugin.StaticID, VersionRange = ">=1.0.0" }],
+            [b] = [new() { PluginID = c, VersionRange = ">=1.0.0" }, new() { PluginID = a, VersionRange = ">=1.0.0" }],
+            [c] = [new() { PluginID = missing, VersionRange = ">=1.0.0" }],
+        };
+
+        var closure = PluginManager.DependencyClosure(a, graph[a], id => graph.TryGetValue(id, out var next) ? next : null);
+
+        Assert.Equal([b, c], closure);
+    }
+
     private static Dictionary<Guid, HashSet<Guid>> Find(PluginManager.InternalPluginInfo dependent, PluginManager.InternalPluginInfo dependency, string? mismatch = null)
         => PluginManager.FindUnsharedDependencies([dependent, dependency], (_, _) => mismatch, NullLogger.Instance);
 

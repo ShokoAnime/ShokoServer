@@ -306,7 +306,9 @@ public partial class PluginManager
         if (enabled.FirstOrDefault(other => other.ID == dependency.PluginID) is not { CanLoad: true } target || target.ID == CorePlugin.StaticID)
             return null;
 
-        return FindDependencyMismatch(pluginInfo.DLLs, target.Name, target.Version.Version, target.DLLs);
+        var byId = enabled.Where(other => other.CanLoad).ToDictionary(other => other.ID);
+        var closure = DependencyClosure(pluginInfo.ID, pluginInfo.Dependencies, id => byId.TryGetValue(id, out var other) ? other.Dependencies : null);
+        return FindDependencyMismatch(pluginInfo.DLLs, target.Name, target.Version.Version, target.DLLs, closure.Select(id => (id == target.ID, byId[id].DLLs)));
     }
 
     /// <summary>
@@ -314,39 +316,109 @@ public partial class PluginManager
     ///   it depends on does not have. Only the assemblies the plugin gets from
     ///   the dependency are looked at: the ones the dependency exports, which
     ///   it shares even when the plugin ships its own copy, and the others it
-    ///   ships that neither the plugin, the server nor the runtime has.
+    ///   ships that neither the plugin, the server nor the runtime has, and
+    ///   that the plugin's load context does not take from another dependency
+    ///   first: one exporting it, or one before it in the order the context
+    ///   looks through them shipping it. A dependency's own copy of a third
+    ///   plugin's contracts is never handed on when that plugin is one of the
+    ///   dependent's too, and comes first.
     /// </summary>
     /// <param name="plugin">The plugin.</param>
     /// <param name="dependency">The dependency.</param>
+    /// <param name="toLoad">The plugin versions about to load, to find the plugin's other dependencies in.</param>
     /// <returns>Why the plugin does not fit, or <c>null</c> when nothing is missing.</returns>
-    private string? FindDependencyMismatch(InternalPluginInfo plugin, InternalPluginInfo dependency)
-        => FindDependencyMismatch(plugin.DLLs, dependency.Name, dependency.Version.Version, dependency.DLLs);
+    private string? FindDependencyMismatch(InternalPluginInfo plugin, InternalPluginInfo dependency, IReadOnlyList<InternalPluginInfo> toLoad)
+    {
+        var byId = toLoad.ToDictionary(info => info.ID);
+        var closure = DependencyClosure(plugin.ID, plugin.Dependencies, id => byId.TryGetValue(id, out var other) ? other.Dependencies : null);
+        return FindDependencyMismatch(plugin.DLLs, dependency.Name, dependency.Version.Version, dependency.DLLs, closure.Select(id => (id == dependency.ID, (IReadOnlyList<string>)byId[id].DLLs)));
+    }
+
+    /// <summary>
+    ///   The plugins a plugin depends on, directly or through another, as its
+    ///   load context finds them, the core left out.
+    /// </summary>
+    /// <param name="pluginId">The plugin.</param>
+    /// <param name="dependencies">Its dependencies.</param>
+    /// <param name="findDependencies">The dependencies of a plugin about to load, or <c>null</c> when it is not.</param>
+    /// <returns>The IDs of those about to load.</returns>
+    internal static List<Guid> DependencyClosure(Guid pluginId, IEnumerable<PluginDependency> dependencies, Func<Guid, IEnumerable<PluginDependency>?> findDependencies)
+    {
+        var found = new List<Guid>();
+        var seen = new HashSet<Guid> { pluginId, CorePlugin.StaticID };
+        var queue = new Queue<Guid>(dependencies.Select(dependency => dependency.PluginID));
+        while (queue.TryDequeue(out var id))
+        {
+            if (!seen.Add(id) || findDependencies(id) is not { } next)
+                continue;
+
+            found.Add(id);
+            foreach (var dependency in next)
+                queue.Enqueue(dependency.PluginID);
+        }
+
+        return found;
+    }
 
     /// <summary>
     ///   Checks a plugin's DLLs against a dependency's, by the rules of
-    ///   <see cref="FindDependencyMismatch(InternalPluginInfo, InternalPluginInfo)"/>,
+    ///   <see cref="FindDependencyMismatch(InternalPluginInfo, InternalPluginInfo, IReadOnlyList{InternalPluginInfo})"/>,
     ///   for the scan before the plugins are known and the check after it.
     /// </summary>
     /// <param name="dlls">The plugin's DLLs.</param>
     /// <param name="dependencyName">The dependency's name, for the reason.</param>
     /// <param name="dependencyVersion">The dependency's version, for the reason.</param>
     /// <param name="dependencyDlls">The dependency's DLLs, its main DLL first.</param>
+    /// <param name="dependencyOrder">
+    ///   The plugin's dependencies in the order its load context looks
+    ///   through them, the one checked marked, each with its DLLs, main DLL
+    ///   first.
+    /// </param>
     /// <returns>Why the plugin does not fit, or <c>null</c> when nothing is missing.</returns>
-    private string? FindDependencyMismatch(IReadOnlyList<string> dlls, string dependencyName, Version dependencyVersion, IReadOnlyList<string> dependencyDlls)
+    private string? FindDependencyMismatch(
+        IReadOnlyList<string> dlls,
+        string dependencyName,
+        Version dependencyVersion,
+        IReadOnlyList<string> dependencyDlls,
+        IEnumerable<(bool IsChecked, IReadOnlyList<string> Dlls)> dependencyOrder
+    )
     {
         if (dependencyDlls is not [var mainDllPath, ..])
             return null;
 
         var own = dlls.Select(Path.GetFileNameWithoutExtension).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var exported = PluginLoadContext.ReadExportedAssemblies(mainDllPath, Path.ChangeExtension(mainDllPath, ".deps.json"));
+        var exported = ReadExports(mainDllPath);
+        // What another dependency hands out instead: whatever it exports, and what it ships when it comes first.
+        var takenElsewhere = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var before = true;
+        foreach (var (isChecked, otherDlls) in dependencyOrder)
+        {
+            if (isChecked)
+            {
+                before = false;
+                continue;
+            }
+
+            if (otherDlls is not [var otherMainDll, ..])
+                continue;
+
+            takenElsewhere.UnionWith(ReadExports(otherMainDll));
+            if (before)
+                takenElsewhere.UnionWith(otherDlls.Select(Path.GetFileNameWithoutExtension).OfType<string>());
+        }
+
         var surfaces = ReadSurfaces(dependencyDlls.Where(dll =>
-            Path.GetFileNameWithoutExtension(dll) is var name && !GetHostProvidedAssemblies().Contains(name) && (exported.Contains(name) || !own.Contains(name))));
+            Path.GetFileNameWithoutExtension(dll) is var name && !GetHostProvidedAssemblies().Contains(name)
+            && (exported.Contains(name) || !own.Contains(name) && !takenElsewhere.Contains(name))));
         return FindContractMismatch(
             dlls,
             surfaces,
             $"The plugin was built for a different version of plugin \"{dependencyName}\" ({dependencyVersion}) and refers to what it does not have"
         );
     }
+
+    private static HashSet<string> ReadExports(string mainDllPath)
+        => PluginLoadContext.ReadExportedAssemblies(mainDllPath, Path.ChangeExtension(mainDllPath, ".deps.json"));
 
     /// <summary>
     ///   Checks the namespace stamped into a plugin against
