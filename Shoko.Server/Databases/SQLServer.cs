@@ -1814,6 +1814,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(208,   2, "ALTER TABLE Metadata_Ordering ADD SourceDefaultCountries NVARCHAR(MAX) NULL;"),
         new(208,   3, "ALTER TABLE Metadata_Ordering ADD AbsoluteNumbering INT NOT NULL DEFAULT 0;"),
         new(208,   4, "ALTER TABLE Metadata_Ordering_Entry ADD EpisodeNumber INT NULL;"),
+        new(209,   1, "CREATE INDEX IX_AniDB_Anime_Staff_AnimeID_RoleType ON AniDB_Anime_Staff(AnimeID, RoleType);"),
     ];
 
     #endregion

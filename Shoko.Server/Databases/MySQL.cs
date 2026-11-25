@@ -1831,6 +1831,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(210,   2, "ALTER TABLE `Metadata_Ordering` ADD COLUMN `SourceDefaultCountries` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
         new(210,   3, "ALTER TABLE `Metadata_Ordering` ADD COLUMN `AbsoluteNumbering` INT NOT NULL DEFAULT 0;"),
         new(210,   4, "ALTER TABLE `Metadata_Ordering_Entry` ADD COLUMN `EpisodeNumber` INT NULL;"),
+        new(211,   1, "CREATE INDEX IX_AniDB_Anime_Staff_AnimeID_RoleType ON AniDB_Anime_Staff(AnimeID, RoleType);"),
     ];
 
     #endregion

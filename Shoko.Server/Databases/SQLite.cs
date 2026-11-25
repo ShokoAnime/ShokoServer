@@ -1496,6 +1496,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(187,   2, "ALTER TABLE Metadata_Ordering ADD COLUMN SourceDefaultCountries TEXT NULL;"),
         new(187,   3, "ALTER TABLE Metadata_Ordering ADD COLUMN AbsoluteNumbering INTEGER NOT NULL DEFAULT 0;"),
         new(187,   4, "ALTER TABLE Metadata_Ordering_Entry ADD COLUMN EpisodeNumber INTEGER NULL;"),
+        new(188,   1, "CREATE INDEX IX_AniDB_Anime_Staff_AnimeID_RoleType ON AniDB_Anime_Staff(AnimeID, RoleType);"),
     ];
 
     #endregion
