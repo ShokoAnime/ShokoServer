@@ -2,6 +2,8 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Core.Services;
@@ -209,30 +211,40 @@ public class AnimeSeries : IShokoSeries
 
     #endregion
 
-    private PartialDateOnly? _airDate;
+    // The cached dates are kept boxed: a series is read from many threads at once, and a
+    // `PartialDateOnly?` is too large to be written in one step, so a plain field could be read
+    // half-written. A reference is always published whole.
+    private StrongBox<PartialDateOnly>? _airDate;
 
     public PartialDateOnly? AirDate
     {
         get
         {
-            if (_airDate is not null)
-                return _airDate;
+            if (_airDate is { } cached)
+                return cached.Value;
 
             var anime = AniDB_Anime;
             if (anime?.AirDate is { } airDate)
-                return _airDate = airDate;
+                return Cache(ref _airDate, airDate);
 
             // This will be slower, but hopefully more accurate
             var ep = RepoFactory.AniDB_Episode.GetByAnimeID(AniDB_ID)
                 .Where(a => a.EpisodeType is EpisodeType.Episode && a.LengthSeconds > 0 && a.AirDate is not (null or 0))
                 .MinBy(a => a.AirDate);
-            return _airDate = ep?.GetAirDateAsPartialDateOnly();
+            return ep?.GetAirDateAsPartialDateOnly() is { } episodeAirDate ? Cache(ref _airDate, episodeAirDate) : null;
         }
     }
 
-    private PartialDateOnly? _endDate;
+    private StrongBox<PartialDateOnly>? _endDate;
 
-    public PartialDateOnly? EndDate => _endDate ??= AniDB_Anime?.EndDate;
+    public PartialDateOnly? EndDate
+        => _endDate is { } cached ? cached.Value : AniDB_Anime?.EndDate is { } endDate ? Cache(ref _endDate, endDate) : null;
+
+    private static PartialDateOnly Cache(ref StrongBox<PartialDateOnly>? field, PartialDateOnly value)
+    {
+        Volatile.Write(ref field, new StrongBox<PartialDateOnly>(value));
+        return value;
+    }
 
     public HashSet<int> Years
     {

@@ -112,5 +112,30 @@ public class AnidbEpisodeAirDateTests
         Assert.Equal(new PartialDateOnly(2020, 1, 5), new AnimeSeries { AniDB_ID = AnimeID }.AirDate);
     }
 
+    [Fact]
+    public void ASeriesKeepsItsAnimesDatesOnceTheyAreKnown()
+    {
+        var series = new AnimeSeries { AniDB_ID = AnimeID };
+        using (Scope(null))
+        {
+            Assert.Null(series.AirDate);
+            Assert.Null(series.EndDate);
+        }
+
+        using (new RepoFactoryScope()
+            .With<AniDB_AnimeRepository, int, AniDB_Anime>(
+                anime => anime.AniDB_AnimeID,
+                [new AniDB_Anime { AniDB_AnimeID = 1, AnimeID = AnimeID, AirDate = new PartialDateOnly(2016, 4, 8), EndDate = new PartialDateOnly(2016, 7) }]
+            )
+            .With<AniDB_EpisodeRepository, int, AniDB_Episode>(episode => episode.AniDB_EpisodeID, []))
+        {
+            Assert.Equal(new PartialDateOnly(2016, 4, 8), series.AirDate);
+            Assert.Equal(new PartialDateOnly(2016, 7), series.EndDate);
+        }
+
+        using (Scope(new PartialDateOnly(2020, 1, 5)))
+            Assert.Equal(new PartialDateOnly(2016, 4, 8), series.AirDate);
+    }
+
     #endregion
 }
