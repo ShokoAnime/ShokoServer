@@ -843,6 +843,11 @@ public class FileController(
         {
             rendition = await transformInfo.Transform.GetRenditionAsync(file, context, HttpContext.RequestAborted);
         }
+        catch (StreamResourceException ex)
+        {
+            // A refusal the transform meant, answered as what it says: unsupported, not found or not ready.
+            return StreamRenditionResponses.Refused(Response, ex);
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return InternalError($"Transform \"{transformInfo.Name}\" could not start a rendition: {ex.Message}");
@@ -921,6 +926,11 @@ public class FileController(
         try
         {
             rendition = await transformInfo.Transform.GetRenditionAsync(file, context, HttpContext.RequestAborted);
+        }
+        catch (StreamResourceException ex)
+        {
+            // A refusal the transform meant, answered as what it says: unsupported, not found or not ready.
+            return StreamRenditionResponses.Refused(Response, ex);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -1196,7 +1206,15 @@ public class FileController(
             if (_streamPipelineService.SelectTransform(file, context, source.TransformID) is not { } transformInfo)
                 return null;
 
-            return (file, await transformInfo.Transform.GetRenditionAsync(file, context, cancellationToken));
+            // A transform refusing to start the session again leaves it gone, as if it had never been there.
+            try
+            {
+                return (file, await transformInfo.Transform.GetRenditionAsync(file, context, cancellationToken));
+            }
+            catch (StreamResourceException)
+            {
+                return null;
+            }
         }, HttpContext.RequestAborted);
 
         // A live session may have been started by another user, so check the
