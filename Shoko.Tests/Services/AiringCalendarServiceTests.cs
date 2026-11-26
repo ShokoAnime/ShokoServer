@@ -6,6 +6,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Services;
 using Xunit;
 
@@ -17,6 +18,61 @@ namespace Shoko.Tests.Services;
 /// </summary>
 public class AiringCalendarServiceTests
 {
+    #region Season Bounds
+
+    private static AiringCalendarService Calendar()
+        => new(null!, Mock.Of<IAiringScheduleService>(), Mock.Of<IMetadataService>());
+
+    [Fact]
+    public void SeasonBounds_ForATvSeason_StartFourWeeksBeforeTheWeekOfItsFirstDay()
+        => Assert.Equal(
+            new SeasonBounds(2026, YearlySeason.Fall, new(2026, 8, 31), new(2026, 11, 29)),
+            Calendar().GetSeasonBounds(2026, YearlySeason.Fall, AnimeType.TV)
+        );
+
+    [Fact]
+    public void SeasonBounds_ForAMovieSeason_StartOneWeekBeforeTheWeekOfItsFirstDay()
+        => Assert.Equal(
+            new SeasonBounds(2026, YearlySeason.Fall, new(2026, 9, 21), new(2026, 12, 20)),
+            Calendar().GetSeasonBounds(2026, YearlySeason.Fall, AnimeType.Movie)
+        );
+
+    [Fact]
+    public void SeasonBounds_WithoutAType_AreTheCalendarQuarter()
+        => Assert.Equal(
+            new SeasonBounds(2026, YearlySeason.Fall, new(2026, 10, 1), new(2026, 12, 31)),
+            Calendar().GetSeasonBounds(2026, YearlySeason.Fall)
+        );
+
+    [Theory]
+    [InlineData(2026, 9, 5, AnimeType.TV, 2026, YearlySeason.Fall)]
+    [InlineData(2026, 11, 30, AnimeType.TV, 2027, YearlySeason.Winter)]
+    [InlineData(2026, 11, 29, AnimeType.TV, 2026, YearlySeason.Fall)]
+    [InlineData(2026, 9, 5, AnimeType.Movie, 2026, YearlySeason.Summer)]
+    [InlineData(2026, 12, 21, AnimeType.Movie, 2027, YearlySeason.Winter)]
+    [InlineData(2026, 9, 5, null, 2026, YearlySeason.Summer)]
+    [InlineData(2026, 12, 31, null, 2026, YearlySeason.Fall)]
+    public void SeasonBounds_OfADay_HoldIt(int year, int month, int day, AnimeType? type, int expectedYear, YearlySeason expectedSeason)
+    {
+        var date = new DateOnly(year, month, day);
+
+        var season = Calendar().GetSeasonBounds(date, type);
+
+        Assert.Equal((expectedYear, expectedSeason), (season.Year, season.Season));
+        Assert.InRange(date, season.Start, season.End);
+        Assert.Equal(season, Calendar().GetSeasonBounds(expectedYear, expectedSeason, type));
+    }
+
+    [Fact]
+    public void SeasonBounds_AtTheEdgesOfTheCalendar()
+    {
+        Assert.Equal(DateOnly.MaxValue, Calendar().GetSeasonBounds(9999, YearlySeason.Fall, AnimeType.TV).End);
+        Assert.Throws<ArgumentOutOfRangeException>(() => Calendar().GetSeasonBounds(0, YearlySeason.Winter));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Calendar().GetSeasonBounds(10000, YearlySeason.Winter));
+    }
+
+    #endregion
+
     #region Fixtures
 
     private static readonly (int Year, YearlySeason Season) _fall2026 = (2026, YearlySeason.Fall);

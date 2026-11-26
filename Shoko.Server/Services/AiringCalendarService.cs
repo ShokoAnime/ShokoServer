@@ -9,6 +9,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Services.Airing;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services;
 
@@ -72,6 +73,32 @@ public class AiringCalendarService(
     /// <inheritdoc/>
     public IReadOnlyList<AnidbAnimeSeasonYear> GetSeasonsByYear(AnidbAnimeListOptions? options = null, bool includeImages = false)
         => GroupByYear(catalog.GetSeasons(options, includeImages));
+
+    /// <inheritdoc/>
+    public SeasonBounds GetSeasonBounds(DateOnly date, AnimeType? type = null)
+    {
+        var (year, season) = type is { } animeType ? SeasonCalendar.GetYearlySeason(date, animeType) : SeasonCalendar.GetCalendarQuarter(date);
+        return GetSeasonBounds(year, season, type);
+    }
+
+    /// <inheritdoc/>
+    public SeasonBounds GetSeasonBounds(int year, YearlySeason season, AnimeType? type = null)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(year, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(year, 9999);
+
+        var next = SeasonCalendar.GetNextYearlySeason((year, season));
+        var start = StartOf((year, season), type);
+        var end = next.Year > 9999 ? DateOnly.MaxValue : StartOf(next, type).AddDays(-1);
+        return new(year, season, start, end);
+    }
+
+    /// <summary>
+    ///   The first day of a season: by the type's lead-in, or the first day
+    ///   of its calendar quarter without a type.
+    /// </summary>
+    private static DateOnly StartOf((int Year, YearlySeason Season) season, AnimeType? type)
+        => type is { } animeType ? SeasonCalendar.GetStart(season, animeType) : new(season.Year, 1 + 3 * (int)season.Season, 1);
 
     /// <summary>
     ///   Builds the entries for the anime of a season, in their order.

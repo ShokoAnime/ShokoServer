@@ -97,6 +97,34 @@ public interface IAiringCalendarService
     /// <returns>The years, newest first.</returns>
     IReadOnlyList<AnidbAnimeSeasonYear> GetSeasonsByYear(AnidbAnimeListOptions? options = null, bool includeImages = false);
 
+    /// <summary>
+    ///   The yearly season a day falls in, with its bounds, by the rule the
+    ///   calendar starts entries by.
+    /// </summary>
+    /// <remarks>
+    ///   With a type, a season starts on the Monday of the week holding its
+    ///   first day (1 January, April, July or October), less the type's
+    ///   lead-in: four weeks for TV series and TV shorts, one week for every
+    ///   other type. That is the season an entry of that type starting on the
+    ///   day is filed in. Without a type, the season is the plain calendar
+    ///   quarter, which is how an entry's seasons after its first are counted.
+    /// </remarks>
+    /// <param name="date">The day.</param>
+    /// <param name="type">The type whose lead-in applies, or <c>null</c> for calendar quarters.</param>
+    /// <returns>The season and its bounds.</returns>
+    SeasonBounds GetSeasonBounds(DateOnly date, AnimeType? type = null);
+
+    /// <summary>
+    ///   The days a yearly season runs, by the same rule as
+    ///   <see cref="GetSeasonBounds(DateOnly, AnimeType?)"/>.
+    /// </summary>
+    /// <param name="year">The year.</param>
+    /// <param name="season">The season.</param>
+    /// <param name="type">The type whose lead-in applies, or <c>null</c> for calendar quarters.</param>
+    /// <returns>The season and its bounds. The last season of 9999 runs to <see cref="DateOnly.MaxValue"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="year"/> is not between 1 and 9999.</exception>
+    SeasonBounds GetSeasonBounds(int year, YearlySeason season, AnimeType? type = null);
+
     #endregion
 
     #region Days
