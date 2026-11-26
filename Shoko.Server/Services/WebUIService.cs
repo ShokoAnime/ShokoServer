@@ -58,6 +58,12 @@ public class WebUIService(
 
     private IReadOnlyList<WebUIProviderInfo>? _providerInfos;
 
+    /// <summary>
+    ///   The server's own web UI alone, answered to anything that asks before
+    ///   the plugins handed in theirs; never kept as the registered list.
+    /// </summary>
+    private IReadOnlyList<WebUIProviderInfo>? _earlyProviderInfos;
+
     private ServingTable? _table;
 
     private bool _watching;
@@ -76,6 +82,7 @@ public class WebUIService(
     /// <param name="onFailure">Called for each plugin whose web UI failed.</param>
     public void AddParts(IEnumerable<IWebUIProvider> providers, Action<LocalPluginInfo, Exception> onFailure)
     {
+        bool readEarly;
         lock (_lock)
         {
             if (_providerInfos is not null)
@@ -84,12 +91,14 @@ public class WebUIService(
             logger.LogInformation("Initializing service.");
 
             var providerInfos = new List<WebUIProviderInfo>();
+            // The server's own keeps the entry handed out before, so whoever holds it still holds the registered one.
+            var earlyCore = _earlyProviderInfos?.FirstOrDefault(info => info.Provider == coreProvider);
             foreach (var provider in providers)
             {
                 var pluginInfo = pluginManager.GetPluginInfo(provider.GetType().Assembly)!;
                 try
                 {
-                    providerInfos.Add(CreateInfo(provider, pluginInfo));
+                    providerInfos.Add(provider == coreProvider && earlyCore is not null ? earlyCore : CreateInfo(provider, pluginInfo));
                 }
                 catch (Exception ex) when (pluginInfo.ID != CorePlugin.StaticID)
                 {
@@ -98,13 +107,18 @@ public class WebUIService(
             }
 
             if (!providerInfos.Any(info => info.Provider == coreProvider))
-                providerInfos.Add(CreateInfo(coreProvider, pluginManager.GetPluginInfo(typeof(CorePlugin).Assembly)!));
+                providerInfos.Add(earlyCore ?? CreateInfo(coreProvider, pluginManager.GetPluginInfo(typeof(CorePlugin).Assembly)!));
 
             _providerInfos = providerInfos
                 .OrderByDescending(info => info.Provider == coreProvider)
                 .ThenBy(info => info.PluginInfo.LoadOrder)
                 .ToList();
+            readEarly = _table is not null;
         }
+
+        // What was served before the plugins' web UIs were in is worked out again with them.
+        if (readEarly)
+            Refresh();
     }
 
     private WebUIProviderInfo CreateInfo(IWebUIProvider provider, LocalPluginInfo pluginInfo)
@@ -581,10 +595,11 @@ public class WebUIService(
 
     /// <summary>
     ///   The registered web UIs. Before the plugins handed in theirs, only the
-    ///   server's own is known, and the list is kept that way.
+    ///   server's own is known; that answer is not kept, so the plugins' web
+    ///   UIs are still registered when they come.
     /// </summary>
     private IReadOnlyList<WebUIProviderInfo> GetProviderInfosLocked()
-        => _providerInfos ??= [CreateInfo(coreProvider, pluginManager.GetPluginInfo(typeof(CorePlugin).Assembly)!)];
+        => _providerInfos ?? (_earlyProviderInfos ??= [CreateInfo(coreProvider, pluginManager.GetPluginInfo(typeof(CorePlugin).Assembly)!)]);
 
     #endregion
 

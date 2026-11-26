@@ -96,6 +96,21 @@ public sealed class WebUIServiceTests : IDisposable
     }
 
     [Fact]
+    public void PluginWebUI_IsRegistered_AfterAnEarlierRead()
+    {
+        var webUI = new FakeWebUI("/mine");
+        WebUIProviderInfo? early = null;
+
+        var service = Create(webUI, beforeParts: service => early = service.ActiveProvider);
+
+        Assert.NotNull(early);
+        Assert.IsType<CoreWebUIProvider>(early.Provider);
+        Assert.Same(webUI, service.ActiveProvider.Provider);
+        Assert.Contains(service.GetAvailableProviders(), info => info.Provider == webUI);
+        Assert.Contains(early, service.GetAvailableProviders());
+    }
+
+    [Fact]
     public void PluginWebUI_NotOptingIn_LeavesTheCoreWebUI()
     {
         var webUI = new FakeWebUI("/kiosk") { IsDefaultCandidate = false };
@@ -351,7 +366,7 @@ public sealed class WebUIServiceTests : IDisposable
             IsBundled = isBundled,
         };
 
-    private WebUIService Create(IWebUIProvider webUI, List<LocalPluginInfo>? failed = null)
+    private WebUIService Create(IWebUIProvider webUI, List<LocalPluginInfo>? failed = null, Action<WebUIService>? beforeParts = null)
     {
         var settingsProvider = new Mock<ISettingsProvider>();
         settingsProvider.Setup(provider => provider.GetSettings(It.IsAny<bool>())).Returns(_settings);
@@ -394,6 +409,7 @@ public sealed class WebUIServiceTests : IDisposable
             systemService.Object,
             coreProvider
         );
+        beforeParts?.Invoke(service);
         service.AddParts([coreProvider, webUI], (pluginInfo, _) => failed?.Add(pluginInfo));
         return service;
     }
