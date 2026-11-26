@@ -413,6 +413,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// <param name="page">Page number.</param>
     /// <param name="releaseProviders">Filter to only include releases from certain release providers. Append <c>!</c> to the provider name to exclude the releases</param>
     /// <returns>A sliced part of the results for the current query.</returns>
+    [Authorize("admin")]
     [HttpGet("Release")]
     public ActionResult<ListResult<ReleaseInfo>> GetAllReleases(
         [FromQuery, Range(0, 1000)] int pageSize = 100,
