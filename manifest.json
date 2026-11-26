@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.624",
+      "tag": "v6.0.0-dev.624",
+      "commit": "f0fb865530f4596f10af1e8eb827081626b16b5c",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.624/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-26T17:11:54Z",
+      "releaseNotes": "\n`fix`: **Keep a series' cached air and end dates whole across threads**:\n\n- `AnimeSeries.AirDate` and `EndDate` cached a `PartialDateOnly?` in plain fields; the struct is too large to be written in one step, so a concurrent first read could see it half-written and `ToDateOnly` threw\n- The cached dates are now published through a box, so a reader sees all of a date or none\n\n`fix` (`db`): **Index `AniDB_Anime_Staff` by anime**.\n\n`fix`: **Register the plugins' web UIs after an earlier read of the web UIs**:\n\n- A read of the web UIs before the plugins handed in theirs kept a list of the server's own alone, and the plugins' web UIs were then never registered\n- Answered such a read without keeping it, registered the plugins' web UIs whatever was read before, and worked out what is served again once they are in\n\n`fix` (`api`): **Make the release list admin-only**:\n\n- `GET /api/v3/ReleaseInfo/Release` listed every stored release to any signed-in user, so a user with restricted tags could read the releases of series hidden from them\n- Limited the route to administrators, as the other routes listing the whole release store are\n"
+    },
+    {
       "version": "6.0.0.623",
       "tag": "v6.0.0-dev.623",
       "commit": "020a9a3ea7f7b8cad9f3bc8e9a6c6b08c19fd0e8",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.595/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-10T20:40:12Z",
       "releaseNotes": "\n`fix` (`hashing`): **Carry the 5.x hash types over on upgrade**:\n\n- Added settings migration 33, which takes `Import.Hasher` out of the settings and keeps its `MD5`, `SHA1` and `CRC` in a carry-over file\n- `VideoHashingService` turns those hash types on when it first seeds, then saves the seeded hashes and removes the file\n"
-    },
-    {
-      "version": "6.0.0.594",
-      "tag": "v6.0.0-dev.594",
-      "commit": "aa5af2564afd619670a070026908379c6ea45eaf",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.594/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-10T19:43:56Z",
-      "releaseNotes": "\n`fix` (`plugin`): **Serve embedded plugin images from memory instead of writing them out**:\n\n- A plugin's embedded thumbnail or icon is kept in memory and served through `PackageImageInfo.Data`, so nothing is written beside the plugin (an install under Program Files failed the plugin scan, and with it the start)\n- An image that cannot be read only gets a warning, and the plugin goes on without it\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.130**.\n"
     }
   ]
 }
