@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.625",
+      "tag": "v6.0.0-dev.625",
+      "commit": "a2ebee4636b202f06d7c2abc6d369bc3f87c6a76",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.625/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-11-26T21:14:20Z",
+      "releaseNotes": "\n`feat` (`abstractions`): **Expose the season calendar's bounds**:\n\n- Added two `IAiringCalendarService.GetSeasonBounds` overloads returning `SeasonBounds`: the season a day falls in, and a given season\n- With a type, a season starts by that type's lead-in, as the calendar files entries; without one, it is the calendar quarter\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.144**.\n"
+    },
+    {
       "version": "6.0.0.624",
       "tag": "v6.0.0-dev.624",
       "commit": "f0fb865530f4596f10af1e8eb827081626b16b5c",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.596/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-11-12T14:08:35Z",
       "releaseNotes": "\n`feat` (`buildtools`): **Add manifest write hooks for release extensions**:\n\n- `shoko-build` runs `ShokoBeforeAssetWrite` once per runtime with the pending archive, then `ShokoBeforeReleaseWrite` once per release with the whole release, and takes back only their `extensions`\n- `ShokoAfterReleaseWrite` runs once per release after the manifest is saved\n- Nothing extra runs when no target attaches to them\n\n`chore` (`buildtools`): **Bump build tools version to v0.9.0**.\n"
-    },
-    {
-      "version": "6.0.0.595",
-      "tag": "v6.0.0-dev.595",
-      "commit": "fb53b4e38b8bc8b3f00b6421c247e12dcde175b9",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.595/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-11-10T20:40:12Z",
-      "releaseNotes": "\n`fix` (`hashing`): **Carry the 5.x hash types over on upgrade**:\n\n- Added settings migration 33, which takes `Import.Hasher` out of the settings and keeps its `MD5`, `SHA1` and `CRC` in a carry-over file\n- `VideoHashingService` turns those hash types on when it first seeds, then saves the seeded hashes and removes the file\n"
     }
   ]
 }
