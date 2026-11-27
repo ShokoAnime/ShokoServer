@@ -10,6 +10,8 @@ concurrency:
 
 jobs:
   current_info:
+    # A push whose last commit says [nuget only] publishes the NuGet packages and nothing else.
+    if: ${{ !contains(github.event.head_commit.message, '[nuget only]') }}
     runs-on: ubuntu-24.04
 
     name: Current Information
@@ -163,6 +165,8 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   webui:
+    # A push whose last commit says [nuget only] publishes the NuGet packages and nothing else.
+    if: ${{ !contains(github.event.head_commit.message, '[nuget only]') }}
     runs-on: ubuntu-24.04
 
     name: Download Web UI
@@ -195,6 +199,8 @@ jobs:
           retention-days: 1
 
   plugins:
+    # A push whose last commit says [nuget only] publishes the NuGet packages and nothing else.
+    if: ${{ !contains(github.event.head_commit.message, '[nuget only]') }}
     runs-on: ubuntu-24.04
 
     name: Fetch ${{ matrix.plugin }}
@@ -235,6 +241,8 @@ jobs:
           retention-days: 1
 
   mediainfo:
+    # A push whose last commit says [nuget only] publishes the NuGet packages and nothing else.
+    if: ${{ !contains(github.event.head_commit.message, '[nuget only]') }}
     runs-on: ubuntu-24.04
 
     name: Download MediaInfo

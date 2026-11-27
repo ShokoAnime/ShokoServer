@@ -204,8 +204,8 @@ const commitsList = commitOrder.reverse()
 
         return {
             ...commit,
-            subject: commit.subject.replace(/\[(?:skip|no) *ci\]/ig, "").replace(/\(#\d+\)/g, "").trim().replace(/[\.:]+^/, ""),
-            body: commit.body ? commit.body.replace(/\[(?:skip|no) *ci\]/ig, "").trimEnd() : commit.body,
+            subject: commit.subject.replace(/\[(?:skip|no) *ci\]|\[nuget *only\]/ig, "").replace(/\(#\d+\)/g, "").trim().replace(/[\.:]+^/, ""),
+            body: commit.body ? commit.body.replace(/\[(?:skip|no) *ci\]|\[nuget *only\]/ig, "").trimEnd() : commit.body,
             isSkipCI: /\[(?:skip|no) *ci\]/i.test(commit.subject) || Boolean(commit.body && /\[(?:skip|no) *ci\]/i.test(commit.body)),
             prNumber,
             type,
